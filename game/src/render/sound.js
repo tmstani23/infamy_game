@@ -92,7 +92,9 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     gatlings.set(c.a, { g, parts: [loop] });
   }
   // loudness for something at (x, z) heard at the camera (nothing from other places)
-  const near = (me, x, z, place) => !me || place !== me.place ? 0 : Math.max(0, 1 - Math.hypot(x - me.x, z - me.z) / HEAR);
+  // heard from the middle of the camera's view, as far as the view reaches (me.hear, render/view.js audioFocus); the hero's
+  // own spot (me.hero) only keeps the short range
+  const near = (me, x, z, place) => !me || place !== me.place ? 0 : Math.max(0, 1 - Math.hypot(x - me.x, z - me.z) / (me.hear ?? HEAR));
 
   // a temple bell, made on the spot (no file): a few soft partials that ring out (raid alarm)
   let lastTapTick = -1;
@@ -199,7 +201,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       s.loop.g.gain.setTargetAtTime(TRAIN.run * v, ctx.currentTime, 0.25);
     });
   }
-  let heroPlace = null;
+  let heroPlace = null, gatesBusy = new Set();
 
   return {
     bell,
@@ -230,6 +232,16 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       // through the island gate (Tim 2026-11-06): the hero's place flips between street and world
       // (the camera's place: only a flip into or out of the island counts, not stepping into a room)
       if (me) { if (heroPlace && heroPlace !== me.place && (me.place === 'world' || heroPlace === 'world')) play(pickCustom('gate_open_1'), 0.6); heroPlace = me.place; }
+      // a war camp gate creaks when somebody starts through it (Tim 2026-11-15): once per passing group
+      if (state.tick % 5 === 0) {
+        const busy = new Set();
+        for (const w of Object.values(state.frontier?.wars?.list || {})) for (const b of w.camp?.buildings || []) {
+          if (b.type !== 'gate' || b.stage !== 'built') continue;
+          for (const e of Object.values(state.entities)) if (e.place === 'world' && !e.dead && !e.downed && Math.abs(e.x - b.x) < 3.5 && Math.abs(e.z - b.z) < 3.5) { busy.add(b.id); break; }
+          if (busy.has(b.id) && !gatesBusy.has(b.id)) { const v = near(me, b.x, b.z, 'world'); if (v > 0.05) play(pickCustom('gate_open_1'), 0.5 * v, 0.95 + (state.tick % 7) * 0.02); }
+        }
+        gatesBusy = busy;
+      }
       for (const e of Object.values(state.entities)) {
         if (!e.swing || e.swing.start !== state.tick - 1) continue;
         if (e.cannon) continue;   // the salute's cast plays the boom
@@ -257,8 +269,8 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (h.kill) play(t?.type === 'hero' ? 'knockdown_thud_1' : ['death_thud_1', 'death_thud_2'], 0.6 * v);
       }
       for (const c of state.casts) {
-        if (c.kind === 'gatlingShot' || c.kind === 'gatlingStop') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / (HEAR * 1.5)) ** 2 : 0; gatling(c, Math.max(ear(me), ear(me?.hero))); continue; }
-        if (c.kind === 'cannonFire') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / (HEAR * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero)); variant('cannon_fire_1', 0.85 * v, c.brass ? 1 : 0.88); continue; }   // Tim 2026-11-07: only heard near the hero or the camera, fading fast
+        if (c.kind === 'gatlingShot' || c.kind === 'gatlingStop') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0; gatling(c, Math.max(ear(me), ear(me?.hero))); continue; }
+        if (c.kind === 'cannonFire') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero)); variant('cannon_fire_1', 0.85 * v, c.brass ? 1 : 0.88); continue; }   // Tim 2026-11-07: only heard near the hero or the camera, fading fast
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);
         if(c.kind==='arrow'){ if(buffers.arrow_whoosh_1)variant('arrow_whoosh_1',.4*v,.94+Math.random()*.12); else swordSlash(.16*v); }   // Tim's arrow flight clips (2026-11-12), the old quiet whoosh without them
         if(c.kind==='geishabolt')play('ability_finisher_1',.18*v,1.3);

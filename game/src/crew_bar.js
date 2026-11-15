@@ -18,7 +18,7 @@ const CMDS = [
 ];
 // Mount controls (Tim 2026-11-06): their own headed row under the crew commands
 const MOUNT_CMDS = [
-  { key: 'H', action: 'horse', name: 'Horse', tip: 'On the island: ride your horse (she trots at your run speed) or call her and she gallops to you; Q gets you off (so does this button while riding). Raise horses at a stable in your town and pick which one is yours there. You fight from the saddle with every attack and ability, and stay on until you get off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
+  { key: 'H', action: 'horse', name: 'Horse', tip: 'On the island: ride your horse (she trots at your run speed) or call her and she gallops to you; H again gets you off. Raise horses at a stable in your town and pick which one is yours there. You fight from the saddle with every attack and ability, and stay on until you get off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
   { key: 'Shift', name: 'Sprint', tip: 'On a horse or driving a rickshaw or omnibus: gallop at full speed (horse 3.75x, rickshaw 3.5x, omnibus 3x run speed). Press Shift or click here: it stays on until you press or click again, or get off.', act: () => setSprint(!sprintOn()), need: 'riding' },
   { key: 'Shift+H', action: 'mountGroup', name: 'Mount up', tip: 'On the island: you and your selected crew (or the crew following you) get on horses. Free horses of yours nearby trot over, spare ones come out of your stables. Again: everyone off. Mounted crew follow at horse speed and fight from the saddle; they stay on until told off (Q, their crew card, or this again). Settlers and workers ride the omnibus instead.', act: c => c.mountUpKey(), need: 'horse' },
   { key: 'Q', action: 'ability1', name: 'Omnibus', tip: 'Out on the island: Q inside the omnibus steps everyone out (it parks); Q right beside a parked one gets the hero and his followers back in. Right-click the omnibus does the same (a flashing label shows which); with crew selected, they get in.', act: c => c.omnibusKey(), need: 'bus' },
@@ -156,7 +156,7 @@ export function createCrewBar({ root, game, heroId, crewInput, catalog = null, j
     for (const { b, cmd } of buttons) if (cmd.need === 'bus') setName(b, h?.aboard ? 'Step out' : busNear ? 'Get in' : 'Omnibus');
     const horse = h?.place === 'world' && !!game.mounts?.mountOf(h.owner);
     const crewRiding = Object.values(S).some(e => usable(e) && e.mounted);
-    for (const { b, cmd } of buttons) if (cmd.need === 'horse') setName(b, cmd.key === 'H' ? (h?.mounted ? 'Get off (Q)' : 'Horse') : crewRiding ? 'All off' : 'Mount up');
+    for (const { b, cmd } of buttons) if (cmd.need === 'horse') setName(b, cmd.key === 'H' ? (h?.mounted ? 'Get off' : 'Horse') : crewRiding ? 'All off' : 'Mount up');
     const riding = !!h?.ride;   // on a horse or driving a rickshaw / omnibus
     if (!riding && sprintOn()) setSprint(false);
     for (const { b, cmd } of buttons) if (cmd.need === 'riding') { b.classList.toggle('on', sprintOn()); setName(b, sprintOn() ? 'Galloping' : 'Sprint'); }

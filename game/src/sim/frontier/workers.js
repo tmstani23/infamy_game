@@ -592,7 +592,17 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         if(b.upgrade) {b.tier=(b.tier || 1)+1;delete b.upgrade;}
         else {b.stage='built';delete b.progress;delete b.need;}
         delete b.idle;
-        for(const w of crew){delete w.project;delete w.buildAt;busy.delete(w);waitHere(s,w);}   // done: they wait by it (a bot clan's go back to the camp's own work)
+        for(const w of crew) {
+          delete w.project;delete w.buildAt;
+          // Tim 2026-11-15: a palisade run is one job: its builders go on to the nearest piece of the run still to build
+          const cap=data.war?.builderCap ?? 4,here=currentPoint(w) || [b.x,b.z];
+          const next=b.line ? s.buildings.filter(x=>x.line===b.line && x.stage==='site' && s.workers.filter(o=>o.project===x.id).length<cap)
+            .map(x=>({x,d:distance(here,[x.x,x.z])})).sort((p,q)=>p.d-q.d || compare(p.x.id,q.x.id))[0]?.x : null;
+          const r2=next ? (BD[next.type]?.radius ?? 8)*0.8 : 0,a=next ? Math.atan2(here[1]-next.z,here[0]-next.x) : 0;
+          const route=next ? path(here,[next.x+Math.cos(a)*r2,next.z+Math.sin(a)*r2]) || path(here,[next.x-Math.cos(a)*r2,next.z-Math.sin(a)*r2]) : null;
+          if(route){w.project=next.id;w.buildAt=route.at(-1);w.departure=here;w.trip=moveTrip(route);w.elapsed=0;w.phase=0;delete next.idle;continue;}
+          busy.delete(w);waitHere(s,w);   // done: they wait by it (a bot clan's go back to the camp's own work)
+        }
       }
     }
     return busy;

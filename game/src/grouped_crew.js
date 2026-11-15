@@ -31,6 +31,13 @@ const CSS=`
   #partyframes .veh::after{content:attr(data-out);position:absolute;top:2px;right:3px;padding:1px 5px;border-radius:3px;font:700 9px/13px system-ui;color:#1a1208;background:#e9b44c;box-shadow:0 1px 3px rgba(0,0,0,.6);opacity:0;transform:translateY(-2px);transition:opacity .12s,transform .12s;pointer-events:none}
   #partyframes .veh:hover::after{opacity:1;transform:none}
   #partyframes .veh .vname{font:700 10px system-ui;color:#e9d6a8}
+  #partyframes .crew.grouped .mate.hero{box-shadow:inset 0 0 0 1px #d8b56c}#partyframes .crew.grouped .mate.hero .name{color:#ffd98a}
+  #partyframes .crew.grouped .mate .pip,#partyframes .veh .pip{width:100%;min-width:36px;height:8px;box-sizing:border-box;border-radius:2px;border:1px solid #000;background:linear-gradient(to right,#5fc35a var(--hp),#2a0d0d 0)}
+  #partyframes .crew.grouped .mate.hurt .pip,#partyframes .veh.hurt .pip{background:linear-gradient(to right,#e0473c var(--hp),#2a0d0d 0)}
+  #partyframes .crew.grouped .mate.down .pip{background:#2a0d0d}
+  #partyframes .crew.grouped .mate.jailed .pip{background:repeating-linear-gradient(90deg,#8fb4ff 0 3px,#1a2440 3px 6px)}
+  #partyframes .mate .hpt{font:600 9px/11px system-ui;color:#e9d6a8;text-shadow:0 1px 1px #000;white-space:nowrap}
+  #partyframes .veh .pip{margin-top:2px}
   #partyframes .veh .seats{display:flex;flex-wrap:wrap;gap:2px;margin-top:2px}
   #partyframes .veh .seat{width:13px;height:13px;border-radius:3px;background:#3b4150;color:#fff;font:700 8px/13px system-ui;text-align:center;overflow:hidden}
   #partyframes .veh .seat.empty{background:none;border:1px dashed #555}
@@ -42,6 +49,8 @@ let cssAdded=false;
 export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},watchGroup=()=>{},where=()=>''}) {
   if(!cssAdded&&document.head){cssAdded=true;const st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);}
   const sections=new Map(),pips=new Map(),medical=new Map();
+  // health left as numbers under each bar, mounted or not (Tim 2026-11-15)
+  const hpText=e=>`${Math.max(0,Math.ceil(e.hp))} / ${e.maxHp}`;
   const tabs=document.createElement('div');tabs.className='crew-tabs';
   const tabButtons=[1,2,3,4].map(n=>{const b=document.createElement('button');b.type='button';b.className='crew-tab';b.dataset.n=n;
     b.title=`Control group ${n}: click selects it (same as ${n}); Ctrl+click puts the selected crew in it (same as Ctrl+${n}), again dissolves it`;
@@ -57,15 +66,15 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
       const owner=game.state.entities[heroId]?.owner,O=game.omnibus,all=Object.values(game.state.entities);
       const vs=O?all.filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length).map(v=>v.id):[];
       if(vs.length)send({id:heroId,type:'omnibus',action:'deploy',vehicles:vs});
-      for(const u of all)if(u.owner===owner&&u.type!=='hero'&&u.mounted&&u.ride?.horse&&!u.dead)send({id:heroId,type:'mount',horse:u.ride.horse,units:[u.id]});});
+      for(const u of all)if(u.owner===owner&&u.type!=='hero'&&!u.warTroop&&u.mounted&&u.ride?.horse&&!u.dead)send({id:heroId,type:'mount',horse:u.ride.horse,units:[u.id]});});
     head.addEventListener('click',()=>{
       // a header selects just what its section shows (Tim 2026-11-08): the vehicles header its vehicles, a group
       // header its crew on foot or horseback (riders show in their vehicle's card)
       const owner=game.state.entities[heroId]?.owner,O=game.omnibus;
-      if(id==='vehicles'){crewInput.select([...(O?Object.values(game.state.entities).filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length).map(v=>v.id):[]),
-        ...Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&e.mounted&&!e.dead).map(e=>e.id)]);return;}
+      if(id==='vehicles'){const me=game.state.entities[heroId],out=!!me&&!me.dead&&me.place==='world';crewInput.select([...(out&&!me.aboard?[heroId]:[]),...(out?Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&!e.guard&&!e.warTroop&&!e.dead&&!e.downed&&!e.jailed&&!e.aboard&&!e.mounted&&!e.deployment?.transfer&&key(e)==='hero').map(e=>e.id):[]),...(O?Object.values(game.state.entities).filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length).map(v=>v.id):[]),
+        ...Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&!e.warTroop&&e.mounted&&!e.dead).map(e=>e.id)]);return;}   // war cavalry are troops, not crew (Tim 2026-11-15)
       const crew=Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&!e.guard&&!e.warTroop&&!e.dead&&!e.downed&&!e.jailed&&!e.aboard&&!e.deployment?.transfer&&key(e)===id);
-      crewInput.select(crew.map(e=>e.id));
+      const me=game.state.entities[heroId];crewInput.select([...(id==='hero'&&me&&!me.dead&&!me.aboard?[heroId]:[]),...crew.map(e=>e.id)]);
     });const note=document.createElement('div');note.className='crew-drop-note';el.append(head,list,note);root.appendChild(el);const s={el,head,list,label,note,headKey:''};sections.set(id,s);return s;
   };
   const key=e=>e.type==='settler'?'settlers':crewCommandGroup(game.state,e);   // E1: settlers are their own group
@@ -98,19 +107,26 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     tabButtons.forEach((b,i)=>{const n=sizes[i],key=`${i+1}|${n}`;if(b.dataset.key!==key){b.dataset.key=key;b.textContent=String(i+1);if(n){const c=document.createElement('small');c.textContent=n;b.appendChild(c);}}
       b.classList.toggle('empty',!n);b.classList.toggle('on',!!n&&picked.length>0&&crew.every(e=>(crewInput.groupOf(e.id)===i+1)===selected.has(e.id)));});
     ordered.push(tabs);
-    for(const [id,label]of Object.entries(names)){
-      const members=crew.filter(e=>key(e)===id&&!e.aboard&&!e.mounted);   // riders show in their vehicle's card, horsemen as mounts (Tim 2026-11-08)
+    // out on the frontier there is one group, Frontier crew: the hero first, then his crew on foot, the loaded vehicles and
+    // the riders (Tim 2026-11-15); in the city the hero heads his Hero group as before
+    const hm=game.state.entities[heroId],merged=!!hm&&!hm.dead&&hm.place==='world';let heroNodes=[],heroChosen=0;
+    for(const [id,label0]of Object.entries(names)){
+      const label=id==='hero'&&merged?'Frontier crew':label0;
+      // the hero heads his own group (Tim 2026-11-15: selectable, with his health like the crew, mounted or not)
+      const me=game.state.entities[heroId],withHero=id==='hero'&&me&&!me.dead&&!me.aboard?[me]:[];
+      const members=[...withHero,...crew.filter(e=>key(e)===id&&!e.aboard&&!e.mounted)];   // riders show in their vehicle's card, horsemen as mounts (Tim 2026-11-08)
       const s=createSection(id,label),chosen=members.filter(e=>selected.has(e.id)).length,partial=chosen>0&&chosen<members.length,headKey=`${label}|${members.length}|${partial?chosen:''}`;s.count=members.length;
       if(s.headKey!==headKey){s.headKey=headKey;s.head.textContent=`${label} · ${members.length}`;if(partial){const b=document.createElement('b');b.textContent=` · ${chosen} selected`;s.head.appendChild(b);}}
       const waiting=id==='home'&&members.some(e=>e.deployment?.awaitingAssignment);s.el.classList.toggle('crew-waiting',!!waiting);if(waiting)s.note.textContent='Crew waiting to be assigned';else if(s.note.textContent==='Crew waiting to be assigned')s.note.textContent='';
       s.head.setAttribute('aria-pressed',String(chosen>0));s.el.classList.toggle('selected',chosen>0);
       const nodes=members.map(e=>{
-        let p=pips.get(e.id);if(!p){const el=document.createElement('div'),name=document.createElement('span'),hp=document.createElement('div'),group=document.createElement('b'),status=document.createElement('small');el.className='mate';el.draggable=true;name.className='name';hp.className='pip';group.className='group';status.className='crew-status';el.append(name,hp,group,status);p={el,name,hp,group,status};pips.set(e.id,p);}
-        p.el.dataset.id=e.id;p.name.textContent=unitName(units,e.type);p.hp.style.setProperty('--hp',`${Math.max(0,e.hp/e.maxHp*100)}%`);
+        let p=pips.get(e.id);if(!p){const el=document.createElement('div'),name=document.createElement('span'),hp=document.createElement('div'),group=document.createElement('b'),status=document.createElement('small'),hpt=document.createElement('small');el.className='mate';el.draggable=e.id!==heroId;name.className='name';hp.className='pip';hpt.className='hpt';group.className='group';status.className='crew-status';el.append(name,hp,hpt,group,status);p={el,name,hp,hpt,group,status};pips.set(e.id,p);}
+        p.el.dataset.id=e.id;p.name.textContent=e.id===heroId?(e.mounted?'Hero, mounted':'Hero'):unitName(units,e.type);p.el.classList.toggle('hero',e.id===heroId);p.hp.style.setProperty('--hp',`${Math.max(0,e.hp/e.maxHp*100)}%`);{const t=hpText(e);if(p.hpt.textContent!==t)p.hpt.textContent=t;}
         const status=unitStatus(e,game.state),location=where(e);if(p.status.textContent!==status)p.status.textContent=status;
         p.group.textContent=crewInput.groupOf(e.id)||'';p.el.classList.toggle('picked',selected.has(e.id));p.el.classList.toggle('dim',partial&&!selected.has(e.id));p.el.classList.toggle('down',!!e.downed);p.el.classList.toggle('hurt',e.hp/e.maxHp<.5);
-        p.el.title=`${p.name.textContent} · ${Math.ceil(e.hp)}/${e.maxHp} HP · ${label} · ${status}${location?' · '+location:''}. Click selects and shows them in the target frame; Shift+click adds or removes; double-click also follows with the camera; drag onto another group to transfer.`;return p.el;
-      });syncChildren(s.list,nodes);ordered.push(s.el);
+        p.el.title=`${p.name.textContent} · ${Math.ceil(e.hp)}/${e.maxHp} HP · ${label} · ${status}${location?' · '+location:''}. Click selects and shows them in the target frame; Shift+click adds or removes; double-click also follows with the camera${e.id===heroId?'':'; drag onto another group to transfer'}.`;return p.el;
+      });if(id==='hero'&&merged){heroNodes=nodes;heroChosen=chosen;continue;}   // shown in the Frontier crew section below
+      syncChildren(s.list,nodes);ordered.push(s.el);
     }
     // Frontier crew (Tim 2026-11-07): each loaded rickshaw or omnibus is one card with its shared health and a seat per
     // place (2 or 8): riders show in their seats, empty seats faintly. Clicking the card selects the vehicle.
@@ -118,20 +134,22 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     const vehicles=O?Object.values(game.state.entities).filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length):[];
     // crew on horseback show here too, one Mount card each (Tim 2026-11-08): click selects the rider, right-click gets him off
     const mounts=crew.filter(e=>e.mounted&&e.ride?.kind==='horse'&&!e.dead);
-    const vs=createSection('vehicles','Frontier crew');vs.count=vehicles.length+mounts.length;
-    const vk=`v${vehicles.length}|${mounts.length}`;
-    if(vs.headKey!==vk){vs.headKey=vk;vs.head.title='Click selects them; right-click gets everyone off: out of every vehicle and off every horse';vs.head.textContent=`Frontier crew · ${[vehicles.length?`${vehicles.length} vehicle${vehicles.length===1?'':'s'}`:'',mounts.length?`${mounts.length} mounted`:''].filter(Boolean).join(' · ')}`;}
+    const vs=createSection('vehicles','Frontier crew');vs.count=heroNodes.length+vehicles.length+mounts.length;
+    const vChosen=heroChosen+vehicles.filter(v=>selected.has(v.id)).length+mounts.filter(u=>selected.has(u.id)).length;
+    const vk=`v${merged?'m'+heroNodes.length:''}|${vehicles.length}|${mounts.length}`;
+    if(merged){vs.head.setAttribute('aria-pressed',String(vChosen>0));vs.el.classList.toggle('selected',vChosen>0);}else vs.el.classList.remove('selected');
+    if(vs.headKey!==vk){vs.headKey=vk;vs.head.title='Click selects them; right-click gets everyone off: out of every vehicle and off every horse';vs.head.textContent=`Frontier crew · ${[merged?String(vs.count):'',vehicles.length?`${vehicles.length} vehicle${vehicles.length===1?'':'s'}`:'',mounts.length?`${mounts.length} mounted`:''].filter(Boolean).join(' · ')}`;}
     const vnodes=vehicles.map(v=>{
       let p=pips.get('veh:'+v.id);
       if(!p){const el=document.createElement('div'),name=document.createElement('div'),hp=document.createElement('div'),seats=document.createElement('div');
-        el.className='mate veh';el.dataset.out='⏏ Unload';name.className='vname';hp.className='pip';seats.className='seats';el.append(name,hp,seats);
+        const hpt=document.createElement('small');el.className='mate veh';el.dataset.out='⏏ Unload';name.className='vname';hp.className='pip';hpt.className='hpt';seats.className='seats';el.append(name,hp,hpt,seats);el.hpt=hpt;
         el.addEventListener('mousedown',e=>e.stopPropagation());el.addEventListener('click',()=>{crewInput.select([v.id]);crewInput.look?.(v.id);});el.addEventListener('dblclick',()=>crewInput.watch?.(v.id));   // like a click on it in the world: it shows in the target frame (Tim 2026-11-08)
         // right-click the card: everyone in it steps out, the same as right-clicking it in the world (Tim 2026-11-08)
         el.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();send({id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id]});});
         p={el,name,hp,seats,key:''};pips.set('veh:'+v.id,p);}
       const rs=O.riders(v),n=O.seatsOf(v),k=rs.map(r=>r.id).join(',')+'|'+n;
       p.name.textContent=`${v.type==='rickshaw'?'Rickshaw':'Omnibus'}${v.vorder?.kind==='stay'?' · staying':v.driver?' · driving':''}`;
-      p.hp.style.setProperty('--hp',`${Math.max(0,v.hp/v.maxHp*100)}%`);
+      p.hp.style.setProperty('--hp',`${Math.max(0,v.hp/v.maxHp*100)}%`);{const t=hpText(v);if(p.el.hpt.textContent!==t)p.el.hpt.textContent=t;}
       if(p.key!==k){p.key=k;p.seats.replaceChildren(...Array.from({length:n},(_,i)=>{const r=rs[i],d=document.createElement('span');
         d.className='seat'+(r?(r.type==='hero'?' hero':r.type==='settler'?' settler':''):' empty');if(r){d.textContent=unitName(units,r.type).slice(0,1);d.title=unitName(units,r.type)+(r.type==='hero'?'':' · right-click: only he steps out');
           // right-click one rider's seat: only he steps out and waits (Tim 2026-11-08); the hero's seat lets only him out (Tim 2026-11-10)
@@ -143,18 +161,18 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     const mnodes=mounts.map(u=>{
       let p=pips.get('mnt:'+u.id);
       if(!p){const el=document.createElement('div'),name=document.createElement('div'),hp=document.createElement('div'),seats=document.createElement('div'),d=document.createElement('span');
-        el.className='mate veh mount';el.dataset.out='⏏ Dismount';name.className='vname';hp.className='pip';seats.className='seats';d.className='seat';seats.append(d);el.append(name,hp,seats);
+        const hpt=document.createElement('small');el.className='mate veh mount';el.dataset.out='⏏ Dismount';name.className='vname';hp.className='pip';hpt.className='hpt';seats.className='seats';d.className='seat';seats.append(d);el.append(name,hp,hpt,seats);el.hpt=hpt;
         el.addEventListener('mousedown',e=>e.stopPropagation());el.addEventListener('click',()=>crewInput.select([u.id]));el.addEventListener('dblclick',()=>crewInput.watch?.(u.id));
         el.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();const r=game.state.entities[u.id];if(r?.ride?.horse)send({id:heroId,type:'mount',horse:r.ride.horse,units:[u.id]});});
         p={el,name,hp,seats,d};pips.set('mnt:'+u.id,p);}
       const horse=game.state.entities[u.ride.horse];
       p.name.textContent=`Mount · ${horse?.name||'Horse'}`;p.d.textContent=unitName(units,u.type).slice(0,1);p.d.title=unitName(units,u.type);
-      p.hp.style.setProperty('--hp',`${Math.max(0,u.hp/u.maxHp*100)}%`);
+      p.hp.style.setProperty('--hp',`${Math.max(0,u.hp/u.maxHp*100)}%`);{const t=hpText(u);if(p.el.hpt.textContent!==t)p.el.hpt.textContent=t;}p.el.classList.toggle('hurt',u.hp/u.maxHp<.5);
       p.el.classList.toggle('picked',selected.has(u.id));
-      p.el.title=`${unitName(units,u.type)} on ${horse?.name||'a horse'} · ${Math.ceil(u.hp)}/${u.maxHp} HP. Click selects him: right-click the ground to send him, V to follow, Z to stay, Q or right-click this card to get him off; double-click: the camera follows him.`;
+      p.el.title=`${unitName(units,u.type)} on ${horse?.name||'a horse'} · ${Math.ceil(u.hp)}/${u.maxHp} HP. Click selects him: right-click the ground to send him, V to follow, Z to stay, Shift+H or right-click this card to get him off; double-click: the camera follows him.`;
       return p.el;});
     for(const [id,p]of pips)if((id.startsWith('veh:')&&!vehicles.some(v=>'veh:'+v.id===id))||(id.startsWith('mnt:')&&!mounts.some(u=>'mnt:'+u.id===id))){p.el.remove();pips.delete(id);}
-    syncChildren(vs.list,[...vnodes,...mnodes]);if(vehicles.length||mounts.length)ordered.splice(1,0,vs.el);
+    syncChildren(vs.list,[...heroNodes,...vnodes,...mnodes]);if(merged||vehicles.length||mounts.length)ordered.splice(1,0,vs.el);
     if(clinic.length||jail.length){
       const s=createSection('medical','Unavailable');s.count=clinic.length+jail.length;s.head.textContent=`Clinic ${clinic.length} · Jail ${jail.length}`;s.head.disabled=true;
       const records=[...clinic.map((c,i)=>({key:`clinic-${i}`,name:unitName(units,c.unit),title:`Clinic · ${Math.ceil(c.left)}s`,id:null})),...jail.map(p=>({key:`jail-${p.id}`,name:unitName(units,p.unit),title:`Jail · bail ${p.bail}`,tip:`In jail at the Police HQ: bail ${p.bail} ryo (Space at its door)`,id:p.id}))];   // Tim 2026-11-07: the long line wrapped to 3 lines and crowded the cards

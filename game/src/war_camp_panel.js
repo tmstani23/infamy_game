@@ -81,10 +81,12 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const nice = t => (t || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const PER_PAGE = 8, UPP = 3;
 import { msConcept } from './menu_shell.js';
+import { surrenderFoot, SURRENDER_CSS } from './war_surrender_foot.js';
 import { portrait } from './portraits.js';
 import { SPECIALS } from './sim/special_cast.js';
 import { ABOUT } from './ability_rows.js';
 import { listVehicles } from './vehicles_panel.js';
+import { sharedKeybinds } from './keybinds.js';
 import { drawBuildArea } from './camp_build_area.js';   // 7c-4: one merged build outline, darkened outside
 // what a unit without a cast ability does well (train card hover); the cast abilities come from ability_rows.js
 export const TRAITS = {
@@ -105,7 +107,7 @@ export const DOES = {
   lumber_camp: () => 'Camp workers drop timber here.', quarry: () => 'Camp workers drop stone here.',
 };
 
-export function createWarCampPanel({ game, heroId, view, catalog, frontierData, units = null, send, blocked = () => false, onStart = () => {}, buildUI = () => null }) {
+export function createWarCampPanel({ game, heroId, view, catalog, frontierData, units = null, send, blocked = () => false, onStart = () => {}, buildUI = () => null, openTerms = () => false }) {
   // 7c-4: the Workers tab shows the town worker pane for the camp (frontier_build_ui.js campWorkersHtml); its styles are
   // written for #townpanel in menu_shell.css, so they are copied once for #warcamp .campworkers
   let workerCss = false;
@@ -116,7 +118,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       for (const r of rules || []) if (r.selectorText?.includes('#townpanel') && /\.(w[a-z]+|workerroster|hint|harvestline)\b/.test(r.selectorText)) out.push(r.cssText.replaceAll('#townpanel', '#warcamp .campworkers')); }
     const st = document.createElement('style'); st.textContent = out.join('\n') + '\n#warcamp .campworkers{margin-top:8px}'; document.head.appendChild(st);
   }
-  const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
+  const style = document.createElement('style'); style.textContent = CSS + SURRENDER_CSS('#warcamp'); document.head.append(style);
   const war = () => game.frontier?.war;
   const W = () => war()?.data || frontierData?.war || {};
   // Tim 2026-11-13: camp workers in training show in the hall menu like the town's (a bar, the seconds left, how many more)
@@ -131,6 +133,8 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   const artName = type => frontierData?.townArt?.[type] || type;
   const artUrl = type => { const n = artName(type), kind = catalog?.items?.[n]?.kind || 'buildings'; return `art/${kind}/${n}.png`; };
   const images = new Map();
+  const lineArtUrl = (type, z) => { const n = frontierData?.townArt?._campLine?.[type]?.[z ? 'z' : 'x']; return n ? `art/${catalog?.items?.[n]?.kind || 'buildings'}/${n}.png` : artUrl(type); };
+  const imageAt = u => { if (!images.has(u)) { const i = new Image(); i.src = u; images.set(u, i); } return images.get(u); };
   const imageOf = type => { const u = artUrl(type); if (!images.has(u)) { const i = new Image(); i.src = u; images.set(u, i); } return images.get(u); };
   const chips = (cost, camp) => Object.entries(cost || {}).filter(([, v]) => v).map(([r, v]) => {
     const has = r === 'ryo' ? camp?.chest ?? Infinity : camp?.stock?.[r] ?? Infinity;
@@ -138,7 +142,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   }).join('');
 
   const root = document.createElement('div'); root.id = 'warcamp'; root.hidden = true; document.body.append(root);
-  let open = null, bid = null, tab = 'build', page = 0, tpage = 0, sig = '', why = '';
+  let open = null, bid = null, tab = 'build', page = 0, tpage = 0, sig = '', why = '', confirm = false;
   let stab = 'train', ypage = 0;   // a camp stable's own tabs: Train (cavalry) and Yours (your horses and vehicles, Tim 2026-11-14)
   const counts = {};   // typed train / hire counts by box, kept across refreshes
   function show(id, buildingId = null) { if (!rec(id) || rec(id).attacker !== hero()?.owner) return false; const b = buildingId && rec(id).camp.buildings.find(x => x.id === buildingId); bid = b && b.type !== 'camp_hall' ? b.id : null; open = id; tab = 'build'; stab = 'train'; page = tpage = ypage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true; }
@@ -158,7 +162,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const faction = clan?.faction, ST = game.frontier?.structures, stOf = x => ST?.find?.(`c|${open}|${x.id}`) || null;
     const yoursOn = bld?.type === 'stable' && bld.stage === 'built', mineV = yoursOn ? listVehicles(game, heroId) : [];
     const workersH = !bld && tab === 'workers' ? (ensureWorkerCss(), buildUI()?.campWorkersHtml?.(open) || '<div class="small" style="padding:8px 0">The worker list is not ready yet.</div>') : '';
-    const next = JSON.stringify([open, bid, tab, page, tpage, why, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length, workerLeft(c),
+    const next = JSON.stringify([open, bid, tab, page, tpage, why, confirm, !!w.terms, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length, workerLeft(c),
       c.buildings.map(b => [b.id, b.stage, Math.floor(100 * (b.upgrade || b).progress / Math.max(1, (b.upgrade || b).need) || 0), b.queue?.length || 0, b.tier || 1, builders(b.id)]), list.map(x => x.ok), placing?.kind,
       bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0, workersH, stab, ypage, mineV.map(v => [v.e.id, v.status, v.where])]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
     if (next === sig) return;
@@ -228,7 +232,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
           <div class="pic"><img src="${esc(artUrl(x.type))}" alt=""></div><div class="t">${esc(nice(x.type))}</div>
           ${x.need.length ? `<div class="lockline">Needs ${esc(x.need.map(n => n.replace(/^a built |^the /, '')).join(', '))}</div>` : `<div class="cost">${chips(x.cost, c)}</div>`}</div>`;
       }).join('')}</div>
-      <div class="foot"><span class="small">Page ${page + 1} of ${pages}</span><span><button data-page="-1"${page ? '' : ' disabled'}>Prev</button> <button data-page="1"${page < pages - 1 ? '' : ' disabled'}>Next</button></span></div>
+      <div class="foot"><span class="small">Page ${page + 1} of ${pages}</span><span><button data-erase="1" title="Eraser: click a camp building, wall piece, gate or building site to take it down. Everything it cost comes back to the war chest; a ruin is cleared for nothing. The camp hall stays. Keeps erasing until you right-click or press Esc.">Eraser</button> <button data-page="-1"${page ? '' : ' disabled'}>Prev</button> <button data-page="1"${page < pages - 1 ? '' : ' disabled'}>Next</button></span></div>
       <div class="sec"><span>Under construction</span><b>select workers, right-click the site</b></div>
       ${sites.length ? sites.slice(0, 3).map(b => { const j = b.upgrade || b, n = builders(b.id);
         return `<div class="site"><div class="thumb"><img src="${esc(artUrl(b.type))}" alt=""></div><div><div style="font-weight:600">${esc(b.upgrade ? 'Camp hall upgrade' : nice(b.type))}</div><div class="prog"><i style="width:${Math.round(100 * (j.progress || 0) / Math.max(1, j.need))}%"></i></div></div>
@@ -240,7 +244,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     } else if (tab === 'chest') {
       body = `<div class="chestbox"><div class="chestcoin" title="Ryo for troops and camp workers"><b>${Math.floor(c.chest || 0)}</b><span>ryo in the war chest</span></div>
         <div><div style="font-size:16px;color:#f3e3bd">What it pays for</div><div class="small" style="margin-top:4px">Every troop you train at a camp building and every camp worker you hire is paid from here. Camp buildings are paid in timber and stone from the camp stores instead.</div>
-        <div style="font-size:16px;color:#f3e3bd;margin-top:12px">Where the ryo comes from</div><div class="small" style="margin-top:4px">What you packed for war at the capital when you planted the banner, and refunds from cancelled training. Only this war can spend it; what is left comes home when the war ends.</div></div></div>`;
+        <div style="font-size:16px;color:#f3e3bd;margin-top:12px">Where the ryo comes from</div><div class="small" style="margin-top:4px">What you packed for war at the capital when you planted the banner, and refunds from cancelled training. Only this war can spend it; what is left comes home when the war ends.</div></div></div>${surrenderFoot({ side: 'attacker', town: town?.name || 'the town', terms: !!w.terms, confirm })}`;
     } else {
       const H = W().hallUpgrade || {}, unlocks = Object.entries(B).filter(([, d]) => (d?.needs || []).some(n => n === 'upgrade' || n === 'tier2')).map(([t]) => t);
       body = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
@@ -273,10 +277,12 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   root.addEventListener('dblclick', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s) ui.doubleClick?.(a.dataset, s); });
   root.addEventListener('change', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.change?.(a.dataset, e.target.value, s)) { sig = ''; fill(); } });
   root.addEventListener('click', e => {
-    const b = e.target.closest?.('[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-hire]'); if (!b || !open) return;
+    const b = e.target.closest?.('[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-erase],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-hire],[data-surrender],[data-terms]'); if (!b || !open) return;
     const d = b.dataset; why = ''; sig = '';
     if (d.close) return close();
-    if (d.tab) tab = d.tab;
+    if (d.terms) { const id = open; close(); openTerms(id); return; }
+    if (d.surrender) { confirm = d.surrender === 'ask'; if (d.surrender === 'yes') { send({ id: heroId, type: 'frontier', action: 'warSurrender', war: open }); close(); return; } }
+    else if (d.tab) { tab = d.tab; confirm = false; }
     else if (d.stab) { stab = d.stab; ypage = 0; }
     else if (d.ypage) ypage = Math.max(0, ypage + Number(d.ypage));
     else if (d.takeout) send({ id: heroId, type: 'garage', action: 'takeout', unit: d.takeout, at: `war:${open}` });
@@ -285,6 +291,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     else if (d.page) page = Math.max(0, page + Number(d.page));
     else if (d.tpage) tpage = Math.max(0, tpage + Number(d.tpage));
     else if (d.build) { const x = (war()?.campBuildList(open) || []).find(y => y.type === d.build); if (x?.need.length) why = `Needs ${x.need.join(' and ')}`; else startPlacing(open, d.build); }
+    else if (d.erase) startPlacing(open, 'eraser');
     else if (d.cancel) send({ id: heroId, type: 'frontier', action: 'campCancel', war: open, building: d.cancel });
     else if (d.train) { const n = count(`t:${d.train}:${d.unit}`); if (n) send({ id: heroId, type: 'frontier', action: 'campTrain', war: open, building: d.train, unit: d.unit, count: n }); else why = 'Type how many'; }
     else if (d.untrain) send({ id: heroId, type: 'frontier', action: 'campUntrain', war: open, building: d.untrain });
@@ -299,6 +306,9 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   ghost.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:21'; hint.id = 'warcamphint';
   ghost.hidden = hint.hidden = true; document.body.append(ghost, hint);
   let placing = null, mouse = null, preview = null, key = '';
+  const keybinds = sharedKeybinds();
+  // a gold diamond where a run or a gate has locked onto the end of a wall (Tim 2026-11-15)
+  const lockMark = (ctx, q) => { if (!q) return; const c = view.unitToScreen(q.x, q.z, 0); ctx.beginPath(); ctx.moveTo(c.x, c.y - 9); ctx.lineTo(c.x + 11, c.y); ctx.lineTo(c.x, c.y + 9); ctx.lineTo(c.x - 11, c.y); ctx.closePath(); ctx.fillStyle = '#ffd34d55'; ctx.fill(); ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 2.5; ctx.stroke(); };
   function startPlacing(warId, kind) { placing = { war: warId, kind }; root.hidden = true; key = ''; draw(); }
   function cancelPlacing(reopen = true) { const was = placing; placing = null; mouse = null; preview = null; key = ''; ghost.hidden = hint.hidden = true; if (reopen && was && open) { root.hidden = false; sig = ''; fill(); } }
   const ring = (ctx, x, z, r, stroke, width, dash = []) => {
@@ -315,28 +325,47 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     if (!mouse) { hint.hidden = true; return; }
     const p = view.screenToGround(mouse.x, mouse.y); if (!p) { hint.hidden = true; return; }
     const next = `${Math.round(p.x)},${Math.round(p.z)}|${game.state.frontier?.econTick}|${w.camp.buildings.length}|${placing.from ? `${placing.from.x},${placing.from.z}` : ''}`;
+    // the Eraser (Tim 2026-11-15): the camp building under the cursor shows red with what comes back
+    if (placing.kind === 'eraser') {
+      const nextE = `${Math.round(p.x * 2)},${Math.round(p.z * 2)}|${game.state.frontier?.econTick}|${w.camp.buildings.length}`;
+      if (nextE !== key) { key = nextE; preview = war()?.campEraseCheck(placing.war, p); }
+      const b = preview?.building && w.camp.buildings.find(x => x.id === preview.building), color = preview?.ok ? '#ff655f' : '#c9b68a';
+      if (b) { const r = W().buildings?.[b.type]?.line ? 2.4 : W().buildings?.[b.type]?.radius ?? 8, c0 = view.unitToScreen(b.x, b.z, 0), c1 = view.unitToScreen(b.x + r, b.z, 0), px = Math.max(8, Math.abs(c1.x - c0.x));
+        ctx.beginPath(); ctx.ellipse(c0.x, c0.y, px, px * 0.45, 0, 0, Math.PI * 2); ctx.fillStyle = color + '44'; ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke(); }
+      const back = Object.entries(preview?.refund || {}).filter(([, v]) => v).map(([r, v]) => `${v} ${r}`).join(', ');
+      hint.hidden = false; hint.style.color = color; hint.style.borderColor = color;
+      hint.textContent = preview?.ok ? `Erase the ${nice(preview.type)}: ${back ? `${back} back` : 'nothing back for a ruin'}. Left-click erases, right-click or Esc stops.` : `Eraser: ${preview?.reason || 'point at a camp building'}. Right-click or Esc stops.`;
+      hint.style.left = `${Math.max(8, Math.min(innerWidth - 320, mouse.x + 18))}px`; hint.style.top = `${Math.max(8, Math.min(innerHeight - 100, mouse.y + 18))}px`;
+      return;
+    }
     // a palisade is a line (checkpoint 6-6): the first click sets the start, the second the end; every piece is shown
     if (placing.kind === 'palisade') {
       const a = placing.from || { x: Math.round(p.x), z: Math.round(p.z) }, b = { x: Math.round(p.x), z: Math.round(p.z) };
       if (next !== key) { key = next; preview = war()?.campLineCheck(placing.war, a, b); }
       const color = preview?.ok ? '#65ef88' : '#ff655f';
       (preview?.points || []).forEach((q, k) => { const c = view.unitToScreen(q.x, q.z, 0); ctx.beginPath(); ctx.ellipse(c.x, c.y, 7, 4, 0, 0, Math.PI * 2); ctx.fillStyle = (preview.bad === k ? '#ff655f' : color) + '66'; ctx.fill(); ctx.strokeStyle = preview.bad === k ? '#ff655f' : color; ctx.lineWidth = 2; ctx.stroke(); });
-      if (placing.from) { const c0 = view.unitToScreen(a.x, a.z, 0), c1 = view.unitToScreen(b.x, b.z, 0); ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(c1.x, c1.y); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]); }
+      lockMark(ctx, preview?.locks?.start); lockMark(ctx, preview?.locks?.end);
+      const locked = !placing.from ? (preview?.locks?.start ? ' Locked onto the wall end.' : '') : preview?.locks?.end ? (preview.locks.end.level ? ' End level with the other wall.' : ' End locked onto the wall.') : '';
+      if (placing.from && !preview?.locks?.start) { const c0 = view.unitToScreen(a.x, a.z, 0), c1 = view.unitToScreen(b.x, b.z, 0); ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(c1.x, c1.y); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]); }
       const costText = Object.entries(preview?.cost || {}).map(([r, v]) => `${v} ${r}`).join(', ');
       hint.hidden = false; hint.style.color = color; hint.style.borderColor = color;
-      hint.textContent = !placing.from ? (preview?.ok ? 'Palisade: left-click where the line starts. Right-click or Esc cancels.' : `${preview?.reason || 'Not here'}. Right-click or Esc cancels.`)
-        : preview?.ok ? `Palisade: ${preview.points.length} pieces, ${costText}. Left-click to build the line, Shift carries on from its end, right-click or Esc cancels.` : `${preview?.reason || 'Not here'}. Right-click or Esc cancels.`;
+      hint.textContent = !placing.from ? (preview?.ok ? `Palisade: left-click where the line starts.${locked} Right-click or Esc cancels.` : `${preview?.reason || 'Not here'}. Right-click or Esc cancels.`)
+        : preview?.ok ? `Palisade: ${preview.points.length} pieces, ${costText}. Left-click to build the line, Shift carries on from its end, right-click or Esc cancels.${locked}` : `${preview?.reason || 'Not here'}. Right-click or Esc cancels.`;
       hint.style.left = `${Math.max(8, Math.min(innerWidth - 320, mouse.x + 18))}px`; hint.style.top = `${Math.max(8, Math.min(innerHeight - 100, mouse.y + 18))}px`;
       return;
     }
-    if (next !== key) { key = next; preview = war()?.campCheck(placing.war, placing.kind, p); }
+    const gate = placing.kind === 'gate', nextG = gate ? `${next}|${Math.round(p.x * 2)},${Math.round(p.z * 2)}|${placing.turn ? 't' : ''}` : next;
+    if (nextG !== key) { key = nextG; preview = war()?.campCheck(placing.war, placing.kind, p, { turn: !!placing.turn }); }
     const color = preview?.ok ? '#65ef88' : '#ff655f', r = W().buildings?.[placing.kind]?.radius ?? 8;
-    const c0 = view.unitToScreen(p.x, p.z, 0), c1 = view.unitToScreen(p.x + r, p.z, 0), px = Math.max(8, Math.abs(c1.x - c0.x));
+    const at = gate && preview?.point ? preview.point : p;   // a gate shows where it will stand: in the wall, on its end, or under the cursor
+    const c0 = view.unitToScreen(at.x, at.z, 0), c1 = view.unitToScreen(at.x + r, at.z, 0), px = Math.max(8, Math.abs(c1.x - c0.x));
     ctx.beginPath(); ctx.ellipse(c0.x, c0.y, px, px * 0.45, 0, 0, Math.PI * 2); ctx.fillStyle = color + '33'; ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
-    const img = imageOf(placing.kind);
+    const img = gate ? imageAt(lineArtUrl('gate', Math.abs(Math.sin(preview?.rot || 0)) > 0.7)) : imageOf(placing.kind);
+    if (gate) lockMark(ctx, preview?.lock);
     if (img.complete && img.naturalWidth) { const wpx = px * 2.2, hpx = wpx * img.naturalHeight / img.naturalWidth; ctx.globalAlpha = 0.65; ctx.drawImage(img, c0.x - wpx / 2, c0.y - hpx * 0.8, wpx, hpx); ctx.globalAlpha = 1; }
     hint.hidden = false; hint.style.color = color; hint.style.borderColor = color;
-    hint.textContent = preview?.ok ? `${nice(placing.kind)}: left-click to place, Shift keeps placing, right-click or Esc cancels.` : `${preview?.reason || 'Not here'}. Right-click or Esc cancels.`;
+    const turnKey = keybinds.label('rotateBuilding', true) || 'R';
+    hint.textContent = preview?.ok ? gate ? `Gate: ${preview.replaces?.length ? 'set into the wall' : preview.lock ? 'locked onto the wall end' : 'standing alone'}. ${preview.replaces?.length ? '' : `${turnKey} turns it. `}Left-click to place, Shift keeps placing, right-click or Esc cancels.` : `${nice(placing.kind)}: left-click to place, Shift keeps placing, right-click or Esc cancels.` : `${preview?.reason || 'Not here'}. Right-click or Esc cancels.`;
     hint.style.left = `${Math.max(8, Math.min(innerWidth - 320, mouse.x + 18))}px`; hint.style.top = `${Math.max(8, Math.min(innerHeight - 100, mouse.y + 18))}px`;
   }
   const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
@@ -346,6 +375,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     if (e.button === 2) { cancelPlacing(); consume(e); return; }
     if (e.button !== 0) return;
     consume(e); mouse = { x: e.clientX, y: e.clientY }; key = ''; draw();
+    if (placing.kind === 'eraser') { if (preview?.ok) { send({ id: heroId, type: 'frontier', action: 'campErase', war: placing.war, building: preview.building }); key = ''; } return; }
     if (placing.kind === 'palisade') {
       const p = view.screenToGround(e.clientX, e.clientY); if (!p) return;
       const here = { x: Math.round(p.x), z: Math.round(p.z) };
@@ -356,11 +386,15 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       return;
     }
     if (!preview?.ok) return;
-    send({ id: heroId, type: 'frontier', action: 'campPlace', war: placing.war, kind: placing.kind, x: preview.point.x, z: preview.point.z });
+    // a gate goes by the cursor spot again, so the sim makes the same pick the preview showed
+    if (placing.kind === 'gate') { const p = view.screenToGround(e.clientX, e.clientY); if (!p) return; send({ id: heroId, type: 'frontier', action: 'campPlace', war: placing.war, kind: 'gate', x: p.x, z: p.z, turn: !!placing.turn }); }
+    else send({ id: heroId, type: 'frontier', action: 'campPlace', war: placing.war, kind: placing.kind, x: preview.point.x, z: preview.point.z });
     if (!e.shiftKey) { cancelPlacing(false); close(); }   // 7c: placing closes the build menu (Tim 2026-11-12)
   }, { capture: true });
   addEventListener('contextmenu', e => { if (placing && e.target?.closest?.('canvas#view')) consume(e); }, { capture: true });
   addEventListener('keydown', e => { if (placing && e.code === 'Escape') { cancelPlacing(); consume(e); } }, { capture: true });
+  // R (Turn a building while placing) turns a camp gate between the two wall directions (Tim 2026-11-15)
+  addEventListener('keydown', e => { if (placing?.kind === 'gate' && !blocked() && !e.repeat && !e.target?.closest?.('input,select,textarea') && keybinds.lookup(e, ['build']) === 'rotateBuilding') { placing.turn = !placing.turn; key = ''; draw(); consume(e); } }, { capture: true });
   addEventListener('blur', () => { if (placing) cancelPlacing(); });
 
   let seen = 0;

@@ -19,7 +19,7 @@ function match(mode) {
   return { g, hero: g.state.entities[m.heroId] };
 }
 const W = frontier.war, dayTicks = Math.round((settings.dayNight.daySeconds + settings.dayNight.nightSeconds) * 20);
-assert.ok(W && W.circleRadius === 900 && W.cooldownDays === 6, 'war data block');
+assert.ok(W && W.circleRadius === 900 && W.cooldownDays === 3, 'war data block');
 
 const { g, hero } = match('campaign');
 const war = g.frontier.war, fw = g.frontier.world;
@@ -384,7 +384,7 @@ assert.ok(!Object.values(g.state.entities).some(e => e.worker && e.town === rec.
 assert.equal(war.cooldownDays('enemyTown'), W.cooldownDays);
 for (let i = 0; i < 20; i++) g.step([]);
 assert.ok(!Object.values(g.state.entities).some(e => e.warTroop === rec.id), 'troops disband when the war ends');
-rejected('cooldown', /under truce for 6 more days/, 'enemyTown', ex + mid, ez);
+rejected('cooldown', /under truce for 3 more days/, 'enemyTown', ex + mid, ez);
 g.state.tick += dayTicks * (W.cooldownDays - 1);
 rejected('cooldown last day', /1 more day\b/, 'enemyTown', ex + mid, ez);
 g.state.tick += dayTicks;

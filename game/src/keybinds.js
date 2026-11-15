@@ -73,7 +73,7 @@ export const KEY_ACTIONS = [
   A('hideUi', 'Hide the HUD', 'Interface', 'F2'),
   A('fullscreen', 'Fullscreen', 'Interface', [], { fixed: true, text: 'Alt + Enter' }),
   // Building (only while placing, or with workers selected)
-  A('rotateBuilding', 'Turn a station while placing', 'Building', 'KeyR', { context: 'build' }),
+  A('rotateBuilding', 'Turn a station or camp gate while placing', 'Building', 'KeyR', { context: 'build' }),
   A('workersHold', 'Selected workers hold', 'Building', 'KeyZ', { context: 'build' }),
 ];
 const BY_ID = new Map(KEY_ACTIONS.map(a => [a.id, a]));

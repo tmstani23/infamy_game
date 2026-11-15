@@ -711,7 +711,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     audioFocus(state, followId, selected = []) {
       const h = state.entities[followId];
       if (!h) return null;
-      return { x: camTarget.x, z: camTarget.z, place: cameraPlace(h), hero: { x: h.x, z: h.z, place: h.place } };
+      // hear: how far sounds carry from the middle of the view, so what is on screen is heard when zoomed out too (Tim 2026-11-15)
+      return { x: camTarget.x, z: camTarget.z, place: cameraPlace(h), hear: Math.min(140, Math.max(24, camera.right * 0.9)), hero: { x: h.x, z: h.z, place: h.place } };
     },
     // page pixel -> ground point { x, z }
     screenToGround(px, py) {

@@ -1,10 +1,10 @@
 // News callouts each sim tick: the big moments in state.news shown to this player (moved out of main.js,
 // phase 7 split, 2026-10-29). Reads the state only; never sends commands.
 import { sweepArrivalVisible } from './render/sweep_trail.js';
-export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: calloutRaw, contractCallout: contractRaw, minimap: mini, gameMap: bigMap, view, presentation, showResults, townAlert = () => {} }) {
+export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: calloutRaw, contractCallout: contractRaw, minimap: mini, gameMap: bigMap, view, presentation, showResults, townAlert = () => {}, warAlert = () => {} }) {
   // Out on the island (Tim 2026-11-06) the lieutenant has the city: city alerts stay quiet, only major capital
   // losses show, marked "Capital:", plus one warning when the clan falls below half the businesses it held on leaving
-  const AWAY_OK = new Set(['town', 'worldCampCleared', 'renown', 'leaderBounty', 'unstuck', 'seasonEnd', 'hallChannel', 'hallChannelReset', 'hallChannelStop', 'warEnded']);
+  const AWAY_OK = new Set(['town', 'worldCampCleared', 'renown', 'leaderBounty', 'unstuck', 'seasonEnd', 'hallChannel', 'hallChannelReset', 'hallChannelStop', 'warEnded', 'warSurrender', 'warOffer', 'warAnswer', 'warNoTerms']);
   let hallResetAt = -1e9;   // "starts over" shows at most once every 3 s while he is being hit
   const major = (n, me) => (n.kind === 'raidWon' && n.defender === me) || (n.kind === 'quarterLost' && n.clan === me) || (n.kind === 'hqSuppressed' && n.defender === me);
   let prefix = '', quiet = false, heldOnLeaving = null, warned = false;
@@ -55,11 +55,23 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: callou
         if (n.kind === 'hallChannelStop' && n.clan === me && n.why !== 'stopped') callout('Taking the hall broke off', 'loss', 3000);
         if (n.kind === 'hallChannelStop' && foe) callout(`Their hero stopped taking your ${hall}`, 'win', 4000);
       }
+      // war 8c (sim/frontier/war_terms.js): a surrender, its offers and answers; the terms window opens by itself (war_terms_panel.js)
+      if (n.kind === 'warSurrender' && (n.attacker === me || n.defender === me)) {
+        const mineS = n.clan === me, town = n.townName || 'the town';
+        callout(mineS ? `You surrendered at ${town}: a ceasefire is on, offer your terms` : `${boss} surrender at ${town}! A ceasefire is on: wait for their terms`, mineS ? 'loss' : 'win', 7000);
+        mini.ping(n.x, n.z); bigMap.ping(n.x, n.z); warAlert();
+      }
+      if (n.kind === 'warOffer' && n.to === me) { callout(`${boss} offer ${n.amount} ryo to end the war`, 'win', 7000); warAlert(); }
+      if (n.kind === 'warAnswer' && n.to === me) { callout(n.answer === 'accept' ? `${boss} accepted ${n.amount} ryo: the war is over` : n.answer === 'no' ? `${boss} said no to ${n.amount} ryo: offer again or leave` : `${boss} refused your terms for good`, n.answer === 'accept' ? 'win' : 'loss', 7000); warAlert(); }
+      if (n.kind === 'warNoTerms' && n.to === me) { callout(`${n.townName || 'The town'} is yours to take: choose capture, sack or burn`, 'win', 8000); mini.ping(n.x, n.z); bigMap.ping(n.x, n.z); }
       if (n.kind === 'warEnded') {
-        const clanName = id => game.state.clans[id]?.name || 'A rival clan', town = n.townName || 'the town', won = n.result === 'campFell' ? n.defender === me : n.attacker === me, lost = n.result === 'campFell' ? n.attacker === me : n.defender === me;
+        const clanName = id => game.state.clans[id]?.name || 'A rival clan', town = n.townName || 'the town', defWins = n.result === 'campFell' || n.result === 'attackerSurrendered', party = n.attacker === me || n.defender === me,
+          won = n.result === 'ransomed' ? n.by === me : defWins ? n.defender === me : n.attacker === me, lost = n.result === 'ransomed' ? party && n.by !== me : defWins ? n.attacker === me : n.defender === me;
         const text = n.result === 'captured' ? (won ? `${town} is yours! War chest returned: ${n.chest} ryo` : lost ? `${town} was captured by ${clanName(n.attacker)}` : `${clanName(n.attacker)} captured ${town}`)
           : n.result === 'sacked' ? (won ? `${town} sacked: ${n.ryo || 0} ryo taken` : lost ? `${town} was sacked: ${n.ryo || 0} ryo lost` : `${clanName(n.attacker)} sacked ${town}`)
           : n.result === 'burned' ? (won ? `${town} burned to the ground` : lost ? `${town} was burned to the ground by ${clanName(n.attacker)}` : `${clanName(n.attacker)} burned ${town} to the ground`)
+          : n.result === 'ransomed' ? (n.by === me ? `Ransom taken: the war on ${town} is over` : (n.attacker === me || n.defender === me) ? `Ransom paid: the war on ${town} is over` : `The war on ${town} ended with a ransom`)
+          : n.result === 'attackerSurrendered' ? (n.defender === me ? `${clanName(n.attacker)} gave up the war on ${town}${n.chest ? `: ${n.chest} ryo of their war chest is yours` : ''}` : n.attacker === me ? `You gave up the war on ${town}: your war chest is lost` : `${clanName(n.attacker)} gave up the war on ${town}`)
           : n.result === 'campFell' ? (won ? `Their war camp fell! ${town} is safe${n.chest ? ` and ${n.chest} ryo of their war chest is yours` : ''}` : lost ? `Your war camp fell: the war on ${town} is lost` : `${clanName(n.defender)} broke the siege of ${town}`) : '';
         if (text) callout(text, won ? 'win' : lost ? 'loss' : 'news', 8000);
       }

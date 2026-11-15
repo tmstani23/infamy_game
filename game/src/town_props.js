@@ -134,7 +134,7 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
   return out;
 }
 
-export function townProps(towns, townArt, townLights = {}) {
+export function townProps(towns, townArt, townLights = {}, openGates = null) {
   const out = [];
   for (const s of towns) {
     const lighting = townLights.automatic;
@@ -176,7 +176,9 @@ export function townProps(towns, townArt, townLights = {}) {
         out.push({ key: `${s.id}:${b.id}:${b.stage}:hall`, art: P.hall, x: s.x + parts.hall[0], z: s.z + parts.hall[1], flip: !along, opacity: op, maxFootprint: mf,
           ...(b.stage === 'built' && !s.foreign ? { spaceDoor: `${s.id}:${b.id}` } : {}) });
       }
-      else if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}`, art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5, maxFootprint,
+      // a camp gate someone is passing stands open: gate_x_open / gate_z_open, the same art with a dark doorway (stand-in until
+      // open-gate art, Tim 2026-11-15)
+      else if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}${openGates?.has(`${s.id}:${b.id}`) ? ':open' : ''}`, art: openGates?.has(`${s.id}:${b.id}`) && lineArt ? `${art}_open` : art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5, maxFootprint,
         ...(b.stage === 'built' && !s.foreign && ['town_hall', 'stable', 'station'].includes(b.type) ? { spaceDoor: `${s.id}:${b.type === 'town_hall' ? 'hall' : b.id}` } : {}) });   // render/banners.js puts its Space ring at the door
       // hall upgrade: new wings go up beside the hall in stages (site, frame, then timber stacks while it finishes)
       const phase = (b.type === 'town_hall' || b.type === 'camp_hall') && b.stage === 'built' ? hallPhase(s) : 0;

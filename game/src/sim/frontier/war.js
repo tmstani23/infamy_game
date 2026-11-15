@@ -165,7 +165,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
 
   // End a war: result 'attackerWon' | 'defenderWon' | 'called off' etc. (later checkpoints decide it).
   // The record moves to the history and the town's cooldown starts.
-  function end(warId, result = 'ended') {
+  function end(warId, result = 'ended', days = null) {
     const st = store(), war = st.list[warId];
     if (!war) return false;
     defense?.settle(war);   // 8b-2: the defender's chest and queued ryo go back to the town coffers
@@ -176,7 +176,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     st.history.push(war);
     const max = W?.historyMax ?? 20;
     if (st.history.length > max) st.history.splice(0, st.history.length - max);
-    st.cooldown[war.town] = (state.tick ?? 0) + Math.round((W?.cooldownDays ?? 0) * dayTicks);
+    st.cooldown[war.town] = (state.tick ?? 0) + Math.round((days ?? W?.cooldownDays ?? 0) * dayTicks);   // days: 8c, after accepted terms
     return true;
   }
 
@@ -328,8 +328,9 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!by) return `Outside the build area a ${nice(type)} must stand by ${takes.join(' or ') || 'its resource'}`;
     }
     for (const w of active()) for (const b of w.camp?.buildings || []) {
-      if (opts.replace === b) continue;                                   // a gate takes the place of this palisade piece
-      const gap = def.line && BD()[b.type]?.line && w === war ? (opts.step ?? Math.min(r, radiusOf(b.type))) * 0.9 : r + radiusOf(b.type);   // palisade pieces stand side by side
+      if (opts.replace === b || (Array.isArray(opts.replace) && opts.replace.includes(b))) continue;   // a gate takes the place of these palisade pieces
+      // palisade and gate pieces stand end to end and meet at corners (centres 0.7 of a piece apart there), so only a real overlap is refused
+      const gap = def.line && BD()[b.type]?.line && w === war ? (opts.step ?? Math.min(r, radiusOf(b.type))) * 0.6 : r + radiusOf(b.type);
       if (dist(b, p) < gap) return w === war ? `Too close to the ${nice(b.type)}` : 'Too close to another war camp';
     }
     const k = r * 0.7;
@@ -342,21 +343,47 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // { type: 'palisade', rot: the line's angle } built by the camp workers like any site. Paid at once for the whole
   // run. A gate is one piece: placed on a palisade piece it takes its place and its angle; elsewhere it stands alone.
   // Read-only: { ok, reason, points: [{ x, z }], rot, cost }
+  // ---- joints (Tim 2026-11-15): every palisade or gate piece has two ends; a new run or gate locks onto an end near the
+  // cursor, so runs meet end to end and close at corners without hunting for the spot
+  const lenOf = type => BD()[type]?.length || 5;
+  const alongX = b => Math.abs(Math.cos(b.rot || 0)) >= Math.abs(Math.sin(b.rot || 0));
+  const linePieces = camp => (camp?.buildings || []).filter(b => BD()[b.type]?.line && Number.isFinite(b.x));
+  function jointsOf(camp) {
+    const out = [];
+    for (const b of linePieces(camp)) { const h = lenOf(b.type) / 2, x = alongX(b); out.push({ x: b.x - (x ? h : 0), z: b.z - (x ? 0 : h), b, alongX: x, out: -1 }, { x: b.x + (x ? h : 0), z: b.z + (x ? 0 : h), b, alongX: x, out: 1 }); }
+    return out;
+  }
+  const r2 = v => Math.round(v * 100) / 100;
   function campLineCheck(warId, a, b) {
     const war = byId(warId), def = BD().palisade, camp = war?.camp;
     if (!camp || !def?.line) return { ok: false, reason: 'No such war camp', points: [] };
     if (![a?.x, a?.z, b?.x, b?.z].every(Number.isFinite)) return { ok: false, reason: 'Choose a start and an end', points: [] };
-    const L = def.length || 5, len = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(1, Math.round(len / L) + 1), rot = Math.round(Math.atan2(b.z - a.z, b.x - a.x) * 1000) / 1000;
+    const L = def.length || 5, snap = W.lineSnap ?? 4, joints = jointsOf(camp), locks = {};
+    // the start locks onto the nearest piece end within reach
+    { let best = null, bd = snap; for (const j of joints) { const d = Math.hypot(j.x - a.x, j.z - a.z); if (d <= bd) { bd = d; best = j; } } if (best) { a = { x: best.x, z: best.z }; locks.start = { x: r2(best.x), z: r2(best.z) }; } }
+    // Tim 2026-11-15: a run follows world x or world z (the two diagonals the palisade and gate art is drawn for);
+    // a drag at any other angle snaps to the nearer one, so the pieces never stair-step
+    const onX = Math.abs(b.x - a.x) >= Math.abs(b.z - a.z), sign = (onX ? b.x - a.x : b.z - a.z) < 0 ? -1 : 1;
+    const dx = onX ? sign : 0, dz = onX ? 0 : sign, rot = Math.round(Math.atan2(dz, dx) * 1000) / 1000;
+    // where the run starts: at the joint when locked, else half a piece before the clicked spot (the first piece stands on it)
+    const s0 = locks.start ? a : { x: a.x - dx * L / 2, z: a.z - dz * L / 2 };
+    let len = Math.abs(onX ? b.x - s0.x : b.z - s0.z), n = Math.max(1, Math.round(len / L)), step = L;
+    // the end locks too: onto a piece end on the run's own line (the pieces close up to meet it exactly), or level with
+    // one off the line (so the next run from here comes out square with it)
+    { const along = j => (onX ? j.x - s0.x : j.z - s0.z) * sign, off = j => Math.abs(onX ? j.z - s0.z : j.x - s0.x);
+      let best = null, bs = Infinity;
+      for (const j of joints) { const t = along(j), d = Math.abs(t - len); if (t < L * 0.5 || d > snap) continue; const o = off(j), on = o <= 1.5, sc = d + (on ? 0 : 100) + o * 0.01; if (sc < bs) { bs = sc; best = { j, t, on }; } }
+      if (best) { len = best.t; n = Math.max(1, Math.ceil(len / L - 0.03)); step = len / n; locks.end = { x: r2(best.j.x), z: r2(best.j.z), ...(best.on ? {} : { level: true }) }; } }
     const most = def.lineMax ?? 40;
-    if (n > most) return { ok: false, reason: `At most ${most} pieces in one run`, points: [], rot };
+    if (n > most) return { ok: false, reason: `At most ${most} pieces in one run`, points: [], rot, locks };
     const points = [];
-    for (let k = 0; k < n; k++) { const t = n === 1 ? 0 : k / (n - 1); points.push({ x: Math.round((a.x + (b.x - a.x) * t) * 10) / 10, z: Math.round((a.z + (b.z - a.z) * t) * 10) / 10 }); }
+    for (let k = 0; k < n; k++) { const t = step * (k + 0.5); points.push({ x: r2(s0.x + dx * t), z: r2(s0.z + dz * t) }); }
     const cost = Object.fromEntries(Object.entries(def.cost || {}).map(([r, v]) => [r, v * n]));
     const chain = W.chainDistance ?? 120;
-    if (!points.some(p => camp.buildings.some(c => dist(c, p) <= chain))) return { ok: false, reason: `Start within ${chain} of another camp building`, points, rot, cost };
-    for (let k = 0; k < n; k++) { const why = placeWhy(war, 'palisade', points[k].x, points[k].z, { chained: true, free: true, more: k, step: n > 1 ? len / (n - 1) : L }); if (why) return { ok: false, reason: why, points, rot, cost, bad: k }; }
+    if (!points.some(p => camp.buildings.some(c => dist(c, p) <= chain))) return { ok: false, reason: `Start within ${chain} of another camp building`, points, rot, cost, locks };
+    for (let k = 0; k < n; k++) { const why = placeWhy(war, 'palisade', points[k].x, points[k].z, { chained: true, free: true, more: k, step }); if (why) return { ok: false, reason: why, points, rot, cost, bad: k, locks }; }
     const pay = canPay(camp, cost);
-    return { ok: !pay, reason: pay || '', points, rot, cost };
+    return { ok: !pay, reason: pay || '', points, rot, cost, locks };
   }
   function campLine(e, c) {
     const war = byId(c.war);
@@ -364,21 +391,52 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     const r = campLineCheck(c.war, { x: c.x0, z: c.z0 }, { x: c.x1, z: c.z1 });
     if (!r.ok) return r;
     pay(war.camp, r.cost);
-    for (const p of r.points) war.camp.buildings.push({ id: `${war.id}:palisade${f().nextId++}`, type: 'palisade', stage: 'site', x: p.x, z: p.z, rot: r.rot, progress: 0, need: BD().palisade.buildTicks || 1 });
+    const line = `${war.id}:line${f().nextId++}`;   // one run = one job: workers sent to a piece build on along it (workers.js)
+    for (const p of r.points) war.camp.buildings.push({ id: `${war.id}:palisade${f().nextId++}`, type: 'palisade', stage: 'site', x: p.x, z: p.z, rot: r.rot, line, progress: 0, need: BD().palisade.buildTicks || 1 });
     return { ok: true };
   }
-  // the palisade piece a gate at this point would replace, or null
-  function gateSpot(war, x, z) {
-    const L = (BD().palisade?.length || 5) * 0.75;
-    return (war?.camp?.buildings || []).filter(b => b.type === 'palisade' && Math.hypot(b.x - x, b.z - z) <= L).sort((p, q) => Math.hypot(p.x - x, p.z - z) - Math.hypot(q.x - x, q.z - z) || (p.id < q.id ? -1 : 1))[0] || null;
+  // Where a gate goes (Tim 2026-11-15): { x, z, rot, replace: [pieces], lock } or null for open ground.
+  //  - on a palisade: it takes the place of the piece under the cursor and the next one along (a gate is two pieces long),
+  //    standing in the wall, never in front of or behind it;
+  //  - by the free end of a run: it locks onto the end and carries the run on, or with turn (R) stands square to it;
+  //  - elsewhere it stands alone, along world x, or world z with turn.
+  function gateSpot(war, x, z, turn = false) {
+    const camp = war?.camp, Lp = lenOf('palisade'), Lg = lenOf('gate'), snap = W.lineSnap ?? 4;
+    let on = null, od = Infinity;
+    for (const b of linePieces(camp)) {
+      if (b.type !== 'palisade') continue;
+      const ax = alongX(b), t = ax ? x - b.x : z - b.z, o = Math.abs(ax ? z - b.z : x - b.x);
+      if (Math.abs(t) > Lp / 2 + 0.3 || o > snap) continue;
+      const d = o + Math.abs(t) * 0.1; if (d < od) { od = d; on = { b, ax, t }; }
+    }
+    if (on) {
+      const { b, ax, t } = on, same = q => q !== b && q.type === 'palisade' && alongX(q) === ax && Math.abs(ax ? q.z - b.z : q.x - b.x) <= 0.4;
+      const next = dir => linePieces(camp).filter(same).find(q => { const d = (ax ? q.x - b.x : q.z - b.z) * dir; return d > Lp * 0.5 && d < Lp * 1.2; });
+      const side = t >= 0 ? 1 : -1, n = next(side) || next(-side);
+      if (n) return { x: r2((b.x + n.x) / 2), z: r2((b.z + n.z) / 2), rot: ax ? 0 : 1.571, replace: [b, n], lock: { x: r2((b.x + n.x) / 2), z: r2((b.z + n.z) / 2) } };
+      const c = { x: b.x + (ax ? side * (Lg - Lp) / 2 : 0), z: b.z + (ax ? 0 : side * (Lg - Lp) / 2) };   // a lone piece: the gate covers it and reaches on toward the cursor
+      return { x: r2(c.x), z: r2(c.z), rot: ax ? 0 : 1.571, replace: [b], lock: { x: r2(b.x), z: r2(b.z) } };
+    }
+    let best = null, bd = snap;
+    for (const j of jointsOf(camp)) { const d = Math.hypot(j.x - x, j.z - z); if (d <= bd) { bd = d; best = j; } }
+    if (best) {
+      // carry the run on from its end, or (turned) stand square to it on the cursor's side
+      const ax = turn ? !best.alongX : best.alongX;
+      const dir = turn ? ((best.alongX ? z - best.z : x - best.x) < 0 ? -1 : 1) : best.out;
+      return { x: r2(best.x + (ax ? dir * Lg / 2 : 0)), z: r2(best.z + (ax ? 0 : dir * Lg / 2)), rot: ax ? 0 : 1.571, replace: [], lock: { x: r2(best.x), z: r2(best.z) } };
+    }
+    return null;
   }
-  // Read-only for the UI, bots and tests: { ok, reason, point }
-  function campCheck(warId, type, point) {
+  // Read-only for the UI, bots and tests: { ok, reason, point, rot?, replaces?: [ids], lock? }; opts.turn = a gate turned with R
+  function campCheck(warId, type, point, opts = {}) {
     const war = byId(warId), p = point && { x: Math.round(point.x), z: Math.round(point.z) };
     if (type === 'palisade') return { ok: false, reason: 'A palisade is placed as a line', point: p };
-    // a gate on a palisade piece takes its place
-    const on = type === 'gate' && p ? gateSpot(war, p.x, p.z) : null;
-    if (on) { const reason = placeWhy(war, type, on.x, on.z, { replace: on, chained: true }); return { ok: !reason, reason, point: { x: on.x, z: on.z }, replaces: on.id, rot: on.rot || 0 }; }
+    if (type === 'gate' && p && war?.camp) {
+      const g = gateSpot(war, point.x, point.z, !!opts.turn);
+      if (g) { const reason = placeWhy(war, type, g.x, g.z, { replace: g.replace, chained: true, step: lenOf('palisade') }); return { ok: !reason, reason, point: { x: g.x, z: g.z }, replaces: g.replace.map(b => b.id), rot: g.rot, lock: g.lock }; }
+      const reason = placeWhy(war, type, p.x, p.z);
+      return { ok: !reason, reason, point: p, rot: opts.turn ? 1.571 : 0 };
+    }
     const reason = placeWhy(war, type, p?.x, p?.z);
     return { ok: !reason, reason, point: p };
   }
@@ -398,12 +456,14 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     const war = byId(c.war);
     if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
     if (BD()[c.kind]?.clan && BD()[c.kind].clan !== factionOf(war.attacker)) return { ok: false, reason: `Your clan does not build the ${nice(c.kind)}` };
-    const r = campCheck(c.war, c.kind, { x: c.x, z: c.z });   // kind = the building type (type is the command's own)
+    const r = campCheck(c.war, c.kind, { x: c.x, z: c.z }, { turn: !!c.turn });   // kind = the building type (type is the command's own)
     if (!r.ok) return r;
     const def = BD()[c.kind];
     pay(war.camp, def.cost);
-    if (r.replaces) war.camp.buildings.splice(war.camp.buildings.findIndex(b => b.id === r.replaces), 1);
-    war.camp.buildings.push({ id: `${war.id}:${c.kind}${f().nextId++}`, type: c.kind, stage: 'site', x: r.point.x, z: r.point.z, ...(r.rot !== undefined ? { rot: r.rot } : {}), progress: 0, need: def.buildTicks || 1 });
+    const gone = (r.replaces || []).map(id => war.camp.buildings.find(b => b.id === id)).filter(Boolean);
+    const line = gone.find(b => b.line)?.line || null;   // a gate in a run is built with the run
+    for (const b of gone) war.camp.buildings.splice(war.camp.buildings.indexOf(b), 1);
+    war.camp.buildings.push({ id: `${war.id}:${c.kind}${f().nextId++}`, type: c.kind, stage: 'site', x: r.point.x, z: r.point.z, ...(r.rot !== undefined ? { rot: r.rot } : {}), ...(line ? { line } : {}), progress: 0, need: def.buildTicks || 1 });
     return { ok: true };
   }
   // Cancel a site: full refund while no work is done, nothing back after
@@ -416,6 +476,38 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!b.progress) pay(war.camp, BD()[b.type]?.cost, +1);
     war.camp.buildings.splice(i, 1);
     return { ok: true };
+  }
+  // The Eraser (Tim 2026-11-15): take down any camp building but the hall, as the town eraser does. Everything it cost
+  // comes back to the war chest, for a site too; a ruin is cleared for nothing. Read-only check for the UI:
+  // { ok, reason, building, refund } for the building under a point (or by id)
+  function campEraseCheck(warId, at) {
+    const war = byId(warId), camp = war?.camp;
+    if (!camp) return { ok: false, reason: 'No such war camp' };
+    let b = null;
+    if (typeof at === 'string') b = camp.buildings.find(x => x.id === at) || null;
+    else if (at && Number.isFinite(at.x) && Number.isFinite(at.z)) {
+      let bd = Infinity;
+      for (const x of camp.buildings) { if (!Number.isFinite(x.x)) continue; const d = Math.hypot(x.x - at.x, x.z - at.z), reach = BD()[x.type]?.line ? lenOf(x.type) / 2 + 0.6 : radiusOf(x.type); if (d <= reach && d < bd) { bd = d; b = x; } }
+    }
+    if (!b) return { ok: false, reason: 'Point at a camp building' };
+    if (b.type === 'camp_hall') return { ok: false, reason: 'The camp hall cannot be erased', building: b.id };
+    if (b.queue?.length) return { ok: false, reason: 'It is training troops: cancel them first', building: b.id };
+    if (b.type === 'stable' && b.stage === 'built' && !camp.buildings.some(x => x !== b && x.type === 'stable' && x.stage === 'built')
+      && Object.values(state.entities || {}).some(u => u.stored?.town === `war:${war.id}`)) return { ok: false, reason: 'Mounts are stored in it: take them out or recall them first', building: b.id };
+    const refund = b.stage === 'ruined' ? {} : { ...(BD()[b.type]?.cost || {}) };
+    return { ok: true, reason: '', building: b.id, type: b.type, refund };
+  }
+  function campErase(e, c) {
+    const war = byId(c.war);
+    if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    const r = campEraseCheck(c.war, typeof c.building === 'string' ? c.building : { x: c.x, z: c.z });
+    if (!r.ok) return r;
+    const i = war.camp.buildings.findIndex(b => b.id === r.building);
+    pay(war.camp, r.refund, +1);
+    war.camp.buildings.splice(i, 1);
+    const fires = f().fires, key = `c|${war.id}|${r.building}`;
+    if (fires?.[key]) { delete fires[key]; if (!Object.keys(fires).length) delete f().fires; }
+    return { ok: true, refund: r.refund };
   }
   // The camp hall upgrade: materials and ryo at once, then workers build it like a site
   function campUpgrade(e, c) {
@@ -461,6 +553,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function campTrain(e, c) {
     const war = byId(c.war);
     if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    if (war.terms) return { ok: false, reason: 'A ceasefire is on: the war is ending' };   // 8c
     const b = war.camp.buildings.find(x => x.id === c.building), u = UD()[c.unit];
     if (!b || b.stage !== 'built') return { ok: false, reason: 'No such finished camp building' };
     if (!u || !trainsAt(b.type, war.attacker).includes(c.unit)) return { ok: false, reason: `The ${nice(b.type)} does not train that` };
@@ -599,8 +692,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
-    if (['campPlace', 'campLine', 'campCancel', 'campUpgrade', 'campTrain', 'campUntrain'].includes(c.action)) {
-      const r = { campPlace, campLine, campCancel, campUpgrade, campTrain, campUntrain }[c.action](e, c);
+    if (['campPlace', 'campLine', 'campCancel', 'campErase', 'campUpgrade', 'campTrain', 'campUntrain'].includes(c.action)) {
+      const r = { campPlace, campLine, campCancel, campErase, campUpgrade, campTrain, campUntrain }[c.action](e, c);
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
@@ -622,7 +715,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  const api = { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, get data() { return W; },
+  const api = { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campEraseCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, get data() { return W; },
     get defense() { return defense; }, settleDefense: w => defense.settle(w) };
   defense = createWarDefense({ state, data, war: api, world });   // 8b-2: the defending town's war chest and training
   return api;

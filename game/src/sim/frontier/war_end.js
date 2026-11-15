@@ -59,6 +59,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     if (hero?.type !== 'hero') return { ok: false, reason: 'Only your hero can take a hall' };
     if ((side === 'town' ? w.attacker : w.defender) !== hero.owner) return { ok: false, reason: side === 'town' ? 'Only the attacker takes the town hall' : 'Only the defender takes the camp hall' };
     if (hero.dead || hero.downed || hero.aboard || hero.place !== 'world') return { ok: false, reason: 'Your hero cannot do that now' };
+    if (w.terms) return { ok: false, reason: 'A ceasefire is on: terms are on the table' };   // 8c
     if (w.channel?.side === side) return { ok: false, reason: 'Already taking the hall' };
     if (!morale.ready(w.id, side)) {
       const up = morale.view(w.id)?.[side]?.up || [];
@@ -108,36 +109,45 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
   }
 
   // ---- the end of a war ---------------------------------------------------------------------------------------
-  // result: 'captured' | 'sacked' | 'burned' | 'campFell' | anything else (called off): the chest goes home
-  function finish(w, result, by = null) {
-    if (!war.byId(w.id)) return false;
-    const s = town(w.town), chest = Math.floor(w.camp?.chest || 0), attacker = state.clans?.[w.attacker];
-    if (w.channel) { const u = state.entities?.[w.channel.by]; if (u?.hallChannel === w.id) delete u.hallChannel; delete w.channel; }
-    let note = null;
-    war.settleDefense?.(w);   // 8b-2: the defender's chest back to the town coffers first, so an outcome takes it with the town
-    if (result === 'campFell') {
-      if (chest > 0 && s) world.change(s.id, 'ryo', chest, 'war spoils');
-      w.spoils = chest;
-      w.sentHome = (hooks.sendHome || runtime?.warSendHome)?.(w) || null;
-    } else {
-      if (['captured', 'sacked', 'burned'].includes(result)) note = outcomes?.[result]?.(w, by) || null;
-      if (chest > 0 && attacker) creditRyo(state, attacker, chest, 'war chest returned');
-      w.returned = chest;
-      if (['captured', 'sacked', 'burned'].includes(result)) w.materialsBack = materialsBack(w);
-    }
-    if (w.camp) w.camp.chest = 0;
-    // every war troop of both sides routs: away from the town, fading, then gone
-    const R = ROUT(), cx = s?.x ?? w.x, cz = s?.z ?? w.z, until = (state.tick ?? 0) + Math.round(R.seconds * 20);
+  // every war troop of the war (or only one clan's) routs: away from the town, fading, then gone
+  function rout(w, clan = null) {
+    const s = town(w.town), R = ROUT(), cx = s?.x ?? w.x, cz = s?.z ?? w.z, until = (state.tick ?? 0) + Math.round(R.seconds * 20);
     for (const e of Object.values(state.entities || {})) {
-      if (e.warTroop !== w.id || e.dead) continue;
+      if (e.warTroop !== w.id || e.dead || e.rout || (clan != null && e.owner !== clan && e.horseOwner !== clan)) continue;
       const d = Math.hypot(e.x - cx, e.z - cz) || 1, tx = e.x + (e.x - cx) / d * R.run, tz = e.z + (e.z - cz) / d * R.run;
       e.rout = { start: state.tick ?? 0, until, x: tx, z: tz };
       e.order = { kind: 'move', x: tx, z: tz };
       if (e.garrison?.zone) garrison?.breakOutKey?.(e.garrison.key);   // troops holding a house come out
       delete e.attackTarget; delete e.swing; delete e.garrison; delete e.holdHouse;
     }
-    news({ kind: 'warEnded', war: w.id, town: w.town, townName: s?.name || note?.townName || '', result, attacker: w.attacker, defender: w.defender, by, x: cx, z: cz, ...(note || {}), chest });
-    war.end(w.id, result);
+  }
+  // result: 'captured' | 'sacked' | 'burned' | 'campFell' | 'attackerSurrendered' (8c: as a fallen camp) |
+  // 'ransomed' (8c: terms accepted, the town is kept) | anything else (called off): the chest goes home
+  // opts.days: the town's cooldown in game days when it is not the usual war.cooldownDays
+  function finish(w, result, by = null, opts = {}) {
+    if (!war.byId(w.id)) return false;
+    const s = town(w.town), chest = Math.floor(w.camp?.chest || 0), attacker = state.clans?.[w.attacker];
+    if (w.channel) { const u = state.entities?.[w.channel.by]; if (u?.hallChannel === w.id) delete u.hallChannel; delete w.channel; }
+    let note = null;
+    war.settleDefense?.(w);   // 8b-2: the defender's chest back to the town coffers first, so an outcome takes it with the town
+    const sendHome = o => (hooks.sendHome || runtime?.warSendHome)?.(w, o) || null;
+    if (result === 'campFell' || result === 'attackerSurrendered') {
+      if (chest > 0 && s) world.change(s.id, 'ryo', chest, 'war spoils');
+      w.spoils = chest;
+      w.sentHome = sendHome(result === 'campFell' ? undefined : { why: 'surrender' });
+    } else {
+      if (['captured', 'sacked', 'burned'].includes(result)) note = outcomes?.[result]?.(w, by) || null;
+      if (chest > 0 && attacker) creditRyo(state, attacker, chest, 'war chest returned');
+      w.returned = chest;
+      if (['captured', 'sacked', 'burned'].includes(result) || (result === 'ransomed' && w.terms?.by === 'defender')) w.materialsBack = materialsBack(w);
+      if (result === 'ransomed') w.sentHome = sendHome({ why: 'ransomed' });   // 8c: the attacker's hero and crew go home, the town is kept
+    }
+    if (w.camp) w.camp.chest = 0;
+    const cx = s?.x ?? w.x, cz = s?.z ?? w.z;
+    rout(w);   // every war troop of both sides
+    news({ kind: 'warEnded', war: w.id, town: w.town, townName: s?.name || note?.townName || '', result, attacker: w.attacker, defender: w.defender, by, x: cx, z: cz, ...(note || {}), chest,
+      ...(w.terms ? { surrender: w.terms.by, ...(w.ransom ? { ransom: w.ransom.amount } : {}) } : {}) });
+    war.end(w.id, result, opts.days ?? null);
     return true;
   }
 
@@ -180,5 +190,5 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     (fr.receipts ||= []).push({ seq: fr.receiptSeq, tick: state.tick ?? 0, clan: e.owner ?? null, action: c.action, ok: r.ok, reason: r.reason });
     return true;
   }
-  return { command, tick, check, view, channelOn, finish, hallPoint, atHall, outcomeList, rules: () => ({ channel: CH(), rout: ROUT(), sackShare: W().outcomes?.sackShare ?? 0.5 }), attach: s => { runtime = s; }, setOutcomes: o => { outcomes = o; }, setHooks: h => { hooks = { ...hooks, ...h }; } };
+  return { command, tick, check, view, channelOn, finish, rout, stopChannel: stop, hallPoint, atHall, outcomeList, rules: () => ({ channel: CH(), rout: ROUT(), sackShare: W().outcomes?.sackShare ?? 0.5 }), attach: s => { runtime = s; }, setOutcomes: o => { outcomes = o; }, setHooks: h => { hooks = { ...hooks, ...h }; } };
 }

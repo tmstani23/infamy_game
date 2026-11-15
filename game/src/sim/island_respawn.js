@@ -5,9 +5,9 @@
 export function createIslandRespawn({ state, areas, gate, rules = {}, cellSize = 20, spawn, freeSlot, followOffset, say = () => {}, infirmary = null, warRadius = 900 }) {
   const R = { hpShare: 0.3, crewSeconds: 30, ...rules };
   const towns = owner => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === owner && s.founded && Number.isFinite(s.x));
-  function nearestHall(owner, x, z) {
+  function nearestHall(owner, x, z, skip = null) {
     let best = null, bd = Infinity;
-    for (const s of towns(owner)) { const d = Math.hypot(s.x - x, s.z - z); if (d < bd) { bd = d; best = s; } }
+    for (const s of towns(owner)) { if (s.id === skip) continue; const d = Math.hypot(s.x - x, s.z - z); if (d < bd) { bd = d; best = s; } }
     return best;
   }
   // a free spot on the hall's apron, a little in front of the hall
@@ -110,12 +110,14 @@ export function createIslandRespawn({ state, areas, gate, rules = {}, cellSize =
   // A war camp fell (sim/frontier/war_end.js, Tim 2026-11-14): the clan's hero and crew standing within r of (x, z)
   // fall back to their nearest own town hall (the island side of the city gate without a town), health as it is.
   // prepare(e) gets each one off his mount or vehicle first. Returns { town, n } or null.
-  function fallBack(owner, x, z, r, prepare = () => {}) {
+  // opts (8c): skip = a town id not to fall back to (a defender leaving the town he surrendered); why = 'surrender' |
+  // 'ransomed' (the line the clan is told; default: its war camp fell)
+  function fallBack(owner, x, z, r, prepare = () => {}, opts = {}) {
     if (!areas) return null;
     const list = Object.values(state.entities).filter(e => e.owner === owner && e.place === 'world' && !e.dead && !e.downed && !e.warTroop && !e.worker && !e.guard && !e.guide && !e.railGang && !e.railRide
       && Math.hypot(e.x - x, e.z - z) <= r).sort((a, b) => (b.type === 'hero') - (a.type === 'hero'));
     if (!list.length) return null;
-    const s = nearestHall(owner, x, z), [hx, hz] = s ? hallFront(s) : gate ? gate.island : [x, z];
+    const s = nearestHall(owner, x, z, opts.skip ?? null), [hx, hz] = s ? hallFront(s) : gate ? gate.island : [x, z];
     list.forEach((e, i) => {
       prepare(e);
       const [ox, oz] = i && followOffset ? followOffset((i - 1) % 36) : [0, 0];
@@ -124,7 +126,8 @@ export function createIslandRespawn({ state, areas, gate, rules = {}, cellSize =
     });
     areas.update(Object.values(state.entities));
     const clan = state.clans?.[owner];
-    if (clan) say(clan, s ? `Your war camp fell: you fell back to ${s.name || 'your town'}` : 'Your war camp fell: you fell back to the city gate');
+    const lead = opts.why === 'ransomed' ? 'The war is over' : opts.why === 'surrender' ? 'You surrendered' : 'Your war camp fell';
+    if (clan) say(clan, s ? `${lead}: you fell back to ${s.name || 'your town'}` : `${lead}: you fell back to the city gate`);
     return { town: s?.id || null, n: list.length };
   }
   return { hero, carry, tick, nearestHall, unstuckSpot, fallBack, rules: R };

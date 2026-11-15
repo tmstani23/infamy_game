@@ -27,6 +27,7 @@ import { createWar } from './war.js';
 import { createStructures } from './structures.js';
 import { createWarMorale } from './war_morale.js';
 import { createWarEnd } from './war_end.js';
+import { createWarTerms } from './war_terms.js';
 import { createWarOutcomes } from './war_outcomes.js';
 
 export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {}, capitalYard = null, civilians = null, dayTicks = 12000 }) {
@@ -85,6 +86,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const warOutcomes = createWarOutcomes({ state, data, war, world: live, rail, garrison });
   warEnd.setOutcomes(warOutcomes);   // 8a-4: capture, sack, burn
   modules.push({ name: 'warEnd', warEnd, command: (e, c) => warEnd.command(e, c) });
+  const warTerms = createWarTerms({ state, data, war, world: live, morale: warMorale, warEnd });   // F6 checkpoint 8c: surrender and terms
+  modules.push({ name: 'warTerms', warTerms, command: (e, c) => warTerms.command(e, c) });
   garrison.setStructures(structures); war.setGarrison(garrison);   // 7c-3b: garrisons in houses, workshops and farmhouses
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
@@ -136,6 +139,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     structures.tick();             // F6: fires on torched structures
     warMorale.tick();              // F6 8a: morale drops as counted buildings fall
     warEnd.tick();                 // F6 8a: hall channels, the end of a war, routed troops
+    warTerms.tick();               // F6 8c: surrender, offers, answers and the bots' part in them
     arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
     townsfolk.tick();              // townsfolk wander the town by day, go in at night or when enemies come
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
@@ -151,6 +155,6 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     return false;
   }
 
-  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);war.attach(services);structures.attach(services);warEnd.attach(services);warOutcomes.attach(services);}
-  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, war, structures, warMorale, warEnd, attach };
+  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);war.attach(services);structures.attach(services);warEnd.attach(services);warTerms.attach(services);warOutcomes.attach(services);}
+  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, war, structures, warMorale, warEnd, warTerms, attach };
 }

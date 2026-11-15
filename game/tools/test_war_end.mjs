@@ -115,7 +115,7 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   [...mine, theirs].forEach((e, i) => assert.ok(Math.hypot(e.x - town.x, e.z - town.z) > d0[i] + 3, `troop ${i} ran ${Math.hypot(e.x - town.x, e.z - town.z) - d0[i]}`));
   s.run(Math.round(s.frontier.war.rout.seconds * 20));
   for (const e of [...mine, theirs]) assert.ok(!S.entities[e.id], 'gone');
-  assert.match(s.war.check(hero, 'tE', { x: hero.x, z: hero.z }).reason, /under truce for 6 more days/, 'no new war during the cooldown');
+  assert.match(s.war.check(hero, 'tE', { x: hero.x, z: hero.z }).reason, /under truce for 3 more days/, 'no new war during the cooldown');
   g.frontier.world.checkInvariants();
   console.log('channel and sack ok');
 }

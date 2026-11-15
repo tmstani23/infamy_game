@@ -56,11 +56,28 @@ try {
   root.emit('drop', ev(harbor.children[0]));
   assert.deepEqual(sent.at(-1), { id: 'h', type: 'deployment', action: 'transfer', units: ['a', 'b'], to: 'nw' }, 'selected crew move together');
   for(const e of crew)e.deployment.group='nw';sel=[];g.update(crew,[],[]);
-  assert.equal(hero.style.display,'none','empty group stays compact normally');
+  assert.equal(hero.style.display,'','the hero group always shows: the hero heads it (Tim 2026-11-15)');
+  assert.ok(hero.children[1].children.some(c=>c.dataset?.id==='h'&&c.classes.has('hero')&&!c.draggable),'the hero card: selectable, not draggable');
+  assert.equal(harbor.style.display,'','the other group shows its crew');
   root.emit('dragstart',ev(pip('d')));
-  assert.equal(hero.style.display,'block','empty hero group is an available drop target');
+  assert.equal(hero.style.display,'block','the hero group is a drop target');
   root.emit('drop',ev(hero.children[0]));
   assert.deepEqual(sent.at(-1),{id:'h',type:'deployment',action:'transfer',units:['d'],to:'hero'},'one crew can transfer into an empty hero group');
+  // out on the frontier there is one group, Frontier crew: the hero first, then his crew, riders and war troops left out (Tim 2026-11-15)
+  { for(const e of crew){e.deployment.group='hero';e.place='world';} S.h.place='world';
+    crew[2].mounted=true;crew[2].ride={kind:'horse',horse:'hz'};S.hz={id:'hz',type:'horse',name:'Calico'};
+    S.cav={id:'cav',owner:'player',type:'thug',place:'world',warTroop:'w1',cavalry:true,mounted:true,ride:{kind:'horse',horse:'hc'},hp:5,maxHp:5};
+    sel=[];g.update(crew,[],[]);
+    const fc=root.children.find(n=>n.dataset.group==='vehicles'),ids=fc.children[1].children.map(c=>c.dataset?.id);
+    assert.ok(!root.children.some(n=>n.dataset.group==='hero'),'no separate hero group on the frontier');
+    assert.equal(root.children.indexOf(fc),1,'Frontier crew is the first group');
+    assert.equal(ids[0],'h','the hero is listed first');assert.ok(ids.includes('a')&&ids.includes('b')&&ids.includes('d'),'his crew on foot are in it');
+    assert.equal(fc.children[1].children.length,5,'hero, three on foot and one Mount card');
+    assert.match(fc.children[0].textContent,/^Frontier crew · 5/);
+    fc.children[0].emit('click',{});
+    assert.deepEqual([...sel].sort(),['a','b','c','d','h'],'the header selects the hero and all his crew, never the war cavalry');
+    S.h.place='street';for(const e of crew)e.place='street';delete crew[2].mounted;delete crew[2].ride;delete S.cav;sel=[];g.update(crew,[],[]);
+    assert.ok(root.children.some(n=>n.dataset.group==='hero'),'back in the city the Hero group returns'); }
   // action bar clicks: one member + target frame, Shift toggles, a click inside a bigger selection waits for mouseup
   const inspected = [], focus = [], barRoot = new Element(), frame = new Element();
   createActionBar({ root: barRoot, game, units: { types: { hero: {}, thug: { name: 'Thug' } } }, heroId: 'h', tickRate: 20, crewInput, crewRoot: frame, onInspect: id => inspected.push(id), onHeroFocus: () => focus.push(1) });

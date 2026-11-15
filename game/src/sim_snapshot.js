@@ -69,8 +69,17 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
   // war 8a: lastTown = the defender holds no other town (the outcome picker's last-town rule, without showing his towns);
   // history = wars that ended in the last minute (render/hall_channel_fx.js: a sacked hall's fires die down)
   const lastTown = w => Object.values(f.settlements || {}).filter(s => s.owner === w.defender && !s.capital).length <= 1;
+  // 8c: a surrender is public to its two sides, but the suggested ransom only to the side that surrendered and the fair
+  // range only to the other; what each side has spotted of the other (spotted) stays in the sim
+  const termsFor = w => {
+    if (!w.terms && !w.spotted) return w;
+    const { spotted, ...rest } = w, side = w.attacker === clan ? 'attacker' : w.defender === clan ? 'defender' : null;
+    if (!w.terms) return rest;
+    const { suggest, fair, ...t } = w.terms;
+    return { ...rest, terms: { ...t, ...(side === t.by ? { suggest } : side ? { fair } : {}) } };
+  };
   // 8b-2: the defender's war chest only to the defender
-  const wars = f.wars && { cooldown: f.wars.cooldown || {}, list: Object.fromEntries(Object.entries(f.wars.list || {}).map(([id, w0]) => [id, w0.defender === clan || !w0.defense ? w0 : (({ defense, ...rest }) => rest)(w0)]).map(([id, w]) => [id,
+  const wars = f.wars && { cooldown: f.wars.cooldown || {}, list: Object.fromEntries(Object.entries(f.wars.list || {}).map(([id, w]) => [id, termsFor(w)]).map(([id, w0]) => [id, w0.defender === clan || !w0.defense ? w0 : (({ defense, ...rest }) => rest)(w0)]).map(([id, w]) => [id,
     w.attacker === clan ? (w.camp ? { ...w, lastTown: lastTown(w), camp: { ...w.camp, workers: (w.camp.workers || []).map(k => campWorker(k, w.camp, workerPosition)) } } : { ...w, lastTown: lastTown(w) }) : { ...w, camp: w.camp && { x: w.camp.x, z: w.camp.z, buildings: (w.camp.buildings || []).map(({ queue, ...b }) => b) } }])),
     history: (f.wars.history || []).slice(-4).map(({ id, town, attacker, defender, result, ended }) => ({ id, town, attacker, defender, result, ended })) };
   return { version: f.version, econTick: f.econTick, settlements, spots, ...(wars ? { wars } : {}), ...(structures?.length ? { structures } : {}),   // structures: damaged or burning ones of this clan's wars (checkpoint 6)

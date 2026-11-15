@@ -119,6 +119,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   };
   // the selected units orders go to (a selected townsperson takes none)
   const mine = () => selected.filter(id => { const e = game.state.entities[id]; return e && ((e.owner === hero()?.owner && !e.guide) || (e.omnibusOwner === hero()?.owner && game.omnibus?.riders(e).length)); });
+  // the hero goes with an attack order when he is selected himself or any of his own group's crew is, whatever else is
+  // selected with them (war troops, cavalry); a selection of war troops alone leaves him be (Tim 2026-11-15)
+  const heroJoins = () => { const h = hero(); if (!h || h.place !== commandPlace()) return false; return mine().some(id => { const u = game.state.entities[id]; return id === heroId || (u && !u.warTroop && u.owner === h.owner && ['hero', 'rally'].includes(commandGroup(u))); }); };
   const bodyJobUnits=()=>mine().length?mine():myCrew().filter(e=>!e.dead&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id);
   const groupable = id => {
     const u = game.state.entities[id];
@@ -205,7 +208,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   function attackTarget(id,crewOnly=false){
     const foe=game.state.entities[id],h=hero();if(!foe||foe.dead||foe.owner===h?.owner||foe.place!==commandPlace()||!seen(foe))return;
     tabbed=foe.id;looked=null;
-    const units=mine(),heroGroup=!units.length||units.every(id=>['hero','rally'].includes(commandGroup(game.state.entities[id])));
+    const units=mine(),heroGroup=!units.length||heroJoins();
     const useHero=!crewOnly&&heroGroup&&foe.place===h?.place;
     if(foe.downed){const jobs=bodyJobUnits();send({id:heroId,type:'execute',target:id,units:jobs,crewJob:!!jobs.length,crewOnly:!useHero,preferHeroInRange:useHero});return;}
     if(useHero)send({id:heroId,type:'attack',target:id});
@@ -259,7 +262,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       attackMove = false;
       document.body.style.cursor = '';
       const p = view.screenToGround(e.clientX, e.clientY);
-      if (p && mine().length) order({ units: mine(), kind: 'attackmove', x: p.x, z: p.z });
+      if (p && mine().length) order({ units: heroJoins() && commandPlace() === 'world' ? [...new Set([...mine(), heroId])] : mine(), kind: 'attackmove', x: p.x, z: p.z });
       return;
     }
     if (e.button === 0) drag = { x: e.clientX, y: e.clientY };
@@ -280,8 +283,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       const p = view.screenToGround(e.clientX, e.clientY);
       // at war out on the island (checkpoint 6): a right-click on an enemy wall, gate or house sends them to attack it; the sim
       // looks under the point and falls back to the plain move when nothing is there
+      // the hero goes at it with them when the selection is his own group, as with a right-click on an enemy unit (Tim 2026-11-15)
       const atWar = p && commandPlace() === 'world' && Object.values(game.state.frontier?.wars?.list || {}).some(w => w.attacker === hero()?.owner || w.defender === hero()?.owner);
-      if (atWar) { send({ id: heroId, type: 'order', kind: 'raze', x: p.x, z: p.z, units: mine().filter(id => game.state.entities[id]?.type !== 'hero'), hero: mine().includes(heroId), fallback: e.ctrlKey ? 'station' : 'move', place: 'world' }); return; }
+      if (atWar) { send({ id: heroId, type: 'order', kind: 'raze', x: p.x, z: p.z, units: mine().filter(id => game.state.entities[id]?.type !== 'hero'), slack: 3, hero: heroJoins(), fallback: e.ctrlKey ? 'station' : 'move', place: 'world' }); return; }
       if (p) order({ units: mine(), kind: e.ctrlKey ? 'station' : 'move', x: p.x, z: p.z });
     }
   });
@@ -384,10 +388,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     mountUpKey() { if (!hero()) return false; send({ id: heroId, type: 'mount', group: true, units: mine() }); return true; },
     omnibusKey() { const h = hero(); if (!h) return false; const sel = mine().filter(id => game.omnibus?.isVehicle(game.state.entities[id]));
       if (h.aboard || sel.length) { send({ id: heroId, type: 'omnibus', action: 'deploy', vehicles: sel }); return true; }
-      // selected crew on horseback get off and wait there (Tim 2026-11-08: mounts work like vehicles)
-      const riding = mine().map(id => game.state.entities[id]).filter(u => u && u.type !== 'hero' && u.mounted && u.ride?.horse);
-      if (riding.length) { for (const u of riding) send({ id: heroId, type: 'mount', horse: u.ride.horse, units: [u.id] }); return true; }
-      if (h.mounted) { send({ id: heroId, type: 'mount' }); return true; }   // Q gets you off your horse too, like out of a vehicle (Tim 2026-11-08); H still works
+      // on horseback Q is the ability key (Tim 2026-11-15: Q took the hero and selected riders off their horses when he
+      // meant to dash); H gets the hero off, Shift+H or a right-click on the mount card the crew
+      if (h.mounted) return false;
       if (h.place === 'world' && game.omnibus?.near(h, 4).some(b => !b.driver && game.omnibus.riders(b).length < game.omnibus.seatsOf(b))) { send({ id: heroId, type: 'omnibus', action: 'board', units: mine() }); return true; } return false; },
     omnibusAt(px, py) { const b = omnibusAt(px, py); return b ? { id: b.id, x: b.x, z: b.z, full: busRiders(b) } : null; },
     hovered(px, py) {
@@ -463,7 +466,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     onShiftRight(fn) { shiftRight = fn; },
     cancelTarget() { if (!targetPick) return false; targetPick = null; document.body.style.cursor = ''; return true; },
     // Z: selected crew stop and go passive until their next order (sim 'order' kind 'stop')
-    stopSelected() { if (mine().length) order({ units: mine(), kind: 'stop' }); },
+    stopSelected() { if (mine().length) order({ units: mine(), kind: 'stop' }); this.endAttackMode(); },
+    // Esc or Z: the hero leaves frontier attack mode (Tim 2026-11-15)
+    endAttackMode() { if (!hero()?.attackMode) return false; send({ id: heroId, type: 'attackmode', on: false }); return true; },
     followMe() { const units = mine().filter(id => ['street', hero()?.place].includes(game.state.entities[id]?.place)); if (units.length) order({ units, kind: 'follow' }); },
     // hurt selected crew walk to the clinic to heal (for ryo)
     healSelected() { if (mine().length) order({ units: mine(), kind: 'heal' }); },

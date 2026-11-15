@@ -137,6 +137,8 @@
     "palisade_wall_z": {"kind":"buildings"},
     "gate_x": {"kind":"buildings","glows":true},
     "gate_z": {"kind":"buildings","glows":true},
+    "gate_x_open": {"kind":"buildings","glows":true},
+    "gate_z_open": {"kind":"buildings","glows":true},
     "police_box": {"kind":"buildings","glows":true},
     "police_hq": {"kind":"buildings","glows":true},
     "dock_warehouse": {"kind":"buildings","glows":true},

@@ -8,6 +8,7 @@ import { createWarBanner } from './war_banner.js';
 import { createWarCampPanel } from './war_camp_panel.js';
 import { createTownWarPanel } from './town_war_panel.js';
 import { createWarBar } from './war_bar.js';
+import { createWarTermsPanel } from './war_terms_panel.js';
 import { createWarOutcomeMenu } from './war_outcome_menu.js';
 import { createSimWorkerClient } from './sim_worker_client.js';
 import { createStealthBadge } from './stealth_badge.js';
@@ -291,7 +292,7 @@ async function start() {
     onOpen:() => {characterPanel.close();setGameplayInput(false);}, onClose:() => setGameplayInput(true)});
   const shop=createShopUI({game,heroId,view,send:c=>pending.push(c),hidden:()=>gameMap.isOpen()||hudLayout.isEditing(),onOpen:()=>{characterPanel.close();hqStash.close();setGameplayInput(false);},onClose:()=>setGameplayInput(true)});
   // Hire menu: only reads the state and sends 'hire' commands, like a bot would
-  let townSig = '', townGrowthFx = null;
+  let townSig = '', townGrowthFx = null, gatesOpen = new Set(), gatesTick = -1;
   const spotIndex = makeSpotIndex(resourceSpots), spotConfig = frontier?.townArt?._spots;
   const spotTip = document.createElement('div'), twinkle = document.createElement('div');
   spotTip.className = 'townhover'; spotTip.hidden = twinkle.hidden = true;
@@ -332,8 +333,9 @@ async function start() {
     addEventListener('keydown', e => { if (e.key === 'Shift') { if (!e.repeat) cleanShift = true; } else cleanShift = false; }, true);
     addEventListener('mousedown', () => { cleanShift = false; }, true);
     addEventListener('keyup', e => { if (e.key === 'Shift' && cleanShift) { cleanShift = false; if (!e.target?.closest?.('input, select, textarea') && game.state.entities[heroId]?.ride) setSprint(!sprintOn()); } }, true); }
-  // H calls your horse and rides her; Q gets you off (Tim 2026-11-08: H no longer gets you off). Shift+H is still Mount up / All off
-  onAction('horse', () => { const h = game.state.entities[heroId]; if (h?.place === 'world') { if (!h.mounted) pending.push({ id: heroId, type: 'mount' }); } else hireMenu.toggle(); });
+  // H calls your horse and rides her, and H again gets you off (Tim 2026-11-15: Q on horseback is the ability, so the
+  // dash and the rest work from the saddle; Q still steps out of an omnibus or rickshaw). Shift+H is Mount up / All off
+  onAction('horse', () => { const h = game.state.entities[heroId]; if (h?.place === 'world') pending.push({ id: heroId, type: 'mount' }); else hireMenu.toggle(); });
   onAction('mountGroup', () => { const h = game.state.entities[heroId]; if (h?.place === 'world') pending.push({ id: heroId, type: 'mount', group: true, units: crewInput.selected() }); else hireMenu.toggle(); });
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, catalog, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // telegraph office hint (Tim 2026-11-06): once the hero's clan can buy a founding permit, the office
@@ -472,7 +474,7 @@ async function start() {
   let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
-  onKey('Escape', () => { warOutcome.close(); crewInput.cancelTarget(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  onKey('Escape', () => { warOutcome.close(); crewInput.cancelTarget(); crewInput.endAttackMode(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   let abilityRows = null;   // war checkpoint 7: made after the action bar
   bindCrewNumberKeys({ onAction, onKeyFirst, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, surveyorTalk, siteMenu, stableMenu, stationMenu, contractMenu, hireMenu] });
   const sound = createSound();
@@ -545,10 +547,11 @@ async function start() {
   const warBannerButton=document.createElement('button');actionCommands.append(warBannerButton);
   const warBlocked=()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen();
   // F6 war checkpoint 4: the camp panel (build, train, hire, hall upgrade), opened from the war coin or a camp building
-  const warCamp=createWarCampPanel({game,heroId,view,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,buildUI:()=>frontierBuildUI,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();townWar?.close();}});
+  const warCamp=createWarCampPanel({game,heroId,view,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,buildUI:()=>frontierBuildUI,openTerms:id=>warTerms.show(id),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();townWar?.close();}});
   // war 8b: a defending town's war window (military buildings, war chest, hall war upgrade) and its building menus
-  const townWar=createTownWarPanel({game,heroId,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();warCamp.close();stableMenu.close();closeTown();},placeTool:(id,k)=>!!frontierBuildUI?.placeTool(id,k)});
+  const townWar=createTownWarPanel({game,heroId,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,openTerms:id=>warTerms.show(id),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();warCamp.close();stableMenu.close();closeTown();},placeTool:(id,k)=>!!frontierBuildUI?.placeTool(id,k)});
   const warBar=createWarBar({game,heroId,channelOf:id=>warOutcome?.channelOf(id)||null});   // war 8a-2: both sides' morale at the top of the screen
+  const warTerms=createWarTermsPanel({game,heroId,send:c=>pending.push(c),blocked:warBlocked,onStart:()=>{frontierBuildUI?.cancel();warCamp.close();townWar.close();warOutcome.close();}});   // war 8c-3: the surrender terms window
   const warOutcome=createWarOutcomeMenu({game,heroId,send:c=>pending.push(c),blocked:warBlocked});   // war 8a-3: Use at a ruined hall takes it (the outcome picker for a town)
   const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warCamp.cancel();},blocked:warBlocked,openCamp:id=>warCamp.show(id),defending:()=>townWar.defendingHere(),openDefense:id=>townWar.show(id)});
   const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','vehiclesbtn','goalbtn','ctlbtn','daynight'].map($)});
@@ -702,7 +705,7 @@ async function start() {
   });
   const clock = {alpha:()=>simClient.alpha(),diagnostics:()=>simClient.diagnostics()};
   if(DEV)window.infamy.mapPerformance=()=>({...presentation.diagnostics(),...gameMap.diagnostics(),clock:clock.diagnostics(),worldResources:{...view.renderer.info.memory}});
-  const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults, townAlert: n => townAlertHook(n) });
+  const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults, townAlert: n => townAlertHook(n), warAlert: () => sound.bell() });
   const topBar = createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, onClan: id => standingsPanel.open(id) });
   let last = performance.now() / 1000, labelTick = -Infinity, lostCops = false;
   function observeRaidAlarms() {
@@ -832,8 +835,13 @@ async function start() {
       stealthBadge.update(); stationClock.update();
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();
       hireMenu.update(); foundButton.update(); updateSpotHover();
-      { const towns = drawableTowns(game.state.frontier, game.state.entities[heroId]?.owner), shown = towns.concat(drawableWarSites(game.state.frontier, game.state.entities[heroId]?.owner)), sig = townSignature(shown);   // E5: founded towns follow their records; F6: rival towns on discovered ground and war camps
-        if (sig !== townSig) { townSig = sig; view.setTowns(townProps(shown, simOptions.frontier?.townArt || {}, simOptions.frontier?.townLights || {})); }
+      // a built camp gate with anyone at it stands open: drawn dark until open-gate art exists (Tim 2026-11-15); looked at every 5 ticks
+      const openGates = shown => { if (game.state.tick === gatesTick || game.state.tick % 5) return gatesOpen; gatesTick = game.state.tick; const open = new Set(), gates = [];
+        for (const s of shown) if (s.camp) for (const b of s.buildings || []) if (b.type === 'gate' && b.stage === 'built' && b.off) gates.push([s, b, s.x + b.off[0], s.z + b.off[1]]);
+        if (gates.length) for (const e of Object.values(game.state.entities)) { if (e.place !== 'world' || e.dead || e.downed) continue; for (const [s, b, gx, gz] of gates) if (Math.abs(e.x - gx) < 3.5 && Math.abs(e.z - gz) < 3.5) open.add(`${s.id}:${b.id}`); }
+        return gatesOpen = open; };
+      { const towns = drawableTowns(game.state.frontier, game.state.entities[heroId]?.owner), shown = towns.concat(drawableWarSites(game.state.frontier, game.state.entities[heroId]?.owner)), sig = townSignature(shown) + '|' + [...openGates(shown)].join(',');   // E5: founded towns follow their records; F6: rival towns on discovered ground and war camps
+        if (sig !== townSig) { townSig = sig; view.setTowns(townProps(shown, simOptions.frontier?.townArt || {}, simOptions.frontier?.townLights || {}, gatesOpen)); }
         if (simOptions.frontier) { townGrowthFx ||= createTownGrowthFx({ view, data: simOptions.frontier }); townGrowthFx.update(towns, game.state.tick, game.state.entities[heroId]?.place === 'world'); } }   // B7 growth effects
       clinicMenu.update();
       policeMenu.update();
@@ -881,7 +889,7 @@ async function start() {
     selectionDock.update();
     warLantern.update();warBanner.update();
     { const away=game.state.entities[heroId]?.place==='world'?'none':'';if(lanternButton.style.display!==away){lanternButton.style.display=away;$('rallybtn').style.display=away;} }   // Tim 2026-11-12: no Rally or War Lantern on the island
-    warCamp.update();townWar.update();warBar.update();warOutcome.update();utilityMenu.update();   // the camp menu and utility menu redraw every frame (the comment above once swallowed this call)
+    warCamp.update();townWar.update();warBar.update();warOutcome.update();warTerms.update();utilityMenu.update();   // the camp menu and utility menu redraw every frame (the comment above once swallowed this call)
     hudLayout.update();
   });
 }

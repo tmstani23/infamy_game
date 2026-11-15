@@ -390,6 +390,8 @@ export function createGame(options) {
   // --- Combat (RTS / Dota style) ----------------------------------------------------
   // Units of two different clans in the same place are enemies. Crew pick fights on
   // their own within AGGRO, but never wander more than LEASH from where they belong.
+  // attack mode is a frontier rule for a player's hero on foot or on horseback (not for bots, not in a vehicle)
+  const heroMode = e => e.type === 'hero' && e.place === 'world' && !e.aboard && !e.garrison && !state.clans?.[e.owner]?.bot;
   const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3, LOCK_RANGE = 14, RETALIATE_SECONDS = 5, BACKUP_RANGE = 6;
   const fight = {};      // per unit: { cd: seconds to next hit, target } (server-side only)
   // Bandits become hostile after spotting a clan nearby or being attacked.
@@ -414,8 +416,11 @@ export function createGame(options) {
     const W = frontier?.war; if (!W || a.place !== 'world' || !state.clans?.[a.owner] || !state.clans?.[b.owner]) return false;
     const sides = w => !!w && ((w.attacker === a.owner && w.defender === b.owner) || (w.defender === a.owner && w.attacker === b.owner));
     const wa = a.warTroop ? W.byId(a.warTroop) : null, wb = b.warTroop ? W.byId(b.warTroop) : null;
+    const truce = w => !!w?.terms && sides(w);   // 8c: a ceasefire while terms are on the table
+    if (truce(wa) || truce(wb)) return true;
     if (wa || wb) return !(sides(wa) || sides(wb));
     const here = W.warsAt(b.x, b.z);
+    if (here.some(truce)) return true;
     return here.length > 0 && !here.some(sides);
   }
   // Tim 2026-11-13: an enemy clan's workers in a war on their town are combatants (attack-move and auto-attack pick them; they belong to no clan, so baseHostile alone skips them)
@@ -426,9 +431,9 @@ export function createGame(options) {
   const civ = t => t?.type === 'civilian';
   // Frontier (Tim 2026-11-10): heroes and crews of different clans may fight anywhere out there, but frontier
   // townsfolk are never fair game and a town's workers only for the other side of a war on that town
-  const atWarWith = (clan, b) => { const w = frontier?.war?.byId(b.town) || frontier?.war?.warOn(b.town); return !!w && ((w.attacker === clan && w.defender === b.workerOwner) || (w.defender === clan && w.attacker === b.workerOwner)); };
+  const atWarWith = (clan, b) => { const w = frontier?.war?.byId(b.town) || frontier?.war?.warOn(b.town); return !!w && !w.terms && ((w.attacker === clan && w.defender === b.workerOwner) || (w.defender === clan && w.attacker === b.workerOwner)); };
   // 7c-5: an ox cart is fair game only for the attacker of a war on its town (it is destroyed at 0 health)
-  const cartFoe = (clan, b) => { const w = frontier?.war?.warOn(b.town); return !!w && w.attacker === clan && w.defender === b.cartOwner; };
+  const cartFoe = (clan, b) => { const w = frontier?.war?.warOn(b.town); return !!w && !w.terms && w.attacker === clan && w.defender === b.cartOwner; };
   const frontierShield = (a, b) => b?.type === 'civilian' && b.place === 'world' && !!state.clans?.[a?.owner] && (!!b.townsfolk || (!!b.cart && !cartFoe(a.owner, b)) || (!!b.worker && b.workerOwner !== a.owner && !atWarWith(a.owner, b)));
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
   const fair = (a, b) => !frontierShield(a, b) && (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !a.aboard && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
@@ -817,7 +822,10 @@ export function createGame(options) {
   const goals = createCampaignGoals({ state, clans, landOffice, influence, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
   frontier?.attach({unitOf:e=>statsOf(e),moveTo:(...a)=>moveTo(...a),hit:(...a)=>hit(...a),fight,paths,dirIndex,damageOf:e=>stats.damage(e),intervalOf:e=>stats.attackInterval(e),swingTicks:(unit,speed)=>Math.max(4,Math.round(Math.min(speed*0.85,unit.swingSeconds||0.7)/DT)),areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),
     // a war camp fell (sim/frontier/war_end.js): the attacker's hero and crew in the war circle fall back to their nearest town, on foot
-    warSendHome:w=>{const t=state.frontier?.settlements?.[w.town];return islandRespawn?.fallBack(w.attacker,t?.x??w.x,t?.z??w.z,options.frontier?.war?.circleRadius??900,e=>{delete paths[e.id];delete intents[e.id];delete e.attackTarget;delete e.swing;delete e.execute;delete e.lootTarget;if(fight[e.id])delete fight[e.id].target;mounts?.dismount(e);if(e.aboard){delete e.aboard;if(e.ride?.kind==='omnibus')delete e.ride;}if(e.type==='hero')delete e.order;else if(e.order&&e.order.kind!=='follow')e.order={kind:'stop'};})||null;},trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
+    // (8c: o.side 'defender' = the defender leaving the town he surrendered, to his nearest other town; o.why = what he is told)
+    warSendHome:(w,o={})=>{const t=state.frontier?.settlements?.[w.town];return islandRespawn?.fallBack(o.side==='defender'?w.defender:w.attacker,t?.x??w.x,t?.z??w.z,options.frontier?.war?.circleRadius??900,e=>{delete paths[e.id];delete intents[e.id];delete e.attackTarget;delete e.swing;delete e.execute;delete e.lootTarget;if(fight[e.id])delete fight[e.id].target;mounts?.dismount(e);if(e.aboard){delete e.aboard;if(e.ride?.kind==='omnibus')delete e.ride;}if(e.type==='hero')delete e.order;else if(e.order&&e.order.kind!=='follow')e.order={kind:'stop'};},{skip:o.side==='defender'?w.town:null,why:o.why})||null;},
+    // 8c: what a clan's estimate may read: does it see that unit now, has it found that ground, the other clan's hold on the city
+    sees:(clan,e)=>sees({owner:clan},e),found:(clan,x,z)=>!discovery?.enabled||!!discovery.isDiscovered(clan,x,z),cityHold:id=>Object.values(state.businesses||{}).filter(b=>b.owner===id&&!b.hideout).length,trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
     forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
@@ -1048,8 +1056,11 @@ export function createGame(options) {
       if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business, c.patient, c.prisoner);
       if (c.type === 'business' && businesses) businesses.command(e, c);
       // war checkpoint 6: right-click on an enemy structure of a war (sim/frontier/structures.js)
-      if (c.type === 'order' && c.kind === 'raze') { if (e.type === 'hero' && !e.dead && !e.downed && !e.jailed) { for (const id of c.units || []) { const u = state.entities[id]; if (u?.owner === e.owner && u.type !== 'hero') manualCrew(u); } if (!frontier?.structures?.order(e, c) && (c.fallback === 'move' || c.fallback === 'station') && c.units?.length) { omnibus?.orderVehicles(e, { ...c, kind: c.fallback }); giveOrder(e, { ...c, kind: c.fallback }); } } continue; }
+      if (c.type === 'order' && c.kind === 'raze') { if (e.type === 'hero' && !e.dead && !e.downed && !e.jailed) { for (const id of c.units || []) { const u = state.entities[id]; if (u?.owner === e.owner && u.type !== 'hero') manualCrew(u); } const razed = frontier?.structures?.order(e, c); if (razed && e.order?.kind === 'raze' && heroMode(e)) e.attackMode = true; if (!razed && (c.fallback === 'move' || c.fallback === 'station') && c.units?.length) { omnibus?.orderVehicles(e, { ...c, kind: c.fallback }); giveOrder(e, { ...c, kind: c.fallback }); } } continue; }
       if (c.type === 'order') { omnibus?.orderVehicles(e, c); giveOrder(e, c); }
+      // X with the hero in the selection on the frontier: he attack-moves too, in attack mode (Tim 2026-11-15); a plain move
+      // order to the selection does not move him (WASD does)
+      if (c.type === 'order' && c.kind === 'attackmove' && e.type === 'hero' && Array.isArray(c.units) && c.units.includes(e.id) && heroMode(e) && !e.dead && !e.downed && !e.jailed && Number.isFinite(c.x) && Number.isFinite(c.z)) { e.order = { kind: 'attackmove', x: c.x, z: c.z }; e.attackMode = true; delete e.attackTarget; delete paths[e.id]; }
       if (c.type === 'deployment') { if(shakedown.command(e,c)||sweep.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }
       if (c.type === 'ability') useAbility(e, c);
       // war checkpoint 7-1: a special ability of selected crew or troops cast by the player, or its auto switch (sim/special_cast.js)
@@ -1086,9 +1097,12 @@ export function createGame(options) {
         setAssistCrew(e, c.assist ? c.units : []);
         for (const id of e.assistCrew || []) { const u = state.entities[id]; delete u.smokePassive; delete u.holdFire; allowCharmAttack(u,state.entities[c.target],state); }
         e.attackTarget = c.target; delete e.holdFire;
+        if (heroMode(e)) e.attackMode = true;   // frontier attack mode (Tim 2026-11-15)
       }
       // left-click elsewhere (Tim 2026-10-18): the hero drops his locked target and stops swinging at it
-      if ((c.type === 'stopattack' || c.type === 'cancel') && e.type === 'hero') {
+      // frontier attack mode ends on Esc, Z or a cancel; a left-click elsewhere leaves it and its target alone (Tim 2026-11-15)
+      if ((c.type === 'cancel' || (c.type === 'attackmode' && !c.on)) && e.type === 'hero' && e.attackMode) { delete e.attackMode; delete e.attackTarget; if (e.order?.kind === 'raze' || e.order?.kind === 'attackmove') delete e.order; delete paths[e.id]; }
+      if ((c.type === 'stopattack' || c.type === 'cancel') && e.type === 'hero' && !(c.type === 'stopattack' && e.attackMode)) {
         if (Array.isArray(c.units)) setAssistCrew(e, c.units);
         if (e.swing?.target === e.attackTarget) delete e.swing;
         delete e.attackTarget; delete e.assistCrew; delete e.charmAttack;
@@ -1156,8 +1170,28 @@ export function createGame(options) {
         if (e.lootTarget) { if (lootStep(e, unit, e.lootTarget)) continue; delete e.lootTarget; delete paths[e.id]; }
         if (e.execute && executeStep(e, unit)) continue;
         // the hero sent at an enemy structure of a war (checkpoint 6): he walks over and hits it until it falls or WASD takes over
-        if (e.type === 'hero' && e.order?.kind === 'raze') { if (frontier?.structures?.step(e, unit)) continue; delete e.order; }
+        if (e.type === 'hero' && e.order?.kind === 'raze' && e.order.from === 'attackmove' && e.attackMode) { const n = nearestEnemy(e, e.x, e.z, AGGRO), foe = n && (n.owner || n.workerOwner); if (n && Object.values(state.frontier?.wars?.list || {}).some(w => (w.attacker === e.owner && w.defender === foe) || (w.defender === e.owner && w.attacker === foe))) { if (e.swing?.structure) delete e.swing; e.order = { kind: 'attackmove', x: e.order.ax, z: e.order.az }; e.attackTarget = n.id; } }
+        if (e.type === 'hero' && e.order?.kind === 'raze') { if (frontier?.structures?.step(e, unit)) continue; if (e.order?.kind !== 'attackmove') delete e.order; }
         if (swingStep(e, unit)) continue;
+        // frontier attack mode (Tim 2026-11-15): after a right-click on an enemy the hero chases it, and when it is down or
+        // gone he goes for the nearest war enemy in range as crew do; WASD only breaks the chase. A building that falls ends it
+        // there, as for crew: the next one takes a new right-click, or an attack-move (X) goes on building to building (Tim 2026-11-15)
+        if (e.attackMode && !heroMode(e)) delete e.attackMode;
+        if (e.attackMode) {
+          let t = state.entities[e.attackTarget];
+          if (!fair(e, t) || !sees(e, t)) {
+            delete e.attackTarget;
+            const n = nearestEnemy(e, e.x, e.z, AGGRO), foe = n && (n.owner || n.workerOwner);
+            t = n && Object.values(state.frontier?.wars?.list || {}).some(w => (w.attacker === e.owner && w.defender === foe) || (w.defender === e.owner && w.attacker === foe)) ? n : null;
+            if (t) e.attackTarget = t.id;
+          }
+          if (t) { engage(e, unit, t, true); continue; }
+          // attack-move (X with the hero selected): structures in reach on the way, then on to the point and hold there
+          if (e.order?.kind === 'attackmove') {
+            if (state.tick % 10 === 0) { const st = frontier?.structures?.pick(e); if (st) { e.order = { kind: 'raze', structure: st.key, x: st.x, z: st.z, from: 'attackmove', ax: e.order.x, az: e.order.z }; delete paths[e.id]; continue; } }
+            if (!e.order.arrived) { if (moveTo(e, unit, e.order.x, e.order.z, false)) continue; e.order.arrived = true; }
+          }
+        }
         // a locked target (Ctrl + right-click): no chasing (Tim 2026-10-17), the hero hits it
         // whenever it is in reach and the player keeps him there with WASD; the lock drops when
         // the target is down or gone, or more than LOCK_RANGE away
@@ -1175,7 +1209,7 @@ export function createGame(options) {
       delete e.swing;
       delete e.execute;
       delete e.lootTarget;
-      if (e.order?.garrisonGo || e.order?.kind === 'raze') delete e.order;   // WASD takes back control from the walk to the stockade or to a structure
+      if (e.order?.garrisonGo || e.order?.kind === 'raze' || e.order?.kind === 'attackmove') delete e.order;   // WASD takes back control from the walk to the stockade, to a structure or an attack-move
       e.anim = c.walk ? 'walk' : 'run';
       if (e.ride) {   // driving or riding: cart-like steering (sim/vehicle_steer.js), the vehicle turns, slows in sharp turns
         const kind = e.ride.kind === 'horse' ? 'mount' : state.entities[e.aboard]?.type || 'omnibus';

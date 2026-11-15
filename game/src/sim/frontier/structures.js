@@ -124,15 +124,16 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // the war in which `clan` may damage this structure, or null
   function warFor(clan, st) {
     if (!st || clan == null) return null;
-    if (st.camp) { const w = war.byId(st.war); return w && w.defender === clan ? w : null; }
+    // (8c: nothing is damaged during a ceasefire, w.terms; fires go out with it)
+    if (st.camp) { const w = war.byId(st.war); return w && !w.terms && w.defender === clan ? w : null; }
     const w = war.warOn(st.town);
-    return w && w.attacker === clan && st.owner === w.defender ? w : null;
+    return w && !w.terms && w.attacker === clan && st.owner === w.defender ? w : null;
   }
   const canDamage = (clan, st) => !!warFor(clan, st) && hpOf(st) > 0;
   // what a clan may attack: the town of each war it attacks, the camp of each war it defends
   function targetsOf(clan) {
     const out = [];
-    for (const w of war.warsOf(clan)) out.push(...(w.attacker === clan ? townList(town(w.town)) : campList(w)));
+    for (const w of war.warsOf(clan)) if (!w.terms) out.push(...(w.attacker === clan ? townList(town(w.town)) : campList(w)));
     return out;
   }
   // distance from a point to the solid part of a structure (its boxes; a circle when it has none)
@@ -497,6 +498,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     if (fr.towerShots) { fr.towerShots = fr.towerShots.filter(s => s.until > now); if (!fr.towerShots.length) delete fr.towerShots; }
     if (now % 5) return;
     for (const w of war.active()) {
+      if (w.terms) continue;   // 8c ceasefire: towers hold fire
       const sides = [[campList(w), w.attacker, w.defender], [townList(town(w.town)), w.defender, w.attacker]];
       for (const [l, mine, foe] of sides) for (const st of l) {
         if (st.type !== 'watchtower' || (st.b.shotAt ?? -Infinity) + (T.everyTicks ?? 30) > now) continue;
@@ -548,7 +550,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     for (const u of Object.values(state.entities)) {
       const g = u.garrison; if (!g?.zone || u.dead || (g.next ?? 0) > now) continue;
       const unit = rt.unitOf(u); if (!unit?.projectile && !unit?.rifle) continue;
-      const w = war.warOn(g.town); if (!w) continue;
+      const w = war.warOn(g.town); if (!w || w.terms) continue;
       const foe = u.owner === w.defender ? w.attacker : w.defender, reach = (unit.rifle?.range ?? unit.attackRange ?? 6) + 3;
       let best = null, bd = reach * reach;
       for (const e of Object.values(state.entities)) {

@@ -346,7 +346,7 @@ Planned, not built. Full design: `frontier_build_steps.md`, Phase F6: War. It re
 - **Frontier stealth:** open ground, cover, night lights and riding rules; inside a war circle only the kunoichi is hidden. Watchtowers, the dog handler and the Teppō detect hidden units.
 - **Morale bar:** each side's morale drops only when its military buildings fall (walls, palisades and gates don't count; the stockade does). With all military buildings down and the hall at 0 health (a ruin), the hero channels about 1 minute at the hall; only a hit on the hero resets it. Sack takes half the coffers; capture transfers the whole town and cuts it from the old owner's rail network. Outcomes chosen before the channel: capture, sack (burn defences, take part of the coffers; a clan's last town can only be sacked), or burn everything (zone goes empty; anyone can found a fresh town there at full cost once the war ends).
 - **Defender:** builds the same military buildings in town (upkeep in timber and stone, capped by hall tier), trains only during a war after a muster delay, and gets its own war chest. The attacker loses when the camp's morale empties and the defending hero completes the 1-minute channel at the camp hall; the attacker's chest goes to the town as spoils. Either side may surrender.
-- **After a war:** a fresh build. War troops on both sides disband, the camp packs up, unspent chest ryo returns to the treasury, the hero and crew stay. 6 game days of cooldown before that town can be declared on again. War troops cannot leave their war circle, and only the two sides fight there.
+- **After a war:** a fresh build. War troops on both sides disband, the camp packs up, unspent chest ryo returns to the treasury, the hero and crew stay. 3 game days of cooldown before that town can be declared on again. War troops cannot leave their war circle, and only the two sides fight there.
 - **Art:** army kit, cavalry sheets, horse recolours and a warhorse, fire-bomb throwers, second specials, tier 1 hall art and clan castles, Shinobi buildings; after gameplay.
 - **Open:** see the Open list in Phase F6: War.
 
@@ -383,8 +383,7 @@ Agreed with Tim on 2026-11-05 ("ok docs"). Nothing here is built yet.
 - A taken town is fully yours. The old owner does not raid it back.
 
 **Surrender**
-- A defender can surrender: the town falls with little damage, the defender's hero and crew retreat to their nearest town.
-- Defender saves their army; attacker gets a cheap win but must fight that army again.
+- Either side can surrender at any time, which ends in its loss. While terms are open there is a ceasefire. The surrendering side offers a ransom; the other side accepts, says no or refuses for good. Accepted: the ransom is paid and the war ends with the town kept. Refused for good, or no offer: the surrendering side's troops walk off and its hero and crew go to their nearest own town; a defender's town falls and the attacker picks capture, sack or burn.
 
 **Travel**
 1. Horse for the hero (about 3 times faster; roads faster still).

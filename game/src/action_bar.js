@@ -89,6 +89,10 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const face = el('div', 'face', portrait);
   el('span', 'glyph', face, 'R');
   const hpBar = el('div', 'hp', portrait), hpFill = el('div', 'fill', hpBar), hpText = el('div', 'txt', hpBar);
+  // frontier attack mode (Tim 2026-11-15): shown under the health bar while it is on
+  const modeTag = el('div', 'attack-mode', portrait, 'Attack mode');
+  modeTag.title = 'Attack mode: your hero chases his target and then goes for the nearest war enemy in range. A building that falls ends it there. Moving him yourself only breaks the chase. Esc or Stop ends it.';
+  Object.assign(modeTag.style, { font: '700 11px sans-serif', color: '#f0d9a0', background: '#7a1f1a', border: '1px solid #c9a15a', borderRadius: '3px', padding: '1px 6px', visibility: 'hidden' });
 
   const slots = [];
   // the key text on each slot: the slot's bound key, RMB stays (Tim 2026-11-12: Unbound in red when it has none)
@@ -164,6 +168,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     root.classList.toggle('ko', ko);
     const k = h.maxHp ? h.hp / h.maxHp : 0;
     hpFill.style.width = `${k * 100}%`;
+    modeTag.style.visibility = h.attackMode ? 'visible' : 'hidden';
     face.style.setProperty('--hp-angle', `${Math.max(0, Math.min(1, k)) * 360}deg`);
     face.style.setProperty('--ring', k < 0.25 ? '#ed5347' : '#64c85f');
     face.classList.toggle('hurt', !ko && t - (h.hitAt ?? -Infinity) < tickRate * 0.85);

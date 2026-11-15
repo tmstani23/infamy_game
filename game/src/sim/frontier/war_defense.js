@@ -49,6 +49,7 @@ export function createWarDefense({ state, data, war, world }) {
 
   // ---- training ----------------------------------------------------------------------------------
   function trainWhy(w, s, b, unit, n) {
+    if (w.terms) return 'A ceasefire is on: the war is ending';   // 8c
     if (b?.type === 'stable' && b.stage === 'built' && !s.warHall) return 'Cavalry need the town hall war upgrade';
     if (!b || !trains(s, b, w.defender)) return 'No such finished military building in the town';
     if (!war.trainsAt(b.type, w.defender).includes(unit)) return `The ${nice(b.type)} does not train that`;

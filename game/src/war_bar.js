@@ -72,7 +72,9 @@ export function warBarModel(game, heroId) {
       tip: `${names[key]}: morale ${s.pct} of 100. Standing: ${listOf(s.up) || 'nothing'}. Down: ${listOf(s.down) || 'nothing'}. Morale falls only when military buildings and the hall are destroyed. Walls, gates, houses and workshops do not count. At 0 the enemy hero can take the ${hall}.` };
   };
   const line = last ? { text: `${last.side === mySide ? 'Your' : 'Enemy'} ${nice(last.type).toLowerCase()} destroyed, morale down ${last.amount}`, good: last.side !== mySide } : null;
-  return { eyebrow: 'War', title: `${attacking ? 'Siege' : 'Defence'} of ${t?.name || 'the town'}`, mine: side(mySide, true), foe: side(foeSide, false), line, war: w.id };
+  // 8c: a ceasefire while surrender terms are on the table
+  const T = w.terms, truce = T ? { text: T.state === 'outcome' ? (attacking ? 'They left: choose what happens to the town' : 'No terms: the attacker is choosing') : `Ceasefire: ${T.by === (attacking ? 'attacker' : 'defender') ? 'you' : foeClan?.name || 'they'} surrendered, terms are on the table`, good: T.by !== (attacking ? 'attacker' : 'defender') } : null;
+  return { eyebrow: T ? 'Ceasefire' : 'War', title: `${attacking ? 'Siege' : 'Defence'} of ${t?.name || 'the town'}`, mine: side(mySide, true), foe: side(foeSide, false), line: truce || line, war: w.id };
 }
 export function createWarBar({ game, heroId, channelOf = () => null }) {
   if (typeof document === 'undefined') return { update() {} };
