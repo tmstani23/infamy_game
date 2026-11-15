@@ -46,6 +46,7 @@ const CSS = `
 #warcamp .lockline{font-size:10px;color:#ed8b7c;margin-top:3px}
 #warcamp .card:hover{border-color:#ffe0a1}
 #warcamp .foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px}
+#warcamp .vrow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid #2a2d31}#warcamp .vrow .vn{flex:1;min-width:0}#warcamp .vrow .vn b{font-weight:600}#warcamp .vrow .vn .small{display:block}
 #warcamp .sec{display:flex;justify-content:space-between;color:#9b9c98;font-size:10px;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid #3c3b36;padding:10px 0 5px}
 #warcamp .sec b{color:#d8b56c;font-weight:500}
 #warcamp .site{display:grid;grid-template-columns:44px 1fr 46px 64px;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid #252c31}
@@ -82,6 +83,7 @@ import { msConcept } from './menu_shell.js';
 import { portrait } from './portraits.js';
 import { SPECIALS } from './sim/special_cast.js';
 import { ABOUT } from './ability_rows.js';
+import { listVehicles } from './vehicles_panel.js';
 import { drawBuildArea } from './camp_build_area.js';   // 7c-4: one merged build outline, darkened outside
 // what a unit without a cast ability does well (train card hover); the cast abilities come from ability_rows.js
 const TRAITS = {
@@ -136,8 +138,9 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
 
   const root = document.createElement('div'); root.id = 'warcamp'; root.hidden = true; document.body.append(root);
   let open = null, bid = null, tab = 'build', page = 0, tpage = 0, sig = '', why = '';
+  let stab = 'train', ypage = 0;   // a camp stable's own tabs: Train (cavalry) and Yours (your horses and vehicles, Tim 2026-11-14)
   const counts = {};   // typed train / hire counts by box, kept across refreshes
-  function show(id, buildingId = null) { if (!rec(id) || rec(id).attacker !== hero()?.owner) return false; const b = buildingId && rec(id).camp.buildings.find(x => x.id === buildingId); bid = b && b.type !== 'camp_hall' ? b.id : null; open = id; tab = 'build'; page = tpage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true; }
+  function show(id, buildingId = null) { if (!rec(id) || rec(id).attacker !== hero()?.owner) return false; const b = buildingId && rec(id).camp.buildings.find(x => x.id === buildingId); bid = b && b.type !== 'camp_hall' ? b.id : null; open = id; tab = 'build'; stab = 'train'; page = tpage = ypage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true; }
   function close() { open = null; bid = null; root.hidden = true; }
 
   function fill() {
@@ -152,10 +155,11 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const builders = id => (c.workers || []).filter(k => k.project === id).length, maxB = W().builders ?? 3;
     const bld = bid ? c.buildings.find(x => x.id === bid) || null : null; if (bid && !bld) bid = null;
     const faction = clan?.faction, ST = game.frontier?.structures, stOf = x => ST?.find?.(`c|${open}|${x.id}`) || null;
+    const yoursOn = bld?.type === 'stable' && bld.stage === 'built', mineV = yoursOn ? listVehicles(game, heroId) : [];
     const workersH = !bld && tab === 'workers' ? (ensureWorkerCss(), buildUI()?.campWorkersHtml?.(open) || '<div class="small" style="padding:8px 0">The worker list is not ready yet.</div>') : '';
     const next = JSON.stringify([open, bid, tab, page, tpage, why, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length, workerLeft(c),
       c.buildings.map(b => [b.id, b.stage, Math.floor(100 * (b.upgrade || b).progress / Math.max(1, (b.upgrade || b).need) || 0), b.queue?.length || 0, b.tier || 1, builders(b.id)]), list.map(x => x.ok), placing?.kind,
-      bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0, workersH]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
+      bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0, workersH, stab, ypage, mineV.map(v => [v.e.id, v.status, v.where])]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
     if (next === sig) return;
     sig = next;
     // a count box being typed in keeps its focus and text across the redraw (it used to block the redraw instead)
@@ -201,8 +205,21 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     }
     const num = (key, d = 1) => `<input class="num" type="text" inputmode="numeric" data-n="${esc(key)}" value="${esc(counts[key] ?? d)}">`;
     const coin = (cls, n, label, tip) => `<div class="coin ${cls}" title="${esc(tip)}"><b>${n}</b><span>${label}</span></div>`;
+    // a built camp stable (Tim 2026-11-14): Yours lists every horse and vehicle you own; Take out brings a stored one
+    // out beside this stable (from any stable), Recall sends one to your nearest stable. It makes none and adds no room.
+    function yoursBody() {
+      const PER = 5, all = ['horse', 'rickshaw', 'omnibus'].flatMap(k => mineV.filter(v => v.kind === k)), ps = Math.max(1, Math.ceil(all.length / PER)); ypage = Math.max(0, Math.min(ypage, ps - 1));
+      const out = all.some(v => !v.e.stored && !v.e.recall);
+      const row = v => `<div class="vrow"><div class="vn"><b>${esc(v.name)}</b>${v.status ? ` <span class="small" style="display:inline">${esc(v.status)}</span>` : ''}<span class="small">${esc(v.where)}</span></div>`
+        + (v.e.stored ? `<button data-takeout="${esc(v.e.id)}" title="Bring it out beside this camp stable">Take out</button>` : `<button data-recall="${esc(v.e.id)}"${v.e.recall ? ' disabled' : ''} title="Riders get off; back to your nearest stable and stored there">Recall</button>`) + '</div>';
+      return `<div class="sec"><span>Your horses and vehicles</span><b>${all.length}</b></div>`
+        + (all.length ? all.slice(ypage * PER, ypage * PER + PER).map(row).join('') : '<div class="small" style="padding:8px 0">None yet</div>')
+        + `<div class="foot"><span class="small">${ps > 1 ? `Page ${ypage + 1} of ${ps}` : 'This stable stores and brings out what you own. It makes none and adds no room.'}</span><span><button data-recallall="1"${out ? '' : ' disabled'} title="Everyone gets off; every horse and vehicle goes back to your nearest stable">Recall all</button>`
+        + (ps > 1 ? ` <button data-ypage="-1"${ypage ? '' : ' disabled'}>Prev</button> <button data-ypage="1"${ypage < ps - 1 ? '' : ' disabled'}>Next</button>` : '') + '</span></div>';
+    }
     let body = '';
-    if (bld) body = buildingBody(bld);
+    if (bld) body = (yoursOn ? `<div class="tabs">${[['train', 'Train'], ['yours', `Yours (${mineV.length})`]].map(([t, n]) => `<button class="tab${stab === t ? ' on' : ''}" data-stab="${t}">${n}</button>`).join('')}</div>` : '')
+      + (yoursOn && stab === 'yours' ? yoursBody() : buildingBody(bld));
     else if (tab === 'build') {
       body = `<div class="grid">${list.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE).map(x => {
         const d = B[x.type] || {}, tip = `${nice(x.type)}: ${Object.entries(d.cost || {}).map(([r, n]) => `${n} ${r}`).join(', ')}.${d.cap ? ` Adds ${d.cap} to the troop cap.` : ''}${(war()?.trainsAt(x.type) || []).length ? ` Trains ${war().trainsAt(x.type).join(', ')}.` : ''}${x.need.length ? ` Needs ${x.need.join(' and ')}.` : ''}${x.reason && !x.need.length ? ` ${x.reason}.` : ''}`;
@@ -255,10 +272,15 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   root.addEventListener('dblclick', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s) ui.doubleClick?.(a.dataset, s); });
   root.addEventListener('change', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.change?.(a.dataset, e.target.value, s)) { sig = ''; fill(); } });
   root.addEventListener('click', e => {
-    const b = e.target.closest?.('[data-close],[data-tab],[data-page],[data-tpage],[data-build],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-hire]'); if (!b || !open) return;
+    const b = e.target.closest?.('[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-hire]'); if (!b || !open) return;
     const d = b.dataset; why = ''; sig = '';
     if (d.close) return close();
     if (d.tab) tab = d.tab;
+    else if (d.stab) { stab = d.stab; ypage = 0; }
+    else if (d.ypage) ypage = Math.max(0, ypage + Number(d.ypage));
+    else if (d.takeout) send({ id: heroId, type: 'garage', action: 'takeout', unit: d.takeout, at: `war:${open}` });
+    else if (d.recall) send({ id: heroId, type: 'garage', action: 'recall', unit: d.recall });
+    else if (d.recallall) send({ id: heroId, type: 'garage', action: 'recallAll' });
     else if (d.page) page = Math.max(0, page + Number(d.page));
     else if (d.tpage) tpage = Math.max(0, tpage + Number(d.tpage));
     else if (d.build) { const x = (war()?.campBuildList(open) || []).find(y => y.type === d.build); if (x?.need.length) why = `Needs ${x.need.join(' and ')}`; else startPlacing(open, d.build); }

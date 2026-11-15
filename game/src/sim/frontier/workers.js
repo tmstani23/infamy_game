@@ -332,8 +332,13 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(!b && !job)return result(jobs?.why?.(s,target) || 'nothing to build, repair or put out there');
       const at=b ? {x:b.x,z:b.z,r:(data.war?.buildings?.[b.type]?.radius ?? 8)*0.8} : job;
       const others=s.workers.filter(w=>!selected.includes(w) && (b ? w.project===b.id : w.job?.key===target)).length;
+      // Tim 2026-11-14: at most war.builderCap workers (4) build one site or hall upgrade, the nearest of those sent;
+      // the rest stay as they were. Repair and douse have no limit.
+      const cap=b ? data.war?.builderCap ?? 4 : Infinity;
+      if(others>=cap)return result(`${cap} workers are already building that`);
+      const team=b ? [...selected].map(w=>({w,d:distance(currentPoint(w) || [s.x,s.z],[b.x,b.z])})).sort((p,q)=>p.d-q.d || compare(p.w.id,q.w.id)).slice(0,cap-others).map(x=>x.w) : selected;
       let sent=0;
-      selected.forEach((w,i)=>{
+      team.forEach((w,i)=>{
         const here=currentPoint(w) || [s.x,s.z],a=(others+i)*2.399963,route=path(here,[at.x+Math.cos(a)*at.r,at.z+Math.sin(a)*at.r]) || path(here,[at.x+Math.cos(a+Math.PI)*at.r,at.z+Math.sin(a+Math.PI)*at.r]);
         if(!route)return;
         jobs?.leave?.(s,w);

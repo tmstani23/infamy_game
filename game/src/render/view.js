@@ -283,6 +283,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // Facing away the hood is in front of him, so he draws behind the cart.
   const SEAT = [[0, -55], [59, -52], [86, -20], [75, 9], [0, 9], [-75, 9], [-98, -37], [-75, -60]], SEAT_PX = 5.4 / 288;
   const BEHIND = [false, false, false, true, true, true, false, false];
+  // A rider on a horse (hero, crew, war cavalry): where his sitting sheet's cell centre goes per facing, in horse-sheet
+  // pixels from the horse's cell centre (right, down): the saddle of the mare sheets sits 14 px behind and 31 px above
+  // her cell centre, the rider's hips 23 px below his; he sinks 5 px into it
+  const RIDE_SEAT = [[0, -55], [10, -54], [14, -49], [10, -45], [0, -43], [-10, -45], [-14, -49], [-10, -54]];
   const drivers = new Map();   // rickshaw id -> CharacterSprite (null while loading)
   function syncDriver(e, s, dt, loaded) {
     const want = e.type === 'rickshaw' && e.model === 'rickshaw_horse' && !e.dead && (!!e.driver || loaded.has(e.id));
@@ -408,8 +412,15 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
       // a rifleman standing about within 3 s of a shot plays his reload (sim/rifleman.js firedAt)
       // on horseback (sim/mounts.js, Tim 2026-11-06): the hero sits up on the horse ('ride' clip, the idle until it is exported)
-      const anim = e.mounted ? 'ride' : e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
-      s.lift = e.mounted ? 0.95 : 0;
+      s.riding = !!e.mounted;
+      const anim = e.mounted ? ((e.anim === 'attack' || e.anim === 'sweep') && swingT !== null && swingT < 1 ? e.anim : 'ride') : e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
+      // the rider sits on the saddle (Tim 2026-11-14: he sat low and off it): his cell centre goes to the horse's cell
+      // centre, then RIDE_SEAT per facing moves his hips onto the saddle of the mare sheets
+      const seat = e.mounted ? RIDE_SEAT[((e.dir ?? 0) % 8 + 8) % 8] : null;
+      s.lift = seat ? (sprites.get(e.ride?.horse)?.feetUp ?? 1.221) - s.feetUp : 0;
+      // art.json rideBack: some bodies sit this many sheet pixels further back, along the saddle's offset from -49 (Tim 2026-11-14)
+      const back = seat ? (catalog.rideBack?.[e.model] || 0) / 14 : 0;
+      s.seat = seat ? [(seat[0] * (1 + back)) * SEAT_PX, -(seat[1] + (seat[1] + 49) * back) * SEAT_PX] : null;
       s.setEquipment(e.type === 'hero' ? ['weapon','armor','accessory'].map(slot=>ITEMS[e.equipment?.[slot]]) : []);
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
         e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
@@ -430,7 +441,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // the last 1.5 s of sim/game.js islandCorpseSeconds (20); bodies with loot on them and the hero are left alone
       const deadFor = e.dead && e.type !== 'hero' && e.diedAt != null ? (state.tick - e.diedAt) / 20 : -1;
       const fall = deadFor < 0 ? 1 : !s.sheets?.death ? Math.max(0, 1 - deadFor / 0.8) : e.place === 'world' && !e.loot && !e.gearItem && e.owner !== 'police' ? Math.min(1, Math.max(0, (20 - deadFor) / 1.5)) : 1;
-      gu.uOpacity.value = (grey ? 0.55 : veiled ? 0.18 : ghost ? 0.8 : 1) * fall;
+      // war troops running off after their war ended (sim/frontier/war_end.js, Tim 2026-11-14): they fade out over the last 60% of the run
+      const rout = e.rout ? Math.min(1, Math.max(0, (e.rout.until - state.tick - alpha) / Math.max(1, (e.rout.until - e.rout.start) * 0.6))) : 1;
+      if (e.rout) s.bar.visible = false;
+      gu.uOpacity.value = (grey ? 0.55 : veiled ? 0.18 : ghost ? 0.8 : 1) * fall * rout;
       gu.uVeil.value = veiled ? 1 : 0;
       s.ghost = ghost;
       updateTeamRing(s, e, state.entities[followId]);

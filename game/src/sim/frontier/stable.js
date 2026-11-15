@@ -34,7 +34,7 @@ export function createStable({ state, data, world, capitalYard = null }) {
   const towns = owner => Object.values(state.frontier.settlements || {}).filter(t => t.owner === owner && !t.capital);
   const queued = (owner, cat) => towns(owner).reduce((n, t) => n + (of(t)?.stableJobs || []).filter(j => category(j.kind) === cat).length, 0);
   function have(owner, cat) {
-    const alive = Object.values(state.entities || {}).filter(e => !e.dead && (cat === 'horse' ? e.type === 'horse' && e.horseOwner === owner : e.type === cat && e.omnibusOwner === owner)).length;
+    const alive = Object.values(state.entities || {}).filter(e => !e.dead && (cat === 'horse' ? e.type === 'horse' && !e.cavalry && e.horseOwner === owner : e.type === cat && e.omnibusOwner === owner)).length;
     const born = cat === 'horse' ? (state.frontier.bornHorses || []).filter(h => h.owner === owner).length : (state.frontier.bornVehicles || []).filter(v => v.owner === owner && v.kind === cat).length;
     return alive + born + queued(owner, cat);
   }

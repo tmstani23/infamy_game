@@ -130,6 +130,17 @@ const RIDE = Object.fromEntries(['ronin', 'ninja_leader', 'rival_yakuza',
   // the coachman drawn on a driven rickshaw (Tim 2026-11-08: no empty seat, not the hero himself; render/view.js)
   'rickshaw_driver'].map(m => [m, 'coach_sitting.fbx']));
 const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx', 'coach_sitting.fbx']);
+// RIDE_ATTACK (Tim 2026-11-14): the strike from the saddle, sheet <model>_ride_attack: the riding seat's hips and legs
+// with this attack clip above the hips (blended by the sprite page, addBlend). art.json characters.<model>.rideAttack
+// The same models get <model>_ride_saddle, their riding seat with the legs round the horse (RIDE_STRADDLE: thighs out
+// and down, degrees), used as art.json characters.<model>.ride in place of the coach seat.
+const RIDE_STRADDLE = [28, 30];
+const RIDE_ATTACK = { swordsman: 'Great Sword Slash.fbx', kuroda_spearman: 'Bayonet Stab.fbx', ninja_grunt: 'ninja/Sword And Shield Slash.fbx',
+  // heroes and every crew body that rides (Tim 2026-11-14); the brute sheets serve the Irezumi enforcer too, the geisha's bow is the Shinobi geisha's charm
+  ronin: 'Great Sword Slash.fbx', ninja_leader: 'ninja/Sword And Shield Slash.fbx', rival_yakuza: 'Upward Thrust.fbx',
+  thug: 'brawler/Punching_noskin.fbx', brute: 'brawler/Punching_noskin.fbx', demolitions: 'brawler/Punching_noskin.fbx',
+  ninja_tanto: 'ninja/Sword And Shield Slash.fbx', koruda_enforcer: 'Great Sword Slash.fbx', shinobi_enforcer: 'ninja/Sword And Shield Slash.fbx',
+  mercenary: 'gunner/Firing Rifle.fbx', archer: 'archer/Standing Draw Arrow.fbx', geisha: 'civilian/Quick Formal Bow.fbx' };
 // Name for the clip baked into the with-skin model file; null skips it
 const BUILT_IN = { ronin: 'walk' };
 // Mounts and vehicles: file in assets/models/mounts, height of the ref mesh (or the whole
@@ -259,7 +270,9 @@ for (const { file: model, name } of models) {
   const idleEntry = artCatalog.characters?.[name]?.idle;
   const wanted = portrait ? (idleEntry ? [(idleEntry.file || idleEntry).replace(name + '_', '')] : []) : onlyClips;
   if (portrait && !wanted.length) { console.log(`${name}: no idle in art.json, no portrait`); continue; }
-  if (wanted.length) mine = mine.filter(a => wanted.includes(clipName(clipOf(a))));
+  const rideAttack = RIDE[name] && RIDE_ATTACK[name] && (!wanted.length || wanted.includes('ride_attack') || wanted.includes('ride_saddle')) ? [RIDE_ATTACK[name], RIDE[name]].map(f => path.join(animDir, f)) : null;
+  if (wanted.length) mine = mine.filter(a => wanted.includes(clipName(clipOf(a))) || rideAttack?.includes(a));
+  if (rideAttack) for (const f of rideAttack) if (!mine.includes(f) && fs.existsSync(f)) mine.push(f);
   const builtIn = !wanted.length || wanted.includes(BUILT_IN[name]) ? BUILT_IN[name] ?? null : null;
   if (!mine.length && !builtIn) { console.log(`${name}: no animations in set(s) ${sets.join(', ')}, skipped`); continue; }
 
@@ -300,6 +313,7 @@ for (const { file: model, name } of models) {
       console.log(`  holding ${path.basename(itemFile)}`);
     } else console.log(`  no assets/models/items/${it.file}.glb yet, exporting empty-handed`);
   }
+  if (rideAttack && !await page.evaluate(([u, l, s]) => window.spriteTest.addBlend('ride_attack', `^${u}$`, `^${l}$`, s) && window.spriteTest.addBlend('ride_saddle', `^${l}$`, `^${l}$`, s), [...rideAttack.map(base), RIDE_STRADDLE])) console.log('  ride_attack: source clips missing');
   const names = await page.evaluate(() => window.spriteTest.clipNames());
   console.log(`${name} (${sets.join(', ')}): ${names.length} animation(s)`);
   for (let i = 0; i < names.length; i++) {

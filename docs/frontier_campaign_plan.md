@@ -459,7 +459,7 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 ## Stable and mounts (2026-11-06)
 
 - Stable (`sim/frontier/stable.js`, `frontier.json` `buildings.stable`): horses only, raised by hand on a production bar: Calico or Black Beauty, food 80, goods 40, 60 s; max 3 per stable; Cancel refunds. Placed limit Camp 1, Village 1, Town 2.
-- Mounts (`sim/mounts.js`, `units.json` `rules.mount`): on the island H rides, gets off or calls the horse (in the city H still hires). Speed 3.75x; no fighting mounted; thrown off below 1/3 HP and at the gate. Right-click your own horse to ride her. The first horse raised is the mount; the town panel picks another. The hero plays the `ride` clip.
+- Mounts (`sim/mounts.js`, `units.json` `rules.mount`): on the island H rides, gets off or calls the horse (in the city H still hires). Speed 3.75x; riders fight mounted (2026-11-14, see combat_spec.md Mounted combat); thrown off at the gate. Right-click your own horse to ride her. The first horse raised is the mount; the town panel picks another. The hero plays the `ride` clip.
 - Test: `tools/test_stable_mount.mjs`.
 
 ## Omnibus station and rickshaws (2026-11-06)
@@ -559,7 +559,7 @@ Soak: `node tools/bot_frontier_soak.mjs [gameMinutes] [stateFile] [seconds] [see
 - Horses and vehicles are bought at the stable (`src/stable_menu.js`, `sim/frontier/stable.js`). Each stable's room depends on its town's tier: horses 5 / 12 / 25, rickshaws 1 / 2 / 3, omnibuses 0 / 1 / 2; the limit is the total across all your stables.
 - Each horse comes with a whistle on the character page (J), under Field supplies. Using it makes that horse your mount and calls her; a lost horse respawns beside you (`sim/mounts.js`, `src/character_panel.js`).
 - The Vehicles panel (Shift+Y) lists your vehicles and can recall, store and take them out (`src/vehicles_panel.js`, `sim/vehicle_garage.js`). Test: `tools/test_vehicle_garage.mjs`.
-- Shift+H Mount up puts the hero group's crew on horses; settlers and workers are excluded; crew dismount to fight. Test: `tools/test_crew_horses.mjs`.
+- Shift+H Mount up puts the hero group's crew on horses; settlers and workers are excluded; crew fight from the saddle. Test: `tools/test_crew_horses.mjs`.
 - Right-click with crew selected on a parked rickshaw (2 seats) or omnibus (8) to garrison them inside.
 - The stable queue holds up to 10 jobs of any mix; +5 queues five. The stable menu lists all your horses and vehicles with recall or take out on each, and a Recall all button.
 - Mounted, the hero trots at run speed (`units.json` `rules.mount.trot`) and gallops at `rules.mount.speed` while Shift is held.

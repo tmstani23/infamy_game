@@ -345,3 +345,8 @@ Coordinator reports the Kuroda visual-pose, lightning, chain and sprite-pair che
 
 - Torch: only units in frontier.json war.structures.torch.types (thug, swordsman, spearman, ninja, ninja_tanto, shinobi_spearman) and a melee hero, never mounted, on a Torch order. A 1 second cast (torch.castTicks 20) at the building, broken by stun, stagger, knockdown, charm and taunt, not by plain hits; they retry until it burns, then hit it. One fire per building, burning at fire.damage 60 a second until workers douse it or the building falls.
 - Fire bomb (sim/firebomb.js): the fire-bomb thrower's normal attack is a knife (damage 8). The bomb is a special: 1.5 s channel with a ground ring, range 5.5, 140 damage to every enemy within 2.6, 250 to a building; stone takes x0.25 and does not burn, wood catches fire. Cooldown 15 s. Stun and the like break the channel.
+
+## Mounted combat (2026-11-14)
+
+- The hero and hero crew fight mounted with all attacks and abilities, melee and ranged, at the same range and reload as on foot. No thrown rule (units.json rules.mount.throwShare unused). Stun, stagger and slow apply. Mounted melee units may be given Torch. War cavalry unchanged.
+- Cannons (field_cannon, wooden_cannon) unitShare 0.5: a cannonball hits a unit for half its damage; buildings take the whole hit. Single target.

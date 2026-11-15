@@ -224,7 +224,9 @@ export class CharacterSprite {
   update(dt, x, z, dir, anim, swingT = null, size = 1) {
     if (anim !== this.anim) { this.anim = anim; this.time = 0; }
     this.time += dt;
-    const sheet = this.sheets[anim] || this.sheets.idle;
+    // riding (render/view.js): a strike from the saddle plays the rideAttack sheet (tools/export_sprites.mjs RIDE_ATTACK),
+    // or stays in the riding seat for a body that has none yet
+    const sheet = (this.riding && (anim === 'attack' || anim === 'sweep') && (this.sheets.rideAttack || this.sheets.ride)) || this.sheets[anim] || this.sheets.idle;
     // a fall plays once and stays down; an attack follows the swing; everything else loops
     const f = Math.floor(this.time * FPS * sheet.speed);
     const frame = anim === 'death' ? Math.min(f, sheet.frames - 1)
@@ -294,6 +296,7 @@ export class CharacterSprite {
       this.ring.scale.setScalar(size);
     }
     this.thing.mesh.position.set(x, this.feetUp * size + (this.lift || 0), z);   // lift: riding a horse (render/view.js)
+    if (this.seat) this.thing.mesh.position.addScaledVector(CAM_RIGHT, this.seat[0]).addScaledVector(CAM_UP, this.seat[1]);   // seat: onto the saddle, screen right and up in world units
     if (this.roll || this.rolled) {
       // turn about the ground point: the centre sits feetUp above it, split into screen-up and toward-camera parts
       const r = this.roll || 0, h = this.feetUp * size, up = h * CAM_UP.y, back = h * VIEW_DIR.y;

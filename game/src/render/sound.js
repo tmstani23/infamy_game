@@ -234,7 +234,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (!e.swing || e.swing.start !== state.tick - 1) continue;
         if (e.cannon) continue;   // the salute's cast plays the boom
         const v = near(me, e.x, e.z, e.place);
-        if(e.model==='archer'||e.type==='shinobi_geisha'||e.model==='cannon_field'||e.model==='cannon_wooden'||e.model==='fire_bomber')continue; // ranged cue is emitted at projectile release
+        if(e.model==='archer'||e.model==='mercenary'||e.type==='shinobi_geisha'||e.model==='cannon_field'||e.model==='cannon_wooden'||e.model==='fire_bomber')continue; // ranged cue is emitted at projectile release
         if (SWORDS.has(e.model)) swordSlash(0.35*v);
         else if (SPEARS.has(e.model)) {
           // These clips contain the complete thrust. Special attacks have their

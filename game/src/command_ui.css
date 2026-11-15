@@ -18,10 +18,10 @@
 #partyframes .mate .pip {width:100%;height:6px;}
 #crewcommands {position:fixed;left:16px;top:78px;width:320px;display:grid;z-index:13;box-sizing:border-box;}
 #crewcommands .crewcmds {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(38px,100%),1fr));gap:4px;box-sizing:border-box;width:100%;min-height:100%;}
-#crewcommands .ccmd {width:auto;min-height:38px;height:auto;}
+#crewcommands .ccmd {width:auto;min-height:48px;height:auto;}
 #bar .row {flex-wrap:nowrap;}
 #bar .action-commands {display:flex;gap:6px;}
-#bar .action-commands button {width:82px;height:64px;border:1px solid #b78c45;border-radius:7px;background:linear-gradient(#433523,#191815);color:#f8dc9d;font:700 11px/1.2 system-ui;cursor:pointer;white-space:normal;}
+#bar .action-commands button {width:82px;height:70px;border:1px solid #b78c45;border-radius:7px;background:linear-gradient(#433523,#191815);color:#f8dc9d;font:700 12px/1.2 system-ui;cursor:pointer;white-space:normal;}
 #bar .action-commands button::before {content:attr(data-icon);display:block;font:26px/1.1 system-ui;margin-bottom:4px;}
 #bar .action-commands button:disabled {opacity:.5;cursor:default;}
 #bar .action-commands button:hover,#bar .action-commands button:focus-visible {border-color:#ffe0a1;outline:1px solid #ffe0a1;}
@@ -29,7 +29,7 @@
 .map-active #partyframes,.map-active #crewcommands,.map-active #utilitymenu {display:none;}
 .prematch #partyframes,.prematch #crewcommands,.prematch #utilitymenu {display:none;}
 @media(max-height:750px){#partyframes {min-height:240px;}}
-@media(max-width:1000px){#partyframes {width:270px;}#bar .action-commands button {width:65px;}#bar .slot {width:48px;height:54px;}}
+@media(max-width:1000px){#partyframes {width:270px;}#bar .action-commands button {width:65px;}#bar .slot {width:58px;height:66px;}}
 
 #hudlayout {position:fixed;inset:0;z-index:200;pointer-events:auto;background:#050a1270;}
 #hudlayout[hidden] {display:none;}
@@ -64,7 +64,7 @@
 /* Width/height reflow real HTML buttons; saved corner scale remains independent. */
 #bar[data-layout-sized="true"] {box-sizing:border-box;align-items:stretch;}
 #bar[data-layout-sized="true"] > .row {box-sizing:border-box;flex:1;min-height:72px;width:100%;align-items:stretch;}
-#bar[data-layout-sized="true"] .slot {flex:1 1 0;min-width:28px;width:auto;height:auto;min-height:54px;}
+#bar[data-layout-sized="true"] .slot {flex:1 1 0;min-width:28px;width:auto;height:auto;min-height:66px;}
 #bar[data-layout-sized="true"] .portrait {justify-content:center;flex-shrink:0;}
 #bar[data-layout-sized="true"] .action-commands {flex:2 1 0;min-width:116px;align-items:stretch;}
 #bar[data-layout-sized="true"] .action-commands button {flex:1 1 0;width:auto;min-width:54px;height:auto;min-height:54px;}

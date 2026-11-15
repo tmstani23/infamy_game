@@ -914,7 +914,7 @@ function renderSheet(i, withGlow = false, opts = {}) {
   const size = Number($('size').value);
   const fps = Math.max(1, Number($('fps').value));
   const entry = clips[i];
-  spearClip = entry.name;
+  spearClip = entry.poseAs || entry.name;   // a blended clip poses held items like its attack clip
   runPose = /run/i.test(entry.name);
   idlePose = /idle|walk|pointing/i.test(entry.name);
   const clip = $('inplace').checked ? stripRootMotion(entry.clip) : entry.clip;
@@ -1014,6 +1014,27 @@ window.spriteTest = {
   render: (i, withGlow = false, opts = {}) => { const r = renderSheet(i, withGlow, opts); return { fname: r.fname, frames: r.frames, duration: r.duration, dataUrl: r.sheet.toDataURL('image/png'), glowUrl: r.glow ? r.glow.toDataURL('image/png') : null }; },
   tracks: i => clips[i].clip.tracks.map(t => t.name),
   clipNames: () => clips.map(c => c.name),
+  // A blended clip (tools/export_sprites.mjs RIDE_ATTACK): hips and legs held in the first pose of the clip matching
+  // `lower` (the riding seat), everything above the hips from the clip matching `upper` (the attack)
+  // straddle [out, down] degrees: the thighs are turned out to the sides and down, so the legs go round a horse
+  addBlend: (name, upper, lower, straddle = null) => {
+    const find = re => clips.find(c => new RegExp(re, 'i').test(c.name)), UE = find(upper), U = UE?.clip, L = find(lower)?.clip;
+    if (!U || !L) return false;
+    const low = /(Hips|Spine|UpLeg|Leg|Foot|ToeBase|Toe_End)\./i;   // Spine = the lowest spine bone only (Spine1 and up follow the attack), so he keeps his seat
+    const tracks = U.tracks.filter(t => !low.test(t.name)).map(t => t.clone());
+    for (const t of L.tracks) if (low.test(t.name)) {
+      const n = t.getValueSize(), v = Array.from(t.values.slice(0, n)), side = /(Left|Right)UpLeg\.quaternion$/i.exec(t.name);
+      if (straddle && side) {
+        const D = Math.PI / 180, q = new THREE.Quaternion().fromArray(v);
+        const turn = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (/left/i.test(side[1]) ? 1 : -1) * straddle[0] * D)
+          .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), straddle[1] * D));
+        turn.multiply(q).toArray(v);
+      }
+      tracks.push(new t.constructor(t.name, [0, U.duration], [...v, ...v]));
+    }
+    clips.push({ name, clip: new THREE.AnimationClip(name, U.duration, tracks), poseAs: UE.name });
+    return true;
+  },
   itemReady: () => !!item,
   setItemOptions,
   setTankItem: kind=>{item?.parent?.remove(item);item=buildTankWeapon(std,kind);itemBox=new THREE.Group();},

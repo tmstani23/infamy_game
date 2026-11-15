@@ -25,6 +25,9 @@ import { createArrivals } from './arrivals.js';
 import { createTownsfolk } from './townsfolk.js';
 import { createWar } from './war.js';
 import { createStructures } from './structures.js';
+import { createWarMorale } from './war_morale.js';
+import { createWarEnd } from './war_end.js';
+import { createWarOutcomes } from './war_outcomes.js';
 
 export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {}, capitalYard = null, civilians = null, dayTicks = 12000 }) {
   let world = createFrontierWorld({ state, data });
@@ -77,6 +80,11 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   modules.push({ name: 'war', war, econTick: () => war.econTick(), command: (e, c) => war.command(e, c) });
   zones.setFrozen(s => !!war.warOn(s.id));   // 7c: zone cells do not grow or grow back while a war is on the town
   const structures = createStructures({ state, data, world: live, war, garrison, workers });   // F6 checkpoint 6: structure health, attacks, ruins
+  const warMorale = createWarMorale({ state, data, war });   // F6 checkpoint 8a-1: the morale bar of each side of a war
+  const warEnd = createWarEnd({ state, data, war, world: live, morale: warMorale, garrison });   // F6 checkpoint 8a-3: the hall channel and the end of a war
+  const warOutcomes = createWarOutcomes({ state, data, war, world: live, rail, garrison });
+  warEnd.setOutcomes(warOutcomes);   // 8a-4: capture, sack, burn
+  modules.push({ name: 'warEnd', warEnd, command: (e, c) => warEnd.command(e, c) });
   garrison.setStructures(structures); war.setGarrison(garrison);   // 7c-3b: garrisons in houses, workshops and farmhouses
   modules.push({ name: 'commands', command: (e, c) => commands.command(e, c) });   // F2.4+ economy modules, run in this order each economy tick
 
@@ -126,6 +134,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     workers.tick();                // integer sim ticks, independent of economy cadence and the camera
     war.tick();                    // F6: camp training queues
     structures.tick();             // F6: fires on torched structures
+    warMorale.tick();              // F6 8a: morale drops as counted buildings fall
+    warEnd.tick();                 // F6 8a: hall channels, the end of a war, routed troops
     arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
     townsfolk.tick();              // townsfolk wander the town by day, go in at night or when enemies come
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
@@ -141,6 +151,6 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     return false;
   }
 
-  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);war.attach(services);structures.attach(services);}
-  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, war, structures, attach };
+  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);war.attach(services);structures.attach(services);warEnd.attach(services);warOutcomes.attach(services);}
+  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, war, structures, warMorale, warEnd, attach };
 }

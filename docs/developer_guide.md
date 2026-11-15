@@ -40,6 +40,8 @@ All of them load three.js from a CDN, so they need an internet connection.
 
 ## Exporting sprites
 
+Riding sheets (2026-11-14): the RIDE_ATTACK table in tools/export_sprites.mjs (swordsman, kuroda_spearman, ninja_grunt) exports <model>_ride_saddle (riding seat, thighs out and down by RIDE_STRADDLE degrees) and <model>_ride_attack (that seat with the model's attack clip above the hips), blended by the sprite page (spriteTest.addBlend). Export one clip with --clip=ride_attack --clip=ride_saddle. art.json characters.<model>.ride and .rideAttack name the sheets. Rider placement: render/view.js RIDE_SEAT per facing, in horse-sheet pixels from the horse cell centre; art.json rideBack per model moves the rider further back (geisha and shinobi_geisha 7, koruda_enforcer 4).
+
 This is the process for new characters and items and for updates to existing ones.
 
 One-time setup in the `infamy_game` root: `npm install sharp playwright`.
@@ -246,3 +248,8 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 - crewfx.js: the cannonball is radius 0.21 with a soft wake of 8 fading puff sprites, and no tube or line trail.
 - units.json: cannonball projectile speed is 52 (field cannon) and 48 (wooden cannon), double the old values. The fire rate is unchanged.
 - main.js frame loop: warCamp.update() and utilityMenu.update() run every frame on their own line.
+
+### War round 2 UI and sound (2026-11-14)
+
+- Action bar ability slots 68 x 70 px, special ability row slots 88 x 80 px, names 11.5 px under the icon; crew command names 13 px, mount command names 12.5 px.
+- sound.js: the mercenary body (riflemen) plays no swing whoosh, only the shot.

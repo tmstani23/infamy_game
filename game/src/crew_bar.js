@@ -18,36 +18,36 @@ const CMDS = [
 ];
 // Mount controls (Tim 2026-11-06): their own headed row under the crew commands
 const MOUNT_CMDS = [
-  { key: 'H', action: 'horse', name: 'Horse', tip: 'On the island: ride your horse (she trots at your run speed) or call her and she gallops to you; Q gets you off (so does this button while riding). Raise horses at a stable in your town and pick which one is yours there. You cannot fight on horseback, and a bad hit throws you off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
+  { key: 'H', action: 'horse', name: 'Horse', tip: 'On the island: ride your horse (she trots at your run speed) or call her and she gallops to you; Q gets you off (so does this button while riding). Raise horses at a stable in your town and pick which one is yours there. You fight from the saddle with every attack and ability, and stay on until you get off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
   { key: 'Shift', name: 'Sprint', tip: 'On a horse or driving a rickshaw or omnibus: gallop at full speed (horse 3.75x, rickshaw 3.5x, omnibus 3x run speed). Press Shift or click here: it stays on until you press or click again, or get off.', act: () => setSprint(!sprintOn()), need: 'riding' },
-  { key: 'Shift+H', action: 'mountGroup', name: 'Mount up', tip: 'On the island: you and your selected crew (or the crew following you) get on horses. Free horses of yours nearby trot over, spare ones come out of your stables. Again: everyone off. Mounted crew follow at horse speed and jump off when hit or told to attack; their horse waits there. Settlers and workers ride the omnibus instead.', act: c => c.mountUpKey(), need: 'horse' },
+  { key: 'Shift+H', action: 'mountGroup', name: 'Mount up', tip: 'On the island: you and your selected crew (or the crew following you) get on horses. Free horses of yours nearby trot over, spare ones come out of your stables. Again: everyone off. Mounted crew follow at horse speed and fight from the saddle; they stay on until told off (Q, their crew card, or this again). Settlers and workers ride the omnibus instead.', act: c => c.mountUpKey(), need: 'horse' },
   { key: 'Q', action: 'ability1', name: 'Omnibus', tip: 'Out on the island: Q inside the omnibus steps everyone out (it parks); Q right beside a parked one gets the hero and his followers back in. Right-click the omnibus does the same (a flashing label shows which); with crew selected, they get in.', act: c => c.omnibusKey(), need: 'bus' },
 ];
 
 const CSS = `
-  #crewcommands .crewcmds { display: grid; grid-template-columns:repeat(auto-fit,minmax(min(46px,100%),1fr)); gap: 4px; padding: 5px 6px; background: linear-gradient(#14171d, #0b0d11);
+  #crewcommands .crewcmds { display: grid; grid-template-columns:repeat(auto-fit,minmax(min(58px,100%),1fr)); gap: 4px; padding: 5px 6px; background: linear-gradient(#14171d, #0b0d11);
     border: 1px solid rgba(233,194,122,.28); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
-  #crewcommands .ccmd { position: relative; width: auto; min-height: 44px; height: auto; border-radius: 5px; border: 1px solid #5c4a2c; cursor: pointer;
+  #crewcommands .ccmd { position: relative; width: auto; min-height: 48px; height: auto; border-radius: 5px; border: 1px solid #5c4a2c; cursor: pointer;
     background: radial-gradient(circle at 50% 40%, #2b2f38, #101216); box-shadow: inset 0 0 6px rgba(0,0,0,.8); }
   #crewcommands .ccmd:hover { border-color: #ffd34d; }
   #crewcommands .ccmd .key { position: absolute; left: 3px; top: 2px; font: 700 12px/1 system-ui, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
-  #crewcommands .ccmd .nm { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font: 600 11px/1 system-ui, sans-serif; color: #e9d6a8; text-shadow: 0 1px 2px #000; }
+  #crewcommands .ccmd .nm { position: absolute; left: 0; right: 0; bottom: 5px; text-align: center; font: 700 13px/1 system-ui, sans-serif; color: #f1e6cb; text-shadow: 0 1px 2px #000; }
   #crewcommands .ccmd.off { filter: grayscale(1) brightness(.5); cursor: default; }
   #crewcommands .mounthead { display: flex; align-items: center; gap: 6px; margin-top: 4px; padding: 3px 5px; background: linear-gradient(#14171d, #0b0d11);
-    border: 1px solid rgba(233,194,122,.28); border-radius: 8px; font: 11px/1.2 system-ui, sans-serif; color: #e9d6a8; }
+    border: 1px solid rgba(233,194,122,.28); border-radius: 8px; font: 13px/1.2 system-ui, sans-serif; color: #e9d6a8; }
   #crewcommands .mounthead .mpic { flex: none; width: 30px; height: 30px; border-radius: 5px; border: 1px solid #5c4a2c; background: #101216 center/cover no-repeat;
     display: grid; place-items: center; color: #c9b27a; font-size: 16px; cursor: pointer; }
   #crewcommands .mounthead .minfo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   #crewcommands .mounthead .minfo b { font-weight: 700; color: #e9d6a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #crewcommands .mounthead .minfo small { color: #b8a77e; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #crewcommands .mounthead .minfo small { color: #b8a77e; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #crewcommands .mounthead .mmore { flex: none; width: 20px; height: 20px; padding: 0; border-radius: 4px; border: 1px solid #5c4a2c; background: #1a1d24; color: #e9d6a8; cursor: pointer; font-size: 10px; }
   #crewcommands .mountdetail[hidden] { display: none; }
   #crewcommands .mountacts { display: flex; gap: 3px; padding: 4px 5px 0; }
-  #crewcommands .mountacts button { flex: 1; padding: 2px 4px; border-radius: 4px; border: 1px solid #5c4a2c; background: #1a1d24; color: #e9d6a8; font: 600 10px system-ui, sans-serif; cursor: pointer; }
+  #crewcommands .mountacts button { flex: 1; padding: 2px 4px; border-radius: 4px; border: 1px solid #5c4a2c; background: #1a1d24; color: #e9d6a8; font: 600 12px system-ui, sans-serif; cursor: pointer; }
   #crewcommands .mountacts button:disabled { opacity: .4; cursor: default; }
-  #crewcommands .mountcmds { grid-template-columns: repeat(auto-fit, minmax(min(40px,100%),1fr)); gap: 3px; padding: 4px 5px; margin-top: 3px; }
-  #crewcommands .mountcmds .ccmd { min-height: 26px; }
-  #crewcommands .mountcmds .ccmd .key { font-size: 8px; } #crewcommands .mountcmds .ccmd .nm { bottom: 2px; font-size: 8px; }
+  #crewcommands .mountcmds { grid-template-columns: repeat(auto-fit, minmax(min(66px,100%),1fr)); gap: 3px; padding: 4px 5px; margin-top: 3px; }
+  #crewcommands .mountcmds .ccmd { min-height: 44px; }
+  #crewcommands .mountcmds .ccmd .key { font-size: 11px; } #crewcommands .mountcmds .ccmd .nm { bottom: 4px; font-size: 12.5px; }
   #crewcommands .ccmd.on { border-color: #ffd34d; box-shadow: 0 0 6px rgba(255,190,60,.6); }
   #crewcommands .ccmd.press { border-color: #ffd34d; box-shadow: 0 0 8px rgba(255,190,60,.7); }`;
 

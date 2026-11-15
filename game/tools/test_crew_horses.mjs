@@ -62,9 +62,16 @@ assert.ok(Math.hypot(crew[0].x - hero.x, crew[0].z - hero.z) < 20, `mounted crew
 const ridden = state => myHorses().find(h => h.rider === crew[1].id);
 const h1 = ridden();
 assert.ok(h1 && Math.hypot(h1.x - crew[1].x, h1.z - crew[1].z) < 0.01, 'the horse is under him');
-// a hit puts him off; the horse waits there
+// a hit no longer puts him off (Tim 2026-11-14: crew fight from the saddle)
 crew[1].hitBy = { id: 'x', tick: S.tick }; g.step([]);
-assert.ok(!crew[1].mounted && !h1.rider, 'off when hit');
+assert.ok(crew[1].mounted && h1.rider === crew[1].id, 'still on when hit');
+// told to attack: he rides over and fights from the saddle, still mounted
+{ const foe = S.entities[g.spawn('thug', 'thug', crew[1].x + 6, crew[1].z, { owner: 'kuroda', place: 'world', hp: 100 })];
+  g.step([{ id: hero.id, type: 'order', kind: 'attack', units: [crew[1].id], target: foe.id }]);
+  for (let t = 0; t < 400 && foe.hp >= 100 && !foe.dead && !foe.downed; t++) g.step([]);
+  assert.ok(foe.hp < 100 || foe.dead || foe.downed, 'the mounted crewman hurt his target');
+  assert.ok(crew[1].mounted && h1.rider === crew[1].id, 'and stayed in the saddle');
+  delete S.entities[foe.id]; delete crew[1].attackTarget; delete crew[1].swing; g.step([{ id: hero.id, type: 'order', kind: 'follow', units: [crew[1].id] }]); }
 // Shift+H again: everyone off
 up();
 assert.ok(!hero.mounted && crew.every(u => !u.mounted), 'everyone off');

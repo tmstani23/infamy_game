@@ -9,7 +9,7 @@ export function listVehicles(game, heroId) {
     const me = hero()?.owner, list = [];
     for (const e of Object.values(game.state.entities)) {
       if (e.dead) continue;
-      if (e.type === 'horse' && e.horseOwner === me) list.push({ e, kind: 'horse' });
+      if (e.type === 'horse' && e.horseOwner === me && !e.cavalry) list.push({ e, kind: 'horse' });   // war cavalry horses are troops
       else if ((e.type === 'rickshaw' || e.type === 'omnibus') && e.omnibusOwner === me) list.push({ e, kind: e.type });
     }
     return list;
@@ -17,7 +17,7 @@ export function listVehicles(game, heroId) {
   // where it is, in words
   function where(e) {
     const st = game.state, h = hero();
-    if (e.stored) return e.stored.town === 'capital' ? 'In the capital stable' : `In the stable at ${st.frontier?.settlements?.[e.stored.town]?.name || 'your town'}`;
+    if (e.stored) return e.stored.town === 'capital' ? 'In the capital stable' : String(e.stored.town).startsWith('war:') ? 'In the war camp stable' : `In the stable at ${st.frontier?.settlements?.[e.stored.town]?.name || 'your town'}`;
     if (e.place !== 'world') return 'Away';
     let near = null;
     for (const t of Object.values(st.frontier?.settlements || {})) { const d = Math.hypot(t.x - e.x, t.z - e.z); if (d < 220 && (!near || d < near.d)) near = { t, d }; }

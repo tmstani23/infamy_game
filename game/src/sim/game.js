@@ -392,11 +392,12 @@ export function createGame(options) {
   // except that its own clan's units attacking or knocking down a War Lantern in it can be seen and hit (Tim 2026-10-26)
   const blind = (a, b) => !!state.smokes && state.smokes.some(s => a.owner !== s.clan && (inSmoke(s, a) || inSmoke(s, b))
     && !(b && b.owner === s.clan && stealth.exposed(b)));
-  const baseHostile = (a, b) => b && a !== b && !a.garrison && !b.garrison && !a.aboard && (!a.mounted || a.cavalry) && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
+  // (a.rout: war troops running off after their war ended, sim/frontier/war_end.js: they fight nobody and nobody chases them)
+  const baseHostile = (a, b) => b && a !== b && !a.rout && !b.rout && !a.garrison && !b.garrison && !a.aboard && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b)
     && deployment.canActAt(a, b.x, b.z, b.place);
   // Tim 2026-11-13: an enemy clan's workers in a war on their town are combatants (attack-move and auto-attack pick them; they belong to no clan, so baseHostile alone skips them)
-  const warWorker = (a, b) => !!b?.worker && !!a?.owner && b.workerOwner !== a.owner && a !== b && !a.garrison && !a.aboard && (!a.mounted || a.cavalry) && !a.guide && !b.dead && !b.downed && a.place === b.place && !blind(a, b) && atWarWith(a.owner, b) && deployment.canActAt(a, b.x, b.z, b.place);
+  const warWorker = (a, b) => !!b?.worker && !!a?.owner && b.workerOwner !== a.owner && a !== b && !a.garrison && !a.aboard && !a.guide && !b.dead && !b.downed && a.place === b.place && !blind(a, b) && atWarWith(a.owner, b) && deployment.canActAt(a, b.x, b.z, b.place);
   const hostile=(a,b)=>!b?.shopkeeper&&!b?.animal&&(baseHostile(a,b)||warWorker(a,b))&&!charmProtected(a,b,state);
   // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
   // can be told to attack (and finish off) one. That is what makes heat.
@@ -408,7 +409,7 @@ export function createGame(options) {
   const cartFoe = (clan, b) => { const w = frontier?.war?.warOn(b.town); return !!w && w.attacker === clan && w.defender === b.cartOwner; };
   const frontierShield = (a, b) => b?.type === 'civilian' && b.place === 'world' && !!state.clans?.[a?.owner] && (!!b.townsfolk || (!!b.cart && !cartFoe(a.owner, b)) || (!!b.worker && b.workerOwner !== a.owner && !atWarWith(a.owner, b)));
   // anyone in a clan can also go for an officer (that is +heat and makes the police angry)
-  const fair = (a, b) => !frontierShield(a, b) && (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !a.aboard && (!a.mounted || a.cavalry) && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
+  const fair = (a, b) => !frontierShield(a, b) && (baseHostile(a, b) || ((civ(b) || ((wild(b) || cop(b)) && !wild(a) && !cop(a))) && a !== b && !a.garrison && !b.garrison && !a.aboard && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && !!a.owner && a.place === b.place && !blind(a, b)))
     && deployment.canActAt(a, b.x, b.z, b.place);
   const attackAllowed=(a,b)=>!b?.shopkeeper&&!b?.animal&&fair(a,b)&&!charmProtected(a,b,state);
   // Fog of war (sim/vision.js): a clan only fights what it can see. Units outside any clan
@@ -792,7 +793,9 @@ export function createGame(options) {
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
   const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
   const goals = createCampaignGoals({ state, clans, landOffice, influence, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
-  frontier?.attach({unitOf:e=>statsOf(e),moveTo:(...a)=>moveTo(...a),hit:(...a)=>hit(...a),fight,paths,dirIndex,damageOf:e=>stats.damage(e),intervalOf:e=>stats.attackInterval(e),swingTicks:(unit,speed)=>Math.max(4,Math.round(Math.min(speed*0.85,unit.swingSeconds||0.7)/DT)),areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
+  frontier?.attach({unitOf:e=>statsOf(e),moveTo:(...a)=>moveTo(...a),hit:(...a)=>hit(...a),fight,paths,dirIndex,damageOf:e=>stats.damage(e),intervalOf:e=>stats.attackInterval(e),swingTicks:(unit,speed)=>Math.max(4,Math.round(Math.min(speed*0.85,unit.swingSeconds||0.7)/DT)),areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),
+    // a war camp fell (sim/frontier/war_end.js): the attacker's hero and crew in the war circle fall back to their nearest town, on foot
+    warSendHome:w=>{const t=state.frontier?.settlements?.[w.town];return islandRespawn?.fallBack(w.attacker,t?.x??w.x,t?.z??w.z,options.frontier?.war?.circleRadius??900,e=>{delete paths[e.id];delete intents[e.id];delete e.attackTarget;delete e.swing;delete e.execute;delete e.lootTarget;if(fight[e.id])delete fight[e.id].target;mounts?.dismount(e);if(e.aboard){delete e.aboard;if(e.ride?.kind==='omnibus')delete e.ride;}if(e.type==='hero')delete e.order;else if(e.order&&e.order.kind!=='follow')e.order={kind:'stop'};})||null;},trade:{exportFactor:id=>influence.exportFactor(id),sold:(id,goods)=>influence.sold(id,goods)}}); // worker routes and hall clearance
   // Police (sim/police.js): they move and fight through the same rules as crew
   const police = units && policeData ? createPolice({
     forcedStep:e=>!!e.taunted&&taunt.step(e,statsOf(e)),
@@ -953,7 +956,8 @@ export function createGame(options) {
       // a hero lying down or in jail can still order his crew, nothing else
       if ((e.dead || e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment', 'world', 'frontier'].includes(c.type)) continue;
       // inside the omnibus (sim/omnibus.js): no fighting or looting; a door (the gate) steps everyone out first
-      if ((e.aboard || (e.mounted && !e.cavalry)) && ['attack', 'ability', 'execute', 'loot', 'snuff', 'interiorDoor', 'item'].includes(c.type)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: e.aboard ? 'Step out of the omnibus first (Q)' : 'Get off your horse first (H)' }; continue; }
+      // on horseback everything works (Tim 2026-11-14: attacks and abilities from the saddle); only a vehicle seat blocks
+      if (e.aboard && ['attack', 'ability', 'execute', 'loot', 'snuff', 'interiorDoor', 'item'].includes(c.type)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'Step out of the omnibus first (Q)' }; continue; }
       if (e.aboard && c.type === 'use') omnibus?.deploy(e);
       if (e.mounted && c.type === 'use') mounts?.dismount(e);
       // Selection and crew commands cannot replace the hero's current execution.
@@ -1123,6 +1127,8 @@ export function createGame(options) {
       if (len < 0.1) {
         // knocking down a War Lantern (sim/businesses.js): busy, no auto attack (it only drew hits back)
         if (Object.values(state.attacks || {}).some(a => a.knock?.by === e.id)) { e.anim = 'idle'; continue; }
+        // taking a hall at the end of a war (sim/frontier/war_end.js): he stands and channels; WASD or an order breaks it off
+        if (e.hallChannel && !e.order) { e.anim = 'idle'; delete e.swing; continue; }
         // right-click on your stockade (Tim 2026-11-10): the hero walks over; frontier/garrison.js admits him on arrival
         if (e.type === 'hero' && e.order?.garrisonGo && !e.order.arrived) { delete e.swing; delete e.execute; if (moveTo(e, unit, e.order.x, e.order.z, false)) continue; e.order.arrived = true; }
         if (e.lootTarget) { if (lootStep(e, unit, e.lootTarget)) continue; delete e.lootTarget; delete paths[e.id]; }

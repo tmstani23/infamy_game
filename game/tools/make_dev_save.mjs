@@ -144,6 +144,13 @@ function warTest(game, heroId) {
     delete S.frontier.settlements.war_test_town;
   }
   if (!rec) throw new Error('war_test_yakuza: could not start the war');
+  // war 8a: a second small Kuroda town far off (Kuroiwa). A clan's last town can only be sacked, so with one more
+  // the outcome picker at Kurogane offers Capture and Burn too.
+  { const gap = s => Math.min(...Object.values(S.frontier.settlements).filter(t => Number.isFinite(t.x)).map(t => Math.hypot(t.x - s.x, t.z - s.z)));
+    const other = wd.sites.filter(s => far(s) > 900 && gap(s) >= 700).sort((a, b) => gap(b) - gap(a))[0];
+    if (!other) throw new Error('war_test_yakuza: no site for the second rival town');
+    game.frontier.world.addTown({ id: 'war_test_town2', name: 'Kuroiwa', region: null, owner: rival, x: other.x, z: other.z, site: other.id ?? null,
+      traits: { soil: 1, water: 1, defense: 1, nodes: {} }, pop: 5, stock: { food: 300, timber: 200, stone: 200, goods: 100, ryo: 300 }, buildings: [{ type: 'town_hall', stage: 'built', cell: 0 }] }); }
   // Kurogane gets grown houses and workshops, so the defender's archers have somewhere to garrison (7c-3b)
   { const G = S.frontier.settlements.war_test_town.grid, n = G.n, C = centreCell(n), put = (s, i, ch) => s.slice(0, i) + ch + s.slice(i + 1);
     const want = [['h', 2], ['h', 2], ['h', 3], ['h', 2], ['k', 1], ['k', 1]]; let k = 0;
@@ -175,6 +182,8 @@ function warTest(game, heroId) {
   for (const u of Object.values(S.entities)) if (u.owner === hero.owner && u.order?.kind === 'follow' && u.order.target === hero.id) {
     Object.assign(u, { place: 'world', area: 'world', x: hall.x + 8 + (k % 4) * 1.2, z: hall.z + 6 + Math.floor(k / 4) * 1.2 }); delete u.aboard; k++;
   }
+  // Tim 2026-11-14: the hero's horse (Black Beauty, H) and one for each of his crew (Mount up, Shift+H) wait by the hall
+  { const n = 1 + k; for (let i = 0; i < n; i++) (S.frontier.bornHorses ||= []).push({ owner: hero.owner, kind: i ? 'calico' : 'black_beauty', x: hall.x + 4 + i * 2.6, z: hall.z + 11, stable: 'capital', town: 'capital' }); }
   game.areas.update(Object.values(S.entities));
   for (let i = 0; i < 20; i++) game.step([]);
 }

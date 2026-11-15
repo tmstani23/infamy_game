@@ -2,8 +2,8 @@
 // from a stable's production bar (sim/frontier/stable.js) and wait there; the clan's mount (clan.mount, the
 // first horse raised or the one chosen at the stable) is the one H uses. Island only.
 // H ({ id: <hero id>, type: 'mount', horse?: <id> }, right-click a horse of yours sends its id): on the horse -> get off; the horse beside you -> get on; else she is
-// called and gallops to you. Riding is rules.mount.speed x the hero's run speed; he cannot fight while
-// mounted, and below rules.mount.throwShare of his health he is thrown off. Going through the gate he gets
+// called and gallops to you. Riding is rules.mount.speed x the hero's run speed; he fights from the saddle
+// (Tim 2026-11-14: attacks and abilities, no throw at low health). Going through the gate he gets
 // off first (the horse waits there). A bot boss mounts his horse on the island by himself.
 // Whistles (Tim 2026-11-07): each horse comes with her whistle (clan.whistles: { horse, name, kind }, shown under
 // Field supplies on the character page). { type: 'mount', whistle: <horse id> } makes her your mount and calls
@@ -13,7 +13,7 @@
 // Mount up (Tim 2026-11-07, Shift+H / the Mount up button): { type: 'mount', group: true, units?: [ids] } puts you and
 // your selected crew (else the crew following you) on horses: free horses of yours nearby trot over, then spare
 // ones (stored or far) come out to them. Settlers and workers never ride. Again with anyone mounted: everyone off.
-// Mounted crew follow at horse speed; a hit, an attack order or low health puts them off, the horse waits there.
+// Mounted crew follow at horse speed and fight from the saddle; they get off only when told (Tim 2026-11-14).
 // createMounts({ state, rules, spawn, nav, born, say }) -> { command, tick, mountOf, dismount }
 import { steer } from './vehicle_steer.js';
 
@@ -226,14 +226,12 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
           continue;
         }
         if (rider.place !== 'world' || rider.dead || rider.downed || rider.jailed) { dismount(rider); continue; }
-        if (rider.hp < (rider.maxHp || 0) * (R().throwShare ?? 0.33)) { dismount(rider, rider.type === 'hero' ? 'Thrown from the saddle!' : ''); continue; }
-        // crew get off to fight: hit, or told to attack (Tim 2026-11-07); the horse waits there
-        if (rider.type !== 'hero' && (rider.attackTarget || ['attack', 'attackmove'].includes(rider.order?.kind) || (rider.hitBy && state.tick - rider.hitBy.tick < 10))) { dismount(rider); continue; }
+        // Tim 2026-11-14: hero and crew fight from the saddle (attacks and abilities) and stay on until they fall or are
+        // told off (Q, the crew card, Mount up again): no throw at low health, no getting off when hit or sent to attack
         // really travelling, not nudged by the crowd around her (Tim 2026-11-10: stopped crew horses ran on the spot)
         if (Math.hypot(rider.x - horse.x, rider.z - horse.z) > (R().moveStep ?? 0.12)) horse.wentAt = state.tick;
         const moved = horse.wentAt != null && state.tick - horse.wentAt <= 2;
         Object.assign(horse, { x: rider.x, z: rider.z, dir: rider.dir ?? horse.dir, heading: rider.heading ?? horse.heading, anim: moved ? (rider.type === 'hero' && !rider.gallop ? 'trot' : 'run') : 'idle' });
-        delete rider.attackTarget; delete rider.swing;
         continue;
       }
       const caller = horse.called && state.entities[horse.called];

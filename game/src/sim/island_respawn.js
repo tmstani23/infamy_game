@@ -80,5 +80,25 @@ export function createIslandRespawn({ state, areas, gate, rules = {}, cellSize =
     const [x, z] = probe ? hall : spotNear(...hall);
     return { x, z, place: 'world', town: s.name || 'your town' };
   }
-  return { hero, carry, tick, nearestHall, unstuckSpot, rules: R };
+  // A war camp fell (sim/frontier/war_end.js, Tim 2026-11-14): the clan's hero and crew standing within r of (x, z)
+  // fall back to their nearest own town hall (the island side of the city gate without a town), health as it is.
+  // prepare(e) gets each one off his mount or vehicle first. Returns { town, n } or null.
+  function fallBack(owner, x, z, r, prepare = () => {}) {
+    if (!areas) return null;
+    const list = Object.values(state.entities).filter(e => e.owner === owner && e.place === 'world' && !e.dead && !e.downed && !e.warTroop && !e.worker && !e.guard && !e.guide && !e.railGang && !e.railRide
+      && Math.hypot(e.x - x, e.z - z) <= r).sort((a, b) => (b.type === 'hero') - (a.type === 'hero'));
+    if (!list.length) return null;
+    const s = nearestHall(owner, x, z), [hx, hz] = s ? hallFront(s) : gate ? gate.island : [x, z];
+    list.forEach((e, i) => {
+      prepare(e);
+      const [ox, oz] = i && followOffset ? followOffset((i - 1) % 36) : [0, 0];
+      const [nx, nz] = spotNear(hx + ox * 0.8, hz + oz * 0.8);
+      Object.assign(e, { x: nx, z: nz, anim: 'idle' });
+    });
+    areas.update(Object.values(state.entities));
+    const clan = state.clans?.[owner];
+    if (clan) say(clan, s ? `Your war camp fell: you fell back to ${s.name || 'your town'}` : 'Your war camp fell: you fell back to the city gate');
+    return { town: s?.id || null, n: list.length };
+  }
+  return { hero, carry, tick, nearestHall, unstuckSpot, fallBack, rules: R };
 }

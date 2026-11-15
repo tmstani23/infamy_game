@@ -66,6 +66,8 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | boat_river | River boat | idle; oarsman needs a Mixamo rowing clip; not exported yet |
 | ship_war | Warship (1870s steam-and-sail corvette) | idle, sail, broadside; not exported yet |
 
+Riding sheets ride_saddle and ride_attack (2026-11-14) for every riding body: swordsman, kuroda_spearman, ninja_grunt, ronin, ninja_leader, rival_yakuza, thug, brute (enforcer), demolitions (Brute crew), ninja_tanto, geisha (Shinobi geisha), koruda_enforcer, shinobi_enforcer, mercenary, archer. Civilian bodies (gunslinger, monk, rickshaw_driver) keep coach_sitting.
+
 ## Held items (assets/models/items)
 
 Checked 2026-10-14: all four rigged models (ronin, thug, brute, mercenary) are empty-handed, and every concept prompt says "nothing in the hands", so every weapon is a separate item model.

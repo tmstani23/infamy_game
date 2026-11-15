@@ -208,10 +208,13 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   for (let i = 0; i < 200; i++) g.step([]);
   assert.ok(!barracks.progress && barracks.idle, 'nobody builds a site by himself');
   { const r = cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.map(w => w.id), kind: 'work', target: barracks.id }); assert.ok(r?.ok, r?.reason); }
+  const crew4 = rec.camp.workers.filter(w => w.project === barracks.id);
+  assert.equal(crew4.length, Math.min(4, rec.camp.workers.length), 'at most 4 workers build one site, the rest stay (Tim 2026-11-14)');
+  if (rec.camp.workers.length > 4) assert.ok(!cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.filter(w => !crew4.includes(w)).map(w => w.id), kind: 'work', target: barracks.id })?.ok, 'a full site takes no more builders');
   for (let i = 0; i < 8000 && barracks.stage !== 'built'; i++) g.step([]);
   assert.equal(barracks.stage, 'built', 'camp workers build the barracks');
   assert.ok(rec.camp.workers.every(w => !w.project), 'builders are done');
-  assert.ok(rec.camp.workers.every(w => w.order?.kind === 'hold' && !w.spot), 'they wait by the finished building for orders (Tim 2026-11-12)');
+  assert.ok(crew4.every(w => w.order?.kind === 'hold' && !w.spot), 'they wait by the finished building for orders (Tim 2026-11-12)');
   assert.doesNotMatch(war.campCheck(rec.id, 'rifle_range', spotFor('rifle_range') || { x: 0, z: 0 }).reason || '', /Needs/, 'the barracks unlocks the rifle range');
   assert.match(war.campBuildList(rec.id).find(b => b.type === 'stable').reason, /camp hall upgrade/, 'stables wait for the hall upgrade');
   // the camp hall upgrade

@@ -143,6 +143,18 @@ export function createFrontierWorld({ state, data }) {
     s.owner = clan ?? null;
   }
 
+  // A town wiped off the map (war outcome Burn, checkpoint 8a): its record, totals, roads and place in the town
+  // order go, and its site is free again. Never the capital.
+  function removeTown(sid) {
+    const s = settlement(sid);
+    if (!s || s.capital) return false;
+    delete f.settlements[s.id]; delete f.totals[s.id];
+    for (const [rid, r] of Object.entries(f.roads || {})) if (r.from === s.id || r.to === s.id) delete f.roads[rid];
+    for (const list of Object.values(f.townOrder || {})) { const i = list.indexOf(s.id); if (i >= 0) list.splice(i, 1); }
+    if (s.site != null && f.siteClaims) delete f.siteClaims[s.site];
+    return true;
+  }
+
   // The only road-state writer ('working' | 'threatened' | 'blocked'); F3 raids and the dev helper use it.
   function setRoadState(rid, st) {
     const r = f.roads[rid];
@@ -211,5 +223,5 @@ export function createFrontierWorld({ state, data }) {
     try { return checkInvariants(); } catch (err) { console.error(err.message); return false; }
   }
 
-  return { frontier: f, newId, addTown, payFounding, settlement, ledgerAdd, change, changePop, setOwner, setRoadState, townOrder, setTownOrder, assignStartOwners, syncCapital, recount, checkInvariants, logInvariants };
+  return { frontier: f, newId, addTown, payFounding, settlement, ledgerAdd, change, changePop, setOwner, removeTown, setRoadState, townOrder, setTownOrder, assignStartOwners, syncCapital, recount, checkInvariants, logInvariants };
 }

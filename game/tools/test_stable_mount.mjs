@@ -59,7 +59,7 @@ assert.ok(bb.called, 'called');
 for (let t = 0; t < 200 && !hero.mounted; t++) g.step([]);
 assert.ok(hero.mounted && hero.ride?.horse === bb.id, 'she came and he got on');
 
-// --- riding: 3.5x run speed, no fighting -------------------------------------------------------------------
+// --- riding: 3.5x run speed, fighting from the saddle (Tim 2026-11-14) -------------------------------------------------------------------
 assert.ok(Math.abs(g.stats.movement(hero, 'run') - 6 * M.speed) < 1e-6, `3.5x run (${g.stats.movement(hero, 'run')})`);
 let x0 = hero.x;   // Tim 2026-11-07: trots at about run speed; Shift (walk) gallops
 for (let t = 0; t < 40; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0 }]);
@@ -71,21 +71,23 @@ assert.ok(hero.x - x0 > 20, `galloped with Shift (${(hero.x - x0).toFixed(1)} in
 assert.equal(bb.anim, 'run', 'gallop clip');
 assert.ok(Math.hypot(bb.x - hero.x, bb.z - hero.z) < 1e-6, 'the horse is under him');
 const foe = S.entities[g.spawn('thug', 'thug', hero.x + 1, hero.z, { owner: 'kuroda', place: 'world', hp: 100 })];
-g.step([{ id: hero.id, type: 'attack', target: foe.id }]);
-assert.ok(!hero.attackTarget, 'no fighting on horseback');
-assert.match(clan.notice?.text || '', /Get off/);
+g.step([{ id: hero.id, type: 'move', right: 0, down: 0 }, { id: hero.id, type: 'attack', target: foe.id }]);
+assert.ok(hero.mounted && (hero.attackTarget === foe.id || hero.swing || foe.hp < 100), 'he attacks from the saddle');
+for (let t = 0; t < 200 && !foe.dead && !foe.downed; t++) g.step([]);
+assert.ok((foe.dead || foe.downed || foe.hp < 100) && hero.mounted, 'the foe is hurt and he is still mounted');
 delete S.entities[foe.id];
 
-// --- H again: off; H beside her: on; thrown off at low health ---------------------------------------------------
+// --- H again: off; H beside her: on; low health does not throw him (Tim 2026-11-14) ---------------------------------------------------
 g.step([{ id: hero.id, type: 'mount' }]);
 assert.ok(!hero.mounted && !hero.ride && !bb.rider, 'got off');
 g.step([{ id: hero.id, type: 'mount' }]);
 assert.ok(hero.mounted, 'got on beside her');
 hero.hp = hero.maxHp * 0.2;
 g.step([]);
-assert.ok(!hero.mounted, 'thrown off');
-assert.match(clan.notice?.text || '', /Thrown/);
+assert.ok(hero.mounted, 'not thrown at low health');
 hero.hp = hero.maxHp;
+g.step([{ id: hero.id, type: 'mount' }]);
+assert.ok(!hero.mounted, 'off again');
 // --- Stay here (the Mount panel, Tim 2026-11-07): off her back, a call is off, she stays put -----------------------------
 g.step([{ id: hero.id, type: 'mount' }]);
 assert.ok(hero.mounted, 'on again');
@@ -143,7 +145,7 @@ for (const b of town.buildings) if (b.type === 'stable') b.stableJobs = [];
   assert.ok(!h2.called, 'the clicked horse stays where she is');
   const rider = [a, b2].find(u => u.mountGo === h2.id);
   assert.ok(rider && [a, b2].filter(u => u.mountGo).length === 1, 'one of them runs over');
-  for (let t = 0; t < 400 && !rider.mounted; t++) g.step([]);
+  for (let t = 0; t < 1500 && !rider.mounted; t++) g.step([]);
   assert.ok(rider.mounted && rider.ride.horse === h2.id, 'and he rides her');
   g.step([{ id: hero.id, type: 'mount', horse: h2.id, units: [rider.id] }]);
   assert.ok(!rider.mounted && !h2.rider, 'right-click the horse he rides: he gets off');

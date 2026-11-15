@@ -271,7 +271,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   function douse(st) { const fires = f().fires; if (!fires?.[st?.key]) return false; delete fires[st.key]; if (!Object.keys(fires).length) delete f().fires; return true; }
   const isMelee = unit => kindOf(unit) === 'melee' && !unit?.gatling;   // a Gatling crew neither torches nor attacks structures (7-4)
   // who can torch (7c-2): the unit types of war.structures.torch.types (grunts, spearmen and plain melee crew) and a melee hero; never from the saddle
-  const canTorch = (e, unit) => !!e && !!unit && isMelee(unit) && !e.mounted && !e.cavalry && (e.type === 'hero' || (R()?.torch?.types || []).includes(e.type));
+  const canTorch = (e, unit) => !!e && !!unit && isMelee(unit) && !e.cavalry && (e.type === 'hero' || (R()?.torch?.types || []).includes(e.type));
   // how many of these units could take a Torch order (the ability button's count)
   function torchers(ids) { return (ids || []).filter(id => { const u = state.entities[id]; return u && !u.dead && !u.downed && u.place === 'world' && !u.garrison && !u.aboard && rt?.unitOf && canTorch(u, rt.unitOf(u)); }).length; }
 
@@ -574,6 +574,8 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // They can be attacked while at it (they do not shelter).
   const REP = () => R()?.repair || {};
   const ownSt = (s, key) => { const st = find(key); return st && (s.camp ? st.camp && st.war === s.id : !st.camp && st.town === s.id) ? st : null; };
+  // no mending a hall while the enemy hero is taking it (8a, Tim 2026-11-14): break his channel first
+  const hallTaken = s => !s.camp && war.warOn(s.id)?.channel?.side === 'town';
   function hallRuin(s, key) {
     if (s.camp || typeof key !== 'string') return null;
     const [side, id, cell] = key.split('|');
@@ -586,9 +588,9 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     const st = ownSt(s, key);
     if (st) return hpOf(st) > 0 && (burning(st) || hpOf(st) < st.max) ? { x: st.x, z: st.z, r: (st.r || 4) + 1 } : null;
     const b = hallRuin(s, key);
-    return b ? ruinSpot(s, b) : null;
+    return b && !hallTaken(s) ? ruinSpot(s, b) : null;
   }
-  const workWhy = (s, key) => ownSt(s, key) ? 'It is not damaged or burning' : find(key) ? 'Not one of your buildings' : 'Nothing to build, repair or put out there';
+  const workWhy = (s, key) => hallRuin(s, key) && hallTaken(s) ? 'The hall is being taken: stop the enemy hero first' : ownSt(s, key) ? 'It is not damaged or burning' : find(key) ? 'Not one of your buildings' : 'Nothing to build, repair or put out there';
   // pay for `hp` health points of repair from the site's stock; false when it is short (whole units, the rest is kept as a debt)
   function payRepair(s, hp) {
     const cost = REP().cost || {}, debt = s.camp ? (s.war.camp.repairDebt ||= {}) : (s.repairDebt ||= {});
@@ -616,6 +618,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
     const b = hallRuin(s, key);
     if (!b) return 'done';
+    if (hallTaken(s)) return 'waiting';
     const max = townMax(s, b) || 1, need = max * (REP().ruinShare ?? 0.5);
     if (!payRepair(s, per)) return 'waiting';
     b.repair = (b.repair || 0) + per;

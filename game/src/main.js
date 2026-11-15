@@ -6,6 +6,8 @@ import { createUtilityMenu } from './utility_menu.js';
 import { createWarLanternButton } from './war_lantern_button.js';
 import { createWarBanner } from './war_banner.js';
 import { createWarCampPanel } from './war_camp_panel.js';
+import { createWarBar } from './war_bar.js';
+import { createWarOutcomeMenu } from './war_outcome_menu.js';
 import { createSimWorkerClient } from './sim_worker_client.js';
 import { createStealthBadge } from './stealth_badge.js';
 import { createStationClock } from './station_clock.js';
@@ -183,6 +185,7 @@ async function start() {
   // Space at a door: go through it, or at the clinic's / police box's / HQ's ring open its menu (no interior)
   onAction('use', () => {
     if (stationMenu.calling()) { stationMenu.boardCall(); return; }   // All aboard called: Space boards now (Tim 2026-11-08)
+    if (warOutcome.use()) return;   // at a ruined hall of your war: take it (war 8a-3)
     if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
     // on the island at your omnibus station, or by your omnibus away from the gate: travel (Tim 2026-11-06)
     if (stableMenu.isOpen() || stableMenu.at()) { stableMenu.toggle(); return; }
@@ -468,7 +471,7 @@ async function start() {
   let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
-  onKey('Escape', () => { crewInput.cancelTarget(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  onKey('Escape', () => { warOutcome.close(); crewInput.cancelTarget(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   let abilityRows = null;   // war checkpoint 7: made after the action bar
   bindCrewNumberKeys({ onAction, onKeyFirst, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, surveyorTalk, siteMenu, stableMenu, stationMenu, contractMenu, hireMenu] });
   const sound = createSound();
@@ -542,6 +545,8 @@ async function start() {
   const warBlocked=()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen();
   // F6 war checkpoint 4: the camp panel (build, train, hire, hall upgrade), opened from the war coin or a camp building
   const warCamp=createWarCampPanel({game,heroId,view,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,buildUI:()=>frontierBuildUI,onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();}});
+  const warBar=createWarBar({game,heroId,channelOf:id=>warOutcome?.channelOf(id)||null});   // war 8a-2: both sides' morale at the top of the screen
+  const warOutcome=createWarOutcomeMenu({game,heroId,send:c=>pending.push(c),blocked:warBlocked});   // war 8a-3: Use at a ruined hall takes it (the outcome picker for a town)
   const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warCamp.cancel();},blocked:warBlocked,openCamp:id=>warCamp.show(id)});
   const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','vehiclesbtn','goalbtn','ctlbtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
@@ -811,7 +816,7 @@ async function start() {
       const stablePrompt = !door && !innerDoor && !knockable && stableMenu.at() && !stableMenu.isOpen();
       const travel = !door && !innerDoor && !knockable && !stablePrompt && stationMenu.at() && !stationMenu.isOpen();
       const lamp = !door && !travel && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
-      const allAboard = stationMenu.callPrompt();
+      const allAboard = stationMenu.callPrompt() || warOutcome.prompt();   // (or the ruined hall of a war: take it)
       // the world prompts name the Use key: whatever it is bound to now (Tim 2026-11-12)
       const usePrompt = t => typeof t === 'string' && t.startsWith('Space  ') ? keybinds.badge('use') + t.slice(5) : t;
       $('prompt').textContent = usePrompt(allAboard ? allAboard : knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? (door.menu === 'rail_station' && stationMenu.trainPrompt()) || `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`
@@ -872,7 +877,7 @@ async function start() {
     selectionDock.update();
     warLantern.update();warBanner.update();
     { const away=game.state.entities[heroId]?.place==='world'?'none':'';if(lanternButton.style.display!==away){lanternButton.style.display=away;$('rallybtn').style.display=away;} }   // Tim 2026-11-12: no Rally or War Lantern on the island
-    warCamp.update();utilityMenu.update();   // the camp menu and utility menu redraw every frame (the comment above once swallowed this call)
+    warCamp.update();warBar.update();warOutcome.update();utilityMenu.update();   // the camp menu and utility menu redraw every frame (the comment above once swallowed this call)
     hudLayout.update();
   });
 }

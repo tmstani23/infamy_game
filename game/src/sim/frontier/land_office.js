@@ -23,7 +23,8 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   const atGate = e => e?.type === 'hero' && e.place === 'street' && !!doorNear(e.id)?.gate;
   const standing = e => e && !e.dead && !e.downed && !e.jailed;
   const businessesHeld = id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && U.businesses?.[b.kind]).length;
-  const townsOf = id => Object.values(fr()?.settlements || {}).filter(s => s.owner === id && s.founded).length;
+  // towns counted against the founding limit: the ones the clan founded, never ones it captured in a war (8a)
+  const townsOf = id => Object.values(fr()?.settlements || {}).filter(s => s.owner === id && s.founded && !s.captured).length;
 
   // { ok, reason, rows: [{ label, have, need, ok }], ryo } for the menu and the command alike
   function permitStatus(id) {

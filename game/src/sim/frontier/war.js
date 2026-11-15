@@ -505,7 +505,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   }
   function tick() {
     // a war that is over takes its troops with it (they disband)
-    if (runtime?.remove && (state.tick ?? 0) % 20 === 0) for (const e of Object.values(state.entities || {})) if (e.warTroop && !byId(e.warTroop)) runtime.remove(e.id);
+    if (runtime?.remove && (state.tick ?? 0) % 20 === 0) for (const e of Object.values(state.entities || {})) if (e.warTroop && !e.rout && !byId(e.warTroop)) runtime.remove(e.id);   // routed troops run off first (war_end.js)
     // 7c (Tim 2026-11-12): war troops cannot leave their war circle. One past the edge is set back on it and stops;
     // a move order to a spot outside ends at the edge.
     if ((state.tick ?? 0) % 5 === 0) for (const e of Object.values(state.entities || {})) {

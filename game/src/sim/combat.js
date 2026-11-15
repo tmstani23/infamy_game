@@ -12,7 +12,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     const r=unit.projectile,hamstring=!!r.hamstring&&(e.hamstringReadyAt||0)<=state.tick&&!t.cop&&t.type!=='civilian'&&(autoOn(e)||!!castWanted(state,e));
     if(hamstring){e.hamstringReadyAt=state.tick+r.hamstring.cooldownTicks;delete e.castReq;}
     const duration=Math.max(2,Math.ceil(Math.hypot(t.x-e.x,t.z-e.z)/r.speed*20)),crit=rng()<stats.criticalChance(e);
-    const p={kind:r.kind,a:e.id,t:t.id,x:e.x,z:e.z,tx:t.x,tz:t.z,place:e.place,at:state.tick,until:state.tick+duration,damage:Math.round(stats.damage(e)*(crit?unit.critMultiplier||2:1)),crit,hamstring};
+    const p={kind:r.kind,a:e.id,t:t.id,x:e.x,z:e.z,tx:t.x,tz:t.z,place:e.place,at:state.tick,until:state.tick+duration,damage:Math.round(stats.damage(e)*(crit?unit.critMultiplier||2:1)*(unit.siege?unit.unitShare??1:1)),crit,hamstring};   // a cannonball on a unit: unitShare of its damage (Tim 2026-11-14: half), buildings take it whole (frontier/structures.js)
     state.projectiles.push(p);state.casts.push({...p,kind:r.kind,flightTicks:duration});stealth.reveal(e,true);
     if(unit.siege)state.casts.push({kind:'cannonFire',a:e.id,x:e.x,z:e.z,place:e.place,dir:e.dir||0,brass:!!unit.brass});   // war cannon (7-2): the salute's flash and boom
   }
