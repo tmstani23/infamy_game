@@ -1,7 +1,7 @@
 // Shared UI layout registry and transactional editor. Game rules remain running.
 import { createLayoutPages } from './layout_pages.js';
 export const HUD_PANELS = ['hud','minimap','bar','selpanel','partyframes','crewcommands','bldpanel','ryo','heat','uself','utarget','stealth','utilitymenu','raidalarm','attackbar','knockbar','campingnotice','contract','interiorinfo','prompt','hire','clinic','police','contracts','lostcops','callout','pausedbanner','snap','deploymentpanel','townpanel','townsoverview','foundtown','townalerts','townhover','townflash','goalcard','structcard'];
-const KEY='infamy.hudLayout.v1',FILE='data/ui_layout.json',PROPS=['left','top','right','bottom','transform','scale','position','width','height','minHeight'];
+const TB_KEY='infamy.hudLayout.toolbar.v1',KEY='infamy.hudLayout.v1',FILE='data/ui_layout.json',PROPS=['left','top','right','bottom','transform','scale','position','width','height','minHeight'];
 // fixed-shape panels keep the uniform corner scale; every other panel also gets side handles for free width/height (Tim 2026-10-30)
 const UNIFORM=new Set(['ryo','minimap','heat','stealth','raidalarm','uself','utarget','uhover','prompt','attackbar','knockbar']);
 const NAMES={hud:'Top status',minimap:'Minimap',bar:'Action bar',selpanel:'Selection details',partyframes:'Crew panel',crewcommands:'Crew commands',bldpanel:'Building details',ryo:'Ryo',heat:'Infamy',uself:'Hero portrait',utarget:'Target portrait',uhover:'Hover portrait',structcard:'Building pane',stealth:'Stealth badge',utilitymenu:'Navigation icons',raidalarm:'Raid alarm',attackbar:'Raid progress',knockbar:'Recovery progress',campingnotice:'HQ camping warning',contract:'Contract status',interiorinfo:'Interior details',prompt:'Interaction prompt',hire:'Hiring window',clinic:'Clinic window',police:'Police window',contracts:'Contracts window',lostcops:'Police escape alert',callout:'Game alerts',pausedbanner:'Paused banner',snap:'Camera notice',deploymentpanel:'Deployment window',townpanel:'Town window',townsoverview:'Towns overview window',foundtown:'Found settlement button',townalerts:'Town alerts',townhover:'Town hover card',townflash:'Town notice',goalcard:'Campaign goal',fptip:'Town info tooltip',gamesettings:'Settings window',blacksmithshop:'Blacksmith shop',hqstash:'HQ stash',characterpage:'Character window',controls:'Controls window',jail:'Jail status',seasonend:'Match results',snuffhint:'Light interaction hint','control-tooltip':'Controls tooltip',
@@ -26,7 +26,9 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  layer.setAttribute('role','dialog');layer.setAttribute('aria-label','Edit UI layout');layer.setAttribute('aria-modal','true');document.body.appendChild(layer);
  const toolbar=document.createElement('div');toolbar.className='layout-toolbar';let toolbarDrag=null;
  const heading=document.createElement('strong');heading.textContent='Edit layout';toolbar.appendChild(heading);
- heading.title='Drag to move the editor toolbar';heading.addEventListener('mousedown',e=>{if(!editing||e.button!==0)return;e.preventDefault();e.stopPropagation();const r=toolbar.getBoundingClientRect();toolbarDrag={x:e.clientX,y:e.clientY,left:r.left,top:r.top};});
+ heading.title='Drag to move the editor toolbar';toolbar.title='Drag the empty space on this bar to move it';toolbar.addEventListener('mousedown',e=>{if(!editing||e.button!==0||e.target.closest('button,select,option,input'))return;e.preventDefault();e.stopPropagation();const r=toolbar.getBoundingClientRect();toolbarDrag={x:e.clientX,y:e.clientY,left:r.left,top:r.top};});
+ const saveToolbarPos=()=>{try{localStorage.setItem(TB_KEY,JSON.stringify({left:toolbar.style.left,top:toolbar.style.top}));}catch{}};
+ try{const tp=JSON.parse(localStorage.getItem(TB_KEY)||'null');if(tp&&tp.left&&tp.top){toolbar.style.left=tp.left;toolbar.style.top=tp.top;}}catch{}
  const hint=document.createElement('span');hint.textContent='Select a panel, then drag or resize it. Use the picker for overlapping panels.';toolbar.appendChild(hint);
  const actions={};for(const [key,label]of [['done','Done'],['cancel','Cancel'],['reset','Reset layout']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.action=key;toolbar.appendChild(b);actions[key]=b;}layer.appendChild(toolbar);
  const filters=document.createElement('div');filters.className='layout-filters';toolbar.appendChild(filters);
@@ -118,7 +120,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
    Object.assign(p.handle.style,{left:`${rect.left}px`,top:`${rect.top}px`,width:`${rect.width}px`,height:`${rect.height}px`});
   }
  }
- // Live move (Tim 2026-11-04): frequently used windows can be dragged by their title bar outside Edit layout. Move only; resizing stays in Edit layout.
+ // Live move (Tim 2026-11-04, extended 2026-11-15 to every window-category panel): windows can be dragged by their title bar outside Edit layout. Move only; resizing stays in Edit layout.
  const MOVABLE=new Set(['hire','clinic','police','contracts','townpanel','townsoverview','gamesettings','characterpage','hqstash','blacksmithshop','controls']);
  let live=null;
  addEventListener('mousedown',e=>{
@@ -126,7 +128,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
   if(e.target.closest('button,input,select,textarea,a,th,[data-tip]'))return;
   const head=e.target.closest('h1,h2,h3,header');
   for(const p of panels.values()){
-   if(!MOVABLE.has(p.id)||!p.el.contains(head||e.target))continue;
+   if(!(MOVABLE.has(p.id)||p.category==='windows'||/window|talk|outcome|review|board|shop|stash/i.test(p.name||''))||p.el.hidden||!p.el.contains(head||e.target))continue;
    const r=p.el.getBoundingClientRect();if(!r.width)return;
    if(!head&&!(e.clientY-r.top<48))return;   // otherwise only the top strip (tab rows, padding) also drags
    e.preventDefault();e.stopPropagation?.();e.stopImmediatePropagation?.();live={p,x:e.clientX,y:e.clientY,left:r.left,top:r.top,moved:false};return;
@@ -142,7 +144,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  addEventListener('mouseup',endLive,{capture:true});addEventListener('blur',endLive);
  function finish(commit){if(!editing)return;drag=null;if(commit)store(saved);else{saved=before;for(const p of panels.values())place(p);}before=null;editing=false;select(null);for(const p of panels.values())p.el.classList.remove('layout-filtered');layer.hidden=true;onEnd();}
  function begin(){if(editing)return;before=clone(saved);editing=true;layer.hidden=false;onBegin();update();actions.done.focus();}
- function reset(){drag=null;toolbarDrag=null;saved={};toolbar.style.left='max(10px,calc(50% - 470px))';toolbar.style.top='10px';for(const p of panels.values())place(p);if(!editing)store(saved);update();}
+ function reset(){drag=null;toolbarDrag=null;saved={};toolbar.style.left='max(10px,calc(50% - 470px))';toolbar.style.top='10px';try{localStorage.removeItem(TB_KEY);}catch{}for(const p of panels.values())place(p);if(!editing)store(saved);update();}
  actions.done.addEventListener('click',()=>finish(true));actions.cancel.addEventListener('click',()=>finish(false));actions.reset.addEventListener('click',reset);
  addEventListener('mousemove',e=>{if(!editing)return;if(toolbarDrag){if(typeof e.buttons==='number'&&!(e.buttons&1)){toolbarDrag=null;return;}const w=toolbar.offsetWidth,h=toolbar.offsetHeight;toolbar.style.left=`${clamp(toolbarDrag.left+e.clientX-toolbarDrag.x,0,Math.max(0,innerWidth-w))}px`;toolbar.style.top=`${clamp(toolbarDrag.top+e.clientY-toolbarDrag.y,0,Math.max(0,innerHeight-h))}px`;return;}if(!drag)return;if(typeof e.buttons==='number'&&!(e.buttons&1)){drag=null;return;}const {p,rect:r,s,resize,edge}=drag,dx=e.clientX-drag.x,dy=e.clientY-drag.y;
   if(edge){   // side handle: change width or height, the opposite side stays put
@@ -152,7 +154,7 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
    saved[p.id]={...saved[p.id],[horiz?'w':'h']:Math.round(size)};
    keep(p,x,y,s);update();return;
   }keep(p,resize?r.left:r.left+dx,resize?r.top:r.top+dy,resize?s*Math.max(grid(r.width+dx)/r.width,grid(r.height+dy)/r.height):s,!resize);update();});
- addEventListener('mouseup',()=>{drag=null;toolbarDrag=null;},{capture:true});addEventListener('blur',()=>{drag=null;toolbarDrag=null;});
+ addEventListener('mouseup',()=>{if(toolbarDrag)saveToolbarPos();drag=null;toolbarDrag=null;},{capture:true});addEventListener('blur',()=>{drag=null;toolbarDrag=null;});
  addEventListener('resize',()=>{for(const p of panels.values())if(saved[p.id])place(p);update();});
  layer.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();e.stopPropagation();finish(false);}if(e.code==='Tab'){const stops=[...layer.querySelectorAll('button,select,[tabindex="0"]')].filter(el=>{const h=el.closest('.layout-handle');return !el.closest('[hidden]')&&(!h||el===h||h.classList.contains('selected'));}),first=stops[0],last=stops.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
  for(const type of ['mousedown','mouseup','click','contextmenu','wheel'])layer.addEventListener(type,e=>{e.stopPropagation();if(type==='contextmenu')e.preventDefault();});

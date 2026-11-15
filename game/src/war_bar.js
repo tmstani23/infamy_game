@@ -6,7 +6,7 @@
 // With several wars it shows the one whose town is nearest to the hero.
 // warBarHtml(model) is pure (the mock page uses it too); warBarModel(game, heroId) reads the state only.
 export const WAR_BAR_CSS = `
-#warbar{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:18;width:620px;max-width:calc(100vw - 40px);color:#eadfc6;font:12px/1.3 system-ui,sans-serif;pointer-events:none}
+#warbar{position:fixed;left:50%;top:104px;transform:translateX(-50%);z-index:18;width:620px;max-width:calc(100vw - 40px);color:#eadfc6;font:12px/1.3 system-ui,sans-serif;pointer-events:none}
 #warbar[hidden]{display:none}
 #warbar .wb{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:7px 12px 8px;background:linear-gradient(180deg,#171c21ee,#0f1317ee);border:1px solid #4d3b2a;border-top:2px solid #c9473d;border-radius:8px;box-shadow:0 6px 22px #000a,0 0 0 1px #000;pointer-events:auto}
 #warbar .wb-side{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;cursor:help;min-width:0}

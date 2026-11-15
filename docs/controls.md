@@ -103,7 +103,7 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 | Click a group header in the Crew frame | Select that whole group |
 | Home, or double-click the hero frame | Camera back to the hero |
 | Drag a crew name onto another group | Transfer them (selected crew go together); they take that group's duty. Sector and Hero group targets also accept transfers. While dragging, gold = room, red = can't take them; dropping on red flashes the reason |
-| Drag title bar (or the dot strip at the top) | Move the hire, clinic, police, contracts, town, towns overview, settings, stash, character and shop windows; resizing stays in Edit layout (Tim 2026-11-04). |
+| Drag title bar (or the top strip) | Move any window-type menu (hire, clinic, police, contracts, town, towns overview, war camp, town war, vehicles, land office, lieutenant/surveyor talk, settings, stash, character, shop, deployment), no Edit layout needed; position is saved; resizing stays in Edit layout. |
 | C | Select hero party, or active Rally force; replace sector selection |
 | Ctrl + 1–4 | Assign selected crew to an exclusive control group, replacing that number's membership and transferring crew from other groups. Reassign exactly the same members to the same number to dissolve it |
 | 1–4 | Recall a numbered selection filtered by active deployment command group; manual move/attack continues, then duty; open clinic, police, contract and hiring menus take priority |
@@ -143,6 +143,10 @@ The minimap has an integrated footer that moves/resizes with it, with −/+ map 
 During a Yakuza Shakedown, the business label above the building and the HUD show the operation phase and rules-based hold countdown, including while entering, securing, holding or contested.
 
 The unit frames (your frame and the target frame, small squares top middle under the alerts) each have a lock icon to move and resize them; click the target frame to move the camera to the target. Click the lock icon to unlock the HUD, then drag panels and resize them by the gold corner. Reset layout puts everything back. The layout is saved in `game/data/ui_layout.json`.
+
+Edit layout toolbar: drag any empty space on it to move it; position is saved, Reset layout returns it to the top.
+
+War bar default position: top 104 px, below the standings bar.
 
 ## Camera and view
 
