@@ -17,8 +17,21 @@ const STRUCTURAL=new Set(['shopmarker','view','vignette','fx','selbox','lock','h
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const clone=v=>JSON.parse(JSON.stringify(v));
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{};}catch{return {};}};
-const store=s=>{try{localStorage.setItem(KEY,JSON.stringify(s));}catch{}fetch(FILE,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({panels:s},null,2)}).catch(()=>{});};
-export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
+// Saved layouts (Tim 2026-11-16): data/ui_layout.json is the shipped Default (the game never writes it); the player's
+// layouts live in saves/layouts/<name>.json (server layouts_api.mjs). The chosen one is remembered per browser.
+export const DEFAULT_LAYOUT='Default',CUR_KEY='infamy.hudLayout.current.v1',LAYOUT_NAME_RE=/^[A-Za-z0-9][A-Za-z0-9 _-]{0,29}$/;
+export const currentLayoutName=()=>{try{return localStorage.getItem(CUR_KEY)||DEFAULT_LAYOUT;}catch{return DEFAULT_LAYOUT;}};
+const setCurrentName=n=>{try{localStorage.setItem(CUR_KEY,n);}catch{}};
+const layoutUrl=n=>`/layouts/${encodeURIComponent(n)}`;
+export const listLayouts=()=>fetch('/layouts').then(r=>r.ok?r.json():{names:[]}).then(j=>j.names||[]).catch(()=>[]);
+export const fetchLayout=n=>fetch(layoutUrl(n)).then(r=>r.ok?r.json():null).then(j=>j?.panels||null).catch(()=>null);
+const putLayout=(n,s)=>fetch(layoutUrl(n),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({panels:s})}).then(r=>r.ok).catch(()=>false);
+export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,onBegin=()=>{},onEnd=()=>{},onLayouts=()=>{}}={}){
+ const base=clone(defaults||fromFile||{});let layoutName=current,names=[],beforeName=null;
+ // writes the layout being used: a saved layout to its file; changes made on Default go to a new layout "My layout"
+ const store=s=>{try{localStorage.setItem(KEY,JSON.stringify(s));}catch{}
+  if(layoutName===DEFAULT_LAYOUT){layoutName='My layout';setCurrentName(layoutName);if(!names.includes(layoutName))names=[...names,layoutName].sort((a,b)=>a.localeCompare(b));showLayouts();}
+  putLayout(layoutName,s);};
  let saved=clone(fromFile&&Object.keys(fromFile).length?fromFile:load()),before=null,editing=false,drag=null,selected=null,snapGrid=false;
  const grid=v=>snapGrid?Math.round(v/10)*10:v;
  const hiddenCategories=new Set(['tooltips','alerts','windows']);
@@ -30,6 +43,51 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  const saveToolbarPos=()=>{try{localStorage.setItem(TB_KEY,JSON.stringify({left:toolbar.style.left,top:toolbar.style.top}));}catch{}};
  try{const tp=JSON.parse(localStorage.getItem(TB_KEY)||'null');if(tp&&tp.left&&tp.top){toolbar.style.left=tp.left;toolbar.style.top=tp.top;}}catch{}
  const hint=document.createElement('span');hint.textContent='Select a panel, then drag or resize it. Use the picker for overlapping panels.';toolbar.appendChild(hint);
+ // the Layout row: pick a layout, Save over it, Save as a typed name, Delete (moves the file to to_delete)
+ const sets=document.createElement('div');sets.className='layout-sets';toolbar.appendChild(sets);
+ const setsLab=document.createElement('label');setsLab.textContent='Layout';sets.appendChild(setsLab);
+ const chooser=document.createElement('select');chooser.setAttribute('aria-label','Choose a saved layout');chooser.title='Switch to a saved layout. Default is the layout the game ships with.';sets.appendChild(chooser);setsLab.htmlFor='';
+ const mk=(label,title)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.title=title;sets.appendChild(b);return b;};
+ const saveBtn=mk('Save','Save the panels as they are now over the chosen layout');
+ const nameBox=document.createElement('input');nameBox.type='text';nameBox.maxLength=30;nameBox.placeholder='New layout name';nameBox.setAttribute('aria-label','New layout name');sets.appendChild(nameBox);
+ const saveAsBtn=mk('Save as','Save the panels as they are now as a new layout with the typed name');
+ const delBtn=mk('Delete','Remove the chosen layout (its file moves to to_delete)');
+ const setsNote=document.createElement('small');setsNote.textContent='Saved in saves/layouts';sets.appendChild(setsNote);
+ const note=t=>{setsNote.textContent=t||'Saved in saves/layouts';};
+ function showLayouts(){
+  if(typeof document==='undefined')return;   // a late list answer after the page (or a test) went away
+  const all=[DEFAULT_LAYOUT,...names];
+  chooser.innerHTML='';for(const n of all){const o=document.createElement('option');o.value=n;o.textContent=n===DEFAULT_LAYOUT?'Default (game)':n;chooser.appendChild(o);}
+  chooser.value=all.includes(layoutName)?layoutName:DEFAULT_LAYOUT;
+  const isDefault=layoutName===DEFAULT_LAYOUT;saveBtn.disabled=delBtn.disabled=isDefault;
+  onLayouts({names:all,current:layoutName});
+ }
+ function apply(next){drag=null;saved=clone(next||{});for(const p of panels.values())place(p);update();}
+ async function refresh(){names=await listLayouts();showLayouts();return names;}
+ async function choose(n){
+  if(n===layoutName)return true;
+  const panelsOf=n===DEFAULT_LAYOUT?base:await fetchLayout(n);
+  if(!panelsOf){note(`Could not load ${n}`);showLayouts();return false;}
+  layoutName=n;setCurrentName(n);apply(panelsOf);try{localStorage.setItem(KEY,JSON.stringify(saved));}catch{}showLayouts();note(`Using ${n===DEFAULT_LAYOUT?'Default':n}`);return true;
+ }
+ async function saveAs(raw){
+  const n=String(raw||'').trim();
+  if(!LAYOUT_NAME_RE.test(n)||n.toLowerCase()==='default'){note('Name: letters, numbers, spaces, - or _, up to 30');return false;}
+  if(!await putLayout(n,saved)){note('Could not save (is the game server running?)');return false;}
+  layoutName=n;setCurrentName(n);if(!names.includes(n))names=[...names,n].sort((a,b)=>a.localeCompare(b));showLayouts();note(`Saved as ${n}`);nameBox.value='';if(editing)before=clone(saved),beforeName=n;return true;
+ }
+ async function remove(n=layoutName){
+  if(n===DEFAULT_LAYOUT)return false;
+  const ok=await fetch(layoutUrl(n),{method:'DELETE'}).then(r=>r.ok).catch(()=>false);
+  if(!ok){note(`Could not delete ${n}`);return false;}
+  names=names.filter(x=>x!==n);if(layoutName===n){layoutName=DEFAULT_LAYOUT;setCurrentName(DEFAULT_LAYOUT);apply(base);if(editing)before=clone(saved),beforeName=DEFAULT_LAYOUT;}
+  showLayouts();note(`${n} moved to to_delete`);return true;
+ }
+ chooser.addEventListener('change',()=>{choose(chooser.value);});
+ saveBtn.addEventListener('click',async()=>{if(layoutName===DEFAULT_LAYOUT)return;const ok=await putLayout(layoutName,saved);note(ok?`Saved ${layoutName}`:'Could not save (is the game server running?)');if(ok&&editing)before=clone(saved),beforeName=layoutName;});
+ saveAsBtn.addEventListener('click',()=>saveAs(nameBox.value));
+ nameBox.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();saveAs(nameBox.value);}});
+ delBtn.addEventListener('click',()=>remove());
  const actions={};for(const [key,label]of [['done','Done'],['cancel','Cancel'],['reset','Reset layout']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.action=key;toolbar.appendChild(b);actions[key]=b;}layer.appendChild(toolbar);
  const filters=document.createElement('div');filters.className='layout-filters';toolbar.appendChild(filters);
  const snapButton=document.createElement('button');snapButton.type='button';snapButton.dataset.action='grid';snapButton.textContent='Grid: Off (10px)';snapButton.setAttribute('aria-pressed','false');
@@ -142,9 +200,9 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  });
  const endLive=()=>{if(live?.moved)store(saved);live=null;};
  addEventListener('mouseup',endLive,{capture:true});addEventListener('blur',endLive);
- function finish(commit){if(!editing)return;drag=null;if(commit)store(saved);else{saved=before;for(const p of panels.values())place(p);}before=null;editing=false;select(null);for(const p of panels.values())p.el.classList.remove('layout-filtered');layer.hidden=true;onEnd();}
- function begin(){if(editing)return;before=clone(saved);editing=true;layer.hidden=false;onBegin();update();actions.done.focus();}
- function reset(){drag=null;toolbarDrag=null;saved={};toolbar.style.left='max(10px,calc(50% - 470px))';toolbar.style.top='10px';try{localStorage.removeItem(TB_KEY);}catch{}for(const p of panels.values())place(p);if(!editing)store(saved);update();}
+ function finish(commit){if(!editing)return;drag=null;if(commit)store(saved);else{saved=before;for(const p of panels.values())place(p);if(beforeName!==null&&beforeName!==layoutName){layoutName=beforeName;setCurrentName(layoutName);showLayouts();}}before=null;beforeName=null;editing=false;select(null);for(const p of panels.values())p.el.classList.remove('layout-filtered');layer.hidden=true;onEnd();}
+ function begin(){if(editing)return;before=clone(saved);beforeName=layoutName;editing=true;note();refresh();layer.hidden=false;onBegin();update();actions.done.focus();}
+ function reset(){drag=null;toolbarDrag=null;toolbar.style.left='max(10px,calc(50% - 470px))';toolbar.style.top='10px';try{localStorage.removeItem(TB_KEY);}catch{}layoutName=DEFAULT_LAYOUT;setCurrentName(DEFAULT_LAYOUT);apply(base);try{localStorage.setItem(KEY,JSON.stringify(saved));}catch{}showLayouts();note('Back to Default');}   // Reset layout = the Default layout (Tim 2026-11-16)
  actions.done.addEventListener('click',()=>finish(true));actions.cancel.addEventListener('click',()=>finish(false));actions.reset.addEventListener('click',reset);
  addEventListener('mousemove',e=>{if(!editing)return;if(toolbarDrag){if(typeof e.buttons==='number'&&!(e.buttons&1)){toolbarDrag=null;return;}const w=toolbar.offsetWidth,h=toolbar.offsetHeight;toolbar.style.left=`${clamp(toolbarDrag.left+e.clientX-toolbarDrag.x,0,Math.max(0,innerWidth-w))}px`;toolbar.style.top=`${clamp(toolbarDrag.top+e.clientY-toolbarDrag.y,0,Math.max(0,innerHeight-h))}px`;return;}if(!drag)return;if(typeof e.buttons==='number'&&!(e.buttons&1)){drag=null;return;}const {p,rect:r,s,resize,edge}=drag,dx=e.clientX-drag.x,dy=e.clientY-drag.y;
   if(edge){   // side handle: change width or height, the opposite side stays put
@@ -158,5 +216,6 @@ export function createHudLayout({fromFile,onBegin=()=>{},onEnd=()=>{}}={}){
  addEventListener('resize',()=>{for(const p of panels.values())if(saved[p.id])place(p);update();});
  layer.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();e.stopPropagation();finish(false);}if(e.code==='Tab'){const stops=[...layer.querySelectorAll('button,select,[tabindex="0"]')].filter(el=>{const h=el.closest('.layout-handle');return !el.closest('[hidden]')&&(!h||el===h||h.classList.contains('selected'));}),first=stops[0],last=stops.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
  for(const type of ['mousedown','mouseup','click','contextmenu','wheel'])layer.addEventListener(type,e=>{e.stopPropagation();if(type==='contextmenu')e.preventDefault();});
- return {begin,done:()=>finish(true),cancel:()=>finish(false),reset,update,register,isEditing:()=>editing,registered:()=>[...panels.keys()]};
+ showLayouts();refresh();
+ return {begin,done:()=>finish(true),cancel:()=>finish(false),reset,update,register,isEditing:()=>editing,registered:()=>[...panels.keys()],layouts:()=>[DEFAULT_LAYOUT,...names],current:()=>layoutName,choose,saveAs,remove,refresh};
 }

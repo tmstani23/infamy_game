@@ -7,6 +7,7 @@ import { extname, join, normalize, resolve, sep } from 'node:path';
 import { exec } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { handleSaves } from './saves_api.mjs';
+import { handleLayouts } from './layouts_api.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -16,17 +17,8 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 const server = createServer(async (req, res) => {
   try {
     if (await handleSaves(req, res, join(ROOT, 'saves'))) return;   // save files (F1.6)
-    // the movable HUD saves its layout here (src/hud_layout.js); the only file the game may write
-    if (req.method === 'PUT') {
-      if (new URL(req.url, 'http://x').pathname !== '/game/data/ui_layout.json') { res.writeHead(403).end(); return; }
-      let body = '';
-      for await (const chunk of req) { body += chunk; if (body.length > 65536) { res.writeHead(413).end(); return; } }
-      const panels = JSON.parse(body).panels;
-      if (!panels || typeof panels !== 'object') { res.writeHead(400).end(); return; }
-      await writeFile(join(ROOT, 'game', 'data', 'ui_layout.json'), JSON.stringify({ panels }, null, 2) + '\n');
-      res.writeHead(204).end();
-      return;
-    }
+    // the movable HUD saves its layouts in saves/layouts (Tim 2026-11-16); the game never writes into its own folders
+    if (await handleLayouts(req, res, join(ROOT, 'saves', 'layouts'), join(ROOT, 'to_delete', 'layouts'))) return;
     let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     let file = normalize(join(ROOT, path));
     if (file !== ROOT && !file.startsWith(ROOT + sep)) { res.writeHead(403).end(); return; }

@@ -257,3 +257,8 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 
 - Action bar ability slots 68 x 70 px, special ability row slots 88 x 80 px, names 11.5 px under the icon; crew command names 13 px, mount command names 12.5 px.
 - sound.js: the mercenary body (riflemen) plays no swing whoosh, only the shot.
+
+## Saved HUD layouts (2026-11-16)
+- data/ui_layout.json is the Default layout that ships with the game. The game never writes it.
+- The player's layouts are saved in saves/layouts/<name>.json (gitignored with saves/). Names: letters, numbers, spaces, - and _, up to 30, not Default.
+- Dev server routes: GET /layouts (list), GET, PUT and DELETE /layouts/<name> (game/layouts_api.mjs). Delete moves the file to to_delete/layouts/. Test: game/tools/test_layouts.mjs.

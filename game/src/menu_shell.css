@@ -569,3 +569,12 @@ body .uf .pic { background-color: #1d1a16; }
 #townpanel .wst.done .pip::after { content: ""; position: absolute; left: 3px; top: 0; width: 3px; height: 6px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 #townpanel .wst.now { border-color: #c79a4a; background: #2a2114; color: #f3d79a; box-shadow: 0 0 6px #c79a4a55; } #townpanel .wst.now .pip { border-color: #e8c27a; }
 #townpanel .wnext { color: #f3d79a; font-size: 11px; margin-top: 3px; }
+/* Layout row in the Edit layout toolbar and the Layout pick in Settings (Tim 2026-11-16) */
+#hudlayout .layout-sets { order: 1; display: flex; align-items: center; gap: 6px; flex: 1 1 100%; padding: 8px 16px 0; border-top: 1px solid #2a2d31; margin-top: 2px; }
+#hudlayout .layout-sets label { color: #c9b07a; font: 600 11px system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; margin-right: 4px; }
+#hudlayout .layout-sets select { min-width: 170px; }
+#hudlayout .layout-sets input { padding: 5px 8px; background: #07090b; color: #f3e3bd; border: 1px solid #826f4c; border-radius: 4px; font: 13px system-ui, sans-serif; width: 150px; }
+#hudlayout .layout-sets small { color: #9aa3a6; margin-left: auto; font-size: 12px; }
+#hudlayout .layout-sets button:disabled { opacity: .4; cursor: default; }
+.settings-window .layout-pick { display: inline-flex; gap: 6px; align-items: center; }
+.settings-window .layout-choose { padding: 4px 8px; background: #07090b; color: #f3e3bd; border: 1px solid #826f4c; border-radius: 4px; font: 12px system-ui, sans-serif; }

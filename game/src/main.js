@@ -72,7 +72,7 @@ import { DEV, TEST } from './test_params.js';
 import { createMinimap } from './minimap.js';
 import { createGameMap } from './game_map.js';
 import { createPresentationMode } from './presentation_mode.js';
-import { createHudLayout } from './hud_layout.js';
+import { createHudLayout, currentLayoutName, fetchLayout, DEFAULT_LAYOUT } from './hud_layout.js';
 import { hqCampingNoticeVisit } from './hq_camping_notice.js';
 import { bindFullscreen } from './fullscreen.js';
 import { bindControlTooltips } from './control_tooltips.js';
@@ -492,7 +492,7 @@ async function start() {
       const check=usableSave(file);if(!check.ok)throw new Error(check.message);
       if(!hero||!file.state?.clans?.player)throw new Error('This save has no player hero');
       location.assign(saveLoadURL(name,location.href));}};
-  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,video,saves,keybinds,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
+  const gameSettings=createGameSettings({button:$('settingsbtn'),sound,video,saves,keybinds,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onChooseLayout:name=>hudLayout.choose(name),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
   const updateMute=s=>{$('mutebtn').textContent=(s.muted?'Unmute':'Mute')+keybinds.hint('mute');};
   sound.subscribe(updateMute);updateMute(sound.getSettings());
   // mute: K or the button (M opens the game map, Tim 2026-10-20)
@@ -605,11 +605,14 @@ async function start() {
   $('seasonend').querySelector('.again').addEventListener('click', () => location.reload());
   $('seasonend').querySelector('.keep').addEventListener('click', e => { $('seasonend').hidden = true; e.currentTarget.blur(); });
   // every HUD panel can be unlocked (its lock icon), moved and resized; Reset layout in the Controls panel.
-  // Positions and sizes live in data/ui_layout.json (written through server.mjs)
-  const uiFile = await fetch('data/ui_layout.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));   // saved HUD layout
+  // data/ui_layout.json is the shipped Default layout; the player's own layouts are in saves/layouts (layouts_api.mjs,
+  // Tim 2026-11-16) and the one last chosen is loaded on top
+  const uiFile = await fetch('data/ui_layout.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));   // Default HUD layout
+  let layoutName = currentLayoutName(), layoutPanels = layoutName === DEFAULT_LAYOUT ? null : await fetchLayout(layoutName);
+  if (layoutName !== DEFAULT_LAYOUT && !layoutPanels) layoutName = DEFAULT_LAYOUT;   // its file is gone: back to Default
   const stealthBadge = createStealthBadge({ root: $('stealth'), game, heroId, view });
   const stationClock = createStationClock({ game, heroId, view });   // when the next train comes in, over each station (Tim 2026-11-08)
-  const hudLayout = createHudLayout({ fromFile: uiFile.panels,onBegin:()=>setGameplayInput(false),onEnd:()=>{setGameplayInput(true);$('settingsbtn').focus();} });
+  const hudLayout = createHudLayout({ fromFile: layoutPanels || uiFile.panels, defaults: uiFile.panels || {}, current: layoutName, onLayouts: l => gameSettings?.setLayouts?.(l),onBegin:()=>setGameplayInput(false),onEnd:()=>{setGameplayInput(true);$('settingsbtn').focus();} });
   const deploymentCards=document.createElement('section'),mapCards=document.createElement('section');
   deploymentCards.className=mapCards.className='selection-dock';
   deploymentCards.setAttribute('aria-label','Selected unit and transfer details');mapCards.setAttribute('aria-label','Selected unit and transfer details');
