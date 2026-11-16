@@ -1758,7 +1758,7 @@ as rich deposits ([Loop 3 design](#loop-3-design-tim-2026-11-04)). A town's work
 deposits within 600 units; a farther deposit needs a placed **work camp** (drop-off) linked by road
 (F5.7), which makes deposits worth fighting over. Pieces never run dry: they go through harvest
 stages, slow to a trickle and grow back. **Iron** from ore deposits becomes a 6th resource, used only for rifles, cannons and armory
-upgrades (arrives with F6 war; the early economy stays at 5), and the governor fetches it by itself.
+upgrades (arrives with F6 war; the early economy stays at 5), and the governor fetches it by itself. Not built; armory upgrades launch without iron. Revisit iron in a later phase.
 **Camps (decided, Tim 2026-11-02):** bandit camps are weaker near the capital and stronger farther
 out; a cleared camp stays clear for 5 days, then may return somewhere nearby; the first clear gives
 the better reward with a claim record, so reloads can't reroll it. Ruins and caches are one-time
@@ -2255,7 +2255,7 @@ A war is a classic RTS match fought around one enemy town. The hero plants a war
 - **Three ryo pots, each with its own name and look:**
   - **Clan treasury:** the city's ryo (HUD gold badge, `game/src/ryo_badge.js`); the capital's ryo mirrors it.
   - **Town coffers:** each frontier town's own ryo (town panel, chest icon).
-  - **War chest:** one per camp; pays troops. Starts with what the hero brought; topped up from the clan treasury and town coffers (a per-town spare-ryo setting) by train once a camp station is linked. The camp panel lists its sources, e.g. "Treasury 800 · Ōhama coffers 200 (on the train)".
+  - **War chest:** one per camp; pays troops. Starts with what the hero brought; topped up from the clan treasury and town coffers (a per-town spare-ryo setting) by train once a camp station is linked. The camp panel lists its sources, e.g. "Treasury 800 · Ōhama coffers 200 (on the train)". Treasury ryo reaches it as a ryo order by train (step 8e-1).
 - **Treasury-only purchase: foreign mercenaries.** Pistolmen hired at the port with Clan treasury ryo (not the war chest), a few per war (cap in data). They are an elite unit for every clan: expensive, no army kit, full visual effects. Ability "Six-shot volley" (auto plus smart casting): six quick revolver shots into one chosen target at short range, then a long reload. No random targeting. They use the foreign visitor (gunslinger) body with the existing revolver item and need a set of Mixamo pistol clips.
 - **HUD badge shows the local pot by hero location:** in the city, Clan treasury; inside an own town's ring, "<Town> coffers"; inside a war circle, War chest (red-banner badge). Hovering lists all three.
 - Number inputs (amounts sent to the war chest, queue counts) are typeable boxes; +/- buttons only as an extra.
@@ -2563,7 +2563,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - General (sim/frontier/war_general.js, sim/war_general_brain.js): one general brain per clan, created in save.js makeBots (config `{ general: true, clan }`), campaign mode only. It gives orders through player commands tagged `by: 'general'`. Its memory is private and saved with the bots (saveState, loadState).
    - A general runs a side of a war when the clan is a bot, or when the player's hero is outside that war's circle. When the hero walks back in it stops; troops keep their last orders.
    - `clan.warStrategy`: rush, siege or raider. A bot's is rolled from the game seed and kept. The player's default is siege. Command `warStrategy { strategy }`. A rival's strategy is stripped from the client snapshot.
-   - `town.warKeep`: share of the town coffers the player's general leaves alone (default `war.general.keepShare` 0.5). Command `warKeep { town, share }`. Bots use `botKeepShare` 0.25. The general never spends the Clan treasury.
+   - `town.warKeep`: share of the town coffers the player's general leaves alone (default `war.general.keepShare` 0.5). Command `warKeep { town, share }`. Bots use `botKeepShare` 0.25. The general never spends the Clan treasury. Exception (8e): during a war it may order Clan treasury ryo by train above the treasury keep line, within the daily cap.
    - Reviews every `war.general.reviewSeconds` (5). Stands down while surrender terms are open. Answers terms for an away player (war_terms.js `led`); never starts a surrender for the player. Generals do not see hidden units. Replaces the stand-in defender and the stand-in douse (war.js `generalOn`, structures.js `botDouse`).
    - Defence: fills the war chest from the coffers down to the keep line, trains to the strategy's mix after the muster, garrisons archers and riflemen in houses, sends workers to douse and mend. The army meets attackers within the ring plus `defendReach`, sorties at the camp at `sortieAt` troops, else holds between the hall and the camp. A defender that can train no more and outnumbers what is left of the attacker takes its archers out of the houses and razes the camp. A bot hero takes the camp hall when the camp's morale is 0. Peacetime (bots): the town hall war upgrade and the strategy's `defend.build` list, one at a time, keeping `buildReserve`.
    - Attack (bots): a bot launches a war only from an own town founded at least `launchTownDays` (3) game days ago, one war at a time (`maxAttacks`), when that town can pay the pack for the target (`attack.packByTier`, see 8d-8), paid from the launch town's coffers. Target: any clan's town that is not a capital, not on cooldown and not sacked in the last `sackedSkipDays`; scored by distance, worth and seen forts. The hero packs at the launch town, walks to the band and plants the banner. The camp builds in the strategy's order, hires workers, trains to the mix, pushes at `pushAt` troops (or with what it has once it cannot grow), falls back at `fallBack`. Targets by strategy, then military buildings, the hall, then anything that still holds morale. The hero takes the hall at morale 0: capture, else sack.
@@ -2637,7 +2637,60 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - Training keeps back the ryo of the camp hall upgrade (`war.hallUpgrade.cost.ryo`) while a building of the plan still needs the upgrade.
      - Player screens: General tab camp hover: builds its whole list before it pushes in full, with a probe before that; answers a town stockade with a foundry and siege guns.
      - Tests: tools/test_war_general.mjs "siege answer, plan before pushes".
-8e. Supply and upgrades: rail feed to the war camp (camp station, spur built by camp workers, trains with ryo, timber and stone, sources listed on the camp panel, marked rail sections the defender can destroy); ryo badge by location with the war chest as its own badge; armory upgrades (to be specified with Tim); camp timber and stone stock go to the defending town when the camp falls (not built yet; the 8b build moves only the war chest).
+8e. Supply and upgrades (planned 2026-11-16; not built):
+   - **What exists today (checked in code)**
+     - Ryo is not freight. The capital holds no stock; a capital buy pays from the town's ryo when the order is placed; a sell pays on arrival.
+     - No camp station, spur or rail sections in war. `war.morale.weights` has no camp station entry.
+     - Blasting and train robbery (rail step 6) are not built; `shipments.rob(train, share)` exists.
+     - Ryo badge shows the Clan treasury only; the red war coin shows a carried pack or a defending town's chest.
+     - Armory: built and counted on the morale bar; its menu says "Troop upgrades come later".
+     - Iron (6th resource, planned for rifles, cannons and armory upgrades) does not exist.
+   - **8e-1 Ryo by train (ryo orders)**
+     - A ryo order is a normal shipment order whose cargo is ryo. Source: the Clan treasury (capital station). Destinations: an own town's coffers, a defending town's war chest (only while its war is on), a war camp's war chest (needs a linked camp station). Needs an open rail route from the capital.
+     - Placed from the town Shipments tab (Order, Ryo) and from the war chest screens (town war window, camp hall War chest tab): typeable box "Send from Clan treasury".
+     - The ryo leaves the treasury when the order is placed and shows as on the way in the Rail ledger and the war chest sources list. Cancel before loading refunds it.
+     - Route: the fewest stops over the clan's connected lines, the same as every shipment today (shipments.js `route`); a train may pass through several own towns.
+     - Travel: the next train from the capital, normal trip time. Ryo rides in the guard car and does not take wagon space; at most `ryoPerTrain` (data) per train, larger orders go over several trains.
+     - Arrival credits the destination. If the war ended first, it goes to that town's coffers. If the camp fell or the line is cut, undelivered ryo goes back to the treasury.
+     - Same as any line: queue cap per line, blasting, robbery (robbed ryo is lost; share decided in the robbery step, maybe the full amount).
+     - Auto orders go to war chests only, and only while that war is on (never town coffers in peacetime). Who: the town governor for its defending war chest; the bot general and the player's away general for camps and defending chests; rival clans the same rules. This is the one way the away general may use the Clan treasury (changes the 2026-11-15 rule "never the treasury").
+       - Treasury keep line: auto orders never take the treasury below it. One clan-wide typeable amount, default 1000 (same as the lieutenant raid keep).
+       - Daily cap: auto orders take at most `autoShare` (data, e.g. 25%) of the treasury above the keep line per game day.
+       - Manual player orders ignore both; the box shows what the treasury keeps, red below the keep line.
+   - **8e-2 Camp station and spur**
+     - Camp station: a camp building placed where a line from the clan's rail network can end. Optional; a war runs on what the hero brought.
+     - Spur: built by camp workers at the normal rail cost from camp stock. It runs from the camp station to the station of the nearest own town (no length limit). If the nearest own town has no station, the spur goes to the nearest own town that has one; with no station at all, no spur. Treasury ryo and other towns' cargo reach the camp through that town (station transfer), passing through as many own towns as needed.
+     - Once linked it carries ryo (8e-1) and timber and stone from the clan's towns (normal shipment orders into the camp).
+     - Everything that applies to normal lines applies (link time, one train, blasting, robbery).
+     - The camp is still sealed from the town economy: nothing a camp gathers goes to a town.
+   - **8e-3 Feeding a war chest**
+     - Camp war chest: hero's pack, then ryo orders from the Clan treasury and from town coffers (per-town spare-ryo setting), by train once linked. Camp panel lists sources, e.g. "Treasury 800 · Ohama coffers 200 (on the train)".
+     - Defender war chest: own town coffers any time (typeable box, built 8b). Clan treasury and other towns' coffers only by train, through a rail link to the capital (or to that town), as orders with travel time.
+     - Timber and stone reach a defending town by normal shipments (already built).
+   - **8e-4 Cutting the line, war end**
+     - Track outside the war circle can be blasted like any line (closed 1 day, 4-day cooldown); needs rail step 6.
+     - Inside the circle: the camp station and a few marked rail sections (count in data). Red on the map during a war, hover "Camp supply line: destroy to cut the camp off". Listed on the camp's morale bar (e.g. "Rail section 2 of 3 destroyed -5"). Notice when the last falls: camp cut off from the rail network.
+     - The camp station and the inside sections count on the camp's morale bar and must be destroyed before the defender can channel at the camp hall.
+     - Camp falls: whole spur removed. Spoils = war chest plus the camp's timber and stone stock (to the town, up to storage room); the spur gives nothing.
+     - Attacker wins: the spur stays (useful after a capture; otherwise left or torn up for some materials back). Maybe later: the defender inherits the spur.
+   - **8e-5 Bots and the general**
+     - Every bot camp (all strategies) builds the camp station and spur as soon as it can; Raider leans on supply.
+     - Generals order refills (ryo, timber, stone). Treasury ryo only during a war, above the treasury keep line and within the daily cap; town coffers as before (down to the general's keep line).
+     - Defending generals target the camp station and marked sections.
+   - **8e-6 Ryo badge by location**
+     - HUD badge shows the local pot: city = Clan treasury; inside an own town's ring = "<Town> coffers"; inside a war circle = War chest (red-banner badge). Hover lists all three.
+   - **8e-7 Armory upgrades**
+     - Bought at the armory (camp or town), war only: reset when the war ends, like the troops.
+     - Troops only; hero and crew are not affected.
+     - Four unit groups: melee, ranged, mounted, siege. Two tracks each: Weapons (+damage) and Armor (+defence), 2 or 3 small levels.
+     - No iron for now. Iron (planned 6th resource for rifles, cannons and armory upgrades) is not built: revisit in a later phase (note also at the iron line in Loop 3 resources).
+     - Unit groups: Melee: grunt, spearman, brute, enforcer, irezumi, kunoichi, dog handler. Ranged: archer, rifleman, teppo, yumi, geisha. Mounted: sword rider, mounted pikeman. Siege: cannon, wooden cannon, gatling, fire bomber.
+   - **Not in 8e (decided elsewhere)**
+     - Train robbery and blasting gameplay: next step after 8e.
+     - Foreign mercenary pistolmen: after 8e (needs pistol clips).
+     - War balance (length, broke sides, stockade stalls): after 8e, Tim playtests first. No surrender step for broke rival sides.
+     - Generals weighing how much to spend and how much a town matters: later idea.
+     - Hero and crew war stat blocks: review at the end of the war build.
 After 8e: foreign mercenary pistolmen (needs pistol animation clips). Waiting: gun cavalry.
 
 ## Phase W5: Exploration and natives
