@@ -106,7 +106,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       room: r.name, ox: r.origin.x, oz: r.origin.z, fade: baseOpacity, baseOpacity });
   }
   const rings = doorRings(doors.filter(d => d.menu !== 'surveyor' && d.menu !== 'lieutenant'));   // the lieutenant too (Tim 2026-11-10)   // the surveyor has a quest mark over his head instead (render/banners.js)
-  for (const d of rings) scene.add(d);
+  for (const d of rings) { scene.add(d); d.traverse(c => c.layers.set(UI_LAYER)); }   // door rings hide with F2 too
   const things = await buildScenery(scenery, renderer);
   // the island around the camera while the hero is out there (render/world_ground.js, frontier W3.4)
   const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street'), railZ: (district.buildings || []).find(b => b.railStation)?.z ?? null, resourceSpots, spotConfig }) : null;
@@ -256,6 +256,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.team = new THREE.Group();
       const ring = new THREE.Mesh(TEAM_GEO, TEAM_MAT.enemy);
       ring.renderOrder = 2;
+      ring.layers.set(UI_LAYER);   // F2 hides the team rings too (Tim 2026-11-16: clean screenshots)
       s.team.add(new THREE.Object3D(), ring);   // slot 0 kept empty so children[1] stays the ring
       s.team.rotation.x = -Math.PI / 2;
       scene.add(s.team);

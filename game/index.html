@@ -19,8 +19,9 @@
   /* soft vignette, deeper at night */
   #vignette { position: fixed; inset: 0; pointer-events: none;
     background: radial-gradient(ellipse at center, transparent 55%, rgba(4,6,10,.45) 100%); transition: background 1s; }
-  body.night body.ui-hidden > :not(#view):not(#vignette), body.ui-hidden > :not(#view):not(#vignette) * { visibility: hidden !important; }
-#vignette { background: radial-gradient(ellipse at center, transparent 45%, rgba(2,3,8,.7) 100%); }
+  /* F2 hides every HUD element, panels included (Tim 2026-11-16: clean screenshots) */
+  body.ui-hidden > :not(#view):not(#vignette), body.ui-hidden > :not(#view):not(#vignette) * { visibility: hidden !important; }
+  body.night #vignette { background: radial-gradient(ellipse at center, transparent 45%, rgba(2,3,8,.7) 100%); }
   #hud { position: fixed; left: 16px; top: 14px; display: flex; gap: 12px; align-items: center;
     background: rgba(10,12,16,.62); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 8px 12px; }
   #hud b { font-weight: 600; letter-spacing: .08em; color: #e9c27a; }
