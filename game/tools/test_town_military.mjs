@@ -20,7 +20,7 @@ const world = data('data/world.json'), U = data('data/units.json'), FR = data('d
     const b = FR.buildings[t];
     assert.ok(b.size >= 1 && b.military && b.buildTicks > 0, t);
     assert.deepEqual(b.cost, FR.war.buildings[t].cost, `${t} costs what it costs at a camp`);
-    assert.ok(FR.war.structures.town[t] === FR.war.structures.camp[t], `${t} has the camp health`);
+    assert.ok(FR.war.structures.town[t] >= FR.war.structures.camp[t], `${t} is at least as sturdy as at a camp`);   // 8d-6 (Tim 2026-11-16): town military buildings have 2.5 times the camp health
     assert.ok(FR.upkeep.buildings[t], `${t} pays upkeep`);
     assert.equal(b.max, undefined, 'limits live in war.buildings only');
   }

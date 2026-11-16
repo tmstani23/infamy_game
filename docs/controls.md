@@ -312,6 +312,16 @@ Railway supply (2026-11-09):
 
 Frontier towns, War banner (2026-11-10, campaign; button beside War Lantern): In the city or inside one of your town rings it opens Pack for war: type an amount or drag the bar for ryo, timber and stone the hero carries (city: ryo only, from the Clan treasury; towns: from that town; packs from several towns add up). Pack for war takes it; Unpack puts every part back where it came from. While carrying a pack, a red War pack coin sits above the ryo coin (hover lists it). Inside a rival town's war circle the button reads Plant banner: the green band on the ground shows where the war camp banner may go; left-click a green spot to plant it, which declares war on that town and turns the pack into the camp's war chest and stores. With no timber or stone packed a yellow warning shows first: left-click again to plant anyway. Right-click or Esc cancels. Red explains why a spot is refused (too close or too far, truce, other town ring). Esc closes the Pack for war window.
 
+Frontier towns, General tab (war camp panel and town war window): your general runs your side of a war whenever your hero is outside its war circle, and stops the moment he walks back in (your troops keep their last orders). Click Rush, Siege or Raider to choose how he fights; the choice is for your whole clan and the hover of each card says what it builds, trains and goes for. At a camp he spends only the war chest and the camp stores. He answers surrender terms for you while you are away and never starts a surrender himself. The war bar says General in command while he runs your side.
+
+Frontier towns, Keep box (town war window, General tab): type 0 to 100 and press Enter: the share of that town's coffers your general leaves alone. In a war on the town he moves the rest into the war chest and spends it on troops. He never touches the Clan treasury.
+
+Frontier towns, Military zone (build bar, Zones): drag to paint ground kept for war buildings; it shows red in the build view and costs nothing. Only military buildings can be placed on it, and houses, farms and workshops do not grow there. With the governor initiative On your general builds the war buildings of his strategy inside it on his own, and nowhere else. The eraser clears it. You can still place military buildings anywhere in the ring yourself.
+
+Frontier towns, War on your town (alert): when a rival plants a war banner by one of your towns a card shows with a bell and a map ping, wherever your hero is. Watch looks at the war from where you are, Show on map opens the map on the town, Close puts the card away.
+
+Frontier towns, Watch (war alert or war bar): the camera goes to a war of yours that your hero is not in. You give no orders and the hero does not move while you watch; you can still change the General tab and answer surrender terms. Esc, Home, Back on the war bar or the banner button bring you back; so does the hero being hit.
+
 Garrison card (2026-11-10):
 - Left-click your stockade (or any garrisoned building): garrison card with health, slots, Prev/Next, Send in (Selected, Hero and crew) and Evacuate; hover a unit for its health; a click on a unit walks it out.
 - Ctrl + right-click your stockade: selected crew go in; with the hero selected or nothing selected, the hero and crew following him walk over and go in; WASD cancels the hero's walk.

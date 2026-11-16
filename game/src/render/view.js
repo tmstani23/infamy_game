@@ -58,6 +58,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let watchedPlace=null,watchedId=null;
   let roomView=null;       // interior view (Tim 2026-11-10): the room the camera stays in after following crew inside, until it goes back out
   const indoorPlace=p=>!!p&&p!=='street'&&p!=='world';
+  let worldView=false,worldExit=null;   // Watch a war (war 8d-4): the camera shows the island wherever the hero is
   let cityView=false,cityExit=null;   // Watch the city (Tim 2026-11-08): the boss is on the island, the camera shows the capital street
   let watchFn = null;      // camera follow target (double-click a crew name or group header): () => { x, z } or null
   const PAN_SPEED = 16;
@@ -66,12 +67,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     const rv = roomView && rooms.find(r => r.name === roomView);
     if (rv) { const sz = (rv.renderLayout || rv).size, k = rv.worldScale || 1;   // inside a room: stay over its floor
       p.x = THREE.MathUtils.clamp(p.x, rv.origin.x - 1, rv.origin.x + sz[0] * k + 1); p.z = THREE.MathUtils.clamp(p.z, rv.origin.z - 1, rv.origin.z + sz[1] * k + 1); return p; }
-    if (heroPlace === 'world' && !cityView) return p;   // out on the island (frontier W3): no city edges
+    if ((heroPlace === 'world' && !cityView) || worldView) return p;   // out on the island (frontier W3): no city edges
     const farX = heroPlace === 'street' || cityView ? B.maxX + 4 : Math.max(B.maxX + 4, ...rooms.map(r => r.origin.x + (r.renderLayout || r).size[0] * (r.worldScale || 1) + 4));
     p.x = THREE.MathUtils.clamp(p.x, B.minX - 4, farX);
     p.z = THREE.MathUtils.clamp(p.z, B.minZ - 4, B.maxZ + 4);
     return p; };
-  const cameraPlace = h => roomView && !(watchFn && watchedPlace) ? roomView : cityView && !(watchFn && indoorPlace(watchedPlace)) ? 'street' : watchFn&&watchedPlace ? watchedPlace : freeCam && h?.place !== 'street' && h?.place !== 'world' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
+  const cameraPlace = h => worldView ? 'world' : roomView && !(watchFn && watchedPlace) ? roomView : cityView && !(watchFn && indoorPlace(watchedPlace)) ? 'street' : watchFn&&watchedPlace ? watchedPlace : freeCam && h?.place !== 'street' && h?.place !== 'world' && camTarget.x <= B.maxX + 10 ? 'street' : h?.place;
   // screen-up as a ground direction, long enough to move the view as fast as sideways
   const GROUND_UP = CAM_UP.clone().setY(0).normalize();
   GROUND_UP.divideScalar(GROUND_UP.dot(CAM_UP));
@@ -315,7 +316,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
 
   function updateLights(time) {
-    const wild = heroPlace === 'world' && !cityView && heroPos ? [...(worldGround?.lights() || []), Object.assign(wildGlow, { pos: wildGlow.pos.set(heroPos.x, 1.2, heroPos.z) })] : [];
+    const wild = ((heroPlace === 'world' && !cityView) || worldView) && heroPos ? [...(worldGround?.lights() || []), Object.assign(wildGlow, { pos: wildGlow.pos.set(heroPos.x, 1.2, heroPos.z) })] : [];
     const trainLamps = [...(railTrack?.lights() || []), ...(cityStation?.lights() || [])];   // train oil lamps (render/train_fx.js)
     const near = [...lights, ...wild, ...trainLamps].filter(l => !l.off)
       .map(l => ({ l, d: (l.pos.x - camTarget.x) ** 2 + (l.pos.z - camTarget.z) ** 2 }))
@@ -517,10 +518,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const a = shakeAmp * shakeT / 0.18;
       camera.position.addScaledVector(CAM_RIGHT, (Math.random() - 0.5) * a).addScaledVector(CAM_UP, (Math.random() - 0.5) * a);
     }
-    worldGround?.update(camTarget.x, camTarget.z, heroPlace === 'world' && !cityView, dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
+    worldGround?.update(camTarget.x, camTarget.z, (heroPlace === 'world' && !cityView) || worldView, dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
     mark('ground');
-    railTrack?.update(state.frontier, heroPlace === 'world' && !cityView, dt, shared.uNight.value);
-    cityStation?.update(state.frontier, heroPlace === 'street' || cityView, dt, state.entities[followId]?.owner, shared.uNight.value);
+    railTrack?.update(state.frontier, (heroPlace === 'world' && !cityView) || worldView, dt, shared.uNight.value);
+    cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);
     mark('rail');
     updateLights(time);
     updateCutaway(hero, dt);
@@ -679,9 +680,18 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       freeCam.addScaledVector(CAM_RIGHT, right * k).addScaledVector(GROUND_UP, up * k);
       inMap(freeCam);
     },
-    snapBack() { freeCam = null; farCam = false; watchFn = null; roomView = null; if (cityView) { cityView = false; const f = cityExit; cityExit = null; f?.(); } },
+    snapBack() { freeCam = null; farCam = false; watchFn = null; roomView = null; if (cityView) { cityView = false; const f = cityExit; cityExit = null; f?.(); } if (worldView) { worldView = false; const f = worldExit; worldExit = null; f?.(); } },
+    // Watch a war (war 8d-4): show the island at (x, z) wherever the hero is; onExit runs when Home / snapBack ends it
+    setWarWatch(on, x = 0, z = 0, onExit = null) {
+      if (on && cityView) { cityView = false; const f = cityExit; cityExit = null; f?.(); }
+      worldView = !!on; worldExit = on ? onExit : null; watchFn = null; roomView = null;
+      if (on) { farCam = true; jumpFrom = null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); }
+      else { freeCam = null; farCam = false; }
+    },
+    isWarWatch: () => worldView,
     // Watch the city: show the capital street from the island, camera at (x, z); onExit runs when Home / snapBack ends it
     setCityWatch(on, x = 0, z = 0, onExit = null) {
+      if (on && worldView) { worldView = false; const f = worldExit; worldExit = null; f?.(); }
       cityView = !!on; cityExit = on ? onExit : null; watchFn = null; roomView = null;
       if (on) { farCam = true; jumpFrom = null; freeCam = new THREE.Vector3(x, heroPos?.y ?? 0, z); inMap(freeCam); }
       else { freeCam = null; farCam = false; }

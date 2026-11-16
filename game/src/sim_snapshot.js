@@ -132,6 +132,8 @@ export function createSnapshotEncoder(game, clan = 'player') {
       if(st.contracts) roots.contracts = {board:st.contracts.board,active:{[clan]:st.contracts.active[clan]},
         readyAt:{[clan]:st.contracts.readyAt?.[clan]}};
     }
+    // war 8d: a rival general's strategy stays hidden; a client only ever sees its own clan's
+    if (Object.entries(roots.clans || {}).some(([id, c]) => id !== clan && c?.warStrategy)) roots.clans = Object.fromEntries(Object.entries(roots.clans).map(([id, c]) => { if (id === clan || !c?.warStrategy) return [id, c]; const { warStrategy, ...rest } = c; return [id, rest]; }));
     const records = new Map(Object.entries(roots).map(([k,v])=>['s:'+k,v]));
     for (const e of Object.values(st.entities)) {
       if (!map || e.owner === clan || e.workerOwner === clan || e.omnibusOwner === clan || e.horseOwner === clan || detail.has(e.id) && game.vision.canSee(clan,e)) records.set('e:'+e.id,e);

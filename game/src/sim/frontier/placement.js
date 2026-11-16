@@ -96,7 +96,10 @@ export function createPlacement({ state, data, world, construction, resourceInde
     if (cover.some(i => g.ground[i] === 'x')) return bad('unbuildable', cover);
     if ((kind === 'road' || kind === 'gate') && cover.some(i => nearCliff(s, i, data))) return bad('too close to a cliff', cover);
     if(kind!=='road' && kind!=='gate' && coversResources(s,cover,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',cover);
-    if (cover.some(i => g.use[i] !== '.' || g.zone[i] !== '.')) return bad('occupied', cover);
+    // 8d-5: the military zone takes military buildings only (the cells they cover stop being zone, see place)
+    const MZ = data.zones?.military?.char, milB = !LINES[kind] && !!data.buildings[kind]?.military;
+    if (MZ && !milB && cover.some(i => g.use[i] === '.' && g.zone[i] === MZ) && cover.every(i => g.use[i] === '.' && (g.zone[i] === '.' || g.zone[i] === MZ))) return bad('military zone: only military buildings go here', cover);
+    if (cover.some(i => g.use[i] !== '.' || (g.zone[i] !== '.' && !(milB && g.zone[i] === MZ)))) return bad('occupied', cover);
     // war checkpoint 6: a breach stays open while the war is on (no repairs during a war)
     if (s.breaches?.length && Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id) && cover.some(i => s.breaches.some(b => b.cell === i))) return bad('breached: rebuild after the war', cover);
     if (kind !== 'road' && kind !== 'gate' && cover.some(i => s.railCells?.[i])) return bad('railway track', cover);   // roads may cross (Tim 2026-11-07)
@@ -138,9 +141,11 @@ export function createPlacement({ state, data, world, construction, resourceInde
       for(const i of r.cells)s.lineCosts[i]={...data.placeCosts[kind]};
       return r;
     }
+    const MZ = data.zones?.military?.char, wasZone = r.cells.filter(i => MZ && g.zone[i] === MZ);
+    for (const i of wasZone) g.zone = put(g.zone, i, '.');
     for (const i of r.cells) { setUse(s, i, 'B'); stamp(i); }
     const pid = construction.queue(s.id, kind, r.cells[0], { cells: r.cells, ...(shapeOf(data.buildings[kind]) ? { rot: ((rot | 0) % 4 + 4) % 4 } : {}) });
-    if (!pid) { for (const i of r.cells) setUse(s, i, '.'); return bad('could not queue it', r.cells); }
+    if (!pid) { for (const i of r.cells) setUse(s, i, '.'); for (const i of wasZone) g.zone = put(g.zone, i, MZ); return bad('could not queue it', r.cells); }
     if (by === 'p') construction.authorize?.(pid); // confirming a player placement is its build approval
     return { ...r, project: pid };
   }

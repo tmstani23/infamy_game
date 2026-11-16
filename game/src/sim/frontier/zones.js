@@ -87,7 +87,7 @@ export function createZones({ state, data, world,resourceIndex }) {
   // rectangle are skipped; unbuildable or out-of-core cells refuse the whole rectangle.
   function zone(s, { kind, rect, cells, by = 'p', dryRun = false }) {
     if (!on(s)) return bad('no grid');
-    const k = typeof kind === 'string' && !kind.startsWith('_') ? Z().kinds[kind] : null;
+    const k = typeof kind === 'string' && !kind.startsWith('_') ? Z().kinds[kind] || (kind === 'military' ? Z().military : null) : null;   // 8d-5: the military zone is painted like a kind but never grows
     if (!k) return bad('unknown zone kind');
     const g = s.grid, { n } = g;
     let list = cells;
@@ -110,7 +110,7 @@ export function createZones({ state, data, world,resourceIndex }) {
     if (!free.length && list.some(i => hallRoadCell(s, i))) return bad('reserved for town hall road', list);
     if (!free.length) return bad('occupied', list);
     // B3: the town hall tier caps zoned cells per kind
-    const cap = cellCap(s, kind, data), have = zoneCells(s, k.char);
+    const cap = Z().kinds[kind] ? cellCap(s, kind, data) : Infinity, have = zoneCells(s, k.char);
     if (have + free.length > cap) return { ...bad('town hall tier limit', list), have, cap };
     if (!dryRun) {
       rec(s);

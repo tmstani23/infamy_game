@@ -37,7 +37,7 @@
 import { debitRyo, creditRyo } from '../treasury.js';
 import { tierOf } from './tiers.js';
 
-export function createWarTerms({ state, data, war, world, morale, warEnd, seed = () => state.campaignSeed ?? 1 }) {
+export function createWarTerms({ state, data, war, world, morale, warEnd, general = null, seed = () => state.campaignSeed ?? 1 }) {
   const W = () => data.war || {};
   const S = () => ({ offerSeconds: 60, firstSeconds: 60, gapSeconds: 30, outcomeSeconds: 60, cooldownDays: 3, noise: 0.1, ...W().surrender });
   const BOT = () => ({ everySeconds: 30, notBeforeSeconds: 300, lossAt: 0.85, chance: 0.03, answerSeconds: 3, maxLow: 3, raise: 1.25, maxOffers: 3, ...S().bot });
@@ -244,6 +244,8 @@ export function createWarTerms({ state, data, war, world, morale, warEnd, seed =
 
   // ---- bots ---------------------------------------------------------------------------------------------------------
   const isBot = clan => !!clanOf(clan)?.bot;
+  // 8d: a player's own general answers and offers for him while he is away from the war (it never starts a surrender)
+  const led = (w, clan) => isBot(clan) || !!general?.runs(w, clan);
   const unitOf = clan => Object.values(state.entities || {}).find(e => e.owner === clan && e.type === 'hero') || { owner: clan };
   function botAnswer(w) {
     const t = w.terms, judge = clanAt(w, other(t.by)), want = price(w, judge), u = unitOf(judge);
@@ -279,14 +281,14 @@ export function createWarTerms({ state, data, war, world, morale, warEnd, seed =
       const t = w.terms;
       if (!t) { botStart(w); continue; }
       if (t.state === 'outcome') {
-        if (isBot(w.attacker)) { if (n >= t.until - secs(S().outcomeSeconds) + secs(BOT().answerSeconds)) botOutcome(w); }
+        if (led(w, w.attacker)) { if (n >= t.until - secs(S().outcomeSeconds) + secs(BOT().answerSeconds)) botOutcome(w); }
         else if (n >= t.until) warEnd.finish(w, 'sacked', w.attacker);
         continue;
       }
       if (t.offer) {
-        if (isBot(clanAt(w, other(t.by)))) { if (n >= t.offer.at + secs(BOT().answerSeconds)) botAnswer(w); }
+        if (led(w, clanAt(w, other(t.by)))) { if (n >= t.offer.at + secs(BOT().answerSeconds)) botAnswer(w); }
         else if (n >= t.offer.until) refuse(w, 'timeout');
-      } else if (isBot(clanAt(w, t.by))) { if (n >= t.until - secs(t.offers ? S().gapSeconds : S().firstSeconds) + secs(BOT().answerSeconds)) botOffer(w); }   // the first offer has its own, longer clock
+      } else if (led(w, clanAt(w, t.by))) { if (n >= t.until - secs(t.offers ? S().gapSeconds : S().firstSeconds) + secs(BOT().answerSeconds)) botOffer(w); }   // the first offer has its own, longer clock
       else if (n >= t.until) refuse(w, 'timeout');
     }
   }

@@ -44,8 +44,9 @@ export function rectangleCells(s, first, last) {
 
 // rot: which way a shaped building (the 3x2 railway station) is turned, 0..3 (R while placing)
 export function buildRequest(s, tool, first, last, data, rot = 0) {
-  const building = !!data.buildings[tool]?.size && !data.zones.kinds[tool];
-  return { town: s.id, action: tool === 'eraser' ? 'remove' : data.zones.kinds[tool] ? 'zone' : 'place',
+  const zoneTool = !!data.zones.kinds[tool] || (tool === 'military' && !!data.zones.military);   // 8d-5: the military zone is painted like a zone
+  const building = !!data.buildings[tool]?.size && !zoneTool;
+  return { town: s.id, action: tool === 'eraser' ? 'remove' : zoneTool ? 'zone' : 'place',
     ...(tool === 'eraser' ? {} : { kind: tool }), cells: building ? [last] : rectangleCells(s, first, last),
     ...(building && shapeOf(data.buildings[tool]) ? { rot } : {}) };
 }
@@ -58,8 +59,8 @@ export function buildPreview(s, request, data, {state,resourceIndex}={}) {
   const result = request.action === 'zone' ? zones.zone(s, { ...request, dryRun: true })
     : request.action === 'remove' ? placement.remove(s, {...request,dryRun:true}) : placement.check(s, request);
   if (result.ok && request.action === 'zone') {
-    const reach = data.zones.kinds[request.kind].needs?.roadReach;
-    if (result.cells.some(i => !zones.roadNear(s, i, reach))) return { ...result, warning: 'Needs a road linked to the town hall within ' + reach + ' cells to grow' };
+    const reach = data.zones.kinds[request.kind]?.needs?.roadReach;
+    if (reach && result.cells.some(i => !zones.roadNear(s, i, reach))) return { ...result, warning: 'Needs a road linked to the town hall within ' + reach + ' cells to grow' };
   }
   if (result.ok && request.action === 'place' && data.buildings[request.kind]) {
     const short = Object.entries(result.cost).some(([r, n]) => (s.stock[r] || 0) < n);
@@ -547,6 +548,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       for (const i of visible) {
         if (s.grid.ground[i] !== 'x') polygon(ctx,s,i,'rgba(235,225,200,.025)');
         const entry = definitions[s.grid.zone[i]];
+        if (!entry && data.zones.military && s.grid.zone[i] === data.zones.military.char) { const mc = data.buildUI?.zoneColors?.military || '#e0584a'; polygon(ctx,s,i,mc + '40',mc); }   // 8d-5: the military zone, red
         if (!entry) continue;
         const z = s.zones?.[entry], color = data.buildUI?.zoneColors?.[entry] || ({h:'#5aa0f0',f:'#64c864',k:'#f0923c'}[s.grid.zone[i]]);
         let status = z?.abandoned ? '#ff635a' : (z?.health ?? 1) < data.zones.healthyAt ? '#ffbe48' : null;
@@ -675,7 +677,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     // Tim 2026-11-10: in build mode only this small box shows (top left); long text lives in the hovers
     if (mini) return `<div class="bmhead"><b>Build · ${esc(s.name)}</b><button data-act="build-toggle" class="bmexit" data-tip="Leave build mode and go back to the town panel (Esc).">Exit build</button></div>`
       + `<div class="buildtools">` + group('Lay out', ['road', 'wall', 'gate'], `<span class="gap"></span>${button('eraser', townName('eraser'))}`)
-      + group('Zones', ['housing', 'farm', 'work']) + group('Camps', camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others) + (military.length ? group('Military', military) : '')
+      + group('Zones', ['housing', 'farm', 'work', ...(data.zones.military ? ['military'] : [])]) + group('Camps', camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others) + (military.length ? group('Military', military) : '')
       + `</div><div class="hint" data-tip="Drag, release, review requirements, then Confirm or Cancel. Right click or Esc cancels.\nZone previews match their buttons; amber border = short, red border = abandoned.">Drag on the map, then Confirm. Right click cancels.</div>`;
     // Tim 2026-11-16: training and the first steps moved into the Workers section of the town panel (workersHtml)
     return `<div class="townbuild"><button data-act="build-toggle" class="buildbig" data-tip="Open the build bar: roads, walls, zones, camps and buildings. Other menus hide while you build.">Build bar</button>`

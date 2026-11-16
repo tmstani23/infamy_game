@@ -646,7 +646,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!S || !runtime?.spawn || (state.tick ?? 0) % 20 !== 0) return;
     for (const war of active()) {
       const t = town(war.town), clan = state.clans?.[war.defender];
-      if (!t || !clan?.bot) continue;
+      if (!t || !clan?.bot || generalOn()) continue;   // 8d: the bot general defends bot towns (sim/war_general_brain.js); this stays for bare tests
       const mine = Object.values(state.entities).filter(e => e.warTroop === war.id && e.owner === war.defender && !e.dead);
       war.standIn ||= { next: (state.tick ?? 0) + (S.trainTicks || 0) };
       if (mine.length < S.max && (state.tick ?? 0) >= war.standIn.next && (t.stock?.ryo || 0) >= S.ryo) {
@@ -671,7 +671,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       }
     }
   }
-  let garrisonHook = null;
+  let garrisonHook = null, generalOn = () => false;
   function attach(services) { runtime = services; }
 
   function receipt(e, c, ok, reason = '') {
@@ -715,7 +715,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  const api = { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campEraseCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, get data() { return W; },
+  const api = { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campEraseCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, setGeneral: g => { generalOn = () => !!g?.enabled(); }, generalOn: () => generalOn(), get data() { return W; },
     get defense() { return defense; }, settleDefense: w => defense.settle(w) };
   defense = createWarDefense({ state, data, war: api, world });   // 8b-2: the defending town's war chest and training
   return api;

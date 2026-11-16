@@ -39,7 +39,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   const ctx = canvas.getContext('2d');
 
   // the island view while the boss is out there, except in Watch the city (then the capital map, with the camera's box)
-  const onIsland = () => !!world && game.state.entities[heroId]?.place === 'world' && !view.isCityWatch?.();
+  const onIsland = () => !!world && ((game.state.entities[heroId]?.place === 'world' && !view.isCityWatch?.()) || !!view.isWarWatch?.());
   // world point <-> minimap pixel (screen right = x - z, screen down = x + z)
   const toMap = (x, z) => [size / 2 + (x - midX - (z - midZ)) * S * k, size / 2 + (x - midX + (z - midZ)) * S * k];
   const toWorld = (u, v) => {

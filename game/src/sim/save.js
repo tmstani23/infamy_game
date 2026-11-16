@@ -1,4 +1,5 @@
 import { createLieutenantBrain } from './lieutenant.js';
+import { createGeneralBrain } from './war_general_brain.js';
 import { modeRules } from './modes/index.js';
 // Save and load (frontier plan F1). A save is plain JSON: the whole game.state plus the
 // "private" closure state that modules keep outside it (rng seeds, AI memory, path caches).
@@ -74,10 +75,14 @@ function merge(old, v) {
 // rivals: setupMatch's list { clan, hero, kind, rules, seed }; kept on each bot as `config`.
 export function makeBots(game, rivals) {
   const lieutenant = clan => Object.assign(createLieutenantBrain(game, { clan }), { config: { lieutenant: true, clan } });
-  const list = rivals.map(r => r.lieutenant ? lieutenant(r.clan) : Object.assign((r.kind === 'ninja' ? createNinjaBot : createBot)(game, r), { config: r }));
+  const general = clan => Object.assign(createGeneralBrain(game, { clan }), { config: { general: true, clan } });
+  const list = rivals.map(r => r.general ? general(r.clan) : r.lieutenant ? lieutenant(r.clan) : Object.assign((r.kind === 'ninja' ? createNinjaBot : createBot)(game, r), { config: r }));
   // C2: one lieutenant brain per clan in a campaign (player and bots); older saves get theirs appended
   if (game.lieutenant && modeRules(game.state).campaignCity)
     for (const clan of Object.keys(game.state.clans)) if (!list.some(b => b.config?.lieutenant && b.config.clan === clan)) list.push(lieutenant(clan));
+  // 8d: one war general per clan in a campaign (player and bots); older saves get theirs appended
+  if (game.frontier?.warGeneral && modeRules(game.state).founding)
+    for (const clan of Object.keys(game.state.clans)) if (!list.some(b => b.config?.general && b.config.clan === clan)) list.push(general(clan));
   return list;
 }
 

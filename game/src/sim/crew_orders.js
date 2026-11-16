@@ -4,7 +4,7 @@ import { allowCharmAttack } from './charm_rules.js';
 import { dirIndex, blockOffset } from './geometry.js';
 import { stunned } from './kuroda.js';
 import { DT } from './game.js';
-export function createCrewOrders({ gateNav = () => null, roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules = null, sees, state, stats, tryMove }) {
+export function createCrewOrders({ generalOrder = () => false, gateNav = () => null, roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules = null, sees, state, stats, tryMove }) {
   // Places around a hero for followers: rings of 6, 12 and 18 (enough for 36 crew)
   function followOffset(k) {
     for (const [r, n] of [[1.5, 6], [2.7, 12], [3.9, 18]]) {
@@ -107,6 +107,7 @@ export function createCrewOrders({ gateNav = () => null, roomOf, clans, contract
         && (u.place === hero.place || (c.by === 'lieutenant' && c.kind !== 'follow' && u.place !== 'world' && (!c.place || c.place === u.place || c.kind === 'move')) || (c.kind === 'follow' && u.place === 'street') || (hero.place === 'street' && ['move', 'stop', 'resume'].includes(c.kind))
           || (c.place === 'street' && (u.place === 'street' || (c.kind === 'move' && u.place !== 'street')))
           || (c.kind==='attack'&&c.place===u.place&&state.entities[c.target]?.place===u.place)
+          || (c.by === 'general' && u.place === 'world' && generalOrder(hero, u))   // 8d: the bot general orders the war troops of a side it runs, wherever the hero is
           || ((hero.dead || hero.downed || hero.jailed) && c.kind === 'attack' && state.entities[c.target]?.place === u.place))
         && !(u.place !== 'street' && ['heal', 'enter'].includes(c.kind))
         && (c.kind === 'follow' || !c.place || u.place === c.place || (c.place === 'street' && c.kind === 'move' && u.place !== 'street'))

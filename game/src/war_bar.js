@@ -34,6 +34,7 @@ export const WAR_BAR_CSS = `
 #warbar .wb-line.good{color:#d9f0c4;border-color:#4d6b3a}
 #warbar .wb-chan{grid-column:1 / 4;height:6px;border-radius:4px;background:#0a0c0e;box-shadow:inset 0 0 0 1px #3a3530;overflow:hidden;margin-top:2px}
 #warbar .wb-chan i{display:block;height:100%;background:linear-gradient(90deg,#8e2d26,#e07b6c);transition:width .25s linear}
+#warbar .wb-watch{margin-top:3px;border:1px solid #61543e;border-radius:5px;background:#20262d;color:#eadfc6;padding:1px 9px;font:600 10px system-ui;letter-spacing:.06em;cursor:pointer}#warbar .wb-watch:hover{border-color:#ffe0a1}
 #warbar .wb-chan.mine i{background:linear-gradient(90deg,#8a6a2a,#f0c96a)}
 `;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -46,19 +47,19 @@ export function warBarHtml(m) {
     const col = `<div class="wb-col"><div class="wb-name">${esc(s.name)}</div><div class="wb-track"><i style="width:${Math.max(0, Math.min(100, s.pct))}%"></i>${s.ready ? `<span class="wb-ready">${esc(s.readyText || '')}</span>` : ''}</div></div>`;
     return `<div class="wb-side ${cls}${s.hit ? ' hit' : ''}${s.ready ? ' ready' : ''}" style="--c:${esc(s.color || '#888')}" title="${esc(s.tip || '')}">${cls === 'me' ? crest + col + pct : pct + col + crest}</div>`;
   };
-  return `<div class="wb">${side(m.mine, 'me')}<div class="wb-mid"><span class="wb-eyebrow">${esc(m.channel?.text || m.eyebrow || 'War')}</span><span class="wb-title">${esc(m.title)}</span></div>${side(m.foe, 'foe')}`
+  return `<div class="wb">${side(m.mine, 'me')}<div class="wb-mid"><span class="wb-eyebrow">${esc(m.channel?.text || m.eyebrow || 'War')}</span><span class="wb-title">${esc(m.title)}</span>${m.watch ? `<button class="wb-watch" data-watch="${esc(m.war)}" title="${esc(m.watch === 'back' ? 'Back to your hero' : 'Look at this war from where you are. You give no orders while you watch.')}">${m.watch === 'back' ? 'Back' : 'Watch'}</button>` : ''}</div>${side(m.foe, 'foe')}`
     + (m.channel ? `<div class="wb-chan${m.channel.mine ? ' mine' : ''}"><i style="width:${(Math.max(0, Math.min(1, m.channel.frac)) * 100).toFixed(1)}%"></i></div>` : '') + '</div>'
     + (m.line ? `<div class="wb-line${m.line.good ? ' good' : ''}">${esc(m.line.text)}</div>` : '');
 }
 const nice = t => String(t || 'building').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const LINE_TICKS = 6 * 20, HIT_TICKS = 20;
-export function warBarModel(game, heroId) {
+export function warBarModel(game, heroId, prefer = null) {
   const st = game.state, hero = st.entities?.[heroId], me = hero?.owner, MO = game.frontier?.warMorale;
   const wars = Object.values(st.frontier?.wars?.list || {}).filter(w => w.attacker === me || w.defender === me);
   if (!wars.length || !MO) return null;
   const townOf = w => st.frontier.settlements?.[w.town];
   const dist = w => { const t = townOf(w); return hero?.place === 'world' && t ? Math.hypot(t.x - hero.x, t.z - hero.z) : 0; };
-  const w = wars.slice().sort((a, b) => dist(a) - dist(b) || (a.id < b.id ? -1 : 1))[0], v = MO.view(w.id), t = townOf(w);
+  const w = wars.find(x => x.id === prefer) || wars.slice().sort((a, b) => dist(a) - dist(b) || (a.id < b.id ? -1 : 1))[0], v = MO.view(w.id), t = townOf(w);
   if (!v) return null;
   const attacking = w.attacker === me, foeClan = st.clans?.[attacking ? w.defender : w.attacker];
   const mySide = attacking ? 'camp' : 'town', foeSide = attacking ? 'town' : 'camp';
@@ -74,17 +75,21 @@ export function warBarModel(game, heroId) {
   const line = last ? { text: `${last.side === mySide ? 'Your' : 'Enemy'} ${nice(last.type).toLowerCase()} destroyed, morale down ${last.amount}`, good: last.side !== mySide } : null;
   // 8c: a ceasefire while surrender terms are on the table
   const T = w.terms, truce = T ? { text: T.state === 'outcome' ? (attacking ? 'They left: choose what happens to the town' : 'No terms: the attacker is choosing') : `Ceasefire: ${T.by === (attacking ? 'attacker' : 'defender') ? 'you' : foeClan?.name || 'they'} surrendered, terms are on the table`, good: T.by !== (attacking ? 'attacker' : 'defender') } : null;
-  return { eyebrow: T ? 'Ceasefire' : 'War', title: `${attacking ? 'Siege' : 'Defence'} of ${t?.name || 'the town'}`, mine: side(mySide, true), foe: side(foeSide, false), line: truce || line, war: w.id };
+  return { eyebrow: T ? 'Ceasefire' : game.frontier?.warGeneral?.runs?.(w, me) ? 'General in command' : 'War', title: `${attacking ? 'Siege' : 'Defence'} of ${t?.name || 'the town'}`, mine: side(mySide, true), foe: side(foeSide, false), line: truce || line, war: w.id };
 }
-export function createWarBar({ game, heroId, channelOf = () => null }) {
+export function createWarBar({ game, heroId, channelOf = () => null, watch = null }) {
   if (typeof document === 'undefined') return { update() {} };
   if (!document.getElementById('warbarcss')) { const s = document.createElement('style'); s.id = 'warbarcss'; s.textContent = WAR_BAR_CSS; document.head.appendChild(s); }
   const root = document.createElement('div'); root.id = 'warbar'; root.hidden = true; document.body.appendChild(root);
   let shown = '';
+  // 8d-4: Watch looks at the war from afar (war_watch.js); Back returns to the hero
+  root.addEventListener('click', e => { const b = e.target.closest?.('[data-watch]'); if (!b || !watch) return; if (watch.watching() === b.dataset.watch) watch.end(); else watch.start(b.dataset.watch); b.blur(); });
+  for (const ev of ['pointerdown', 'mousedown']) root.addEventListener(ev, e => { if (e.target.closest?.('[data-watch]')) e.stopPropagation(); });
   function update() {
-    const m = warBarModel(game, heroId);
+    const m = warBarModel(game, heroId, watch?.watching() || null);
     if (!m) { if (!root.hidden) { root.hidden = true; shown = ''; } return; }
     m.channel = channelOf(m.war) || null;
+    m.watch = watch ? (watch.watching() === m.war ? 'back' : watch.canWatch(m.war) ? 'watch' : null) : null;
     const html = warBarHtml(m);
     if (html !== shown) { root.innerHTML = html; shown = html; }
     root.hidden = false;

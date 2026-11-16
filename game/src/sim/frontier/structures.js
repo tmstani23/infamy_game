@@ -663,7 +663,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // repair.botDousers at a time (the player's never do: his are manual)
   function botDouse() {
     const fires = f().fires, n = REP().botDousers ?? 0;
-    if (!fires || !n || !workers?.workerOrder) return;
+    if (!fires || !n || !workers?.workerOrder || war.generalOn?.()) return;   // 8d: the bot general sends the workers itself
     for (const key of Object.keys(fires)) {
       const st = find(key); if (!st || !state.clans?.[st.owner]?.bot) continue;
       const s = st.camp ? workers.siteOf?.(st.war) : st.s; if (!s?.workers?.length) continue;

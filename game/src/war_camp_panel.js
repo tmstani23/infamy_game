@@ -82,6 +82,7 @@ const nice = t => (t || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase(
 const PER_PAGE = 8, UPP = 3;
 import { msConcept } from './menu_shell.js';
 import { surrenderFoot, SURRENDER_CSS } from './war_surrender_foot.js';
+import { generalTab, GENERAL_CSS, STRATEGY_NAMES } from './war_general_tab.js';
 import { portrait } from './portraits.js';
 import { SPECIALS } from './sim/special_cast.js';
 import { ABOUT } from './ability_rows.js';
@@ -118,7 +119,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       for (const r of rules || []) if (r.selectorText?.includes('#townpanel') && /\.(w[a-z]+|workerroster|hint|harvestline)\b/.test(r.selectorText)) out.push(r.cssText.replaceAll('#townpanel', '#warcamp .campworkers')); }
     const st = document.createElement('style'); st.textContent = out.join('\n') + '\n#warcamp .campworkers{margin-top:8px}'; document.head.appendChild(st);
   }
-  const style = document.createElement('style'); style.textContent = CSS + SURRENDER_CSS('#warcamp'); document.head.append(style);
+  const style = document.createElement('style'); style.textContent = CSS + SURRENDER_CSS('#warcamp') + GENERAL_CSS('#warcamp'); document.head.append(style);
   const war = () => game.frontier?.war;
   const W = () => war()?.data || frontierData?.war || {};
   // Tim 2026-11-13: camp workers in training show in the hall menu like the town's (a bar, the seconds left, how many more)
@@ -162,7 +163,8 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const faction = clan?.faction, ST = game.frontier?.structures, stOf = x => ST?.find?.(`c|${open}|${x.id}`) || null;
     const yoursOn = bld?.type === 'stable' && bld.stage === 'built', mineV = yoursOn ? listVehicles(game, heroId) : [];
     const workersH = !bld && tab === 'workers' ? (ensureWorkerCss(), buildUI()?.campWorkersHtml?.(open) || '<div class="small" style="padding:8px 0">The worker list is not ready yet.</div>') : '';
-    const next = JSON.stringify([open, bid, tab, page, tpage, why, confirm, !!w.terms, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length, workerLeft(c),
+    const strat = game.frontier?.warGeneral?.strategyOf?.(w.attacker) || 'siege';
+    const next = JSON.stringify([open, bid, tab, page, tpage, why, confirm, !!w.terms, strat, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length, workerLeft(c),
       c.buildings.map(b => [b.id, b.stage, Math.floor(100 * (b.upgrade || b).progress / Math.max(1, (b.upgrade || b).need) || 0), b.queue?.length || 0, b.tier || 1, builders(b.id)]), list.map(x => x.ok), placing?.kind,
       bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0, workersH, stab, ypage, mineV.map(v => [v.e.id, v.status, v.where])]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
     if (next === sig) return;
@@ -241,6 +243,8 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         : '<div class="small" style="padding:8px 0">Nothing being built. Pick a building above, then click the ground near your camp.</div>'}`;
     } else if (tab === 'workers') {
       body = workersH;
+    } else if (tab === 'general') {
+      body = generalTab({ strategy: strat, rules: game.frontier?.warGeneral?.rules?.() || W().general || {}, camp: true });
     } else if (tab === 'chest') {
       body = `<div class="chestbox"><div class="chestcoin" title="Ryo for troops and camp workers"><b>${Math.floor(c.chest || 0)}</b><span>ryo in the war chest</span></div>
         <div><div style="font-size:16px;color:#f3e3bd">What it pays for</div><div class="small" style="margin-top:4px">Every troop you train at a camp building and every camp worker you hire is paid from here. Camp buildings are paid in timber and stone from the camp stores instead.</div>
@@ -262,10 +266,10 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         <div class="small" style="margin-top:10px">Right-click the camp hall to build and upgrade. Each training building has its own menu.</div></aside>`; })() : `<div class="art"><img class="hall" src="${esc(artUrl('camp_hall'))}" alt=""><img class="flag" src="${esc(artUrl('war_banner'))}" alt=""></div>
         <span class="tier">Camp hall, tier ${tier}</span>${(() => { const st = stOf(hall || {}); return st ? `<div class="small">Health ${Math.ceil(ST.hpOf(st))} of ${st.max}</div>` : ''; })()}${hall?.upgrade ? `<div class="small">Upgrading ${Math.round(100 * hall.upgrade.progress / Math.max(1, hall.upgrade.need))}%</div>` : ''}
         <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap')}
-          ${coin('', Math.floor(c.stock.timber || 0), 'Timber', 'Camp stores: pays for camp buildings. Camp workers gather more.')}${coin('', Math.floor(c.stock.stone || 0), 'Stone', 'Camp stores: pays for camp buildings. Camp workers gather more.')}</div>
+          ${coin('', Math.floor(c.stock.timber || 0), 'Timber', 'Camp stores: pays for camp buildings. Camp workers gather more.')}${coin('', Math.floor(c.stock.stone || 0), 'Stone', 'Camp stores: pays for camp buildings. Camp workers gather more.')}${coin('', STRATEGY_NAMES[strat] || strat, 'General', 'How your general fights while your hero is away from a war. Change it on the General tab.')}</div>
         <div class="upg" title="${esc(`Hire camp workers for ${C.workerCost ?? '?'} ryo each from the war chest, up to ${C.workerCap ?? '?'} in all. They gather timber and stone anywhere in the war circle outside the town ring and build your camp.`)}"><b>Workers ${(c.workers || []).length + (c.workerTraining || []).length} of ${C.workerCap ?? '?'}</b>
           <div style="display:flex;gap:6px;justify-content:center;margin-top:5px">${num('hire')}<button class="go" data-hire="1">Hire</button></div><div class="small" style="margin-top:3px">${C.workerCost ?? '?'} ryo each</div>${workerQueueHtml(c)}</div></aside>`}
-      <main>${bld ? '' : `<div class="tabs">${[['build', 'Build'], ['workers', 'Workers'], ['chest', 'War chest'], ['hall', 'Hall']].map(([t, n]) => `<button class="tab${tab === t ? ' on' : ''}" data-tab="${t}">${n}</button>`).join('')}</div>`}${body}<div class="why">${esc(why)}</div></main></div></div>`;
+      <main>${bld ? '' : `<div class="tabs">${[['build', 'Build'], ['workers', 'Workers'], ['chest', 'War chest'], ['hall', 'Hall'], ['general', 'General']].map(([t, n]) => `<button class="tab${tab === t ? ' on' : ''}" data-tab="${t}">${n}</button>`).join('')}</div>`}${body}<div class="why">${esc(why)}</div></main></div></div>`;
     if (typing?.n) { const el = [...root.querySelectorAll('input')].find(x => x.dataset.n === typing.n); if (el) { el.focus(); try { el.setSelectionRange(typing.a, typing.b); } catch {} } }
   }
   root.addEventListener('input', e => { const k = e.target?.dataset?.n; if (k) counts[k] = e.target.value; });
@@ -277,7 +281,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   root.addEventListener('dblclick', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s) ui.doubleClick?.(a.dataset, s); });
   root.addEventListener('change', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.change?.(a.dataset, e.target.value, s)) { sig = ''; fill(); } });
   root.addEventListener('click', e => {
-    const b = e.target.closest?.('[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-erase],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-hire],[data-surrender],[data-terms]'); if (!b || !open) return;
+    const b = e.target.closest?.('[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-erase],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-hire],[data-surrender],[data-terms],[data-strategy]'); if (!b || !open) return;
     const d = b.dataset; why = ''; sig = '';
     if (d.close) return close();
     if (d.terms) { const id = open; close(); openTerms(id); return; }
@@ -294,6 +298,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     else if (d.erase) startPlacing(open, 'eraser');
     else if (d.cancel) send({ id: heroId, type: 'frontier', action: 'campCancel', war: open, building: d.cancel });
     else if (d.train) { const n = count(`t:${d.train}:${d.unit}`); if (n) send({ id: heroId, type: 'frontier', action: 'campTrain', war: open, building: d.train, unit: d.unit, count: n }); else why = 'Type how many'; }
+    else if (d.strategy) send({ id: heroId, type: 'frontier', action: 'warStrategy', strategy: d.strategy });
     else if (d.untrain) send({ id: heroId, type: 'frontier', action: 'campUntrain', war: open, building: d.untrain });
     else if (d.upgrade) send({ id: heroId, type: 'frontier', action: 'campUpgrade', war: open });
     else if (d.hire) { const n = count('hire'); if (n) send({ id: heroId, type: 'frontier', action: 'train', town: open, count: n }); else why = 'Type how many'; }
@@ -402,7 +407,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     if (placing) draw();
     if (!root.hidden) { if (!rec(open) || blocked()) close(); else fill(); }
     // say why a camp command was refused (receipts live one tick)
-    for (const r of game.state.frontier?.receipts || []) if (r.seq > seen) { seen = r.seq; if (!r.ok && open && r.clan === hero()?.owner && /^camp|^train$/.test(r.action)) { why = r.reason; sig = ''; } }
+    for (const r of game.state.frontier?.receipts || []) if (r.seq > seen) { seen = r.seq; if (!r.ok && open && r.clan === hero()?.owner && /^camp|^train$|^warStrategy$/.test(r.action)) { why = r.reason; sig = ''; } }
   }
   return { show, close, update, cancel: () => cancelPlacing(false), isOpen: () => !root.hidden, isPlacing: () => !!placing };
 }

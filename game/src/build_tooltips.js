@@ -5,6 +5,7 @@ export const BUILD_DETAILS={
   road:['A town path connecting developed plots.','Enables nearby zone growth; workers can travel through it.'],
   wall:['A solid stockade fence section.','Closes passage through the cell; use gates to retain access.'],
   gate:['An opening through a wall.','Enables passage through an enclosed town and provides road access.'],
+  military:['Military zone: ground kept for war buildings. Costs nothing.','Your general puts barracks, towers and the rest here first: with the governor initiative On he builds the war buildings of his strategy here on his own, and nowhere else. Houses, farms and workshops do not grow on it, and only military buildings can be placed on it. You can still place military buildings anywhere in the ring yourself.'],
   housing:['A housing zone that grows from huts to larger homes.','Enables population growth by adding housing capacity.'],
   farm:['A cultivated zone for food production.','Enables food production with available townspeople; fertile soil improves output.'],
   work:['A workshop zone that consumes timber and stone.','Enables goods production with available townspeople.'],

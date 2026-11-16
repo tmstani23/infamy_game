@@ -450,5 +450,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       tourStop = { x: t.x, z: t.z, r: game.frontier?.data?.founding?.traits?.nodeRadius ?? 600 }; worldMap.focus(t, span); worldMap.invalidate(); return true;
     },
     endTour() { tourStop = null; worldMap?.invalidate(); },
+    // war 8d-4: open the World tab on a point (the war alert's Show on map)
+    showAt(x, z, span = 2600) { if (!world) return false; if (!isOpen()) open(); setTab('world'); ensureWorldMap(); worldMap.focus({ x, z }, span); worldMap.invalidate(); return true; },
     pickPoint(sector, callback) { selectedSector = sector; pointPicker = { sector, callback }; layers.deployment = true; syncLayers(); open(); }, picking: () => !!pointPicker, ping: (x, z) => map?.ping(x, z) };
 }

@@ -1,10 +1,13 @@
 // War checkpoint 5 Node speed benchmark (f6 plan changes): two wars at full troop caps, 60 troops a side
 // (240 fighting), a mix of the shared roster. Prints sim ms per tick with and without the battles.
 // Run from the repo root: node game/tools/bench_war.mjs [ticks]
+// GENERALS=1 (war 8d-6): a bot general runs each side as well (sim/war_general_brain.js); the default run has none,
+// so its outcome fingerprint stays comparable with earlier checkpoints.
 import { readFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
+import { makeBots } from '../src/sim/save.js';
 import { terrainAt } from '../src/sim/world_data.js';
 
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
@@ -31,8 +34,10 @@ const run = c => g.step([{ id: hero.id, type: 'frontier', ...c }]);
 run({ action: 'devStartWar', town: 'enemyTown', side: 'attack' }); run({ action: 'devStartWar', town: 'myTown', side: 'defend' });
 const wars = war.active();
 if (wars.length !== 2) throw new Error(`expected 2 wars, got ${wars.length}`);
-for (let i = 0; i < 60; i++) g.step([]);
-const time = n => { const t = []; for (let i = 0; i < n; i++) { const a = performance.now(); g.step([]); t.push(performance.now() - a); } t.sort((a, b) => a - b); return { avg: t.reduce((s, v) => s + v, 0) / n, p95: t[Math.floor(n * 0.95)], max: t.at(-1) }; };
+// 8d-6: with GENERALS=1 every clan's general gives its orders each tick
+const gens = process.env.GENERALS ? makeBots(g, m.rivals).filter(b => b.config?.general) : [], orders = () => gens.flatMap(b => b.tick());
+for (let i = 0; i < 60; i++) g.step(orders());
+const time = n => { const t = []; for (let i = 0; i < n; i++) { const a = performance.now(); g.step(orders()); t.push(performance.now() - a); } t.sort((a, b) => a - b); return { avg: t.reduce((s, v) => s + v, 0) / n, p95: t[Math.floor(n * 0.95)], max: t.at(-1) }; };
 const base = time(200);
 // 60 a side per war, the roster mix, 40 apart on open ground beside the camp, told to attack-move at each other
 const mix = ['grunt', 'grunt', 'grunt', 'brute', 'enforcer', 'archer', 'archer', 'rifleman', 'sword_rider', 'mounted_pikeman'];
