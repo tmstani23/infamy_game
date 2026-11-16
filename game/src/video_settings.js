@@ -5,13 +5,16 @@
 export const RESOLUTIONS = [['1080', '1920 × 1080'], ['900', '1600 × 900'], ['720', '1280 × 720'], ['sharp', 'Sharp (full screen detail)']];
 export const RESOLUTION_PIXELS = { 1080: 1920 * 1080, 900: 1600 * 900, 720: 1280 * 720 };
 export const FPS_CAPS = [[0, 'Off'], [60, '60'], [30, '30']];
-export const VIDEO_DEFAULTS = { resolution: '1080', glow: true, shake: true, fpsCap: 0, showFps: false };
+// sprites (Tim 2026-11-15): GPU-compressed sprite pages (tools/make_ktx2_pages.mjs); read when the game starts
+export const SPRITE_MODES = [['far', 'Far zoom only'], ['all', 'Everywhere'], ['off', 'Off']];
+export const VIDEO_DEFAULTS = { resolution: '1080', glow: true, shake: true, fpsCap: 0, showFps: false, sprites: 'far' };
 export function normalizeVideoSettings(v = {}) {
   return {
     resolution: RESOLUTIONS.some(([k]) => k === v.resolution) ? v.resolution : VIDEO_DEFAULTS.resolution,
     glow: v.glow !== false, shake: v.shake !== false,
     fpsCap: FPS_CAPS.some(([k]) => k === v.fpsCap) ? v.fpsCap : 0,
     showFps: v.showFps === true,
+    sprites: SPRITE_MODES.some(([k]) => k === v.sprites) ? v.sprites : VIDEO_DEFAULTS.sprites,
   };
 }
 // pixels drawn per page pixel for a window of w x h page pixels

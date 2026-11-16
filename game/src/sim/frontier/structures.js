@@ -375,7 +375,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     // charm, taunt: step() is not reached then) breaks it and it starts over; plain hits do not. Once it burns, he hits.
     if (o.torch && !burning(st) && canTorch(e, unit)) {
       const now = state.tick ?? 0;
-      if (!o.cast || o.cast.last !== now - 1) { o.cast = { until: now + (R().torch?.castTicks ?? 20) }; (state.casts ||= []).push({ kind: 'torchCast', a: e.id, x: e.x, z: e.z, place: 'world', ticks: R().torch?.castTicks ?? 20 }); }
+      if (!o.cast || o.cast.last !== now - 1) { o.cast = { start: now, until: now + (R().torch?.castTicks ?? 20) }; (state.casts ||= []).push({ kind: 'torchCast', a: e.id, x: e.x, z: e.z, place: 'world', ticks: R().torch?.castTicks ?? 20 }); }
       o.cast.last = now;
       e.anim = 'attack';
       if (now >= o.cast.until) { delete o.cast; ignite(e.owner, st); }
@@ -586,7 +586,20 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   const ruinSpot = (s, b) => { const pts = cellsOf(b).map(i => cellToWorld(s, i)); return { x: pts.reduce((n, p) => n + p[0], 0) / pts.length, z: pts.reduce((n, p) => n + p[1], 0) / pts.length, r: Math.sqrt(pts.length) * (s.grid?.cell || 11) / 2 + 1 }; };
   // the key a worker order needs for a ruined town hall of this town (null when it stands)
   function hallRuinKey(s) { const b = (s?.buildings || []).find(x => x.type === 'town_hall' && x.stage === 'ruined'); return b ? `t|${s.id}|${cellsOf(b)[0]}` : null; }
+  // Town building sites (Tim 2026-11-15): key p|<town>|<project id>, an authorized placed-building project of a town.
+  // Workers there add rates.workerBuildRate work a second each, at most rates.maxBuilders on one site, on top of the
+  // townspeople (construction.js). An unpaid project, or one still being cleared, makes them wait.
+  function townProject(s, key) {
+    if (s.camp || typeof key !== 'string') return null;
+    const [side, id, pid] = key.split('|');
+    return side === 'p' && id === s.id ? (s.projects || []).find(p => p.id === pid && p.authorized && (p.cells?.length || Number.isInteger(p.cell))) || null : null;
+  }
+  const siteOf = (s, p) => (p.replaces && (s.buildings || []).find(b => b.id === p.replaces)) || p;   // a rebuild covers the ruin's cells
+  function projectKeyAt(s, cell) { const p = (s?.projects || []).find(x => x.authorized && cellsOf(siteOf(s, x)).includes(cell)); return p ? `p|${s.id}|${p.id}` : null; }
+  const siteCap = (s, key) => townProject(s, key) ? data.rates?.maxBuilders ?? 4 : Infinity;
   function workTarget(s, key) {
+    const tp = townProject(s, key);
+    if (tp) return tp.progress < tp.need ? ruinSpot(s, siteOf(s, tp)) : null;
     const st = ownSt(s, key);
     if (st) return hpOf(st) > 0 && (burning(st) || hpOf(st) < st.max) ? { x: st.x, z: st.z, r: (st.r || 4) + 1 } : null;
     const b = hallRuin(s, key);
@@ -618,6 +631,13 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       setHp(st, hp + gain);
       return 'working';
     }
+    const tp = townProject(s, key);
+    if (tp) {
+      if (tp.progress >= tp.need) return 'done';
+      if (!tp.paid || tp.phase === 'clearing') return 'waiting';
+      tp.progress = Math.min(tp.need, tp.progress + n * (data.rates?.workerBuildRate ?? 1) / (data.cadenceTicks || 20));
+      return 'working';
+    }
     const b = hallRuin(s, key);
     if (!b) return 'done';
     if (hallTaken(s)) return 'waiting';
@@ -638,7 +658,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     if (u?.garrison?.hall) delete u.garrison;
     delete w.shelter;
   }
-  workers?.attachJobs?.({ target: workTarget, why: workWhy, work: workOn, leave: workLeave });
+  workers?.attachJobs?.({ target: workTarget, why: workWhy, work: workOn, leave: workLeave, cap: siteCap });
   // Stand-in until the bot general (8d): a bot clan's workers douse their own burning structures by themselves,
   // repair.botDousers at a time (the player's never do: his are manual)
   function botDouse() {
@@ -683,5 +703,5 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // 7-5: the built watchtowers of every war, for war stealth detection: [{ owner, x, z, range }]
   function watchers() { const T = R()?.tower; return T ? list().filter(st => st.type === 'watchtower' && hpOf(st) > 0).map(st => ({ owner: st.owner, x: st.x, z: st.z, range: T.detect ?? T.range ?? 0, sight: T.sight ?? 0 })) : []; }
   function attach(services) { rt = services; }
-  return { list, find, at, near, pick, canDamage, damage, order, step, tick, viewFor, hpOf, gap, gateBlockers, gateNav, gatesAgainst, ignite, bombAt, douse, workTarget, workOn, hallRuinKey, burning, canTorch, torchers, watchers, attach };
+  return { list, find, at, near, pick, canDamage, damage, order, step, tick, viewFor, hpOf, gap, gateBlockers, gateNav, gatesAgainst, ignite, bombAt, douse, workTarget, workOn, hallRuinKey, projectKeyAt, burning, canTorch, torchers, watchers, attach };
 }

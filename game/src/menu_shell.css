@@ -383,7 +383,7 @@ body .uf .pic { background-color: #1d1a16; }
 #townpanel .workerroster { display: flex; flex-direction: column; gap: 7px; }
 #townpanel .workerroster .wico { display: inline-flex; flex: none; width: 22px; height: 18px; align-items: center; justify-content: center; }
 #townpanel .workerroster .wico svg { width: 100%; height: 100%; display: block; }
-#townpanel .wcoins { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+#townpanel .tcoins { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
 #townpanel .workerroster button.wcoin { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; min-height: 60px; padding: 6px 2px 5px;
   border-radius: 9px; border: 1px solid #6a5636; background: radial-gradient(#2b2520, #121110 78%); box-shadow: inset 0 0 0 1px #1a140c; cursor: pointer; }
 #townpanel .workerroster .wcoin b { font: 600 16px/1 system-ui, sans-serif; color: #f6e6bf; }
@@ -543,3 +543,29 @@ body .uf .pic { background-color: #1d1a16; }
 #gamesettings .kb-foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
 #gamesettings .kb-pager button { margin-left: 4px; }
 #gamesettings section[data-pane="keys"]:focus { outline: none; }
+/* Town panel People and Workers (Tim 2026-11-16 mock): townspeople as a sixth stock card, job chips, growth line,
+   the Workers card (art, count, training queue, Train button with coin costs) and the first steps track */
+#townpanel div.stock { grid-template-columns: repeat(6, 1fr); }
+#townpanel .stock div.ppl { box-shadow: 0 0 0 2px #c79a4a, 0 0 0 3px #1a140c; background: radial-gradient(#33291b, #141110 75%); }
+#townpanel .pgood { color: #a5d8a4; } #townpanel .pwarn { color: #ff8a74; font-weight: 600; }
+#townpanel .pjobs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+#townpanel .pjob { border: 1px solid #3a3d42; background: #1a1d21; border-radius: 4px; padding: 2px 7px; font-size: 11px; color: #cfc6b2; }
+#townpanel .pjob b { color: #f6e6bf; } #townpanel .pjob.short { border-color: #8a3a30; background: #2a1714; } #townpanel .pjob i { font-style: normal; color: #ff8a74; }
+#townpanel .wcard { display: flex; gap: 10px; align-items: center; border-radius: 8px; padding: 7px 10px; margin: 2px; background: radial-gradient(#2b2520, #121110 80%); box-shadow: 0 0 0 2px #6a5636, 0 0 0 3px #1a140c; }
+#townpanel .wart { width: 54px; height: 54px; flex: none; border-radius: 6px; border: 1px solid #5a4528; background: #2a2218 center 18% / 170% no-repeat; }
+#townpanel .wmain { flex: 1; min-width: 0; } #townpanel .wbig { font-size: 13px; } #townpanel .wbig b { font-size: 19px; color: #f6e6bf; }
+#townpanel .wqueue { display: flex; gap: 4px; align-items: center; margin-top: 4px; font-size: 10.5px; }
+#townpanel .wqp { width: 18px; height: 18px; flex: none; border-radius: 3px; border: 1px solid #5a4528; background: #2a2218 center 18% / 170% no-repeat; }
+#townpanel .wqbar { flex: 1; height: 5px; border-radius: 3px; background: #22262e; border: 1px solid #000; overflow: hidden; } #townpanel .wqbar i { display: block; height: 100%; background: linear-gradient(#f0d07a, #b58a2a); }
+#townpanel button.wtrain { display: flex; gap: 6px; align-items: center; padding: 6px 11px; font-size: 12px; letter-spacing: .04em; color: var(--ms-on-text); border-color: var(--ms-go-line); background: linear-gradient(var(--ms-go1), var(--ms-dk1)); box-shadow: 0 0 10px color-mix(in srgb, var(--ms-accent) 33%, transparent); }
+#townpanel button.wtrain:hover { background: linear-gradient(var(--ms-go-hi1), var(--ms-go-hi2)); } #townpanel button.wtrain.no { opacity: .55; box-shadow: none; }
+#townpanel .tcoin { display: inline-flex; align-items: center; gap: 3px; background: #0006; border-radius: 9px; padding: 0 6px 0 2px; font-weight: 500; font-size: 11px; }
+#townpanel .tcoin i { width: 11px; height: 11px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe9a0, #c8962e); }
+#townpanel .tcoin.goods i { border-radius: 2px; background: linear-gradient(#b98a5a, #7a5636); }
+#townpanel .wsteps { display: flex; gap: 4px; }
+#townpanel .wst { flex: 1; display: flex; gap: 5px; align-items: center; border: 1px solid #3a3d42; border-radius: 5px; padding: 4px 6px; background: #1a1d21; font-size: 10.5px; color: #a9a294; }
+#townpanel .wst .pip { width: 12px; height: 12px; flex: none; border-radius: 50%; border: 2px solid #555; position: relative; }
+#townpanel .wst.done { border-color: #4b6b3a; color: #b9d6a8; } #townpanel .wst.done .pip { background: #5d8f45; border-color: #7fae5a; }
+#townpanel .wst.done .pip::after { content: ""; position: absolute; left: 3px; top: 0; width: 3px; height: 6px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+#townpanel .wst.now { border-color: #c79a4a; background: #2a2114; color: #f3d79a; box-shadow: 0 0 6px #c79a4a55; } #townpanel .wst.now .pip { border-color: #e8c27a; }
+#townpanel .wnext { color: #f3d79a; font-size: 11px; margin-top: 3px; }

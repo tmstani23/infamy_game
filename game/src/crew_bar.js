@@ -13,8 +13,8 @@ const CMDS = [
   { key: 'Z', action: 'stop', name: 'Stop', tip: 'Selected crew stand still and stay passive (no attacking, even when hit) until their next order.', act: c => c.stopSelected(), need: 'sel' },
   { key: 'X', action: 'attackMove', name: 'A-move', tip: 'Attack-move: then left-click the ground; selected crew walk there and fight anything on the way.', act: c => c.armAttackMove(), need: 'sel' },
   { key: 'G', action: 'heal', name: 'Clinic', tip: 'Selected outdoor crew walk to the clinic to heal (for ryo). Move indoor crew outside first.', act: c => c.healSelected(), need: 'street' },
-  { key: 'C', action: 'selectAll', name: 'Hero', tip: 'Select your hero group, replacing the current selection. During Rally, select the active Rally force. Ctrl+1–4 assigns a shortcut; 1–4 recalls it.', act: c => c.selectAll(), need: 'crew' },
-  { key: 'Shift+C', action: 'selectTroops', name: 'Troops', tip: 'Select all your war troops where your hero is, replacing the current selection. Your hero group is left out (C selects it).', act: c => c.selectTroops(), need: 'troops' },
+  { key: 'C', action: 'selectAll', name: 'Hero', tip: 'Select your hero group, replacing the current selection (out on the island the hero too). During Rally, select the active Rally force. Ctrl+1–4 assigns a shortcut; 1–4 recalls it.', act: c => c.selectAll(), need: 'crew' },
+  { key: 'Shift+C', action: 'selectTroops', name: 'Troops', tip: 'Select all your war troops where your hero is, replacing the current selection. Your hero group is left out (C selects it); out on the island the hero is selected too.', act: c => c.selectTroops(), need: 'troops' },
 ];
 // Mount controls (Tim 2026-11-06): their own headed row under the crew commands
 const MOUNT_CMDS = [

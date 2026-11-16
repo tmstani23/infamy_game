@@ -45,6 +45,30 @@ export function waitInfo(s, w) {
   return { fill: Math.max(0, Math.min(1, have / need)), tip: `${name(p.type)} needs ${need} ${res}: ${f(have)} in stock, ${f(short)} short. ${eta}` };
 }
 
+// People in the town panel (Tim 2026-11-16): townspeople as a stock card, what each job type has and wants, and the
+// growth line (green with the time to the next person, red with what blocks it). data (frontier.json) is optional.
+export function peopleRows(s, prev, data = null) {
+  const r = s.report || {}, g = r.growth || {}, mood = Math.round(s.mood ?? 0), B = data?.buildings || {};
+  const gather = new Set(data?.workers?.gatherBuildings || []), want = {}, have = {};
+  for (const b of s.buildings || []) {
+    const jobs = B[b.type]?.jobs || 0;
+    if (b.stage !== 'built' || !jobs || (gather.has(b.type) && !b.workers && s.workers)) continue;
+    const k = name(b.type); want[k] = (want[k] || 0) + jobs; have[k] = (have[k] || 0) + (b.workers || 0);
+  }
+  for (const [kind, z] of Object.entries(s.zones || {})) if (z.wanted || z.workers) { const k = `${name(kind)} zone`; want[k] = (want[k] || 0) + (z.wanted || 0); have[k] = (have[k] || 0) + (z.workers || 0); }
+  const chips = Object.keys(want).map(k => ({ label: k, have: have[k], want: want[k], short: Math.max(0, want[k] - have[k]) }))
+    .sort((a, b) => (a.short > 0) - (b.short > 0) || a.label.localeCompare(b.label));
+  if (s.builders) chips.unshift({ label: 'Builders', have: s.builders, want: null, short: 0 });
+  const slow = !g.block && /low mood/.test(g.text || '');
+  const growth = g.block === 'housing' ? { bad: true, text: 'Not growing: no free beds, build houses' }
+    : g.block === 'food' ? { bad: true, text: 'Not growing: food not rising, more farms or food camps' }
+    : slow ? { bad: true, text: `Growing slowly: mood ${mood}, lower taxes${g.eta ? `, next person in ${g.eta} s` : ''}` }
+    : { bad: false, text: g.eta ? `Next person in ${g.eta} s` : (g.text || '') };
+  const per = data?.rates?.growthTicks ? Math.round(data.rates.growthTicks * (data.cadenceTicks || 20) / 20) : 60, full = data?.mood?.growthFullAt ?? 70;
+  const tip = `Townspeople: ${s.pop}\nThey do the town's jobs: farm and work zones, workshops and building. Trained workers are separate and come out of them (1 townsperson each).\n\nGrows by 1 every ${per} s while food is rising, there is a free bed and mood is ${full} or more (slower below ${full}).\n\nNow: ${growth.text || 'nothing to report'}.`;
+  return { pop: s.pop, workers: workerCount(s), beds: Math.floor(s.housing || 0), arrow: dir(s.pop || 0, prev?.pop), tip, growth, chips, short: chips.reduce((n, c) => n + c.short, 0), idle: r.idle || 0 };
+}
+
 export function reportRows(s, prev) {
   if (!s || !s.stock) return null;   // rival towns arrive as name only
   const f = n => Math.round(n * 10) / 10;

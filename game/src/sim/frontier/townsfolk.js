@@ -5,7 +5,10 @@
 // one of your units is within viewRadius of the hall, and nobody can lose a person this way.
 // Tim 2026-11-08: they are the capital's mix of townsfolk (every civilians.json walker type, picked at random by its
 // count), and they keep near the town hall: within roam[tier] world units of it, a bit further each tier.
-// Records (plain data, saved): s.folk = [{ entity, path, step, wait, home }].
+// Tim 2026-11-15: the town's builders show too. While a placed building of the town is being built (paid, not a
+// zone building), up to s.builders (the townspeople building it) walk out of the hall in work clothes
+// (townsfolk.builderModel), stand round the site and hammer; when it is done they walk back in. Decoration only.
+// Records (plain data, saved): s.folk = [{ entity, path, step, wait, home, build? }] (build = the project id).
 // createTownsfolk({ state, data, civilians }) -> { tick, attach }   data.townsfolk (frontier.json), civilians.json
 import { cellToWorld, ringRadius } from './town_grid.js';
 import { dirIndex } from '../geometry.js';
@@ -47,6 +50,18 @@ export function createTownsfolk({ state, data, civilians = null }) {
   }
   const door = s => { const step = (s.grid.cell || 11) * 0.9; return runtime.areas.nav.nearestFree?.(s.x + step * 0.7, s.z + step * 0.7) || [s.x, s.z]; };
   function remove(s, f) { if (f.entity && state.entities?.[f.entity]) runtime.remove(f.entity); s.folk.splice(s.folk.indexOf(f), 1); }
+  const cellsOf = b => b.cells?.length ? b.cells : [b.cell];
+  // the project the townspeople are building now (construction.js: the paid one), or null
+  function building(s) {
+    if (!(s.builders > 0)) return null;
+    const p = (s.projects || []).find(p => p.authorized && p.paid && p.progress < p.need && p.phase !== 'clearing');
+    if (!p) return null;
+    const site = (p.replaces && (s.buildings || []).find(b => b.id === p.replaces)) || p, pts = cellsOf(site).filter(Number.isInteger).map(i => cellToWorld(s, i));
+    if (!pts.length) return null;
+    const x = pts.reduce((n, q) => n + q[0], 0) / pts.length, z = pts.reduce((n, q) => n + q[1], 0) / pts.length;
+    return { p, x, z, r: Math.sqrt(pts.length) * (s.grid?.cell || 11) / 2 + 1 };
+  }
+  const buildSpot = (site, i) => { const a = i * 2.399963 + 0.7, x = site.x + Math.cos(a) * site.r, z = site.z + Math.sin(a) * site.r; return runtime.areas.nav.nearestFree?.(x, z) || [x, z]; };
   function route(f, from, to) { const p = runtime.areas.nav.workerPath(...from, ...to); f.path = p?.length ? p : null; f.step = 0; return !!f.path; }
 
   function tick() {
@@ -62,7 +77,7 @@ export function createTownsfolk({ state, data, civilians = null }) {
       const calm = !state.night && !danger.get(s.id);
       const want = calm ? Math.min(T.max?.[s.tier || 1] ?? T.max?.[1] ?? 4, Math.floor((s.pop || 0) / (T.perPeople || 10))) : 0;
       // too many (night, danger, people left): the extras head home
-      const out = s.folk.filter(f => !f.home);
+      const out = s.folk.filter(f => !f.home && !f.build);
       for (const f of out.slice(want)) { const e = state.entities[f.entity]; f.home = true; route(f, [e.x, e.z], door(s)); }
       // too few: one walks out of the hall each second
       if (out.length < want && now % HZ === 0) {
@@ -74,17 +89,27 @@ export function createTownsfolk({ state, data, civilians = null }) {
         s.folk.push(f);
         const to = target(s, k); if (to) route(f, at, to);
       }
+      // the builders: one walks out of the hall each second up to the townspeople building; when it is done they go in
+      const site = calm ? building(s) : null, crew = s.folk.filter(f => f.build && !f.home);
+      for (const [i, f] of crew.entries()) if (!site || f.build !== site.p.id || i >= Math.min(s.builders, data.rates?.maxBuilders ?? 4)) { const e = state.entities[f.entity]; f.build = null; f.home = true; route(f, [e.x, e.z], door(s)); }
+      const kept = s.folk.filter(f => f.build && !f.home).length;
+      if (site && kept < Math.min(s.builders, data.rates?.maxBuilders ?? 4) && now % HZ === 10) {
+        const at = door(s), id = runtime.spawn('civilian', T.builderModel || data.workers?.model || 'rail_worker', ...at, { place: 'world', area: 'world', townsfolk: s.id, seenBy: s.owner, holdFire: true, hp: 60, maxHp: 60 });
+        const f = { entity: id, path: null, step: 0, wait: 0, home: false, build: site.p.id };
+        s.folk.push(f); route(f, at, buildSpot(site, kept));
+      }
       for (const f of [...s.folk]) {
         const e = state.entities[f.entity];
         if (!f.path) {
           if (f.home) { remove(s, f); continue; }
+          if (f.build) { if (site) { e.anim = 'hammer'; e.dir = dirIndex(site.x - e.x, site.z - e.z); } continue; }
           e.anim = 'idle';
           if (now < f.wait) continue;
           const to = target(s, now + f.entity.length * 31);
           if (!to || !route(f, [e.x, e.z], to)) f.wait = now + HZ * 3;
           continue;
         }
-        let left = (T.speed ?? 2.2) * (f.home && !calm ? (T.hurry ?? 1.8) : 1) / HZ;
+        let left = (f.build ? T.builderSpeed ?? T.speed ?? 2.2 : T.speed ?? 2.2) * (f.home && !calm ? (T.hurry ?? 1.8) : 1) / HZ;
         while (left > 0 && f.step < f.path.length - 1) {
           const to = f.path[f.step + 1], d = distance([e.x, e.z], to);
           if (d > 0) e.dir = dirIndex(to[0] - e.x, to[1] - e.z);
@@ -95,6 +120,7 @@ export function createTownsfolk({ state, data, civilians = null }) {
         if (f.step >= f.path.length - 1) {
           f.path = null;
           if (f.home) { remove(s, f); continue; }
+          if (f.build) continue;
           const [a, b] = T.idleSeconds || [4, 12];
           f.wait = now + Math.round((a + roll(s, f.step + now) * (b - a)) * HZ);
         }

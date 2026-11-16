@@ -4,8 +4,23 @@ import { residents } from './sim/frontier/people.js';
 
 export const townName = value => String(value || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 
+// Town building site (Tim 2026-11-15): who builds it and how long it has left. The townspeople build the paid
+// project at rates.townBuildRate each (1 in a bot town or with Automatic on); each worker at the site adds
+// rates.workerBuildRate, at most rates.maxBuilders workers.
+export function siteBuilders(s, p, data, clans = null) {
+  const R = data.rates || {}, key = `p|${s.id}|${p.id}`, max = R.maxBuilders ?? 4;
+  const sent = (s.workers || []).filter(w => w.job?.key === key), at = sent.filter(w => !w.trip).length;
+  const folk = p.paid ? s.builders || 0 : 0, rate = clans?.[s.owner]?.bot || s.autoBuild ? 1 : R.townBuildRate ?? 0.5;
+  const speed = folk * rate + at * (R.workerBuildRate ?? 1), left = Math.max(0, p.need - p.progress);
+  const who = [folk ? `${folk} townspeople` : '', sent.length ? `${sent.length} of your workers${at < sent.length ? `, ${sent.length - at} on the way` : ''}` : ''].filter(Boolean).join(', ') || 'nobody yet';
+  const out = [`Builders: ${who}`];
+  if (p.paid && speed > 0 && left > 0) out.push(`Time left: about ${Math.ceil(left / speed)} s`);
+  if (s.owner != null && !clans?.[s.owner]?.bot && sent.length < max && left > 0) out.push(`\u0001Send workers to build faster: select them and right-click the site (up to ${max})`);
+  return out;
+}
+
 // Reads only: the inspector and build overlay share the simulation's road query.
-export function townCellTip(s, cell, data) {
+export function townCellTip(s, cell, data, clans = null) {
   if (!s?.grid || cell < 0 || cell >= s.grid.n * s.grid.n) return null;
   const g = s.grid, b = s.buildings.find(b => (b.cells || [b.cell]).includes(cell));
   const p = s.projects.find(p => (p.cells || [p.cell]).includes(cell));
@@ -14,6 +29,7 @@ export function townCellTip(s, cell, data) {
   const [kind, def] = entry || [], zone = s.zones?.[kind];
   const lines = [`Town: ${s.name}`, `Zone: ${kind ? townName(kind) : 'none (placed structure)'}`];
   if (p) lines.push(`State: ${townName(p.phase || (p.paid ? 'frame' : 'planned'))} · ${Math.round(100 * p.progress / Math.max(1, p.need))}%`);
+  if (p?.authorized) lines.push(...siteBuilders(s, p, data, clans));
   else if (b) lines.push(`State: ${townName(b.stage)}`);
   else if (entry) lines.push(`State: ${g.ground[cell] === 'o' ? 'Clearing' : def.stages[Number(g.stage[cell]) - 1] || 'Zoned ground'}`);
   else lines.push('State: finished');

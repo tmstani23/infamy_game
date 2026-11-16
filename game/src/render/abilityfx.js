@@ -13,7 +13,7 @@ import { copySpriteFrame } from './packed_sheets.js';
 
 import { flat, WAVE_GEO, DISC_GEO, AURA_GEO, THIN_WAVE_GEO, HALF_WAVE_GEO, BUFF_AURA_GEO, AMBUSH_AURA_GEO, STREAK_GEO, AURAS, STEEL, WHITE, GOLD, PURPLE, GUNSMOKE, MUZZLE, SOOT, SOOT_TINT, DUSK, MIST_BLUE, PETALS, FIRE, pick, count, LANTERNS, ORBIT, rand, screenAngle, OUTLINE, OUTLINE_GEO, OUTLINE_RGB, OUTLINE_VERT, OUTLINE_FRAG, outlineMesh, LANTERN_GEO, HALO_GEO, HALO_TEX, SEAL_TEX } from './abilityfx_assets.js';
 
-export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen }) {
+export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen, hallChannelOf = () => null }) {
   const kurodaFx = createKurodaFx({ scene, spriteOf, posOf });
   const shakedownFx = createShakedownFx({ scene, overlay, unitToScreen });
   const sweepFx = createSweepFx({scene,spriteOf});
@@ -137,6 +137,10 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
     }
   }
   const bars = new Map();                             // execute channel bars: unit id -> HTML element
+  const removeBar = el => { el.heroSparks?.remove(); clearTimeout(el.burstT); el.remove(); };
+  const HALL_LABEL = { burn: 'BURNING HALL', capture: 'CAPTURING HALL', sack: 'SACKING HALL', camp: 'TAKING CAMP' };
+  // sparks: plain page elements on a loop (index.html .sparks / .hall-sparks); each takes its own path from --dx/--dy/--t
+  const SPARKS = Array.from({ length: 12 }, (_, i) => `<i style="--dx:${Math.round(Math.sin(i * 2.4) * 18)}px;--dy:${-14 - (i * 7) % 20}px;--t:${(0.7 + (i * 0.37) % 0.6).toFixed(2)}s;--d:${(-i * 0.19).toFixed(2)}s"></i>`).join('');
 
   // Kuroda rifleman (sim/rifleman.js): a thin red aim line while he aims, a brief pale tracer on the shot
   const rifleSmoke = new Map();   // rifleman id -> until (s): a thin wisp curls up from the muzzle after a shot
@@ -764,6 +768,11 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         const charm=e.buffs?.charming, p = posOf(e.id);
         let x = e.execute || (e.markScrub?{...e.markScrub,scrubbing:true}:null) || (charm?.until>state.tick?{start:charm.start,len:charm.until-charm.start,charming:true}:null);
         const visible = !e.dead && !e.downed && !e.jailed && spriteOf(e.id)?.thing.mesh.visible;
+        // a hero taking a hall (sim/frontier/war_end.js, Tim 2026-11-15): the bar shows to both sides, sparks while he holds
+        // a unit setting a building alight (sim/frontier/structures.js torch cast, Tim 2026-11-16)
+        const tc = e.order?.cast;
+        if (!x && visible && tc?.start != null && tc.until > state.tick) x = { start: tc.start, len: Math.max(1, tc.until - tc.start), torching: true };
+        if (!x && visible && e.hallChannel) { const v = hallChannelOf(e.hallChannel); if (v?.by === e.id) x = { start: 0, hall: v }; }
         if (!x && visible) {
           const aim = e.rifle?.aim, tauntStart = e.taunt?.startedAt ?? e.taunt?.castUntil - 15;
           if (aim?.until > state.tick) x = { start:aim.at, len:aim.until-aim.at, aiming:true };
@@ -772,17 +781,29 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen 
         if (!x || x.start === null || !p || !overlay) continue;
         busy.add(e.id);
         let el = bars.get(e.id);
-        const mode=x.scrubbing?'scrubbing':x.charming?'charming':x.aiming?'aiming':x.taunting?'taunting':x.arrest?'arrest':'execute';
-        if (el && el.channelMode !== mode) { el.remove(); el = null; }
+        const hall = x.hall, hallKind = hall ? (hall.side === 'camp' ? 'camp' : hall.outcome || 'burn') : null;
+        const mode=hall?`hall ${hallKind}`:x.torching?'torching':x.scrubbing?'scrubbing':x.charming?'charming':x.aiming?'aiming':x.taunting?'taunting':x.arrest?'arrest':'execute';
+        if (el && el.channelMode !== mode) { removeBar(el); el = null; }
         if (!el) {
           el = document.createElement('div'); el.className = `channel ${mode}`; el.channelMode=mode;
-          el.innerHTML = `<i></i><span>${x.scrubbing?'REMOVING MARK':x.charming?'CHARMING':x.aiming?'AIMING':x.taunting?'TAUNT':x.arrest ? 'ARRESTING' : 'EXECUTING'}</span>`; overlay.appendChild(el); bars.set(e.id, el);
+          const label = hall ? HALL_LABEL[hallKind] || 'TAKING HALL' : x.torching ? 'TORCHING' : x.scrubbing?'REMOVING MARK':x.charming?'CHARMING':x.aiming?'AIMING':x.taunting?'TAUNT':x.arrest ? 'ARRESTING' : 'EXECUTING';
+          el.innerHTML = `<i></i><span>${label}</span>` + (hall ? `<b></b><em class="sparks">${SPARKS}</em>` : ''); overlay.appendChild(el); bars.set(e.id, el);
+          if (hall) { el.heroSparks = document.createElement('div'); el.heroSparks.className = `hall-sparks ${hallKind}`; el.heroSparks.innerHTML = SPARKS; overlay.appendChild(el.heroSparks); }
         }
-        const k = Math.min(1, (state.tick - x.start) / x.len), s = unitToScreen(p.x, p.z, 2.75);
+        const k = hall ? Math.max(0, Math.min(1, hall.frac)) : Math.min(1, (state.tick - x.start) / x.len), s = unitToScreen(p.x, p.z, 2.75);
         el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -50%)`;
         el.firstChild.style.width = `${k * 100}%`;
+        if (hall) {
+          el.querySelector('b').textContent = `${hall.seconds} s`;
+          el.querySelector('.sparks').style.left = `${k * 100}%`;
+          // a hit starts it over: a short burst as the bar empties
+          if (el.lastFrac != null && k < el.lastFrac - 0.02) { el.classList.remove('burst'); void el.offsetWidth; el.classList.add('burst'); clearTimeout(el.burstT); el.burstT = setTimeout(() => el.classList.remove('burst'), 700); }
+          el.lastFrac = k;
+          const f = unitToScreen(p.x, p.z, 1.0);
+          el.heroSparks.style.transform = `translate(${f.x}px, ${f.y}px)`;
+        }
       }
-      for (const [id, el] of bars) if (!busy.has(id)) { el.remove(); bars.delete(id); }
+      for (const [id, el] of bars) if (!busy.has(id)) { removeBar(el); bars.delete(id); }
     },
   };
 }

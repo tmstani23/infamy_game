@@ -334,9 +334,9 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       const others=s.workers.filter(w=>!selected.includes(w) && (b ? w.project===b.id : w.job?.key===target)).length;
       // Tim 2026-11-14: at most war.builderCap workers (4) build one site or hall upgrade, the nearest of those sent;
       // the rest stay as they were. Repair and douse have no limit.
-      const cap=b ? data.war?.builderCap ?? 4 : Infinity;
+      const cap=b ? data.war?.builderCap ?? 4 : jobs?.cap?.(s,target) ?? Infinity;   // a town building site: rates.maxBuilders (Tim 2026-11-15)
       if(others>=cap)return result(`${cap} workers are already building that`);
-      const team=b ? [...selected].map(w=>({w,d:distance(currentPoint(w) || [s.x,s.z],[b.x,b.z])})).sort((p,q)=>p.d-q.d || compare(p.w.id,q.w.id)).slice(0,cap-others).map(x=>x.w) : selected;
+      const team=Number.isFinite(cap) ? [...selected].map(w=>({w,d:distance(currentPoint(w) || [s.x,s.z],[at.x,at.z])})).sort((p,q)=>p.d-q.d || compare(p.w.id,q.w.id)).slice(0,cap-others).map(x=>x.w) : selected;
       let sent=0;
       team.forEach((w,i)=>{
         const here=currentPoint(w) || [s.x,s.z],a=(others+i)*2.399963,route=path(here,[at.x+Math.cos(a)*at.r,at.z+Math.sin(a)*at.r]) || path(here,[at.x+Math.cos(a+Math.PI)*at.r,at.z+Math.sin(a+Math.PI)*at.r]);
@@ -530,7 +530,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const cells=p.cells || [p.cell], over=()=>cells.filter(i=>s.grid.ground[i]==='o');
     if(!over().length) {p.phase='cleared';return new Set();}
     const selected=s.workers.filter(w=>w.project===p.id).slice(0,data.rates.maxBuilders);
-    for(const w of s.workers)if(selected.length<data.rates.maxBuilders && !selected.includes(w) && !w.carrying && !w.order) {
+    for(const w of s.workers)if(selected.length<data.rates.maxBuilders && !selected.includes(w) && !w.carrying && !w.order && !w.job) {
       w.departure=position(w) || w.departure || (runtime ? [s.x,s.z] : null);
       w.project=p.id;w.trip=null;w.phase=0;w.elapsed=0;selected.push(w);
     }

@@ -129,7 +129,16 @@ try {
   input.select(['b','d']);assert.deepEqual(input.selected(),['b'],'mixed-group box/number selection never creates a mini Rally');
   game.state.deployment.clans.player.rally={active:true,endsAt:100,participants:[{id:'b'}]};
   input.selectAll();assert.deepEqual(input.selected(),['a','b'],'C includes actual active Rally participants');
-  console.log('groups: assign, dissolve, transfer, preserve orders, C, indoor drag, menu priority, pip double-click and cleanup ok');
+  // out on the island C and Shift+C take the hero too, first (Tim 2026-11-15); in the city they never do
+  for (const u of [h, a, b]) u.place = 'world';
+  game.state.entities.t1 = { ...a, id: 't1', warTroop: true, place: 'world' };
+  input.selectAll(); assert.equal(input.selected()[0], 'h', 'C on the island: hero first'); assert.ok(input.selected().includes('a') && !input.selected().includes('t1'), 'C: crew, no war troops');
+  input.selectTroops(); assert.deepEqual(input.selected(), ['h', 't1'], 'Shift+C on the island: hero and the war troops');
+  h.aboard = 'bus'; input.selectTroops(); assert.deepEqual(input.selected(), ['t1'], 'a hero riding in a vehicle is not picked'); delete h.aboard;
+  for (const u of [h, a, b]) u.place = 'street'; game.state.entities.t1.place = 'street';
+  input.selectAll(); assert.ok(!input.selected().includes('h'), 'C in the city: no hero');
+  input.selectTroops(); assert.deepEqual(input.selected(), ['t1'], 'Shift+C in the city: no hero');
+  console.log('groups: assign, dissolve, transfer, preserve orders, C (hero on the island), Shift+C, indoor drag, menu priority, pip double-click and cleanup ok');
 } finally {
   globalThis.addEventListener = originalEvents; globalThis.document = originalDocument;
 }

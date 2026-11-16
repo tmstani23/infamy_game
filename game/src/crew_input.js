@@ -123,6 +123,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   // selected with them (war troops, cavalry); a selection of war troops alone leaves him be (Tim 2026-11-15)
   const heroJoins = () => { const h = hero(); if (!h || h.place !== commandPlace()) return false; return mine().some(id => { const u = game.state.entities[id]; return id === heroId || (u && !u.warTroop && u.owner === h.owner && ['hero', 'rally'].includes(commandGroup(u))); }); };
   const bodyJobUnits=()=>mine().length?mine():myCrew().filter(e=>!e.dead&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id);
+  // out on the island C and Shift+C take the hero too, first in the selection (Tim 2026-11-15); in the city they never do
+  const heroOut = () => { const h = hero(); return h && !h.dead && !h.downed && h.place === 'world' && commandPlace() === 'world' && !h.aboard ? [heroId] : []; };
   const groupable = id => {
     const u = game.state.entities[id];
     return u && u.owner === hero()?.owner && u.type !== 'hero' && u.type !== 'civilian' && !u.guard && !u.guide && !u.wild && !u.cop && !u.dead;
@@ -416,13 +418,13 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       // only crew where the hero is (Tim 2026-11-10): out on the island the island crew, in the capital the capital crew
       const island=commandPlace()==='world',here=e=>(e?.place==='world')===island;
       // 7c (Tim 2026-11-12): C is the hero group only, never the war troops (they have their own button, selectTroops)
-      if(!game.state.deployment?.restrictionsEnabled){setSelected(Object.keys(game.state.entities).filter(id=>groupable(id)&&!game.state.entities[id].warTroop&&here(game.state.entities[id])));return;}
-      setSelected(Object.values(game.state.entities).filter(e=>groupable(e.id)&&!e.warTroop&&here(e)&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id));
+      if(!game.state.deployment?.restrictionsEnabled){setSelected([...heroOut(),...Object.keys(game.state.entities).filter(id=>groupable(id)&&!game.state.entities[id].warTroop&&here(game.state.entities[id]))]);return;}
+      setSelected([...heroOut(),...Object.values(game.state.entities).filter(e=>groupable(e.id)&&!e.warTroop&&here(e)&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id)]);
     },
     // 7c: every war troop where the hero is, the hero group left out
     // a double-click on a troop's card (selection pane, target frame) does what one on the troop does (Tim 2026-11-12)
     selectTypeOf(id) { const u = game.state.entities[id]; if (u?.warTroop && u.owner === hero()?.owner && !u.dead) { selectType(u); return true; } return false; },
-    selectTroops() { const island=commandPlace()==='world'; setSelected(Object.values(game.state.entities).filter(e=>groupable(e.id)&&e.warTroop&&!e.downed&&(e.place==='world')===island).map(e=>e.id)); },
+    selectTroops() { const island=commandPlace()==='world'; setSelected([...heroOut(),...Object.values(game.state.entities).filter(e=>groupable(e.id)&&e.warTroop&&!e.downed&&(e.place==='world')===island).map(e=>e.id)]); },
     selectUnit,
     assignGroup(number) {
       if (![1, 2, 3, 4].includes(number)) return;

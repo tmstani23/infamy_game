@@ -41,8 +41,11 @@
 #utarget.hud-docked b, #utarget.hud-docked i { font-size:12px; }
 #utarget.hud-docked .effects { position:static; transform:none; grid-column:1 / -1; max-width:100%; width:auto; }
 #utarget.hud-docked .effect { font-size:12px; }
-#selpanel.hud-docked { grid-template-columns:1fr; padding:0; max-height:180px; overflow:auto; }
+#selpanel.hud-docked { grid-template-columns:1fr; padding:0; max-height:180px; overflow:hidden; }
+#selpanel.hud-docked.tight { grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); }
 #selpanel.hud-docked.many { grid-template-columns:repeat(auto-fit,minmax(44px,1fr)); }
+#selpanel.hud-docked.tiny { grid-template-columns:repeat(auto-fill,minmax(24px,1fr)); }
+#selpanel.hud-docked.micro { grid-template-columns:repeat(auto-fill,minmax(15px,1fr)); }
 #deploymentpanel .member small { color: #a9caac; }
 #deploymentpanel .member span { color: #c2b8a4; font-size: 11.5px; }
 #deploymentpanel .pin { font-size: 11px; cursor: pointer; }

@@ -163,6 +163,7 @@ async function start() {
   // Video settings (Settings > Video, Tim 2026-11-07): applied live and kept in this browser
   const video = createVideoSettings();
   view.setVideo(video.get());
+  view.setHallChannels(warId => game.frontier?.warEnd?.view(warId) || null);   // the channel bar over a hero taking a hall
   video.subscribe(v => view.setVideo(v));
 
   // Fog of war: the screen shows only what your clan can see

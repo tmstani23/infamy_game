@@ -19,7 +19,7 @@ export function createFps({diagnostics=()=>null,sim=()=>null}={}) {
         const d=diagnostics();
         el.style.whiteSpace='pre-line';
         el.textContent = `${Math.round(frames * 1000 / (now - since))} fps  worst ${Math.round(worst)} ms${mem}`
-          +(d?`\nDraw ${d.drawMs.toFixed(1)}ms · ${d.calls} calls · ${d.sprites} sprites (${d.workers} workers)\nGPU resources: ${d.geometries} geometries · ${d.textures} textures · ${d.programs} programs\n${d.width}×${d.height} · DPR ${d.pixelRatio}`+(d.parts?`\nFrame ms: ${Object.entries(d.parts).map(([k,v])=>`${k} ${v.toFixed(1)}`).join(' · ')}`:'')+(d.peaks?`\nWorst frame, last 8 s: ${Object.entries(d.peaks).filter(([,v])=>v>=1).map(([k,v])=>`${k} ${v.toFixed(0)}`).join(' · ')}`:''):'');
+          +(d?.spritePages?`\nSprite pages: ${d.spritePages.pages} (${d.spritePages.full} full, ${d.spritePages.half} half, ${d.spritePages.compressed} compressed) about ${Math.round(d.spritePages.bytes/1048576)} MB, ${d.spritePages.models} unit types loaded`:'')+(d?`\nDraw ${d.drawMs.toFixed(1)}ms · ${d.calls} calls · ${d.sprites} sprites (${d.workers} workers)\nGPU resources: ${d.geometries} geometries · ${d.textures} textures · ${d.programs} programs\n${d.width}×${d.height} · DPR ${d.pixelRatio}`+(d.parts?`\nFrame ms: ${Object.entries(d.parts).map(([k,v])=>`${k} ${v.toFixed(1)}`).join(' · ')}`:'')+(d.peaks?`\nWorst frame, last 8 s: ${Object.entries(d.peaks).filter(([,v])=>v>=1).map(([k,v])=>`${k} ${v.toFixed(0)}`).join(' · ')}`:''):'');
       }
       const sd=sim();
       if(sd && !el.hidden) {

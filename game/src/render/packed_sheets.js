@@ -106,7 +106,10 @@ export async function loadPackedSheets({url, model, names, loadJson, loadTexture
   const results = await Promise.allSettled([...pages].map(async ([file, page]) => {
     const texture = await loadTexture(new URL(file, url).href);
     loaded.set(file, texture);
-    check(texture.image.width === page.width && texture.image.height === page.height, `wrong image dimensions ${file}`);
+    // a half-size page (render/sprite_detail.js) stands for its full page: userData.full is the full page's size;
+    // the picture itself may already be gone from memory once it is on the graphics card
+    const size = texture.userData?.full || texture.image;
+    check(Math.abs(size.width - page.width) <= 1 && Math.abs(size.height - page.height) <= 1, `wrong image dimensions ${file}`);
   }));
   const failure = results.find(r => r.status === 'rejected');
   if (failure) { for (const texture of new Set(loaded.values())) releaseTexture(texture); throw failure.reason; }

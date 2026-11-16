@@ -85,7 +85,15 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
     if (card) {crewInput.select([card.dataset.id]);onInspect(card.dataset.id);}
   });
 
-  const GROUP_AT = 18;
+  // Fit (Tim 2026-11-16): every selected unit shows in the pane, its picture and health bar; the cards shrink step by
+  // step until they all fit (no scrolling, nothing cut off). Only when even the smallest tiles do not fit, one card per
+  // unit type takes over (count and their health together).
+  const LEVELS = [[], ['snug'], ['tight'], ['many'], ['many', 'tiny'], ['many', 'tiny', 'micro']], ALL = [...new Set(LEVELS.flat())];
+  let fitKey = '', fitDirty = true, grouping = false;
+  const overflows = () => root.scrollHeight > root.clientHeight + 1 || root.scrollWidth > root.clientWidth + 1;
+  function setLevel(i) { for (const c of ALL) root.classList.toggle(c, LEVELS[i].includes(c)); }
+  function fit() { for (let i = 0; i < LEVELS.length; i++) { setLevel(i); if (!overflows()) return true; } return false; }
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => { fitDirty = true; }).observe(root);
   function drawGroups(groups) {
     groups.sort((a, b) => b.ids.length - a.ids.length || (a.t < b.t ? -1 : 1));
     const key = 'g|' + groups.map(g => `${g.t}:${g.ids.join('.')}`).join(',');
@@ -122,16 +130,19 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
     let ids = byId ? picked.map(w => w.id) : crewInput.selected().filter(unit).filter(id => !crewOf(unit(id)));
     root.hidden = !ids.length || (!byId && skip(ids));
     if (root.hidden) return;
-    // past GROUP_AT selected, one card per unit type (count and their health together); a click picks that type
-    const groups = !byId && ids.length > GROUP_AT ? Object.values(ids.reduce((o, id) => { const u = unit(id), t = u.type; (o[t] ||= { t, ids: [] }).ids.push(id); return o; }, {})) : null;
-    root.classList.toggle('many', !groups && ids.length > 8);
+    const selKey = ids.join(',');
+    if (selKey !== fitKey) { fitKey = selKey; fitDirty = true; grouping = false; }
+    // one card per unit type only when the single cards cannot fit even as the smallest tiles; a click picks that type
+    const groups = !byId && grouping ? Object.values(ids.reduce((o, id) => { const u = unit(id), t = u.type; (o[t] ||= { t, ids: [] }).ids.push(id); return o; }, {})) : null;
     root.classList.toggle('grouped', !!groups);
-    if (groups) return drawGroups(groups);
-    // condensed (Tim 2026-11-11): past 8, small tiles in two rows at most
-    const extra = 0;
-    const key = ids.join(',') + '|' + extra;
+    if (groups) { drawGroups(groups); if (fitDirty) { fitDirty = false; fit(); } return; }
+    draw(ids, unit);
+    if (fitDirty) { fitDirty = false; if (!fit() && !byId && ids.length > 1) { grouping = true; fitDirty = true; } }
+  }
+  function draw(ids, unit) {
+    const key = ids.join(',');
     if (key !== shown) {
-      shown = key;
+      shown = key; fitDirty = true;
       root.innerHTML = '';
       for (const id in cards) delete cards[id];
       for (const id of ids) {
@@ -145,7 +156,6 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
         root.appendChild(c);
         cards[id] = { c, pic: c.querySelector('.pic'), grp: c.querySelector('.grp'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
       }
-      if (extra) { const m = document.createElement('div'); m.className = 'card more'; m.textContent = `+${extra}`; m.title = `${extra} more selected`; root.appendChild(m); }
     }
     for (const id of ids) {
       const e = unit(id), k = cards[id];

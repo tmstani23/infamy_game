@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createFrontierWorld } from '../src/sim/frontier/world.js';
-import { frontierReport, reportRows, overviewRows, governorSays, talkCommand, hoverCard } from '../src/frontier_report.js';
+import { frontierReport, reportRows, peopleRows, overviewRows, governorSays, talkCommand, hoverCard } from '../src/frontier_report.js';
 
 const data = JSON.parse(readFileSync(new URL('../data/frontier.json', import.meta.url)));
 const state = { tick: 0 };
@@ -72,5 +72,19 @@ assert.equal(JSON.stringify(state), before, 'reading writes nothing');
   const rival = hoverCard({ id: 's_frontier_2', name: 'Second Frontier', owner: 'kuroda', region: 'x', site: 'S29' }, { clan: 'player', clanName: () => 'Kuroda' });
   assert.equal(rival.mine, false); assert.equal(rival.lines.length, 0); assert.match(rival.sub, /Kuroda/);
   assert.equal(hoverCard(null), null);
+}
+// Tim 2026-11-16: the People rows (stock card, job chips, growth line)
+{
+  const data = { buildings: { workshop: { jobs: 2 }, farm: { jobs: 4 } }, rates: { growthTicks: 60 }, cadenceTicks: 20, mood: { growthFullAt: 70 }, workers: { gatherBuildings: [] } };
+  const s = { pop: 6, housing: 70, mood: 74, builders: 2, workers: [{}, {}], stock: {}, report: { idle: 0, growth: { block: null, eta: 7, text: 'Next person in 7s' } },
+    buildings: [{ type: 'workshop', stage: 'built', workers: 0 }, { type: 'workshop', stage: 'built', workers: 0 }, { type: 'farm', stage: 'built', workers: 4 }], zones: { work: { wanted: 2, workers: 0 } } };
+  const p = peopleRows(s, { pop: 5 }, data);
+  assert.equal(p.pop, 6); assert.equal(p.beds, 70); assert.equal(p.arrow, 'up');
+  assert.deepEqual(p.chips.map(c => [c.label, c.have, c.want, c.short]), [['Builders', 2, null, 0], ['Farm', 4, 4, 0], ['Work zone', 0, 2, 2], ['Workshop', 0, 4, 4]]);
+  assert.equal(p.short, 6); assert.equal(p.growth.bad, false); assert.equal(p.growth.text, 'Next person in 7 s');
+  assert.match(p.tip, /every 60 s while food is rising/);
+  s.report.growth = { block: 'housing' }; assert.match(peopleRows(s, null, data).growth.text, /^Not growing: no free beds/);
+  s.report.growth = { block: 'food' }; assert.equal(peopleRows(s, null, data).growth.bad, true);
+  s.mood = 50; s.report.growth = { block: null, eta: 30, text: 'Next person in 30s (slowed by low mood)' }; assert.match(peopleRows(s, null, data).growth.text, /^Growing slowly: mood 50, lower taxes, next person in 30 s/);
 }
 console.log('test_frontier_report: ok');

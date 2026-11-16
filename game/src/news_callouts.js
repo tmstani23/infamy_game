@@ -4,7 +4,7 @@ import { sweepArrivalVisible } from './render/sweep_trail.js';
 export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: calloutRaw, contractCallout: contractRaw, minimap: mini, gameMap: bigMap, view, presentation, showResults, townAlert = () => {}, warAlert = () => {} }) {
   // Out on the island (Tim 2026-11-06) the lieutenant has the city: city alerts stay quiet, only major capital
   // losses show, marked "Capital:", plus one warning when the clan falls below half the businesses it held on leaving
-  const AWAY_OK = new Set(['town', 'worldCampCleared', 'renown', 'leaderBounty', 'unstuck', 'seasonEnd', 'hallChannel', 'hallChannelReset', 'hallChannelStop', 'warEnded', 'warSurrender', 'warOffer', 'warAnswer', 'warNoTerms']);
+  const AWAY_OK = new Set(['town', 'worldCampCleared', 'renown', 'leaderBounty', 'unstuck', 'seasonEnd', 'hallChannel', 'hallChannelReset', 'hallChannelStop', 'warEnded', 'warSurrender', 'warOffer', 'warAnswer', 'warNoTerms', 'buildSiteTip']);
   let hallResetAt = -1e9;   // "starts over" shows at most once every 3 s while he is being hit
   const major = (n, me) => (n.kind === 'raidWon' && n.defender === me) || (n.kind === 'quarterLost' && n.clan === me) || (n.kind === 'hqSuppressed' && n.defender === me);
   let prefix = '', quiet = false, heldOnLeaving = null, warned = false;
@@ -44,7 +44,8 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: callou
       if(n.kind==='shakedownSuccess'&&n.clan===me)callout(`SHAKEN DOWN · +${n.bonus} ryo · 50% next payout claimed`,'win',4000);
       if(n.kind==='shakedownSuccess'&&n.defender===me)callout('Shaken down! Half the next business payout claimed by Yakuza','loss',4000);
       if(n.kind==='shakedownPaid'&&n.clan===me)callout(`Shakedown paid: +${n.ryo} ryo`,'win');
-      if (n.kind === 'town' && n.clan === me) townAlert(n);   // frontier town alerts (sim/frontier/alerts.js, F4.4c)
+      if (n.kind === 'town' && n.clan === me) townAlert(n);
+      if (n.kind === 'buildSiteTip' && n.clan === me) callout(`${n.townName || 'Your town'} is building. Select workers and right-click the site to build it faster`, 'win', 7000);   // once per clan (construction.js)   // frontier town alerts (sim/frontier/alerts.js, F4.4c)
       // war 8a (sim/frontier/war_end.js): a hall being taken, and how a war ended. Both sides hear of a channel; its start pings the map.
       if (n.kind === 'hallChannel' || n.kind === 'hallChannelStop' || n.kind === 'hallChannelReset') {
         const w = game.state.frontier?.wars?.list?.[n.war], foe = w && n.clan !== me && (w.attacker === me || w.defender === me);

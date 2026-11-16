@@ -12,6 +12,8 @@ import { cachedSheetLoad } from './sheet_cache.js';
 import { createGearFx } from './gear_fx.js';
 import { loadSheetSet, setSheetFrame } from './packed_sheets.js';
 import { createTextureCache } from './texture_cache.js';
+import { halfUrl, ktxUrl, compressedAt, createDetailPicker } from './sprite_detail.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 
 const TRAIL = 5;   // hero swing trail: how many earlier glow frames are drawn behind the blade
 
@@ -36,21 +38,116 @@ const loadGlowConfig = () => (glowConfig ??= fetch('data/weapon_glow.json').then
 
 // Spritesheets per model, from data/art.json "characters"
 const sheetCache = {};
-const packedTextures = createTextureCache(async url => { const tex = await loadTex(url); configureCharacterTexture(tex); return tex; });
+// ---- sprite memory (2026-11-15) ---------------------------------------------------------------------------------
+// 1. Once a packed page is on the graphics card, its decoded copy in the page is closed (it was held twice).
+// 2. Far out the half-size pages are used, up close the full ones (render/sprite_detail.js); the swap is in place.
+// 3. A model's sheets are dropped when no sprite has used them for SHEET_IDLE_SECONDS; they load again when needed.
+// 4. GPU-compressed pages (KTX2, Tim 2026-11-15): Video settings, Compressed sprites, picks where they are used (read
+//    at start); a page without a compressed copy, or a graphics card that cannot take them, uses the PNG.
+const noHalf = new Set();   // full page urls whose half page is missing: use the full page
+const noKtx = new Set();    // compressed page urls that failed to load
+let ktx = null, ktxMode = 'off';
+const KTX_TRANSCODER = 'https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/libs/basis/';
+export function useCompressedSprites(renderer, mode = 'far') {
+  ktxMode = mode;
+  if (mode === 'off' || ktx) return;
+  try { ktx = new KTX2Loader().setTranscoderPath(KTX_TRANSCODER).detectSupport(renderer); }
+  catch { ktx = null; ktxMode = 'off'; }
+}
+async function loadKtx(url) {
+  const tex = await ktx.loadAsync(url);
+  tex.colorSpace = THREE.NoColorSpace;   // stored values pass through, like the PNG pages (output is linear)
+  tex.flipY = false;
+  tex.minFilter = tex.mipmaps.length > 1 ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
+  tex.generateMipmaps = false;
+  return tex;
+}
+async function loadPage(url, level) {
+  const k = ktx && compressedAt(ktxMode, level) ? ktxUrl(url, level) : null;
+  if (k && !noKtx.has(k)) { try { return [await loadKtx(k), level]; } catch { noKtx.add(k); } }
+  const h = level === 'half' && !noHalf.has(url) ? halfUrl(url) : null;
+  if (h) { try { return [configured(await loadTex(h)), 'half']; } catch { noHalf.add(url); } }
+  return [configured(await loadTex(url)), 'full'];
+}
+function describePage(tex, level) {
+  const im = tex.image, k = level === 'half' ? 2 : 1;
+  tex.userData.level = level;
+  tex.userData.size = { width: im.width, height: im.height };
+  tex.userData.full = { width: im.width * k, height: im.height * k };
+  // graphics card memory with mip levels: 4 bytes a pixel as PNG, 1 byte compressed (BC7 / ASTC 4x4 / ETC2)
+  tex.userData.bytes = Math.round(im.width * im.height * (tex.isCompressedTexture ? 1 : 4) * 4 / 3);
+}
+// once on the graphics card the page's own copy is freed: the picture (PNG) or the compressed levels (KTX2)
+const closeAfterUpload = tex => { tex.onUpdate = () => {
+  if (tex.isCompressedTexture) { tex.mipmaps = []; return; }
+  const b = tex.image; if (b && typeof b.close === 'function') b.close();
+}; };
+// give an existing page texture the picture of another (the sprites keep the same texture object), PNG or compressed
+const PICTURE_KEYS = ['image', 'mipmaps', 'format', 'type', 'internalFormat', 'minFilter', 'generateMipmaps', 'colorSpace', 'premultiplyAlpha', 'unpackAlignment'];
+function adoptPicture(texture, next) {
+  for (const key of PICTURE_KEYS) texture[key] = next[key];
+  texture.isCompressedTexture = !!next.isCompressedTexture;
+  texture.flipY = false;
+}
+// the pages the game view draws: detail levels, decoded copy closed after upload
+const packedTextures = createTextureCache(
+  async (url, level) => { const [tex, got] = await loadPage(url, level); describePage(tex, got); closeAfterUpload(tex); return tex; },
+  4,
+  async (texture, url, level, stillHeld) => {
+    if (level === 'half' && (noHalf.has(url) || !halfUrl(url))) return;   // no half page for this one: it stays full
+    const [next, got] = await loadPage(url, level);
+    if (!stillHeld() || got === texture.userData.level) { next.image?.close?.(); next.dispose(); return; }
+    texture.dispose();                 // the graphics card copy has a fixed size: free it, the next draw uploads the new picture
+    adoptPicture(texture, next); describePage(texture, got); texture.needsUpdate = true;
+  });
+// pages drawn by another renderer (the character page preview): always full, kept as loaded
+const plainTextures = createTextureCache(async url => { const tex = await loadTex(url); describePage(tex, 'full'); configureCharacterTexture(tex); return tex; });
+const SHEET_IDLE_SECONDS = 180;
+const sheetUse = new Map();   // sheets -> { keys: Set of sheetCache keys, count, idleAt (seconds) }
+const nowSeconds = () => (globalThis.performance?.now?.() ?? Date.now()) / 1000;
+function trackSheets(key, sheets) {
+  let u = sheetUse.get(sheets);
+  if (!u) sheetUse.set(sheets, u = { keys: new Set(), count: 0, idleAt: nowSeconds() });
+  u.keys.add(key); u.idleAt = nowSeconds();
+  return sheets;
+}
+export function retainSheets(sheets) { const u = sheetUse.get(sheets); if (u) u.count++; }
+export function releaseSheets(sheets) { const u = sheetUse.get(sheets); if (u && u.count > 0 && --u.count === 0) u.idleAt = nowSeconds(); }
+// drop the sheets nobody has drawn for a while (called by the view every few seconds); returns how many models went
+export function sweepSheets(now = nowSeconds(), idle = SHEET_IDLE_SECONDS) {
+  let n = 0;
+  for (const [sheets, u] of sheetUse) {
+    if (u.count > 0 || now - u.idleAt < idle) continue;
+    sheetUse.delete(sheets);
+    for (const k of u.keys) delete sheetCache[k];
+    const cache = sheets.textureCache || packedTextures, seen = new Set();
+    for (const sheet of Object.values(sheets)) {
+      if (sheet?.packed) { for (const list of [sheet.packed.color, sheet.packed.glow]) for (const f of list || []) if (f?.map && !seen.has(f.map)) { seen.add(f.map); cache.release(f.map); } }
+      else for (const t of [sheet?.tex, sheet?.glow]) if (t && !seen.has(t)) { seen.add(t); t.dispose(); }
+    }
+    n++;
+  }
+  return n;
+}
+// the view tells how big sprites are on screen (screen pixels per sprite texel); pages follow
+const detail = createDetailPicker();
+export function setSpriteScale(ratio, now = nowSeconds()) { packedTextures.setLevel(detail.update(ratio, now)); }
+export const spriteMemory = () => ({ ...packedTextures.stats(), level: packedTextures.level(), models: sheetUse.size, inUse: [...sheetUse.values()].filter(u => u.count > 0).length });
 export function loadSheets(catalog, model) {
-  return cachedSheetLoad(sheetCache,model,()=>loadModelSheets(catalog,model));
+  return cachedSheetLoad(sheetCache,model,()=>loadModelSheets(catalog,model).then(s=>trackSheets(model,s))).then(s=>{const u=sheetUse.get(s);if(u)u.idleAt=nowSeconds();return s;});
 }
 // Character page portrait (tools/export_sprites.mjs <model> --portrait --pack): the idle,
 // front row only, at 512 px. Models without a portrait use their normal sheets.
 export function loadPortraitSheets(catalog, model) {
   const idle = catalog.characters[model]?.idle, speed = idle?.speed ?? 1;
+  // the preview has its own renderer, so its pages come from plainTextures (never the game view's closed, resized pages)
   return cachedSheetLoad(sheetCache, 'portrait:' + model, () => loadModelSheets(catalog, model, {
     names: { idle: { file: `${model}_portrait_idle`, speed } },
     packedUrl: `../assets/sprites_packed/portraits/${model}.json`,
-    fallback: () => loadSheets(catalog, model),
-  }));
+    fallback: () => loadModelSheets(catalog, model, null, plainTextures),
+  }, plainTextures).then(s => trackSheets('portrait:' + model, s)));
 }
-async function loadModelSheets(catalog, model, portrait = null) {
+async function loadModelSheets(catalog, model, portrait = null, textures = packedTextures) {
   const names = portrait?.names || catalog.characters[model];
   const sheets = {};
   Object.defineProperty(sheets, 'framing', { value: catalog.characterFraming?.[model] || {} });
@@ -64,13 +161,15 @@ async function loadModelSheets(catalog, model, portrait = null) {
     disabled: new URLSearchParams(globalThis.location?.search || '').get('sprites') === 'original',
     model, names, requireGlow: !!weapon,
     loadJson: async url => { const response = await fetch(url); if (!response.ok) throw new Error(`Could not load ${url}`); return response.json(); },
-    loadTexture: url => packedTextures.acquire(url),
-    releaseTexture: texture => packedTextures.release(texture),
+    loadTexture: url => textures.acquire(url),
+    releaseTexture: texture => textures.release(texture),
     loadOriginal: portrait ? portrait.fallback : () => loadOriginalSheets(names, weapon),
     onFallback: error => portrait ? console.info(`[sprites] ${model}: no portrait yet, using game sheets`)
       : console.warn(`[sprites] ${model}: packed load failed; using original sheets`, error),
   });
   Object.assign(sheets, loaded);
+  if (!Object.getOwnPropertyDescriptor(loaded, 'textureCache')) Object.defineProperty(sheets, 'textureCache', { value: textures });
+  else return loaded;   // a portrait that fell back to the game sheets: hand that set on as it is
   if (loaded.packing) Object.defineProperty(sheets, 'packing', {value: loaded.packing});
   if (packedUrl) console.info(`[sprites] ${model}: ${loaded.packing ? 'packed atlas trial' : 'original sheets'}`, loaded.packing || '');
   return sheets;
@@ -81,6 +180,7 @@ function configureCharacterTexture(tex) {
   tex.generateMipmaps = true;
   tex.needsUpdate = true;
 }
+const configured = tex => { configureCharacterTexture(tex); return tex; };
 
 async function loadOriginalSheets(names, weapon) {
   const sheets = {};
@@ -101,7 +201,7 @@ async function loadOriginalSheets(names, weapon) {
 
 export class CharacterSprite {
   constructor(sheets) {
-    this.sheets = sheets;
+    this.sheets = sheets; retainSheets(sheets);
     this.cellWorld = sheets.framing?.cellWorld || CELL_WORLD;
     this.feetUp = sheets.framing?.feetUp ?? FEET_UP;
     // rows in the sheets (8, or 16/32 for long vehicles); roll: turn the picture in the screen plane by this many
@@ -364,6 +464,7 @@ export class CharacterSprite {
 
   // free the GPU copies when the unit leaves the map (townsfolk come and go, bandits each night)
   dispose() {
+    if (!this.disposed) { this.disposed = true; releaseSheets(this.sheets); }
     this.thing.mesh.geometry.dispose();
     this.shadow.geometry.dispose();
     for (const m of [this.material, this.hidden.material, this.fill.material, this.labelMaterial]) m.dispose();

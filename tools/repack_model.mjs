@@ -179,4 +179,14 @@ if (JSON.stringify(readJSON(artFile).packedCharacters) !== JSON.stringify(art.pa
   assert.notEqual(next, text, 'Could not update packedCharacters in art.json');
   fs.writeFileSync(path.join(root, artFile), next);
 }
+// Half-size pages for far zoom follow the full pages (tools/make_half_pages.mjs); a failure here leaves the game on full pages.
+if (!portrait) {
+  const {spawnSync} = await import('node:child_process');
+  const made = spawnSync(process.execPath, [path.join(root, 'tools/make_half_pages.mjs')], {stdio: 'inherit', env: process.env});
+  if (made.status !== 0) console.log('  half pages were not made: run node tools/make_half_pages.mjs');
+  else {   // and their compressed copies (Video settings, Compressed sprites); add --full if you use Everywhere
+    const packed = spawnSync(process.execPath, [path.join(root, 'tools/make_ktx2_pages.mjs')], {stdio: 'inherit', env: process.env});
+    if (packed.status !== 0) console.log('  compressed pages were not made: run node tools/make_ktx2_pages.mjs');
+  }
+}
 console.log(`Done in ${((Date.now() - t0) / 1000).toFixed(1)} s. Old files: ${oldPages.length ? rel(archive) : 'none'}. Ctrl+F5 in the browser to see the new pages.`);

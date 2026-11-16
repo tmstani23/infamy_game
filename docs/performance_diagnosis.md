@@ -115,3 +115,12 @@ Reference guidance: [MDN collision performance](https://developer.mozilla.org/en
 - A shorter first route search was added (`sim/areas.js`, `data/world_chunks.json`).
 - Only one worker sets out on a new trip per tick (`sim/frontier/workers.js`).
 - Two smaller bumps of about 70-90 ms remain; they are not from workers.
+
+## Sprite page memory (2026-11-15)
+- Packed character pages: a page's decoded picture (ImageBitmap) is closed after upload to the graphics card; a compressed page's levels are dropped the same way (render/characters.js). The hero preview keeps its own uncompressed full pages.
+- Detail levels (render/sprite_detail.js): screen pixels per page pixel = zoom x pixel ratio. Below 0.55 the half pages load after the zoom has rested 2 s; above 0.68 the full pages load at once. The swap is in place on the same texture. A missing half or compressed page falls back to the PNG.
+- Model sheets that no sprite has used for 180 s are unloaded (sweepSheets, every 5 s from view.js) and load again when needed.
+- Video settings, Compressed sprites: Far zoom only (default; half pages compressed), Everywhere (also full pages; needs `make_ktx2_pages.mjs --full`), Off. Read when the game starts. Transcoder: three 0.186.1 basis files from the CDN.
+- Graphics memory per page with mip levels: 4 bytes a pixel as PNG, 1 byte compressed. The P readout shows "Sprite pages: N (full, half, compressed) about M MB, K unit types loaded".
+- Sizes: catalog_v1 914 pages 409 MB on disk; half PNGs 145 MB; half KTX2 98 MB.
+- Tests: tools/test_sprite_detail.mjs.

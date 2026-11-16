@@ -3,7 +3,7 @@ import { createPlacement } from './sim/frontier/placement.js';
 import { createZones } from './sim/frontier/zones.js';
 import { cellToWorld, worldToCell, ringRadius } from './sim/frontier/town_grid.js';
 import { bodyDistance } from './crew_input.js';
-import { townCellTip, townName } from './frontier_tips.js';
+import { townCellTip, townName, siteBuilders } from './frontier_tips.js';
 import { spotInfo } from './resource_spot_props.js';
 import { spotYield, richReach, overwork, regrowChance, supportsWorkers } from './sim/resource_spots.js';
 import { townPlots } from './town_props.js';
@@ -16,8 +16,9 @@ import { buildTooltip } from './build_tooltips.js';
 import { tierOf, placedGroup, placedCount } from './sim/frontier/tiers.js';
 import { workerTrainingHTML,workerTrainingPreview } from './training_ui.js';
 import { cellCap, zoneCells, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
-import { residents } from './sim/frontier/people.js';
-import { msArt } from './menu_shell.js';
+import { residents, workerCount } from './sim/frontier/people.js';
+import { msArt, msConcept } from './menu_shell.js';
+import { workerCap } from './sim/frontier/tiers.js';
 import { shapeOf, stationParts } from './sim/frontier/station_layout.js';
 import { sharedKeybinds } from './keybinds.js';
 import { isMilitary, militaryFor, militaryNeeds, militaryCount } from './sim/frontier/town_military.js';
@@ -252,6 +253,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
         else { const b = bs.find(b => b.stage === 'built' && hit(b)), key = b && `c|${s.id}|${b.id}`; if (key && ST?.workTarget?.(s, key)) { target = key; what = 'Workers: put out the fire and repair'; } }
       } else if (s.grid) {
         const cell = worldToCell(s, p.x, p.z), b = cell >= 0 ? (s.buildings || []).find(q => (q.cells || [q.cell]).includes(cell)) : null;
+        const pk = cell >= 0 ? ST?.projectKeyAt?.(s, cell) : null;   // a town building site (Tim 2026-11-15): workers speed it up
+        if (pk && ST?.workTarget?.(s, pk)) { command({ action: 'workerOrder', town: s.id, workers: ids, kind: 'work', target: pk }); say('Workers: build'); sent = true; continue; }
         if (b?.stage === 'ruined' && b.type !== 'town_hall') { command({ action: 'rebuild', settlement: s.id, building: b.id }); say('Rebuild order given'); sent = true; continue; }
         const key = cell >= 0 ? `t|${s.id}|${b ? (b.cells || [b.cell])[0] : cell}` : null;
         if (key && ST?.workTarget?.(s, key)) { target = key; what = b?.stage === 'ruined' ? 'Workers: repair the town hall' : 'Workers: put out the fire and repair'; }
@@ -313,14 +316,22 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       info.work = workRow(spot, assigned.length);
     } else {
       trainTown = towns().find(s => s.id === inspect.town);
-      info = townCellTip(trainTown, inspect.cell, data);
+      info = townCellTip(trainTown, inspect.cell, data, game.state?.clans);
     }
     // 7c-4: a ruined placed building comes back only by a Rebuild order (the town hall: by workers sent to repair it)
     const ruin = !inspect.spot && trainTown ? trainTown.buildings?.find(b => (b.cells || [b.cell]).includes(inspect.cell) && b.stage === 'ruined') : null;
     if (ruin) {
       const rebuilding = (trainTown.projects || []).some(p => p.replaces === ruin.id), cost = Object.entries(data.buildings?.[ruin.type]?.cost || {}).filter(([, v]) => v).map(([r, v]) => `${v} ${r}`).join(', ');
       info = { title: `${townName(ruin.type)} (ruin)`, lines: [ruin.type === 'town_hall' ? 'Select workers and right-click it to repair it' : rebuilding ? 'Being rebuilt' : 'Stays a ruin until you order it rebuilt'] };
-      if (ruin.type !== 'town_hall' && !rebuilding) info.work = `<div class="ti-acts"><button class="ti-go" data-rebuild="${esc(ruin.id)}" data-rebuild-town="${esc(trainTown.id)}" title="The town's builders rebuild it on the same spot at the normal cost (${esc(cost)}). Not while a war is on this town. You can also right-click the ruin with workers selected.">Rebuild</button></div>`;
+      // the rebuild cost in plain sight (Tim 2026-11-16), paid from this town's stores; what the stores lack is named
+      if (ruin.type !== 'town_hall' && cost) {
+        const short = Object.entries(data.buildings?.[ruin.type]?.cost || {}).filter(([r, v]) => v && (trainTown.stock?.[r] || 0) < v).map(([r]) => r);
+        if (!rebuilding) info.lines.push(`Rebuild cost: ${cost}, from the town stores`);
+        if (!rebuilding && short.length) info.lines.push(`The town is short of ${short.join(' and ')}`);
+      }
+      const rp = rebuilding && trainTown.projects.find(p => p.replaces === ruin.id);
+      if (rp) info.lines.push(...siteBuilders(trainTown, rp, data, game.state?.clans));
+      if (ruin.type !== 'town_hall' && !rebuilding) info.work = `<div class="ti-acts"><button class="ti-go" data-rebuild="${esc(ruin.id)}" data-rebuild-town="${esc(trainTown.id)}" title="The townspeople rebuild it on the same spot at the normal cost (${esc(cost)}). Not while a war is on this town. You can also right-click the ruin with workers selected; right-click again to send them to build it faster.">Rebuild</button></div>`;
     }
     if (!info) { card.hidden = true; return; }
     const bt = !inspect.spot && trainTown ? trainTown.buildings?.find(b => (b.cells || [b.cell]).includes(inspect.cell))?.type : null;
@@ -661,18 +672,38 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const others = Object.entries(data.buildings).filter(([k, v]) => v.size && !v.military && !data.zones.fromBuilding[k] && !camps.includes(k)).map(([k]) => k);
     const military = militaryFor(s, data, game.state);   // 8b-1: the war camp's military buildings, in their own row
     const group = (name, ids, extra = '') => `<div class="bgroup"><span class="blab">${name}</span><div class="btns">${ids.map(t => button(t, camps.includes(t) ? townName(t).replace(/ camp$/i, '') : townName(t))).join('')}${extra}</div></div>`;
-    const steps = [[s.grid.zone.includes('h'),'Housing'],[s.grid.zone.includes('f'),'Farms'],[/[rg]/.test(s.grid.use),'Roads'],[!!s.workers?.length,'Train worker'],[(s.workers || []).some(w=>spotIndex.get(w.spot)?.kind==='timber'),'Assign timber']];
-    const guide = steps.map(([done,label])=>`${done ? '✓' : '○'} ${label}`).join(' → ');
     // Tim 2026-11-10: in build mode only this small box shows (top left); long text lives in the hovers
     if (mini) return `<div class="bmhead"><b>Build · ${esc(s.name)}</b><button data-act="build-toggle" class="bmexit" data-tip="Leave build mode and go back to the town panel (Esc).">Exit build</button></div>`
       + `<div class="buildtools">` + group('Lay out', ['road', 'wall', 'gate'], `<span class="gap"></span>${button('eraser', townName('eraser'))}`)
       + group('Zones', ['housing', 'farm', 'work']) + group('Camps', camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others) + (military.length ? group('Military', military) : '')
       + `</div><div class="hint" data-tip="Drag, release, review requirements, then Confirm or Cancel. Right click or Esc cancels.\nZone previews match their buttons; amber border = short, red border = abandoned.">Drag on the map, then Confirm. Right click cancels.</div>`;
+    // Tim 2026-11-16: training and the first steps moved into the Workers section of the town panel (workersHtml)
     return `<div class="townbuild"><button data-act="build-toggle" class="buildbig" data-tip="Open the build bar: roads, walls, zones, camps and buildings. Other menus hide while you build.">Build bar</button>`
-      + `<div class="row"><button data-act="build-train" data-tip="${esc(trainingTip(s))}">Train worker · ${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}</button><span>${s.workers?.length || 0} workers · ${s.workerTraining?.length || 0} training</span></div>`
-      + workerTrainingHTML(s,game.state.tick,data)
-      + `<div class="hint">${guide}<br>Keep ${data.opening?.reservePeople || 0} townsperson for food/building. The hall is a drop-off; a lumber camp is optional.</div>`
-      + (selected.length ? `<div>${selected.length} selected · right-click a spot to harvest</div>` : '') + '</div>';
+      + (selected.length ? `<div>${selected.length} selected, right-click a spot to harvest</div>` : '') + '</div>';
+  }
+  // The town panel's Workers section (Tim 2026-11-16 mock): worker art, count of the tier cap, the training queue,
+  // a Train button with coin costs (the old hint text is in its hover), and in a new town the first steps track,
+  // which hides once all five are done.
+  function workersHtml(s) {
+    if (!s?.grid) return '';
+    const W = data.workers, have = workerCount(s), cap = workerCap(s, data), queue = s.workerTraining || [], tick = game.state.tick || 0;
+    const art = msConcept(W.model || 'rail_worker'), pic = cls => `<span class="${cls}"${art ? ` style="background-image:url('${art}')"` : ''}></span>`;
+    const pre = workerTrainingPreview(s, 1, data), total = W.trainTicks / 20;
+    const tipText = `${trainingTip(s)}\nKeep ${data.opening?.reservePeople || 0} townsperson for food and building. The hall is a drop-off; a lumber camp is optional.${pre.ok ? '' : `\nNot now: ${pre.reason}`}`;
+    const coin = (n, k) => `<span class="tcoin ${k}"><i></i>${n}</span>`;
+    let q = '';
+    if (queue.length) {
+      const left = Math.max(0, (queue[0].readyAt - tick) / 20), frac = 1 - Math.min(1, left / Math.max(0.001, total));
+      q = `<div class="wqueue">${queue.slice(0, 6).map(() => pic('wqp')).join('')}<div class="wqbar"><i style="width:${(frac * 100).toFixed(1)}%"></i></div><span class="dim">${left.toFixed(1)} s${queue.length > 1 ? `, ${queue.length - 1} more` : ''}</span></div>`;
+    }
+    let h = `<div class="lab">Workers</div><div class="wcard">${pic('wart')}<div class="wmain"><div class="wbig"><b>${have}</b> <span class="dim">/ ${cap} workers</span></div>`
+      + `<div class="dim">${queue.length ? `${queue.length} training` : 'None training'}${selected.length ? `, ${selected.length} selected` : ''}</div>${q}</div>`
+      + `<button data-act="build-train" class="wtrain${pre.ok ? '' : ' no'}" data-tip="${esc(tipText)}">Train worker ${coin(W.cost, 'ryo')}${W.goodsCost ? coin(W.goodsCost, 'goods') : ''}</button></div>`;
+    const steps = [[s.grid.zone.includes('h'), 'Housing', 'zone housing with the Build bar'], [s.grid.zone.includes('f'), 'Farms', 'zone farms with the Build bar'], [/[rg]/.test(s.grid.use), 'Roads', 'lay a road from the town hall'],
+      [!!s.workers?.length, 'Train worker', 'press Train worker'], [(s.workers || []).some(w => spotIndex.get(w.spot)?.kind === 'timber'), 'Assign timber', 'select a worker and right-click a timber spot']];
+    const next = steps.find(x => !x[0]);
+    if (next) h += `<div class="lab">First steps</div><div class="wsteps">${steps.map(x => `<div class="wst${x[0] ? ' done' : x === next ? ' now' : ''}"><span class="pip"></span>${esc(x[1])}</div>`).join('')}</div><div class="wnext">Next: ${esc(next[2])}</div>`;
+    return h;
   }
   // 7c-4 (items 25 and 26): the war camp's Workers tab. The same worker pane as a town's (every worker with status
   // and job, task coins as filters, groups, log), and its Spots view lists every timber and stone spot in the camp's
@@ -686,7 +717,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const spotState = p => ({ rich: isRich(p), yieldText: spotRules?.stages ? `${spotYield(p, game.state.frontier?.spots?.[p.id], spotRules.stages)} a trip` : '' });
     return `<div class="campworkers">${workerPanelHTML(s, { overworked: overworkedSpots(s), selected, index: spotIndex, data, page: workerPage, known, tab: workerTab, logPage: workerLogPage, filter: workerFilter, camp: true, spots, spotPage: workerSpotPage, spotState })}</div>`;
   }
-  return { update, html, miniHtml: s => html(s, true), isOpen: () => opened, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen, campWorkersHtml, campSite,
+  return { update, html, workersHtml, miniHtml: s => html(s, true), isOpen: () => opened, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen, campWorkersHtml, campSite,
     // 8b: a card in the town hall war window hands its building type to the place tool
     placeTool(id, kind) { town = id; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = kind; return true; },
     // two or more workers picked: one small card each in the selection panel (Tim 2026-11-08); a click picks just that one

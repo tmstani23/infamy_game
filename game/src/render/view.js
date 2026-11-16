@@ -1,12 +1,12 @@
 // Everything on screen. Reads the game state every frame and never changes it.
-import { VIDEO_DEFAULTS, pixelRatioFor } from '../video_settings.js';
+import { VIDEO_DEFAULTS, pixelRatioFor, createVideoSettings } from '../video_settings.js';
 import * as THREE from 'three';
 import { ITEMS } from '../sim/inventory.js';
 import { VIEW_DIR, CAM_QUAT, CAM_RIGHT, CAM_UP, PPU, toScreen } from './iso.js';
 import { shared, MAX_LIGHTS } from './shading.js';
 import { buildGround, buildScenery, doorRings, markCrewDoors, behind, footprintLines } from './scenery.js';
 import { createSorter } from './draw_order.js';
-import { CharacterSprite, loadSheets, INDOOR_SIZE } from './characters.js';
+import { CharacterSprite, loadSheets, INDOOR_SIZE, setSpriteScale, sweepSheets, spriteMemory, useCompressedSprites } from './characters.js';
 import { buildRoom3d } from './interior3d.js';
 import { createHitFx } from './hitfx.js';
 import { createAbilityFx } from './abilityfx.js';
@@ -31,7 +31,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const INDOOR_ZOOM = 1.1;
   const minZoom = place => place === 'world' ? 0.175 : 0.35;
   const FLASH_SECONDS = 0.7;   // the camera moves in closer inside buildings
-  let zoomNow = zoom;
+  let zoomNow = zoom, spriteSweepAt = 0;
+  const SPRITE_TEXELS = 160 / 3;   // page pixels per world unit at sprite scale 1 (a 160 px cell covers 3 units)
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
   renderer.info.autoReset=false; // count all water/bloom/main passes together for diagnostics
   let frameDrawMs=0,frameWorkers=0;
@@ -41,6 +42,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // Painted art is shaded in its own sRGB values, so no colour conversion on output
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  useCompressedSprites(renderer, createVideoSettings().get().sprites);   // before any sprite page loads
   const bloom = createBloom(renderer);   // glow on effects only
   const bufSize = new THREE.Vector2();
 
@@ -426,7 +428,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
         e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
       if (e.type === 'rickshaw' || drivers.has(id)) syncDriver(e, s, fdt, loaded);   // its coachman (frontier rickshaw)
-      if (e.cannon) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp);   // salute cannons: no health bar
+      // salute cannons: no health bar; a ridden horse neither: its bar sat on the rider's and the two flickered (Tim 2026-11-16), her health shows on her Mount card
+      if (e.cannon || (e.type === 'horse' && e.rider)) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp);
       s.setNameplate(e.name || entityName(units || { types: {} }, e), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
         state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), !!state.clans?.[e.owner], e.type === 'hero');
       // an execute or arrest channel shows one bar, the labelled one in render/abilityfx.js (the
@@ -547,7 +550,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const structureFire = createStructureFire({ scene });
   const hallFx = createHallChannelFx({ scene, lights, thingAt: k => worldGround?.thingAt(k) || null, artThing: p => worldGround?.artThing(p) || null, seconds: () => hallSeconds });   // war 8a: taking a hall
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
-  const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null,
+  let hallChannelOf = () => null;   // main.js: the running hall channel of a war (sim/frontier/war_end.js view)
+  const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null, hallChannelOf: id => hallChannelOf(id),
     unitToScreen: (x, z, y = 0.9) => { v.set(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   function addCasts(casts) {
     for (const c of casts) {
@@ -631,6 +635,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     const wantZoom = !['street', 'world'].includes(place) ? INDOOR_ZOOM : THREE.MathUtils.clamp(zoom, minZoom(place), 1.0);
     if (Math.abs(wantZoom - zoomNow) > 1e-3) { zoomNow += (wantZoom - zoomNow) * (1 - Math.exp(-dt * 5)); resize(); }
     const ppx = PPU * zoomNow * renderer.getPixelRatio(), s = toScreen(camTarget);
+    // Sprite pages: half-size pages when a page pixel is drawn smaller than about half a screen pixel, and unit types nobody has used for 3 minutes are unloaded.
+    const spriteNow = performance.now() / 1000;
+    setSpriteScale(ppx / SPRITE_TEXELS, spriteNow);
+    if (spriteNow - spriteSweepAt > 5) { spriteSweepAt = spriteNow; sweepSheets(spriteNow); }
     camera.position.copy(camTarget)
       .addScaledVector(CAM_RIGHT, Math.round(s.x * ppx) / ppx - s.x)
       .addScaledVector(CAM_UP, Math.round(s.y * ppx) / ppx - s.y)
@@ -652,7 +660,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       }
       banners.setDoors(spots);
     },
-    graphicsStats:()=>({drawMs:frameDrawMs,calls:renderer.info.render.calls,sprites:sprites.size,workers:frameWorkers,
+    graphicsStats:()=>({spritePages:spriteMemory(),drawMs:frameDrawMs,calls:renderer.info.render.calls,sprites:sprites.size,workers:frameWorkers,
       geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,programs:renderer.info.programs?.length || 0,
       width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio(),parts:{...frameParts},peaks:Object.fromEntries(Object.entries(framePeaks).map(([k,p])=>[k,p.v]))}),
     setPresentationActive(active){
@@ -744,6 +752,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     toggleNight() { nightTarget = nightTarget ? 0 : 1; return nightTarget === 1; },
     toggleDebug() { lines.visible = !lines.visible; },
     setVideo(v) { video = { ...video, ...v }; resize(); },
+    setHallChannels(f) { hallChannelOf = f || (() => null); },
     // 1.0 shows the sprites at their real size; closer than that just blurs them
     zoomBy(f) { zoom = THREE.MathUtils.clamp(zoom * f, minZoom(cameraPlace({ place: heroPlace })), 1.0); resize(); },
   };

@@ -44,7 +44,7 @@ Riding sheets (2026-11-14): the RIDE_ATTACK table in tools/export_sprites.mjs (s
 
 This is the process for new characters and items and for updates to existing ones.
 
-One-time setup in the `infamy_game` root: `npm install sharp playwright`.
+One-time setup in the `infamy_game` root: `npm install` (sharp, playwright, ktx2-encoder).
 
 ```
 node tools/export_sprites.mjs . <model> --pack
@@ -56,6 +56,10 @@ node tools/export_sprites.mjs . <model> --pack
 - Overwritten sheets are archived automatically to `assets/sprites_archive/<date>_<model>/` (once per day per file).
 
 Repack without exporting: `node tools/repack_model.mjs <model> [more models] [--margin=4]`, `--all` for every model (slow), `--dry` to report sizes only, `--portrait` for portraits.
+
+Half-size pages for far zoom: `node tools/make_half_pages.mjs` writes `assets/sprites_packed/catalog_v1_half/<name>_half.png` (half width and height) for every page that is missing or out of date; `--all` remakes them, `--check` only reports. `repack_model.mjs` runs it after every repack (not for `--dry` or `--portrait`). The folder is gitignored.
+
+Compressed pages (KTX2, UASTC): `node tools/make_ktx2_pages.mjs` writes `assets/sprites_packed/catalog_v1_half_ktx2/<name>_half.ktx2` from the half pages; `--full` also writes `catalog_v1_ktx2/<name>.ktx2` from the full pages; `--all`, `--check`; `--part=i/n` splits the list to run several copies at once. Pages are stored flipped vertically. `repack_model.mjs` runs it after the half pages. Both folders are gitignored. The PNG pages stay unchanged.
 
 Add `--glow-only` to write just the weapon glow sheets (`<sheet>_glow.png`) and keep the colour sheets.
 

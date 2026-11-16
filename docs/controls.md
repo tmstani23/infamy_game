@@ -104,7 +104,7 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 | Home, or double-click the hero frame | Camera back to the hero |
 | Drag a crew name onto another group | Transfer them (selected crew go together); they take that group's duty. Sector and Hero group targets also accept transfers. While dragging, gold = room, red = can't take them; dropping on red flashes the reason |
 | Drag title bar (or the top strip) | Move any window-type menu (hire, clinic, police, contracts, town, towns overview, war camp, town war, vehicles, land office, lieutenant/surveyor talk, settings, stash, character, shop, deployment), no Edit layout needed; position is saved; resizing stays in Edit layout. |
-| C | Select hero party, or active Rally force; replace sector selection |
+| C | Select hero party, or active Rally force; replace sector selection. Out on the island the hero is selected too. |
 | Ctrl + 1–4 | Assign selected crew to an exclusive control group, replacing that number's membership and transferring crew from other groups. Reassign exactly the same members to the same number to dissolve it |
 | 1–4 | Recall a numbered selection filtered by active deployment command group; manual move/attack continues, then duty; open clinic, police, contract and hiring menus take priority |
 | Esc | Clear selection, returning released manually controlled sector crew to saved duty; clear hero attack/loot and cancel hero execution. Menus close as before; Ctrl behavior unchanged |
@@ -206,6 +206,7 @@ War bar default position: top 104 px, below the standings bar.
 | Right-click a vehicle's card | Unloads it: everyone steps out and waits beside it (hover shows "⏏ Unload"). Right-clicking one rider's seat lets only him out (the hero's seat does nothing). |
 | Mount cards (crew panel) | Each mounted crewman shows as "Mount · <horse>" under Frontier crew. Click selects him; right-click (or Shift+H) gets him off and he waits there. Group headers select only the crew they show (on foot or mounted, not riders); the vehicles header selects only vehicles; out on the island the Frontier crew header selects the hero, his crew on foot, the loaded vehicles and mounted crew, never war troops or war cavalry. Crew, mount and vehicle cards show a health bar and the health left as numbers (85 / 120). Clicking one vehicle card selects it and shows it in the target frame until Esc. |
 | Worker cards | With 2+ town workers selected, each shows as a card in the selection panel; past 8, small tiles in two rows at most, then a +N tile. Hidden while the Workers pane is open. Click one to select just him. |
+| Selection panel | Shows every selected unit: the cards shrink in steps (full, no place line, compact two-line, picture tiles, small tiles, smallest tiles) until all fit in the pane; one card per unit type only when even the smallest tiles do not fit. No scrolling. A ridden horse shows no overhead health bar (its health is on its Mount card). |
 | F3 | Frame time breakdown. |
 | Shift+H (island) | Mount up: selected crew, else the hero crew following, get on horses (hero crew only; not settlers or workers). |
 | Fighting on horseback (island) | The hero and mounted crew attack and use every ability from the saddle; attack-move works as on foot; shooters stop to shoot. Riders stay on when hit and until they fall. Getting off is only Q, a right-click on the Mount card, or Mount up again. |
@@ -245,7 +246,7 @@ War bar default position: top 104 px, below the standings bar.
 | F2 | Hide all UI (panels, minimap, unit bars, selection rings, nameplates); F2 again shows it |
 | Town panel Esc button (or O / Esc) | Close the town panel |
 | Click a clan in the top bar | Opens the Standings panel: a tab per clan with Influence, tier, Renown and businesses (Classic: points, Renown, businesses, crew), where Influence comes from and the tier list. Esc, its Esc button or a second click on the same chip closes it. Hover a chip for its breakdown. |
-| Settings → Video | Resolution 1920×1080 (default) / 1600×900 / 1280×720 draws about that many pixels whatever the window shape; Sharp draws every screen pixel (up to 2 per page pixel); `?dpr=N` in the URL overrides. Toggles: Glow, Screen shake, Show FPS. Frame cap Off / 60 / 30. Applied live and kept in this browser (localStorage `infamy.video.v1`). |
+| Settings → Video | Resolution 1920×1080 (default) / 1600×900 / 1280×720 draws about that many pixels whatever the window shape; Sharp draws every screen pixel (up to 2 per page pixel); `?dpr=N` in the URL overrides. Toggles: Glow, Screen shake, Show FPS. Frame cap Off / 60 / 30. Compressed sprites: Far zoom only (default) / Everywhere / Off, takes effect when the game is reloaded. Other settings are applied live and kept in this browser (localStorage `infamy.video.v1`). |
 | ` (backquote), Pause, or the Pause button | Pause / resume (single player): the game stops, menus still work |
 | ? or the Controls button | Open the controls panel (Esc closes it) |
 | Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police, M moneylender, H hideout, J dojo. A business letter fills with its owner's colour once explored (your own always) |
@@ -353,7 +354,7 @@ War camp (2026-11-10, campaign):
 - Unit ability row (above the action bar, only when the selection has special abilities): Shift + Q, E, R, F by position, then click to target; one press sends one caster (the ready unit nearest the click). Each button shows ready out of total; grey with the shortest cooldown when none is ready.
 - Right-click a unit ability button: auto on or off (moving dotted border and the word Auto).
 - Shift while riding: the sprint toggle fires only on a clean tap.
-- Shift + C or the Troops button (crew command bar, shown while you have war troops): selects every war troop where the hero is, hero group left out. C selects the hero group only and never picks war troops.
+- Shift + C or the Troops button (crew command bar, shown while you have war troops): selects every war troop where the hero is, hero group left out. C selects the hero group only and never picks war troops. Out on the island the hero is selected too.
 - Double-click a war troop: selects every war troop of that type within 100; double-click one of them again centres the camera on it.
 - Drag box on the island: selects crew and war troops together (not the hero). One right-click sends the whole selection on one shared route. In the city a selection stays one command group.
 - Right-click an enemy building, wall, gate or house of a war you are in with nothing selected: the hero attacks it. With the hero or his crew in the selection he goes with the troops.
@@ -368,6 +369,7 @@ War camp (2026-11-10, campaign):
 - Frontier: no floating damage numbers.
 - Fire bomb (fire-bomb thrower special, in the unit ability row, auto or Shift + key): a 1.5 s channel with a ring on the ground where it lands; burns a wooden building or splashes units; stone resists.
 - Select camp workers, right-click a building site: they build it; more workers build faster. A site with no workers flashes Needs workers. Finished builders go back to gathering.
+- Select workers, right-click a town building site: the townspeople build placed buildings at half speed by themselves; each worker you send adds a full builder, up to 4 on one site. Zone buildings grow by themselves. When it is done the workers wait by it.
 - Select workers, right-click your damaged or burning building: they put the fire out, then repair it, paid in timber and stone from the town or camp stock.
 - Rebuild (button on a ruin's card, or right-click the ruin with workers selected): the town's builders rebuild it at normal cost; not during a war.
 - Town panel, Overview, Ox carts: Recall and Send out for the town's carts.

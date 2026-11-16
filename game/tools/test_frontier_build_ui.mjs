@@ -131,4 +131,15 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   s.workers=[{id:'k1',spot:null}];assert.match(ui.html(s),/class="wcoin none" data-act="build-worker-job" data-id="timber"/,'job coins are greyed when nobody harvests');
   s.workers=keep;
 }
+// Tim 2026-11-16: the town panel's Workers section (art, count, Train button with coin costs, first steps until done)
+{
+  const w=ui.workersHtml(s);
+  assert.match(w,/class="lab">Workers</); assert.match(w,/data-act="build-train" class="wtrain/); assert.match(w,/class="tcoin ryo"><i><\/i>\d+/);
+  assert.doesNotMatch(w,/[\u2190-\u21ff\u2713\u25cb]/,'no arrow or check glyphs');
+  const keepW=s.workers,keepZ=s.grid.zone;s.workers=[];
+  assert.match(ui.workersHtml(s),/class="wsteps"/,'first steps while not all done');
+  assert.match(ui.workersHtml(s),/wst now"><span class="pip"><\/span>(Housing|Farms|Roads|Train worker)/);
+  s.workers=keepW;s.grid.zone=keepZ;
+  assert.doesNotMatch(ui.html(s),/Train worker/,'training moved out of the build block');
+}
 console.log('test_frontier_build_ui: ok');

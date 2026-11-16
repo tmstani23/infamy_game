@@ -75,3 +75,8 @@ __pycache__/
 /assets/sprites/ship_war_broadside.png
 /assets/sprites/ship_war_idle.png
 /assets/sprites/ship_war_sail.png
+# Half-size sprite pages for far zoom: built locally by tools/make_half_pages.mjs
+/assets/sprites_packed/catalog_v1_half/
+# GPU-compressed sprite pages: built locally by tools/make_ktx2_pages.mjs
+/assets/sprites_packed/catalog_v1_half_ktx2/
+/assets/sprites_packed/catalog_v1_ktx2/
