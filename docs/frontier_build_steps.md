@@ -2612,13 +2612,14 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - Health and count:
        - `buildings.stockade.garrison.hpByTier`: full health by town hall tier: 40,000 at Village, 60,000 at Town (`hp` 40,000 is the fallback). `stockadeHp(data, tier)` in garrison.js; structures.js `townMax` and the garrison card use it.
        - `tiers.list[].placed.stockade`: 0, 1, 3.
+       - Stockade cost by town hall tier: `buildings.stockade.costByTier`: Village 400 timber and 450 stone, Town 500 timber and 600 stone (`cost` 400 / 450 is the fallback). `buildingCost(data, type, s)` in sim/frontier/tiers.js gives a placed building's cost in a town: `costByTier` by the town's tier when the building has one, else `cost`. Placement, construction projects (rebuilds included), the general's saving check and the build tooltip use it.
        - Each stockade holds `garrison.capacity` (40). Membership is per stockade: `garrison.membersIn(town, building)`, `usedIn`, `forts`, `keyOf`; a sheltering worker carries `worker.garrisonIn` (building id).
        - Command `{ action: 'garrison', mode: 'enter' | 'leave', town, building?: <building id>, units, walk }`: with `building` that stockade; without, each unit goes to the nearest stockade with room (walking units carry `order.garrisonB`), and leave empties all of them.
      - Troops inside:
        - War troops (`e.warTroop`) hold a stockade the structure way (as a house): `e.garrison = { town | war, key, zone: true, fort: true, heal, x, z }`. The town command above sends them that way; `{ action: 'garrison', structure: <key> }` works for a stockade too. The hero, crew and workers shelter as before (`e.garrison = { town, building, key, heal }`). Both kinds share one stockade's room (`garrison.capOf(st)`, `rangeOf(st)`).
        - Every ranged unit inside a stockade shoots out during a war on its town or camp (structures.js `garrisonFire`), `garrison.reach` (5) further than from a house. Melee units inside do not fight. Troops inside heal `healFactor` times faster. Hits on them go to the stockade; when it falls everyone piles out.
      - War camp stockade:
-       - `war.buildings.stockade`: cost 200 timber, buildTicks 1600, radius 10, max 1. Health `war.structures.campStockade` by camp hall tier: 16,000, 24,000.
+       - `war.buildings.stockade`: cost 400 timber and 450 stone, buildTicks 1600, radius 10, max 1. Health `war.structures.campStockade` by camp hall tier: 16,000, 24,000.
        - The attacker's troops go in by the structure command (Ctrl + right-click it, or Garrison selected on its building card). Not the hero or camp workers.
      - Generals:
        - `stockade` in a `defend.build` list = a town stockade, as many as the list names and the tier allows: Siege three, Raider one, Rush none. In an `attack.build` list = the camp stockade: Siege builds one; `attack.fortify.build` is now watchtower, stockade, watchtower, watchtower (any camp that digs in).

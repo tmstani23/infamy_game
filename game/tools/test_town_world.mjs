@@ -40,6 +40,7 @@ function game(heroAt) {
   const t = w.settlement('tw'), snap = () => drawableTowns(structuredClone(g.state.frontier), 'player');
   // queue a stockade through the command path and watch it go from dirt to frame to building
   const hero = Object.values(g.state.entities).find(e => e.type === 'hero');
+  Object.assign(t.stock, { timber: 600, stone: 600 });   // the stockade's price (Tim 2026-11-16: 400 timber, 450 stone at Village)
   g.step([{ id: hero.id, type: 'frontier', action: 'queue', settlement: 'tw', building: 'stockade' }]);
   let props = townProps(snap(), frontier.townArt, frontier.townLights);
   assert.ok(props.filter(p => p.art === 'stone_lantern').length >= 4, 'lanterns beside the finished buildings');

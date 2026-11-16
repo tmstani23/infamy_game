@@ -7,6 +7,12 @@ export function tierOf(s, data) {
   return list[Math.min(list.length, Math.max(1, s.tier || 1)) - 1];
 }
 export const nextTier = (s, data) => data.tiers?.list?.[(s.tier || 1)] || null;
+// what a placed building costs in this town: buildings.<type>.cost, or by town hall tier when the building has
+// costByTier (the stockade, Tim 2026-11-16)
+export function buildingCost(data, type, s = null) {
+  const b = data?.buildings?.[type], t = b?.costByTier;
+  return (t?.length ? t[Math.min(t.length, Math.max(1, s?.tier || 1)) - 1] : null) || b?.cost || {};
+}
 // placed-count group: work camps share one count
 export const placedGroup = (type, data) => data.tiers?.camps?.includes(type) ? 'camps' : type;
 export function placedCount(s, type, data) {

@@ -13,6 +13,7 @@
 import { ringRadius, cellOffset } from './frontier/town_grid.js';
 import { SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
 import { isMilitary, militaryCount, militaryNeeds, militaryWhy, warHallDone } from './frontier/town_military.js';
+import { buildingCost } from './frontier/tiers.js';
 
 const DET = SCREEN_RIGHT.x * SCREEN_DOWN.z - SCREEN_DOWN.x * SCREEN_RIGHT.z;
 const intent = (dx, dz) => ({ right: (dx * SCREEN_DOWN.z - dz * SCREEN_DOWN.x) / DET, down: (SCREEN_RIGHT.x * dz - SCREEN_RIGHT.z * dx) / DET });
@@ -226,7 +227,7 @@ export function createGeneralBrain(game, { clan }) {
         continue;   // waits on an earlier building of the list
       }
       if (militaryWhy(s, type, data, state)) continue;
-      if (!can(data.buildings?.[type]?.cost)) return;   // saving for it
+      if (!can(buildingCost(data, type, s))) return;   // saving for it
       const cell = spotFor(s, type, zoneOnly);
       if (cell != null) out.push(cmd({ action: 'place', town: s.id, kind: type, cells: [cell] }));
       if (cell == null) continue;   // no room for this one (in the zone, or at this tier): try the next of the list

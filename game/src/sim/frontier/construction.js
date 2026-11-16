@@ -10,6 +10,7 @@ import { buildingSafety } from './building_safety.js';
 import {coversResources} from './resource_clearance.js';
 import { shapeOf } from './station_layout.js';
 import { warUpgradeBuilding } from './town_military.js';
+import { buildingCost } from './tiers.js';
 const EPS = 1e-9;
 
 export function createConstruction({ state, data, world,resourceIndex }) {
@@ -57,7 +58,7 @@ export function createConstruction({ state, data, world,resourceIndex }) {
       const used = new Set([...s.buildings, ...s.projects].map(b => b.cell));
       cell = 1; while (used.has(cell)) cell++;
     }
-    const p = { id: world.newId('p'), type, cell, cost: { ...t.cost }, paid: false, progress: 0, need: t.buildTicks, authorized: false };
+    const p = { id: world.newId('p'), type, cell, cost: { ...buildingCost(data, type, s) }, paid: false, progress: 0, need: t.buildTicks, authorized: false };
     if (opts.replaces) p.replaces = opts.replaces;
     if (Number.isInteger(opts.rot)) p.rot = opts.rot;   // which way a station's track leaves (station_layout.js)
     if (opts.cells) {   // L3.2: a placed building may cover several cells (2x2); `cell` stays the anchor

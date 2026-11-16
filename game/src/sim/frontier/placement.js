@@ -13,7 +13,7 @@
 import { cellOffset, inCore, setUse, hallRoadCell, nearCliff } from './town_grid.js';
 import { buildingSafety } from './building_safety.js';
 import { coversResources } from './resource_clearance.js';
-import { placedRoom } from './tiers.js';
+import { placedRoom, buildingCost } from './tiers.js';
 import { shapeOf } from './station_layout.js';
 import { militaryWhy } from './town_military.js';
 
@@ -70,8 +70,8 @@ export function createPlacement({ state, data, world, construction, resourceInde
     return new Set(unit(s).filter(u => !u.cells.some(reached)).map(u => u.key));
   }
 
-  function costOf(kind, count) {
-    const per = LINES[kind] ? data.placeCosts?.[kind] : data.buildings[kind]?.cost;
+  function costOf(kind, count, s = null) {
+    const per = LINES[kind] ? data.placeCosts?.[kind] : buildingCost(data, kind, s);
     const out = {};
     for (const [r, v] of Object.entries(per || {})) out[r] = v * (LINES[kind] ? count : 1);
     return out;
@@ -123,7 +123,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
     if (!LINES[kind] && !cover.some(i => {   // the new building itself needs an open neighbour
       const col = i % n; return [col > 0 ? i - 1 : -1, col < n - 1 ? i + 1 : -1, i - n, i + n].some(j => j >= 0 && j < n * n && !cover.includes(j) && ['.', 'r', 'g'].includes(use[j]) && g.ground[j] !== 'x');
     })) return bad('would trap', cover);
-    const cost = costOf(kind, cover.length);
+    const cost = costOf(kind, cover.length, s);
     if (LINES[kind] && Object.entries(cost).some(([r, v]) => (s.stock[r] ?? 0) < v)) return { ok: false, reason: 'cannot afford', cost, cells: cover };
     return { ok: true, reason: '', cost, cells: cover };
   }
