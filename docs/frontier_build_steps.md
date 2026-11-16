@@ -2630,6 +2630,13 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - Tests:
        - tools/test_frontier_garrison.mjs: "garrison fortress" (health by tier, two stockades, per-stockade room, hits, leave one or all).
        - tools/test_war_general.mjs: "stockade: towns" (Siege Town builds three, Village one, ranged troops go in first, shoot out, hits land on the stockade, a fallen one lets everyone out) and "stockade: war camp" (camp builds it, ranged reserve holds it, comes out for the push).
+   - **8d-10 built 2026-11-16 (generals plan their war):** war_general_brain.js, frontier.json (`war.general.attack`, Rush `attack.probes`), war_general_tab.js.
+     - Siege answer: `war.general.attack.siegeUp` {build ["foundry"], siege 2}: once the town a camp attacks has a built stockade, the camp's list gets `siegeUp.build` right after its first barracks, lumber camp and quarry (the camp hall upgrade comes with the foundry), and its mix trains role `siege` at least `siegeUp.siege`. It keeps to that for the rest of the war. The strategy itself does not change.
+     - Build before pushing: a camp's plan = its strategy's `attack.build` (with the siege answer). While a building of the plan is not built, the army pushes only as a probe: `attack.probes` pushes at most (general 1, Rush 1), until `attack.buildWaitSeconds` (2700) after the war began. The reserve does not join a push before then.
+     - Dig-in extras (`attack.fortify.build`) are built first when affordable, but never when paying one would leave the camp stock short of the next building of its own list; they do not hold up the rest of the list or the pushes.
+     - Training keeps back the ryo of the camp hall upgrade (`war.hallUpgrade.cost.ryo`) while a building of the plan still needs the upgrade.
+     - Player screens: General tab camp hover: builds its whole list before it pushes in full, with a probe before that; answers a town stockade with a foundry and siege guns.
+     - Tests: tools/test_war_general.mjs "siege answer, plan before pushes".
 8e. Supply and upgrades: rail feed to the war camp (camp station, spur built by camp workers, trains with ryo, timber and stone, sources listed on the camp panel, marked rail sections the defender can destroy); ryo badge by location with the war chest as its own badge; armory upgrades (to be specified with Tim).
 After 8e: foreign mercenary pistolmen (needs pistol animation clips). Waiting: gun cavalry.
 

@@ -334,9 +334,11 @@ export function createGeneralBrain(game, { clan }) {
     return null;
   }
   // the next building of the strategy's list (and the camp hall upgrade when one needs it), a few sites at a time
+  // the siege answer (8d-10): once the town it attacks has a stockade, the camp builds attack.siegeUp.build first
+  // and its mix trains siege guns (role siege) at least attack.siegeUp.siege; it keeps to that for the rest of the war
+  const siegeUp = (w, m) => { const SU = gen().rules().attack?.siegeUp; if (SU && !m.siegeUp && (town(w.town)?.buildings || []).some(b => b.type === 'stockade' && b.stage === 'built')) m.siegeUp = true; return m.siegeUp ? SU : null; };
   function campBuild(out, cmd, w, A) {
     const camp = w.camp, War = F().war, BD = W().buildings || {};
-    if (camp.buildings.filter(b => b.stage === 'site').length >= (A.sites ?? 2)) return;
     const list = War.campBuildList(w.id), seen = {}, m = memory(w, 'attacker');
     // dug in (8d-8): once the fight has gone on for attack.fortify.afterSeconds, a push has been beaten back, or the
     // defenders it can see are worth edge times its own troops, the camp puts up attack.fortify.build first (and
@@ -347,7 +349,25 @@ export function createGeneralBrain(game, { clan }) {
       const own = troops(w), foes = Object.values(state.entities).filter(e => e.warTroop === w.id && e.owner === w.defender && !e.dead && !e.hidden && !e.garrison && e.type !== 'horse');
       if (state.tick - (w.started ?? w.at ?? state.tick) >= (FT.afterSeconds ?? 600) * 20 || m.beaten || (foes.length >= (FT.least ?? 4) && worth(foes) >= worth(own) * (FT.edge ?? 1.3))) m.fort = true;
     }
-    for (const type of [...(m.fort ? FT.build || [] : []), ...(A.build || [])]) {
+    let nextCost = null;
+    const SU = siegeUp(w, m), own = [...(A.build || [])];
+    if (SU?.build?.length) { const at = Math.max(...['barracks', 'lumber_camp', 'quarry'].map(t => own.indexOf(t))); own.splice(at + 1, 0, ...SU.build); }   // after its first barracks, lumber camp and quarry: troops and gathering first, then the siege answer
+    const plan = [...(m.fort ? FT.build || [] : []), ...own];
+    // what is left of the plan (8d-10): the army does not push in full before it is all built (campArmy), and
+    // training keeps back the ryo of the camp hall upgrade while a building of the plan still needs it (campTrain)
+    { const tally = {}; let left = 0;
+      let next = null;   // the first building of its own list not yet placed: a dig-in extra may not eat what it needs
+      for (const type of own) {   // (its own list and the siege answer; the dig-in extras do not hold pushes back)
+        tally[type] = (tally[type] || 0) + 1;
+        const e = list.find(x => x.type === type); if (!e) continue;   // not this clan's
+        if (camp.buildings.filter(b => b.type === type && b.stage === 'built').length < Math.min(tally[type], e.max || Infinity)) left++;
+        if (!next && camp.buildings.filter(b => b.type === type).length < Math.min(tally[type], e.max || Infinity)) next = e;
+      }
+      m.left = left; nextCost = next?.cost || null;
+      m.upgradeFor = !War.upgraded(camp) && plan.some(t => list.some(x => x.type === t) && (BD[t]?.needs || []).some(n => n === 'upgrade' || n === 'tier2')); }
+    if (camp.buildings.filter(b => b.stage === 'site').length >= (A.sites ?? 2)) return;
+    const extra = m.fort ? (FT.build || []).length : 0;
+    for (const [i, type] of plan.entries()) {
       seen[type] = (seen[type] || 0) + 1;
       if (camp.buildings.filter(b => b.type === type).length >= seen[type]) continue;
       const e = list.find(x => x.type === type); if (!e || (e.max && e.count >= e.max)) continue;
@@ -360,7 +380,9 @@ export function createGeneralBrain(game, { clan }) {
         }
         continue;   // waits on an earlier building
       }
-      if (!e.ok) return;   // saving for it
+      if (!e.ok) { if (i < extra) continue; return; }   // saving for it (a dig-in extra it cannot pay yet does not hold up its list)
+      // (8d-10, Tim 2026-11-16) a dig-in extra waits while paying it would leave too little for the next building of its own list
+      if (i < extra && nextCost && Object.entries({ ...nextCost, ...e.cost }).some(([r]) => (camp.stock?.[r] || 0) < (e.cost?.[r] || 0) + (nextCost[r] || 0))) continue;
       const p = campSpot(w, type, A);
       if (p) { out.push(cmd({ action: 'campPlace', war: w.id, kind: type, x: p.x, z: p.z })); return; }
     }
@@ -412,10 +434,12 @@ export function createGeneralBrain(game, { clan }) {
   }
   function campTrain(out, cmd, w, A) {
     const War = F().war, camp = w.camp, tv = War.troopView(w.id); if (!tv) return;
-    const G = gen().rules(), mix = A.mix || { grunt: 1 }, ahead = G.queueAhead ?? 2;
-    let room = tv.cap - tv.troops - tv.queued, chest = (camp.chest || 0) - (A.chestReserve ?? 0);
+    const G = gen().rules(), m = memory(w, 'attacker'), SU = siegeUp(w, m), ahead = G.queueAhead ?? 2;
+    const mix = SU ? { ...(A.mix || { grunt: 1 }), siege: Math.max(A.mix?.siege || 0, SU.siege ?? 2) } : A.mix || { grunt: 1 };
+    const keepUp = m.upgradeFor && !campHall(w).upgrade ? W().hallUpgrade?.cost?.ryo || 0 : 0;   // the camp hall upgrade comes first (8d-10)
+    let room = tv.cap - tv.troops - tv.queued, chest = (camp.chest || 0) - (A.chestReserve ?? 0) - keepUp;
     const cheapest = Math.min(...camp.buildings.filter(b => b.stage === 'built').flatMap(b => War.trainsAt(b.type, clan).filter(u => weight(mix, u) > 0).map(u => War.ryoOf(clan, u))), Infinity);
-    memory(w, 'attacker').spent = tv.queued === 0 && (room <= 0 || chest < cheapest) && !camp.buildings.some(b => b.stage === 'site');   // it cannot grow any more
+    m.spent = tv.queued === 0 && (room <= 0 || chest < cheapest) && !camp.buildings.some(b => b.stage === 'site');   // it cannot grow any more
     const have = {};
     for (const e of troops(w)) if (e.warUnit) have[e.warUnit] = (have[e.warUnit] || 0) + 1;
     for (const b of camp.buildings) for (const q of b.queue || []) have[q.unit] = (have[q.unit] || 0) + 1;
@@ -499,11 +523,15 @@ export function createGeneralBrain(game, { clan }) {
     const pushAt = A.pushAt ?? 12, cap = F().war.troopView(w.id)?.cap ?? Infinity;
     const need = Math.max(1, Math.min(cap, Math.round(pushAt * (A.regroup ?? G.attack?.regroup ?? 1.5) ** Math.min(m.beaten || 0, G.attack?.regroupMost ?? 3))));
     const everyone = [...all, ...held].map(e => e.id);   // (those in the camp stockade count; they come out when a push starts)
-    if (m.mode === 'push' && m.spent && m.wave && count > m.wave.length) { comeOut(); m.wave = everyone; m.pushed = Math.max(m.pushed || 0, count); }   // it cannot grow any more: the reserve joins the wave
+    if (m.mode === 'push' && m.spent && m.wave && count > m.wave.length && (m.left === 0 || state.tick - (w.started ?? w.at ?? state.tick) >= (A.buildWaitSeconds ?? G.attack?.buildWaitSeconds ?? 1200) * 20)) { comeOut(); m.wave = everyone; m.pushed = Math.max(m.pushed || 0, count); }   // it cannot grow any more: the reserve joins the wave
     const mine = m.mode === 'push' && m.wave ? all.filter(e => m.wave.includes(e.id)) : all;
     const waveSize = m.mode === 'push' && m.wave ? mine.length + held.filter(e => m.wave.includes(e.id)).length : count;
-    const strong = m.mode === 'push' ? waveSize >= Math.max(1, Math.ceil((m.pushed || pushAt) * (A.fallBack ?? 0.35))) || (m.spent && waveSize > 0) : count >= need || (m.spent && count >= (A.pushLeast ?? 3));
-    if (strong && m.mode !== 'push') { comeOut(); m.pushed = count; m.wave = everyone; }
+    // (8d-10) before every building of its plan stands it pushes only as a probe, attack.probes times at most (the
+    // strategy's probes first), unless attack.buildWaitSeconds have passed since the war began
+    const ready = m.left === 0 || state.tick - (w.started ?? w.at ?? state.tick) >= (A.buildWaitSeconds ?? G.attack?.buildWaitSeconds ?? 1200) * 20;
+    const may = ready || (m.probes || 0) < (A.probes ?? G.attack?.probes ?? 1);
+    const strong = m.mode === 'push' ? waveSize >= Math.max(1, Math.ceil((m.pushed || pushAt) * (A.fallBack ?? 0.35))) || (m.spent && waveSize > 0) : may && (count >= need || (m.spent && count >= (A.pushLeast ?? 3)));
+    if (strong && m.mode !== 'push') { comeOut(); m.pushed = count; m.wave = everyone; if (!ready) m.probes = (m.probes || 0) + 1; }
     if (!strong && m.mode === 'push') m.beaten = (m.beaten || 0) + 1;   // a push given up: the camp digs in (campBuild)
     if (!strong) { m.mode = 'hold'; delete m.wave; gather(all); return; }
     if (m.wave) { m.wave = m.wave.filter(id => everyone.includes(id)); gather(all.filter(e => !m.wave.includes(e.id))); }

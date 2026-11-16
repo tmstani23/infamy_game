@@ -399,4 +399,35 @@ function scene(seed = 47, tune = null) {
   assert.equal(troops().filter(e => e.garrison?.key === st.key && brain.view().wars[w.id].attacker.wave?.includes(e.id)).length, 0, 'they come out for the push');
   console.log('ok stockade: war camp');
 }
+// ---- 8d-10: the camp answers a stockade with siege guns, and builds its plan before it pushes in full -------------
+{
+  const tune = f => { const G = f.war.general; f.war.town.musterSeconds = 5; G.launchTownDays = 0.5; G.attack.planSeconds = 5; G.attack.fortify.afterSeconds = 1e6;
+    G.strategies.rush.attack.build = ['barracks', 'supply_tents', 'rifle_range']; G.strategies.rush.attack.pushAt = 3; G.strategies.rush.attack.palisade = null; };
+  const t = scene(47, tune), { S, g } = t, rival = t.rivals[0], tR = S.frontier.settlements.tR, tP = S.frontier.settlements.tP, War = g.frontier.war;
+  S.clans[rival].warStrategy = 'rush'; tR.founded = -6000 - 1; t.hero.x = tP.x + 1500;
+  const rh = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === rival); Object.assign(rh, { place: 'world', x: tR.x + 30, z: tR.z });
+  // the player's town has a stockade (a Village may have one)
+  tP.tier = 2;
+  const P = g.frontier.modules.find(x => x.name === 'placement').placement, n = tP.grid.n;
+  let fortAt = null; for (let i = 0; i < n * n && !fortAt; i++) { const r = P.check(tP, { kind: 'stockade', cells: [i] }); if (r.ok && Math.hypot(i % n - n / 2, Math.floor(i / n) - n / 2) > 3) fortAt = r.cells; }
+  assert.ok(fortAt, 'room for a stockade'); tP.buildings.push({ id: 'bFort', type: 'stockade', stage: 'built', cell: fortAt[0], cells: fortAt });
+  let k = 0; while (!War.warOn('tP') && k++ < 40) t.run(1000);
+  const w = War.warOn('tP'); assert.ok(w && w.attacker === rival, 'the banner is planted');
+  w.camp.chest = (w.camp.chest || 0) + 6000; w.camp.stock.timber = (w.camp.stock.timber || 0) + 4000; w.camp.stock.stone = (w.camp.stock.stone || 0) + 3000;
+  const brain = t.bots.find(b => b.config.clan === rival), mem = () => brain.view().wars[w.id]?.attacker || {};
+  let pushes = 0, early = 0, was = mem().mode;
+  for (k = 0; k < 400 && War.warOn('tP') && !w.camp.buildings.some(b => b.type === 'foundry' && b.stage === 'built'); k++) {
+    t.run(20);
+    const m = mem(); if (m.mode === 'push' && was !== 'push') { pushes++; if (m.left > 0) early++; } was = m.mode;
+  }
+  assert.equal(mem().siegeUp, true, 'it saw the stockade');
+  assert.ok(War.upgraded(w.camp), 'it bought the camp hall upgrade for the foundry');
+  assert.ok(w.camp.buildings.some(b => b.type === 'foundry' && b.stage === 'built'), 'and built the foundry (not on the Rush list)');
+  assert.ok(early <= 2, `no more than its probes before the plan stands (${early} of ${pushes})`);
+  const units = t.o.frontier.war.units, siege = () => Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === rival && (units[e.warUnit]?.at || []).includes('foundry'));
+  const queued = () => w.camp.buildings.some(b => b.type === 'foundry' && (b.queue || []).length);
+  for (k = 0; k < 200 && War.warOn('tP') && !siege().length && !queued(); k++) t.run(20);
+  assert.ok(siege().length || queued(), 'siege guns are trained');
+  console.log('ok siege answer, plan before pushes');
+}
 console.log('test_war_general: all passed');
