@@ -104,6 +104,7 @@ export const TRAITS = {
 export const DOES = {
   supply_tents: d => `Adds ${d.cap ?? 0} to the troop cap.`, watchtower: () => 'Shoots arrows at enemies in range and lets you see the ground round it, day and night.',
   field_clinic: () => 'Your troops, hero and crew near it recover much faster once they are out of the fight.', armory: () => 'Troop upgrades come later.',
+  stockade: () => 'A fortress, very hard to break. Your troops go in with Ctrl + right-click on it: they recover faster, hits on them go to the building, and ranged troops shoot out.',
   palisade: () => 'A wall: blocks the way.', gate: () => 'A gate in the palisade: your troops pass, enemies must break it.',
   lumber_camp: () => 'Camp workers drop timber here.', quarry: () => 'Camp workers drop stone here.',
 };

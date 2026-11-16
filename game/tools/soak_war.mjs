@@ -35,7 +35,7 @@ export function runWar({ attack, defence, size, seed = 1, maxMinutes = 90, tune 
   for (const a of sites) for (const b of sites) { const d = Math.hypot(a.x - b.x, a.z - b.z); if (a !== b && d >= 1650 && d <= 2100) pairs.push([a, b]); }
   const [sa, sb] = pairs[seed % pairs.length];
   const hall = o.frontier.founding.townHall;
-  g.frontier.world.addTown({ id: 'tA', name: 'Attacker', owner: A, x: sa.x, z: sa.z, pop: 30, stock: { food: 5000, ryo: 4000, timber: 3000, stone: 2000, goods: 400 }, buildings: [{ type: hall, stage: 'built', cell: 0 }] });
+  g.frontier.world.addTown({ id: 'tA', name: 'Attacker', owner: A, x: sa.x, z: sa.z, pop: 30, stock: { food: 5000, ryo: 9000, timber: 7000, stone: 5000, goods: 400 }, buildings: [{ type: hall, stage: 'built', cell: 0 }] });
   g.frontier.world.addTown({ id: 'tB', name: 'Defender', owner: B, x: sb.x, z: sb.z, pop: Z.pop, stock: { ...Z.stock }, buildings: [{ type: hall, stage: 'built', cell: 0 }] });
   const tA = S.frontier.settlements.tA, tB = S.frontier.settlements.tB;
   tB.tier = Z.tier;
@@ -54,14 +54,17 @@ export function runWar({ attack, defence, size, seed = 1, maxMinutes = 90, tune 
   while (!(w = War.warOn('tB')) && guard++ < 40) step(500);
   if (!w) return { attack, defence, size, seed, result: 'no war', note: gens.find(b => b.config.clan === A).view() };
   const t0 = S.tick, seen = { [A]: new Set(), [B]: new Set() }, brought = w.camp.brought?.ryo ?? w.camp.chest;
-  const before = { town: tB.buildings.filter(b => b.stage === 'built').map(b => b.type) };
+  const before = { town: tB.buildings.filter(b => b.stage === 'built').map(b => b.type), walls: [...tB.grid.use].filter(c => c === 'w').length, gates: [...tB.grid.use].filter(c => c === 'g').length };
+  const kinds = { [A]: {}, [B]: {} }, campBuilt = new Set();
   let peak = { [A]: 0, [B]: 0 }, last = null; const left = { [A]: 0, [B]: 0 };
   while (War.byId(w.id) && S.tick - t0 < max) {
     step(100);
-    for (const c of [A, B]) { const l = Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === c && e.type !== 'horse'); for (const e of l) seen[c].add(e.id); const n = l.filter(e => !e.dead && !e.rout).length; peak[c] = Math.max(peak[c], n); if (War.byId(w.id)) left[c] = n; }
+    for (const c of [A, B]) { const l = Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === c && e.type !== 'horse'); for (const e of l) { if (!seen[c].has(e.id) && e.warUnit) kinds[c][e.warUnit] = (kinds[c][e.warUnit] || 0) + 1; seen[c].add(e.id); } const n = l.filter(e => !e.dead && !e.rout).length; peak[c] = Math.max(peak[c], n); if (War.byId(w.id)) left[c] = n; }
+    for (const b of w.camp?.buildings || []) if (b.stage === 'built' && b.type !== 'palisade') campBuilt.add(b.type);
     last = { chest: w.camp?.chest ?? 0, defChest: w.defense?.chest ?? 0, put: w.defense?.put ?? 0, morale: [g.frontier.warMorale.pct(w.id, 'town'), g.frontier.warMorale.pct(w.id, 'camp')] };
-    if (log && (S.tick - t0) % 2400 < 100) log({ min: Math.round((S.tick - t0) / 1200), ...last, troops: [A, B].map(c => Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === c && !e.dead && e.type !== 'horse').length), camp: (w.camp?.buildings || []).filter(b => b.stage === 'built').map(b => b.type).join(','), modes: gens.map(b => b.view().wars[w.id]) });
+    if (log && (S.tick - t0) % 2400 < 100) log({ min: Math.round((S.tick - t0) / 1200), ...last, troops: [A, B].map(c => Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === c && !e.dead && e.type !== 'horse').length), camp: (w.camp?.buildings || []).filter(b => b.type !== 'palisade').map(b => b.type + (b.stage === 'built' ? '' : ':' + b.stage)).join(','), stock: JSON.stringify(w.camp?.stock), workers: w.camp?.workers?.length, hands: (() => { const ix = g.frontier.modules.find(x => x.name === 'workers')?.workers?.index, RES = o.frontier.workers.resources, n = {}; for (const x of w.camp?.workers || []) { const sp = x.spot && ix.get(x.spot); const k = x.project ? 'build' : x.job ? 'job' : sp ? RES[sp.kind] + '@' + Math.round(Math.hypot(sp.x - w.camp.x, sp.z - w.camp.z)) : 'idle'; n[k] = (n[k] || 0) + 1; } return JSON.stringify(n); })(), modes: gens.map(b => b.view().wars[w.id]) });
   }
+  if (process.env.DUMP && War.byId(w.id)) for (const c of [A, B]) for (const e of Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === c && !e.dead)) console.log('   ', c === A ? 'att' : 'def', e.warUnit, 'town', Math.round(Math.hypot(e.x - tB.x, e.z - tB.z)), 'camp', Math.round(Math.hypot(e.x - w.camp.x, e.z - w.camp.z)), JSON.stringify(e.order), e.garrison?.key || '', Math.round(e.hp), e.anim);
   const over = !War.byId(w.id), rec = over ? S.frontier.wars.history.at(-1) : w;
   const result = over ? rec.result : 'unfinished';
   const winner = !over ? null : ['captured', 'sacked', 'burned'].includes(result) ? 'attacker' : ['campFell', 'attackerSurrendered'].includes(result) ? 'defender' : result === 'ransomed' ? (rec.terms?.by === 'attacker' ? 'defender' : 'attacker') : null;
@@ -69,7 +72,8 @@ export function runWar({ attack, defence, size, seed = 1, maxMinutes = 90, tune 
     attackerRyo: Math.round(brought - (last?.chest ?? 0)), defenderRyo: Math.round((last?.put ?? 0) - (last?.defChest ?? 0)),
     attackerTrained: seen[A].size, defenderTrained: seen[B].size, attackerPeak: peak[A], defenderPeak: peak[B],
     attackerLost: seen[A].size - left[A], defenderLost: seen[B].size - left[B],
-    morale: last?.morale, townBuilt: before.town.filter(x => x !== hall).join(',') || 'none' };
+    morale: last?.morale, townBuilt: before.town.filter(x => x !== hall).join(',') || 'none', walls: before.walls, gates: before.gates,
+    brought, attackerUnits: kinds[A], defenderUnits: kinds[B], campBuilt: [...campBuilt].join(',') };
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('soak_war.mjs')) {

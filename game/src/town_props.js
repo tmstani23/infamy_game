@@ -233,12 +233,18 @@ export function townPlots(towns) {
   return out;
 }
 
-// how many of your units shelter in a town's stockade (entities plus sleeping workers), for the hover card and the badge
-export function garrisonCount(frontier, entities, s) {
-  let n = Object.values(entities || {}).filter(e => e.garrison?.town === s.id && !e.garrison.hall).length;
-  for (const w of s.workers || []) if (w.garrison && !entities?.[w.entity]) n++;
+// how many of your units are in a town's stockades, or in one of them (b): entities plus sleeping workers, for the
+// hover card, the garrison card and the badge. Troops holding a house do not count. (Mirrors sim/frontier/garrison.js.)
+export const stockadeKey = (s, b) => `t|${s.id}|${(b.cells?.length ? b.cells : [b.cell])[0]}`;
+export const inStockade = (e, s, b = null) => { const g = e?.garrison; if (!g || g.hall || g.town !== s.id || e.dead) return false; return g.zone ? !!g.fort && (!b || g.key === stockadeKey(s, b)) : !b || g.building === b.id; };
+export function garrisonCount(frontier, entities, s, b = null) {
+  const first = (s.buildings || []).find(x => x.type === 'stockade' && x.stage === 'built')?.id;
+  let n = Object.values(entities || {}).filter(e => inStockade(e, s, b)).length;
+  for (const w of s.workers || []) if (w.garrison && !entities?.[w.entity] && (!b || (w.garrisonIn ?? first) === b.id)) n++;
   return n;
 }
+// full health of a town's stockade (buildings.stockade.garrison.hpByTier, by town hall tier)
+export const stockadeMax = (data, s) => { const G = data?.buildings?.stockade?.garrison, t = G?.hpByTier; return (t?.length ? t[Math.min(t.length, Math.max(1, s?.tier || 1)) - 1] : 0) || G?.hp || 0; };
 const nice = t => (t || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 // { title, lines } for a plot, read from the live snapshot so numbers stay current.
 // a rival town's building (F6 war): what it is; at the hall, its stores and people once one of your units
@@ -299,7 +305,7 @@ export function plotInfo(frontier, plot, data, entities = null, clan = null) {
     if (t.housing) lines.push(`Houses ${t.housing} people`);
     if (t.output) lines.push(`Makes ${Object.keys(t.output).join(', ')}`);
     if (!lines.length) lines.push(nice(b.type));
-    if (b.type === 'stockade' && b.stage === 'built' && entities && data?.buildings?.stockade?.garrison) lines.push(`Garrison ${garrisonCount(frontier, entities, s)} / ${data.buildings.stockade.garrison.capacity}`);
+    if (b.type === 'stockade' && b.stage === 'built' && entities && data?.buildings?.stockade?.garrison) lines.push(`Garrison ${garrisonCount(frontier, entities, s, b)} / ${data.buildings.stockade.garrison.capacity}`);
     lines.push(s.name);
   }
   return { title: nice(b.type), lines: [...lines, b.type === 'stockade' && b.stage === 'built' ? 'Right-click: send selected crew in (none selected: your hero goes in)' : 'Right-click: open the town panel'] };

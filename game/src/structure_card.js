@@ -42,8 +42,11 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   const wars = () => Object.values(game.state.frontier?.wars?.list || {});
   // structures you may look at: your own towns, and the town or camp of a war you are in
   function visible() { return ST()?.list?.() || []; }   // Tim 2026-11-12: any building, yours or the enemy's
-  const inside = st => Object.values(game.state.entities || {}).filter(e => !e.dead && (e.garrison?.zone ? e.garrison.key === st.key : st.type === 'stockade' && e.garrison?.town === st.town && !e.garrison.hall)).length;
-  const zoneOk = st => (Z().types || []).includes(st.type) && (st.kind === 'zone' || st.kind === 'building');
+  const inside = st => Object.values(game.state.entities || {}).filter(e => !e.dead && !!e.garrison && !e.garrison.hall && (e.garrison.key === st.key || (st.b && !e.garrison.zone && e.garrison.town === st.town && e.garrison.building === st.b.id))).length;
+  // troops go in from this card: houses, workshops and farmhouses, and a war camp's stockade (a town stockade has its own garrison card)
+  const campFort = st => !!st.war && st.kind === 'building' && st.type === 'stockade' && !!frontierData?.buildings?.stockade?.garrison;
+  const zoneOk = st => ((Z().types || []).includes(st.type) && (st.kind === 'zone' || st.kind === 'building')) || campFort(st);
+  const capOf = st => st.type === 'stockade' ? frontierData?.buildings?.stockade?.garrison?.capacity ?? 0 : Z().capacity ?? 10;
   function at(x, y) {
     if (!onIsland()) return null;
     let best = null, bd = Infinity;
@@ -110,19 +113,19 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     const st = findAny(key);
     if (!st) { close(); return; }
     if (st.site) return drawSite(st);
-    const hp = Math.ceil(ST().hpOf(st)), n = inside(st), own = st.owner === owner(), canG = own && zoneOk(st), cap = Z().capacity ?? 10;
+    const hp = Math.ceil(ST().hpOf(st)), n = inside(st), own = st.owner === owner(), canG = own && zoneOk(st), cap = capOf(st);
     const up = st.war && st.b?.upgrade ? buildInfo({ ...st, job: st.b.upgrade, id: st.b.id, workers: (wars().find(w => w.id === st.war)?.camp?.workers) || [] }) : null;   // the camp hall upgrade
     const stat = status(st, hp), next = [key, hp, n, troopsSelected().length, stat, up?.pct, up?.text].join('|'); if (next === sig) return; sig = next;
     const { frac, color } = healthBar(hp, st.max), town = st.town ? game.state.frontier?.settlements?.[st.town] : null;
     const atWar = st.town ? wars().some(w => w.town === st.town) : true;
     const sub = st.war ? (own ? 'Your war camp' : 'Enemy war camp') : own ? (town?.name || 'Your town') : `${town?.name || 'Enemy town'}${atWar ? ', at war' : ''}`;
-    const hint = own ? (st.war ? 'Right-click it for its menu.' : st.type === 'stockade' ? 'Right-click it for its garrison card. Ctrl + right-click with crew selected sends them in.' : 'Right-click it for the town panel.') : atWar ? 'Right-click it with troops selected to attack it.' : '';
+    const hint = own ? (st.war ? 'Right-click it for its menu.' : st.type === 'stockade' ? 'Right-click it for its garrison card. Ctrl + right-click with crew or troops selected sends them in. In a war, ranged units inside shoot out.' : 'Right-click it for the town panel.') : atWar ? 'Right-click it with troops selected to attack it.' : '';
     root.innerHTML = `<button class="x" data-x="1">Esc</button><div class="sub">${esc(sub)}</div><h1>${esc(nice(st.type))}</h1>
       <div class="bar" title="Health ${hp} of ${st.max}"><i style="width:${Math.round(frac * 100)}%;background:rgb(${color.map(c => Math.round(c * 255)).join(',')})"></i></div>
       <div class="stat">${esc(stat)}</div>
       ${up ? `<div class="bar build" title="${up.pct}% upgraded"><i style="width:${up.pct}%"></i></div><div class="dim" style="margin:4px 0 2px"${up.tip ? ` title="${esc(up.tip)}"` : ''}>${esc(up.text)}</div>` : ''}
       <div class="row"><span class="dim">Health ${hp} of ${st.max}</span><span title="${esc(zoneOk(st) || st.type === 'stockade' ? 'Troops inside' : 'Nobody can garrison this')}"><span class="gar">${n}</span>${canG ? `<span class="dim"> of ${cap}</span>` : ''}</span></div>
-      ${canG ? `<div class="row"><button data-in="1"${troopsSelected().length ? '' : ' disabled'} title="Your selected troops walk over and go in. Melee troops inside cannot fight; ranged troops shoot out. Hits on them go to the building.">Garrison selected</button><button data-out="1"${n ? '' : ' disabled'}>Send all out</button></div>
+      ${canG ? `<div class="row"><button data-in="1"${troopsSelected().length ? '' : ' disabled'} title="Your selected troops walk over and go in. Melee troops inside cannot fight; ranged troops shoot out. Hits on them go to the building.${st.type === 'stockade' ? ' Troops inside a stockade recover faster.' : ''}">Garrison selected</button><button data-out="1"${n ? '' : ' disabled'}>Send all out</button></div>
         <div class="dim" style="margin-top:6px">Ctrl + right-click it with troops selected to send them in.</div>` : ''}${hint ? `<div class="dim" style="margin-top:6px">${esc(hint)}</div>` : ''}`;
     root.hidden = false;
   }

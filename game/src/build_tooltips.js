@@ -26,7 +26,7 @@ export const BUILD_DETAILS={
   hidden_dojo:['Military: trains kunoichi while a war is on this town.',''],
   foundry:['Military: builds siege weapons and the Gatling gun while a war is on this town.',''],
   armory:['Military: blade and rifle upgrades (later).','Counts on the town morale bar in a war.'],
-  stockade:['A 4-cell fort: shelter up to 40 of your units inside (town panel).','Hits on units inside land on the stockade; if it breaks, everyone piles out and the governor rebuilds it.'],
+  stockade:['A fortress, very hard to break: up to 40 of your units shelter inside, war troops too. In a war, ranged units inside shoot out.','Hits on units inside land on the stockade; if it breaks, everyone piles out and the governor rebuilds it. A Village has one, a Town up to three, and a Town stockade is tougher.'],
   stable:['Raise horses by hand on its production bar (Calico or Black Beauty, paid in food and goods); pick which one is your mount there. H on the island rides her, at 3.75x run speed.','Right-click one of your horses on the island to ride her.'],
   station:['Railway station: lay track from here to another of your towns or the capital (Town tier 2+); each open line gets a steam train.','Space at it: lay track, see when trains come in, and board a train while it stands here (it waits about a minute; the prompt shows when it leaves).'],
   infirmary:['Your units nearby heal 3x faster.','Anyone knocked out on the island comes round at the nearest town\'s infirmary at full health (at its hall, at low health, without one).']

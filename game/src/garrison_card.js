@@ -2,7 +2,7 @@
 // (data.buildings.<type>.garrison, today the stockade) to see who is inside and the empty slots.
 // Generic: later garrisonable buildings (town hall, war-update houses) only need garrison data.
 // Reads the snapshot; leaving goes through the same frontier 'garrison' command as the town panel.
-import { garrisonCount } from './town_props.js';
+import { garrisonCount, inStockade, stockadeMax } from './town_props.js';
 import { healthBar } from './render/health.js';
 import { portrait } from './portraits.js';
 import { entityName } from './selection_panel.js';
@@ -35,12 +35,14 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
   const rulesOf = type => frontierData?.buildings?.[type]?.garrison || null;
   const css = c => `rgb(${c.map(v => Math.round(v)).join(',')})`;
 
-  // everyone inside the town's garrison: entities plus resting workers with no entity right now
-  function members(s) {
-    const out = Object.values(game.state.entities).filter(e => e.garrison?.town === s.id && !e.garrison.hall).map(e => ({ id: e.id, e }));
-    for (const w of s.workers || []) if (w.garrison && !game.state.entities[w.entity]) out.push({ id: 'w:' + w.id, rest: true });
+  // everyone inside this stockade: entities (troops included) plus resting workers with no entity right now
+  function members(s, b) {
+    const out = Object.values(game.state.entities).filter(e => inStockade(e, s, b)).map(e => ({ id: e.id, e }));
+    const first = (s.buildings || []).find(x => x.type === 'stockade' && x.stage === 'built')?.id;
+    for (const w of s.workers || []) if (w.garrison && !game.state.entities[w.entity] && (w.garrisonIn ?? first) === b.id) out.push({ id: 'w:' + w.id, rest: true });
     return out;
   }
+  const maxOf = (s, b, R) => b.type === 'stockade' ? stockadeMax(frontierData, s) : R.hp || 0;
   const isGarrisonable = (s, b) => !!(s && b && b.stage === 'built' && rulesOf(b.type) && !s.capital);
 
   function open(townId, buildingId) { site = { town: townId, building: buildingId }; page = 0; sig = ''; render(); }
@@ -50,16 +52,16 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
     if (!site) return;
     const fr = game.state.frontier, s = fr?.settlements?.[site.town], b = s?.buildings?.find(x => x.id === site.building);
     if (!isGarrisonable(s, b) || game.state.entities[heroId]?.place !== 'world') { close(); return; }
-    const R = rulesOf(b.type), cap = R.capacity || 0, mem = members(s);
+    const R = rulesOf(b.type), cap = R.capacity || 0, mem = members(s, b), max = maxOf(s, b, R);
     const pages = Math.max(1, Math.ceil(cap / PER_PAGE)); page = Math.min(page, pages - 1);
     // rebuild the grid only when who is inside, the page or the capacity changes; health just updates in place,
     // so the native tooltip under the cursor is not destroyed every time someone heals (Tim 2026-11-10)
     const key = [site.town, site.building, page, cap, ...mem.map(m => m.id)].join();
     root.hidden = false;
-    const hp = b.hp ?? R.hp;
-    if (key === sig) { updateInPlace(mem, R, hp); return; }
+    const hp = b.hp ?? max;
+    if (key === sig) { updateInPlace(mem, R, hp, max); return; }
     sig = key;
-    const hpLine = R.hp ? `<div class="bh" style="margin-top:6px"${tip(`Hits on units inside land on the building instead. If it breaks, everyone inside piles out and the governor rebuilds it.`)}><span>Health ${Math.round(hp)} / ${R.hp}</span></div><div class="bar"><i class="bhi" style="width:${100 * Math.min(1, hp / R.hp)}%;background:#7fa66a"></i></div>` : '';
+    const hpLine = max ? `<div class="bh" style="margin-top:6px"${tip(`Hits on units inside land on the building instead. If it breaks, everyone inside piles out and the governor rebuilds it. In a war, ranged units inside shoot out; melee units inside cannot fight.`)}><span>Health ${Math.round(hp)} / ${max}</span></div><div class="bar"><i class="bhi" style="width:${100 * Math.min(1, hp / max)}%;background:#7fa66a"></i></div>` : '';
     let slots = '';
     for (let i = page * PER_PAGE; i < Math.min(cap, (page + 1) * PER_PAGE); i++) {
       const m = mem[i];
@@ -75,10 +77,10 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
       <div class="row"><span class="dim"${tip(`Units must stand within ${R.range ?? ''} of the building to go in.`)}>Send in</span><span><button data-act="in-sel"${tip('Send your selected units inside')}>Selected</button> <button data-act="in-crew"${tip('Send your hero and crew inside')}>Hero and crew</button></span></div>
       <div class="row"><span class="dim"${tip(`Units inside heal ${R.healFactor ?? 1}x faster and cannot be attacked.`)}>Heal ${R.healFactor ?? 1}x inside</span><span>${pages > 1 ? `<button data-act="prev"${page ? '' : ' disabled'}>Prev</button> <button data-act="next"${page < pages - 1 ? '' : ' disabled'}>Next</button> ` : ''}<button data-act="out"${mem.length ? '' : ' disabled'}${tip('Everyone inside walks out (Shift+K)')}>Evacuate</button></span></div>`;
   }
-  function updateInPlace(mem, R, hp) {
+  function updateInPlace(mem, R, hp, max) {
     const bt = root.querySelector('.bh span'), bi = root.querySelector('.bhi');
-    if (bt) { const t = `Health ${Math.round(hp)} / ${R.hp}`; if (bt.textContent !== t) bt.textContent = t; }
-    if (bi) bi.style.width = `${100 * Math.min(1, hp / R.hp)}%`;
+    if (bt) { const t = `Health ${Math.round(hp)} / ${max}`; if (bt.textContent !== t) bt.textContent = t; }
+    if (bi) bi.style.width = `${100 * Math.min(1, hp / (max || 1))}%`;
     for (const m of mem) {
       if (!m.e) continue;
       const el = root.querySelector(`.s[data-id="${m.id}"]`); if (!el) continue;
@@ -103,10 +105,10 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
     else if (a === 'in-sel' || a === 'in-crew') {   // Tim 2026-11-11: moved here from the Governor tab
       const mine = game.state.entities[heroId]?.owner;
       const ids = a === 'in-sel' ? selected() : Object.values(game.state.entities).filter(u => u.owner === mine && !u.garrison && u.place === 'world' && !u.worker && u.type !== 'civilian').map(u => u.id);
-      if (ids.length) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: site.town, units: ids });
+      if (ids.length) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: site.town, building: site.building, units: ids });
     }
-    else if (a === 'out') send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town });
-    else if (slot) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town, units: [slot.dataset.id] });   // click a unit: it walks out (Tim 2026-11-10)
+    else if (a === 'out') send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town, building: site.building });
+    else if (slot) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town, building: site.building, units: [slot.dataset.id] });   // click a unit: it walks out (Tim 2026-11-10)
     sig = ''; render();
   });
   setInterval(render, 250);

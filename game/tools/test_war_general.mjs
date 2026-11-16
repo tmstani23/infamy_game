@@ -123,7 +123,7 @@ function scene(seed = 47, tune = null) {
 }
 // ---- 8d-2: a bot town builds its defences in peace, then trains, meets attackers, mends and sorties --------------
 {
-  const t = scene(47, f => { f.war.town.musterSeconds = 5; f.war.general.buildSeconds = 5; }), { S, g } = t, G = g.frontier.warGeneral;
+  const t = scene(47, f => { f.war.town.musterSeconds = 5; f.war.general.buildSeconds = 5; f.war.general.sallyEdge = 99; }), { S, g } = t, G = g.frontier.warGeneral;
   const rival = t.rivals[0], town = S.frontier.settlements.tR, rules = G.rules();
   const want = rules.strategies[G.strategyOf(rival)].defend;
   const built = type => town.buildings.filter(b => b.type === type && b.stage === 'built').length;
@@ -141,7 +141,8 @@ function scene(seed = 47, tune = null) {
   n = 0;
   while (mine().length < 4 && n++ < 60) t.run(100);
   assert.ok(mine().length >= 4, `the town trained troops (${mine().length})`);
-  assert.ok(mine().every(e => e.warUnit && want.mix[e.warUnit] > 0), 'only units of its mix, none from the stand-in defender');
+  const inMix = u => want.mix[u] > 0 || Object.entries(rules.roles || {}).some(([r, at]) => want.mix[r] > 0 && (t.o.frontier.war.units[u]?.at || []).some(b => at.includes(b)));
+  assert.ok(mine().every(e => e.warUnit && inMix(e.warUnit)), 'only units of its mix, none from the stand-in defender');
   assert.ok(w.defense.put > 0 && w.defense.chest >= 0);
   // with nobody near they wait by the hall, toward the camp
   t.run(400);
@@ -162,6 +163,28 @@ function scene(seed = 47, tune = null) {
     assert.ok(town.workers.some(x => x.job?.key === st.key), 'workers mend the barracks');
   } else console.log('  (no town workers in this scene: mend not checked)');
   for (const e of foe) e.hp = 0, e.dead = true;
+  // 8d-8 a sally: the army is worth sallyEdge times the attacker's troops it sees, so it goes for the camp below sortieAt
+  const brainR = t.bots.find(b => b.config.clan === rival), free = () => mine().filter(e => !e.garrison && !e.order?.garrisonKey && !e.downed);
+  t.run(200);
+  assert.equal(brainR.view().wars[w.id].defender.mode, 'hold', 'not strong enough by the old rule, and no sally at edge 99');
+  assert.ok(free().length >= 4 && free().length < want.sortieAt, `a small army (${free().length} of ${want.sortieAt})`);
+  const strongGuard = [0, 1, 2, 3, 4, 5, 6, 7].map(i => S.entities[g.frontier.war.spawnTroop(w, 'enforcer', w.x + i * 2, w.z - 30, 'player')]);
+  for (const e of strongGuard) e.order = { kind: 'station', x: e.x, z: e.z };
+  g.frontier.data.war.general.sallyEdge = 1.5;
+  t.run(120);
+  assert.equal(brainR.view().wars[w.id].defender.mode, 'hold', 'the camp guard is a match for it: still no sally');
+  const guard = Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === 'player' && !e.dead);
+  for (const e of guard.slice(1)) e.hp = 0, e.dead = true;   // one of the camp guard is left
+  t.run(120);
+  assert.equal(brainR.view().wars[w.id].defender.mode, 'sortie', 'the stronger town sallies');
+  assert.ok(free().some(e => (e.order?.kind === 'raze' && String(e.order.structure).startsWith(`c|${w.id}|`)) || (e.order?.kind === 'attackmove' && Math.hypot(e.order.x - w.x, e.order.z - w.z) < 200)), 'at the war camp (a building, or the workers mending by it)');
+  // the attacker grows past it: the army comes home and rests
+  const big = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => S.entities[g.frontier.war.spawnTroop(w, 'enforcer', w.x + i * 2, w.z - 30, 'player')]);
+  for (const e of big) e.order = { kind: 'station', x: e.x, z: e.z };
+  t.run(120);
+  assert.notEqual(brainR.view().wars[w.id].defender.mode, 'sortie', 'outmatched: no sally');
+  assert.ok(brainR.view().wars[w.id].defender.rest > S.tick, 'and a rest before the next');
+  for (const e of big) e.hp = 0, e.dead = true;
   console.log('ok bot defence');
 }
 
@@ -246,5 +269,134 @@ function scene(seed = 47, tune = null) {
   const left = [...tP.grid.zone].map((c, i) => c === 'm' ? i : -1).filter(i => i >= 0);
   assert.equal(t.cmd({ action: 'remove', town: 'tP', cells: left }).ok, true); assert.equal(count(tP), 0, 'erased');
   console.log('ok military zone');
+}
+// ---- 8d-8: walls by strategy, the pack by the target's tier, clan specials, the camp digs in -----------------------
+{
+  // a bot town walls itself in peace: Siege all round, Raider one side, Rush not at all; gates first, nothing trapped
+  const count = (s, ch) => [...s.grid.use].filter(c => c === ch).length, got = {};
+  for (const k of ['siege', 'raider', 'rush']) {
+    const t = scene(47, f => { f.war.general.buildSeconds = 5; }), tR = t.S.frontier.settlements.tR;
+    t.S.clans[t.rivals[0]].warStrategy = k;
+    let n = 0; while (!tR.buildings.some(b => b.type === 'barracks' && b.stage === 'built') && n++ < 400) t.run(100);
+    assert.equal(count(tR, 'w'), 0, 'no wall before the first military building');   // the barracks was just finished
+    t.run(1200);
+    got[k] = [count(tR, 'w'), count(tR, 'g')];
+    const P = t.g.frontier.modules.find(x => x.name === 'placement').placement;
+    assert.equal(P.trapped(tR).size, 0, `${k}: nothing in the town is walled in`);
+    assert.equal(count(t.S.frontier.settlements.tP, 'w'), 0, "the player's town is never walled for him");
+    if (k === 'siege') {
+      const brain = t.bots.find(b => b.config.clan === t.rivals[0]);
+      assert.ok(brain.view().walls.tR, 'a finished wall is remembered');
+      const was = got[k][0]; t.run(600); assert.equal(count(tR, 'w'), was, 'and left alone');
+    }
+  }
+  assert.ok(got.siege[0] >= 40 && got.siege[1] >= 2, `Siege rings the town: ${got.siege}`);
+  assert.ok(got.raider[0] >= 10 && got.raider[0] <= got.siege[0] * 0.75 && got.raider[1] >= 1, `Raider walls one side: ${got.raider}`);
+  assert.deepEqual(got.rush, [0, 0], 'Rush builds none');
+  console.log('ok walls', JSON.stringify(got));
+}
+{
+  // the pack follows the target's tier; a launch town that cannot pay it starts nothing
+  const tune = f => { const G = f.war.general; f.war.town.musterSeconds = 5; G.launchTownDays = 0.5; G.attack.planSeconds = 5;
+    G.attack.packByTier[1] = { ryo: 2400, timber: 800, stone: 400 }; G.attack.fortify.afterSeconds = 60; G.attack.fortify.build = ['watchtower'];
+    G.strategies.rush.attack.build = ['barracks', 'rifle_range', 'clan_hall']; G.strategies.rush.attack.mix = { grunt: 1, special: 3 }; G.strategies.rush.attack.pushAt = 30; };
+  const set = t => { const rival = t.rivals[0], tR = t.S.frontier.settlements.tR, tP = t.S.frontier.settlements.tP;
+    t.S.clans[rival].warStrategy = 'rush'; tP.tier = 2; tR.founded = -6000 - 1; t.hero.x = tP.x + 1500;
+    const rh = Object.values(t.S.entities).find(e => e.type === 'hero' && e.owner === rival); Object.assign(rh, { place: 'world', x: tR.x + 30, z: tR.z });
+    return { rival, tR, tP, brain: t.bots.find(b => b.config.clan === rival) }; };
+  { const t = scene(47, tune), x = set(t); x.tR.stock.ryo = 2500; t.run(400);
+    assert.equal(x.brain.view().plan, null, 'cannot pay the pack for a Village and keep its share: no war'); }
+  const t = scene(47, tune), { S, g } = t, { rival, tR, brain } = set(t), War = g.frontier.war;
+  t.run(400);
+  assert.equal(brain.view().plan?.town, 'tP');
+  assert.deepEqual([S.clans[rival].warPack.ryo, S.clans[rival].warPack.timber, S.clans[rival].warPack.stone], [2400, 800, 400], 'the pack for a tier 2 town');
+  let n = 0;
+  while (!War.warOn('tP') && n++ < 30) t.run(1000);
+  const w = War.warOn('tP');
+  assert.ok(w && w.attacker === rival, 'the banner is planted');
+  assert.equal(w.camp.brought?.ryo ?? w.camp.chest, 2400);
+  // clan specials: the camp works up to its clan hall and trains what its clan trains there (a role in the mix)
+  const units = t.o.frontier.war.units, special = () => Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === rival && units[e.warUnit]?.special);
+  n = 0;
+  while (!special().length && War.warOn('tP') && n++ < 40) t.run(200);
+  assert.ok(w.camp.buildings.some(b => b.type === 'clan_hall' && b.stage === 'built'), 'the camp built its clan hall');
+  assert.ok(special().length >= 1, `a clan special was trained (${special().map(e => e.warUnit)})`);
+  assert.ok(special().every(e => units[e.warUnit].clan === S.clans[rival].faction));
+  const all = Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === rival && !e.dead);
+  assert.ok(all.some(e => e.warUnit === 'grunt'), 'the barracks keeps training beside it');
+  // dug in: after fortify.afterSeconds the camp puts up a watchtower (not on the Rush list) and a palisade line
+  n = 0;
+  while (!(w.camp.buildings.some(b => b.type === 'watchtower') && w.camp.buildings.some(b => b.type === 'palisade')) && War.warOn('tP') && n++ < 40) t.run(200);
+  assert.equal(brain.view().wars[w.id].attacker.fort, true, 'the camp digs in when the fight draws out');
+  assert.ok(w.camp.buildings.some(b => b.type === 'watchtower'), 'a watchtower'); assert.ok(w.camp.buildings.some(b => b.type === 'palisade'), 'and a palisade');
+  console.log('ok pack by tier, specials, dug in');
+}
+// ---- 8d-9: the stockade as a fortress (Tim 2026-11-16): generals build it, ranged troops hold it and shoot out ----
+{
+  const F0 = frontierData(), ST = F0.war.general.strategies, cnt = l => (l || []).filter(x => x === 'stockade').length;
+  assert.deepEqual(['siege', 'raider', 'rush'].map(k => cnt(ST[k].defend.build)), [3, 1, 0], 'Siege every stockade, Raider one, Rush none');
+  assert.equal(cnt(ST.siege.attack.build), 1, 'a Siege camp builds one'); assert.equal(cnt(F0.war.general.attack.fortify.build), 1, 'and a camp that digs in');
+  const tune = f => { const G = f.war.general; f.war.town.musterSeconds = 5; G.buildSeconds = 5; G.sallyEdge = 99; G.strategies.siege.defend.build = ['barracks', 'rifle_range', 'stockade', 'stockade', 'stockade', 'stockade']; G.strategies.siege.defend.wall = { share: 0 };
+    G.strategies.siege.defend.mix = { archer: 3, grunt: 1 }; };
+  const forts = s => s.buildings.filter(b => b.type === 'stockade' && b.stage === 'built').length, under = s => [...s.buildings, ...(s.projects || [])].filter(b => b.type === 'stockade').length;
+  // a Village gets one, a Town three
+  { const t = scene(47, tune), tR = t.S.frontier.settlements.tR; t.S.clans[t.rivals[0]].warStrategy = 'siege'; tR.tier = 2;
+    let n = 0; while (!forts(tR) && n++ < 400) t.run(100);
+    t.run(1500);
+    assert.equal(under(tR), 1, 'a Village has one stockade'); }
+  const t = scene(47, tune), { S, g } = t, rival = t.rivals[0], tR = S.frontier.settlements.tR;
+  S.clans[rival].warStrategy = 'siege'; tR.tier = 3;
+  let n = 0; while (forts(tR) < 3 && n++ < 600) t.run(100);
+  assert.equal(forts(tR), 3, `a Siege Town builds three stockades (${n * 100} ticks)`);
+  assert.equal(S.frontier.settlements.tP.buildings.some(b => b.type === 'stockade'), false, "none in the player's town");
+  // war: the ranged troops go into a stockade (not a house) and shoot at attackers from it
+  assert.equal(t.cmd({ action: 'devStartWar', town: 'tR', side: 'attack' }).ok, true);
+  const w = g.frontier.war.warOn('tR'), SX = g.frontier.structures;
+  const fort = SX.list().filter(x => x.town === 'tR' && x.type === 'stockade');
+  assert.equal(fort.length, 3); assert.ok(fort.every(x => x.max === 60000), 'a Town stockade has 60,000 health');
+  const mine = () => Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === rival && !e.dead && e.type !== 'horse');
+  const held = () => mine().filter(e => e.garrison?.zone);
+  n = 0; while (held().length < 2 && n++ < 80) t.run(100);
+  assert.ok(held().length >= 2, `ranged troops went inside (${held().length})`);
+  assert.ok(held().every(e => e.garrison.fort && fort.some(x => x.key === e.garrison.key)), 'into a stockade, before any house');
+  assert.ok(held().every(e => e.garrison.heal > 1), 'they recover faster inside');
+  const st = fort.find(x => x.key === held()[0].garrison.key);
+  const foe = S.entities[g.frontier.war.spawnTroop(w, 'grunt', st.x + 12, st.z, 'player')];   // by its wall foe.maxHp = foe.hp = 50000; foe.order = { kind: 'station', x: foe.x, z: foe.z };
+  let shot = false; for (let i = 0; i < 200 && !shot; i++) { foe.x = st.x + 12; foe.z = st.z; t.run(1); shot = (S.projectiles || []).some(p => p.garrison && S.entities[p.a]?.garrison?.key === st.key); }
+  assert.ok(shot, 'they shoot out of the stockade');
+  // a hit on a troop inside lands on the stockade
+  const before = SX.hpOf(st); g.frontier.garrison.shelter(held().find(e => e.garrison.key === st.key), 500, foe);
+  assert.equal(SX.hpOf(st), before - 500, 'the stockade takes the hit');
+  // the stockade falls: everyone inside piles out
+  SX.damage('player', st, 1e6, 'test');
+  assert.ok(mine().every(e => e.garrison?.key !== st.key), 'a fallen stockade lets everyone out');
+  foe.hp = 0; foe.dead = true;
+  console.log('ok stockade: towns');
+}
+{
+  // a war camp builds the stockade; the ranged troops of the camp hold it and come out for the push
+  const tune = f => { const G = f.war.general; f.war.town.musterSeconds = 5; G.launchTownDays = 0.5; G.attack.planSeconds = 5; G.attack.fortify.afterSeconds = 1e6;
+    G.strategies.siege.attack.build = ['barracks', 'rifle_range', 'stockade']; G.strategies.siege.attack.mix = { archer: 3, grunt: 1 }; G.strategies.siege.attack.pushAt = 40; G.strategies.siege.attack.palisade = null; };
+  const t = scene(47, tune), { S, g } = t, rival = t.rivals[0], tR = S.frontier.settlements.tR, tP = S.frontier.settlements.tP, War = g.frontier.war;
+  S.clans[rival].warStrategy = 'siege'; tR.founded = -6000 - 1; t.hero.x = tP.x + 1500;
+  const rh = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === rival); Object.assign(rh, { place: 'world', x: tR.x + 30, z: tR.z });
+  let n = 0; while (!War.warOn('tP') && n++ < 40) t.run(1000);
+  const w = War.warOn('tP'); assert.ok(w && w.attacker === rival, 'the banner is planted');
+  w.camp.chest = (w.camp.chest || 0) + 6000; w.camp.stock.timber = (w.camp.stock.timber || 0) + 3000; w.camp.stock.stone = (w.camp.stock.stone || 0) + 2000;   // enough for the whole list
+  const fortB = () => w.camp.buildings.find(b => b.type === 'stockade' && b.stage === 'built');
+  n = 0; while (!fortB() && War.warOn('tP') && n++ < 80) t.run(200);
+  assert.ok(fortB(), 'the camp built a stockade');
+  const st = g.frontier.structures.list().find(x => x.camp && x.war === w.id && x.type === 'stockade');
+  assert.equal(st.max, t.o.frontier.war.structures.campStockade[0], 'camp stockade health');
+  const troops = () => Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === rival && !e.dead), brain = t.bots.find(b => b.config.clan === rival);
+  n = 0; let seen = 0; while (!(seen = troops().filter(e => e.garrison?.key === st.key).length) && War.warOn('tP') && n++ < 300) t.run(20);
+  assert.ok(seen >= 1, 'ranged troops of the camp wait inside it');
+  assert.ok(troops().filter(e => e.garrison).every(e => ['archer', 'yumi', 'rifleman', 'teppo'].includes(e.warUnit)), 'only the ranged ones');
+  assert.equal(brain.view().wars[w.id].attacker.mode, 'hold');
+  g.frontier.data.war.general.strategies.siege.attack.pushAt = 3;   // enough for a push now
+  n = 0; while (brain.view().wars[w.id]?.attacker.mode !== 'push' && War.warOn('tP') && n++ < 200) t.run(50);
+  assert.equal(brain.view().wars[w.id].attacker.mode, 'push'); t.run(60);
+  assert.equal(troops().filter(e => e.garrison?.key === st.key && brain.view().wars[w.id].attacker.wave?.includes(e.id)).length, 0, 'they come out for the push');
+  console.log('ok stockade: war camp');
 }
 console.log('test_war_general: all passed');

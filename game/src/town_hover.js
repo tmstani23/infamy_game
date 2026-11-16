@@ -173,27 +173,28 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       const heroGoes = ids.includes(heroId) || !selected().length;
       if (heroGoes && !group.includes(heroId)) group.push(heroId);
       if (heroGoes) for (const u of Object.values(ents)) if (u.owner === owner() && u.order?.kind === 'follow' && u.order.target === heroId && !group.includes(u.id)) group.push(u.id);   // his following crew come too
-      send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: p.town, walk: true, units: group });
+      send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: p.town, building: p.id, walk: true, units: group });
       return;
     }
     openTown(p.town);
   }, { capture: true });
   // the garrison count over each of your stockades, with a click to walk everyone out (and Shift+K does it from anywhere)
   const badges = new Map();
-  function evacuate(town) { send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town }); }
+  function evacuate(town, building) { send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town, ...(building != null ? { building } : {}) }); }
   function evacuateAll() {
     for (const s of drawableTowns(game.state.frontier, owner())) if (garrisonCount(game.state.frontier, game.state.entities, s)) evacuate(s.id);
   }
   setInterval(() => {
     if (!badgeEl) return;
     const want = new Set();
-    if (onIsland()) for (const s of drawableTowns(game.state.frontier, owner())) {
-      const b = s.buildings.find(x => x.type === 'stockade' && x.stage === 'built'), n = b ? garrisonCount(game.state.frontier, game.state.entities, s) : 0;
+    if (onIsland()) for (const s of drawableTowns(game.state.frontier, owner())) for (const b of s.buildings.filter(x => x.type === 'stockade' && x.stage === 'built')) {   // one badge per stockade
+      const n = garrisonCount(game.state.frontier, game.state.entities, s, b);
       if (!n) continue;
       const pl = townPlots([s]).find(q => q.id === b.id); if (!pl) continue;
-      want.add(s.id);
-      let el = badges.get(s.id);
-      if (!el) { el = document.createElement('button'); el.className = 'garrisonbadge'; el.addEventListener('click', ev => { ev.stopPropagation(); evacuate(s.id); }); badgeEl.appendChild(el); badges.set(s.id, el); }
+      const bk = `${s.id}|${b.id}`;
+      want.add(bk);
+      let el = badges.get(bk);
+      if (!el) { el = document.createElement('button'); el.className = 'garrisonbadge'; el.addEventListener('click', ev => { ev.stopPropagation(); evacuate(s.id, b.id); }); badgeEl.appendChild(el); badges.set(bk, el); }
       const u = view.unitToScreen(pl.x, pl.z, 3), cap = frontierData?.buildings?.stockade?.garrison?.capacity;
       el.textContent = `Inside ${n}${cap ? ` / ${cap}` : ''} · Evacuate`; el.title = 'Everyone inside walks out (Shift+K)';
       el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;

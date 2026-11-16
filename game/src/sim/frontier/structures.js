@@ -6,7 +6,8 @@
 //   a grown zone cell (house, workshop)         key 't|<town id>|<cell>'
 //   a built war camp building                   key 'c|<war id>|<building id>'
 // Health is kept only once something is damaged: on the building (b.hp), or in settlement.cellHp[cell]
-// for walls, gates and zone cells. The stockade keeps its own health (buildings.stockade.garrison.hp).
+// for walls, gates and zone cells. The stockade keeps its own health: by town hall tier in a town
+// (buildings.stockade.garrison.hpByTier), by camp hall tier in a war camp (war.structures.campStockade).
 // Only the two sides of a war damage each other's structures: the attacker the town's, the defender the
 // camp's. Nobody else, and nothing outside a war.
 // At 0 health: a building becomes stage 'ruined' (stops working and blocking; a training queue is lost),
@@ -25,6 +26,7 @@
 // createStructures({ state, data, world, war, garrison }) -> { list, find, at, near, pick, canDamage, damage, order, step, tick, viewFor, hpOf, gap, attach }
 import { cellToWorld, setUse, zoneStructureAt, townCellBoxes, campBuildingBoxes, ringRadius } from './town_grid.js';
 import { addCampStock } from './camp_stock.js';
+import { stockadeHp } from './garrison.js';
 
 export function createStructures({ state, data, world, war, garrison = null, workers = null }) {
   const R = () => data.war?.structures || null;
@@ -38,13 +40,14 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // ---- health -----------------------------------------------------------------------------
   function townMax(s, b) {
     const S = R();
-    if (b.type === 'stockade') return data.buildings?.stockade?.garrison?.hp || S.town?.default || 0;
+    if (b.type === 'stockade') return stockadeHp(data, s.tier) || S.town?.default || 0;
     if (b.type === 'town_hall') { const t = S.townHall || []; return t[Math.min(t.length, Math.max(1, s.tier || 1)) - 1] || 0; }
     return S.town?.[b.type] ?? S.town?.default ?? 0;
   }
-  function campMax(b) {
+  function campMax(b, c = null) {
     const S = R();
     if (b.type === 'camp_hall') { const t = S.campHall || []; return t[Math.min(t.length, Math.max(1, b.tier || 1)) - 1] || 0; }
+    if (b.type === 'stockade' && S.campStockade?.length) { const t = S.campStockade, tier = c?.buildings?.find(x => x.type === 'camp_hall')?.tier || 1; return t[Math.min(t.length, Math.max(1, tier)) - 1] || 0; }
     return S.camp?.[b.type] ?? S.camp?.default ?? 0;
   }
   function cellMax(s, i) {
@@ -92,7 +95,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     const list = [];
     for (const b of c.buildings || []) {
       if (b.stage !== 'built' || !Number.isFinite(b.x)) continue;
-      const max = campMax(b); if (!max) continue;
+      const max = campMax(b, c); if (!max) continue;
       const line = b.type === 'palisade' || b.type === 'gate';
       list.push({ key: `c|${w.id}|${b.id}`, kind: line ? b.type === 'gate' ? 'gate' : 'wall' : 'building', type: b.type, war: w.id, owner: w.attacker, b, x: b.x, z: b.z, r: data.war?.buildings?.[b.type]?.radius ?? 8, boxes: campBuildingBoxes(b, data), max, camp: true });
     }
@@ -182,7 +185,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     if (st.b) {
       const b = st.b;
       b.stage = 'ruined'; delete b.hp; delete b.queue; delete b.upgrade;
-      if (st.type === 'stockade' && garrison) garrison.breakOut(st.s, b);
+      if (st.type === 'stockade' && garrison && st.s) garrison.breakOut(st.s, b);   // (a camp stockade holds only troops: breakOutKey below)
       shelterOut(st);
     } else if (st.kind === 'zone') {
       const g = st.s.grid;
@@ -548,10 +551,10 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
     if (now % 2) return;
     for (const u of Object.values(state.entities)) {
-      const g = u.garrison; if (!g?.zone || u.dead || (g.next ?? 0) > now) continue;
+      const g = u.garrison; if (!g || g.hall || !(g.zone || g.building) || u.dead || u.owner == null || (g.next ?? 0) > now) continue;   // a house, or a stockade (8d-9: everyone ranged inside one)
       const unit = rt.unitOf(u); if (!unit?.projectile && !unit?.rifle) continue;
-      const w = war.warOn(g.town); if (!w || w.terms) continue;
-      const foe = u.owner === w.defender ? w.attacker : w.defender, reach = (unit.rifle?.range ?? unit.attackRange ?? 6) + 3;
+      const w = g.war ? war.byId(g.war) : war.warOn(g.town); if (!w || w.terms || (u.owner !== w.defender && u.owner !== w.attacker)) continue;
+      const foe = u.owner === w.defender ? w.attacker : w.defender, reach = (unit.rifle?.range ?? unit.attackRange ?? 6) + 3 + (g.fort || g.building ? data.buildings?.stockade?.garrison?.reach ?? 0 : 0);
       let best = null, bd = reach * reach;
       for (const e of Object.values(state.entities)) {
         if (e.owner !== foe || e.place !== 'world' || e.dead || e.downed || e.jailed || e.garrison || e.aboard || e.hidden || e.type === 'civilian' || e.type === 'horse' || e.guide) continue;

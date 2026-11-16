@@ -16,14 +16,17 @@ ${id} .strat .s i{display:inline-block;margin-top:6px;font-size:9px;letter-spaci
 ${id} .keep{display:flex;align-items:center;gap:8px;margin-top:10px}
 ${id} .keep input{width:54px;background:#0a0c0e;border:1px solid #61543e;border-radius:4px;color:#f6e6bf;font:600 15px system-ui;text-align:right;padding:4px 6px}
 ${id} .gnote{font-size:11px;color:#9aa3a6;margin-top:6px}`;
-const count = list => { const n = {}; for (const t of list || []) n[t] = (n[t] || 0) + 1; return Object.entries(n).map(([t, k]) => `${nice(t)}${k > 1 ? ` ${k}` : ''}`).join(', '); };
+// roles a mix may name (war.general.roles): what the clan trains at its clan hall, kennel or hidden dojo, foundry, stable
+const ROLE = { special: 'clan specials', siege: 'siege guns', rider: 'cavalry' };
+const CLAN_ONLY = { kennel: 'kennel or hidden dojo', hidden_dojo: null };   // one of the two, by clan
+const count = list => { const n = {}; for (const t of list || []) { const k = t in CLAN_ONLY ? CLAN_ONLY[t] : t === 'upgrade' ? 'hall upgrade' : nice(t); if (k) n[k] = (n[k] || 0) + 1; } return Object.entries(n).map(([t, k]) => `${t}${k > 1 ? ` ${k}` : ''}`).join(', '); };
 // the hover of a strategy card, from the data (frontier.json war.general.strategies)
 export function strategyTip(key, rules, camp) {
   const S = rules?.strategies?.[key] || {}, part = camp ? S.attack : S.defend;
   if (!part) return STRATEGY_NAMES[key] || key;
-  const mix = Object.entries(part.mix || {}).map(([u, n]) => `${nice(u)} ${n}`).join(', ');
-  return camp ? `${STRATEGY_NAMES[key]}. Builds in this order: ${count(part.build)}. Hires up to ${part.workers ?? 8} workers. Trains in these shares: ${mix}. Pushes at ${part.pushAt ?? 12} troops, or with what it has when it cannot grow. Goes for ${(part.targets || []).map(t => t === 'military' ? 'military buildings' : t === 'hall' ? 'the hall' : t === 'tower' ? 'watchtowers' : t === 'wall' ? 'walls and gates' : t).join(', then ')}.`
-    : `${STRATEGY_NAMES[key]}. Trains in these shares: ${mix}. Archers and riflemen hold the houses. The army meets attackers near the town and goes for the war camp at ${part.sortieAt ?? 12} troops.`;
+  const mix = Object.entries(part.mix || {}).map(([u, n]) => `${ROLE[u] || nice(u)} ${n}`).join(', ');
+  return camp ? `${STRATEGY_NAMES[key]}. Builds in this order: ${count(part.build)}. Hires up to ${part.workers ?? 8} workers. Trains in these shares: ${mix}. Pushes at ${part.pushAt ?? 12} troops, or with what it has when it cannot grow. Goes for ${(part.targets || []).map(t => t === 'military' ? 'military buildings' : t === 'hall' ? 'the hall' : t === 'tower' ? 'watchtowers' : t === 'wall' ? 'walls and gates' : t).join(', then ')}. Breaks a gate or wall when the town is shut. Digs in with watchtowers, a stockade and a palisade when the fight drags on or goes badly. Archers and riflemen who are not on a push hold the camp stockade.`
+    : `${STRATEGY_NAMES[key]}. Trains in these shares: ${mix}. Archers and riflemen hold the stockades first, then the houses. The army meets attackers near the town and goes for the war camp at ${part.sortieAt ?? 12} troops, or sooner when it is clearly the stronger.`;
 }
 // view = { strategy, rules, camp: bool, town?: { name, ryo, keep (0..1) }, typing?: string }
 export function generalTab(view) {
