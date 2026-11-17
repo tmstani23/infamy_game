@@ -97,7 +97,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       if (b.stage !== 'built' || !Number.isFinite(b.x)) continue;
       const max = campMax(b, c); if (!max) continue;
       const line = b.type === 'palisade' || b.type === 'gate';
-      list.push({ key: `c|${w.id}|${b.id}`, kind: line ? b.type === 'gate' ? 'gate' : 'wall' : 'building', type: b.type, war: w.id, owner: w.attacker, b, x: b.x, z: b.z, r: data.war?.buildings?.[b.type]?.radius ?? 8, boxes: campBuildingBoxes(b, data), max, camp: true });
+      list.push({ key: `c|${w.id}|${b.id}`, kind: line ? b.type === 'gate' ? 'gate' : 'wall' : 'building', type: b.type, war: w.id, owner: w.attacker, b, x: b.x, z: b.z, r: data.war?.buildings?.[b.type]?.radius ?? 8, boxes: b.type === 'rail_section' ? b.hitBoxes || [] : campBuildingBoxes(b, data), max, camp: true });
     }
     campCache.set(c, { sig, list });
     return list;

@@ -94,6 +94,12 @@ assert.equal(secs.length, frontier.war.supply.sections, 'sections made');
 const R0 = frontier.war.circleRadius ?? 900;
 for (const b of secs) assert.ok(Math.hypot(b.x - other.x, b.z - other.z) <= R0 + 1, 'section inside the circle');
 assert.ok(g.frontier.warMorale.view?.(w)?.camp?.weights?.rail_section || frontier.war.morale.weights.rail_section, 'counted on the morale bar');
+// Tim 2026-11-17: short pieces in a row just outside the camp station, hit anywhere along the red
+{ const SP = frontier.war.supply;
+  secs.forEach((b, k) => { assert.equal(b.rail.d0, SP.sectionStart + k * (SP.sectionLength + SP.sectionGap), 'in a row from the station'); assert.equal(Math.round(b.rail.d1 - b.rail.d0), SP.sectionLength, 'short piece'); assert.ok(b.hitBoxes.length >= 5, 'hit boxes along it'); });
+  const sl = g.frontier.structures.list?.().find?.(x => x.b === secs[0]);
+  if (sl) assert.equal(sl.boxes, secs[0].hitBoxes, 'the structure is hit by its red piece');
+  assert.ok(!(S.news || []).some(n => n.kind === 'supplyLineTip'), 'no tip for a bot defender'); }
 // ryo on its way when the line is cut goes back to the treasury; orders into the camp stop
 clan.ryo = 5000; g.frontier.world.syncCapital();
 g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'ryo', from: 'treasury', into: 'chest', war: 'w1', amount: 400 }]);
@@ -101,20 +107,44 @@ const oc2 = Object.values(F.shipping.orders).find(x => x.kind === 'ryo' && x.sta
 assert.ok(oc2, clan.notice?.text);
 assert.equal(clan.ryo, 4600);
 const stn = w.camp.buildings.find(b => b.type === 'camp_station');
-stn.stage = 'ruined'; secs[0].stage = 'ruined'; secs[1].stage = 'ruined';
+stn.stage = 'ruined';
 run(20 * 5);
-assert.ok(!l.closed, 'still open while one section stands');
-secs[2].stage = 'ruined';
-run(20 * 5);
-assert.ok(l.closed && l.cutBy === 'war', 'cut off');
+assert.ok(l.closed && l.cutBy === 'war', 'the station down cuts it off (Tim 2026-11-17: any break)');
 assert.equal(w.camp.station.cut, true);
 assert.match(clan.notice?.text || '', /cut off/i);
 assert.equal(oc2.state, 'cancelled', 'order into the cut camp stopped');
 assert.equal(clan.ryo, 5000, 'ryo back to the treasury');
-// mended: open again
-for (const b of [stn, ...secs]) b.stage = 'built';
+// rebuilt in place from the station menu (Tim 2026-11-17); a ruined station or section cannot be erased
+assert.equal(g.frontier.war.campEraseCheck('w1', stn.id).ok, false, 'a ruined station is not erased');
+w.camp.stock.timber = 1000; w.camp.stock.stone = 1000;
+g.step([{ id: hero.id, type: 'frontier', action: 'campRebuild', war: 'w1', building: stn.id }]);
+assert.equal(stn.stage, 'site', 'the station is a site again');
+assert.ok(stn.rebuild && stn.need > 0);
+assert.equal(w.camp.stock.timber, 1000 - frontier.war.buildings.camp_station.cost.timber, 'paid from the camp stores');
+g.step([{ id: hero.id, type: 'frontier', action: 'campCancel', war: 'w1', building: stn.id }]);
+assert.equal(stn.stage, 'ruined', 'cancel: back to the ruin');
+assert.equal(w.camp.stock.timber, 1000, 'cancel before work: refunded');
+g.step([{ id: hero.id, type: 'frontier', action: 'campRebuild', war: 'w1', building: stn.id }]);
+stn.progress = stn.need - 1;   // the camp workers finish it (workers.js turns a finished site to built)
+stn.stage = 'built'; delete stn.progress; delete stn.need; delete stn.rebuild;
+secs[1].stage = 'ruined';
 run(20 * 5);
-assert.ok(!l.closed, 'open again');
+assert.ok(l.closed, 'still cut while one section is down');
+assert.equal(g.frontier.war.campEraseCheck('w1', secs[1].id).ok, false, 'a section is not erased');
+g.step([{ id: hero.id, type: 'frontier', action: 'campRebuild', war: 'w1', building: secs[1].id }]);
+assert.equal(secs[1].stage, 'site');
+assert.equal(w.camp.stock.timber, 1000 - frontier.war.buildings.camp_station.cost.timber - frontier.war.supply.sectionCost.timber, 'section cost');
+secs[1].stage = 'built';
+run(20 * 5);
+assert.ok(!l.closed, 'open again once all stand');
+// camp ruins take no building slot; building over one says to erase it
+{ const bk = { id: 'w1:bk', type: 'barracks', stage: 'ruined', x: cx - 30, z: cz };
+  w.camp.buildings.push(bk);
+  const e = g.frontier.war.campBuildList('w1').find(x => x.type === 'barracks');
+  assert.equal(e.count, 0, 'a ruin is not counted');
+  const r = g.frontier.war.campCheck('w1', 'barracks', { x: bk.x, z: bk.z });
+  assert.equal(r.reason, 'Erase the ruin first');
+  w.camp.buildings.splice(w.camp.buildings.indexOf(bk), 1); }
 
 // camp falls: spur gone, the spur gives nothing; camp timber and stone go to the town (up to storage room)
 const tX = F.settlements.tX;

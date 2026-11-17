@@ -483,6 +483,15 @@ function scene(seed = 47, tune = null) {
   if (!Object.values(S.entities).some(e => e.warTroop === w.id && e.owner === rival && !e.dead)) War.spawnTroop(w, 'grunt', w.camp.x + 5, w.camp.z);
   for (k = 0; k < 30 && !w.armory?.attacker?.work; k++) t.run(20);
   assert.ok(w.armory?.attacker?.work, 'the general bought an armory upgrade');
-  console.log('ok supply line, armory');
+  // Tim 2026-11-17: a cut line is mended first (station, then sections); a ruin of a planned building is cleared and built over
+  const sec = w.camp.buildings.find(b => b.type === 'rail_section'); sec.stage = 'ruined';
+  w.camp.chest = 3000; w.camp.stock.timber = 3000; w.camp.stock.stone = 3000;
+  for (k = 0; k < 30 && sec.stage === 'ruined'; k++) t.run(20);
+  assert.ok(sec.stage !== 'ruined' && (sec.stage === 'built' || sec.rebuild !== undefined || sec.stage === 'site'), 'the general rebuilds the section: ' + sec.stage);
+  const bk = w.camp.buildings.find(b => b.type === 'barracks' && b.stage === 'built'); bk.stage = 'ruined'; delete bk.queue; const at = [bk.x, bk.z];   // (a ruin loses its queue, structures.js)
+  for (k = 0; k < 30 && w.camp.buildings.includes(bk); k++) t.run(20);
+  assert.ok(!w.camp.buildings.includes(bk), 'the ruin is cleared');
+  assert.ok(w.camp.buildings.some(b => b.type === 'barracks' && b.stage !== 'ruined' && b.x === at[0] && b.z === at[1]), 'a new barracks on its spot');
+  console.log('ok supply line, armory, mending');
 }
 console.log('test_war_general: all passed');

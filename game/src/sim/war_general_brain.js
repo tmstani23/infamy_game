@@ -366,7 +366,7 @@ export function createGeneralBrain(game, { clan }) {
         tally[type] = (tally[type] || 0) + 1;
         const e = list.find(x => x.type === type); if (!e) continue;   // not this clan's
         if (camp.buildings.filter(b => b.type === type && b.stage === 'built').length < Math.min(tally[type], e.max || Infinity)) left++;
-        if (!next && camp.buildings.filter(b => b.type === type).length < Math.min(tally[type], e.max || Infinity)) next = e;
+        if (!next && camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length < Math.min(tally[type], e.max || Infinity)) next = e;
       }
       m.left = left; nextCost = next?.cost || null;
       m.upgradeFor = !War.upgraded(camp) && plan.some(t => list.some(x => x.type === t) && (BD[t]?.needs || []).some(n => n === 'upgrade' || n === 'tier2')); }
@@ -374,7 +374,7 @@ export function createGeneralBrain(game, { clan }) {
     const extra = m.fort ? (FT.build || []).length : 0;
     for (const [i, type] of plan.entries()) {
       seen[type] = (seen[type] || 0) + 1;
-      if (camp.buildings.filter(b => b.type === type).length >= seen[type]) continue;
+      if (camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length >= seen[type]) continue;   // Tim 2026-11-17: a ruin is a gap in the plan again
       const e = list.find(x => x.type === type); if (!e || (e.max && e.count >= e.max)) continue;
       if (e.need.length) {
         const hall = campHall(w);
@@ -388,6 +388,9 @@ export function createGeneralBrain(game, { clan }) {
       if (!e.ok) { if (i < extra) continue; return; }   // saving for it (a dig-in extra it cannot pay yet does not hold up its list)
       // (8d-10, Tim 2026-11-16) a dig-in extra waits while paying it would leave too little for the next building of its own list
       if (i < extra && nextCost && Object.entries({ ...nextCost, ...e.cost }).some(([r]) => (camp.stock?.[r] || 0) < (e.cost?.[r] || 0) + (nextCost[r] || 0))) continue;
+      // its turn in the plan and paid for: clear a ruin of that type and build on its spot (Tim 2026-11-17)
+      const ruin = type !== 'camp_station' && camp.buildings.find(b => b.type === type && b.stage === 'ruined' && Number.isFinite(b.x));
+      if (ruin) { out.push(cmd({ action: 'campErase', war: w.id, building: ruin.id }), cmd({ action: 'campPlace', war: w.id, kind: type, x: ruin.x, z: ruin.z })); return; }
       const p = campSpot(w, type, A);
       if (p) { out.push(cmd({ action: 'campPlace', war: w.id, kind: type, x: p.x, z: p.z })); return; }
     }
@@ -576,10 +579,22 @@ export function createGeneralBrain(game, { clan }) {
   const openOrders = () => Object.values(state.frontier?.shipping?.orders || {}).filter(o => o.owner === clan && o.state === 'open');
   // a linked camp: the war chest is topped up by train (Clan treasury above its keep line and within the daily share,
   // then town coffers down to the general's keep line) and timber and stone are ordered in from the clan's towns
+  // Tim 2026-11-17: a cut supply line is mended first, before the rest of the plan, while it can pay with its
+  // buildReserve kept: the station first, then the sections, one at a time (camp workers build each like a site)
+  function mendLine(out, cmd, w) {
+    const c = w.camp;
+    if (!c || !c.buildings.some(b => (b.type === 'camp_station' || b.type === 'rail_section') && b.stage === 'ruined')) return;
+    if (c.buildings.some(b => (b.type === 'camp_station' || b.type === 'rail_section') && b.stage === 'site')) return;
+    const R = gen().rules().buildReserve || {};
+    const b = [...c.buildings.filter(x => x.type === 'camp_station'), ...c.buildings.filter(x => x.type === 'rail_section')].find(x => x.stage === 'ruined');
+    const r = F().war.campRebuildCheck?.(w.id, b.id);
+    if (r?.ok && Object.entries(r.cost || {}).every(([k, v]) => (k === 'ryo' ? c.chest || 0 : c.stock?.[k] || 0) >= v + (R[k] || 0))) out.push(cmd({ action: 'campRebuild', war: w.id, building: b.id }));
+  }
   function campSupply(out, cmd, w, A) {
     const c = w.camp, node = c.station?.node, SH = F().shipments;
+    const P = W().supply || {}, SU = { ...(gen().rules().attack?.supply || {}), ...(A.supply || {}) };
     if (!node || !c.station.linked || !SH) return;
-    const P = W().supply || {}, SU = { ...(gen().rules().attack?.supply || {}), ...(A.supply || {}) }, open = openOrders();
+    const open = openOrders();
     if ((c.chest || 0) < (P.chestLow ?? 300) && !open.some(o => o.kind === 'ryo' && o.war === w.id)) {
       if (SH.route(clan, 'capital', node) && SH.autoRoom(state.clans[clan]) >= (F().data.railways?.ship?.ryoMin ?? 10)) out.push(cmd({ action: 'ship', mode: 'autoChest', war: w.id }));
       else {
@@ -616,6 +631,7 @@ export function createGeneralBrain(game, { clan }) {
   function attack(out, cmd, order, w) {
     if (!w.camp) return;
     const A = strat().attack || {};
+    mendLine(out, cmd, w);
     campBuild(out, cmd, w, A);
     campSupply(out, cmd, w, A);
     armory(out, cmd, w, 'attacker');

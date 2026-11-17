@@ -310,7 +310,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!Number.isFinite(x) || !Number.isFinite(z)) return 'Choose a spot';
     const need = missing(camp, type);
     if (need.length) return `Needs ${need.join(' and ')}`;
-    if (def.max && camp.buildings.filter(b => b.type === type).length + (opts.more || 0) >= def.max) return `A camp has at most ${def.max} ${nice(type)}`;
+    if (def.max && camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length + (opts.more || 0) >= def.max)   // Tim 2026-11-17: a ruin is only a look until erased; it takes no building slot
+    return `A camp has at most ${def.max} ${nice(type)}`;
     const t = town(war.town), r = radiusOf(type), p = { x, z };
     if (!t) return 'No such town';
     if (dist(p, t) + r > W.circleRadius) return 'Stay inside the war circle';
@@ -332,7 +333,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (opts.replace === b || (Array.isArray(opts.replace) && opts.replace.includes(b))) continue;   // a gate takes the place of these palisade pieces
       // palisade and gate pieces stand end to end and meet at corners (centres 0.7 of a piece apart there), so only a real overlap is refused
       const gap = def.line && BD()[b.type]?.line && w === war ? (opts.step ?? Math.min(r, radiusOf(b.type))) * 0.6 : r + radiusOf(b.type);
-      if (dist(b, p) < gap) return w === war ? `Too close to the ${nice(b.type)}` : 'Too close to another war camp';
+      if (dist(b, p) < gap) return w === war ? b.stage === 'ruined' ? 'Erase the ruin first' : `Too close to the ${nice(b.type)}` : 'Too close to another war camp';
     }
     const k = r * 0.7;
     for (const [dx, dz] of [[0, 0], [k, 0], [-k, 0], [0, k], [0, -k]]) if (!groundOk(x + dx, z + dz)) return 'This ground cannot be built on';
@@ -447,7 +448,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!camp) return [];
     // (checkpoint 7: a building with clan: '<faction>' is only for that clan: the kennel, the hidden dojo)
     return Object.entries(BD()).filter(([type, d]) => type !== 'camp_hall' && d && typeof d === 'object' && d.cost && (!d.clan || d.clan === factionOf(war.attacker))).map(([type, d]) => {
-      const need = missing(camp, type), count = camp.buildings.filter(b => b.type === type).length;
+      const need = missing(camp, type), count = camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length;
       const reason = need.length ? `Needs ${need.join(' and ')}` : d.max && count >= d.max ? `A camp has at most ${d.max} ${nice(type)}` : canPay(camp, d.cost);
       return { type, cost: d.cost, need, ok: !reason, reason: reason || '', count, max: d.max || null };
     });
@@ -467,6 +468,29 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     war.camp.buildings.push({ id: `${war.id}:${c.kind}${f().nextId++}`, type: c.kind, stage: 'site', x: r.point.x, z: r.point.z, ...(r.rot !== undefined ? { rot: r.rot } : {}), ...(line ? { line } : {}), progress: 0, need: def.buildTicks || 1 });
     return { ok: true };
   }
+  // Tim 2026-11-17: a ruined camp station or rail section is rebuilt where it stood (a site again, built by camp
+  // workers like any site). Cost: the station's build cost; a section war.supply.sectionCost, sectionBuildTicks.
+  const REBUILD = new Set(['camp_station', 'rail_section']);
+  const rebuildCost = b => b.type === 'rail_section' ? W.supply?.sectionCost || { timber: 60, stone: 20 } : BD()[b.type]?.cost || {};
+  function campRebuildCheck(warId, id) {
+    const war = byId(warId), b = war?.camp?.buildings.find(x => x.id === id);
+    if (!b) return { ok: false, reason: 'No such camp building' };
+    if (!REBUILD.has(b.type)) return { ok: false, reason: 'Erase the ruin, then build a new one' };
+    if (b.stage !== 'ruined') return { ok: false, reason: 'It is not a ruin' };
+    const cost = rebuildCost(b), why = canPay(war.camp, cost);
+    return why ? { ok: false, reason: why, cost } : { ok: true, reason: '', cost, building: b.id };
+  }
+  function campRebuild(e, c) {
+    const war = byId(c.war);
+    if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    const r = campRebuildCheck(c.war, c.building);
+    if (!r.ok) return r;
+    const b = war.camp.buildings.find(x => x.id === c.building);
+    pay(war.camp, r.cost);
+    b.stage = 'site'; b.rebuild = true; b.progress = 0; b.need = b.type === 'rail_section' ? W.supply?.sectionBuildTicks ?? 400 : BD()[b.type]?.buildTicks || 1;
+    delete b.hp; delete b.fire; delete b.repair;
+    return { ok: true };
+  }
   // Cancel a site: full refund while no work is done, nothing back after
   function campCancel(e, c) {
     const war = byId(c.war);
@@ -474,6 +498,10 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     const i = war.camp.buildings.findIndex(b => b.id === c.building && b.stage === 'site');
     if (i < 0) return { ok: false, reason: 'No such building site' };
     const b = war.camp.buildings[i];
+    if (b.rebuild) {   // a station or section being rebuilt goes back to its ruin
+      if (!b.progress) pay(war.camp, rebuildCost(b), +1);
+      b.stage = 'ruined'; delete b.progress; delete b.need; delete b.rebuild; return { ok: true };
+    }
     if (!b.progress) pay(war.camp, BD()[b.type]?.cost, +1);
     war.camp.buildings.splice(i, 1);
     return { ok: true };
@@ -492,6 +520,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     }
     if (!b) return { ok: false, reason: 'Point at a camp building' };
     if (b.type === 'camp_hall') return { ok: false, reason: 'The camp hall cannot be erased', building: b.id };
+    if (b.type === 'rail_section') return { ok: false, reason: 'A rail section cannot be erased: rebuild it from the camp station menu', building: b.id };
+    if (b.type === 'camp_station' && (b.stage === 'ruined' || b.rebuild)) return { ok: false, reason: 'Rebuild the camp station from its menu, it cannot be erased', building: b.id };
     if (b.queue?.length) return { ok: false, reason: 'It is training troops: cancel them first', building: b.id };
     if (b.type === 'stable' && b.stage === 'built' && !camp.buildings.some(x => x !== b && x.type === 'stable' && x.stage === 'built')
       && Object.values(state.entities || {}).some(u => u.stored?.town === `war:${war.id}`)) return { ok: false, reason: 'Mounts are stored in it: take them out or recall them first', building: b.id };
@@ -695,8 +725,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
-    if (['campPlace', 'campLine', 'campCancel', 'campErase', 'campUpgrade', 'campTrain', 'campUntrain'].includes(c.action)) {
-      const r = { campPlace, campLine, campCancel, campErase, campUpgrade, campTrain, campUntrain }[c.action](e, c);
+    if (['campPlace', 'campLine', 'campCancel', 'campErase', 'campUpgrade', 'campTrain', 'campUntrain', 'campRebuild'].includes(c.action)) {
+      const r = { campPlace, campLine, campCancel, campErase, campUpgrade, campTrain, campUntrain, campRebuild }[c.action](e, c);
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
@@ -723,7 +753,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  const api = { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campEraseCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, setGeneral: g => { generalOn = () => !!g?.enabled(); }, generalOn: () => generalOn(), get data() { return W; },
+  const api = { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campEraseCheck, campRebuildCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, setGeneral: g => { generalOn = () => !!g?.enabled(); }, generalOn: () => generalOn(), get data() { return W; },
     get defense() { return defense; }, get armory() { return armory; }, settleDefense: w => defense.settle(w) };
   defense = createWarDefense({ state, data, war: api, world });   // 8b-2: the defending town's war chest and training
   armory = createWarArmory({ state, data, war: api, world });   // 8e-9: armory upgrades

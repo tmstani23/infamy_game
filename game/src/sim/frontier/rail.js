@@ -19,7 +19,8 @@
 //  it opens, war.camp.station.linked is set; the train then serves the camp like a town (shipments.js).
 // 8e-6 the supply line in war: when the spur opens, the stretch inside the war circle gets war.supply.sections marked
 //  rail sections (camp buildings of type 'rail_section', on the camp's morale bar, hit like any camp building). With
-//  the camp station and every section down the line closes: the camp is cut off (mended, it opens again). When the
+//  the camp station or any one section down the line closes: the camp is cut off. It opens again once the station and
+//  every section stand again (war.js campRebuild: a ruined station or section is rebuilt in place). When the
 //  war is over the spur goes: after a capture it becomes a normal line from the captured town; after a sack, burn
 //  or a call-off half its rail cost goes back to the town it ran to; a fallen camp gives nothing back.
 // createRail({ state, data, world, worldData }) -> { command, tick, econTick, attach, endpoint, preview, linksOf }
@@ -222,12 +223,25 @@ export function createRail({ state, data, world, worldData, stable }) {
     let dIn = 0;
     for (let d = 0; d <= l.length; d += 4) { const p = pointAt(l, d); if (Math.hypot(p.x - t.x, p.z - t.z) <= R0) dIn = d; else break; }
     if (dIn <= 0) dIn = Math.min(l.length, 40);
+    // Tim 2026-11-17: N short pieces in a row just outside the camp (sectionStart from the camp station, sectionLength
+    // each, sectionGap between), squeezed to fit when less track lies inside the war circle. The red piece is what is hit.
+    const S = W8().supply || {}, r1 = v => Math.round(v * 10) / 10;
+    let start = S.sectionStart ?? 60, len = S.sectionLength ?? 30, gap = S.sectionGap ?? 10;
+    const need = start + N * len + (N - 1) * gap;
+    if (need > dIn) { const f = dIn / need; start *= f; len *= f; gap *= f; }
     for (let k = 0; k < N; k++) {
-      const p = pointAt(l, dIn * (k + 0.5) / N);
-      w.camp.buildings.push({ id: `${w.id}:rail${k + 1}`, type: 'rail_section', stage: 'built', x: Math.round(p.x * 10) / 10, z: Math.round(p.z * 10) / 10,
-        rail: { link: l.id, d0: Math.round(dIn * k / N), d1: Math.round(dIn * (k + 1) / N) }, n: k + 1, of: N });
+      const d0 = start + k * (len + gap), d1 = d0 + len, p = pointAt(l, (d0 + d1) / 2), pad = S.sectionWidth ?? 3, boxes = [];
+      for (let d = d0; d < d1 - 0.01; d += 5) {   // hit boxes along the red piece, a box per 5 units of track
+        const a = pointAt(l, d), b = pointAt(l, Math.min(d1, d + 5));
+        boxes.push({ minX: r1(Math.min(a.x, b.x) - pad), maxX: r1(Math.max(a.x, b.x) + pad), minZ: r1(Math.min(a.z, b.z) - pad), maxZ: r1(Math.max(a.z, b.z) + pad) });
+      }
+      w.camp.buildings.push({ id: `${w.id}:rail${k + 1}`, type: 'rail_section', stage: 'built', x: r1(p.x), z: r1(p.z),
+        rail: { link: l.id, d0: r1(d0), d1: r1(d1) }, hitBoxes: boxes, n: k + 1, of: N });
     }
     w.camp.sectionsMade = l.id;
+    // once per clan (Tim 2026-11-17): a one-time tip to a player defending against a camp whose spur just linked (no notice)
+    const dc = state.clans?.[w.defender];
+    if (dc && !dc.bot && !dc.supplyTipSeen) { dc.supplyTipSeen = true; (state.news ||= []).push({ kind: 'supplyLineTip', clan: w.defender, war: w.id, townName: t.name }); }
   }
   function campLines() {
     for (const l of Object.values(rec().links)) {
@@ -238,7 +252,7 @@ export function createRail({ state, data, world, worldData, stable }) {
       if (!l.done || !c) continue;
       if (c.sectionsMade !== l.id) makeSections(w, l);
       const secs = c.buildings.filter(b => b.type === 'rail_section' && b.rail?.link === l.id);
-      const cut = down(c.buildings.find(b => b.type === 'camp_station')) && secs.every(down);
+      const cut = down(c.buildings.find(b => b.type === 'camp_station')) || secs.some(down);   // Tim 2026-11-17: any break stops the trains; all must be whole again
       const say2 = text => { for (const o of [w.attacker, w.defender]) { const cl = state.clans?.[o]; if (cl) cl.notice = { tick: state.tick, text }; } };
       if (cut && !l.closed) { l.closed = true; l.cutBy = 'war'; c.station = { ...(c.station || {}), linked: false, cut: true }; cutHook?.(l.from, l.id); say2(`The ${placeName(l.from).replace(/^the /, '')} is cut off from the rail network`); }
       else if (!cut && l.closed && l.cutBy === 'war') { l.closed = false; delete l.cutBy; c.station = { ...(c.station || {}), linked: true, cut: false }; }

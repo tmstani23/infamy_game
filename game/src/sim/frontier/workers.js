@@ -590,7 +590,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       job.progress=Math.min(job.need,(job.progress || 0)+work);
       if(job.progress>=job.need) {
         if(b.upgrade) {b.tier=(b.tier || 1)+1;delete b.upgrade;}
-        else {b.stage='built';delete b.progress;delete b.need;}
+        else {b.stage='built';delete b.progress;delete b.need;delete b.rebuild;}
         delete b.idle;
         for(const w of crew) {
           delete w.project;delete w.buildAt;

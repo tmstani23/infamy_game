@@ -107,7 +107,7 @@ export const DOES = {
   supply_tents: d => `Adds ${d.cap ?? 0} to the troop cap.`, watchtower: () => 'Shoots arrows at enemies in range and lets you see the ground round it, day and night.',
   field_clinic: () => 'Your troops, hero and crew near it recover much faster once they are out of the fight.', armory: () => 'Troop upgrades for this war: more damage and less damage taken by unit group. Troops only.',
   camp_station: () => 'Links the camp to your rail network: a spur is laid to your nearest town with a railway station. Then ryo, timber and stone come by train.',
-  rail_section: () => 'Camp supply line: destroy the camp station and every red section to cut the camp off from the rail network.',
+  rail_section: () => 'Camp supply line: the camp station or any red section down cuts the camp off from the rail network until all are rebuilt (from the camp station menu).',
   stockade: () => 'A fortress, very hard to break. Your troops go in with Ctrl + right-click on it: they recover faster, hits on them go to the building, and ranged troops shoot out.',
   palisade: () => 'A wall: blocks the way.', gate: () => 'A gate in the palisade: your troops pass, enemies must break it.',
   lumber_camp: () => 'Camp workers drop timber here.', quarry: () => 'Camp workers drop stone here.',
@@ -195,6 +195,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
           <div class="small" style="margin-top:8px">${Math.round(100 * (j.progress || 0) / Math.max(1, j.need))}% built. Camp workers build it.</div>
           ${b.upgrade ? '' : `<div style="margin-top:10px"><button data-cancel="${esc(b.id)}" title="${esc(j.progress ? 'Cancel: work has started, nothing comes back' : 'Cancel: everything paid comes back')}">Cancel</button></div>`}`;
       }
+      if (b.stage === 'ruined' && b.type !== 'camp_station') return `<div class="sec"><span>Ruin</span></div><div class="small" style="margin-top:8px">It takes no building slot. Erase it (Eraser on the camp hall menu) to build on this spot again.</div>`;   // Tim 2026-11-17
       if (b.type === 'camp_station') return stationBody();
       if (b.type === 'armory') return armoryHtml({ game, war: w, owner: w.attacker, artUrl, chip: (r, n) => chips({ [r]: n }, c) });
       const list = war()?.trainsAt(b.type, mine) || [];
@@ -229,7 +230,18 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         const p = Math.round(100 * l.built / Math.max(1, l.length));
         h += `<div class="small" style="margin-top:8px">Being laid, ${p}%. Paid from the camp stores as it goes.</div><div class="prog" style="margin-top:6px"><i style="width:${p}%"></i></div>
           <div class="cost" style="justify-content:flex-start;margin-top:6px">${chips(per, c)}<span class="small" title="Timber and stone from the camp stores for every 100 of track">per 100 of track</span>${l.waiting ? `<span class="small" style="color:#ee8a7c">Waiting for ${esc(l.waiting)}</span>` : ''}</div>`;
-      } else h += `<div class="small" style="margin-top:8px;color:${l.closed ? '#ee8a7c' : '#9ad48f'}">${l.closed ? 'Cut off from the rail network: the station and every rail section are down.' : `Linked by rail to ${esc(toName(l.to))}.`}</div>`;
+      } else h += `<div class="small" style="margin-top:8px;color:${l.closed ? '#ee8a7c' : '#9ad48f'}">${l.closed ? 'Cut off from the rail network: rebuild the station and every rail section to run trains again.' : `Linked by rail to ${esc(toName(l.to))}.`}</div>`;
+      // Tim 2026-11-17: the pieces of the supply line that are down, each rebuilt here (camp workers build it like a site)
+      const pieces = c.buildings.filter(b => (b.type === 'camp_station' && (b.stage === 'ruined' || b.rebuild)) || (b.type === 'rail_section' && b.stage !== 'built'));
+      if (l?.done && pieces.length) {
+        h += `<div class="sec"><span>Supply line down</span><b>${pieces.length} to rebuild</b></div>`;
+        for (const b of pieces) {
+          const name = b.type === 'rail_section' ? `Rail section ${b.n || 1} of ${b.of || 1}` : 'Camp station';
+          if (b.stage === 'site') { const pc = Math.round(100 * (b.progress || 0) / Math.max(1, b.need)); h += `<div class="rrow"><div><div class="rn">${name}</div><div class="rk">Rebuilding, ${pc}%. ${builders(b.id)} of ${maxB} builders.</div></div><span></span><button data-cancel="${esc(b.id)}" title="${esc(b.progress ? 'Cancel: work has started, nothing comes back' : 'Cancel: everything paid comes back')}">Cancel</button></div>`; continue; }
+          const r = war()?.campRebuildCheck?.(w.id, b.id) || { ok: false, reason: '' };
+          h += `<div class="rrow"><div><div class="rn">${name}</div><div class="rk">${chips(r.cost || {}, c)}</div></div><span></span><button class="go" data-rebuild="${esc(b.id)}"${r.ok ? ' title="Rebuild it where it stood. Send camp workers to build it."' : ` disabled title="${esc(r.reason)}"`}>Rebuild</button></div>`;
+        }
+      }
       h += `<div class="sec"><span>When linked</span></div><div class="small" style="margin-top:6px">Ryo comes in through the War chest tab. Timber and stone come through orders like any town. Trains from the capital pass through ${esc(l ? toName(l.to) : 'your town')}.</div>`;
       const linked = !!(l?.done && !l.closed && S0.linked);
       h += `<div style="margin-top:10px"><button class="go" data-campord="open"${linked ? '' : ' disabled title="Needs the spur linked"'}>Order timber and stone</button></div>`;
@@ -314,7 +326,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   root.addEventListener('change', e => { if (!e.target?.dataset?.tkeep || !open) return; const n = Math.floor(Number(e.target.value)); delete counts.tkeep; sig = ''; if (!Number.isSafeInteger(n) || n < 0) why = 'Type 0 or more'; else { why = ''; send({ id: heroId, type: 'frontier', action: 'ship', mode: 'treasuryKeep', ryo: n }); } fill(); });   // 8e-2
   root.addEventListener('change', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.change?.(a.dataset, e.target.value, s)) { sig = ''; fill(); } });
   root.addEventListener('click', e => {
-    const b = e.target.closest?.('[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-erase],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-hire],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-campord]'); if (!b || !open) return;
+    const b = e.target.closest?.('[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-erase],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-hire],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-campord],[data-rebuild]'); if (!b || !open) return;
     const d = b.dataset; why = ''; sig = '';
     if (d.rsend || d.rcancel) { why = chestSendClick(d, { war: rec(open), heroId, counts, send }) || ''; fill(); return; }   // 8e-3
     if (d.armup) { const [group, track] = d.armup.split(':'); send({ id: heroId, type: 'frontier', action: 'armoryUp', war: open, group, track }); fill(); return; }   // 8e-9
@@ -333,6 +345,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     else if (d.build) { const x = (war()?.campBuildList(open) || []).find(y => y.type === d.build); if (x?.need.length) why = `Needs ${x.need.join(' and ')}`; else startPlacing(open, d.build); }
     else if (d.erase) startPlacing(open, 'eraser');
     else if (d.cancel) send({ id: heroId, type: 'frontier', action: 'campCancel', war: open, building: d.cancel });
+    else if (d.rebuild) send({ id: heroId, type: 'frontier', action: 'campRebuild', war: open, building: d.rebuild });   // Tim 2026-11-17
     else if (d.train) { const n = count(`t:${d.train}:${d.unit}`); if (n) send({ id: heroId, type: 'frontier', action: 'campTrain', war: open, building: d.train, unit: d.unit, count: n }); else why = 'Type how many'; }
     else if (d.strategy) send({ id: heroId, type: 'frontier', action: 'warStrategy', strategy: d.strategy });
     else if (d.untrain) send({ id: heroId, type: 'frontier', action: 'campUntrain', war: open, building: d.untrain });
