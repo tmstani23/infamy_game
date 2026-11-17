@@ -261,7 +261,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
   function maintain(s) {
     if (s.projects.length) return;
     if (!s.autoBuild && !state.clans?.[s.owner]?.bot) return;
-    // no rebuilding while a war is on the town (war checkpoint 6: ruins stay as they are until it ends)
+    // not while a war is on the town: there ruins come back by the owner's Rebuild order or the general's plan
+    // (Tim 2026-11-17, war_general_brain.js rebuildTown), never all at once
     if (Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id)) return;
     const b = s.buildings.find(x => x.stage !== 'built' && !s.projects.some(p => p.replaces === x.id));
     if (!b) return;

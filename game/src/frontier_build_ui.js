@@ -324,6 +324,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (ruin) {
       const rebuilding = (trainTown.projects || []).some(p => p.replaces === ruin.id), cost = Object.entries(data.buildings?.[ruin.type]?.cost || {}).filter(([, v]) => v).map(([r, v]) => `${v} ${r}`).join(', ');
       info = { title: `${townName(ruin.type)} (ruin)`, lines: [ruin.type === 'town_hall' ? 'Select workers and right-click it to repair it' : rebuilding ? 'Being rebuilt' : 'Stays a ruin until you order it rebuilt'] };
+      if (ruin.type === 'station') info.lines.push('No trains run here until it is rebuilt');   // Tim 2026-11-17
       // the rebuild cost in plain sight (Tim 2026-11-16), paid from this town's stores; what the stores lack is named
       if (ruin.type !== 'town_hall' && cost) {
         const short = Object.entries(data.buildings?.[ruin.type]?.cost || {}).filter(([r, v]) => v && (trainTown.stock?.[r] || 0) < v).map(([r]) => r);

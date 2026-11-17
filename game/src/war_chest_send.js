@@ -38,6 +38,8 @@ function reaches(game, owner, from, to) {
 const ordersOf = (game, w, owner) => Object.values(game.state.frontier?.shipping?.orders || {}).filter(o => o.kind === 'ryo' && o.owner === owner && o.war === w.id && o.state === 'open');
 function whereIs(game, o) {
   const F = game.state.frontier || {}, name = id => id === 'capital' ? 'the capital' : F.settlements?.[id]?.name || id;
+  // Tim 2026-11-17: a cut line (a camp's supply line broken, or a town's station in ruins) holds the order until it is mended
+  if (Object.values(F.rail?.links || {}).some(l => l.owner === o.owner && l.done && l.closed && (l.from === o.to || l.to === o.to))) return { text: 'line cut: waiting', on: false };
   for (const t of Object.values(F.rail?.trains || {})) if ((t.freight || []).some(c => c.order === o.id && c.amount > 0)) return { text: 'on the train', on: true };
   for (const [at, yard] of Object.entries(F.shipping?.yards || {})) if ((yard || []).some(c => c.order === o.id && c.amount > 0)) return { text: `waiting at ${name(at)} station`, on: false };
   return { text: 'waiting for the train', on: false };

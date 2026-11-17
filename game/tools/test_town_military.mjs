@@ -149,17 +149,17 @@ const finish = (s, max = 4000) => { for (let i = 0; i < max && s.town.projects.l
   assert.ok(foe.hp < hp || foe.dead || foe.downed, 'the town watchtower shoots the attacker');
   const counted = s.g.frontier.warMorale.view('w9').town;
   assert.ok(JSON.stringify(counted).includes('barracks') && JSON.stringify(counted).includes('foundry'), 'the morale bar counts them: ' + JSON.stringify(counted).slice(0, 300));
-  // ruins: the attacker knocks a barracks down; it cannot be rebuilt during the war; it can after
+  // ruins: the attacker knocks a barracks down; the Rebuild order brings it back during the war too, and the bar rises again (Tim 2026-11-17)
   { const b = mine.find(x => x.type === 'barracks');
     assert.ok(ST.canDamage(s.rival, b) && !ST.canDamage('player', b), 'only the attacker hits it');
     assert.ok(ST.damage(s.rival, b, 1e9, 'fire')); s.run(2);
     assert.equal(b.b.stage, 'ruined', 'a ruin');
     const mv = s.g.frontier.warMorale.view('w9').town;
     assert.ok(mv.pct < 100 && mv.down.some(d => d.type === 'barracks' && d.n === 1), 'the bar drops: ' + JSON.stringify(mv));
-    let r2 = cmd({ action: 'rebuild', settlement: 'tM', building: b.b.id }); assert.equal(r2.reason, 'not while a war is on this town');
-    delete S.frontier.wars.list.w9; s.run(1);
-    r2 = cmd({ action: 'rebuild', settlement: 'tM', building: b.b.id }); assert.ok(r2.ok, r2.reason);
-    finish(s); assert.equal(b.b.stage, 'built', 'rebuilt after the war'); }
+    const r2 = cmd({ action: 'rebuild', settlement: 'tM', building: b.b.id }); assert.ok(r2.ok, r2.reason);
+    finish(s); assert.equal(b.b.stage, 'built', 'rebuilt during the war');
+    s.run(2); assert.ok(s.g.frontier.warMorale.view('w9').town.pct > mv.pct, 'the bar rises again: ' + JSON.stringify(s.g.frontier.warMorale.view('w9').town.pct));
+    delete S.frontier.wars.list.w9; s.run(1); }
   // a ruined hall pauses a running war upgrade
   { const t = { warUpgrade: { left: 4, total: 4 }, builders: 2, buildings: [{ type: 'town_hall', stage: 'ruined' }] };
     assert.equal(warUpgradeTick(t), false); assert.equal(t.warUpgrade.left, 4, 'paused');

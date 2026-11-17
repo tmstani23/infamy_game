@@ -135,9 +135,9 @@ export function createCommands({ state, data, world, economy, construction, gove
         return r.ok ? receipt(e, c, true) : reject(e, c, r.reason);
       }
       case 'rebuild': {   // 7c-4 (Tim 2026-11-12): a ruined placed building comes back only by this order; the town's builders then rebuild it at the normal cost
+        // (Tim 2026-11-17: during a war on the town too; before, ruins stayed as they were until it ended)
         const b = (s.buildings || []).find(x => x.id === c.building);
         if (!b || b.stage !== 'ruined') return reject(e, c, 'no ruin there');
-        if (Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id)) return reject(e, c, 'not while a war is on this town');
         if (b.type === 'town_hall') return reject(e, c, 'send workers to repair the town hall (select them, right-click the ruin)');
         if (s.buildings.some(x => x.type === 'town_hall' && x.stage === 'ruined')) return reject(e, c, 'the town hall is a ruin: send workers to repair it first');
         if (s.projects.some(p => p.replaces === b.id)) return reject(e, c, 'already being rebuilt');

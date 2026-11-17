@@ -208,6 +208,7 @@ export function createGeneralBrain(game, { clan }) {
       for (const [key, units] of by) out.push(cmd({ action: 'garrison', mode: 'leave', structure: key, units }));
     } else garrisonRanged(out, cmd, w);
     mend(out, cmd, town(w.town), w.town, `t|${w.town}|`, st => st.town === w.town && !st.camp);
+    rebuildTown(out, cmd, w);
     army(out, order, w);
     // a bot's hero comes to take the camp hall once the camp's morale is 0 (a player does that himself)
     if (isBot() && F().warMorale.ready(w.id, 'camp') && !w.channel) {
@@ -234,8 +235,10 @@ export function createGeneralBrain(game, { clan }) {
     }
     // (a town at peace: only the supply tents of the tail; the rest of it, general.buildOn, once a war is on the town)
     const seen = {}, full = [...list, ...(zoneOnly ? [] : buildTail(list, !!wOn))];
+    const ruinAt = wOn ? townRuins(s)[0]?.at ?? Infinity : Infinity;   // a ruin of the plan is rebuilt before anything later in it is placed (rebuildTown)
     for (const [i, type] of full.entries()) {
       const tail = i >= list.length;
+      if (i >= ruinAt) return;
       if (type === 'upgrade') {   // the town hall war upgrade itself (cavalry at the stable need it)
         if (zoneOnly || warHallDone(s)) continue;
         if (can(data.war?.hallUpgrade?.cost)) { out.push(cmd({ action: 'warUpgradeHall', settlement: s.id })); return; }
@@ -626,12 +629,12 @@ export function createGeneralBrain(game, { clan }) {
   // war.supply.chestLow it can spend (`usable`: the chest less what it keeps back), one open auto order from the Clan
   // treasury (keep line, daily share and refill apply, sim side) AND one from an own town's coffers down to the
   // general's keep share, sized to what it can spend (`want`), at least refill, at most a trainload of ryo.
-  function chestByTrain(out, cmd, w, side, usable, want) {
+  function chestByTrain(out, cmd, w, side, usable, want, held = 0) {
     const SH = F().shipments, P = W().supply || {}, RS = F().data.railways?.ship || {}, min = RS.ryoMin ?? 10;
     const node = side === 'attacker' ? (w.camp?.station?.linked ? w.camp.station.node : null) : w.town;
     if (!SH || !node || usable >= (P.chestLow ?? 300)) return;
     const open = openOrders().filter(o => o.kind === 'ryo' && o.war === w.id);
-    if (!open.some(o => o.auto) && SH.route(clan, 'capital', node) && SH.autoRoom(state.clans[clan]) >= min) out.push(cmd({ action: 'ship', mode: 'autoChest', war: w.id }));
+    if (!open.some(o => o.auto) && SH.route(clan, 'capital', node) && SH.autoRoom(state.clans[clan]) >= min) out.push(cmd({ action: 'ship', mode: 'autoChest', war: w.id, ...(held > 0 ? { held } : {}) }));
     if (open.some(o => !o.auto) || (side === 'defender' && !isBot())) return;   // (a player's general defending: his other towns' coffers stay his to send)
     const G = gen().rules(), base = memory(w, side).coffers ||= {}, at = side === 'attacker' ? w.camp : town(w.town);
     const towns = Object.values(state.frontier.settlements || {}).filter(s => s.owner === clan && !s.capital && s.id !== w.town && SH.route(clan, s.id, node))
@@ -654,6 +657,22 @@ export function createGeneralBrain(game, { clan }) {
     const pick = list.map(r => ({ r, n: Math.floor(Math.min(SH.free(s, r), load)), pay: RS.sellPrice?.[r] ?? 2 })).filter(x => x.n >= (RS.minOrder ?? 10)).sort((a, b) => b.n * b.pay - a.n * a.pay || (a.r < b.r ? -1 : 1))[0];
     if (pick) out.push(cmd({ action: 'ship', mode: 'sell', town: s.id, resource: pick.r, amount: pick.n }));
   }
+  // Tim 2026-11-17: towns rebuild ruins during a war. The general rebuilds a ruined station, stockade or military
+  // building of the town in plan order (the station first, then by its place in defend.build, the tail last), one at
+  // a time, when the stores hold its cost above general.buildReserve; never all at once
+  function townRuins(s) {
+    const data = F().data, list = strat().defend?.build || [], at = t => t === 'station' ? -1 : list.indexOf(t) < 0 ? list.length : list.indexOf(t);
+    return (s.buildings || []).filter(b => b.stage === 'ruined' && (b.type === 'station' || b.type === 'stockade' || isMilitary(b.type, data)))
+      .map(b => ({ b, at: at(b.type) })).sort((x, y) => x.at - y.at || (x.b.id < y.b.id ? -1 : 1));
+  }
+  function rebuildTown(out, cmd, w) {
+    const s = town(w.town), data = F().data;
+    if (!s || s.owner !== clan || (s.buildings || []).some(b => b.type === 'town_hall' && b.stage === 'ruined')) return;
+    if ((s.projects || []).some(p => p.replaces) || s.warUpgrade) return;
+    const b = townRuins(s)[0]?.b; if (!b) return;
+    const R = gen().rules().buildReserve || {}, cost = buildingCost(data, b.type, s) || {};
+    if (Object.entries(cost).every(([r, v]) => (s.stock?.[r] ?? 0) >= v + (R[r] ?? 0))) out.push(cmd({ action: 'rebuild', settlement: s.id, building: b.id }));
+  }
   function mendLine(out, cmd, w) {
     const c = w.camp;
     if (!c || !c.buildings.some(b => (b.type === 'camp_station' || b.type === 'rail_section') && b.stage === 'ruined')) return;
@@ -670,7 +689,7 @@ export function createGeneralBrain(game, { clan }) {
     const m = memory(w, 'attacker');
     // what the chest can spend: the camp hall upgrade's ryo is kept back while the plan needs it (campTrain), so it
     // does not count; it wants enough to fill its troop room (about a troop's price each) and the upgrade
-    chestByTrain(out, cmd, w, 'attacker', (c.chest || 0) - (m.keepUp || 0), (m.room || 0) * (gen().rules().troopRyo ?? 120) + (m.keepUp || 0));
+    chestByTrain(out, cmd, w, 'attacker', (c.chest || 0) - (m.keepUp || 0), (m.room || 0) * (gen().rules().troopRyo ?? 120) + (m.keepUp || 0), m.keepUp || 0);
     // (Tim 2026-11-17: also while the stock is short of the building it is saving for, its buildReserve on top)
     // what is on its way counts as stock; an order is at least `order`, more when the building needs more, and all
     // its open orders stay within what the line queues (railways.ship.queueTrips trainloads)

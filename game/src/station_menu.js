@@ -17,7 +17,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
   const atCity = () => { const h = hero(), st = game.gate?.station; return !!st && h?.place === 'street' && Math.hypot(h.x - st[0], h.z - st[1]) <= 6; };
   // trains serving the station you stand at (an island station or the city's)
   const trains = () => (onIsland() || atCity()) && !riding() ? rail()?.service(hero()) || [] : [];
-  const boardNow = () => trains().filter(s => s.eta === 0);
+  const boardNow = () => trains().filter(s => s.eta === 0 && !s.closed);   // (a closed line's train does not leave, Tim 2026-11-17)
   const placeName = id => id === 'capital' ? 'the capital' : game.state.frontier?.settlements?.[id]?.name || id;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // railway (train plan step 2): lay track from this station to another of yours, or watch the line being laid
@@ -77,14 +77,17 @@ export function createStationMenu({ panel, game, heroId, send }) {
     if (open && !t && !tr.length && !atCity()) open = false;
     panel.hidden = !open;
     if (!open) return;
-    const now = tr.filter(s => s.eta === 0), next = tr.filter(s => s.eta > 0 && !now.some(n => n.to === s.to));
+    const cut = tr.filter(s => s.closed), now = tr.filter(s => s.eta === 0 && !s.closed), next = tr.filter(s => s.eta > 0 && !s.closed && !now.some(n => n.to === s.to));
     const name = t?.here || (atCity() ? 'The capital' : tr[0] ? placeName(tr[0].at) : '');
     let k = 0, body = msSec('Trains', now.length ? `${now.length} boarding` : '', 'All aboard: everyone of yours in the gold zone after 10 s gets on (Space boards at once). Ride along, or Skip after a few seconds.');
+    // Tim 2026-11-17: a line that is cut (a camp's supply line broken, or a town's station in ruins) runs no trains
+    body += cut.map(s => msRow({ off: true, name: `To ${esc(s.toName)}`, sub: 'Line cut: no trains until it is rebuilt' })).join('');
     if (now.length || next.length) {
       body += now.map(s => msRow({ key: ++k <= 9 ? k : null, name: `To ${esc(s.toName)}`, sub: `${s.seats - s.riders} seats, leaves in ${s.leaves ?? 0} s`,
         right: msBtn({ label: 'Board', data: `data-to="board:${esc(s.train)}"`, go: true, off: s.riders >= s.seats }) })).join('')
         + next.map(s => msRow({ off: true, name: `To ${esc(s.toName)}`, sub: `Due in ${s.eta < 90 ? `${s.eta} s` : `${Math.round(s.eta / 60)} min`}` })).join('');
-    } else if (atCity()) body += msNote('No train here yet: lay track to the capital from the station in one of your towns.');
+    } else if (cut.length) { /* the cut line is listed above */ }
+    else if (atCity()) body += msNote('No train here yet: lay track to the capital from the station in one of your towns.');
     else if (t) body += msNote(Object.values(game.state.frontier?.rail?.links || {}).some(l => l.owner === hero().owner && !l.done) ? 'No train here yet: it starts once the line is laid.'
       : t.list.length ? 'No train here yet: lay track to another of your towns below.' : 'No other station yet: build a railway station in another of your towns.');
     const r = t && railRows(t);

@@ -153,4 +153,26 @@ assert.equal(o7.lost, 100);
   assert.ok(orders().some(o => o.kind === 'ryo' && o.state === 'open' && o.to === 'tB' && o.amount - o.got > 360), 'more ryo on order than three trainloads of goods');
   tB.stock.timber = 0; cmd({ mode: 'order', town: 'tB', resource: 'timber', amount: 60 });
   assert.match(note(), /Order placed/, 'goods order beside an open ryo order: ' + note()); }
+// Tim 2026-11-17: a town whose railway station is a ruin runs no trains: every line at the town closes, routes
+// through it are blocked, its trains stay at a station, and all reopens when the station is rebuilt
+{ const tA = F.settlements.tA, L = F.rail.links;
+  for (const id of ['r0', 'r1']) if (!L[id]) line(id, id === 'r0' ? 'capital' : 'tA', id === 'r0' ? 'tA' : 'tB');
+  tA.buildings.push({ id: 'stA', type: 'station', cell: 5, stage: 'built' });
+  run(25); assert.ok(sh.route('player', 'capital', 'tB'), 'the line is open');
+  for (const x of orders()) if (x.state === 'open') x.state = 'cancelled';
+  clan.ryo = 3000; g.frontier.world.syncCapital(); cmd({ mode: 'ryo', from: 'treasury', to: 'tB', into: 'coffers', amount: 150 });
+  const ow = last(), b0 = coffers('tB');
+  tA.buildings.find(b => b.id === 'stA').stage = 'ruined'; run(25);
+  assert.ok(L.r0.closed && L.r1.closed && L.r0.cutBy === 'station' && L.r0.cutAt === 'tA', 'both lines at tA are closed: ' + JSON.stringify([L.r0.closed, L.r1.closed, L.r0.cutBy]));
+  assert.match(note(), /railway station/i, 'the owner is told');
+  assert.ok(!sh.route('player', 'capital', 'tB'), 'no route through the town');
+  const tr = Object.values(F.rail.trains).find(t => t.link === 'r0');
+  run(400); const d0 = tr.d; run(200);
+  assert.ok(tr.d === d0 && (d0 <= 0 || d0 >= L.r0.length), 'its train stays at a station: ' + d0);
+  assert.equal(ow.state, 'open', 'an order through the town waits'); assert.ok(coffers('tB') - b0 < 100 && !(ow.got > 0), 'nothing arrives meanwhile');
+  tA.buildings.find(b => b.id === 'stA').stage = 'built'; run(25);
+  assert.ok(!L.r0.closed && !L.r1.closed && !L.r0.cutBy && sh.route('player', 'capital', 'tB'), 'rebuilt: the lines reopen');
+  const d1 = tr.d; run(400); assert.notEqual(tr.d, d1, 'and the train runs again');
+  assert.equal(run(20 * 600, () => ow.state === 'done'), true, 'the waiting order arrives: ' + JSON.stringify([ow.state, ow.got]));
+  assert.ok(coffers('tB') - b0 >= 150, 'in the coffers'); }
 console.log('ryo freight ok');

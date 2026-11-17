@@ -100,7 +100,17 @@ assert.ok(g.frontier.warMorale.view?.(w)?.camp?.weights?.rail_section || frontie
   const sl = g.frontier.structures.list?.().find?.(x => x.b === secs[0]);
   if (sl) assert.equal(sl.boxes, secs[0].hitBoxes, 'the structure is hit by its red piece');
   assert.ok(!(S.news || []).some(n => n.kind === 'supplyLineTip'), 'no tip for a bot defender'); }
-// ryo on its way when the line is cut goes back to the treasury; orders into the camp stop
+// the auto refill from the treasury (generals): a chest at or above chestLow gets none, unless the general holds that
+// ryo back for the camp hall upgrade (`held`, Tim 2026-11-17)
+{ const autos = () => Object.values(F.shipping.orders).filter(x => x.kind === 'ryo' && x.auto && x.state === 'open' && x.war === 'w1');
+  clan.ryo = 5000; g.frontier.world.syncCapital(); w.camp.chest = frontier.war.supply.chestLow + 20;
+  g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'autoChest', war: 'w1' }]);
+  assert.equal(autos().length, 0, 'no refill for a chest above the low mark');
+  g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'autoChest', war: 'w1', held: 9999 }]);
+  assert.equal(autos().length, 1, 'held back for the hall upgrade: the refill is ordered');
+  assert.equal(autos()[0].amount, Math.min(frontier.war.supply.refill, Math.floor((5000 - frontier.war.supply.treasuryKeep) * frontier.war.supply.autoShare)));
+  for (const x of autos()) { x.sources = []; x.state = 'cancelled'; } }
+// a cut line (Tim 2026-11-17): orders into the camp wait and carry on when the line is whole again; nothing goes back
 clan.ryo = 5000; g.frontier.world.syncCapital();
 g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'ryo', from: 'treasury', into: 'chest', war: 'w1', amount: 400 }]);
 const oc2 = Object.values(F.shipping.orders).find(x => x.kind === 'ryo' && x.state === 'open');
@@ -112,8 +122,12 @@ run(20 * 5);
 assert.ok(l.closed && l.cutBy === 'war', 'the station down cuts it off (Tim 2026-11-17: any break)');
 assert.equal(w.camp.station.cut, true);
 assert.match(clan.notice?.text || '', /cut off/i);
-assert.equal(oc2.state, 'cancelled', 'order into the cut camp stopped');
-assert.equal(clan.ryo, 5000, 'ryo back to the treasury');
+assert.equal(oc2.state, 'open', 'the order into the cut camp waits');
+assert.equal(clan.ryo, 4600, 'its ryo stays on the way');
+const chestCut = w.camp.chest || 0;
+run(20 * 240);
+assert.equal(oc2.state, 'open', 'still waiting while the line is cut');
+assert.equal(w.camp.chest || 0, chestCut, 'nothing reaches the camp over a cut line');
 // rebuilt in place from the station menu (Tim 2026-11-17); a ruined station or section cannot be erased
 assert.equal(g.frontier.war.campEraseCheck('w1', stn.id).ok, false, 'a ruined station is not erased');
 w.camp.stock.timber = 1000; w.camp.stock.stone = 1000;
@@ -137,6 +151,9 @@ assert.equal(w.camp.stock.timber, 1000 - frontier.war.buildings.camp_station.cos
 secs[1].stage = 'built';
 run(20 * 5);
 assert.ok(!l.closed, 'open again once all stand');
+assert.equal(run(20 * 600, () => oc2.state === 'done'), true, 'the waiting order arrives once the line is mended: ' + JSON.stringify([oc2.state, oc2.got, oc2.amount]));
+assert.equal(Math.round((w.camp.chest || 0) - chestCut), 400, 'its ryo is in the war chest');
+assert.equal(clan.ryo, 4600);
 // camp ruins take no building slot; building over one says to erase it
 { const bk = { id: 'w1:bk', type: 'barracks', stage: 'ruined', x: cx - 30, z: cz };
   w.camp.buildings.push(bk);

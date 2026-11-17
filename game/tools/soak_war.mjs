@@ -6,6 +6,9 @@
 //   node game/tools/soak_war.mjs all [seed] [maxMinutes]        every pair against every size (27 runs)
 // attack, defence: rush | siege | raider.  size: camp | average | built (the fixture towns below; placeholders).
 // RAIL=1: both towns have a station and a capital line (the camp can lay its spur); the output adds `line`.
+// The attacker's launch town starts with the same stock as the defender's town and holds just the war pack when its
+// hero packs (ATTACKER=<size> or ATTACKER=rich changes it); output `launchTown` / `defenderTown` = ryo, timber and
+// stone of each town when the banner goes up.
 // TREASURY=n: both clans' Clan treasury starts at n ryo. attackerUse / defenderUse: what came by train, the biggest
 // troop cap, supply tents, armory levels and the ryo left in the chest (Tim 2026-11-17).
 import { readFileSync } from 'node:fs';
@@ -38,7 +41,12 @@ export function runWar({ attack, defence, size, seed = 1, maxMinutes = 90, tune 
   for (const a of sites) for (const b of sites) { const d = Math.hypot(a.x - b.x, a.z - b.z); if (a !== b && d >= 1650 && d <= 2100) pairs.push([a, b]); }
   const [sa, sb] = pairs[seed % pairs.length];
   const hall = o.frontier.founding.townHall;
-  g.frontier.world.addTown({ id: 'tA', name: 'Attacker', owner: A, x: sa.x, z: sa.z, pop: 30, stock: { food: 5000, ryo: 9000, timber: 7000, stone: 5000, goods: 400 }, buildings: [{ type: hall, stage: 'built', cell: 0 }] });
+  // the attacker's launch town (Tim 2026-11-17): the same fixture stock as the defender's town (ATTACKER=<size> picks
+  // another, ATTACKER=rich the old rich town). After the peace build-up it is raised to just the war pack for the
+  // target's tier plus attack.keep where it holds less, so it can launch; the pack comes out of its coffers and stores, as in a game
+  const AT = o.frontier.war.general.attack || {}, packNeed = Object.fromEntries(['ryo', 'timber', 'stone'].map(r => [r, (AT.packByTier?.[Z.tier - 1]?.[r] ?? AT.pack?.[r] ?? 0) + (AT.keep?.[r] ?? 0)]));   // the pack and what a bot keeps back (attack.keep)
+  const launch = process.env.ATTACKER === 'rich' ? { food: 5000, ryo: 9000, timber: 7000, stone: 5000, goods: 400 } : { ...(SIZES[process.env.ATTACKER] || Z).stock };
+  g.frontier.world.addTown({ id: 'tA', name: 'Attacker', owner: A, x: sa.x, z: sa.z, pop: 30, stock: { ...launch }, buildings: [{ type: hall, stage: 'built', cell: 0 }] });
   g.frontier.world.addTown({ id: 'tB', name: 'Defender', owner: B, x: sb.x, z: sb.z, pop: Z.pop, stock: { ...Z.stock }, buildings: [{ type: hall, stage: 'built', cell: 0 }] });
   const tA = S.frontier.settlements.tA, tB = S.frontier.settlements.tB;
   tB.tier = Z.tier;
@@ -62,14 +70,19 @@ export function runWar({ attack, defence, size, seed = 1, maxMinutes = 90, tune 
   tA.founded = -1e9;
   const War = g.frontier.war, max = Math.round(maxMinutes * 60 * 20);
   let w = null, guard = 0;
-  while (!(w = War.warOn('tB')) && guard++ < 40) step(500);
-  if (!w) return { attack, defence, size, seed, result: 'no war', note: gens.find(b => b.config.clan === A).view() };
+  // until its hero has packed, the launch town holds at least the war pack and attack.keep (it goes on building, so the pack is kept
+  // topped up); from then on it is down what the pack took, as in a game
+  const packed = () => ['ryo', 'timber', 'stone'].some(r => (S.clans[A].warPack?.[r] || 0) > 0);
+  while (!(w = War.warOn('tB')) && guard++ < 20000) { if (!packed() && process.env.ATTACKER !== 'rich') for (const r of ['ryo', 'timber', 'stone']) tA.stock[r] = Math.max(tA.stock[r] || 0, packNeed[r] || 0); step(1); }
+  if (!w) return { attack, defence, size, seed, result: 'no war', launchLeft: tA.stock, launchBuilt: tA.buildings.map(b => b.type).join(','), note: gens.find(b => b.config.clan === A).view() };
   if (process.env.PROBE) globalThis.__soak = { g, w, A, B };
+  const at = t => Object.fromEntries(['ryo', 'timber', 'stone'].map(r => [r, Math.round(t.stock[r])])), launchAt = at(tA), defAt = at(tB);   // each town's stores when the banner goes up
   const t0 = S.tick, seen = { [A]: new Set(), [B]: new Set() }, brought = w.camp.brought?.ryo ?? w.camp.chest;
   const before = { town: tB.buildings.filter(b => b.stage === 'built').map(b => b.type), walls: [...tB.grid.use].filter(c => c === 'w').length, gates: [...tB.grid.use].filter(c => c === 'g').length };
   const kinds = { [A]: {}, [B]: {} }, campBuilt = new Set();
   let peak = { [A]: 0, [B]: 0 }, last = null; const left = { [A]: 0, [B]: 0 };
   const line = { linkedMin: null, cuts: 0, cutTicks: 0, wasCut: false };   // RAIL: the camp's supply line
+  const townUse = { ruined: new Set(), rebuilt: new Set(), stationTicks: 0 };   // the town's buildings knocked down and rebuilt during the war, and how long its station was a ruin
   // what each side used and left unused (Tim 2026-11-17): ryo and timber + stone that came by train (the most each
   // order delivered), the biggest troop cap, supply tents and armory levels at the end, ryo left in the chest
   const got = {}, use = { [A]: { ryoByTrain: 0, goodsByTrain: 0, capPeak: 0, tents: 0, armory: 0, chestLeft: 0 }, [B]: { ryoByTrain: 0, goodsByTrain: 0, capPeak: 0, tents: 0, armory: 0, chestLeft: 0 } };
@@ -86,6 +99,8 @@ export function runWar({ attack, defence, size, seed = 1, maxMinutes = 90, tune 
       const cut = !!st?.cut; if (cut && !line.wasCut) line.cuts++; if (cut) line.cutTicks += 100; line.wasCut = cut; }
     for (const c of [A, B]) { const l = Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === c && e.type !== 'horse'); for (const e of l) { if (!seen[c].has(e.id) && e.warUnit) kinds[c][e.warUnit] = (kinds[c][e.warUnit] || 0) + 1; seen[c].add(e.id); } const n = l.filter(e => !e.dead && !e.rout).length; peak[c] = Math.max(peak[c], n); if (War.byId(w.id)) left[c] = n; }
     for (const b of w.camp?.buildings || []) if (b.stage === 'built' && b.type !== 'palisade') campBuilt.add(b.type);
+    for (const b of tB.buildings) { if (b.stage === 'ruined') { townUse.ruined.add(b.id); townUse.rebuilt.delete(b.id); } else if (b.stage === 'built' && townUse.ruined.has(b.id)) townUse.rebuilt.add(b.id); }
+    { const st = tB.buildings.filter(b => b.type === 'station'); if (st.length && st.every(b => b.stage === 'ruined')) townUse.stationTicks += 100; }
     if (War.byId(w.id)) tally();
     last = { chest: w.camp?.chest ?? 0, defChest: w.defense?.chest ?? 0, put: w.defense?.put ?? 0, morale: [g.frontier.warMorale.pct(w.id, 'town'), g.frontier.warMorale.pct(w.id, 'camp')] };
     if (log && (S.tick - t0) % 2400 < 100) log({ min: Math.round((S.tick - t0) / 1200), ...last, troops: [A, B].map(c => Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === c && !e.dead && e.type !== 'horse').length), camp: (w.camp?.buildings || []).filter(b => b.type !== 'palisade').map(b => b.type + (b.stage === 'built' ? '' : ':' + b.stage)).join(','), stock: JSON.stringify(w.camp?.stock), workers: w.camp?.workers?.length, hands: (() => { const ix = g.frontier.modules.find(x => x.name === 'workers')?.workers?.index, RES = o.frontier.workers.resources, n = {}; for (const x of w.camp?.workers || []) { const sp = x.spot && ix.get(x.spot); const k = x.project ? 'build' : x.job ? 'job' : sp ? RES[sp.kind] + '@' + Math.round(Math.hypot(sp.x - w.camp.x, sp.z - w.camp.z)) : 'idle'; n[k] = (n[k] || 0) + 1; } return JSON.stringify(n); })(), modes: gens.map(b => b.view().wars[w.id]) });
@@ -99,7 +114,7 @@ export function runWar({ attack, defence, size, seed = 1, maxMinutes = 90, tune 
     attackerTrained: seen[A].size, defenderTrained: seen[B].size, attackerPeak: peak[A], defenderPeak: peak[B],
     attackerLost: seen[A].size - left[A], defenderLost: seen[B].size - left[B],
     morale: last?.morale, townBuilt: before.town.filter(x => x !== hall).join(',') || 'none', walls: before.walls, gates: before.gates,
-    brought, attackerUse: use[A], defenderUse: use[B], attackerUnits: kinds[A], defenderUnits: kinds[B], campBuilt: [...campBuilt].join(','), ...(process.env.RAIL ? { line: { linkedMin: line.linkedMin, cuts: line.cuts, cutMinutes: Math.round(line.cutTicks / 120) / 10, station: rec.camp?.station || w.camp?.station || null, spur: Object.values(S.frontier.rail?.links || {}).filter(l => String(l.from).startsWith('camp:')).map(l => ({ to: l.to, len: Math.round(l.length), built: Math.round(l.built || 0), done: !!l.done, waiting: l.waiting || null })) } } : {}) };
+    brought, attackerUse: use[A], defenderUse: use[B], attackerUnits: kinds[A], defenderUnits: kinds[B], campBuilt: [...campBuilt].join(','), launchTown: launchAt, defenderTown: defAt, town: { ruined: townUse.ruined.size, rebuilt: townUse.rebuilt.size, stationDownMinutes: Math.round(townUse.stationTicks / 120) / 10 }, ...(process.env.RAIL ? { line: { linkedMin: line.linkedMin, cuts: line.cuts, cutMinutes: Math.round(line.cutTicks / 120) / 10, station: rec.camp?.station || w.camp?.station || null, spur: Object.values(S.frontier.rail?.links || {}).filter(l => String(l.from).startsWith('camp:')).map(l => ({ to: l.to, len: Math.round(l.length), built: Math.round(l.built || 0), done: !!l.done, waiting: l.waiting || null })) } } : {}) };
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('soak_war.mjs')) {

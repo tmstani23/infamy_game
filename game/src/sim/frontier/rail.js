@@ -163,6 +163,7 @@ export function createRail({ state, data, world, worldData, stable }) {
   function econTick() {
     campSpurs();
     campLines();
+    townStations();
     for (const l of Object.values(rec().links)) {
       if (l.done) continue;
       const camp = isCamp(l.payer) ? warOfNode(l.payer)?.camp || null : null, s = camp ? null : town(l.payer);
@@ -243,6 +244,22 @@ export function createRail({ state, data, world, worldData, stable }) {
     const dc = state.clans?.[w.defender];
     if (dc && !dc.bot && !dc.supplyTipSeen) { dc.supplyTipSeen = true; (state.news ||= []).push({ kind: 'supplyLineTip', clan: w.defender, war: w.id, townName: t.name }); }
   }
+  // Tim 2026-11-17: a town whose railway station is a ruin runs no trains. Every finished line at that town is
+  // closed (cutBy 'station', cutAt the town) until the station is rebuilt; routes through the town are blocked with
+  // it (shipments route over open lines only), open orders wait. Both sides of a war on the town get a notice.
+  const stationDown = id => { const st = (town(id)?.buildings || []).filter(b => b.type === 'station'); return st.length > 0 && st.every(b => b.stage === 'ruined'); };
+  function townStations() {
+    for (const l of Object.values(rec().links)) {
+      if (!l.done || (l.closed && l.cutBy !== 'station')) continue;
+      const at = [l.from, l.to].find(id => id !== 'capital' && !isCamp(id) && stationDown(id));
+      if (at && !l.closed) {
+        l.closed = true; l.cutBy = 'station'; l.cutAt = at;
+        const s = town(at), text = `${s?.name || 'A town'} has lost its railway station: no trains run there until it is rebuilt`;
+        const tell = new Set([l.owner, s?.owner, ...Object.values(state.frontier?.wars?.list || {}).filter(w => w.town === at).map(w => w.attacker)]);
+        for (const o of tell) { const cl = state.clans?.[o]; if (cl) cl.notice = { tick: state.tick, text }; }
+      } else if (!at && l.closed) { l.closed = false; delete l.cutBy; delete l.cutAt; }
+    }
+  }
   function campLines() {
     for (const l of Object.values(rec().links)) {
       if (!isCamp(l.from)) continue;
@@ -311,6 +328,10 @@ export function createRail({ state, data, world, worldData, stable }) {
       const v = t.seen ? Math.min(t.speed, T().viewSpeed ?? 20) : t.speed;
       t.v = v;
       if (t.call && (state.tick ?? 0) >= t.call.until) allAboard(t);   // the boarding call ran out
+      // a closed line (its camp's supply line cut, or a town station in ruins): the train stays at the station it is
+      // at, or runs on to the next one and stays there (Tim 2026-11-17)
+      if (l.closed && (t.d <= 0 || t.d >= l.length)) t.wait = Math.max(t.wait, 2);
+      if (!l.closed && t.held) { delete t.held; arriveHook?.(t, l, t.d <= 0 ? l.from : l.to); }   // open again: it unloads and loads where it stood
       if (t.wait > 0) { t.wait--; if (!t.wait) departHook?.(t, l, t.d <= 0 ? l.from : l.to); }   // last chance to load before it leaves
       else {
         t.d += t.dir * v / 20;
@@ -367,7 +388,7 @@ export function createRail({ state, data, world, worldData, stable }) {
       if (stationOf(t) === at) ticks = 0;
       else if ((end - t.d) * t.dir > 0) ticks = Math.max(0, t.wait) + run(end - t.d);   // heading here
       else ticks = Math.max(0, t.wait) + run(t.dir > 0 ? l.length - t.d : t.d) + stop + run(l.length);   // out to the far end first
-      return [{ train: t.id, at, to, toName: placeName(to), eta: Math.ceil(ticks / 20), leaves: ticks === 0 ? Math.ceil(Math.max(0, t.wait) / 20) : null, riders: ridersOf(t.id).length, seats: seats(t) }];
+      return [{ train: t.id, at, to, toName: placeName(to), eta: Math.ceil(ticks / 20), leaves: ticks === 0 ? Math.ceil(Math.max(0, t.wait) / 20) : null, riders: ridersOf(t.id).length, seats: seats(t), ...(l.closed ? { closed: true } : {}) }];
     }).sort((a, b) => a.eta - b.eta);
   }
   // every train serving a station the hero stands at
@@ -463,7 +484,8 @@ export function createRail({ state, data, world, worldData, stable }) {
     const l = rec().links[t.link], at = t.d >= l.length ? l.to : l.from;
     t.dir = at === l.to ? -1 : 1; t.wait = Math.round((T().stopSeconds ?? 20) * 20);
     t.arrived = { at, tick: state.tick ?? 0 };
-    arriveHook?.(t, l, at);   // shipments: unload and load cargo
+    if (l.closed) t.held = true;   // a closed line: its cargo stays aboard until the line opens again (Tim 2026-11-17)
+    else arriveHook?.(t, l, at);   // shipments: unload and load cargo
     const riders = ridersOf(t.id);
     if (!riders.length) return;
     const hero = riders.find(u => u.type === 'hero') || riders[0];

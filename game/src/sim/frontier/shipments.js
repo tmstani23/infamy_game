@@ -358,7 +358,9 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     if (c.mode === 'autoChest') {
       const w = warOf(c.war);
       if (!w || (w.attacker !== e.owner && w.defender !== e.owner)) return receipt(e, false, 'Not your war');
-      autoChest(e.owner, w);
+      // held: ryo of a camp chest the general keeps back for the camp hall upgrade (never more than its price); the
+      // chest counts as low without it (Tim 2026-11-17: a camp saving for the upgrade still gets its refill)
+      autoChest(e.owner, w, w.attacker === e.owner ? Math.max(0, Math.min(+c.held || 0, W().hallUpgrade?.cost?.ryo || 0)) : 0);
       return true;
     }
     if (c.mode === 'treasuryKeep') {
@@ -454,11 +456,11 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
   // 8e-2: an auto ryo order into a war chest when it runs low (war.supply.chestLow), one open at a time per war and
   // side: refill ryo from the treasury within today's share above the keep line. The governor (clerk) calls it for a
   // defending town; the generals (war_general_brain.js) for camps and defending towns. Returns the amount ordered.
-  function autoChest(owner, w) {
+  function autoChest(owner, w, held = 0) {
     const P = W().supply || {}, clan = state.clans?.[owner];
     if (!w || !clan) return 0;
     const defend = w.defender === owner, chest = defend ? w.defense?.chest || 0 : w.camp?.chest || 0;
-    if (chest >= (P.chestLow ?? 300)) return 0;
+    if (chest - held >= (P.chestLow ?? 300)) return 0;
     if (orders().some(o => o.kind === 'ryo' && o.state === 'open' && o.owner === owner && o.war === w.id && o.auto)) return 0;
     const to = chestNode(w, owner);
     if (!to || !route(owner, 'capital', to)) return 0;
@@ -529,15 +531,11 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     }
   }
 
-  // 8e-6: a camp cut off from the rail network: orders into it stop; ryo not yet there goes back where it came from
-  // (timber and stone already on the way wait, as on any closed line)
-  function campCut(node) {
-    const now = state.tick ?? 0;
-    for (const o of orders()) if (o.state === 'open' && o.to === node) { const was = o.amount; release(o); o.state = o.got > 0 && o.amount >= was - 1e-9 ? 'done' : 'cancelled'; o.cut = true; o.done = now; }
-    const back = c => { const o = rec().orders[c.order]; if (c.resource !== 'ryo' || !o || o.to !== node || !(c.amount > 0)) return; refundRyo(o, o.from || 'capital', c.amount); o.amount = Math.max(o.got, o.amount - c.amount); c.amount = 0; };
-    for (const at of Object.keys(rec().yards)) { rec().yards[at].forEach(back); rec().yards[at] = rec().yards[at].filter(c => c.amount > 0); }
-    for (const t of Object.values(state.frontier.rail?.trains || {})) if (t.freight) { t.freight.forEach(back); t.freight = t.freight.filter(c => c.amount > 0); }
-  }
+  // a camp cut off from the rail network (Tim 2026-11-17: orders wait and resume, as at a town whose station is a
+  // ruin; before, they stopped and undelivered ryo went back): open orders into it stay open, cargo on a train or in
+  // a yard waits there, and all carries on when the line is whole again. A war that ends first settles them as
+  // before (econTick, trainGone).
+  function campCut() {}
   // 8e-6: a train taken off its line with cargo aboard (a camp spur gone with its war): ryo goes back to where it
   // came from, other cargo is lost with the train
   function trainGone(t) {
