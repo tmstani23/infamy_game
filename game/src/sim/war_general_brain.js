@@ -399,6 +399,17 @@ export function createGeneralBrain(game, { clan }) {
       }
       m.left = left; nextCost = next?.cost || null;
       m.upgradeFor = !War.upgraded(camp) && plan.some(t => list.some(x => x.type === t) && (BD[t]?.needs || []).some(n => n === 'upgrade' || n === 'tier2')); }
+    // Tim 2026-11-17: the timber and stone the rest of its plan still needs (buildings not standing, the camp hall
+    // upgrade it waits for); campSupply sells only what is beyond it
+    { const need = { timber: 0, stone: 0 }, cnt = {};
+      for (const type of plan) {
+        cnt[type] = (cnt[type] || 0) + 1;
+        const e = list.find(x => x.type === type); if (!e) continue;
+        if (camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length >= Math.min(cnt[type], e.max || Infinity)) continue;
+        for (const r of Object.keys(need)) need[r] += e.cost?.[r] || 0;
+      }
+      if (m.upgradeFor && !campHall(w).upgrade) for (const r of Object.keys(need)) need[r] += W().hallUpgrade?.cost?.[r] || 0;
+      m.planNeed = need; }
     m.want = null;   // what it is saving for (campSupply orders it in by train)
     if (camp.buildings.filter(b => b.stage === 'site').length >= (A.sites ?? 2)) return;
     const extra = head.length;
@@ -696,12 +707,32 @@ export function createGeneralBrain(game, { clan }) {
     const want = m.want, BR = gen().rules().buildReserve || {}, RS = F().data.railways?.ship || {}, T = F().data.railways?.train || {};
     const queue = (RS.queueTrips ?? 3) * Math.max(1, T.consist ? T.consist.filter(k => k === 'goods').length : 1) * (RS.wagonLoad ?? 60);
     let coming = ['timber', 'stone'].reduce((n, r) => n + SH.openIncoming(node, r), 0);
+    // Tim 2026-11-17: what its towns cannot spare is bought at the capital with war chest ryo above chestLow (and the
+    // camp hall upgrade's ryo it keeps back): a new order carries that much as its offer; an open order no town has
+    // filled for attack.supply.buyAfterSeconds gets one
+    const buyPrice = r => RS.buyPrice?.[r] ?? 5, purse = () => Math.max(0, (c.chest || 0) - (m.keepUp || 0) - (P.chestLow ?? 300));
+    const spareIn = r => Object.values(state.frontier.settlements || {}).filter(s => s.owner === clan && !s.capital && SH.route(clan, s.id, node)).reduce((n, s) => n + SH.free(s, r, { camp: true }), 0);
     for (const r of ['timber', 'stone']) {
       const need = Math.max(SU[r + 'Low'] ?? 150, want?.[r] ? want[r] + (BR[r] || 0) : 0), have = (c.stock?.[r] || 0) + SH.openIncoming(node, r);
       if (have >= need) continue;
       const amount = Math.floor(Math.min(Math.max(SU.order ?? 200, need - have), queue - coming));
       if (amount < (RS.minOrder ?? 10)) continue;
-      out.push(cmd({ action: 'ship', mode: 'order', town: node, resource: r, amount })); coming += amount;
+      const short = Math.max(0, amount - spareIn(r)), ryo = Math.floor(Math.min(short * buyPrice(r), purse()));
+      out.push(cmd({ action: 'ship', mode: 'order', town: node, resource: r, amount, ...(ryo > 0 ? { ryo } : {}) })); coming += amount;
+    }
+    const late = (SU.buyAfterSeconds ?? 60) * 20;
+    for (const o of openOrders().filter(o => o.camp && o.to === node && o.kind !== 'sell' && !(o.ryo > 0) && !o.sources.length && !(o.got > 0) && state.tick - (o.created ?? 0) >= late)) {
+      const ryo = Math.floor(Math.min((o.amount - o.got) * buyPrice(o.resource), purse()));
+      if (ryo > 0) { out.push(cmd({ action: 'ship', mode: 'offer', order: o.id, ryo })); break; }
+    }
+    // Tim 2026-11-17: stores beyond what the rest of its plan needs (and its low marks and buildReserve) are sold at
+    // the capital, the better paying first, a trainload at a time, one sale open; the ryo comes into the war chest
+    if (!openOrders().some(o => o.kind === 'sell' && o.camp && o.war === w.id)) {
+      const load = Math.max(1, T.consist ? T.consist.filter(k => k === 'goods').length : 1) * (RS.wagonLoad ?? 60);
+      const pick = ['timber', 'stone'].filter(r => !SH.openIncoming(node, r)).map(r => ({ r, n: Math.floor(Math.min(load,
+        (c.stock?.[r] || 0) - (c.reserved?.[r] || 0) - (m.planNeed?.[r] || 0) - (BR[r] || 0) - (SU[r + 'Low'] ?? 150))), pay: RS.sellPrice?.[r] ?? 2 }))
+        .filter(x => x.n >= Math.max(RS.minOrder ?? 10, SU.sellMin ?? 100)).sort((a, b) => b.n * b.pay - a.n * a.pay)[0];
+      if (pick) out.push(cmd({ action: 'ship', mode: 'sell', town: node, resource: pick.r, amount: pick.n }));
     }
   }
   // ---- armory upgrades (8e-9) -------------------------------------------------------------------------------------

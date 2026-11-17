@@ -43,19 +43,28 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
   const orders = () => Object.values(rec().orders);
   const town = id => id === 'capital' ? null : state.frontier.settlements?.[id];
   // 8e-5: a linked war camp takes timber and stone orders like a town (node 'camp:<war id>', stock = the camp stores,
-  // no storage cap, never a source, never buys from the capital)
+  // no storage cap, never a source for other orders). Tim 2026-11-17: it may sell its stores to the capital (the ryo
+  // goes into its war chest) and buy at the capital with ryo from its war chest (an order's ryo offer)
   const isCampNode = id => typeof id === 'string' && id.startsWith('camp:');
   function campDest(id, owner) {
     const w = isCampNode(id) && state.frontier.wars?.list?.[id.slice(5)];
     if (!w?.camp || (owner != null && w.attacker !== owner) || !w.camp.station?.linked || w.camp.station.node !== id) return null;
-    return { id, owner: w.attacker, name: `the ${state.frontier.settlements?.[w.town]?.name || ''} camp`.replace('the  camp', 'the camp'), stock: w.camp.stock, camp: true, war: w.id };
+    return { id, owner: w.attacker, name: `the ${state.frontier.settlements?.[w.town]?.name || ''} camp`.replace('the  camp', 'the camp'), stock: w.camp.stock, reserved: w.camp.reserved ||= {}, camp: true, war: w.id, w };
   }
   const dest = (id, owner) => town(id) || campDest(id, owner);
 
   // goods: ONE level with the market's hold-back (Tim 2026-11-09), s.marketKeep (default data.market.keep)
   const keepOf = (s, res) => (res === 'goods' && data.market ? s.marketKeep : s.keep?.[res]) ?? defaultKeep(s, data, res);
   const reservedOf = (s, res) => s.reserved?.[res] ?? 0;
-  const free = (s, res) => Math.max(0, (s.stock?.[res] ?? 0) - keepOf(s, res) - reservedOf(s, res));
+  const free = (s, res, o = null) => Math.max(0, (s.stock?.[res] ?? 0) - keepFor(s, res, o) - reservedOf(s, res));
+  // Tim 2026-11-17: a bot's town fills its own camp's orders down to war.supply.botCampKeepShare of its storage (it
+  // keeps that share of its coffers for ryo too); other orders, and a player's towns, keep the town's keep amount
+  function keepFor(s, res, o) {
+    const k = keepOf(s, res);
+    if (!o?.camp || o.kind === 'sell' || !state.clans?.[s.owner]?.bot) return k;
+    const cap = storageCap(s, data, res);
+    return Number.isFinite(cap) ? Math.min(k, Math.floor(cap * (W().supply?.botCampKeepShare ?? 0.25))) : k;
+  }
   const openIncoming = (id, res) => orders().filter(o => o.state === 'open' && o.to === id && o.resource === res).reduce((a, o) => a + o.amount - o.got, 0);
 
   // two towns of yours joined by open (finished, not closed) lines, through any chain of your towns
@@ -94,16 +103,17 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
   function accept(orderId, from, amount) {
     const o = rec().orders[orderId], s = town(from);
     if (o && o.state === 'open' && from === 'capital' && amount > 0) {   // port wholesale house: pay now, cargo appears at the capital station
-      const t = town(o.to), price = S().buyPrice?.[o.resource] ?? 5;
-      const n = Math.min(Math.floor(amount), Math.floor((t?.stock.ryo ?? 0) / price), o.amount - o.got - inFlight(o.id) - o.sources.reduce((a, x) => a + x.amount, 0));
+      const t = dest(o.to, o.owner), price = S().buyPrice?.[o.resource] ?? 5, purse = t?.camp ? t.w.camp.chest || 0 : t?.stock.ryo ?? 0;
+      const n = Math.min(Math.floor(amount), Math.floor(purse / price), o.amount - o.got - inFlight(o.id) - o.sources.reduce((a, x) => a + x.amount, 0));
       if (!t || n <= 0) return 0;
-      world.change(t.id, 'ryo', -n * price, 'ship buy');
+      if (t.camp) t.w.camp.chest = Math.round((purse - n * price) * 100) / 100;   // a camp pays from its war chest
+      else world.change(t.id, 'ryo', -n * price, 'ship buy');
       o.ryoPaid = (o.ryoPaid || 0) + n * price;
       o.sources.push({ from: 'capital', amount: n, price });
       return n;
     }
     if (!o || o.state !== 'open' || !s || !(amount > 0)) return 0;
-    const take = Math.min(amount, free(s, o.resource), o.amount - o.got - inFlight(o.id) - o.sources.reduce((a, x) => a + x.amount, 0));
+    const take = Math.min(amount, free(s, o.resource, o), o.amount - o.got - inFlight(o.id) - o.sources.reduce((a, x) => a + x.amount, 0));
     if (take <= 0) return 0;
     (s.reserved ||= {})[o.resource] = reservedOf(s, o.resource) + take;
     o.sources.push({ from, amount: take });
@@ -123,7 +133,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       if (!o) continue;
       if (o.to === at) {
         if (o.kind === 'ryo') deliverRyo(o, c.amount);
-        else if (at === 'capital' && o.kind === 'sell') { const s = town(o.sellFrom); if (s) world.change(s.id, 'ryo', Math.floor(c.amount * (S().sellPrice?.[c.resource] ?? 2)), 'ship sale'); o.got += c.amount; }
+        else if (at === 'capital' && o.kind === 'sell') { const s = town(o.sellFrom), pay = Math.floor(c.amount * (S().sellPrice?.[c.resource] ?? 2)); if (s) world.change(s.id, 'ryo', pay, 'ship sale'); else if (o.camp) campSale(o, pay); o.got += c.amount; }
         else if (town(at)) { world.change(at, c.resource, c.amount, 'ship'); o.got += c.amount; }
         else if (isCampNode(at)) { const d = campDest(at, o.owner); if (d) d.stock[c.resource] = Math.round(((d.stock[c.resource] || 0) + c.amount) * 100) / 100; o.got += c.amount; }
         if (o.state === 'open' && o.got >= o.amount - 1e-9) { o.state = 'done'; o.done = state.tick ?? 0; release(o); }
@@ -150,6 +160,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       if (n <= 0) return 0;
       if (w.from === 'yard') w.c.amount -= n;
       else if (isRyo || at === 'capital') w.x.amount -= n;   // ryo was paid when ordered; bought cargo is made at the station
+      else if (isCampNode(at)) { const d = campDest(at); if (!d) return 0; d.stock[w.resource] = Math.max(0, (d.stock[w.resource] || 0) - n); w.x.amount -= n; d.reserved[w.resource] = Math.max(0, reservedOf(d, w.resource) - n); }   // a camp's sale leaves its stores
       else { world.change(at, w.resource, -n, 'ship'); w.x.amount -= n; const s = town(at); s.reserved[w.resource] = Math.max(0, reservedOf(s, w.resource) - n); }
       const id = w.from === 'yard' ? w.c.order : w.o.id, res = w.from === 'yard' ? w.c.resource : w.resource, mine = t.freight.find(c => c.order === id);
       if (mine) mine.amount += n; else t.freight.push({ order: id, resource: res, amount: n });
@@ -162,12 +173,18 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     for (const o of Object.values(rec().orders)) o.sources = o.sources.filter(x => x.amount > 0);
   }
 
+  // Tim 2026-11-17: a camp's sale pays into its side's war chest; the war over, into the Clan treasury
+  function campSale(o, pay) {
+    const w = warOf(o.war);
+    if (w?.camp && w.attacker === o.owner) { w.camp.chest = Math.round(((w.camp.chest || 0) + pay) * 100) / 100; addSource(w.camp.sources ||= {}, 'sale', pay); return; }
+    const clan = state.clans?.[o.owner]; if (clan) { creditRyo(state, clan, pay, 'Camp sale'); world.syncCapital?.(); }
+  }
   // give back every reservation of an order (cancelled, or what the train never loaded)
   function release(o) {
     for (const x of o.sources) {
       if (o.kind === 'ryo') { if (x.amount > 0) { refundRyo(o, x.from, x.amount); o.amount = Math.max(o.got, o.amount - x.amount); } continue; }
       if (x.from === 'capital') { const t = town(o.to); if (t && x.amount > 0) world.change(t.id, 'ryo', x.amount * x.price, 'ship refund'); o.ryoPaid = Math.max(0, (o.ryoPaid || 0) - x.amount * x.price); continue; }
-      const s = town(x.from); if (s?.reserved) s.reserved[o.resource] = Math.max(0, reservedOf(s, o.resource) - x.amount);
+      const s = dest(x.from); if (s?.reserved) s.reserved[o.resource] = Math.max(0, reservedOf(s, o.resource) - x.amount);
     }
     o.sources = [];
   }
@@ -184,7 +201,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
   // Tim 2026-11-09: sell by hand. Any resource, up to the stock not reserved (your call, keep amounts aside), rides the
   // next train to the capital and pays sellPrice each on arrival. Same queue cap as your orders (trainloads per line).
   function sellOrder(e, c) {
-    const s = typeof c.town === 'string' ? town(c.town) : null;
+    const s = typeof c.town === 'string' ? town(c.town) || campDest(c.town, e.owner) : null;
     if (!s || s.owner == null || s.owner !== e.owner) return receipt(e, false, 'Not your town');
     if (!RES().includes(c.resource)) return receipt(e, false, 'Unknown resource');
     const amount = Math.floor(c.amount), min = S().minOrder ?? 10;
@@ -198,9 +215,9 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     const queued = orders().filter(o => o.state === 'open' && o.kind === 'sell' && o.sellFrom === s.id && !o.auto).reduce((a, o) => a + o.amount - o.got, 0);
     if (queued + amount > cap) return receipt(e, false, queued >= cap ? `Trains are booked up: ${Math.round(queued)} already for sale (max ${cap})` : `At most ${Math.floor(cap - queued)} more can be sold for now`);
     const id = `o${++rec().seq}`; lastId = id;
-    rec().orders[id] = { id, owner: e.owner, to: 'capital', kind: 'sell', sellFrom: s.id, resource: c.resource, amount, got: 0, ryo: 0, pin: null, urgent: false, auto: false, state: 'open', sources: [{ from: s.id, amount }], created: state.tick ?? 0 };
+    rec().orders[id] = { id, owner: e.owner, to: 'capital', kind: 'sell', sellFrom: s.id, resource: c.resource, amount, got: 0, ryo: 0, pin: null, urgent: false, auto: false, state: 'open', sources: [{ from: s.id, amount }], created: state.tick ?? 0, ...(s.camp ? { war: s.war, camp: true } : {}) };
     (s.reserved ||= {})[c.resource] = reservedOf(s, c.resource) + amount;
-    return receipt(e, true, `For sale: ${amount} ${c.resource}, pays about ${Math.floor(amount * (S().sellPrice?.[c.resource] ?? 2))} ryo when it reaches the capital`);
+    return receipt(e, true, `For sale: ${amount} ${c.resource}, pays about ${Math.floor(amount * (S().sellPrice?.[c.resource] ?? 2))} ryo ${s.camp ? 'into the war chest ' : ''}when it reaches the capital`);
   }
   let lastId = null;
   function place(e, c) {
@@ -235,8 +252,8 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       const queued = orders().filter(o => o.state === 'open' && o.to === s.id && !o.auto && o.kind !== 'ryo').reduce((a, o) => a + o.amount - o.got, 0);   // (ryo rides the guard car: it takes no wagon room)
       if (queued + amount > cap) return receipt(e, false, queued >= cap ? `Trains are booked up: ${Math.round(queued)} already on order (max ${cap})` : `At most ${Math.floor(cap - queued)} more can be ordered for now`);
     }
-    const ryo = s.camp ? 0 : Math.max(0, Math.floor(c.ryo ?? 0));
-    if (ryo > (s.stock.ryo ?? 0) + 1e-9) return receipt(e, false, 'Not enough ryo');
+    const ryo = Math.max(0, Math.floor(c.ryo ?? 0));   // what it may spend buying at the capital (a camp: from its war chest)
+    if (ryo > (s.camp ? s.w.camp.chest || 0 : s.stock.ryo ?? 0) + 1e-9) return receipt(e, false, s.camp ? 'Not enough ryo in the war chest' : 'Not enough ryo');
     const id = `o${++rec().seq}`; lastId = id;
     rec().orders[id] = { id, owner: e.owner, to: s.id, resource: c.resource, amount, got: 0, ryo, pin: c.pin ?? null, urgent: !!c.urgent, auto, state: 'open', sources: [], created: state.tick ?? 0, ...(s.camp ? { war: s.war, camp: true } : {}) };
     cover(s, rec().orders[id]);
@@ -342,6 +359,16 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       release(o); o.state = 'cancelled'; o.done = state.tick ?? 0;
       return receipt(e, true, 'Order cancelled');
     }
+    // the ryo an open order may spend buying at the capital (Tim 2026-11-17; a camp's comes from its war chest)
+    if (c.mode === 'offer') {
+      const o = rec().orders[c.order], s = o && dest(o.to, e.owner);
+      if (!o || o.owner !== e.owner || o.state !== 'open' || o.kind === 'ryo' || o.kind === 'sell' || !s) return receipt(e, false, 'No such open order');
+      const ryo = Math.floor(Number(c.ryo));
+      if (!(ryo >= (o.ryoPaid || 0))) return receipt(e, false, 'Offer must cover what is already paid');
+      if (ryo - (o.ryoPaid || 0) > (s.camp ? s.w.camp.chest || 0 : s.stock.ryo ?? 0) + 1e-9) return receipt(e, false, s.camp ? 'Not enough ryo in the war chest' : 'Not enough ryo');
+      o.ryo = ryo; cover(s, o);
+      return receipt(e, true, `Up to ${ryo} ryo for buying at the capital`);
+    }
     if (c.mode === 'keep') {
       const s = typeof c.town === 'string' ? town(c.town) : null;
       if (!s || s.owner == null || s.owner !== e.owner) return receipt(e, false, 'Not your town');
@@ -429,9 +456,9 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     const need = () => o.amount - o.got - inFlight(o.id) - o.sources.reduce((a, x) => a + x.amount, 0);
     if (need() <= 0) return;
     const peers = o.pin ? [town(o.pin)] : Object.values(state.frontier.settlements).filter(t => t.owner === s.owner && !t.capital && t.id !== s.id);
-    const cand = peers.filter(t => t && free(t, o.resource) > 0).map(t => [routeLen(s.owner, t.id, s.id), t]).filter(([d]) => d < Infinity).sort((a, b) => a[0] - b[0]);
+    const cand = peers.filter(t => t && free(t, o.resource, o) > 0).map(t => [routeLen(s.owner, t.id, s.id), t]).filter(([d]) => d < Infinity).sort((a, b) => a[0] - b[0]);
     for (const [, t] of cand) { if (need() <= 0) return; accept(o.id, t.id, need()); }
-    if (need() <= 0 || o.pin || s.camp) return;
+    if (need() <= 0 || o.pin || (s.camp && !(o.ryo > 0))) return;   // a camp buys only with a ryo offer (Tim 2026-11-17)
     const price = S().buyPrice?.[o.resource] ?? 5, left = o.auto ? (s.autoBuy === false ? 0 : budgetOf(s) - spentOf(s)) : (o.ryo || 0) - (o.ryoPaid || 0);
     const n = Math.min(need(), Math.floor(left / price));
     if (n > 0 && route(s.owner, 'capital', s.id)) accept(o.id, 'capital', n);
@@ -499,6 +526,23 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       if (n >= min) {
         const id = `o${++rec().seq}`;
         rec().orders[id] = { id, owner, to: 'capital', kind: 'sell', sellFrom: s.id, resource: 'goods', amount: n, got: 0, ryo: 0, pin: null, urgent: false, auto: true, state: 'open', sources: [], created: state.tick ?? 0 };
+        accept(id, s.id, n);
+      }
+    }
+    // 4. Tim 2026-11-17: timber and stone only when the store is full and more would go to waste: the top slice goes
+    // to the capital (ship.overflow: at = share of storage that triggers it, downTo = where it sells down to). Never
+    // while a war is on the town or it is filling a war camp's order; food is never sold on its own
+    const OV = S().overflow || {};
+    if (OV.on !== false && s.autoBuy !== false && route(owner, s.id, 'capital') && !Object.values(state.frontier.wars?.list || {}).some(w => w.town === s.id)
+      && !orders().some(o => o.state === 'open' && o.camp && o.kind !== 'sell' && o.sources.some(x => x.from === s.id))) {
+      for (const res of OV.resources || ['timber', 'stone']) {
+        const capR = storageCap(s, data, res);
+        if (!Number.isFinite(capR) || (s.stock[res] ?? 0) < capR * (OV.at ?? 1) - 1) continue;   // (within 1 of full)
+        if (orders().some(o => o.state === 'open' && o.kind === 'sell' && o.sellFrom === s.id && o.resource === res)) continue;
+        const n = Math.floor(Math.min((s.stock[res] ?? 0) - capR * (OV.downTo ?? 0.9), (s.stock[res] ?? 0) - keepOf(s, res) - reservedOf(s, res)));
+        if (n < min) continue;
+        const id = `o${++rec().seq}`;
+        rec().orders[id] = { id, owner, to: 'capital', kind: 'sell', sellFrom: s.id, resource: res, amount: n, got: 0, ryo: 0, pin: null, urgent: false, auto: true, overflow: true, state: 'open', sources: [], created: state.tick ?? 0 };
         accept(id, s.id, n);
       }
     }

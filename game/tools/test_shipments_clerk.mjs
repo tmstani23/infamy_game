@@ -80,6 +80,27 @@ const ryoA = A.stock.ryo;
 assert.ok(run(20000, () => sale.state === 'done'), 'sale delivered to the capital');
 assert.ok(A.stock.ryo > ryoA, 'tA was paid');
 
+// Tim 2026-11-17: timber and stone are sold only when the store is full (ship.overflow), down to ship.overflow.downTo
+// of storage; not below that, never during a war on the town or while it fills a war camp's order; food never
+{ const cap = g.frontier.data.storage.caps[(A.tier || 1) - 1], OV = railways.ship.overflow, sells = r => open().filter(x => x.kind === 'sell' && x.sellFrom === 'tA' && x.resource === r);
+  for (const x of open()) { sh.release(x); x.state = 'cancelled'; }
+  A.stock.timber = cap - 50; A.stock.food = cap; A.reserved = {};
+  sh.clerk(A);
+  assert.equal(sells('timber').length, 0, 'not full: no sale');
+  assert.equal(sells('food').length, 0, 'food is never sold on its own');
+  A.stock.timber = cap;
+  F.wars ||= { list: {}, cooldown: {}, history: [] }; F.wars.list.wq = { id: 'wq', town: 'tA', attacker: 'x', defender: 'player', state: 'active' };
+  sh.clerk(A);
+  assert.equal(sells('timber').length, 0, 'not while a war is on the town');
+  delete F.wars.list.wq;
+  sh.clerk(A);
+  const ov = sells('timber')[0];
+  assert.ok(ov && ov.overflow, 'full: the top slice is sold');
+  assert.equal(ov.amount, Math.floor(cap - cap * OV.downTo), 'down to ' + OV.downTo + ' of storage');
+  sh.clerk(A); assert.equal(sells('timber').length, 1, 'one sale open at a time');
+  for (const x of open()) { sh.release(x); x.state = 'cancelled'; }
+  A.stock.food = 300; A.stock.timber = 300; }
+
 // with the governor on auto the review runs the clerk
 B.autoBuild = true;
 B.stock.food = 0;

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
+import { storageCap } from '../src/sim/frontier/storage.js';
 
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const world = data('data/world.json'), frontier = data('data/frontier.json'), railways = data('data/railways.json');
@@ -153,7 +154,49 @@ run(20 * 5);
 assert.ok(!l.closed, 'open again once all stand');
 assert.equal(run(20 * 600, () => oc2.state === 'done'), true, 'the waiting order arrives once the line is mended: ' + JSON.stringify([oc2.state, oc2.got, oc2.amount]));
 assert.equal(Math.round((w.camp.chest || 0) - chestCut), 400, 'its ryo is in the war chest');
-assert.equal(clan.ryo, 4600);
+assert.ok(clan.ryo <= 4600, 'nothing refunded to the treasury (lieutenant wages may go out)');
+// Tim 2026-11-17: a camp sells its stores at the capital (the ryo into its war chest) and buys there from its war chest
+{ const sale = () => Object.values(F.shipping.orders).filter(x => x.kind === 'sell' && x.camp && x.war === 'w1').at(-1);
+  w.camp.stock.stone = 500; const ch0 = w.camp.chest || 0, price = railways.ship.sellPrice.stone;
+  g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'sell', town: node, resource: 'stone', amount: 200 }]);
+  const so = sale();
+  assert.ok(so && so.sellFrom === node && so.state === 'open', 'a camp sale: ' + clan.notice?.text);
+  assert.equal(w.camp.reserved.stone, 200, 'held back in the camp stores until the train takes it');
+  g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'sell', town: node, resource: 'stone', amount: 400 }]);
+  assert.match(clan.notice?.text || '', /to spare/, 'no more than the stores hold');
+  assert.equal(run(20 * 900, () => so.state === 'done'), true, 'sold: ' + JSON.stringify([so.state, so.got]));
+  assert.equal(w.camp.stock.stone, 300, 'it left the camp stores');
+  assert.equal(Math.round((w.camp.chest || 0) - ch0), 200 * price, 'paid into the war chest');
+  assert.equal(w.camp.reserved.stone || 0, 0);
+  // buying: the towns have nothing to spare; the order's ryo offer buys at the capital from the war chest
+  const timber0 = town.stock.timber; town.stock.timber = 0; w.camp.stock.timber = 0; w.camp.chest = 1000;
+  g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'order', town: node, resource: 'timber', amount: 100 }]);
+  const free0 = Object.values(F.shipping.orders).filter(x => x.camp && x.resource === 'timber' && x.state === 'open').at(-1);
+  run(40); assert.equal(free0.sources.length, 0, 'no offer: it waits for a town to spare some');
+  g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'cancel', order: free0.id }]);
+  g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'order', town: node, resource: 'timber', amount: 100, ryo: 5000 }]);
+  assert.match(clan.notice?.text || '', /war chest/, 'an offer above the war chest is refused');
+  g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'order', town: node, resource: 'timber', amount: 100, ryo: 600 }]);
+  const bo = Object.values(F.shipping.orders).filter(x => x.camp && x.resource === 'timber' && x.state === 'open').at(-1);
+  assert.ok(bo.sources.some(x => x.from === 'capital'), 'bought at the capital');
+  assert.equal(w.camp.chest, 1000 - 100 * railways.ship.buyPrice.timber, 'paid from the war chest');
+  assert.equal(run(20 * 900, () => bo.state === 'done'), true, 'delivered');
+  assert.equal(w.camp.stock.timber, 100);
+  // an open order's offer can be set afterwards
+  g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'order', town: node, resource: 'timber', amount: 50 }]);
+  const oo = Object.values(F.shipping.orders).filter(x => x.camp && x.resource === 'timber' && x.state === 'open').at(-1);
+  g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'offer', order: oo.id, ryo: 300 }]);
+  assert.ok(oo.ryo === 300 && oo.sources.some(x => x.from === 'capital'), 'offer: bought at the capital');
+  run(20 * 900, () => oo.state === 'done'); town.stock.timber = timber0; }
+// Tim 2026-11-17: a bot's town fills its own camp's orders down to war.supply.botCampKeepShare of its storage
+{ const tX = F.settlements.tX, cap = storageCap(tX, frontier, 'timber'), bot0 = S.clans[tX.owner]; if (!bot0) S.clans[tX.owner] = { id: tX.owner, bot: true, ryo: 0 }; const wasBot = S.clans[tX.owner].bot; S.clans[tX.owner].bot = true;
+  if (Number.isFinite(cap) && cap > 0) {
+    tX.stock.timber = Math.floor(cap * 0.4); tX.reserved = {};
+    assert.equal(sh.free(tX, 'timber'), Math.max(0, Math.floor(cap * 0.4) - sh.keepOf(tX, 'timber')), 'its keep for other orders');
+    assert.equal(Math.round(sh.free(tX, 'timber', { camp: true })), Math.floor(cap * 0.4) - Math.floor(cap * frontier.war.supply.botCampKeepShare), 'down to a quarter for its camp');
+    assert.equal(sh.free(town, 'timber', { camp: true }), sh.free(town, 'timber'), "a player's town keeps its keep amount");
+  } else console.log('  (no storage cap: bot camp keep share not checked)');
+  if (!bot0) delete S.clans[tX.owner]; else bot0.bot = wasBot; }
 // camp ruins take no building slot; building over one says to erase it
 { const bk = { id: 'w1:bk', type: 'barracks', stage: 'ruined', x: cx - 30, z: cz };
   w.camp.buildings.push(bk);

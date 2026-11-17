@@ -84,7 +84,7 @@ export function chestSendHtml({ game, war: w, owner, counts = {}, data = {} }) {
   const src = defend ? w.defense?.sources || {} : w.camp?.sources || {}, parts = [];
   if (defend) { if (w.defense?.put) parts.push(`${F.settlements?.[w.town]?.name || 'Town'} coffers ${fmt(w.defense.put)}`); }
   else if (w.camp?.brought?.ryo) parts.push(`hero's pack ${fmt(w.camp.brought.ryo)}`);
-  for (const [k, v] of Object.entries(src)) parts.push(`${k === 'treasury' ? 'Treasury' : `${F.settlements?.[k]?.name || k} coffers`} by train ${fmt(v)}`);
+  for (const [k, v] of Object.entries(src)) parts.push(k === 'sale' ? `Sold at the capital ${fmt(v)}` : `${k === 'treasury' ? 'Treasury' : `${F.settlements?.[k]?.name || k} coffers`} by train ${fmt(v)}`);
   if (parts.length) h += `<div class="rsrc">Sources this war: ${esc(parts.join(', '))}.</div>`;
   h += `<div class="rsrc">${defend ? `If the war ends first, the ryo goes into ${esc(F.settlements?.[w.town]?.name || 'the town')} coffers.` : 'If the war ends first or the line is cut, ryo not yet here goes back where it came from.'}</div>`;
   return h;
