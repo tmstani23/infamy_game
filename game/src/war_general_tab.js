@@ -28,17 +28,27 @@ export function strategyTip(key, rules, camp) {
   return camp ? `${STRATEGY_NAMES[key]}. Builds in this order: ${count(part.build)}. Hires up to ${part.workers ?? 8} workers. Trains in these shares: ${mix}. Pushes at ${part.pushAt ?? 12} troops, or with what it has when it cannot grow. Goes for ${(part.targets || []).map(t => t === 'military' ? 'military buildings' : t === 'hall' ? 'the hall' : t === 'tower' ? 'watchtowers' : t === 'wall' ? 'walls and gates' : t).join(', then ')}. Breaks a gate or wall when the town is shut. Builds its whole list before it pushes in full, with a probe before that. Answers a town stockade with a foundry and siege guns. Digs in with watchtowers, a stockade and a palisade when the fight drags on or goes badly. Archers and riflemen who are not on a push hold the camp stockade.`
     : `${STRATEGY_NAMES[key]}. Trains in these shares: ${mix}. Archers and riflemen hold the stockades first, then the houses. The army meets attackers near the town and goes for the war camp at ${part.sortieAt ?? 12} troops, or sooner when it is clearly the stronger.`;
 }
-// view = { strategy, rules, camp: bool, town?: { name, ryo, keep (0..1) }, typing?: string }
+// 8e-2 (mock C, Tim 2026-11-16): the Clan treasury keep line, for auto ryo orders only (governors and the general,
+// during a war); typeable box input[data-tkeep], sent on change as { action: 'ship', mode: 'treasuryKeep', ryo }
+const fmt = n => Math.floor(n).toLocaleString('en-US');
+function treasuryRow(t, share) {
+  if (!t) return '';
+  const tip = `Treasury keep line. During a war your governors and your general may order Clan treasury ryo by train into a war chest, never below this line and at most ${Math.round((share ?? 0.25) * 100)}% of what is above it each day. Your own orders ignore it.`;
+  return `<div class="sec"><span>Clan treasury keep line</span><b>Auto orders only</b></div>
+    <div class="keep" title="${esc(tip)}"><span style="flex:1"><b style="color:#f3e3bd;font-weight:600">Never take the treasury below</b><br><span class="gnote" style="margin:0">Treasury ${fmt(t.ryo)}. Auto orders can use ${fmt(t.room)} today.</span></span><input type="text" inputmode="numeric" data-tkeep="1" data-n="tkeep" value="${esc(t.typing ?? t.keep)}" style="width:80px"></div>`;
+}
+// view = { strategy, rules, camp: bool, town?: { name, ryo, keep (0..1) }, typing?: string, treasury?: { ryo, keep, room, typing } }
 export function generalTab(view) {
   const { strategy, rules, camp, town } = view;
   const cards = Object.keys(STRATEGY_NAMES).map(k => `<div class="s${strategy === k ? ' on' : ''}" data-strategy="${k}" title="${esc(strategyTip(k, rules, camp))}"><b>${STRATEGY_NAMES[k]}</b><span>${SHORT[k]}</span>${strategy === k ? '<i>Chosen</i>' : ''}</div>`).join('');
   const head = `<div class="sec"><span>While you are away</span><b>${camp ? 'He runs this camp when your hero leaves the war' : 'Your general takes over when your hero leaves the war'}</b></div><div class="strat">${cards}</div>`;
-  if (camp) return `${head}<div class="gnote">At a camp he spends only the war chest and the camp's timber and stone. Walk back into the war and he stops at once. Your troops keep their last orders. The choice is for your whole clan.</div>`;
+  const share = view.share;
+  if (camp) return `${head}<div class="gnote">At a camp he spends the war chest and the camp's timber and stone, and once the camp station is linked he orders more by train: ryo from the Clan treasury above its keep line, then town coffers down to their keep share, and timber and stone from your towns. Walk back into the war and he stops at once. Your troops keep their last orders. The choice is for your whole clan.</div>${treasuryRow(view.treasury, share)}`;
   const pct = Math.round((town?.keep ?? rules?.keepShare ?? 0.5) * 100), kept = Math.floor((town?.ryo || 0) * pct / 100);
   return `${head}<div class="gnote">Hover a card for what it trains and how it fights. The choice is for your whole clan.</div>
-    <div class="sec"><span>What he may spend here</span><b>Never the Clan treasury</b></div>
+    <div class="sec"><span>What he may spend here</span><b>Treasury only by train, above its keep line</b></div>
     <div class="keep"><span>Keep</span><input type="text" inputmode="numeric" data-keep="1" data-n="keep" value="${esc(view.typing ?? pct)}" title="Share of the town coffers your general leaves alone, 0 to 100"><span>percent of the town coffers. The rest goes into the war chest when a war is on ${esc(town?.name || 'the town')}.</span></div>
-    <div class="gnote">Now: he would keep ${kept} ryo in ${esc(town?.name || 'the town')}.</div>`;
+    <div class="gnote">Now: he would keep ${kept} ryo in ${esc(town?.name || 'the town')}.</div>${treasuryRow(view.treasury, share)}`;
 }
 // what the keep box holds, as a share 0..1, or null when it is not a number from 0 to 100
 export function keepShare(text) { const n = Number(String(text).trim()); return String(text).trim() !== '' && Number.isFinite(n) && n >= 0 && n <= 100 ? Math.round(n) / 100 : null; }

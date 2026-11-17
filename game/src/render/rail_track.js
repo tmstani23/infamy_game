@@ -242,8 +242,25 @@ export function createRailTrack({ scene, carSprite = null, hide = null }) {   //
     }
   }
   let clock = 0;
+  // 8e-6 (mock D): the marked rail sections of a camp spur in a war, red on the track while they stand, dark once destroyed
+  const red = new Map();   // key -> mesh
+  let redMat = null, deadMat = null;
+  function sections(frontier, links) {
+    redMat ||= new THREE.MeshBasicMaterial({ color: 0xd8382c, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide });
+    deadMat ||= new THREE.MeshBasicMaterial({ color: 0x1a1210, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide });
+    const want = new Set();
+    for (const w of Object.values(frontier?.wars?.list || {})) for (const b of w.camp?.buildings || []) {
+      const l = b.type === 'rail_section' && b.rail && links[b.rail.link]; if (!l?.done || !l.points?.length) continue;
+      const k = `${l.id}:${b.id}:${b.stage}`; want.add(k);
+      if (red.has(k)) continue;
+      const r = smoothed(l), m = new THREE.Mesh(ribbon(r, b.rail.d0 * r.k, Math.max(b.rail.d0 + 1, b.rail.d1) * r.k, TRACK_W * 1.25, 0.05).geo, b.stage === 'built' ? redMat : deadMat);
+      m.renderOrder = -0.39; m.frustumCulled = false; scene.add(m); red.set(k, m);
+    }
+    for (const [k, m] of red) if (!want.has(k)) { scene.remove(m); m.geometry.dispose(); red.delete(k); }
+  }
   function update(frontier, show, dt = 1 / 60, night = 0) {
     clock += dt;
+    sections(show ? frontier : null, show ? frontier?.rail?.links || {} : {});
     const links = show ? frontier?.rail?.links || {} : {};
     moveTrains(show ? frontier : null, links, dt, clock, night);
     for (const id of [...shown.keys()]) if (!links[id]) drop(id);

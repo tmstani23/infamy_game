@@ -11,10 +11,13 @@ export function createRailLedger({ game, inCard = false, head = true }) {   // i
   let tab = 'open', page = 0, sel = null;
   const F = () => game.state.frontier || {};
   const orders = () => Object.values(F().shipping?.orders || {});
-  const name = id => id === 'capital' ? 'the capital' : F().settlements?.[id]?.name || id;
+  // 8e-1: a camp station node is named after its war (camp:<war id>)
+  const campName = id => { const w = F().wars?.list?.[id.slice(5)] || (F().wars?.history || []).find(x => x.id === id.slice(5)); return `Siege of ${F().settlements?.[w?.town]?.name || 'the town'} camp`; };
+  const name = id => id === 'capital' ? 'the capital' : String(id).startsWith('camp:') ? campName(id) : F().settlements?.[id]?.name || id;
+  const toName = o => o.kind === 'sell' ? 'the capital (sale)' : o.kind === 'ryo' && o.into === 'chest' && o.defend ? `${name(o.to)} war chest` : name(o.to);
   const trainOf = id => Object.values(F().rail?.trains || {}).find(t => (t.freight || []).some(c => c.order === id)) || null;
   const aboard = id => { const t = trainOf(id); return t ? t.freight.filter(c => c.order === id).reduce((a, c) => a + c.amount, 0) : 0; };
-  const from = o => o.kind === 'sell' ? name(o.sellFrom) : o.sources?.length ? [...new Set(o.sources.map(x => name(x.from)))].join(', ') : o.from ? name(o.from) : '...';
+  const from = o => o.kind === 'sell' ? name(o.sellFrom) : o.kind === 'ryo' ? (o.from === 'capital' ? 'the Clan treasury' : `${name(o.from)} coffers`) : o.sources?.length ? [...new Set(o.sources.map(x => name(x.from)))].join(', ') : o.from ? name(o.from) : '...';
   const lists = () => {
     const all = orders().sort((a, b) => (b.urgent - a.urgent) || (a.created - b.created));
     return { open: all.filter(o => o.state === 'open'), done: all.filter(o => o.state === 'done').reverse(), lost: all.filter(o => (o.lost || 0) > 0).reverse() };
@@ -31,7 +34,7 @@ export function createRailLedger({ game, inCard = false, head = true }) {   // i
   function row(o) {
     const f = (o.got + aboard(o.id)) / Math.max(1, o.amount), t = trainOf(o.id);
     const st = o.state === 'done' ? 'delivered' : o.state === 'cancelled' ? 'cancelled' : t ? `train ${t.id.replace(/^t/, '')}` : o.sources?.length ? 'waiting' : 'no source yet';
-    return `<button class="lgrow${sel === o.id ? ' sel' : ''}" data-ledger="pick:${o.id}"><span>${cap1(o.resource)} ${o.amount}${o.urgent ? ' <b class="gold">urgent</b>' : ''}<br><small>${esc(from(o))} to ${esc(o.kind === 'sell' ? 'the capital (sale)' : name(o.to))}${o.lost ? `, <b class="red">${o.lost} lost</b>` : ''}</small></span>${bar(f)}<small>${st}</small></button>`;
+    return `<button class="lgrow${sel === o.id ? ' sel' : ''}" data-ledger="pick:${o.id}"><span>${cap1(o.resource)} ${o.amount}${o.urgent ? ' <b class="gold">urgent</b>' : ''}<br><small>${esc(from(o))} to ${esc(toName(o))}${o.lost ? `, <b class="red">${o.lost} lost</b>` : ''}</small></span>${bar(f)}<small>${st}</small></button>`;
   }
   function html() {
     const L = lists(), list = tab === 'done' ? L.done : tab === 'lost' ? L.lost : L.open;
@@ -42,7 +45,7 @@ export function createRailLedger({ game, inCard = false, head = true }) {   // i
     if (pages > 1) h += `<div class="lgpages"><button data-ledger="page:-1"${page ? '' : ' disabled'}>Prev</button><small>${page + 1} / ${pages}</small><button data-ledger="page:1"${page < pages - 1 ? '' : ' disabled'}>Next</button></div>`;
     const o = sel && orders().find(x => x.id === sel);
     if (o) {
-      const who = o.auto ? 'the governor' : 'you', ryo = o.kind === 'sell' ? '' : o.ryoPaid ? `, ${o.ryoPaid} ryo from the capital` : '';
+      const who = o.auto ? (o.kind === 'ryo' ? 'an auto order (governor or general)' : 'the governor') : 'you', ryo = o.kind === 'sell' ? '' : o.ryoPaid ? `, ${o.ryoPaid} ryo from the capital` : '';
       h += `<div class="lgcard"><b>${cap1(o.resource)} ${o.amount}</b>, ${o.got} arrived<br>From ${esc(from(o))}, ordered by ${who}${ryo}${o.lost ? `<br><span class="red">${o.lost} lost to robbers, re-sent</span>` : ''}<br><small>${esc(eta(o) || (o.state === 'open' ? 'Waiting for the next train' : ''))}${trainOf(o.id) && !inCard ? ', its train glows on the map' : ''}</small></div>`;
     } else if (list.length) h += `<div class="lgnote">${inCard ? 'Pick a shipment for its details.' : 'Pick a shipment: its train glows on the map.'}</div>`;
     return h;

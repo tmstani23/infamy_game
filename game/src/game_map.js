@@ -234,7 +234,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     return { discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
       knownSites: told, knownAt: told.map(id => siteXZ[id]).filter(Boolean).map(t => ({ x: t.x, z: t.z, r: R })), highlight: tourStop,
       hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap(),
-      rail: { links: game.state.frontier?.rail?.links || {}, trains: game.state.frontier?.rail?.trains || {}, highlight: ledgerOpen ? ledger.train() : null, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600 } };
+      rail: { links: game.state.frontier?.rail?.links || {}, trains: game.state.frontier?.rail?.trains || {}, highlight: ledgerOpen ? ledger.train() : null, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600, wars: game.state.frontier?.wars?.list } };
   };
   // Frontier towns to draw and hover (F4.4d): your own, plus rival towns on ground you have discovered
   // (the snapshot only carries those). Placed where the town hall actually stands (Tim 2026-11-05);

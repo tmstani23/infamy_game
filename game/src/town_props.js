@@ -155,6 +155,7 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
       }
     }
     s.buildings.forEach((b, i) => {
+      if (b.type === 'rail_section') return;   // 8e-6: drawn red on the track (render/rail_track.js), not as a building
       // a camp palisade or gate piece faces along its line (checkpoint 6-6)
       const lineArt = s.camp && townArt._campLine?.[b.type], art = lineArt ? lineArt[Math.abs(Math.cos(b.rot || 0)) >= Math.abs(Math.sin(b.rot || 0)) ? 'x' : 'z'] : townArt[b.type], [ox, oz] = spotOf(s, b, i);
       // a ruin (war checkpoint 6): the burned ruin art; a broken camp palisade or gate piece shows dark rubble

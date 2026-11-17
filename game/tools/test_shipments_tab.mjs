@@ -94,4 +94,13 @@ assert.match(tab.html(B), /data-id="lg~tab:done"/); assert.ok(!/Back to Shipment
 press('lg~tab:done'); assert.match(tab.html(B), /Delivered/);
 press('sub:new');
 assert.match(tab.html(B), /data-id="order:timber"/, 'back on the Order tab');
+// 8e-3: the Ryo row: from the Clan treasury into these coffers, by train from the capital
+S.clans.player.ryo = 3000; g.frontier.world.syncCapital();
+h = tab.html(B);
+assert.match(h, /data-id="ramt" value="500"/); assert.match(h, /From Clan treasury, keeps 2,500/);
+assert.ok(tab.input({ id: 'ramt' }, '300')); press('ryo');
+const ro = Object.values(F.shipping.orders).find(o => o.kind === 'ryo');
+assert.ok(ro && ro.to === 'tB' && ro.amount === 300 && ro.from === 'capital', 'a ryo order from the treasury');
+press('sub:open'); assert.match(tab.html(B), /Ryo 300[\s\S]*from the Clan treasury/, 'the open row says where it comes from');
+press('sub:new');
 console.log('test_shipments_tab: ok');

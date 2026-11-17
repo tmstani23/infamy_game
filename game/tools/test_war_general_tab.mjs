@@ -12,7 +12,10 @@ const town = generalTab({ strategy: 'siege', rules, camp: false, town: { name: '
 for (const k of Object.keys(STRATEGY_NAMES)) assert.ok(town.includes(`data-strategy="${k}"`), `card ${k}`);
 assert.equal((town.match(/class="s on"/g) || []).length, 1); assert.ok(/class="s on" data-strategy="siege"/.test(town));
 assert.ok(town.includes('data-keep="1"') && town.includes('value="50"') && town.includes('keep 1385 ryo in Holdfast'));
-assert.ok(town.includes('Never the Clan treasury'));
+assert.ok(town.includes('Treasury only by train, above its keep line'));   // 8e-2 (Tim 2026-11-16)
+const tk = generalTab({ strategy: 'siege', rules, camp: false, town: { name: 'Holdfast', ryo: 2770, keep: 0.5 }, treasury: { ryo: 3340, keep: 1000, room: 585 }, share: 0.25 });
+assert.ok(tk.includes('data-tkeep="1"') && tk.includes('value="1000"') && tk.includes('Auto orders can use 585 today'), 'the treasury keep line row');
+assert.ok(generalTab({ strategy: 'rush', rules, camp: true, treasury: { ryo: 3340, keep: 1000, room: 585 } }).includes('data-tkeep'), 'at the camp too');
 assert.ok(generalTab({ strategy: 'rush', rules, camp: false, town: { name: 'A', ryo: 100, keep: 0.25 }, typing: '7' }).includes('value="7"'), 'a box being typed in keeps its text');
 const camp = generalTab({ strategy: 'rush', rules, camp: true });
 assert.ok(!camp.includes('data-keep') && /class="s on" data-strategy="rush"/.test(camp));

@@ -147,6 +147,7 @@ body[data-clan="shinobi"], body[data-clan="ninja"] { --ms-accent: #8e6cc9; --ms-
 #townpanel .shico { display: grid; place-items: center; width: 28px; height: 26px; } #townpanel .shico svg { width: 28px; height: 24px; filter: drop-shadow(0 2px 2px #000); }
 #townpanel .shmid { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 #townpanel .shline { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; } #townpanel .shline > span:last-child { font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+#townpanel .shsub { font-size: 11px; white-space: normal; }
 #townpanel .shmeter { position: relative; display: block; height: 7px; background: #22262e; border: 1px solid #000; border-radius: 4px; }
 #townpanel .shmeter i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(#f0d07a, #b58a2a); }
 #townpanel .shres.low .shmeter i { background: linear-gradient(var(--ms-accent-lt), var(--ms-go1)); }

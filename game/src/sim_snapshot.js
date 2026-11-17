@@ -86,12 +86,15 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
     roads: f.roads || {}, townOrder: f.townOrder?.[clan] || [],
     shipments: Object.fromEntries(Object.entries(f.shipments || {}).filter(([, h]) => h.owner === clan)),
     // rail shipments (S1-S4): this clan's orders
-    shipping: { orders: Object.fromEntries(Object.entries(f.shipping?.orders || {}).filter(([, o]) => o.owner === clan)) },
+    shipping: { orders: Object.fromEntries(Object.entries(f.shipping?.orders || {}).filter(([, o]) => o.owner === clan)),
+      // 8e-3: this clan's cargo waiting in station yards (where a ryo order is: "waiting at Ohama station")
+      yards: Object.fromEntries(Object.entries(f.shipping?.yards || {}).map(([at, y]) => [at, (y || []).filter(c => f.shipping?.orders?.[c.order]?.owner === clan)]).filter(([, y]) => y.length)) },
     receipts: recent || (f.receipts || []).filter(r => r.clan === clan),
     siteClaims: f.siteClaims || {},   // E1: claimed sites are shut in everyone's Choose site menu
     // train plan: this clan's railway links (track drawn up to `built`)
-    rail: { links: Object.fromEntries(Object.entries(f.rail?.links || {}).filter(([, l]) => l.owner === clan)),
-      trains: Object.fromEntries(Object.entries(f.rail?.trains || {}).filter(([, t]) => t.owner === clan)), tick: f.econTick } };
+    // 8e-6: a defender also sees the enemy camp spur of a war on its town (its supply line to cut), and its train
+    rail: (() => { const seen = l => l.owner === clan || (l.camp && f.wars?.list?.[l.camp]?.defender === clan), links = Object.fromEntries(Object.entries(f.rail?.links || {}).filter(([, l]) => seen(l)));
+      return { links, trains: Object.fromEntries(Object.entries(f.rail?.trains || {}).filter(([, t]) => t.owner === clan || links[t.link])), tick: f.econTick }; })() };
 }
 
 export function createSnapshotEncoder(game, clan = 'player') {

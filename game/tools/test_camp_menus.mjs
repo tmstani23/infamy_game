@@ -57,7 +57,7 @@ P.update(); h = root.innerHTML; assert.ok(h.includes('next in') && h.includes('C
 
 assert.ok(P.show(rec.id, hall.id) && root.innerHTML.includes('data-build=') && root.innerHTML.includes('data-tab="chest"'), 'the hall: build cards and tabs');
 assert.ok(!root.innerHTML.includes('data-train='), 'no training in the hall');
-click({ tab: 'chest' }); assert.ok(root.innerHTML.includes('What it pays for') && root.innerHTML.includes(String(Math.floor(c.chest))), 'the war chest tab');
+click({ tab: 'chest' }); assert.ok(root.innerHTML.includes('Send ryo by train') && root.innerHTML.includes('data-rsend="capital"') && root.innerHTML.includes(String(Math.floor(c.chest))), 'the war chest tab');
 assert.ok(P.show(rec.id) && root.innerHTML.includes('data-build='), 'the war coin opens the hall');
 assert.ok(P.show(rec.id, site.id) && root.innerHTML.includes('Under construction') && root.innerHTML.includes('data-cancel'), 'a site shows its progress');
 assert.ok(P.show(rec.id, tents.id) && root.innerHTML.includes('troop cap'), 'supply tents say what they do');

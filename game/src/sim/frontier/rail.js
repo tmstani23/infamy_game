@@ -13,9 +13,18 @@
 //   | { ..., mode: 'board', train } (step 4: at a station where that train stands) | { ..., mode: 'skip' } (aboard,
 //   after ride.skipSeconds: straight to the far station). Riders carry e.aboard = 'rail:<train id>' (hidden, out
 //   of fights, like the omnibus) and e.railRide = { train, since }; they get off at the train's next station.
+// 8e-4 (2026-11-16) camp spur: a war camp with a built camp station (war.buildings.camp_station) gets a line of its
+//  own, ordered by itself, from the station (node 'camp:<war id>') to the station of the nearest own town that has
+//  one. It lays like any line (rail gang, link.seconds, costPer100 a stretch) but is paid from the camp stores. When
+//  it opens, war.camp.station.linked is set; the train then serves the camp like a town (shipments.js).
+// 8e-6 the supply line in war: when the spur opens, the stretch inside the war circle gets war.supply.sections marked
+//  rail sections (camp buildings of type 'rail_section', on the camp's morale bar, hit like any camp building). With
+//  the camp station and every section down the line closes: the camp is cut off (mended, it opens again). When the
+//  war is over the spur goes: after a capture it becomes a normal line from the captured town; after a sack, burn
+//  or a call-off half its rail cost goes back to the town it ran to; a fallen camp gives nothing back.
 // createRail({ state, data, world, worldData }) -> { command, tick, econTick, attach, endpoint, preview, linksOf }
 import { crewCommandGroup } from '../deployment_rally.js';
-import { createRailGrid, routeRail, pointAt, measure, roundCorners, openRun } from './rail_route.js';
+import { createRailGrid, routeRail, pointAt, measure, roundCorners, openRun, nearestOpen } from './rail_route.js';
 import { townExit, railCellsFor, clearRun } from './rail_town.js';
 import { stationParts } from './station_layout.js';
 import { tierOf } from './tiers.js';
@@ -24,17 +33,21 @@ import { dirIndex } from '../geometry.js';
 
 export function createRail({ state, data, world, worldData, stable }) {
   const R = data.railways, L = () => R?.link || {}, GANG = () => R?.gang || {};
-  let grid = null, runtime = null, arriveHook = null, departHook = null, tearHook = null;
+  let grid = null, runtime = null, arriveHook = null, departHook = null, tearHook = null, trainHook = null, cutHook = null;
   const G = () => grid ||= worldData && R?.route ? createRailGrid(worldData, R.route) : null;
   const rec = () => { const r = state.frontier.rail ||= { seq: 0, links: {} }; r.trains ||= {}; return r; };
   const T = () => R?.train || {};
   const linksOf = owner => Object.values(rec().links).filter(l => l.owner === owner);
   const town = id => id === 'capital' ? null : state.frontier.settlements?.[id];
   const secs = () => Math.max(1, data.cadenceTicks || 20) / 20;
+  const isCamp = id => typeof id === 'string' && id.startsWith('camp:');
+  const warOfNode = id => state.frontier.wars?.list?.[String(id).slice(5)] || null;
+  const campStation = w => w?.camp?.buildings?.find(b => b.type === 'camp_station' && b.stage === 'built' && !(b.hp <= 0)) || null;
 
   // where a station's track ends: the capital end just outside the island gate, a town's at its station
   function endpoint(owner, id) {
     if (id === 'capital') { const g = runtime?.gate?.rail || runtime?.gate?.island; return g ? { x: g[0], z: g[1] } : null; }   // east of the city station (Tim 2026-11-10), else the gate
+    if (isCamp(id)) { const w = warOfNode(id), b = campStation(w); return b && (owner == null || w.attacker === owner) ? { x: b.x, z: b.z } : null; }   // 8e-4
     const s = town(id), b = s && s.owner === owner && stable?.of(s, 'station');
     if (!b) return null;
     const parts = stationParts(s, b);   // the 3x2 station (Tim 2026-11-07): the line ends in its shed
@@ -63,20 +76,23 @@ export function createRail({ state, data, world, worldData, stable }) {
   }
   // why a link can't be ordered (or null), plus the route when it can
   function preview(owner, from, to, relay = null) {   // relay: a link being re-routed (capitalEnds), not counted as laid
-    const s = town(from);
-    if (!s || s.owner !== owner) return { error: 'not your town' };
+    const camp = isCamp(from), s = camp ? null : town(from);
+    if (!camp && (!s || s.owner !== owner)) return { error: 'not your town' };
     if (to !== 'capital' && town(to)?.owner !== owner) return { error: 'Lines only run to your own towns' };
     if (from === to) return { error: 'pick another town' };
-    if ((tierOf(s, data) && (s.tier || 1) < (L().minTier ?? 2))) return { error: `${s.name} needs a bigger town hall first` };
+    if (!camp && (tierOf(s, data) && (s.tier || 1) < (L().minTier ?? 2))) return { error: `${s.name} needs a bigger town hall first` };
     const a = endpoint(owner, from), b = endpoint(owner, to);
-    if (!a) return { error: `Build a railway station in ${s.name} first` };
+    if (!a) return { error: camp ? 'Build the camp station first' : `Build a railway station in ${s.name} first` };
     if (!b) return { error: to === 'capital' ? 'The capital end is not ready' : `Build a railway station in ${town(to).name} first` };
     if (!relay && linked(owner, from, to)) return { error: 'Those stations are already linked' };
     const g = G();
     if (!g) return { error: 'no railway data' };
     // the capital: routed to a point out in front of the wall, then straight in through it to the end (Tim 2026-11-10)
     const ap = to === 'capital' && runtime?.gate?.rail && runtime.gate.railApproach, target = ap ? { x: ap[0], z: ap[1] } : b;
-    const coarse = routeRail(g, a, target, { reuse: linksOf(owner).filter(l => l !== relay) });
+    // a camp station off the route grid: from the nearest open cell, then a short straight run to the station
+    const open0 = camp ? nearestOpen(g, a.x, a.z) : null;
+    let coarse = routeRail(g, open0 || a, target, { reuse: linksOf(owner).filter(l => l !== relay) });
+    if (coarse && open0) coarse = { ...coarse, points: [[a.x, a.z], ...coarse.points] };
     if (!coarse) return { error: 'No way to lay track there' };
     // inside the end towns the track takes a fine path round buildings and houses (Tim 2026-11-07)
     // a 3x2 station (Tim 2026-11-07): out of the shed straight through the railway slot, then round the town
@@ -86,7 +102,7 @@ export function createRail({ state, data, world, worldData, stable }) {
       return r && [route[0], ...r]; };
     const boxed = t => stationParts(t, stable.of(t, 'station')) ? `No room for a train to curve out of ${t.name}'s station: turn it (R) or clear a way`
       : `Buildings box in ${t.name}'s station: clear a way out`;
-    let pts = exitOf(s, coarse.points);
+    let pts = camp ? coarse.points : exitOf(s, coarse.points);   // a camp station stands in the open
     if (!pts) return { error: boxed(s) };
     if (to !== 'capital') {
       const back = exitOf(town(to), [...pts].reverse());
@@ -102,7 +118,7 @@ export function createRail({ state, data, world, worldData, stable }) {
     const line = measure(g, pts.map(([x, z]) => [Math.round(x * 10) / 10, Math.round(z * 10) / 10]));
     line.cost = coarse.cost;
     const cost = {};
-    for (const [r, n] of Object.entries(L().costPer100 || {})) cost[r] = Math.ceil(n * line.length / 100);
+    for (const [r, n] of Object.entries((camp ? L().campCostPer100 : null) || L().costPer100 || {})) cost[r] = Math.ceil(n * line.length / 100);
     return { line, seconds: L().seconds ?? 600, cost };
   }
 
@@ -116,6 +132,7 @@ export function createRail({ state, data, world, worldData, stable }) {
     }
     if (c.mode === 'board') return board(e, c.train) || true;
     if (c.mode === 'skip') return skip(e) || true;
+    if (c.mode === 'tear') return tearSpur(e, c.link);
     if (c.mode !== 'link') return receipt(e, false, 'link or cancel');
     if (linksOf(e.owner).filter(l => !l.done).length >= (L().maxBuilding ?? 1)) return receipt(e, false, 'A line is already being laid');
     const p = preview(e.owner, c.town, c.to);
@@ -143,17 +160,20 @@ export function createRail({ state, data, world, worldData, stable }) {
 
   // one economy tick: each unfinished link moves on by length / seconds, buying the next stretch when needed
   function econTick() {
+    campSpurs();
+    campLines();
     for (const l of Object.values(rec().links)) {
       if (l.done) continue;
-      const s = town(l.payer);
-      if (!s || s.owner !== l.owner) { dropGang(l); delete rec().links[l.id]; continue; }   // the town was lost
+      const camp = isCamp(l.payer) ? warOfNode(l.payer)?.camp || null : null, s = camp ? null : town(l.payer);
+      if (camp ? !campStation(warOfNode(l.payer)) : (!s || s.owner !== l.owner)) { dropGang(l); unreserve(l); delete rec().links[l.id]; if (camp?.station?.link === l.id) delete camp.station; continue; }   // the town was lost, or the camp station is down
+      const stock = camp ? camp.stock : s.stock;
       const step = l.length / Math.max(1, L().seconds ?? 600) * secs();
       if (l.built + step > l.paid + 1e-6 && l.paid < l.length) {
-        const stretch = Math.min(L().stretch ?? 100, l.length - l.paid), cost = Object.entries(L().costPer100 || {}).map(([r, n]) => [r, n * stretch / 100]);
-        const short = cost.find(([r, n]) => (s.stock[r] || 0) < n);
+        const stretch = Math.min(L().stretch ?? 100, l.length - l.paid), cost = Object.entries((camp ? L().campCostPer100 : null) || L().costPer100 || {}).map(([r, n]) => [r, n * stretch / 100]);
+        const short = cost.find(([r, n]) => (stock[r] || 0) < n);
         if (short) { l.waiting = short[0]; continue; }
-        for (const [r, n] of cost) world.change(s.id, r, -n, 'rail');
-        l.paid += stretch;
+        for (const [r, n] of cost) { if (camp) stock[r] = Math.round(((stock[r] || 0) - n) * 100) / 100; else world.change(s.id, r, -n, 'rail'); }
+        l.paid += stretch; l.spent = l.spent || {}; for (const [r, n] of cost) l.spent[r] = Math.round(((l.spent[r] || 0) + n) * 100) / 100;
       }
       l.waiting = null;
       l.built = Math.min(l.length, l.built + step);
@@ -161,9 +181,99 @@ export function createRail({ state, data, world, worldData, stable }) {
         l.built = l.length; l.done = true; l.finished = state.tick ?? 0; dropGang(l);
         addTrain(l);
         const clan = state.clans?.[l.owner];
-        if (clan) clan.notice = { tick: state.tick, text: `Rail line open: ${town(l.from)?.name || 'the capital'} to ${l.to === 'capital' ? 'the capital' : town(l.to)?.name}` };
+        if (isCamp(l.from)) { const c = warOfNode(l.from)?.camp; if (c) c.station = { ...(c.station || {}), node: l.from, link: l.id, linked: true }; }
+        if (clan) clan.notice = { tick: state.tick, text: isCamp(l.from) ? `Camp station linked by rail to ${placeName(l.to)}` : `Rail line open: ${town(l.from)?.name || 'the capital'} to ${l.to === 'capital' ? 'the capital' : town(l.to)?.name}` };
       }
     }
+  }
+
+  // 8e-4: every camp with a built camp station and no spur orders one, to the nearest own town with a station.
+  // No such town: it says why on the camp (war.camp.station.why) and tries again a little later.
+  function campSpurs() {
+    for (const w of Object.values(state.frontier.wars?.list || {})) {
+      const c = w.camp, b = campStation(w), node = `camp:${w.id}`;
+      if (!c || !b) continue;
+      if (Object.values(rec().links).some(l => l.from === node || l.to === node)) continue;
+      if (c.station?.retry > (state.tick ?? 0)) continue;
+      const towns = Object.values(state.frontier.settlements || {}).filter(t => t.owner === w.attacker && !t.capital && endpoint(w.attacker, t.id))
+        .sort((p, q) => Math.hypot(p.x - b.x, p.z - b.z) - Math.hypot(q.x - b.x, q.z - b.z));
+      let why = towns.length ? null : 'Needs one of your towns with a railway station';
+      for (const t of towns) {
+        const p = preview(w.attacker, node, t.id);
+        if (p.error) { why ||= p.error; continue; }
+        const id = `r${++rec().seq}`, { points, dist, length, bridges } = p.line;
+        rec().links[id] = { id, owner: w.attacker, from: node, to: t.id, payer: node, camp: w.id, points, dist, length, bridges,
+          built: 0, paid: 0, started: state.tick ?? 0, done: false, waiting: null, gang: [] };
+        reserve(rec().links[id]);
+        c.station = { node, link: id, linked: false, to: t.id };
+        const clan = state.clans?.[w.attacker];
+        if (clan) clan.notice = { tick: state.tick, text: `Rail gang laying the camp spur to ${t.name}` };
+        why = null; break;
+      }
+      if (why) c.station = { node, linked: false, why, retry: (state.tick ?? 0) + 600 };
+    }
+  }
+
+  const W8 = () => data.war || {};
+  const down = b => !b || b.stage !== 'built';
+  function makeSections(w, l) {
+    const t = town(w.town), R0 = W8().circleRadius ?? 900, N = Math.max(1, W8().supply?.sections ?? 3);
+    if (!t) return;
+    let dIn = 0;
+    for (let d = 0; d <= l.length; d += 4) { const p = pointAt(l, d); if (Math.hypot(p.x - t.x, p.z - t.z) <= R0) dIn = d; else break; }
+    if (dIn <= 0) dIn = Math.min(l.length, 40);
+    for (let k = 0; k < N; k++) {
+      const p = pointAt(l, dIn * (k + 0.5) / N);
+      w.camp.buildings.push({ id: `${w.id}:rail${k + 1}`, type: 'rail_section', stage: 'built', x: Math.round(p.x * 10) / 10, z: Math.round(p.z * 10) / 10,
+        rail: { link: l.id, d0: Math.round(dIn * k / N), d1: Math.round(dIn * (k + 1) / N) }, n: k + 1, of: N });
+    }
+    w.camp.sectionsMade = l.id;
+  }
+  function campLines() {
+    for (const l of Object.values(rec().links)) {
+      if (!isCamp(l.from)) continue;
+      const w = warOfNode(l.from);
+      if (!w) { endSpur(l); continue; }
+      const c = w.camp;
+      if (!l.done || !c) continue;
+      if (c.sectionsMade !== l.id) makeSections(w, l);
+      const secs = c.buildings.filter(b => b.type === 'rail_section' && b.rail?.link === l.id);
+      const cut = down(c.buildings.find(b => b.type === 'camp_station')) && secs.every(down);
+      const say2 = text => { for (const o of [w.attacker, w.defender]) { const cl = state.clans?.[o]; if (cl) cl.notice = { tick: state.tick, text }; } };
+      if (cut && !l.closed) { l.closed = true; l.cutBy = 'war'; c.station = { ...(c.station || {}), linked: false, cut: true }; cutHook?.(l.from, l.id); say2(`The ${placeName(l.from).replace(/^the /, '')} is cut off from the rail network`); }
+      else if (!cut && l.closed && l.cutBy === 'war') { l.closed = false; delete l.cutBy; c.station = { ...(c.station || {}), linked: true, cut: false }; }
+    }
+  }
+  // the war of a camp line is over (8e-6)
+  function endSpur(l) {
+    const old = (state.frontier.wars?.history || []).find(x => x.id === l.camp) || null, result = old?.result || 'ended';
+    for (const t of Object.values(rec().trains)) if (t.link === l.id) { trainHook?.(t); for (const u of ridersOf(t.id)) { delete u.aboard; delete u.railRide; } delete rec().trains[t.id]; }
+    dropGang(l); unreserve(l); delete rec().links[l.id];
+    tearHook?.(l.from, l.owner);
+    if (!l.done || result === 'campFell' || result === 'attackerSurrendered') return;
+    const to = town(l.to);
+    if (result === 'captured' && old && town(old.town)?.owner === l.owner && endpoint(l.owner, old.town) && !linked(l.owner, old.town, l.to)) {
+      const p = preview(l.owner, old.town, l.to);
+      if (!p.error) {
+        const id = `r${++rec().seq}`, { points, dist, length, bridges } = p.line;
+        rec().links[id] = { id, owner: l.owner, from: old.town, to: l.to, payer: old.town, points, dist, length, bridges, built: length, paid: length, started: state.tick ?? 0, done: true, finished: state.tick ?? 0, waiting: null, gang: [], spur: true, spent: { ...(l.spent || {}) } };
+        reserve(rec().links[id]); addTrain(rec().links[id]);
+        return;
+      }
+    }
+    if (to && to.owner === l.owner) spurBack(l, to);
+  }
+  const spurBack = (l, to) => { for (const [r, n] of Object.entries(l.spent || {})) { const k = Math.floor(n * (W8().supply?.spurRefund ?? 0.5)); if (k > 0) world.change(to.id, r, k, 'camp spur torn up'); } };
+  // 8e-6: a spur that became a line to a captured town can be torn up by its owner any time, half its cost back
+  function tearSpur(e, id) {
+    const l = rec().links[id];
+    if (!l || l.owner !== e.owner || !l.spur) return receipt(e, false, 'Only a captured camp spur can be torn up');
+    for (const t of Object.values(rec().trains)) if (t.link === l.id) { trainHook?.(t); for (const u of ridersOf(t.id)) { delete u.aboard; delete u.railRide; } delete rec().trains[t.id]; }
+    dropGang(l); unreserve(l); delete rec().links[l.id];
+    tearHook?.(l.from, l.owner); tearHook?.(l.to, l.owner);
+    const to = town(l.to)?.owner === l.owner ? town(l.to) : town(l.from)?.owner === l.owner ? town(l.from) : null;
+    if (to) spurBack(l, to);
+    return receipt(e, true, `Spur torn up${to ? `: materials back to ${to.name}` : ''}`);
   }
 
   // step 3: one train per open link, standing at the `from` station first
@@ -211,7 +321,7 @@ export function createRail({ state, data, world, worldData, stable }) {
   const ridersOf = id => Object.values(state.entities).filter(u => u.aboard === `rail:${id}`);
   // seats: the carriages of train.consist (Tim 2026-11-07), else every car but the last
   const seats = t => Math.max(1, T().consist ? T().consist.filter(k => k === 'carriage').length : (t.cars ?? 3) - 1) * (RIDE().seatsPerCar ?? 8);
-  const placeName = id => id === 'capital' ? 'the capital' : town(id)?.name || id;
+  const placeName = id => id === 'capital' ? 'the capital' : isCamp(id) ? `the ${town(warOfNode(id)?.town)?.name || ''} camp`.replace('the  camp', 'the camp') : town(id)?.name || id;
   // is e standing at station `id` (a town's station on the island, or the capital: either side of the gate)?
   function atStation(e, owner, id) {
     if (id === 'capital') {
@@ -427,6 +537,6 @@ export function createRail({ state, data, world, worldData, stable }) {
       reserve(l);
     }
   }
-  const setShipping = (arrive, depart, tear = null) => { arriveHook = arrive; departHook = depart; tearHook = tear; };
-  return { command, tick, econTick, attach, endpoint, preview, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, serviceAt, atStation, inZone, setShipping, trains: () => Object.values(rec().trains) };
+  const setShipping = (arrive, depart, tear = null, gone = null, cut = null) => { arriveHook = arrive; departHook = depart; tearHook = tear; trainHook = gone; cutHook = cut; };
+  return { command, tick, econTick, attach, endpoint, preview, campSpurs, isCamp, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, serviceAt, atStation, inZone, setShipping, trains: () => Object.values(rec().trains) };
 }

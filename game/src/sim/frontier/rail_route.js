@@ -182,6 +182,20 @@ export function measure(G, points) {
   return { points, dist, length, bridges };
 }
 
+// 8e-4: the nearest cell a line can run on within r of (x, z), as its centre point, or null (a camp station may
+// stand on ground the route grid keeps track off: the spur starts from the nearest open cell)
+export function nearestOpen(G, x, z, r = 60) {
+  const k0 = cellAt(G, x, z);
+  if (k0 >= 0 && Number.isFinite(G.cost[k0])) return null;
+  const n = Math.ceil(r / G.cell), i0 = Math.floor(z / G.cell), j0 = Math.floor(x / G.cell);
+  let best = null, bd = Infinity;
+  for (let i = i0 - n; i <= i0 + n; i++) for (let j = j0 - n; j <= j0 + n; j++) {
+    if (i < 0 || j < 0 || i >= G.nz || j >= G.nx || !Number.isFinite(G.cost[i * G.nx + j])) continue;
+    const [cx, cz] = centre(G, i * G.nx + j), d = Math.hypot(cx - x, cz - z);
+    if (d <= r && d < bd) { bd = d; best = { x: cx, z: cz }; }
+  }
+  return best;
+}
 export function routeRail(G, from, to, opts = {}) {
   const src = cellAt(G, from.x, from.z), dst = cellAt(G, to.x, to.z);
   if (src < 0 || dst < 0 || !Number.isFinite(G.cost[src]) || !Number.isFinite(G.cost[dst])) return null;

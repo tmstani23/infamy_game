@@ -17,7 +17,18 @@ function stroke(ctx, list, at) {
   ctx.stroke();
 }
 
-export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds = 600 } = {}) {
+// 8e-6 (mock D): the marked rail sections of a camp spur in a war, red while they stand (wars = state.frontier.wars.list)
+export function drawSupplySections(ctx, links, wars, at, width = 3) {
+  ctx.save(); ctx.lineCap = 'round';
+  for (const w of Object.values(wars || {})) for (const b of w.camp?.buildings || []) {
+    const l = b.type === 'rail_section' && b.rail && links?.[b.rail.link]; if (!l?.points?.length || !(l.length > 0)) continue;
+    ctx.strokeStyle = b.stage === 'built' ? 'rgba(232,60,44,.95)' : 'rgba(40,24,20,.85)'; ctx.lineWidth = width * 2;
+    ctx.shadowColor = b.stage === 'built' ? 'rgba(255,70,50,.9)' : 'transparent'; ctx.shadowBlur = b.stage === 'built' ? width * 3 : 0;
+    stroke(ctx, stretch(l, b.rail.d0, Math.max(b.rail.d0 + 1, b.rail.d1)), at);
+  }
+  ctx.restore();
+}
+export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds = 600, wars = null } = {}) {
   const list = Object.values(links || {}).filter(l => l.points?.length > 1 && l.dist?.length === l.points.length && l.length > 0);
   if (!list.length) return;
   ctx.save();
@@ -54,4 +65,5 @@ export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds
     }
   }
   ctx.restore();
+  if (wars) drawSupplySections(ctx, links, wars, at, width);   // 8e-6
 }

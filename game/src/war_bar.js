@@ -36,6 +36,14 @@ export const WAR_BAR_CSS = `
 #warbar .wb-chan i{display:block;height:100%;background:linear-gradient(90deg,#8e2d26,#e07b6c);transition:width .25s linear}
 #warbar .wb-watch{margin-top:3px;border:1px solid #61543e;border-radius:5px;background:#20262d;color:#eadfc6;padding:1px 9px;font:600 10px system-ui;letter-spacing:.06em;cursor:pointer}#warbar .wb-watch:hover{border-color:#ffe0a1}
 #warbar .wb-chan.mine i{background:linear-gradient(90deg,#8a6a2a,#f0c96a)}
+#warbar .wb-side{position:relative}
+#warbar .wb-hov{display:none;position:absolute;top:calc(100% + 12px);width:340px;padding:10px 14px 12px;background:linear-gradient(180deg,#171c21,#0f1317);border:1px solid #4d3b2a;border-radius:8px;box-shadow:0 8px 30px #000c;z-index:40;cursor:default}
+#warbar .wb-side.me .wb-hov{left:0}#warbar .wb-side.foe .wb-hov{right:0}
+#warbar .wb-side:hover .wb-hov{display:block}
+#warbar .wb-hov h4{margin:0 0 7px;font:600 16px system-ui;color:#f6e6bf}
+#warbar .wb-hov .hb{height:9px;border-radius:5px;background:#22262e;overflow:hidden;margin-bottom:8px}#warbar .wb-hov .hb i{display:block;height:100%;background:linear-gradient(90deg,#a8322a,#e0645a)}
+#warbar .wb-hov .hl{display:flex;justify-content:space-between;font-size:15px;color:#ee8a7c;line-height:1.55}
+#warbar .wb-hov .hleft{font-size:15px;color:#eadfc6;margin-top:3px;line-height:1.4}
 `;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 // model = { eyebrow, title, mine: side, foe: side, line?: { text, good }, channel?: { text, frac, mine } }
@@ -45,7 +53,9 @@ export function warBarHtml(m) {
   const side = (s, cls) => {
     const crest = `<span class="wb-crest"></span>`, pct = `<b class="wb-pct">${Math.round(s.pct)}</b>`;
     const col = `<div class="wb-col"><div class="wb-name">${esc(s.name)}</div><div class="wb-track"><i style="width:${Math.max(0, Math.min(100, s.pct))}%"></i>${s.ready ? `<span class="wb-ready">${esc(s.readyText || '')}</span>` : ''}</div></div>`;
-    return `<div class="wb-side ${cls}${s.hit ? ' hit' : ''}${s.ready ? ' ready' : ''}" style="--c:${esc(s.color || '#888')}" title="${esc(s.tip || '')}">${cls === 'me' ? crest + col + pct : pct + col + crest}</div>`;
+    // 8e-6 (mock E, Tim 2026-11-16): a bigger, shorter hover: what is down and what it cost, then what is left
+    const H = s.hover, hov = H ? `<div class="wb-hov"><h4>${esc(H.title)}</h4><div class="hb"><i style="width:${Math.max(0, Math.min(100, s.pct))}%"></i></div>${H.down.map(d => `<div class="hl"><span>${esc(d.name)}</span><span>-${d.minus}</span></div>`).join('')}<div class="hleft">${esc(H.left)}</div></div>` : '';
+    return `<div class="wb-side ${cls}${s.hit ? ' hit' : ''}${s.ready ? ' ready' : ''}" style="--c:${esc(s.color || '#888')}"${H ? '' : ` title="${esc(s.tip || '')}"`}>${cls === 'me' ? crest + col + pct : pct + col + crest}${hov}</div>`;
   };
   return `<div class="wb">${side(m.mine, 'me')}<div class="wb-mid"><span class="wb-eyebrow">${esc(m.channel?.text || m.eyebrow || 'War')}</span><span class="wb-title">${esc(m.title)}</span>${m.watch ? `<button class="wb-watch" data-watch="${esc(m.war)}" title="${esc(m.watch === 'back' ? 'Back to your hero' : 'Look at this war from where you are. You give no orders while you watch.')}">${m.watch === 'back' ? 'Back' : 'Watch'}</button>` : ''}</div>${side(m.foe, 'foe')}`
     + (m.channel ? `<div class="wb-chan${m.channel.mine ? ' mine' : ''}"><i style="width:${(Math.max(0, Math.min(1, m.channel.frac)) * 100).toFixed(1)}%"></i></div>` : '') + '</div>'
@@ -65,12 +75,20 @@ export function warBarModel(game, heroId, prefer = null) {
   const mySide = attacking ? 'camp' : 'town', foeSide = attacking ? 'town' : 'camp';
   const names = { town: t?.name || 'The town', camp: attacking ? 'Your camp' : `${foeClan?.name || 'Enemy'} camp` };
   const listOf = l => l.map(x => `${nice(x.type)}${x.n > 1 ? ` ${x.n}` : ''}`).join(', ');
+  // short names for the hover's "Left:" line
+  const SHORT = { town_hall: 'hall', camp_hall: 'hall', camp_station: 'station', rail_section: 'rail section' };
+  const hoverOf = (key, s) => {
+    const of = type => (s.up.find(x => x.type === type)?.n || 0) + (s.down.find(x => x.type === type)?.n || 0);
+    const down = s.down.map(x => ({ name: `${nice(x.type)}${of(x.type) > 1 ? ` ${x.n} of ${of(x.type)}` : ''}`, minus: Math.round(100 * x.weight * x.n / Math.max(1, s.total)) }));
+    const up = s.up.map(x => { const n = SHORT[x.type] || nice(x.type).toLowerCase(); return x.n > 1 ? `${x.n} ${n}s` : n; });
+    return { title: `${key === 'camp' ? 'Camp' : 'Town'} morale ${s.pct}`, down, left: up.length ? `Left: ${up.slice(0, 4).join(', ')}${up.length > 4 ? `, ${up.length - 4} more` : ''}` : 'Left: nothing, the hall can be taken' };
+  };
   const last = v.last && st.tick - v.last.tick < LINE_TICKS ? v.last : null;
   const side = (key, mine) => {
     const s = v[key], hall = key === 'town' ? 'town hall' : 'camp hall';
     return { name: names[key], pct: s.pct, color: st.clans?.[mine ? me : (attacking ? w.defender : w.attacker)]?.color, ready: s.ready,
       readyText: mine ? 'Your hall can be taken' : 'Hall can be taken', hit: !!last && last.side === key && st.tick - last.tick < HIT_TICKS,
-      tip: `${names[key]}: morale ${s.pct} of 100. Standing: ${listOf(s.up) || 'nothing'}. Down: ${listOf(s.down) || 'nothing'}. Morale falls only when military buildings and the hall are destroyed. Walls, gates, houses and workshops do not count. At 0 the enemy hero can take the ${hall}.` };
+      hover: hoverOf(key, s), tip: `${names[key]}: morale ${s.pct} of 100. Standing: ${listOf(s.up) || 'nothing'}. Down: ${listOf(s.down) || 'nothing'}. Morale falls only when military buildings and the hall are destroyed. Walls, gates, houses and workshops do not count. At 0 the enemy hero can take the ${hall}.` };
   };
   const line = last ? { text: `${last.side === mySide ? 'Your' : 'Enemy'} ${nice(last.type).toLowerCase()} destroyed, morale down ${last.amount}`, good: last.side !== mySide } : null;
   // 8c: a ceasefire while surrender terms are on the table

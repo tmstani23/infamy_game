@@ -587,7 +587,7 @@
   .ryogain .renownline { font: 800 26px/1.1 system-ui, sans-serif; color: #c799ff; text-shadow: 0 0 9px #8240bd, 0 2px 2px #000; }
   .ryogain .renownline[hidden] { display: none; }
   /* ryo badge (src/ryo_badge.js), left of the heat gauge */
-  #ryo { position: fixed; right: 150px; bottom: 18px; width: 120px; height: 120px; pointer-events: none;
+  #ryo { position: fixed; right: 150px; bottom: 18px; width: 120px; height: 120px; pointer-events: auto; cursor: help;
     filter: drop-shadow(0 0 10px rgba(240,190,60,.45)); }
   #ryo svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   #ryo .disc { fill: rgba(14,12,14,.92); stroke: #4a3a1e; stroke-width: 2; }
@@ -597,6 +597,10 @@
     text-shadow: 0 0 8px rgba(255,200,70,.6), 0 2px 2px #000; }
   #ryo .lvl { position: absolute; left: 0; right: 0; top: 84px; text-align: center; font: 800 9px/1 system-ui, sans-serif; letter-spacing: .12em; font-style: normal; color: #e9c27a; }
   #ryo.flare { animation: heatflare .6s ease-out; }
+  /* 8e-8: the pot where the hero stands */
+  #ryo[data-pot="coffers"] .ring { stroke: url(#ryoRingCoffers); } #ryo[data-pot="coffers"] { filter: drop-shadow(0 0 10px rgba(200,160,90,.35)); }
+  #ryo[data-pot="chest"] .ring { stroke: url(#ryoRingChest); } #ryo[data-pot="chest"] { filter: drop-shadow(0 0 12px rgba(220,70,50,.55)); } #ryo[data-pot="chest"] .lvl { color: #ffb4a4; }
+  #ryo .lvl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 14px; }
   .ryogain b { color: #ffe066; }
   .ryogain.loss { text-shadow: 0 0 10px #a53636, 0 2px 2px #000; }
   .ryogain.loss b { color: #ffaaaa; }

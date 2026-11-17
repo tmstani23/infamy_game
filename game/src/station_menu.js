@@ -46,6 +46,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
     if (to?.startsWith('board:')) { send({ id: heroId, type: 'frontier', action: 'rail', mode: 'board', train: to.slice(6) }); return close(); }
     if (to?.startsWith('rail:')) { send({ id: heroId, type: 'frontier', action: 'rail', mode: 'link', town: here().id, to: to.slice(5) }); return close(); }
     if (to?.startsWith('railcancel:')) { send({ id: heroId, type: 'frontier', action: 'rail', mode: 'cancel', link: to.slice(11) }); return close(); }
+    if (to?.startsWith('railtear:')) { send({ id: heroId, type: 'frontier', action: 'rail', mode: 'tear', link: to.slice(9) }); return close(); }   // 8e-6
     close(); };
   msInstall(panel, () => riding() ? skip() : close());
   panel.addEventListener('click', e => {
@@ -100,6 +101,10 @@ export function createStationMenu({ panel, game, heroId, send }) {
           : msRow({ name: `To ${esc(r.name(o.id))}`, sub: `${Math.round(o.p.line.length)} long, 10 min, ${Object.entries(o.p.cost).map(([k, v]) => `${v} ${k}`).join(', ')}`,
             right: msBtn({ label: 'Lay track', data: `data-to="rail:${esc(o.id)}"`, go: true }) })).join('') + msPager(pages, rpage, 'data-station-page');
       } else body += msNote('All your stations here are linked.');
+      // 8e-6: a camp spur that became a line to a captured town can be torn up any time, half its rail cost back
+      const sp = here() && Object.values(game.state.frontier?.rail?.links || {}).filter(l => l.owner === hero().owner && l.spur && (l.from === here().id || l.to === here().id));
+      for (const l of sp || []) body += msRow({ name: `Old camp spur: ${esc(r.name(l.from))} to ${esc(r.name(l.to))}`, sub: 'Laid for a war. Tear it up for half its rail cost back.',
+        right: msBtn({ label: 'Tear up', data: `data-to="railtear:${esc(l.id)}"`, hover: 'Tear the line up: its train stops, half the timber and stone it cost comes back to the town it ran to.' }) });
     }
     const aside = msAside({ art: msArt('railway_station'), label: name || 'Station', coins: [{ v: tr.length, label: 'Trains', red: true, tip: 'Trains standing here or due in' }] });
     const html = msShell({ eyebrow: 'Railway station', title: name ? `Station, ${name}` : 'Station', escTip: 'Close (Space or Esc). Number keys board.', aside, body });

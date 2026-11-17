@@ -24,6 +24,7 @@
 // createWarEnd({ state, data, war, world, morale }) -> { command, tick, check, view, channelOn, finish, attach, setOutcomes }
 import { cellToWorld } from './town_grid.js';
 import { creditRyo } from '../treasury.js';
+import { storageCap } from './storage.js';
 
 export function createWarEnd({ state, data, war, world, morale, garrison = null }) {
   const W = () => data.war || {};
@@ -134,6 +135,11 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     if (result === 'campFell' || result === 'attackerSurrendered') {
       if (chest > 0 && s) world.change(s.id, 'ryo', chest, 'war spoils');
       w.spoils = chest;
+      // 8e-6 (2026-11-16): the camp's timber and stone go to the town too, up to its storage room (the rest is lost)
+      if (s && w.camp?.stock) for (const r of ['timber', 'stone']) {
+        const n = Math.floor(Math.min(w.camp.stock[r] || 0, Math.max(0, storageCap(s, data, r) - (s.stock?.[r] || 0))));
+        if (n > 0) { world.change(s.id, r, n, 'war spoils'); (w.spoilsStock ||= {})[r] = n; }
+      }
       w.sentHome = sendHome(result === 'campFell' ? undefined : { why: 'surrender' });
     } else {
       if (['captured', 'sacked', 'burned'].includes(result)) note = outcomes?.[result]?.(w, by) || null;
@@ -145,7 +151,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     if (w.camp) w.camp.chest = 0;
     const cx = s?.x ?? w.x, cz = s?.z ?? w.z;
     rout(w);   // every war troop of both sides
-    news({ kind: 'warEnded', war: w.id, town: w.town, townName: s?.name || note?.townName || '', result, attacker: w.attacker, defender: w.defender, by, x: cx, z: cz, ...(note || {}), chest,
+    news({ kind: 'warEnded', war: w.id, town: w.town, townName: s?.name || note?.townName || '', result, attacker: w.attacker, defender: w.defender, by, x: cx, z: cz, ...(note || {}), chest, ...(w.spoilsStock ? { stock: w.spoilsStock } : {}),
       ...(w.terms ? { surrender: w.terms.by, ...(w.ransom ? { ransom: w.ransom.amount } : {}) } : {}) });
     war.end(w.id, result, opts.days ?? null);
     return true;

@@ -16,7 +16,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
   const base = e => baseStats(units, e, roamers);
   const buff = (e, id) => { const b = e?.buffs?.[id]; return b && (b.until == null || b.until > state.tick) ? b : null; };
   const clamp = n => Math.max(0, Math.min(1, n));
-  function damageMultiplier(e) { return (buff(e, 'lantern')?.damage || 1) * (buff(e, 'intimidated')?.damage || 1) * (buff(e, 'ambush')?.damage || 1) * (e.warDamage || 1); }   // warDamage: war clan bonus (frontier.json war.clanBonus)
+  function damageMultiplier(e) { return (buff(e, 'lantern')?.damage || 1) * (buff(e, 'intimidated')?.damage || 1) * (buff(e, 'ambush')?.damage || 1) * (e.warDamage || 1) * (e.warUp?.damage || 1); }   // warDamage: war clan bonus (frontier.json war.clanBonus); warUp: armory upgrades (8e-9)
   function damage(e) { return (base(e).damage || 0) * gearMultiplier(e, 'damage') * damageMultiplier(e); }
   function attackInterval(e) { return (base(e).attackSpeed || 1) * gearMultiplier(e, 'attackInterval') / (buff(e, 'rally')?.boost || 1); }
   function criticalChance(e) {
@@ -24,7 +24,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     return clamp((base(e).critChance || 0) + bonus);
   }
   const dodgeChance = e => clamp((base(e).dodgeChance || 0)+gearFlat(e,'dodgeChanceFlat'));
-  const damageTaken = e => gearMultiplier(e, 'damageTaken') * Math.min(formationMultiplier(e), buff(e, 'sweep')?.taken || 1) * (buff(e, 'bulwark')?.taken || 1);
+  const damageTaken = e => gearMultiplier(e, 'damageTaken') * Math.min(formationMultiplier(e), buff(e, 'sweep')?.taken || 1) * (buff(e, 'bulwark')?.taken || 1) * (e.warUp?.taken || 1);
   const lifesteal = e => buff(e, 'lantern')?.lifesteal || 0;
   function movement(e, gait) {
     // riding (the omnibus, a horse; Tim 2026-11-06): run speed times the ride's factor, whatever the gait

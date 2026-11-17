@@ -21,6 +21,7 @@ import { ringRadius } from './town_grid.js';
 import { coversResources } from './resource_clearance.js';
 import { debitRyo, creditRyo } from '../treasury.js';
 import { createWarDefense } from './war_defense.js';
+import { createWarArmory } from './war_armory.js';
 
 export function createWar({ state, data, world = null, worldData = null, resourceIndex = null, dayTicks = 12000 }) {
   const W = data.war || null;
@@ -529,7 +530,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // down). Paid in ryo from the war chest when queued. Troops alive plus queued stay within the troop cap:
   // war.troopCap.base + each built supply tents' cap, never above war.troopCap.max. A finished troop appears at
   // its building as a unit of the attacker tagged warTroop: <war id> (not city crew: no crew cap, no clinic).
-  let runtime = null, defense = null;
+  let runtime = null, defense = null, armory = null;
   const UD = () => W?.units || {};
   const factionOf = clanId => state.clans?.[clanId]?.faction || 'yakuza';
   // clan bonus multiplier (war.clanBonus[faction][unit][key], checkpoint 5): ryo, trainTicks, hp, damage
@@ -590,6 +591,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     const id = runtime.spawn(type, u.model?.[faction] || type, x, z, extra), e = state.entities[id];
     if (!e) return id;
     if (hpMul !== 1 && e.hp != null) { e.hp = e.maxHp = Math.round(e.maxHp * hpMul); }
+    armory?.applyTo(e);   // 8e-9: the side's armory upgrades
     if (u.cavalry) {
       const C = W?.cavalry || {};
       const hid = runtime.spawn('horse', C.horse?.[faction] || 'mare_saddled', x, z, { horseOwner: owner, warTroop: war.id, cavalry: true, place: 'world', area: 'world', hp: e.maxHp, maxHp: e.maxHp, holdFire: true, vehicle: true });
@@ -602,6 +604,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return id;
   }
   function tick() {
+    armory?.tick();   // 8e-9: upgrades in the work
     // a war that is over takes its troops with it (they disband)
     if (runtime?.remove && (state.tick ?? 0) % 20 === 0) for (const e of Object.values(state.entities || {})) if (e.warTroop && !e.rout && !byId(e.warTroop)) runtime.remove(e.id);   // routed troops run off first (war_end.js)
     // 7c (Tim 2026-11-12): war troops cannot leave their war circle. One past the edge is set back on it and stops;
@@ -697,6 +700,11 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
+    if (c.action === 'armoryUp') {   // 8e-9: armory upgrades
+      const r = armory.command(e, c);
+      if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
+      return receipt(e, c, r.ok, r.reason || '');
+    }
     if (['warChestTown', 'townTrain', 'townUntrain'].includes(c.action)) {   // 8b-2: the defending town
       const r = defense.command(e, c);
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
@@ -716,7 +724,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   }
 
   const api = { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campEraseCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, setGeneral: g => { generalOn = () => !!g?.enabled(); }, generalOn: () => generalOn(), get data() { return W; },
-    get defense() { return defense; }, settleDefense: w => defense.settle(w) };
+    get defense() { return defense; }, get armory() { return armory; }, settleDefense: w => defense.settle(w) };
   defense = createWarDefense({ state, data, war: api, world });   // 8b-2: the defending town's war chest and training
+  armory = createWarArmory({ state, data, war: api, world });   // 8e-9: armory upgrades
   return api;
 }

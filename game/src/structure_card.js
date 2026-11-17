@@ -119,8 +119,9 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     const { frac, color } = healthBar(hp, st.max), town = st.town ? game.state.frontier?.settlements?.[st.town] : null;
     const atWar = st.town ? wars().some(w => w.town === st.town) : true;
     const sub = st.war ? (own ? 'Your war camp' : 'Enemy war camp') : own ? (town?.name || 'Your town') : `${town?.name || 'Enemy town'}${atWar ? ', at war' : ''}`;
-    const hint = own ? (st.war ? 'Right-click it for its menu.' : st.type === 'stockade' ? 'Right-click it for its garrison card. Ctrl + right-click with crew or troops selected sends them in. In a war, ranged units inside shoot out.' : 'Right-click it for the town panel.') : atWar ? 'Right-click it with troops selected to attack it.' : '';
-    root.innerHTML = `<button class="x" data-x="1">Esc</button><div class="sub">${esc(sub)}</div><h1>${esc(nice(st.type))}</h1>
+    const supply = st.type === 'rail_section' ? `Camp supply line, section ${st.b?.n || 1} of ${st.b?.of || 1}.` : st.type === 'camp_station' ? 'Camp station.' : '';   // 8e-6
+    const hint = supply ? `${supply} ${own ? 'Defend it: when the camp station and every red rail section are down, the camp is cut off from the rail network.' : 'Destroy the camp station and every red rail section to cut the camp off from the rail network.'}` : own ? (st.war ? 'Right-click it for its menu.' : st.type === 'stockade' ? 'Right-click it for its garrison card. Ctrl + right-click with crew or troops selected sends them in. In a war, ranged units inside shoot out.' : 'Right-click it for the town panel.') : atWar ? 'Right-click it with troops selected to attack it.' : '';
+    root.innerHTML = `<button class="x" data-x="1">Esc</button><div class="sub">${esc(sub)}</div><h1>${esc(st.type === 'rail_section' ? `Rail section ${st.b?.n || 1} of ${st.b?.of || 1}` : nice(st.type))}</h1>
       <div class="bar" title="Health ${hp} of ${st.max}"><i style="width:${Math.round(frac * 100)}%;background:rgb(${color.map(c => Math.round(c * 255)).join(',')})"></i></div>
       <div class="stat">${esc(stat)}</div>
       ${up ? `<div class="bar build" title="${up.pct}% upgraded"><i style="width:${up.pct}%"></i></div><div class="dim" style="margin:4px 0 2px"${up.tip ? ` title="${esc(up.tip)}"` : ''}>${esc(up.text)}</div>` : ''}

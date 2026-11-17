@@ -18,6 +18,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   let sub = 'new', page = 0;
   const ledger = createRailLedger({ game, inCard: true, head: false });   // the Ledger tab (Tim 2026-11-10)
   const amts = {}, samts = {};   // typed amounts per resource (Order and Sell rows)
+  let ryoAmt = 500;   // 8e-3: the Ryo row's typed amount (from the Clan treasury)
   const amt = r => amts[r] ?? 100, samt = r => samts[r] ?? 100;
   const form = { pin: null, urgent: false, ryo: null };   // shared order options; ryo null = full: enough to buy it all (Tim 2026-11-09)
   const F = () => game.state.frontier || {};
@@ -31,6 +32,19 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const incoming = (s, r) => orders().filter(o => o.state === 'open' && o.to === s.id && o.resource === r).reduce((a, o) => a + o.amount - o.got, 0);
   const room = (s, r) => Math.max(0, Math.floor(capOf(s, r) - (s.stock[r] ?? 0) - incoming(s, r)));
   const price = r => SH().buyPrice?.[r] ?? 5;
+  // 8e-1: a town of yours joined to the capital by open lines (through any chain of your towns)
+  const toCapital = s => { const seen = new Set([s.id]), todo = [s.id], L = links(s.owner); while (todo.length) { const a = todo.pop(); if (a === 'capital') return true; for (const l of L) { const n = l.from === a ? l.to : l.to === a ? l.from : null; if (n && !seen.has(n)) { seen.add(n); todo.push(n); } } } return false; };
+  const treasury = s => Math.floor(game.state.clans?.[s.owner]?.ryo ?? 0);
+  const keepLine = s => game.state.clans?.[s.owner]?.treasuryKeep ?? data?.war?.supply?.treasuryKeep ?? 1000;
+  const RYO_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#e8b23a" stroke="#8a5e12" stroke-width="2"/><rect x="9.5" y="9.5" width="5" height="5" fill="#8a5e12"/></svg>';
+  // 8e-3 (mock d, Tim 2026-11-16): ryo sent by train from the Clan treasury into this town's coffers
+  function ryoRow(s) {
+    const n = ryoAmt, left = treasury(s) - n, kl = keepLine(s);
+    const w = !toCapital(s) ? ['Needs a line', 'Needs a rail line from the capital to this town (through any of your towns)'] : n > treasury(s) ? ['Treasury short', `The Clan treasury has only ${treasury(s)} ryo`] : null;
+    const T = `Send ${n} ryo from the Clan treasury into ${s.name} coffers. It leaves the treasury now and rides the guard car of the next train from the capital (no wagon space). Cancel before it is loaded and it comes back. Robbers can take it on the way. The treasury keep line (${kl}) only holds back auto orders, never yours.`;
+    return `<div class="shres">${`<span class="shico">${RYO_ICON}</span>`}<span class="shmid"><span class="shline"><span><b>Ryo</b> ${Math.floor(s.stock.ryo ?? 0)} <span class="dim">coffers</span></span></span><span class="${left < kl ? 'red' : 'dim'} shsub"${tip(`Clan treasury ${treasury(s)}, keep line ${kl}`)}>From Clan treasury, keeps ${Math.max(0, left).toLocaleString('en-US')}</span></span>`
+      + `<span class="shact">${num('ramt', n)}${w ? blocked(w) : act('ryo', 'Send', false, T)}${w ? '' : chip(String(n), 'Paid from the Clan treasury now')}</span></div>`;
+  }
   const PORT_TIP = r => `Buying from the capital: the capital keeps no stock, but its port wholesale houses (tonya) sell anything for ryo. Your towns with spare ${r} send it first, for free. Only what they can't cover is bought from the capital: the ryo is paid from this town at once, the cargo is loaded at the capital station and comes by the next train. ${cap1(r)} costs ${price(r)} ryo each there (selling there pays less). Cancel an order and the ryo for anything not loaded yet comes back. Budget 0 = never buy from the capital, wait for your towns.`;
   // linked towns of yours (for the source pin)
   const peers = s => { const seen = new Set([s.id]), todo = [s.id], L = links(s.owner); while (todo.length) { const a = todo.pop(); for (const l of L) { const n = l.from === a ? l.to : l.to === a ? l.from : null; if (n && !seen.has(n)) { seen.add(n); todo.push(n); } } } seen.delete(s.id); seen.delete('capital'); return [...seen]; };
@@ -61,6 +75,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
     const [k, r] = String(d.id).split(':');
     if (k === 'amt' && RES().includes(r)) amts[r] = n;
     else if (k === 'samt' && RES().includes(r)) samts[r] = n;
+    else if (k === 'ramt') ryoAmt = n;
     else if (k === 'cbud') form.ryo = String(v).trim() === '' ? null : raw;
     else if (k === 'keep' && s && RES().includes(r)) cmd({ action: 'ship', mode: 'keep', town: s.id, resource: r, keep: raw });
     else if (k === 'bud' && s) cmd({ action: 'ship', mode: 'budget', town: s.id, ryo: raw });
@@ -76,7 +91,8 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const bar = f => `<span class="shbar"><i style="width:${Math.round(Math.max(0, Math.min(1, f)) * 100)}%"></i></span>`;
   function orderRow(s, o, cancel) {
     const into = o.to === s.id, f = (o.got + moving(o.id)) / Math.max(1, o.amount);
-    const src = o.kind === 'sell' ? 'to the capital (sale)' : into ? (o.sources?.length ? 'from ' + [...new Set(o.sources.map(x => name(x.from)))].join(', ') : o.got || moving(o.id) ? 'on the way' : 'finding a source') : `to ${name(o.to)}`;
+    const src = o.kind === 'ryo' ? (o.into === 'chest' ? `${o.from === 'capital' ? 'from the Clan treasury' : `from ${name(o.from)} coffers`} to the war chest` : into ? (o.from === 'capital' ? 'from the Clan treasury' : `from ${name(o.from)} coffers`) : `to ${name(o.to)}`)
+      : o.kind === 'sell' ? 'to the capital (sale)' : into ? (o.sources?.length ? 'from ' + [...new Set(o.sources.map(x => name(x.from)))].join(', ') : o.got || moving(o.id) ? 'on the way' : 'finding a source') : `to ${name(o.to)}`;
     const st = moving(o.id) ? 'on the train' : o.got >= o.amount ? 'delivered' : 'waiting';
     return `<div class="shrow"><span>${into ? '<span class="dn tri"></span>' : '<span class="up tri"></span>'} ${cap1(o.resource)} ${o.amount}${o.urgent ? ' <b class="gold">urgent</b>' : ''}${o.auto ? ' <span class="dim">auto</span>' : ''}<br><span class="dim">${esc(src)}</span></span><span>${bar(f)} <span class="dim">${st}</span>${cancel && into && !o.auto ? ` <button data-act="ship" data-id="cancel:${o.id}" title="Cancel order">Cancel</button>` : ''}</span></div>`;
   }
@@ -117,6 +133,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
       h += `<div class="shres${st.low ? ' low' : ''}">${icon(r)}<span class="shmid"><span class="shline"><span><b>${cap1(r)}</b> ${Math.floor(s.stock[r] ?? 0)}${Number.isFinite(cap) ? `<span class="dim"> / ${Math.floor(cap)}</span>` : ''}</span><span class="${st.low ? 'red' : 'dim'}">${esc(st.text)}</span></span>${meter(s, r)}</span>`
         + `<span class="shact">${num('amt:' + r, n)}${w ? blocked(w) : act('order:' + r, 'Order', st.low, `Order ${n} ${r}`)}${w ? '' : chip(cost, ct)}</span></div>`;
     }
+    h += ryoRow(s);
     h += `<div class="shopts"><span${tip('Nearest: the clerk picks your town with spare stock nearest by rail, then buys from the capital. Pin one town to ship only from there.')}>Source <button data-act="ship" data-id="pin">${esc(form.pin ? name(form.pin) : 'Nearest')}</button></span>`
       + `<span${tip('Urgent orders are filled before others.')}>Urgent <button data-act="ship" data-id="urgent" class="${form.urgent ? 'on' : ''}">${form.urgent ? 'On' : 'Off'}</button></span>`
       + `<span${tip('The most ryo one order may spend buying from the capital. Leave it empty for Full: enough to buy all of it. 0 = never buy, wait for your towns.')}>Capital budget ${num('cbud', form.ryo ?? '', 50, ' placeholder="Full"')}</span></div>`;
@@ -176,6 +193,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
       case 'cancel': cmd({ action: 'ship', mode: 'cancel', order: a }); break;
       case 'order': { const n = amt(a); cmd({ action: 'ship', mode: 'order', town: s.id, resource: a, amount: n, pin: form.pin, urgent: form.urgent, ryo: Math.min(form.ryo ?? n * price(a), Math.floor(s.stock.ryo ?? 0)) }); break; }
       case 'sell': cmd({ action: 'ship', mode: 'sell', town: s.id, resource: a, amount: samt(a) }); break;
+      case 'ryo': cmd({ action: 'ship', mode: 'ryo', from: 'treasury', into: 'coffers', to: s.id, amount: ryoAmt }); break;
       case 'urgent': form.urgent = !form.urgent; break;
       case 'pin': { const p = [null, ...peers(s)], i = p.indexOf(form.pin); form.pin = p[(i + 1) % p.length]; break; }
       case 'autobuy': cmd({ action: 'ship', mode: 'budget', town: s.id, autoBuy: s.autoBuy === false }); break;

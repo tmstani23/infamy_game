@@ -99,6 +99,7 @@ assert.ok(h.includes('Defence of Holdfast') && h.includes('data-tab="chest"') &&
 assert.ok(h.includes('Mustering') && /Training opens in \d:\d\d/.test(h), 'the muster countdown');
 type('put', '700'); click({ put: '1' }); assert.deepEqual([sent.at(-1).action, sent.at(-1).amount], ['warChestTown', 700]); flush();
 assert.equal(W.list.w1.defense.chest, 700, 'Put in moves ryo from the coffers'); assert.ok(root.innerHTML.includes('<b>700</b>'), 'the chest shows it');
+assert.ok(/data-rsend="capital" disabled/.test(root.innerHTML) && root.innerHTML.includes('Needs a rail line from the capital'), '8e-3: treasury by train, greyed without a line');
 type('put', '99999999'); click({ put: '1' }); flush();
 assert.match(root.innerHTML, /The town coffers have only \d+ ryo/, 'a refused put shows why');
 type('put', 'abc'); click({ put: '1' }); assert.ok(root.innerHTML.includes('Type how much'), 'no number, no send');

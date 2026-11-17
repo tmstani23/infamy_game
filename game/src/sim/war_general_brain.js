@@ -162,7 +162,8 @@ export function createGeneralBrain(game, { clan }) {
     m.by = full ? undefined : sally ? 'sally' : undefined;
     if (strong && camp.length) {
       // (8d-9: the camp's stockade is left for last)
-      const st = camp.map(c => ({ c, d: Math.hypot(c.x - t.x, c.z - t.z) })).sort((a, b) => (isFort(a.c) ? 1 : 0) - (isFort(b.c) ? 1 : 0) || a.d - b.d || (a.c.key < b.c.key ? -1 : 1))[0].c;
+      const rank = c => c.type === 'camp_station' ? 0 : c.type === 'rail_section' ? 1 : isFort(c) ? 3 : 2;   // 8e-7: the supply line first
+      const st = camp.map(c => ({ c, d: Math.hypot(c.x - t.x, c.z - t.z) })).sort((a, b) => rank(a.c) - rank(b.c) || a.d - b.d || (a.c.key < b.c.key ? -1 : 1))[0].c;
       m.mode = 'sortie';
       const md = mendersBy(w.attacker, w.id, st);
       if (md) {
@@ -183,6 +184,10 @@ export function createGeneralBrain(game, { clan }) {
   }
   function defend(out, cmd, order, w) {
     fillChest(out, cmd, w);
+    armory(out, cmd, w, 'defender');
+    // 8e-7: the Clan treasury by train (keep line and daily share apply, sim side), once the coffers are spent
+    if ((w.defense?.chest || 0) < (W().supply?.chestLow ?? 300) && F().shipments?.route(clan, 'capital', w.town) && !openOrders().some(o => o.kind === 'ryo' && o.war === w.id))
+      out.push(cmd({ action: 'ship', mode: 'autoChest', war: w.id }));
     train(out, cmd, w);
     // the attacker has (almost) no troops left and the town can train no more: the archers come out of the houses and the whole army goes for his camp
     const all = troops(w).filter(e => !e.downed), theirs = Object.values(state.entities).filter(e => e.warTroop === w.id && e.owner === w.attacker && !e.dead && e.type !== 'horse').length;
@@ -350,7 +355,7 @@ export function createGeneralBrain(game, { clan }) {
       if (state.tick - (w.started ?? w.at ?? state.tick) >= (FT.afterSeconds ?? 600) * 20 || m.beaten || (foes.length >= (FT.least ?? 4) && worth(foes) >= worth(own) * (FT.edge ?? 1.3))) m.fort = true;
     }
     let nextCost = null;
-    const SU = siegeUp(w, m), own = [...(A.build || [])];
+    const SU = siegeUp(w, m), own = (A.build || []).filter(t => t !== 'camp_station' || stationTown());   // 8e-7: a camp station only with a station town to link to
     if (SU?.build?.length) { const at = Math.max(...['barracks', 'lumber_camp', 'quarry'].map(t => own.indexOf(t))); own.splice(at + 1, 0, ...SU.build); }   // after its first barracks, lumber camp and quarry: troops and gathering first, then the siege answer
     const plan = [...(m.fort ? FT.build || [] : []), ...own];
     // what is left of the plan (8d-10): the army does not push in full before it is all built (campArmy), and
@@ -565,10 +570,55 @@ export function createGeneralBrain(game, { clan }) {
       if (tg.st.kind !== 'wall' && tg.st.kind !== 'gate') out.push(order({ kind: 'raze', units: ids, structure: tg.st.key, torch: true }));   // those who can torch do
     }
   }
+  // ---- the supply line (8e-7) -------------------------------------------------------------------------------------
+  // an own town (not the capital) with a railway station: a camp station is only worth building with one
+  const stationTown = () => Object.values(state.frontier?.settlements || {}).some(s => s.owner === clan && !s.capital && (s.buildings || []).some(b => b.type === 'station' && b.stage === 'built'));
+  const openOrders = () => Object.values(state.frontier?.shipping?.orders || {}).filter(o => o.owner === clan && o.state === 'open');
+  // a linked camp: the war chest is topped up by train (Clan treasury above its keep line and within the daily share,
+  // then town coffers down to the general's keep line) and timber and stone are ordered in from the clan's towns
+  function campSupply(out, cmd, w, A) {
+    const c = w.camp, node = c.station?.node, SH = F().shipments;
+    if (!node || !c.station.linked || !SH) return;
+    const P = W().supply || {}, SU = { ...(gen().rules().attack?.supply || {}), ...(A.supply || {}) }, open = openOrders();
+    if ((c.chest || 0) < (P.chestLow ?? 300) && !open.some(o => o.kind === 'ryo' && o.war === w.id)) {
+      if (SH.route(clan, 'capital', node) && SH.autoRoom(state.clans[clan]) >= (F().data.railways?.ship?.ryoMin ?? 10)) out.push(cmd({ action: 'ship', mode: 'autoChest', war: w.id }));
+      else {
+        const G = gen().rules(), m = memory(w, 'attacker'), base = m.coffers ||= {};
+        const towns = Object.values(state.frontier.settlements || {}).filter(s => s.owner === clan && !s.capital && SH.route(clan, s.id, node))
+          .sort((a, b) => dist(a, c) - dist(b, c) || (a.id < b.id ? -1 : 1));
+        for (const s of towns) {
+          base[s.id] ??= Math.floor(s.stock?.ryo || 0);
+          const keep = isBot() ? (G.botKeepShare ?? G.keepShare) : GEN().keepOf(s);
+          const spare = Math.floor(Math.min((s.stock?.ryo || 0) - base[s.id] * keep, P.refill ?? 500));
+          if (spare >= (F().data.railways?.ship?.ryoMin ?? 10)) { out.push(cmd({ action: 'ship', mode: 'ryo', from: s.id, into: 'chest', war: w.id, amount: spare })); break; }
+        }
+      }
+    }
+    for (const r of ['timber', 'stone']) {
+      if ((c.stock?.[r] || 0) >= (SU[r + 'Low'] ?? 150) || open.some(o => o.to === node && o.resource === r)) continue;
+      out.push(cmd({ action: 'ship', mode: 'order', town: node, resource: r, amount: SU.order ?? 200 }));
+    }
+  }
+  // ---- armory upgrades (8e-9) -------------------------------------------------------------------------------------
+  // with an armory and nothing in the work: the next level for the group it has most troops of (weapons, then armor),
+  // while the chest and stock keep general.armory.reserve on top of the cost
+  function armory(out, cmd, w, side) {
+    const AR = F().war.armory, v = AR?.view(w.id, clan);
+    if (!v?.has || v.work) return;
+    const R = gen().rules().armory?.reserve || {}, chest = side === 'attacker' ? w.camp?.chest || 0 : w.defense?.chest || 0;
+    const stock = side === 'attacker' ? w.camp?.stock || {} : town(w.town)?.stock || {};
+    const count = {}; for (const e of troops(w)) { const g = AR.groupOf(e.warUnit); if (g) count[g] = (count[g] || 0) + 1; }
+    const picks = v.groups.flatMap(g => g.tracks.map(t => ({ group: g.group, track: t.track, level: t.level, cost: t.cost, ok: !t.why, n: count[g.group] || 0 })))
+      .filter(p => p.ok && p.n > 0 && chest >= (p.cost.ryo || 0) + (R.ryo ?? 300) && ['timber', 'stone'].every(r => (stock[r] || 0) >= (p.cost[r] || 0) + (R[r] ?? 0)))
+      .sort((a, b) => b.n - a.n || a.level - b.level || (a.track === 'weapons' ? -1 : 1) - (b.track === 'weapons' ? -1 : 1) || (a.group < b.group ? -1 : 1));
+    if (picks.length) out.push(cmd({ action: 'armoryUp', war: w.id, group: picks[0].group, track: picks[0].track }));
+  }
   function attack(out, cmd, order, w) {
     if (!w.camp) return;
     const A = strat().attack || {};
     campBuild(out, cmd, w, A);
+    campSupply(out, cmd, w, A);
+    armory(out, cmd, w, 'attacker');
     campWorkers(out, cmd, w, A);
     campTrain(out, cmd, w, A);
     campArmy(out, order, w, A, cmd);

@@ -23,13 +23,34 @@
 //   | { mode: 'cancel', order } | { mode: 'keep', town, resource, keep } | { mode: 'budget', town, ryo, [autoBuy] }
 // createShipments({ state, data, world }) -> { command, linked, keepOf, reservedOf, free, openIncoming, accept, release }
 import { storageCap, defaultKeep } from './storage.js';
+import { debitRyo, creditRyo } from '../treasury.js';
+// 8e-1 (2026-11-16) ryo by train: an order of kind 'ryo' carries ryo from the Clan treasury (source 'capital') or a
+//  town's coffers to an own town's coffers (into 'coffers', manual only), a defending town's war chest or a camp's
+//  war chest (into 'chest', war id). The ryo leaves its pot when the order is placed (sources[].paid); it rides the
+//  guard car (railways.ship.ryoPerTrain a train, no wagon room) by the fewest stops. On arrival it goes into its pot;
+//  a war that ended first sends a defending chest's ryo to that town's coffers and a camp's back to the treasury.
+//  Cancel refunds what is not loaded yet. Robbed ryo is lost (the order shrinks, nothing is re-sent).
+// 8e-2 auto ryo orders (governor, generals): war chests only, only while that war is on; from the treasury never
+//  below the clan's keep line (clan.treasuryKeep, default war.supply.treasuryKeep) and at most war.supply.autoShare
+//  of the treasury above it per game day (clan.autoRyo = { day, used }); manual orders ignore both.
+// Command { type: 'frontier', action: 'ship', mode: 'ryo', from: 'treasury'|townId, to, into: 'coffers'|'chest', war, amount, [auto] }
+//   | { mode: 'treasuryKeep', ryo }
 
-export function createShipments({ state, data, world }) {
+export function createShipments({ state, data, world, dayTicks = 12000 }) {
   const S = () => data.railways?.ship || {};
   const RES = () => S().resources || ['food', 'timber', 'stone', 'goods'];
   const rec = () => { const r = state.frontier.shipping ||= { seq: 0, orders: {} }; r.yards ||= {}; return r; };
   const orders = () => Object.values(rec().orders);
   const town = id => id === 'capital' ? null : state.frontier.settlements?.[id];
+  // 8e-5: a linked war camp takes timber and stone orders like a town (node 'camp:<war id>', stock = the camp stores,
+  // no storage cap, never a source, never buys from the capital)
+  const isCampNode = id => typeof id === 'string' && id.startsWith('camp:');
+  function campDest(id, owner) {
+    const w = isCampNode(id) && state.frontier.wars?.list?.[id.slice(5)];
+    if (!w?.camp || (owner != null && w.attacker !== owner) || !w.camp.station?.linked || w.camp.station.node !== id) return null;
+    return { id, owner: w.attacker, name: `the ${state.frontier.settlements?.[w.town]?.name || ''} camp`.replace('the  camp', 'the camp'), stock: w.camp.stock, camp: true, war: w.id };
+  }
+  const dest = (id, owner) => town(id) || campDest(id, owner);
 
   // goods: ONE level with the market's hold-back (Tim 2026-11-09), s.marketKeep (default data.market.keep)
   const keepOf = (s, res) => (res === 'goods' && data.market ? s.marketKeep : s.keep?.[res]) ?? defaultKeep(s, data, res);
@@ -90,7 +111,8 @@ export function createShipments({ state, data, world }) {
   }
   const wagonLoad = () => S().wagonLoad ?? 60;
   const wagons = t => Math.max(1, t.consist ? t.consist.filter(k => k === 'goods').length : Math.max(1, (t.cars ?? 3) - 1));
-  const onBoard = t => (t.freight || []).reduce((a, c) => a + c.amount, 0);
+  const onBoard = t => (t.freight || []).reduce((a, c) => a + (c.resource === 'ryo' ? 0 : c.amount), 0);
+  const ryoOnBoard = t => (t.freight || []).reduce((a, c) => a + (c.resource === 'ryo' ? c.amount : 0), 0);
 
   // A train has reached station `at` of its line l (rail.js arrive). Far end = where it goes next.
   function arrive(t, l, at) {
@@ -100,8 +122,10 @@ export function createShipments({ state, data, world }) {
       const o = rec().orders[c.order];
       if (!o) continue;
       if (o.to === at) {
-        if (at === 'capital' && o.kind === 'sell') { const s = town(o.sellFrom); if (s) world.change(s.id, 'ryo', Math.floor(c.amount * (S().sellPrice?.[c.resource] ?? 2)), 'ship sale'); o.got += c.amount; }
+        if (o.kind === 'ryo') deliverRyo(o, c.amount);
+        else if (at === 'capital' && o.kind === 'sell') { const s = town(o.sellFrom); if (s) world.change(s.id, 'ryo', Math.floor(c.amount * (S().sellPrice?.[c.resource] ?? 2)), 'ship sale'); o.got += c.amount; }
         else if (town(at)) { world.change(at, c.resource, c.amount, 'ship'); o.got += c.amount; }
+        else if (isCampNode(at)) { const d = campDest(at, o.owner); if (d) d.stock[c.resource] = Math.round(((d.stock[c.resource] || 0) + c.amount) * 100) / 100; o.got += c.amount; }
         if (o.state === 'open' && o.got >= o.amount - 1e-9) { o.state = 'done'; o.done = state.tick ?? 0; release(o); }
       } else (rec().yards[at] ||= []).push({ ...c });
     }
@@ -119,16 +143,17 @@ export function createShipments({ state, data, world }) {
       if (o.state !== 'open' || o.owner !== t.owner) continue;
       for (const x of o.sources) if (x.from === at && x.amount > 0 && hopFrom(t.owner, at, o.to) === far) waiting.push({ o, x, resource: o.resource, from: 'town' });
     }
-    let room = wagons(t) * wagonLoad() - onBoard(t);
+    let room = wagons(t) * wagonLoad() - onBoard(t), ryoRoom = Math.max(0, (S().ryoPerTrain ?? 2000) - ryoOnBoard(t));
     const take = (w, max) => {
-      const have = w.from === 'yard' ? w.c.amount : w.x.amount, n = Math.min(have, max, room);
+      const res0 = w.from === 'yard' ? w.c.resource : w.resource, isRyo = res0 === 'ryo';
+      const have = w.from === 'yard' ? w.c.amount : w.x.amount, n = Math.min(have, isRyo ? Infinity : max, isRyo ? ryoRoom : room);
       if (n <= 0) return 0;
       if (w.from === 'yard') w.c.amount -= n;
-      else if (at === 'capital') w.x.amount -= n;   // bought: the cargo is made at the station
+      else if (isRyo || at === 'capital') w.x.amount -= n;   // ryo was paid when ordered; bought cargo is made at the station
       else { world.change(at, w.resource, -n, 'ship'); w.x.amount -= n; const s = town(at); s.reserved[w.resource] = Math.max(0, reservedOf(s, w.resource) - n); }
       const id = w.from === 'yard' ? w.c.order : w.o.id, res = w.from === 'yard' ? w.c.resource : w.resource, mine = t.freight.find(c => c.order === id);
       if (mine) mine.amount += n; else t.freight.push({ order: id, resource: res, amount: n });
-      room -= n;
+      if (isRyo) ryoRoom -= n; else room -= n;
       return n;
     };
     for (const w of waiting) take(w, wagonLoad());           // one wagon-load per waiting order, in turn
@@ -140,6 +165,7 @@ export function createShipments({ state, data, world }) {
   // give back every reservation of an order (cancelled, or what the train never loaded)
   function release(o) {
     for (const x of o.sources) {
+      if (o.kind === 'ryo') { if (x.amount > 0) { refundRyo(o, x.from, x.amount); o.amount = Math.max(o.got, o.amount - x.amount); } continue; }
       if (x.from === 'capital') { const t = town(o.to); if (t && x.amount > 0) world.change(t.id, 'ryo', x.amount * x.price, 'ship refund'); o.ryoPaid = Math.max(0, (o.ryoPaid || 0) - x.amount * x.price); continue; }
       const s = town(x.from); if (s?.reserved) s.reserved[o.resource] = Math.max(0, reservedOf(s, o.resource) - x.amount);
     }
@@ -178,7 +204,7 @@ export function createShipments({ state, data, world }) {
   }
   let lastId = null;
   function place(e, c) {
-    const s = typeof c.town === 'string' ? town(c.town) : null;
+    const s = typeof c.town === 'string' ? dest(c.town, e.owner) : null;
     if (!s) return receipt(e, false, 'No such town');
     if (s.owner == null || s.owner !== e.owner) return receipt(e, false, 'Not your town');
     if (!RES().includes(c.resource)) return receipt(e, false, 'Unknown resource');
@@ -197,7 +223,8 @@ export function createShipments({ state, data, world }) {
     } else if (!Object.values(state.frontier.rail?.links || {}).some(l => l.owner === e.owner && l.done && !l.closed && (l.from === s.id || l.to === s.id))) {
       return receipt(e, false, 'Needs a rail line');
     }
-    const room = storageCap(s, data, c.resource) - (s.stock[c.resource] ?? 0) - openIncoming(s.id, c.resource);
+    if (s.camp && !['timber', 'stone'].includes(c.resource)) return receipt(e, false, 'A camp takes timber and stone');
+    const room = (s.camp ? Infinity : storageCap(s, data, c.resource)) - (s.stock[c.resource] ?? 0) - openIncoming(s.id, c.resource);
     if (amount > room + 1e-9) return receipt(e, false, room > 0 ? `Storage has room for ${Math.floor(room)}` : 'Storage is full');
     // Tim 2026-11-09: queue cap. Your own undelivered orders into a town may add up to queueTrips trainloads per
     // line at that town (one trainload = goods wagons x wagonLoad), so a new order arrives within a few trips.
@@ -208,12 +235,102 @@ export function createShipments({ state, data, world }) {
       const queued = orders().filter(o => o.state === 'open' && o.to === s.id && !o.auto).reduce((a, o) => a + o.amount - o.got, 0);
       if (queued + amount > cap) return receipt(e, false, queued >= cap ? `Trains are booked up: ${Math.round(queued)} already on order (max ${cap})` : `At most ${Math.floor(cap - queued)} more can be ordered for now`);
     }
-    const ryo = Math.max(0, Math.floor(c.ryo ?? 0));
+    const ryo = s.camp ? 0 : Math.max(0, Math.floor(c.ryo ?? 0));
     if (ryo > (s.stock.ryo ?? 0) + 1e-9) return receipt(e, false, 'Not enough ryo');
     const id = `o${++rec().seq}`; lastId = id;
-    rec().orders[id] = { id, owner: e.owner, to: s.id, resource: c.resource, amount, got: 0, ryo, pin: c.pin ?? null, urgent: !!c.urgent, auto, state: 'open', sources: [], created: state.tick ?? 0 };
+    rec().orders[id] = { id, owner: e.owner, to: s.id, resource: c.resource, amount, got: 0, ryo, pin: c.pin ?? null, urgent: !!c.urgent, auto, state: 'open', sources: [], created: state.tick ?? 0, ...(s.camp ? { war: s.war, camp: true } : {}) };
     cover(s, rec().orders[id]);
     return receipt(e, true, `Order placed: ${amount} ${c.resource} for ${s.name}`);
+  }
+
+  // ---- 8e-1 ryo by train ------------------------------------------------------------------------------------
+  const W = () => data.war || {};
+  const warOf = id => state.frontier.wars?.list?.[id] || null;
+  const keepLine = clan => clan?.treasuryKeep ?? W().supply?.treasuryKeep ?? 1000;
+  const dayOf = () => Math.floor((state.tick ?? 0) / Math.max(1, dayTicks));
+  // what auto orders may still take from a clan's treasury today
+  function autoRoom(clan) {
+    if (!clan) return 0;
+    const above = Math.max(0, (clan.ryo ?? 0) - keepLine(clan)), a = clan.autoRyo;
+    const used = a && a.day === dayOf() ? a.used : 0, start = a && a.day === dayOf() ? a.above : above + used;
+    return Math.max(0, Math.min(above, Math.floor(start * (W().supply?.autoShare ?? 0.25)) - used));
+  }
+  // the rail node a chest order goes to: the defending town, or the camp's station node once linked (8e-4)
+  function chestNode(w, owner) {
+    if (!w) return null;
+    if (w.defender === owner) return w.town;
+    if (w.attacker === owner) return w.camp?.station?.node && w.camp.station.linked ? w.camp.station.node : null;
+    return null;
+  }
+  function refundRyo(o, from, n) {
+    if (!(n > 0)) return;
+    const clan = state.clans?.[o.owner];
+    if (from === 'capital') { if (clan) { creditRyo(state, clan, n, 'Ryo by train returned'); world.syncCapital?.(); } return; }
+    const s = town(from);
+    if (s && s.owner === o.owner) world.change(s.id, 'ryo', n, 'ryo by train returned');
+    else if (clan) { creditRyo(state, clan, n, 'Ryo by train returned'); world.syncCapital?.(); }
+  }
+  function addSource(rec0, from, n) { const k = from === 'capital' ? 'treasury' : from; rec0[k] = Math.round(((rec0[k] || 0) + n) * 100) / 100; }
+  function deliverRyo(o, n) {
+    o.got += n;
+    const w = o.war ? warOf(o.war) : null, clan = state.clans?.[o.owner], s = town(o.to);
+    if (o.into === 'chest' && w && w.defender === o.owner && w.town === o.to) {
+      const d = w.defense ||= { chest: 0, put: 0 };
+      d.chest = Math.round(((d.chest || 0) + n) * 100) / 100; addSource(d.sources ||= {}, o.from, n); return;
+    }
+    if (o.into === 'chest' && w && w.attacker === o.owner && w.camp) {
+      w.camp.chest = Math.round(((w.camp.chest || 0) + n) * 100) / 100; addSource(w.camp.sources ||= {}, o.from, n); return;
+    }
+    // coffers, or the war ended first: a defending town's coffers; a camp's ryo goes back to the treasury
+    const defended = o.into === 'chest' && o.defend;
+    if ((o.into === 'coffers' || defended) && s && s.owner === o.owner) { world.change(s.id, 'ryo', n, o.into === 'coffers' ? 'ryo by train' : 'war chest returned'); return; }
+    if (clan) { creditRyo(state, clan, n, o.into === 'coffers' ? 'Ryo by train returned' : 'War chest returned'); world.syncCapital?.(); }
+  }
+  // ryo on its way into a pot: { treasury: n, <townId>: n } for a war's chest (war id + side) or a town's coffers
+  function ryoOnTheWay(owner, { war = null, to = null } = {}) {
+    const out = {};
+    for (const o of orders()) {
+      if (o.kind !== 'ryo' || o.owner !== owner || (o.state !== 'open' && o.state !== 'cancelled')) continue;
+      if (war ? o.war !== war : (o.into !== 'coffers' || o.to !== to)) continue;
+      const left = o.amount - o.got;
+      if (left > 1e-9) addSource(out, o.from, left);
+    }
+    return out;
+  }
+  function ryoOrder(e, c) {
+    const clan = state.clans?.[e.owner];
+    if (!clan) return receipt(e, false, 'No clan');
+    const amount = Math.floor(c.amount), min = S().ryoMin ?? 10, auto = !!c.auto;
+    if (!(amount >= min)) return receipt(e, false, `Send at least ${min} ryo`);
+    const from = c.from === 'treasury' || c.from === 'capital' ? 'capital' : c.from;
+    const src = from === 'capital' ? null : town(from);
+    if (from !== 'capital' && (!src || src.owner !== e.owner)) return receipt(e, false, 'Not your town');
+    let to = c.to, w = null;
+    if (c.into === 'chest') {
+      w = warOf(c.war);
+      if (!w) return receipt(e, false, 'That war is over');
+      to = chestNode(w, e.owner);
+      if (!to) return receipt(e, false, w.attacker === e.owner ? 'The camp has no linked camp station' : 'Not your war');
+    } else if (c.into === 'coffers') {
+      if (auto) return receipt(e, false, 'Auto orders go to war chests only');
+      const s = town(to);
+      if (!s || s.owner !== e.owner) return receipt(e, false, 'Not your town');
+    } else return receipt(e, false, 'Send into coffers or a war chest');
+    if (to === from) return receipt(e, false, 'Already there');
+    if (!route(e.owner, from, to)) return receipt(e, false, from === 'capital' ? 'Needs a rail line from the capital' : 'Needs a rail line between them');
+    if (from === 'capital') {
+      if (amount > (clan.ryo ?? 0) + 1e-9) return receipt(e, false, `The Clan treasury has only ${Math.floor(clan.ryo ?? 0)} ryo`);
+      if (auto && amount > autoRoom(clan)) return receipt(e, false, 'Above the treasury keep line or today\'s share');
+    } else if (amount > (src.stock.ryo ?? 0) + 1e-9) return receipt(e, false, `${src.name} has only ${Math.floor(src.stock.ryo ?? 0)} ryo`);
+    // pay now
+    if (from === 'capital') {
+      if (auto) { const room0 = (clan.ryo ?? 0) - keepLine(clan); if (!clan.autoRyo || clan.autoRyo.day !== dayOf()) clan.autoRyo = { day: dayOf(), used: 0, above: Math.max(0, room0) }; clan.autoRyo.used += amount; }
+      debitRyo(state, clan, amount, 'Ryo by train'); world.syncCapital?.();
+    } else world.change(src.id, 'ryo', -amount, 'ryo by train');
+    const id = `o${++rec().seq}`; lastId = id;
+    rec().orders[id] = { id, owner: e.owner, kind: 'ryo', resource: 'ryo', from, to, into: c.into, war: w?.id ?? null, defend: !!(w && w.defender === e.owner),
+      amount, got: 0, ryo: 0, pin: null, urgent: false, auto, state: 'open', sources: [{ from, amount, paid: true }], created: state.tick ?? 0 };
+    return receipt(e, true, `${amount} ryo on its way by train`);
   }
 
   function command(e, c) {
@@ -236,6 +353,21 @@ export function createShipments({ state, data, world }) {
       return receipt(e, true);
     }
     if (c.mode === 'sell') return sellOrder(e, c);
+    if (c.mode === 'ryo') return ryoOrder(e, c);
+    // 8e-7: a general's auto refill of its side's war chest from the Clan treasury (keep line and daily share apply)
+    if (c.mode === 'autoChest') {
+      const w = warOf(c.war);
+      if (!w || (w.attacker !== e.owner && w.defender !== e.owner)) return receipt(e, false, 'Not your war');
+      autoChest(e.owner, w);
+      return true;
+    }
+    if (c.mode === 'treasuryKeep') {
+      const clan = state.clans?.[e.owner];
+      if (!clan) return receipt(e, false, 'No clan');
+      if (!Number.isFinite(c.ryo) || c.ryo < 0) return receipt(e, false, 'Keep line must be 0 or more');
+      clan.treasuryKeep = Math.round(c.ryo);
+      return receipt(e, true);
+    }
     if (c.mode === 'budget') {
       const s = typeof c.town === 'string' ? town(c.town) : null;
       if (!s || s.owner == null || s.owner !== e.owner) return receipt(e, false, 'Not your town');
@@ -269,7 +401,7 @@ export function createShipments({ state, data, world }) {
       if (o) {
         o.lost = (o.lost || 0) + n; (o.losses ||= []).push({ tick: state.tick ?? 0, amount: n, train: t.id, by });
         // a sale that was robbed is a smaller sale (nothing re-sends it); done when what is left has arrived
-        if (o.kind === 'sell' && o.state === 'open') { o.amount = Math.max(o.got, o.amount - n); if (o.got >= o.amount - 1e-9) { o.state = 'done'; o.done = state.tick ?? 0; } }
+        if ((o.kind === 'sell' || o.kind === 'ryo') && o.state === 'open') { o.amount = Math.max(o.got, o.amount - n); if (o.got >= o.amount - 1e-9) { o.state = 'done'; o.done = state.tick ?? 0; } }
       }
     }
     t.freight = freight.filter(c => c.amount > 1e-9);
@@ -297,7 +429,7 @@ export function createShipments({ state, data, world }) {
     const peers = o.pin ? [town(o.pin)] : Object.values(state.frontier.settlements).filter(t => t.owner === s.owner && !t.capital && t.id !== s.id);
     const cand = peers.filter(t => t && free(t, o.resource) > 0).map(t => [routeLen(s.owner, t.id, s.id), t]).filter(([d]) => d < Infinity).sort((a, b) => a[0] - b[0]);
     for (const [, t] of cand) { if (need() <= 0) return; accept(o.id, t.id, need()); }
-    if (need() <= 0 || o.pin) return;
+    if (need() <= 0 || o.pin || s.camp) return;
     const price = S().buyPrice?.[o.resource] ?? 5, left = o.auto ? (s.autoBuy === false ? 0 : budgetOf(s) - spentOf(s)) : (o.ryo || 0) - (o.ryoPaid || 0);
     const n = Math.min(need(), Math.floor(left / price));
     if (n > 0 && route(s.owner, 'capital', s.id)) accept(o.id, 'capital', n);
@@ -306,27 +438,47 @@ export function createShipments({ state, data, world }) {
   // Your own orders ship whatever the governor setting (Tim 2026-11-09): sources are found when placed and again
   // every governor review (stock that turned up since), before the clerk's auto orders.
   function coverManual() {
-    const open = orders().filter(o => o.state === 'open' && !o.auto && o.kind !== 'sell').sort((a, b) => b.urgent - a.urgent || a.created - b.created);
-    for (const o of open) { const s = town(o.to); if (s && s.owner === o.owner) cover(s, o); }
+    const open = orders().filter(o => o.state === 'open' && !o.auto && o.kind !== 'sell' && o.kind !== 'ryo').sort((a, b) => b.urgent - a.urgent || a.created - b.created);
+    for (const o of open) { const s = dest(o.to, o.owner); if (s && s.owner === o.owner) cover(s, o); }
   }
   function econTick() {
+    // 8e-1: a war that ended: its open ryo orders are cancelled (what is not loaded goes back to its pot; ryo already
+    // on a train or in a yard arrives and falls back to the town coffers or the treasury, deliverRyo)
+    for (const o of orders()) if ((o.kind === 'ryo' || o.camp) && o.state === 'open' && o.war && !warOf(o.war)) { release(o); o.state = o.got >= o.amount - 1e-9 ? 'done' : 'cancelled'; o.done = state.tick ?? 0; }
     // keep the newest ended orders for the Rail ledger's Delivered / Losses tabs, drop older ones
     const ended = orders().filter(o => o.state !== 'open').sort((a, b) => (b.done ?? 0) - (a.done ?? 0));
     for (const o of ended.slice(S().keepEnded ?? 40)) if (inFlight(o.id) <= 1e-9) delete rec().orders[o.id];   // cargo still on its way keeps its order (it is delivered on arrival)
     if ((state.frontier.econTick ?? 0) % (data.governor?.reviewTicks || 1) === 0) coverManual();
   }
 
+  // 8e-2: an auto ryo order into a war chest when it runs low (war.supply.chestLow), one open at a time per war and
+  // side: refill ryo from the treasury within today's share above the keep line. The governor (clerk) calls it for a
+  // defending town; the generals (war_general_brain.js) for camps and defending towns. Returns the amount ordered.
+  function autoChest(owner, w) {
+    const P = W().supply || {}, clan = state.clans?.[owner];
+    if (!w || !clan) return 0;
+    const defend = w.defender === owner, chest = defend ? w.defense?.chest || 0 : w.camp?.chest || 0;
+    if (chest >= (P.chestLow ?? 300)) return 0;
+    if (orders().some(o => o.kind === 'ryo' && o.state === 'open' && o.owner === owner && o.war === w.id && o.auto)) return 0;
+    const to = chestNode(w, owner);
+    if (!to || !route(owner, 'capital', to)) return 0;
+    const n = Math.floor(Math.min(P.refill ?? 500, autoRoom(clan)));
+    if (n < (S().ryoMin ?? 10)) return 0;
+    return ryoOrder({ owner, quiet: true }, { from: 'treasury', into: 'chest', war: w.id, amount: n, auto: true }) ? n : 0;
+  }
+
   function clerk(s) {
     if (!s || s.capital || !s.owner) return;
     const owner = s.owner;
+    for (const w of Object.values(state.frontier.wars?.list || {})) if (w.defender === owner && w.town === s.id) autoChest(owner, w);   // 8e-2
     if (!Object.values(state.frontier.rail?.links || {}).some(l => l.owner === owner && l.done && !l.closed && (l.from === s.id || l.to === s.id))) return;
     const min = S().minOrder ?? 10;
     for (const res of RES()) {   // 1. auto orders for what the town lacks against its keep amount
       const lack = Math.min(keepOf(s, res) - (s.stock[res] ?? 0) - openIncoming(s.id, res), storageCap(s, data, res) - (s.stock[res] ?? 0) - openIncoming(s.id, res));
       if (lack >= min) place({ owner, quiet: true }, { town: s.id, resource: res, amount: lack, auto: true });
     }
-    for (const o of orders().filter(o => o.state === 'open' && o.to === s.id && !o.auto)) cover(s, o);   // your own orders first
-    const mine = orders().filter(o => o.state === 'open' && o.to === s.id && o.auto).sort((a, b) => b.urgent - a.urgent || a.created - b.created);
+    for (const o of orders().filter(o => o.state === 'open' && o.to === s.id && !o.auto && o.kind !== 'ryo')) cover(s, o);   // your own orders first
+    const mine = orders().filter(o => o.state === 'open' && o.to === s.id && o.auto && o.kind !== 'ryo').sort((a, b) => b.urgent - a.urgent || a.created - b.created);
     for (const o of mine) {   // 2. sources for auto orders (manual ones are covered first)
       cover(s, o);
       // an auto order shrinks to what could be sourced, so it always completes (and frees its budget); the next
@@ -355,7 +507,12 @@ export function createShipments({ state, data, world }) {
   // reservations released), and a source that can no longer reach its order gives its reserved stock back.
   function tearDown(at) {
     const yard = rec().yards[at] || [];
-    for (const c of yard) if (c.amount > 0 && town(at)) world.change(at, c.resource, c.amount, 'ship');
+    for (const c of yard) {
+      if (!(c.amount > 0)) continue;
+      const o = rec().orders[c.order];
+      if (c.resource === 'ryo') { if (o) { refundRyo(o, o.from || 'capital', c.amount); o.amount = Math.max(o.got, o.amount - c.amount); } continue; }
+      if (town(at)) world.change(at, c.resource, c.amount, 'ship');
+    }
     delete rec().yards[at];
     for (const o of orders()) {
       if (o.state !== 'open') continue;
@@ -372,5 +529,26 @@ export function createShipments({ state, data, world }) {
     }
   }
 
-  return { clerk, coverManual, econTick, command, linked, route, keepOf, reservedOf, free, openIncoming, inFlight, accept, release, arrive, load, rob, tearDown };
+  // 8e-6: a camp cut off from the rail network: orders into it stop; ryo not yet there goes back where it came from
+  // (timber and stone already on the way wait, as on any closed line)
+  function campCut(node) {
+    const now = state.tick ?? 0;
+    for (const o of orders()) if (o.state === 'open' && o.to === node) { const was = o.amount; release(o); o.state = o.got > 0 && o.amount >= was - 1e-9 ? 'done' : 'cancelled'; o.cut = true; o.done = now; }
+    const back = c => { const o = rec().orders[c.order]; if (c.resource !== 'ryo' || !o || o.to !== node || !(c.amount > 0)) return; refundRyo(o, o.from || 'capital', c.amount); o.amount = Math.max(o.got, o.amount - c.amount); c.amount = 0; };
+    for (const at of Object.keys(rec().yards)) { rec().yards[at].forEach(back); rec().yards[at] = rec().yards[at].filter(c => c.amount > 0); }
+    for (const t of Object.values(state.frontier.rail?.trains || {})) if (t.freight) { t.freight.forEach(back); t.freight = t.freight.filter(c => c.amount > 0); }
+  }
+  // 8e-6: a train taken off its line with cargo aboard (a camp spur gone with its war): ryo goes back to where it
+  // came from, other cargo is lost with the train
+  function trainGone(t) {
+    for (const c of t?.freight || []) {
+      const o = rec().orders[c.order];
+      if (!o || !(c.amount > 0)) continue;
+      if (c.resource === 'ryo') refundRyo(o, o.from || 'capital', c.amount);
+      o.amount = Math.max(o.got, o.amount - c.amount); o.lost = (o.lost || 0) + (c.resource === 'ryo' ? 0 : c.amount);
+      if (o.state === 'open' && o.got >= o.amount - 1e-9) { o.state = 'done'; o.done = state.tick ?? 0; }
+    }
+    if (t) t.freight = [];
+  }
+  return { trainGone, campCut, clerk, coverManual, econTick, command, linked, route, keepOf, reservedOf, free, openIncoming, inFlight, accept, release, arrive, load, rob, tearDown, ryoOrder: (e, c) => ryoOrder(e, c), autoChest, autoRoom, keepLine, ryoOnTheWay };
 }

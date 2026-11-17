@@ -34,6 +34,7 @@
       "timber": 8,
       "goods": 3
     },
+    "campCostPer100": { "timber": 8, "stone": 3 }, "_campCostNote": "8e-4 (2026-11-16), placeholder: a war camp's spur is paid from the camp stores, which hold no goods, so stone stands in for the goods share.",
     "minTier": 2,
     "maxBuilding": 1
   },
@@ -56,6 +57,7 @@
     "minOrder": 10,
     "wagonLoad": 60,
     "queueTrips": 3,
+    "ryoPerTrain": 2000, "ryoMin": 10, "_ryoNote": "8e-1 (2026-11-16), placeholders: ryoPerTrain = ryo one train carries (guard car, no wagon room); ryoMin = smallest ryo order.",
     "budget": 150,
     "buyPrice": { "food": 3, "timber": 4, "stone": 5, "goods": 8 },
     "sellPrice": { "food": 2, "timber": 2, "stone": 3, "goods": 5 },

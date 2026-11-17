@@ -430,4 +430,59 @@ function scene(seed = 47, tune = null) {
   assert.ok(siege().length || queued(), 'siege guns are trained');
   console.log('ok siege answer, plan before pushes');
 }
+// ---- 8e-7: the supply line: a bot camp builds its camp station and spur, the generals refill by train ------------
+{
+  const tune = f => { const G = f.war.general; f.war.town.musterSeconds = 5; G.launchTownDays = 0.5; G.attack.planSeconds = 5; G.attack.fortify.afterSeconds = 1e6;
+    G.strategies.rush.attack.build = ['barracks', 'camp_station', 'supply_tents']; G.strategies.rush.attack.pushAt = 99; G.strategies.rush.attack.palisade = null;
+    f.railways = data('data/railways.json'); f.railways.link.seconds = 30; };
+  const t = scene(47, tune), { S, g } = t, rival = t.rivals[0], tR = S.frontier.settlements.tR, tP = S.frontier.settlements.tP, War = g.frontier.war, F = S.frontier;
+  S.clans[rival].warStrategy = 'rush'; tR.founded = -6000 - 1; t.hero.x = tP.x + 1500;
+  const rh = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === rival); Object.assign(rh, { place: 'world', x: tR.x + 30, z: tR.z });
+  // both towns have a railway station and a line from the capital
+  const nearCell = s => { let best = -1, bd = Infinity; s.grid.use.split('').forEach((c, i) => { if (c !== '.') return; const [x, z] = g.frontier.stable.centre(s, { cell: i }), d = Math.hypot(x - s.x, z - s.z); if (d > 25 && d < bd) { bd = d; best = i; } }); return best; };
+  for (const s of [tR, tP]) { s.tier = Math.max(s.tier || 1, t.o.frontier.railways.link.minTier || 1); s.buildings.push({ id: `st${s.id}`, type: 'station', cell: nearCell(s), stage: 'built' }); }
+  F.rail.links.rc1 = { id: 'rc1', owner: rival, from: 'capital', to: 'tR', done: true, length: 100, points: [[0, 0], [100, 0]], dist: [0, 100] };
+  F.rail.links.rc2 = { id: 'rc2', owner: 'player', from: 'capital', to: 'tP', done: true, length: 100, points: [[0, 0], [100, 0]], dist: [0, 100] };
+  let k = 0; while (!War.warOn('tP') && k++ < 40) t.run(1000);
+  const w = War.warOn('tP'); assert.ok(w && w.attacker === rival, 'the banner is planted');
+  w.camp.chest = (w.camp.chest || 0) + 3000; w.camp.stock.timber = (w.camp.stock.timber || 0) + 3000; w.camp.stock.stone = (w.camp.stock.stone || 0) + 2000;
+  for (k = 0; k < 600 && !w.camp.station?.linked; k++) t.run(20);
+  assert.ok(w.camp.buildings.some(b => b.type === 'camp_station' && b.stage === 'built'), 'the bot camp built its camp station');
+  assert.ok(w.camp.station?.linked, 'and its spur: ' + JSON.stringify(w.camp.station));
+  const node = w.camp.station.node, orders = () => Object.values(F.shipping.orders);
+  // the treasury under its keep line: the war chest is topped up from the town coffers (down to the general's keep line)
+  S.clans[rival].ryo = 900; g.frontier.world.syncCapital(); tR.stock.ryo = 3000;
+  w.camp.chest = 50;
+  for (k = 0; k < 20 && !orders().some(o => o.kind === 'ryo' && o.war === w.id); k++) t.run(20);
+  const oc = orders().find(o => o.kind === 'ryo' && o.war === w.id);
+  assert.ok(oc && oc.from === 'tR', 'coffers order: ' + JSON.stringify(oc));
+  assert.equal(S.clans[rival].ryo, 900, 'the treasury below its keep line is not touched');
+  g.step([{ id: rh.id, type: 'frontier', action: 'ship', mode: 'cancel', order: oc.id }]);
+  // above the keep line: from the Clan treasury, within the daily share
+  S.clans[rival].ryo = 5000; g.frontier.world.syncCapital(); w.camp.chest = 50;
+  for (k = 0; k < 20 && !orders().some(o => o.kind === 'ryo' && o.war === w.id && o.state === 'open'); k++) t.run(20);
+  const ot = orders().find(o => o.kind === 'ryo' && o.war === w.id && o.state === 'open');
+  assert.ok(ot && ot.from === 'capital' && ot.auto, 'treasury order: ' + JSON.stringify(ot));
+  assert.ok(ot.amount <= (5000 - 1000) * t.o.frontier.war.supply.autoShare, 'within the daily share');
+  // timber and stone ordered into the camp when its stock runs low
+  w.camp.stock.timber = 0;
+  for (k = 0; k < 20 && !orders().some(o => o.to === node && o.resource === 'timber'); k++) t.run(20);
+  assert.ok(orders().some(o => o.to === node && o.resource === 'timber' && o.state === 'open'), 'timber ordered into the camp');
+  // the player's away general (hero outside the circle) refills the defending chest from the treasury by train, above the keep line only
+  S.clans.player.ryo = 900; g.frontier.world.syncCapital(); w.defense ||= { chest: 0, put: 0 }; w.defense.chest = 0; tP.stock.ryo = 0;
+  t.run(200);
+  assert.ok(!orders().some(o => o.kind === 'ryo' && o.owner === 'player' && o.from === 'capital'), 'never below the keep line');
+  S.clans.player.ryo = 3000; g.frontier.world.syncCapital();
+  for (k = 0; k < 20 && !orders().some(o => o.kind === 'ryo' && o.owner === 'player'); k++) t.run(20);
+  const od = orders().find(o => o.kind === 'ryo' && o.owner === 'player');
+  assert.ok(od && od.defend && od.auto && od.to === 'tP', 'defending chest order: ' + JSON.stringify(od));
+  assert.ok(S.clans.player.ryo >= 1000, 'the treasury keeps its keep line');
+  // 8e-9: a general with an armory buys upgrades for the group it has most troops of
+  w.camp.buildings.push({ id: `${w.id}:armX`, type: 'armory', stage: 'built', x: w.camp.x + 30, z: w.camp.z + 30 });
+  w.camp.chest = 3000; w.camp.stock.timber = 3000; w.camp.stock.stone = 3000;
+  if (!Object.values(S.entities).some(e => e.warTroop === w.id && e.owner === rival && !e.dead)) War.spawnTroop(w, 'grunt', w.camp.x + 5, w.camp.z);
+  for (k = 0; k < 30 && !w.armory?.attacker?.work; k++) t.run(20);
+  assert.ok(w.armory?.attacker?.work, 'the general bought an armory upgrade');
+  console.log('ok supply line, armory');
+}
 console.log('test_war_general: all passed');

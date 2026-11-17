@@ -74,8 +74,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const rail = createRail({ state, data, world: live, worldData, stable });   // train plan: railway links between stations
   commandHooks.rail = rail;
   modules.push({ name: 'rail', rail, econTick: () => rail.econTick(), command: (e, c) => rail.command(e, c) });
-  const shipments = createShipments({ state, data, world: live });   // rail shipments S1: orders, keep amounts, reserved stock
-  rail.setShipping(shipments.arrive, shipments.load, shipments.tearDown);
+  const shipments = createShipments({ state, data, world: live, dayTicks });   // rail shipments S1: orders, keep amounts, reserved stock
+  rail.setShipping(shipments.arrive, shipments.load, shipments.tearDown, shipments.trainGone, shipments.campCut);
   shipRef.clerk = shipments.clerk;
   modules.push({ name: 'shipments', shipments, econTick: () => shipments.econTick(), command: (e, c) => shipments.command(e, c) });
   const war = createWar({ state, data, world: live, worldData, resourceIndex: workers.index, dayTicks });   // F6 checkpoint 1: war records, planting the banner declares war
