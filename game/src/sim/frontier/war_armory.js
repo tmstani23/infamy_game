@@ -8,6 +8,7 @@
 // No iron for now (revisit when iron exists).
 // w.armory = { attacker|defender: { levels: { <group>: { weapons, armor } }, work: { group, track, left } | null } }
 // createWarArmory({ state, data, war, world }) -> { command, tick, view, applyTo, groupOf }
+import { addCampStock } from './camp_stock.js';
 export const ARMORY_GROUPS = ['melee', 'ranged', 'mounted', 'siege'];
 export const ARMORY_TRACKS = ['weapons', 'armor'];
 
@@ -48,7 +49,7 @@ export function createWarArmory({ state, data, war, world }) {
     const lvl = level(w, side, c.group, c.track), cost = costOf(lvl);
     if (side === 'attacker') {
       w.camp.chest = Math.round(((w.camp.chest || 0) - (cost.ryo || 0)) * 100) / 100;
-      for (const r of ['timber', 'stone']) if (cost[r]) w.camp.stock[r] = Math.round(((w.camp.stock[r] || 0) - cost[r]) * 100) / 100;
+      for (const r of ['timber', 'stone']) if (cost[r]) addCampStock(w.camp, r, -cost[r]);
     } else {
       w.defense.chest = Math.round(((w.defense.chest || 0) - (cost.ryo || 0)) * 100) / 100;
       for (const r of ['timber', 'stone']) if (cost[r]) world.change(w.town, r, -cost[r], 'armory');

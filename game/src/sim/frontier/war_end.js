@@ -25,6 +25,7 @@
 import { cellToWorld } from './town_grid.js';
 import { creditRyo } from '../treasury.js';
 import { storageCap } from './storage.js';
+import { addCampStock } from './camp_stock.js';
 
 export function createWarEnd({ state, data, war, world, morale, garrison = null }) {
   const W = () => data.war || {};
@@ -104,7 +105,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     out.town = best.id;
     for (const r of ['timber', 'stone']) {
       const n = Math.floor(Math.max(0, Math.min(k.stock[r] || 0, k.brought[r] || 0)));
-      if (n > 0) { world.change(best.id, r, n, 'war camp returned'); out[r] = n; k.stock[r] -= n; }
+      if (n > 0) { world.change(best.id, r, n, 'war camp returned'); out[r] = n; addCampStock(k, r, -n); }
     }
     return out;
   }

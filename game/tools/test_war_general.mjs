@@ -432,7 +432,8 @@ function scene(seed = 47, tune = null) {
 // ---- 8d-10: the camp answers a stockade with siege guns, and builds its plan before it pushes in full -------------
 {
   const tune = f => { const G = f.war.general; f.war.town.musterSeconds = 5; G.launchTownDays = 0.5; G.attack.planSeconds = 5; G.attack.fortify.afterSeconds = 1e6;
-    G.strategies.rush.attack.build = ['barracks', 'supply_tents', 'rifle_range']; G.strategies.rush.attack.pushAt = 3; G.strategies.rush.attack.palisade = null; };
+    G.strategies.rush.attack.build = ['barracks', 'supply_tents', 'rifle_range']; G.strategies.rush.attack.pushAt = 3; G.strategies.rush.attack.palisade = null;
+    G.strategies.rush.attack.bold = 1; G.attack.edgePush = 0; }; // bold and always ahead: the stockade guard alone holds it back
   const t = scene(47, tune), { S, g } = t, rival = t.rivals[0], tR = S.frontier.settlements.tR, tP = S.frontier.settlements.tP, War = g.frontier.war;
   S.clans[rival].warStrategy = 'rush'; tR.founded = -6000 - 1; t.hero.x = tP.x + 1500;
   const rh = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === rival); Object.assign(rh, { place: 'world', x: tR.x + 30, z: tR.z });
@@ -449,6 +450,7 @@ function scene(seed = 47, tune = null) {
   for (k = 0; k < 400 && War.warOn('tP') && !w.camp.buildings.some(b => b.type === 'foundry' && b.stage === 'built'); k++) {
     t.run(20);
     const m = mem(); if (m.mode === 'push' && was !== 'push') { pushes++; if (m.left > 0) early++; } was = m.mode;
+    assert.ok(!m.early || !m.siegeUp, 'no early push into a stockade before siege guns');
   }
   assert.equal(mem().siegeUp, true, 'it saw the stockade');
   assert.ok(War.upgraded(w.camp), 'it bought the camp hall upgrade for the foundry');
@@ -459,6 +461,33 @@ function scene(seed = 47, tune = null) {
   for (k = 0; k < 200 && War.warOn('tP') && !siege().length && !queued(); k++) t.run(20);
   assert.ok(siege().length || queued(), 'siege guns are trained');
   console.log('ok siege answer, plan before pushes');
+}
+// ---- finish 8e (Tim 2026-11-17): a general's temperament, and early pushes before its list is built ----------------
+{
+  // the roll: seeded per war and side, kept on the war, odds by strategy
+  const t0 = scene(47), Gen = t0.g.frontier.warGeneral;
+  assert.ok(Gen?.temper, 'the general rolls a temperament');
+  const fake = (id, s) => ({ id, attacker: t0.rivals[0], defender: 'player' });
+  let bold = 0; for (let i = 0; i < 200; i++) { const w = fake('w' + i); const a = Gen.temper(w, 'attacker'); assert.equal(Gen.temper(w, 'attacker'), a, 'kept'); assert.equal(w.temper.attacker, a); if (a === 'bold') bold++; }
+  const odds = t0.o.frontier.war.general.strategies[Gen.strategyOf(t0.rivals[0])].attack.bold;
+  assert.ok(Math.abs(bold / 200 - odds) < 0.15, `bold about ${odds} of the time (${bold}/200)`);
+  const again = scene(47), Gen2 = again.g.frontier.warGeneral;
+  for (let i = 0; i < 20; i++) assert.equal(Gen2.temper(fake('w' + i), 'attacker'), Gen.temper(fake('w' + i), 'attacker'), 'same seed, same roll');
+
+  // a bold Rush general pushes in full once its core troops stand, with most of its list unbuilt
+  const tune = f => { const G = f.war.general; f.war.town.musterSeconds = 5; G.launchTownDays = 0.5; G.attack.planSeconds = 5; G.attack.fortify.afterSeconds = 1e6;
+    G.strategies.rush.attack.bold = 1; G.attack.edgePush = 99; G.attack.boldReady = { troops: 4, ranged: 0 }; G.strategies.rush.attack.pushAt = 4; G.strategies.rush.attack.palisade = null; };
+  const t = scene(47, tune), { S, g } = t, rival = t.rivals[0], tR = S.frontier.settlements.tR, tP = S.frontier.settlements.tP, War = g.frontier.war;
+  S.clans[rival].warStrategy = 'rush'; tR.founded = -6000 - 1; t.hero.x = tP.x + 1500;
+  const rh = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === rival); Object.assign(rh, { place: 'world', x: tR.x + 30, z: tR.z });
+  let k = 0; while (!War.warOn('tP') && k++ < 40) t.run(1000);
+  const w = War.warOn('tP'); assert.ok(w && w.attacker === rival, 'the banner is planted');
+  w.camp.chest = (w.camp.chest || 0) + 6000; w.camp.stock.timber = (w.camp.stock.timber || 0) + 4000; w.camp.stock.stone = (w.camp.stock.stone || 0) + 3000;
+  const brain = t.bots.find(b => b.config.clan === rival), mem = () => brain.view().wars[w.id]?.attacker || {};
+  let full = null;
+  for (k = 0; k < 600 && War.warOn('tP') && !full; k++) { t.run(20); const m = mem(); if (m.mode === 'push' && m.left > 0 && m.early === 'bold') full = { ...m }; }
+  assert.ok(full, 'a bold general pushes before its list is built');
+  console.log(`ok temperament (bold ${bold}/200 at ${odds}), bold push with ${full.left} of its list left`);
 }
 // ---- 8e-7: the supply line: a bot camp builds its camp station and spur, the generals refill by train ------------
 {
@@ -513,6 +542,18 @@ function scene(seed = 47, tune = null) {
   const od = orders().find(o => o.kind === 'ryo' && o.owner === 'player');
   assert.ok(od && od.defend && od.auto && od.to === 'tP', 'defending chest order: ' + JSON.stringify(od));
   assert.ok(S.clans.player.ryo >= 1000, 'the treasury keeps its keep line');
+  // Tim 2026-11-17: the player's defending general also pulls ryo by train from his other towns, never below each town's keep line
+  const site2 = t.sites.find(x => [tP, tR].every(s => Math.hypot(x.x - s.x, x.z - s.z) > 900));
+  g.frontier.world.addTown({ id: 'tP2', name: 'tP2', owner: 'player', x: site2.x, z: site2.z, pop: 14, founded: true, tier: tP.tier,
+    stock: { food: 5000, ryo: 2000, timber: 1000, stone: 1000, goods: 0 }, buildings: [{ type: t.o.frontier.founding.townHall, stage: 'built', cell: 0 }] });
+  g.step([]); const tP2 = F.settlements.tP2; tP2.tier = tP.tier; tP2.buildings.push({ id: 'sttP2', type: 'station', cell: nearCell(tP2), stage: 'built' });
+  F.rail.links.rc3 = { id: 'rc3', owner: 'player', from: 'capital', to: 'tP2', done: true, length: 100, points: [[0, 0], [100, 0]], dist: [0, 100] };
+  for (const o of orders().filter(o => o.kind === 'ryo' && o.owner === 'player' && o.state === 'open')) g.step([{ id: t.hero.id, type: 'frontier', action: 'ship', mode: 'cancel', order: o.id }]);
+  S.clans.player.ryo = 900; g.frontier.world.syncCapital(); w.defense.chest = 0; tP.stock.ryo = 0;
+  for (k = 0; k < 30 && !orders().some(o => o.kind === 'ryo' && o.owner === 'player' && o.from === 'tP2'); k++) t.run(20);
+  const o2 = orders().find(o => o.kind === 'ryo' && o.owner === 'player' && o.from === 'tP2');
+  assert.ok(o2, 'an order from the player\'s other town: ' + JSON.stringify(orders().filter(o => o.owner === 'player')));
+  assert.ok(o2.amount <= 2000 * (1 - g.frontier.warGeneral.keepOf(tP2)) + 1, `within its keep line (${o2.amount})`);
   // 8e-9: a general with an armory buys upgrades for the group it has most troops of
   w.camp.buildings.push({ id: `${w.id}:armX`, type: 'armory', stage: 'built', x: w.camp.x + 30, z: w.camp.z + 30 });
   w.camp.chest = 3000; w.camp.stock.timber = 3000; w.camp.stock.stone = 3000;
@@ -530,6 +571,14 @@ function scene(seed = 47, tune = null) {
   assert.ok(w.camp.buildings.some(b => b.type === 'barracks' && b.stage !== 'ruined' && b.x === at[0] && b.z === at[1]), 'a new barracks on its spot');
   // Tim 2026-11-17: its own list done, the camp goes on: supply tents beyond the one it names, then general.buildOn
   assert.ok(w.camp.buildings.filter(b => b.type === 'supply_tents' && b.stage !== 'ruined').length > 1, 'more supply tents after its list');
-  console.log('ok supply line, armory, mending');
+  // Tim 2026-11-17: it counts as needed only what the next attack.supply.planAhead buildings of its plan cost, and sells the rest
+  const brain = t.bots.find(b => b.config.clan === rival), am = () => brain.view().wars[w.id]?.attacker || {};
+  const list = War.campBuildList(w.id), ahead = t.o.frontier.war.general.attack.supply.planAhead, up = t.o.frontier.war.hallUpgrade?.cost || {};
+  const most = r => list.map(x => x.cost?.[r] || 0).sort((a, b) => b - a).slice(0, ahead).reduce((a, b) => a + b, 0) + (up[r] || 0);
+  w.camp.stock.timber = 3000; w.camp.stock.stone = 3000; let sold = false;
+  for (k = 0; k < 20; k++) { t.run(20); sold ||= orders().some(o => o.kind === 'sell' && o.sellFrom === node); }
+  for (const r of ['timber', 'stone']) assert.ok((am().planNeed?.[r] ?? 0) <= most(r), `${r} needed: only the next ${ahead} buildings (${am().planNeed?.[r]} <= ${most(r)})`);
+  assert.ok(sold, 'the spare stock is sold at the capital');
+  console.log('ok supply line, armory, mending, spare stock sold');
 }
 console.log('test_war_general: all passed');

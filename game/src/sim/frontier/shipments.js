@@ -24,6 +24,7 @@
 // createShipments({ state, data, world }) -> { command, linked, keepOf, reservedOf, free, openIncoming, accept, release }
 import { storageCap, defaultKeep } from './storage.js';
 import { debitRyo, creditRyo } from '../treasury.js';
+import { addCampStock } from './camp_stock.js';
 // 8e-1 (2026-11-16) ryo by train: an order of kind 'ryo' carries ryo from the Clan treasury (source 'capital') or a
 //  town's coffers to an own town's coffers (into 'coffers', manual only), a defending town's war chest or a camp's
 //  war chest (into 'chest', war id). The ryo leaves its pot when the order is placed (sources[].paid); it rides the
@@ -135,7 +136,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
         if (o.kind === 'ryo') deliverRyo(o, c.amount);
         else if (at === 'capital' && o.kind === 'sell') { const s = town(o.sellFrom), pay = Math.floor(c.amount * (S().sellPrice?.[c.resource] ?? 2)); if (s) world.change(s.id, 'ryo', pay, 'ship sale'); else if (o.camp) campSale(o, pay); o.got += c.amount; }
         else if (town(at)) { world.change(at, c.resource, c.amount, 'ship'); o.got += c.amount; }
-        else if (isCampNode(at)) { const d = campDest(at, o.owner); if (d) d.stock[c.resource] = Math.round(((d.stock[c.resource] || 0) + c.amount) * 100) / 100; o.got += c.amount; }
+        else if (isCampNode(at)) { const d = campDest(at, o.owner); if (d) addCampStock(d.w.camp, c.resource, c.amount); o.got += c.amount; }
         if (o.state === 'open' && o.got >= o.amount - 1e-9) { o.state = 'done'; o.done = state.tick ?? 0; release(o); }
       } else (rec().yards[at] ||= []).push({ ...c });
     }
@@ -160,7 +161,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       if (n <= 0) return 0;
       if (w.from === 'yard') w.c.amount -= n;
       else if (isRyo || at === 'capital') w.x.amount -= n;   // ryo was paid when ordered; bought cargo is made at the station
-      else if (isCampNode(at)) { const d = campDest(at); if (!d) return 0; d.stock[w.resource] = Math.max(0, (d.stock[w.resource] || 0) - n); w.x.amount -= n; d.reserved[w.resource] = Math.max(0, reservedOf(d, w.resource) - n); }   // a camp's sale leaves its stores
+      else if (isCampNode(at)) { const d = campDest(at); if (!d) return 0; addCampStock(d.w.camp, w.resource, -Math.min(n, d.stock[w.resource] || 0)); w.x.amount -= n; d.reserved[w.resource] = Math.max(0, reservedOf(d, w.resource) - n); }   // a camp's sale leaves its stores
       else { world.change(at, w.resource, -n, 'ship'); w.x.amount -= n; const s = town(at); s.reserved[w.resource] = Math.max(0, reservedOf(s, w.resource) - n); }
       const id = w.from === 'yard' ? w.c.order : w.o.id, res = w.from === 'yard' ? w.c.resource : w.resource, mine = t.freight.find(c => c.order === id);
       if (mine) mine.amount += n; else t.freight.push({ order: id, resource: res, amount: n });

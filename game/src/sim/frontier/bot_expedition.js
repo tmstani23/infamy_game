@@ -6,6 +6,8 @@
 // (traits + clan taste + travel + a seeded per-game roll, among the top few free sites).
 // The boss stays at the new town afterwards (C2: rival bosses leave for the frontier; the lieutenant runs the city).
 // step(out) -> true when it drove the boss this tick (the city brain then does nothing).
+import { inHeroParty } from '../deployment_ai.js';
+
 export function createBotExpedition(game, { clan, hero, ai }) {
   const state = game.state, L = game.landOffice, F = game.frontier;
   if (!L || !F?.founding || !game.gate) return null;
@@ -30,8 +32,13 @@ export function createBotExpedition(game, { clan, hero, ai }) {
   // its capital stayed empty), for at most bots.businessWaitDays past its day
   const held = () => Object.values(state.businesses).filter(b => b.owner === clan && !b.hideout).length;
   const building = () => myClan().kind !== 'ninja' && held() < (D.bots?.minBusinesses ?? 0) && L.day() < L.botDay(Math.max(0, order())) + (D.bots?.businessWaitDays ?? 0);
+  // Tim 2026-11-17: it takes its Hero group along (2026-11-06), so it does not leave before that group holds at least
+  // founding.bots.heroCrew standing crew; while it is short the city brain may hire (it is not saving)
+  const heroCrew = () => Object.values(state.entities).filter(u => u.owner === clan && u.type !== 'hero' && u.type !== 'settler' && !u.dead && !u.downed
+    && !u.guard && !u.warTroop && !u.captain && inHeroParty(game, u)).length;
+  const crewShort = () => heroCrew() < (D.bots?.heroCrew ?? 2);
   // due but still saving up: the city brain skips buying and hiring
-  const saving = () => me()?.place !== 'world' && due() && !building() && myClan().ryo < need();
+  const saving = () => me()?.place !== 'world' && due() && !building() && !crewShort() && myClan().ryo < need();
 
   // a hall spot near the claimed site that founding accepts
   function hallSpot(h, site) {
@@ -59,7 +66,7 @@ export function createBotExpedition(game, { clan, hero, ai }) {
       if (spot) out.push({ id: hero, type: 'frontier', action: 'found', x: spot.x, z: spot.z });
       return true;
     }
-    if (!due() || building() || raided() || c.ryo < need() || h.hp < h.maxHp * 0.5) return false;
+    if (!due() || building() || crewShort() || raided() || c.ryo < need() || h.hp < h.maxHp * 0.5) return false;
     if (!ai.toStreet(out)) return true;
     const b = office();
     if (!b?.ring) return false;

@@ -186,11 +186,35 @@ export function createGeneralBrain(game, { clan }) {
       if (ids.length) out.push(order({ kind: 'raze', units: ids, structure: st.key, fallback: 'attackmove', x: Math.round(st.x), z: Math.round(st.z) }));
       return;
     }
-    m.mode = 'hold';
+    // Tim 2026-11-17 (a strategy with defend.lineRaid, Raider): while it is not strong enough to sortie, a small party
+    // goes out to cut the camp's supply line (the rail section nearest the town, else its camp station), gives up after
+    // lineRaid.giveUpSeconds, rests lineRaid.restSeconds after each raid, and only while the army keeps lineRaid.home at home
+    const LR = D.lineRaid, line = LR ? S.list().filter(st => st.camp && st.war === w.id && (st.type === 'camp_station' || st.type === 'rail_section') && S.hpOf(st) > 0) : [];
+    let raiders = [];
+    if (LR) {
+      const live = id => mine.find(e => e.id === id);
+      if (m.raid) {
+        raiders = m.raid.ids.map(live).filter(Boolean);
+        const tgt = line.find(c => c.key === m.raid.key);
+        if (!tgt || !raiders.length || state.tick - (m.raid.at ?? state.tick) > (LR.giveUpSeconds ?? 150) * 20) { m.raid = undefined; m.lineRest = state.tick + Math.round((LR.restSeconds ?? 180) * 20); raiders = []; }
+      } else if (line.length && state.tick >= (m.lineRest || 0) && mine.length >= (LR.party ?? 3) + (LR.home ?? 3)) {
+        const rk = c => c.type === 'rail_section' ? 0 : 1;   // a rail section away from the camp first (lightly held), the camp station after
+        const tgt = line.map(c => ({ c, d: Math.hypot(c.x - t.x, c.z - t.z) })).sort((a, b) => rk(a.c) - rk(b.c) || a.d - b.d || (a.c.key < b.c.key ? -1 : 1))[0].c;
+        const fast = e => (F().data.war?.units?.[e.warUnit]?.group === 'rider' ? 0 : 1);
+        raiders = mine.slice().sort((a, b) => fast(a) - fast(b) || Math.hypot(a.x - tgt.x, a.z - tgt.z) - Math.hypot(b.x - tgt.x, b.z - tgt.z) || (a.id < b.id ? -1 : 1)).slice(0, LR.party ?? 3);
+        m.raid = { ids: raiders.map(e => e.id), key: tgt.key, at: state.tick }; m.raids = (m.raids || 0) + 1;
+      }
+      if (m.raid) {
+        const tgt = line.find(c => c.key === m.raid.key);
+        const ids = raiders.filter(e => e.order?.kind !== 'attack' && (e.order?.kind !== 'raze' || e.order.structure !== tgt.key)).map(e => e.id);
+        if (ids.length) out.push(order({ kind: 'raze', units: ids, structure: tgt.key, fallback: 'attackmove', x: Math.round(tgt.x), z: Math.round(tgt.z) }));
+      }
+    }
+    m.mode = m.raid ? 'lineRaid' : 'hold';
     // wait between the hall and the camp, inside the ring
     const d = Math.hypot(w.x - t.x, w.z - t.z) || 1, r = ringRadius(t, F().data) * (G.holdAt ?? 0.5);
     const hx = Math.round(t.x + (w.x - t.x) / d * r), hz = Math.round(t.z + (w.z - t.z) / d * r);
-    const ids = mine.filter(e => Math.hypot(e.x - hx, e.z - hz) > (G.holdRadius ?? 35) && (e.order?.kind !== 'station' || far(e, hx, hz, 5))).map(e => e.id);
+    const ids = mine.filter(e => !raiders.includes(e) && Math.hypot(e.x - hx, e.z - hz) > (G.holdRadius ?? 35) && (e.order?.kind !== 'station' || far(e, hx, hz, 5))).map(e => e.id);
     if (ids.length) out.push(order({ kind: 'station', units: ids, x: hx, z: hz }));
   }
   function defend(out, cmd, order, w) {
@@ -399,16 +423,21 @@ export function createGeneralBrain(game, { clan }) {
       }
       m.left = left; nextCost = next?.cost || null;
       m.upgradeFor = !War.upgraded(camp) && plan.some(t => list.some(x => x.type === t) && (BD[t]?.needs || []).some(n => n === 'upgrade' || n === 'tier2')); }
-    // Tim 2026-11-17: the timber and stone the rest of its plan still needs (buildings not standing, the camp hall
-    // upgrade it waits for); campSupply sells only what is beyond it
-    { const need = { timber: 0, stone: 0 }, cnt = {};
+    // Tim 2026-11-17: the timber and stone the next attack.supply.planAhead buildings of its plan need (not standing,
+    // its camp may hold them: a building that needs the camp hall upgrade counts once the upgrade is bought or is
+    // the next step, and then the upgrade counts too); campSupply sells what is beyond it
+    { const need = { timber: 0, stone: 0 }, cnt = {}, ahead = A.supply?.planAhead ?? gen().rules().attack?.supply?.planAhead ?? 2;
+      const upNeed = t => (BD[t]?.needs || []).some(n => n === 'upgrade' || n === 'tier2');
+      let taken = 0, upCounted = War.upgraded(camp) || !!campHall(w).upgrade;
       for (const type of plan) {
+        if (taken >= ahead) break;
         cnt[type] = (cnt[type] || 0) + 1;
         const e = list.find(x => x.type === type); if (!e) continue;
         if (camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length >= Math.min(cnt[type], e.max || Infinity)) continue;
+        if (upNeed(type) && !upCounted) { for (const r of Object.keys(need)) need[r] += W().hallUpgrade?.cost?.[r] || 0; upCounted = true; }
         for (const r of Object.keys(need)) need[r] += e.cost?.[r] || 0;
+        taken++;
       }
-      if (m.upgradeFor && !campHall(w).upgrade) for (const r of Object.keys(need)) need[r] += W().hallUpgrade?.cost?.[r] || 0;
       m.planNeed = need; }
     m.want = null;   // what it is saving for (campSupply orders it in by train)
     if (camp.buildings.filter(b => b.stage === 'site').length >= (A.sites ?? 2)) return;
@@ -520,7 +549,7 @@ export function createGeneralBrain(game, { clan }) {
         continue;
       }
       if (kind === 'wall') continue;   // walls and gates are broken only to get in (wayIn)
-      const st = near(list.filter(x => kind === 'tower' ? x.type === 'watchtower' : kind === 'wall' ? x.kind === 'wall' || x.kind === 'gate' : kind === 'hall' ? x.type === 'town_hall' : x.military && x.kind === 'building' && !isFort(x)));
+      const st = near(list.filter(x => kind === 'station' ? x.type === 'station' : kind === 'tower' ? x.type === 'watchtower' : kind === 'wall' ? x.kind === 'wall' || x.kind === 'gate' : kind === 'hall' ? x.type === 'town_hall' : x.military && x.kind === 'building' && !isFort(x)));
       if (st) return { st };
     }
     // whatever else still holds the town's morale up (a stable, an infirmary); the stockades last of all (8d-9)
@@ -591,9 +620,20 @@ export function createGeneralBrain(game, { clan }) {
     const waveSize = m.mode === 'push' && m.wave ? mine.length + held.filter(e => m.wave.includes(e.id)).length : count;
     // (8d-10) before every building of its plan stands it pushes only as a probe, attack.probes times at most (the
     // strategy's probes first), unless attack.buildWaitSeconds have passed since the war began
-    const ready = m.left === 0 || state.tick - (w.started ?? w.at ?? state.tick) >= (A.buildWaitSeconds ?? G.attack?.buildWaitSeconds ?? 1200) * 20;
+    // Tim 2026-11-17: it may push in full before its list is built: a bold general (gen().temper) once its core troops
+    // are up (attack.boldReady: troops, ranged among them), any general when its army is worth attack.edgePush times
+    // the defenders it can see near the town. Never into a town with a stockade before it has siege guns (8d-10).
+    const UD = F().data.war?.units || {}, BR = A.boldReady || G.attack?.boldReady || {}, groupOf = e => UD[e.warUnit]?.group;
+    const worth = l => l.reduce((n, e) => n + (F().war.ryoOf(e.owner, e.warUnit) || 60), 0);
+    const seen = Object.values(state.entities).filter(e => foe(e) && Math.hypot(e.x - t.x, e.z - t.z) <= (A.scout ?? G.attack?.scout ?? 600));
+    const stockadeShut = !!siegeUp(w, m) && ![...all, ...held].some(e => groupOf(e) === 'siege');
+    const bold = gen().temper?.(w, 'attacker') === 'bold' && count >= (BR.troops ?? 10) && [...all, ...held].filter(e => groupOf(e) === 'ranged').length >= (BR.ranged ?? 2);
+    const edge = seen.length > 0 && worth([...all, ...held]) >= (A.edgePush ?? G.attack?.edgePush ?? 1.5) * worth(seen);
+    const early = !stockadeShut && (bold || edge);
+    m.early = early ? (bold ? 'bold' : 'edge') : undefined;
+    const ready = m.left === 0 || early || state.tick - (w.started ?? w.at ?? state.tick) >= (A.buildWaitSeconds ?? G.attack?.buildWaitSeconds ?? 1200) * 20;
     const may = ready || (m.probes || 0) < (A.probes ?? G.attack?.probes ?? 1);
-    const strong = m.mode === 'push' ? waveSize >= Math.max(1, Math.ceil((m.pushed || pushAt) * (A.fallBack ?? 0.35))) || (m.spent && waveSize > 0) : may && (count >= need || (m.spent && count >= (A.pushLeast ?? 3)));
+    const strong = m.mode === 'push' ? waveSize >= Math.max(1, Math.ceil((m.pushed || pushAt) * (A.fallBack ?? 0.35))) || (m.spent && waveSize > 0) : may && (count >= need || (early && count >= (A.pushLeast ?? 3)) || (m.spent && count >= (A.pushLeast ?? 3)));
     if (strong && m.mode !== 'push') { comeOut(); m.pushed = count; m.wave = everyone; if (!ready) m.probes = (m.probes || 0) + 1; }
     if (!strong && m.mode === 'push') m.beaten = (m.beaten || 0) + 1;   // a push given up: the camp digs in (campBuild)
     if (!strong) { m.mode = 'hold'; delete m.wave; gather(all); return; }
@@ -646,7 +686,7 @@ export function createGeneralBrain(game, { clan }) {
     if (!SH || !node || usable >= (P.chestLow ?? 300)) return;
     const open = openOrders().filter(o => o.kind === 'ryo' && o.war === w.id);
     if (!open.some(o => o.auto) && SH.route(clan, 'capital', node) && SH.autoRoom(state.clans[clan]) >= min) out.push(cmd({ action: 'ship', mode: 'autoChest', war: w.id, ...(held > 0 ? { held } : {}) }));
-    if (open.some(o => !o.auto) || (side === 'defender' && !isBot())) return;   // (a player's general defending: his other towns' coffers stay his to send)
+    if (open.some(o => !o.auto)) return;   // (Tim 2026-11-17: a player's defending general too, down to each town's keep line)
     const G = gen().rules(), base = memory(w, side).coffers ||= {}, at = side === 'attacker' ? w.camp : town(w.town);
     const towns = Object.values(state.frontier.settlements || {}).filter(s => s.owner === clan && !s.capital && s.id !== w.town && SH.route(clan, s.id, node))
       .sort((a, b) => dist(a, at) - dist(b, at) || (a.id < b.id ? -1 : 1));

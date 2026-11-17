@@ -32,6 +32,13 @@ export function createWarGeneral({ state, data, war, dayTicks = 12000, seed = ()
     return c.warStrategy;
   }
   const sideOf = (w, clan) => w.attacker === clan ? 'attacker' : w.defender === clan ? 'defender' : null;
+  // Tim 2026-11-17: a general's temperament in one war, rolled once from the game seed and kept on the war: 'bold'
+  // pushes in full once its core troops are up, 'patient' builds its list first. Odds: the strategy's attack.bold
+  function temper(w, side) {
+    const t = (w.temper ||= {}), clan = side === 'attacker' ? w.attacker : w.defender;
+    if (!t[side]) { const odds = G().strategies?.[strategyOf(clan)]?.attack?.bold ?? G().attack?.bold ?? 0.5; t[side] = (hash('temper', seed(), w.id, side, clan) % 1000) < odds * 1000 ? 'bold' : 'patient'; }
+    return t[side];
+  }
   // the player is away from a war when his hero is not inside its circle (a hero who is down inside it is still there)
   function away(w, clan) {
     const h = heroOf(clan), t = town(w.town), R = data.war?.circleRadius ?? 900;
@@ -77,5 +84,5 @@ export function createWarGeneral({ state, data, war, dayTicks = 12000, seed = ()
   function view(clan) {
     return { strategy: strategyOf(clan), wars: war.warsOf(clan).map(w => ({ war: w.id, side: sideOf(w, clan), general: runs(w, clan) })) };
   }
-  return { command, strategyOf, away, runs, sides, sideOf, keepOf, view, rules: G, enable: () => { on = true; }, enabled: () => on, dayTicks };
+  return { command, strategyOf, temper, away, runs, sides, sideOf, keepOf, view, rules: G, enable: () => { on = true; }, enabled: () => on, dayTicks };
 }

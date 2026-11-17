@@ -100,8 +100,9 @@ export function createPlacement({ state, data, world, construction, resourceInde
     const MZ = data.zones?.military?.char, milB = !LINES[kind] && !!data.buildings[kind]?.military;
     if (MZ && !milB && cover.some(i => g.use[i] === '.' && g.zone[i] === MZ) && cover.every(i => g.use[i] === '.' && (g.zone[i] === '.' || g.zone[i] === MZ))) return bad('military zone: only military buildings go here', cover);
     if (cover.some(i => g.use[i] !== '.' || (g.zone[i] !== '.' && !(milB && g.zone[i] === MZ)))) return bad('occupied', cover);
-    // war checkpoint 6: a breach stays open while the war is on (no repairs during a war)
-    if (s.breaches?.length && Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id) && cover.some(i => s.breaches.some(b => b.cell === i))) return bad('breached: rebuild after the war', cover);
+    // war checkpoint 6: a breach stays open while the war is on; Tim 2026-11-17: a player may build it over during
+    // the war himself (wall or gate piece, normal cost); a bot clan's town still waits for the war's end
+    if (s.breaches?.length && (!state.clans?.[s.owner] || state.clans[s.owner].bot) && Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id) && cover.some(i => s.breaches.some(b => b.cell === i))) return bad('breached: rebuild after the war', cover);
     if (kind !== 'road' && kind !== 'gate' && cover.some(i => s.railCells?.[i])) return bad('railway track', cover);   // roads may cross (Tim 2026-11-07)
     if(kind==='wall' || !LINES[kind]) {
       const reason=buildingSafety(s,cover,state,data.founding?.unitClearance);

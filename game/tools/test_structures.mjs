@@ -118,7 +118,12 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   // no repairs during the war; after it the breach can be built over
   const pl = g.frontier.modules.find(m => m.name === 'placement').placement;
   fw.change('enemyTown', 'timber', 500, 'test'); fw.change('enemyTown', 'stone', 500, 'test');
-  const r = pl.check(enemy, { kind: 'wall', cells: [WALL] }); assert.ok(!r.ok && /breached/.test(r.reason), r.reason); }
+  const r = pl.check(enemy, { kind: 'wall', cells: [WALL] }); assert.ok(!r.ok && /breached/.test(r.reason), r.reason);
+  // Tim 2026-11-17: a player's own town may build its breach over during the war (a bot's still waits)
+  assert.ok(g.state.clans[enemy.owner].bot, 'the enemy town is a bot clan\'s');
+  const own0 = enemy.owner; enemy.owner = 'player';
+  const r2 = pl.check(enemy, { kind: 'wall', cells: [WALL] }); assert.ok(!/breached/.test(r2.reason || ''), 'a player rebuilds the breach in the war: ' + r2.reason);
+  enemy.owner = own0; }
 
 // ---- a house drops to an empty plot ---------------------------------------------------------------
 { house(); const st = ST.find(key(HOUSE)); assert.ok(st);
