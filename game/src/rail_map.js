@@ -28,6 +28,19 @@ export function drawSupplySections(ctx, links, wars, at, width = 3) {
   }
   ctx.restore();
 }
+// the standing marked section of a camp spur within r world units of (x, z), or null (World map hover, 8e-6)
+export function supplySectionAt(links, wars, x, z, r) {
+  let best = null, bd = r;
+  for (const w of Object.values(wars || {})) for (const b of w.camp?.buildings || []) {
+    const l = b.type === 'rail_section' && b.stage === 'built' && b.rail && links?.[b.rail.link]; if (!l?.points?.length || !(l.length > 0)) continue;
+    const P = stretch(l, b.rail.d0, Math.max(b.rail.d0 + 1, b.rail.d1));
+    for (let k = 1; k < P.length; k++) {
+      const a = P[k - 1], c = P[k], dx = c.x - a.x, dz = c.z - a.z, L2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / L2));
+      const d = Math.hypot(x - (a.x + t * dx), z - (a.z + t * dz)); if (d <= bd) { bd = d; best = b; }
+    }
+  }
+  return best;
+}
 export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds = 600, wars = null } = {}) {
   const list = Object.values(links || {}).filter(l => l.points?.length > 1 && l.dist?.length === l.points.length && l.length > 0);
   if (!list.length) return;

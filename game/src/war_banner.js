@@ -268,14 +268,14 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
         coinSig = dsig; coin.hidden = false;
         const tn = game.state.frontier.settlements?.[def.town]?.name || 'your town';
         coin.innerHTML = `<div><b>${chest}</b><small>WAR CHEST</small>Defending</div>`;
-        coin.title = `War chest of ${tn}: ${chest} ryo to train defenders. Put money in from the town coffers at the town hall. What is left goes back to the coffers when the war ends. Click to open the town war window.`;
+        coin.title = `War chest of ${tn}: ${chest} ryo to train defenders. Put money in from the town coffers at the town hall, or send ryo by train from the Clan treasury and your other towns (War chest tab). What is left goes back to the coffers when the war ends. Click to open the town war window.`;
       }
     } else if (!pack && camp) {
       if (csig !== coinSig) {
         coinSig = csig; coin.hidden = false;
         const k = camp.camp, n = k.workers.length, tr = (k.workerTraining || []).length;
         coin.innerHTML = `<div><b>${Math.floor(k.chest)}</b><small>WAR CHEST</small>${n} workers</div>`;
-        coin.title = `Your war camp: ${Math.floor(k.chest)} ryo in the war chest, ${Math.floor(k.stock.timber)} timber and ${Math.floor(k.stock.stone)} stone in the camp stores, ${n} workers${tr ? ` (${tr} in training)` : ''}. Camp workers gather timber and stone anywhere in the war circle outside the town ring and drop it at the camp hall. A camp holds at most ${C.workerCap ?? '?'} workers. Click to open the camp panel.`;
+        coin.title = `Your war camp: ${Math.floor(k.chest)} ryo in the war chest, ${Math.floor(k.stock.timber)} timber and ${Math.floor(k.stock.stone)} stone in the camp stores, ${n} workers${tr ? ` (${tr} in training)` : ''}. With a linked camp station, ryo, timber and stone come in by train (War chest tab and station). Camp workers gather timber and stone anywhere in the war circle outside the town ring and drop it at the camp hall. A camp holds at most ${C.workerCap ?? '?'} workers. Click to open the camp panel.`;
       }
     } else if (sig !== coinSig) {
       coinSig = sig; coin.hidden = !pack;

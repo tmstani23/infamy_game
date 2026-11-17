@@ -1,7 +1,7 @@
 // World atlas: registered illustration with data overlays, feature discovery and exact hover.
 // Shared terrain caching below also serves the minimap; atlas visibility never changes its fog.
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
-import { drawRailLines } from './rail_map.js';
+import { drawRailLines, supplySectionAt } from './rail_map.js';
 import { pointAt } from './sim/frontier/rail_route.js';
 import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
@@ -185,7 +185,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     const label = hover && canvasToWorld(hover.px, hover.py, view);
     if (label && hover.px>=MARGIN && hover.py>=MARGIN && inWorld(label)) {
       const feature=hitTest(items,hover.px,hover.py,view,10);
-      onHover({ ...label, grid:gridLabel(label.x,label.z), zone:atlasRegionAt(world,label.x,label.z)?.name || '', biome:biomes.at(label.x,label.z).name, feature:worldFeatureName(feature) });
+      onHover({ ...label, grid:gridLabel(label.x,label.z), zone:atlasRegionAt(world,label.x,label.z)?.name || '', biome:biomes.at(label.x,label.z).name, feature:worldFeatureName(feature) || (st.rail && layers.rail && supplySectionAt(st.rail.links, st.rail.wars, label.x, label.z, 10 / view.scale) ? 'Camp supply line: destroy to cut the camp off' : '') });
     } else onHover(null);
     dirty = false;
   }

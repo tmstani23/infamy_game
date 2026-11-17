@@ -14,7 +14,7 @@ const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const world = data('data/world.json'), U = data('data/units.json'), FR = data('data/frontier.json');
 
 { // the data: every camp military building has a town entry with the camp's cost; limits and needs stay in war.buildings
-  const camp = Object.keys(FR.war.buildings).filter(t => !['camp_hall', 'lumber_camp', 'quarry', 'palisade', 'gate', 'stable', 'stockade'].includes(t));   // (the stable and the stockade are town buildings of their own)
+  const camp = Object.keys(FR.war.buildings).filter(t => !['camp_hall', 'lumber_camp', 'quarry', 'palisade', 'gate', 'stable', 'stockade', 'camp_station'].includes(t));   // (the stable and the stockade are town buildings of their own; camp_station is camp only, towns have their railway station, 8e-4)
   assert.deepEqual(militaryTypes(FR).sort(), camp.sort(), 'the same military buildings as a camp');
   for (const t of camp) {
     const b = FR.buildings[t];

@@ -102,7 +102,7 @@ export function createRyoBadge({ root, game, heroId }) {
     if (near) lines.push(`${near.name} coffers ${Math.floor(near.stock?.ryo || 0)}`);
     if (myWar) lines.push(`War chest, ${myWar.attacker === me ? 'Siege' : 'Defence'} of ${F.settlements?.[myWar.town]?.name || 'the town'} ${chestOf(myWar)}`);
     if (onTrain > 0) lines.push(`On the train: ${Math.floor(onTrain)}`);
-    const title = `Your ryo\n${lines.join('\n')}\n\nTreasury · recent spending and losses\n${treasuryHistory(game.state, clan) || 'No spending or losses yet'}`;
+    const title = `Your ryo\n${lines.join('\n')}\n\nTreasury, recent spending and losses\n${treasuryHistory(game.state, clan) || 'No spending or losses yet'}`;
     if (root.title !== title) root.title = title;
     const kind = `${pot.kind}:${pot.label}`;
     if (root.dataset.pot !== pot.kind) root.dataset.pot = pot.kind;
