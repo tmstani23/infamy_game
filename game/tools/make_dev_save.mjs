@@ -1,5 +1,5 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json, dev_frontier.json, war_test_yakuza.json, rail_test_kuroda.json
+//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json, dev_frontier.json, war_test_yakuza.json, war_defend_yakuza.json
 //   node game/tools/make_dev_save.mjs war_test_yakuza   -> only the saves named
 // Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 4).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
@@ -16,7 +16,7 @@ const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'),
-  police: data('data/police.json'), settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: data('data/world_chunks.json'), frontier: data('data/frontier.json') };
+  police: data('data/police.json'), settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: data('data/world_chunks.json'), frontier: { ...data('data/frontier.json'), railways: data('data/railways.json') } };   // railways as main.js gives them
 const dir = new URL('../../saves/', import.meta.url);
 
 const SAVES = {
@@ -28,10 +28,12 @@ const SAVES = {
   // island. The hero and his crew stand at the war camp; the camp has a barracks, rifle range, supply tents and stables
   // built, the hall upgraded, and a full chest and stores, so every roster unit can be trained at once.
   war_test_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, warTest: true },
-  // Railway test (Tim 2026-11-07, train plan): Kuroda hero on the island beside the omnibus station (the railway
-  // station) of his Village-tier (tier 2) town, founded the real way, laid out with roads, zones and buildings, the
-  // governor met and on autobuild, stock to lay a line or two to the capital. Four crew follow him.
-  rail_test_kuroda: { clan: 'kuroda', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 5000, renown: 300, crew: 11, railTown: true },
+  // Defend test (Tim 2026-11-17, replaces rail_test_kuroda): your Village-tier town Tetsumichi (founded the real way,
+  // the old rail test town) with a railway station, a line to the capital, average stock and a few military
+  // buildings, is under attack by a bot Kuroda camp whose camp station and spur are already linked by rail (the red
+  // supply line sections stand). Pots as an average war: the camp brought the tier-2 pack, Tetsumichi put 1000 ryo
+  // from its coffers in its war chest. The hero and four crew stand at the station.
+  war_defend_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 8, railTown: true, warDefend: true },
 };
 
 // A grown tier-2 town for the railway test: founded with the real command, then roads, buildings and zones are
@@ -54,7 +56,7 @@ function railTown(game, heroId) {
     town = Object.values(S.frontier.settlements).find(t => t.owner === clan.id && t.founded);
     if (town) break;
   }
-  if (!town) throw new Error('rail_test_kuroda: could not found a town');
+  if (!town) throw new Error('railTown: could not found a town');
   game.step([]);
   town.tier = 2;
   const g = town.grid, n = g.n, cell = (r, c) => r * n + c;
@@ -112,12 +114,102 @@ function railTown(game, heroId) {
   // on open ground just outside the station's footprint (Tim 2026-11-07: he spawned inside the station), within its reach
   const open = Array.from({ length: g.n * g.n }, (_, i) => i).filter(i => !['B', 'w'].includes(g.use[i]) && g.ground?.[i] !== 'x' && !(st.cells || [st.cell]).includes(i) && !zoneStructureAt(town, i, game.frontier.data))
     .map(i => { const [x, z] = cellToWorld(town, i); return { i, x, z, d: Math.hypot(x - sx, z - sz) }; }).filter(c => c.d <= 18).sort((p, q) => p.d - q.d);
-  if (!open.length) throw new Error('rail_test_kuroda: no open ground beside the station');
+  if (!open.length) throw new Error('railTown: no open ground beside the station');
   Object.assign(hero, { place: 'world', x: open[0].x, z: open[0].z, anim: 'idle' });
   const crew = Object.values(S.entities).filter(u => u.owner === clan.id && ['thug', 'kuroda_rifleman', 'kuroda_enforcer', 'ninja'].includes(u.type) && !u.dead && game.settings.units.types[u.type] && !u.worker && !u.railGang).slice(0, 4);
   crew.forEach((u, k) => { const c = open[Math.min(k + 1, open.length - 1)]; Object.assign(u, { place: 'world', x: c.x + (k % 2 ? 1 : -1), z: c.z + 1, order: { kind: 'follow', target: hero.id } }); });
   game.areas.update(Object.values(S.entities));
   return town;
+}
+
+// Places a town building on the cell nearest `toward` (or the hall) that passes the real placement check, built at once.
+function placeBuilt(game, t, kind, toward = null) {
+  const F = options.frontier, S = game.state, P = createPlacement({ data: F, state: S, construction: {} }), n = t.grid.n, put = (s, i, ch) => s.slice(0, i) + ch + s.slice(i + 1);
+  const px = toward ? toward.x : t.x, pz = toward ? toward.z : t.z;
+  const order = [...Array(n * n).keys()].map(i => { const [x, z] = cellToWorld(t, i); return { i, d: Math.hypot(x - px, z - pz), h: Math.hypot(x - t.x, z - t.z) }; })
+    .filter(c => c.h > 22).sort((a, b) => a.d - b.d || a.i - b.i);
+  for (const { i } of order) {
+    const r = P.check(t, { kind, cells: [i] });
+    if (!r.ok) { if (/^(Needs|A town has|Your clan|town hall tier)/.test(r.reason)) return false; continue; }
+    for (const c of r.cells) { t.grid.ground = put(t.grid.ground, c, 'c'); setUse(t, c, 'B'); t.grid.by = put(t.grid.by, c, 'g'); }
+    t.buildings.push({ id: game.frontier.world.newId('b'), type: kind, cell: r.cells[0], cells: r.cells, ...(r.rot !== undefined ? { rot: r.rot } : {}), stage: 'built', workers: 0, paidCost: { ...((F.buildings[kind] || {}).cost || {}) } });
+    game.frontier.world.recount?.(t.id);
+    return true;
+  }
+  return false;
+}
+// Lays a done rail line from a town (or a camp node) the real way (ordered by the command), then finishes it at once.
+function layLine(game, hero, from, to, payStock = null) {
+  const S = game.state, links = () => Object.values(S.frontier.rail?.links || {});
+  if (!from.startsWith('camp:')) { const s = S.frontier.settlements[from], keep = { ...s.stock }; Object.assign(s.stock, { timber: 9000, stone: 9000, goods: 9000 });
+    game.step([{ id: hero.id, type: 'frontier', action: 'rail', mode: 'link', town: from, to }]); Object.assign(s.stock, keep); }
+  else for (let i = 0; i < 40 && !links().some(l => l.from === from); i++) game.step([]);   // a camp orders its own spur (rail.js campSpurs)
+  const l = links().find(x => x.owner === hero.owner && x.from === from && x.to === to && !x.done);
+  if (!l) throw new Error(`layLine: no line ${from} to ${to}: ${S.clans[hero.owner]?.notice?.text || ''}`);
+  if (payStock) { const per = options.frontier.railways.link.campCostPer100 || {}; l.spent = {}; for (const [r, n] of Object.entries(per)) { const k = Math.ceil(n * l.length / 100); l.spent[r] = k; payStock[r] = Math.max(0, (payStock[r] || 0) - k); } }
+  l.paid = l.length; l.built = l.length - 0.01;
+  for (let i = 0; i < 200 && !l.done; i++) game.step([]);
+  if (!l.done) throw new Error(`layLine: ${from} to ${to} did not finish`);
+  return l;
+}
+// The defend test: a bot Kuroda town with a station and line, its hero plants the banner by Tetsumichi with the
+// tier-2 war pack; its camp gets a barracks and a camp station built with the real command, the spur laid and paid.
+function warDefend(game, heroId) {
+  const S = game.state, hero = S.entities[heroId], F = options.frontier, W = F.war, wd = options.world, war = game.frontier.war;
+  const town = Object.values(S.frontier.settlements).find(t => t.owner === hero.owner && t.founded);
+  // average town stock (as tools/soak_war.mjs SIZES.average) and a line to the capital
+  const cap = r => storageCap(town, game.frontier.data, r);
+  Object.assign(town.stock, { food: Math.min(3000, cap('food')), timber: Math.min(1500, cap('timber')), stone: Math.min(800, cap('stone')), goods: Math.min(300, cap('goods')), ryo: 2500 });
+  layLine(game, hero, town.id, 'capital');
+  for (const kind of ['barracks', 'rifle_range', 'watchtower', 'watchtower', 'supply_tents']) if (!placeBuilt(game, town, kind)) throw new Error('war_defend_yakuza: no room for a ' + kind);
+  // the Kuroda attacker: a Village-tier town 1300 to 2000 off, with a railway station and a line to the capital
+  const rival = Object.keys(S.clans).find(id => id !== hero.owner && S.clans[id].faction === 'kuroda') || Object.keys(S.clans).find(id => id !== hero.owner);
+  const rh = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === rival);
+  const gap = s => Math.min(...Object.values(S.frontier.settlements).filter(t => Number.isFinite(t.x) && t !== town).map(t => Math.hypot(t.x - s.x, t.z - s.z)), Infinity);
+  const [gx, gz] = game.gate.island;
+  const site = wd.sites.map(s => ({ s, d: Math.hypot(s.x - town.x, s.z - town.z) })).filter(o => o.d >= 1300 && o.d <= 2000 && gap(o.s) >= 900 && Math.hypot(o.s.x - gx, o.s.z - gz) > 900).sort((a, b) => a.d - b.d)[0]?.s;
+  if (!site) throw new Error('war_defend_yakuza: no site for the Kuroda town');
+  const rt = game.frontier.world.addTown({ id: 'war_defend_town', name: 'Kurosaki', region: null, owner: rival, x: site.x, z: site.z, site: site.id ?? null,
+    traits: { soil: 1, water: 1, defense: 1, nodes: {} }, pop: 25, stock: { food: 2000, timber: 1500, stone: 900, goods: 300, ryo: 3000 }, buildings: [{ type: 'town_hall', stage: 'built', cell: 0 }] });
+  game.step([]);
+  rt.tier = 2; rt.founded = (S.tick ?? 0) - 12000 * 4;
+  if (!placeBuilt(game, rt, 'station', town)) throw new Error('war_defend_yakuza: no room for the Kurosaki station');
+  layLine(game, rh, rt.id, 'capital');
+  // the banner by Tetsumichi, on its Kurosaki side, with the pack a bot takes to a tier-2 town
+  const pack = W.general.attack.packByTier?.[Math.min(2, Math.max(1, town.tier || 1)) - 1] || W.general.attack.pack;
+  S.clans[rival].warPack = { ...pack };
+  const [inner, outer] = war.band(town), mid = (inner + outer) / 2, base = Math.atan2(rt.z - town.z, rt.x - town.x);
+  let rec = null;
+  for (let a = 0; a < 24 && !rec; a++) {
+    const ang = base + (a % 2 ? 1 : -1) * Math.ceil(a / 2) * Math.PI / 12, x = Math.round(town.x + Math.cos(ang) * mid), z = Math.round(town.z + Math.sin(ang) * mid);
+    Object.assign(rh, { place: 'world', area: 'world', x: x + 3, z }); delete rh.aboard;
+    if (!war.check(rh, town.id, { x, z }).ok) continue;
+    game.step([{ id: rh.id, type: 'frontier', action: 'plantBanner', town: town.id, x, z }]);
+    rec = war.warOn(town.id);
+  }
+  if (!rec) throw new Error('war_defend_yakuza: could not start the war');
+  delete S.clans[rival].warPack;
+  // the camp: a barracks and the camp station, paid from the pack and built at once; then the spur, paid from the camp stores
+  const hall = rec.camp.buildings.find(b => b.type === 'camp_hall');
+  const place = kind => {
+    for (const d of [40, 60, 80, 100]) for (let a = 0; a < 24; a++) {
+      const r = war.campCheck(rec.id, kind, { x: hall.x + Math.cos(a * Math.PI / 12) * d, z: hall.z + Math.sin(a * Math.PI / 12) * d });
+      if (!r.ok) continue;
+      game.step([{ id: rh.id, type: 'frontier', action: 'campPlace', war: rec.id, kind, ...r.point }]);
+      const b = rec.camp.buildings.at(-1);
+      if (b.type === kind && b.stage === 'site') { b.stage = 'built'; delete b.progress; delete b.need; return b; }
+    }
+    throw new Error(`war_defend_yakuza: no room for a camp ${kind} (${JSON.stringify(rec.camp.stock)}, chest ${rec.camp.chest})`);
+  };
+  place('barracks'); place('camp_station');
+  layLine(game, rh, `camp:${rec.id}`, rt.id, rec.camp.stock);
+  for (let i = 0; i < 40; i++) game.step([]);   // the marked rail sections appear (rail.js campLines)
+  if (!rec.camp.station?.linked || !rec.camp.buildings.some(b => b.type === 'rail_section')) throw new Error('war_defend_yakuza: the camp spur is not linked: ' + JSON.stringify(rec.camp.station));
+  // Tetsumichi puts 1000 ryo from its coffers in its war chest
+  rec.defense = { ...(rec.defense || {}), chest: (rec.defense?.chest || 0) + 1000, put: (rec.defense?.put || 0) + 1000 };
+  town.stock.ryo = Math.max(0, (town.stock.ryo || 0) - 1000);
+  game.areas.update(Object.values(S.entities));
+  return rec;
 }
 
 // The war test: a rival town on open ground far from the capital, the real banner planted next to it (the hero's
@@ -234,7 +326,7 @@ function readyClans(game, spec) {
 
 export function build(name, spec) {
   // the rail save needs the island's resource spots (as main.js loads them) so workers have work and camps sit by them
-  const spots = spec.railTown ? { resourceSpots: data('data/world_spots.json'), resourceSpotRules: data('data/resource_spots.json') } : {};
+  const spots = spec.railTown || spec.warDefend ? { resourceSpots: data('data/world_spots.json'), resourceSpotRules: data('data/resource_spots.json') } : {};
   const game = createGame(spec.realGame ? { ...options, ...spots, frontier: { ...options.frontier, fixtureTowns: false } } : options);   // E6b: real games have no fixture towns
   const m = setupMatch(game, { clan: spec.clan, difficulty: spec.difficulty, mode: spec.mode, bots: data('data/bots.json'),
     spawns: options.district.spawns, test: { playerRyo: spec.playerRyo } });
@@ -245,6 +337,7 @@ export function build(name, spec) {
   for (let i = 0; i < spec.ticks; i++) game.step(bots.flatMap(b => b.tick()));
   if (spec.railTown) railTown(game, m.heroId);
   if (spec.warTest) warTest(game, m.heroId);
+  if (spec.warDefend) warDefend(game, m.heroId);
   if (spec.frontier) game.frontier.world.assignStartOwners({ player: 'player', bot: m.rivals[0]?.clan });
   // E2: settlers waiting round the hero, following him (dev travel on the World map takes them along), so founding can be tried at once.
   if (spec.settlers) game.state.clans.player.permit = true;   // E1: founding needs a permit (Land Office); the dev save holds one

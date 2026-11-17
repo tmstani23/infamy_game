@@ -185,6 +185,13 @@ function scene(seed = 47, tune = null) {
   assert.notEqual(brainR.view().wars[w.id].defender.mode, 'sortie', 'outmatched: no sally');
   assert.ok(brainR.view().wars[w.id].defender.rest > S.tick, 'and a rest before the next');
   for (const e of big) e.hp = 0, e.dead = true;
+  // Tim 2026-11-17: at its troop cap with ryo to train more, the town puts up supply tents (more than its list names)
+  const tents = () => town.buildings.filter(b => b.type === 'supply_tents').length + (town.projects || []).filter(p => p.type === 'supply_tents').length;
+  const listed = want.build.filter(x => x === 'supply_tents').length, cap0 = g.frontier.war.defense.troopCap(w.id);
+  n = 0;
+  while (g.frontier.war.warOn('tR') && (tents() <= listed || g.frontier.war.defense.troopCap(w.id) <= cap0) && n++ < 300) { t.run(100); w.defense.chest = Math.max(w.defense.chest, 2000); town.stock.timber = Math.max(town.stock.timber, 600); }
+  assert.ok(tents() > listed, `supply tents beyond its list (${tents()} of ${listed} listed)`);
+  assert.ok(g.frontier.war.defense.troopCap(w.id) > cap0, 'and a bigger troop cap');
   console.log('ok bot defence');
 }
 
@@ -330,6 +337,18 @@ function scene(seed = 47, tune = null) {
   assert.equal(brain.view().wars[w.id].attacker.fort, true, 'the camp digs in when the fight draws out');
   assert.ok(w.camp.buildings.some(b => b.type === 'watchtower'), 'a watchtower'); assert.ok(w.camp.buildings.some(b => b.type === 'palisade'), 'and a palisade');
   console.log('ok pack by tier, specials, dug in');
+  // Tim 2026-11-17: at its troop cap with ryo to train more, the camp puts up supply tents before the rest of its plan
+  { const tune2 = f => { tune(f); const G = f.war.general; G.attack.packByTier[1] = { ryo: 2400, timber: 330, stone: 100 }; G.attack.fortify.afterSeconds = 1e6; G.buildOn = [];
+      G.strategies.rush.attack.build = ['barracks', 'stockade']; G.strategies.rush.attack.mix = { grunt: 1 }; G.strategies.rush.attack.pushAt = 99; };
+    const t2 = scene(47, tune2), x2 = set(t2), War2 = t2.g.frontier.war;
+    let k2 = 0; while (!War2.warOn('tP') && k2++ < 40) t2.run(1000);
+    const w2 = War2.warOn('tP'); assert.ok(w2 && w2.attacker === x2.rival, 'the banner is planted');
+    const has = type => w2.camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length;
+    for (k2 = 0; k2 < 400 && War2.warOn('tP') && !has('supply_tents'); k2++) t2.run(20);
+    assert.ok(has('supply_tents') >= 1 && !has('stockade'), `supply tents jump the plan at the troop cap (tents ${has('supply_tents')}, stockade ${has('stockade')}, troops ${JSON.stringify(War2.troopView(w2.id))})`);
+    for (k2 = 0; k2 < 40 && x2.brain.view().wars[w2.id]?.attacker.want?.timber !== 400; k2++) t2.run(20);
+    assert.equal(x2.brain.view().wars[w2.id].attacker.want?.timber, 400, 'it saves for the stockade (ordered by train once linked)'); }
+  console.log('ok supply tents on demand');
 }
 // ---- 8d-9: the stockade as a fortress (Tim 2026-11-16): generals build it, ranged troops hold it and shoot out ----
 {
@@ -464,10 +483,16 @@ function scene(seed = 47, tune = null) {
   const ot = orders().find(o => o.kind === 'ryo' && o.war === w.id && o.state === 'open');
   assert.ok(ot && ot.from === 'capital' && ot.auto, 'treasury order: ' + JSON.stringify(ot));
   assert.ok(ot.amount <= (5000 - 1000) * t.o.frontier.war.supply.autoShare, 'within the daily share');
+  // Tim 2026-11-17: and one from the town coffers beside it, sized to what the camp can spend (never under refill)
+  for (k = 0; k < 20 && !orders().some(o => o.kind === 'ryo' && o.war === w.id && o.state === 'open' && !o.auto); k++) t.run(20);
+  const oc2 = orders().find(o => o.kind === 'ryo' && o.war === w.id && o.state === 'open' && !o.auto);
+  assert.ok(oc2 && oc2.from === 'tR' && oc2.amount >= t.o.frontier.war.supply.refill, 'coffers order beside the treasury order: ' + JSON.stringify(oc2));
   // timber and stone ordered into the camp when its stock runs low
   w.camp.stock.timber = 0;
   for (k = 0; k < 20 && !orders().some(o => o.to === node && o.resource === 'timber'); k++) t.run(20);
-  assert.ok(orders().some(o => o.to === node && o.resource === 'timber' && o.state === 'open'), 'timber ordered into the camp');
+  assert.ok(orders().some(o => o.to === node && o.resource === 'timber' && o.state === 'open'), 'timber ordered into the camp (the open ryo orders take no wagon room)');
+  t.run(200);
+  assert.ok(g.frontier.shipments.openIncoming(node, 'timber') + g.frontier.shipments.openIncoming(node, 'stone') <= 360, 'its orders stay within what the line queues');
   // the player's away general (hero outside the circle) refills the defending chest from the treasury by train, above the keep line only
   S.clans.player.ryo = 900; g.frontier.world.syncCapital(); w.defense ||= { chest: 0, put: 0 }; w.defense.chest = 0; tP.stock.ryo = 0;
   t.run(200);
@@ -489,9 +514,11 @@ function scene(seed = 47, tune = null) {
   for (k = 0; k < 30 && sec.stage === 'ruined'; k++) t.run(20);
   assert.ok(sec.stage !== 'ruined' && (sec.stage === 'built' || sec.rebuild !== undefined || sec.stage === 'site'), 'the general rebuilds the section: ' + sec.stage);
   const bk = w.camp.buildings.find(b => b.type === 'barracks' && b.stage === 'built'); bk.stage = 'ruined'; delete bk.queue; const at = [bk.x, bk.z];   // (a ruin loses its queue, structures.js)
-  for (k = 0; k < 30 && w.camp.buildings.includes(bk); k++) t.run(20);
+  for (k = 0; k < 120 && w.camp.buildings.includes(bk); k++) t.run(20);   // (the section site and the supply tents it is short of come first: two sites at a time)
   assert.ok(!w.camp.buildings.includes(bk), 'the ruin is cleared');
   assert.ok(w.camp.buildings.some(b => b.type === 'barracks' && b.stage !== 'ruined' && b.x === at[0] && b.z === at[1]), 'a new barracks on its spot');
+  // Tim 2026-11-17: its own list done, the camp goes on: supply tents beyond the one it names, then general.buildOn
+  assert.ok(w.camp.buildings.filter(b => b.type === 'supply_tents' && b.stage !== 'ruined').length > 1, 'more supply tents after its list');
   console.log('ok supply line, armory, mending');
 }
 console.log('test_war_general: all passed');

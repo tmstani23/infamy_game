@@ -147,4 +147,10 @@ const rt = { id: 'rt', owner: 'player', freight: [{ order: o7.id, resource: 'ryo
 sh.rob(rt, 0.5);
 assert.equal(o7.amount, 100, 'robbed ryo is lost, not re-sent');
 assert.equal(o7.lost, 100);
+// an open ryo order takes no wagon room: goods orders into the same town still fit the queue (Tim 2026-11-17)
+{ const tB = g.state.frontier.settlements.tB; clan.ryo = 5000; g.frontier.world.syncCapital();
+  cmd({ mode: 'ryo', from: 'treasury', to: 'tB', into: 'coffers', amount: 900 });
+  assert.ok(orders().some(o => o.kind === 'ryo' && o.state === 'open' && o.to === 'tB' && o.amount - o.got > 360), 'more ryo on order than three trainloads of goods');
+  tB.stock.timber = 0; cmd({ mode: 'order', town: 'tB', resource: 'timber', amount: 60 });
+  assert.match(note(), /Order placed/, 'goods order beside an open ryo order: ' + note()); }
 console.log('ryo freight ok');

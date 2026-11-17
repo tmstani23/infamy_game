@@ -232,7 +232,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       const T = data.railways?.train || {}, load = Math.max(1, T.consist ? T.consist.filter(k => k === 'goods').length : 1) * (S().wagonLoad ?? 60);
       const lines = Object.values(state.frontier.rail?.links || {}).filter(l => l.owner === e.owner && l.done && !l.closed && (l.from === s.id || l.to === s.id)).length;
       const cap = (S().queueTrips ?? 3) * load * Math.max(1, lines);
-      const queued = orders().filter(o => o.state === 'open' && o.to === s.id && !o.auto).reduce((a, o) => a + o.amount - o.got, 0);
+      const queued = orders().filter(o => o.state === 'open' && o.to === s.id && !o.auto && o.kind !== 'ryo').reduce((a, o) => a + o.amount - o.got, 0);   // (ryo rides the guard car: it takes no wagon room)
       if (queued + amount > cap) return receipt(e, false, queued >= cap ? `Trains are booked up: ${Math.round(queued)} already on order (max ${cap})` : `At most ${Math.floor(cap - queued)} more can be ordered for now`);
     }
     const ryo = s.camp ? 0 : Math.max(0, Math.floor(c.ryo ?? 0));
