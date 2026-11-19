@@ -24,7 +24,7 @@
     "bribePerTier": 10,
     "clinicScale": 2,
     "clinicScaleFrom": 2,
-    "payoutCutFrom": 3,
+    "payoutCutFrom": null,
     "topInfamyHeatBonus": 0.25,
     "noPoliceAreas": [],
     "lostSeconds": 2,

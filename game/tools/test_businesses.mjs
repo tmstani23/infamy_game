@@ -64,13 +64,13 @@ for (let i = 0; i < 40; i++) g.step();
 assert.equal(clan.ryo, 120);
 console.log('dawn payouts ok');
 
-// Manhunt (heat 90+): no payout
+// Manhunt (heat 90+): businesses still pay in full (2026-11-19: heat no longer cuts payouts)
 clan.heat = 95;
 g.step([{ type: 'time', night: true }]);
 g.step([{ type: 'time', night: false }]);
-assert.equal(clan.ryo, 120);
-assert.match(clan.notice.text, /No payout/);
-console.log('no payout in a Manhunt ok');
+assert.equal(clan.ryo, 240);
+clan.ryo = 120;
+console.log('full payout in a Manhunt ok');
 
 // building panel rows
 const i = Number(tea.id.slice(1)), units = g.settings.units;

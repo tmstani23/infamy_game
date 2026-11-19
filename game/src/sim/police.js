@@ -29,7 +29,7 @@ const DEFAULTS = {
   officer: 'junsa', sight: 18, seenFightingSeconds: 3, angrySeconds: 15, giveUpDistance: 25,
   spawnEverySeconds: 4, hitPoliceHeat: 10, arrestSeconds: 2, arrestReach: 8,
   bailShare: 0.5, heroJailSeconds: 60, heroJailHeat: 30,
-  bribeHeat: 40, bribePerTier: 10, clinicScale: 2, clinicScaleFrom: 2, payoutCutFrom: 3,
+  bribeHeat: 40, bribePerTier: 10, clinicScale: 2, clinicScaleFrom: 2, payoutCutFrom: null,
   topInfamyHeatBonus: 0.25, noPoliceAreas: [], lostSeconds: 8, searchSeconds: 20, searchRadius: 5, bribeBlockSeconds: 5, replaceSeconds: 60,
   patrolFightSeconds: 30, patrolRadius: 12,
   dayPatrol: { hq: 4, box: 2 },
@@ -73,8 +73,8 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   const tierIndex = heat => R.tiers.reduce((k, t, i) => (heat >= t.min ? i : k), 0);
   const tierOf = clanId => tierIndex(state.clans?.[clanId]?.heat || 0);
   const clinicScale = clanId => (tierOf(clanId) >= R.clinicScaleFrom ? R.clinicScale : 1);
-  // Business payouts (none exist yet): share a clan gets, 0 during a Manhunt
-  const payoutShare = clanId => (tierOf(clanId) >= R.payoutCutFrom ? 0 : 1);
+  // business payouts are never cut by heat (2026-11-19); payoutCutFrom = a police tier from which they would stop, null = never
+  const payoutShare = clanId => (R.payoutCutFrom != null && tierOf(clanId) >= R.payoutCutFrom ? 0 : 1);
   const quiet = () => !!state.raidWindow;                  // no police during the night raid window
   // the rules' boxes plus the district's own (its forest outskirts)
   const noPoliceBoxes = [...R.noPoliceAreas, ...(district.noPoliceAreas || [])];

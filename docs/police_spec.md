@@ -9,7 +9,7 @@ Status: **Built** (settled by Tim and built 2026-10-18). Numbers live in `game/d
 | 0-29 | Quiet | Routine daytime patrols respond to witnessed civilian assaults/executions and police attacks. |
 | 30-59 | Watched | 2 junsa patrol near the clan's last fight and attack its units when they see them fighting. |
 | 60-89 | Wanted | A 4-man squad hunts the hero. Clinic prices double. |
-| 90-119 | Manhunt | 6 officers hunt the hero and crew. Business payouts are cut until heat drops below 90 (a hook only so far). |
+| 90-119 | Manhunt | 6 officers hunt the hero and crew. Heat does not cut business payouts at any level (2026-11-19; `police.json` `payoutCutFrom` null). |
 | 120+ | Most Wanted | 6 officers always know where the hero is, never give up and follow him indoors. Bribe 50 ryo. |
 
 Heat itself (how it is gained and cools) is in `combat_spec.md`, section H. Infamy for the underdog rule is lifetime heat until the infamy board exists.
