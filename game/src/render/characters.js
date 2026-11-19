@@ -423,16 +423,17 @@ export class CharacterSprite {
     this.nameplate.scale.setScalar(size * (this.heroNameplate ? 1.12 : 1));
   }
 
-  setNameplate(name, visible, color = '#d4aa5a', clan = false, hero = false) {
+  setNameplate(name, visible, color = '#d4aa5a', clan = false, hero = false, border = null) {
     this.heroNameplate = hero;
     this.nameplate.visible = !!visible && !!name;
-    const key = `${name}|${color}|${clan}|${hero}`;
+    const key = `${name}|${color}|${clan}|${hero}|${border}`;
     if (!name || key === this.nameplateText) return;
     this.nameplateText = key;
     const g = this.labelContext;
     g.clearRect(0, 0, 256, 48);
     g.fillStyle = 'rgba(8,10,14,.60)'; g.beginPath(); g.roundRect(4, 5, 248, 38, 9); g.fill();
-    g.strokeStyle = color; g.lineWidth = 2; g.beginPath(); g.roundRect(5, 6, 246, 36, 8); g.stroke();
+    g.strokeStyle = border || color; g.lineWidth = border ? 3 : 2; g.beginPath(); g.roundRect(5, 6, 246, 36, 8); g.stroke();
+    g.strokeStyle = color;
     if (hero) { g.lineWidth = 1; g.beginPath(); g.roundRect(9, 10, 238, 28, 5); g.stroke(); }
     if (clan) {
       g.fillStyle = color; g.beginPath(); g.arc(231, 24, 14, 0, Math.PI * 2); g.fill();
@@ -445,13 +446,13 @@ export class CharacterSprite {
 
   // hp bar over every unit with health, hidden once down; length = hp / maxHp,
   // colour from green (full) to dark red (nearly dead), see health.js
-  setHealth(hp, maxHp) {
+  setHealth(hp, maxHp, side = null) {   // side: a fixed fill colour (yours green, enemies red), else shaded by health
     this.bar.visible = !!maxHp && hp > 0;
     if (!this.bar.visible) return;
     const { frac, color } = healthBar(hp, maxHp);
     this.fill.scale.x = BAR_W * frac;
     this.fill.visible = frac > 0;
-    this.fill.material.color.setRGB(...color);
+    this.fill.material.color.setRGB(...(side || color));
   }
 
   // the same bar used as a timer instead (arrest / execute channel, jail time): frac 0..1, rgb 0..1

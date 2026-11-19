@@ -60,6 +60,7 @@
 - Night lighting, rain, mist and wet reflections stay live effects on top of the sprites.
 - Weapon glow (2026-10-18): faint per-weapon glow layer; see `combat_spec.md` section G.
 - Unit circles (2026-11-01): turning-arc magic circles (shader in `render/view.js`) replace the flat team rings, dimmer.
+- Spotting enemies (2026-11-19, `render/characters.js`, `render/view.js`): health bars over units are coloured by side: yours (hero, crew, workers) green, enemies red; everyone else (townsfolk, calm bandits, police not after you) keeps the green to red health shading. Enemy nameplates have a red border; the crest keeps the clan colour. Team rings get thicker, brighter and slightly bigger as you zoom out past 0.6, fully at the furthest island zoom.
 - Door rings (2026-10-17): a notched outer ring, a turning dashed inner ring, ember glow and a sweeping highlight; each ring sits 1 step out from its door.
 
 ### Animals and vehicles (2026-11-06)

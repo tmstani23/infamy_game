@@ -186,32 +186,36 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // rotate, a faint inner line and a dark under-shadow so it reads on any ground. One shared quad
   // and one shader material per team: no textures, no per-unit memory beyond the mesh itself.
   const TEAM_TIME = { value: 0 };
+  // zoomed out (Tim 2026-11-19): 0 at normal zoom, 1 at the furthest; rings get thicker and brighter so enemies read in a war
+  const TEAM_FAR = { value: 0 };
   const TEAM_GEO = new THREE.PlaneGeometry(1.4, 1.4);
   const teamMaterial = c => new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
-    uniforms: { uColor: { value: new THREE.Color(c) }, uTime: TEAM_TIME, uOpacity: { value: 0.6 } },
+    uniforms: { uColor: { value: new THREE.Color(c) }, uTime: TEAM_TIME, uOpacity: { value: 0.6 }, uFar: TEAM_FAR },
     vertexShader: `varying vec2 vP; varying float vPhase;
       void main() { vP = (uv - 0.5) * 1.4;
         vec2 c = modelMatrix[3].xz; vPhase = fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453) * 6.2832;
         gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `uniform vec3 uColor; uniform float uTime, uOpacity; varying vec2 vP; varying float vPhase;
+    fragmentShader: `uniform vec3 uColor; uniform float uTime, uOpacity, uFar; varying vec2 vP; varying float vPhase;
       const float TAU = 6.2831853, R = 0.53;
       void main() {
         float r = length(vP), a = atan(vP.y, vP.x) + uTime * 0.35 + vPhase;
         float seg = fract(a / (TAU / 3.0));                          // 0..1 within each third
         float arc = smoothstep(0.0, 0.05, seg) * (1.0 - smoothstep(0.69, 0.74, seg));
         float d = r - R;
-        float core = exp(-d * d / 0.00018), glow = exp(-d * d / 0.0028);
+        float wide = 1.0 + 5.0 * uFar, core = exp(-d * d / (0.00018 * wide)), glow = exp(-d * d / (0.0028 * (1.0 + 1.5 * uFar)));
         float inner = exp(-pow(r - 0.43, 2.0) / 0.00006) * 0.35;
         float bp = (0.815 + floor(a / (TAU / 3.0))) * (TAU / 3.0) - uTime * 0.35 - vPhase;   // bead in each gap
         float bead = exp(-dot(vP - R * vec2(cos(bp), sin(bp)), vP - R * vec2(cos(bp), sin(bp))) / 0.00035);
         float light = (core * 0.85 + glow * 0.35) * arc + inner + bead * 0.9;
         float shade = exp(-d * d / 0.004) * 0.22;                     // dark under-shadow for light ground
-        float alpha = clamp(light + shade * (1.0 - light), 0.0, 1.0) * uOpacity;
+        float alpha = clamp(light + shade * (1.0 - light), 0.0, 1.0) * mix(uOpacity, 1.0, uFar);
         vec3 col = uColor * light / max(light + shade * (1.0 - light), 1e-4);
         if (alpha < 0.004) discard;
         gl_FragColor = vec4(col, alpha);
       }` });
+  // health bars by side (Tim 2026-11-19): yours green, enemies red, everyone else keeps the green-to-red health shading
+  const SIDE_BAR = { hero: [0.36, 0.8, 0.3], crew: [0.36, 0.8, 0.3], worker: [0.36, 0.8, 0.3], enemy: [0.86, 0.18, 0.14] };
   const TEAM_MAT = Object.fromEntries(Object.entries(TEAM).map(([k, c]) => [k, teamMaterial(c)]));
   function teamOf(e, me) {
     if (e.id === me?.id) return 'hero';
@@ -264,9 +268,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     s.team.visible = !e.dead && !e.downed && !e.jailed && !e.cannon;   // salute cannons are scenery: no ring
     TEAM_TIME.value = performance.now() / 1000;
+    TEAM_FAR.value = THREE.MathUtils.clamp((0.6 - zoomNow) / (0.6 - minZoom('world')), 0, 1);
     s.team.children[1].material = TEAM_MAT[teamOf(e, me)];
     s.team.position.set(s.pos.x, 0.018, s.pos.z);
-    s.team.scale.setScalar(s.size);
+    s.team.scale.setScalar(s.size * (1 + 0.3 * TEAM_FAR.value));
   }
 
   // one sprite per unit in the state
@@ -431,9 +436,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
         e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
       if (e.type === 'rickshaw' || drivers.has(id)) syncDriver(e, s, fdt, loaded);   // its coachman (frontier rickshaw)
       // salute cannons: no health bar; a ridden horse neither: its bar sat on the rider's and the two flickered (Tim 2026-11-16), her health shows on her Mount card
-      if (e.cannon || (e.type === 'horse' && e.rider)) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp);
+      if (e.cannon || (e.type === 'horse' && e.rider)) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp, SIDE_BAR[teamOf(e, state.entities[followId])]);
       s.setNameplate(e.name || entityName(units || { types: {} }, e), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
-        state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), !!state.clans?.[e.owner], e.type === 'hero');
+        state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), !!state.clans?.[e.owner], e.type === 'hero',
+        teamOf(e, state.entities[followId]) === 'enemy' ? '#e63c32' : null);   // enemies: a red border, the crest keeps the clan colour (Tim 2026-11-19)
       // an execute or arrest channel shows one bar, the labelled one in render/abilityfx.js (the
       // health bar stays a health bar: two bars used to show, Tim 2026-10-18);
       // a jailed hero (sim/police.js) is greyed out and his bar counts down his time
