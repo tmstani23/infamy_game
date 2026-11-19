@@ -58,5 +58,11 @@ export function createGoalCard({ root, button = null, game, heroId, callout = ()
     const html = `<div class="gc-banner" title="Click to ${folded ? 'show' : 'hide'} the steps"><small>GOAL</small><span>${g.title}</span><span class="gc-trail">${trail}</span></div>${rows}`;
     if (html !== shown) { root.innerHTML = html; shown = html; }
   }
-  return { update };
+  // a rival mark on the World map (goals pass, Tim 2026-11-19): show the card, unfolded
+  function show() {
+    off = false; folded = false;
+    try { localStorage.setItem(HIDE_KEY, '0'); localStorage.setItem(FOLD_KEY, '0'); } catch {}
+    shown = ''; at = 0;
+  }
+  return { update, show };
 }

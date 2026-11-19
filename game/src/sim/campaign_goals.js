@@ -4,14 +4,17 @@ import { SHOP } from './gear_catalog.js';
 // from the state for the Goal card (src/goal_card.js). record(news) (campaign only, once a tick) keeps the
 // milestones the starter goals need on clan.milestones: loot, gear and lanterns bought, raids, contracts, starters done.
 // The permit rows come from landOffice.permitStatus(), the same check as the telegraph office blink.
-// Chain, repeated for each town the clan may found (Influence unlocks the 2nd and 3rd):
+// Chain (goals pass, Tim 2026-11-18: no repeat for the 2nd and 3rd town):
 //   starters (Yakuza: loot, gear up, 3 crew, first business, shakedown, win a raid; Kuroda: the same with a sweep;
 //   Shinobi: loot, gear up, 3 ninja, a contract),
-//   then permit -> settlers -> leave the city -> found, then grow Influence to the next tier.
+//   then permit -> settlers -> leave the city -> found -> first-town setup, then grow Influence to the 2nd town
+//   permit, then rail: a station and a line, then a rail order and a shipment, then the one-time Land Office talk
+//   on rival towns and war (land_office.rivalsTalk), then the 2nd town by war: pack a war chest (and keep coffers
+//   for defence), then declare war on a rival town. Third town goals: later. Bots keep the old permit loop.
 // current(id) -> null | { key, title, step, steps, rows: [{ icon, label, have, need, done, how, where }] }
 // where (Tim 2026-11-06): { x, z, place } of the spot an unfinished row points to (the Goal ping on the minimap
 // and the gold blink in the street), or null; read-only, from the state the clan can see.
-export const MAIN_STEPS = ['permit', 'surveyor', 'settlers', 'lieutenant', 'orders', 'leave', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence'];   // after the clan's starter goals
+export const MAIN_STEPS = ['permit', 'surveyor', 'settlers', 'lieutenant', 'orders', 'leave', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'warpack', 'war'];   // after the clan's starter goals
 const ORDINAL = ['', '2nd ', '3rd ', '4th '];
 
 export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null }) {
@@ -37,6 +40,9 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
 
   // --- starter goals (Tim 2026-11-06): teach the basics, every how line names the place and the key -----
   const marks = clan => (clan.milestones ||= { raids: 0, contractsTaken: 0, contractsDone: 0, loots: 0, gearBought: 0, lanterns: 0, starters: 0 });
+  // the first town (by founding), or null
+  const firstTown = id => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === id && s.founded && s.grid)
+    .sort((a, b) => (a.foundedTick ?? 0) - (b.foundedTick ?? 0))[0] || null;
   const equipped = clan => Object.values(clan.inventory?.equipment || {}).some(Boolean);
   const STARTERS = {
     yakuza: [
@@ -89,12 +95,20 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
       else if (l.target !== 'bandage') marks(C(l.clan)).gearBought++;
     }
     if (state.tick % 10) return;   // starters: twice a second is plenty
+    const orders = Object.values(state.frontier.shipping?.orders || {});
     for (const clan of Object.values(state.clans || {})) {
       if (clan.bot) continue;
       const m = marks(clan), n = startersOf(clan).length;
+      // rail goals (goals pass): a rail order of your own, and one that has brought cargo in (kept for good: done orders may go)
+      for (const o of orders) if (o.owner === clan.id && !o.auto) { m.railOrder = 1; if (o.got > 0) m.shipped = 1; }
+      // war goals (goals pass): a full pack (it is spent when the banner goes in), and a war of your own declared
+      if (!m.packed && packDone(clan)) m.packed = 1;
+      if (!m.warDeclared && Object.values(state.frontier.wars?.list || {}).some(w => w.attacker === clan.id)) m.warDeclared = 1;
       // a loaded save that already meets the permit (or later) skips the starters
       if (m.starters < n && (clan.permit || townsOf(clan.id) || landOffice?.permitStatus(clan.id).rows.every(r => r.ok))) m.starters = n;
       while (m.starters < n && starterGoal(clan.id, clan, m.starters).rows.every(r => r.done)) m.starters++;
+      // the gold mark over the old surveyor (render/banners.js) while his talk on rival towns is the goal
+      clan.warTalkDue = !m.warTalk && townsOf(clan.id) > 0 && goalOf(clan.id)?.key === 'registrar';
     }
   }
 
@@ -139,8 +153,7 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
       : 'Raid rival businesses at night: War Lantern from the moneylender (M), then Raid at a rival door');
   }
   function townSetupGoal(id, S0, steps) {
-    const town = Object.values(state.frontier?.settlements || {}).filter(s => s.owner === id && s.founded && s.grid)
-      .sort((a, b) => (a.foundedTick ?? 0) - (b.foundedTick ?? 0))[0];
+    const town = firstTown(id);
     if (!town) return null;
     const L = G.layout || {}, at = { x: town.x, z: town.z, place: 'world' }, g = town.grid;
     const pin = r => ({ ...r, at });
@@ -197,6 +210,54 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
     return null;
   }
 
+  const PACK = () => G.war?.pack || { ryo: 1200, timber: 400, stone: 200 };
+  const packDone = clan => Object.entries(PACK()).every(([r, n]) => (clan.warPack?.[r] || 0) >= n);
+  // --- after the first town's setup (goals pass, Tim 2026-11-18): Influence to the 2nd permit, then rail ---------
+  function laterGoal(id, clan, towns, max, S0, steps) {
+    const step = k => S0 + MAIN_STEPS.indexOf(k);
+    const st = influence?.status(id);
+    if (towns >= max && st?.next) return { key: `influence${st.tier}`, title: `Grow Influence: ${st.next.label}`, step: step('influence'), steps,
+      rows: [row('influence', 'Influence', st.value, st.next.at, 'Hold businesses (every dawn) and sell town goods at a Market')] };
+    const town = firstTown(id);
+    if (!town) return null;
+    const at = { x: town.x, z: town.z, place: 'world' }, pin = r => ({ ...r, at });
+    const panel = 'Walk to your town and press O (or click its hall), then ';
+    const station = (town.buildings || []).some(b => b.type === 'station' && b.stage === 'built');
+    const links = Object.values(state.frontier?.rail?.links || {}).filter(l => l.owner === id), laying = links.find(l => !l.done);
+    const laid = links.some(l => l.done);
+    if (!station || !laid) return { key: 'rail', title: 'Build a railway', step: step('rail'), steps, rows: [
+      pin(row('town', 'Railway station', station ? 1 : 0, 1, panel + 'Build bar (gold), pick Station (gold) and place it by a road (R turns it)')),
+      pin(row('gate', 'Railway line', laid ? 1 : 0, 1, laying ? `Track is being laid, ${Math.floor(100 * laying.built / Math.max(1, laying.length))} percent: the town pays timber and stone a stretch at a time`
+        : 'Walk to your station on the island and press Space, then Lay track to the capital'))] };
+    const m = clan.milestones || {};
+    if (!m.railOrder || !m.shipped) return { key: 'shipping', title: 'Ship by rail', step: step('shipping'), steps, rows: [
+      pin(row('office', 'Rail order placed', m.railOrder ? 1 : 0, 1, panel + 'open the Shipments tab (gold), type an amount on a row and press Order')),
+      pin(row('business', 'Shipment delivered', m.shipped ? 1 : 0, 1, 'A train brings it in: see it on the Shipments tab, or the rail ledger on the World map (M)'))] };
+    if (!m.warTalk) { const d = surveyorAt();
+      return { key: 'registrar', title: 'News of rival towns', step: step('registrar'), steps, rows: [{ ...row('office', 'Talk at the Land Office', 0, 1,
+        'Back in the capital, the old surveyor outside the Land Office (telegraph office, gold mark) has news of the rival towns: stand beside him and press Space'), at: d ? spot(d.x, d.z) : null }] }; }
+    // the 2nd town by war (goals pass): pack a war chest while the first town keeps coffers for its defence
+    if (towns !== 1) return null;
+    const coffers = row('ryo', 'Town coffers for defence', Math.floor(town.stock?.ryo || 0), G.war?.defendCoffers ?? 600,
+      'Ryo in a town\'s coffers fills its defenders\' war chest when it is attacked: send ryo by rail (Shipments tab) or tax its people (Governor tab)');
+    if (!m.packed) {
+      const icon = { ryo: 'ryo', timber: 'town', stone: 'town' };
+      return { key: 'warpack', title: 'Pack a war chest', step: step('warpack'), steps, rows: [
+        ...Object.entries(PACK()).map(([r, n]) => pin(row(icon[r] || 'ryo', `${r[0].toUpperCase() + r.slice(1)} packed`, Math.floor(clan.warPack?.[r] || 0), n,
+          'In your town press the War banner on your action bar (gold) and type what to carry: ryo comes from the Clan treasury or the town coffers, timber and stone from the town'))),
+        pin(coffers)] };
+    }
+    if (!m.warDeclared) {
+      const hints = (clan.rivalHints || []).map(h => spot(h.x, h.z, 'world'));
+      const home = { x: town.x, z: town.z };
+      const near = hints.sort((a, b) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(b.x - home.x, b.z - home.z))[0] || null;
+      return { key: 'war', title: 'Declare war on a rival town', step: step('war'), steps, rows: [
+        { ...row('gate', 'War declared', 0, 1, 'Ride to a rival town (the question marks on your map, M) with your pack, step inside its war circle and press the War banner to plant your camp'), at: near },
+        pin(coffers)] };
+    }
+    return null;
+  }
+
   function current(id) {
     const g = goalOf(id), clan = state.clans?.[id];
     // the office is pointed at only once everything else for the permit is done (same as the telegraph blink)
@@ -214,7 +275,7 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
       const g = starterGoal(id, clan, started);
       return { key: `starter${started}`, title: g.title, step: started, steps, rows: g.rows };
     }
-    if (towns && !clan.bot) { const setup = townSetupGoal(id, S0, steps); if (setup) return setup; }
+    if (towns && !clan.bot) return townSetupGoal(id, S0, steps) || laterGoal(id, clan, towns, max, S0, steps);
     if (towns < max) {
       if (!clan.permit) {
         const rows = permitRows(id, clan);

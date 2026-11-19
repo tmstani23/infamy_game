@@ -220,6 +220,69 @@ console.log('campaign goals ok');
   assert.deepEqual(cur().rows.map(r => r.done).slice(0, 2), [true, false]);
   g.step([{ id: g.state.clans.player.heroId ?? Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === 'player').id, type: 'frontier', action: 'setMarketKeep', settlement: id, keep: 250 }]);
   assert.notEqual(cur().key, 'market', 'past the setup goals');
+  // goals pass (Tim 2026-11-18): Influence to the 2nd permit, then rail goals; no repeat of the founding chain
+  T.workers = [{ id: 'w1', spot: spotOf('timber') }, { id: 'w2', spot: spotOf('stone') }];   // the tick above reset them
+  assert.match(cur().key, /^influence/, 'then Grow Influence');
+  g.state.influence.player.days = 1000;   // past the 2nd town permit
+  assert.equal(cur().key, 'rail', 'no 2nd founding chain: the railway comes next');
+  assert.deepEqual(cur().rows.map(r => r.label), ['Railway station', 'Railway line']);
+  assert.ok(cur().rows.every(r => r.where?.place === 'world'), 'rail rows point at the town');
+  T.buildings.push({ type: 'station', stage: 'built', cell: 50 });
+  assert.deepEqual(cur().rows.map(r => r.done), [true, false]);
+  const rail = g.state.frontier.rail ||= { seq: 0, links: {} };
+  rail.links.L1 = { id: 'L1', owner: 'player', from: id, to: 'capital', built: 5, length: 10, done: false };
+  assert.match(cur().rows[1].how, /50 percent/, 'shows the track being laid');
+  rail.links.L1.done = true; rail.links.L1.built = 10;
+  assert.equal(cur().key, 'shipping');
+  const ship = g.state.frontier.shipping ||= { seq: 0, orders: {} };
+  ship.orders.o1 = { id: 'o1', owner: 'player', to: id, resource: 'stone', amount: 50, got: 0, auto: false, state: 'open' };
+  g.state.tick = 20; g.goals.record([]);
+  assert.deepEqual(cur().rows.map(r => r.done), [true, false], 'order placed');
+  ship.orders.o1.got = 20; g.state.tick = 30; g.goals.record([]);
+  delete ship.orders.o1;   // done orders may go: the milestone stays
+  // the one-time Land Office talk on rival towns (goals pass, Tim 2026-11-19)
+  assert.equal(cur().key, 'registrar'); assert.ok(cur().rows[0].where, 'the surveyor is pinged');
+  g.state.tick = 40; g.goals.record([]);
+  assert.equal(g.state.clans.player.warTalkDue, true, 'his gold mark is on');
+  const sv = g.doors.find(d => d.menu === 'surveyor');
+  Object.assign(me, { place: 'street', x: sv.x, z: sv.z });
+  const bots = Object.values(g.state.clans).filter(c => c.bot);
+  // one rival founded already, the rest not
+  const site0 = data('data/world.json').sites.find(si => !g.landOffice.siteBlocked(si, bots[0].id));
+  g.state.frontier.settlements.rv = { id: 'rv', owner: bots[0].id, founded: true, name: 'Rival', x: site0.x, z: site0.z };
+  g.landOffice.rivalsTalk(me);   // (the 'rivals' command; no tick: the stand-in rival town has no grid)
+  const hints = g.state.clans.player.rivalHints, H = frontier.founding.rivalHints;
+  assert.equal(hints.length, bots.length, 'a hint for each rival');
+  const h0 = hints.find(h => h.clan === bots[0].id), d0 = Math.hypot(h0.x - site0.x, h0.z - site0.z);
+  assert.ok(d0 >= H.offsetMin - 1 && d0 <= H.offsetMax + 1, `the mark is near but not on the town (${d0})`);
+  for (const b of bots.slice(1)) {
+    const claimed = Object.entries(g.state.frontier.siteClaims || {}).find(([, v]) => v === b.id)?.[0];
+    assert.ok(claimed, `${b.id} has its site reserved`);
+    assert.equal(g.landOffice.botSite(b.id), claimed, 'and it will found there');
+    const si = data('data/world.json').sites.find(x => x.id === claimed), h = hints.find(x => x.clan === b.id);
+    const d = Math.hypot(h.x - si.x, h.z - si.z); assert.ok(d >= H.offsetMin - 1 && d <= H.offsetMax + 1);
+  }
+  assert.equal(clan.milestones.warTalk, 1);
+  assert.equal(cur().key, 'warpack', 'talk done: shown once; the 2nd town is taken by war');
+  // the 2nd town goals (goals pass): pack a war chest, keep coffers for defence, then declare war
+  const W = frontier.goals.war;
+  assert.deepEqual(cur().rows.map(r => r.label), ['Ryo packed', 'Timber packed', 'Stone packed', 'Town coffers for defence']);
+  clan.warPack = { ...W.pack }; T.stock.ryo = W.defendCoffers;
+  g.state.tick = 50; g.goals.record([]);
+  assert.equal(clan.milestones.packed, 1);
+  delete clan.warPack;   // spent when the banner goes in: the goal stays done
+  assert.equal(cur().key, 'war');
+  assert.ok(cur().rows[0].where?.place === 'world' && hints.some(h => h.x === cur().rows[0].where.x), 'points at a question mark');
+  assert.ok(cur().rows[1].done, 'coffers kept');
+  g.state.frontier.wars = { list: { w1: { id: 'w1', attacker: 'player', defender: bots[0].id, town: 'rv', state: 'active' } }, cooldown: {}, history: [] };
+  g.state.tick = 60; g.goals.record([]);
+  assert.equal(clan.milestones.warDeclared, 1);
+  assert.equal(cur(), null, 'third town goals come later');
+  g.state.frontier.wars = { list: {}, cooldown: {}, history: [] };
+  g.landOffice.rivalsTalk(me);   // (the 'rivals' command; no tick: the stand-in rival town has no grid)
+  assert.deepEqual(g.state.clans.player.rivalHints, hints, 'only once');
+  delete g.state.frontier.settlements.rv;
+  console.log('rail goals and rival talk ok');
   // the 2nd permit asks for a Village-tier town
   g.state.frontier.settlements[id].tier = 1;
   const row = g.landOffice.permitStatus('player').rows.find(r => r.label === 'Town tier');

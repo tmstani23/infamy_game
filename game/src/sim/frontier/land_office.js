@@ -89,6 +89,40 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return near.map(s => s.id);
   }
 
+  // The Land Office talk on rival towns (goals pass, Tim 2026-11-19): { id, type: 'landOffice', action: 'rivals' } beside
+  // the old surveyor, once, after your first town. Each rival bot clan gets a hint on your World map: around its town,
+  // or, if it has not founded yet, around the site it is given now (claimed, so it founds there: botSite keeps a claim).
+  // The hint's centre is offset from the town (founding.rivalHints, never on it). clan.rivalHints = [{ clan, x, z, r }];
+  // clan.milestones.warTalk = 1.
+  function rivalsTalk(e) {
+    const clan = state.clans?.[e?.owner];
+    if (!clan || clan.bot || !standing(e) || !on()) return null;
+    if (!atSurveyor(e)) return say(clan, 'Talk to the old surveyor outside the Land Office');
+    if (clan.milestones?.warTalk) return say(clan, 'He has already told you what he knows of the rival towns');
+    if (!townsOf(clan.id)) return say(clan, 'Found a town first');
+    const H = D.rivalHints || {}, lo = H.offsetMin ?? 300, hi = Math.max(lo, H.offsetMax ?? 500), R = H.radius ?? 650;
+    const hints = [];
+    for (const rival of Object.values(state.clans || {})) {
+      if (!rival.bot || rival.id === clan.id) continue;
+      const town = Object.values(fr().settlements).filter(s => s.owner === rival.id && s.founded && !s.capital && Number.isFinite(s.x))
+        .sort((a, b) => (a.foundedTick ?? 0) - (b.foundedTick ?? 0))[0];
+      let at = town;
+      if (!at) {
+        const id = botSite(rival.id), si = id && (worldData?.sites || []).find(x => x.id === id);
+        if (!si) continue;
+        claim(rival.id, si.id); at = si;
+      }
+      let r = (Math.abs(seed() | 0) ^ [...(clan.id + rival.id)].reduce((n, ch) => n * 31 + ch.charCodeAt(0), 11)) % 2147483646 + 1;
+      const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
+      const a = rnd() * Math.PI * 2, d = lo + rnd() * (hi - lo);
+      hints.push({ clan: rival.id, x: Math.round(at.x + Math.cos(a) * d), z: Math.round(at.z + Math.sin(a) * d), r: R });
+    }
+    clan.rivalHints = hints;
+    (clan.milestones ||= {}).warTalk = 1;
+    say(clan, `The surveyor marked ${hints.length === 1 ? 'one rival town' : `${hints.length} rival towns`} on your map`);
+    return hints;
+  }
+
   // --- sites -----------------------------------------------------------------------------------
   const traitCache = new Map();
   const traitsOf = si => {
@@ -209,7 +243,17 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     if (mine) return mine;
     let r = (Math.abs(seed() | 0) ^ [...id].reduce((n, ch) => n * 31 + ch.charCodeAt(0), 7)) % 2147483646 + 1;
     const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
-    const scored = (worldData?.sites || []).filter(si => !siteBlocked(si, id)).map(si => {
+    // Tim 2026-11-19: with a player's first town on the island, only sites bots.nearPlayer.min to max from it
+    // (none there: the few nearest to that ring), so rivals settle in reach
+    let free = (worldData?.sites || []).filter(si => !siteBlocked(si, id));
+    const N = B.nearPlayer, home = N && Object.values(fr().settlements).filter(s => s.founded && !s.capital && Number.isFinite(s.x) && state.clans?.[s.owner] && !state.clans[s.owner].bot)
+      .sort((a, b) => (a.foundedTick ?? 0) - (b.foundedTick ?? 0))[0];
+    if (home) {
+      const d = si => Math.hypot(si.x - home.x, si.z - home.z), off = si => Math.max(0, (N.min ?? 0) - d(si), d(si) - (N.max ?? Infinity));
+      const ring = free.filter(si => off(si) === 0);
+      free = ring.length ? ring : [...free].sort((a, b) => off(a) - off(b) || (a.id < b.id ? -1 : 1)).slice(0, Math.max(1, B.topPick ?? 3));
+    }
+    const scored = free.map(si => {
       const t = traitsOf(si);
       let s = (t.soil || 0) + (t.water || 0) + (t.defense || 0);
       for (const g of si.tags || []) s += taste.tags?.[g] || 0;
@@ -225,6 +269,6 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return top.length ? top[Math.floor(rnd() * top.length)].id : null;
   }
 
-  return { mayLeave, office, atOffice, atGate, atSurveyor, survey, businessesHeld, townsOf, atLimit, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
+  return { mayLeave, office, atOffice, atGate, atSurveyor, survey, rivalsTalk, businessesHeld, townsOf, atLimit, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
     expeditionCheck, claim, founded, inGrace, botDue, botDay, botBudget, botSite, settlerPrice, day };
 }

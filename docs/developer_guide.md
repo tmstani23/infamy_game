@@ -115,6 +115,7 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 - A bot leaves when it can pay permit + 5 settlers + founding cost + reserve and is not raided or under half health. One town per bot. The boss stays in the town; the lieutenant runs the city.
 - Yakuza and Kuroda bots first hold minBusinesses (2) businesses, waiting at most businessWaitDays (4) past their leave day.
 - Bots (Shinobi included) save for the trip only from their leave day on.
+- Site (2026-11-19, stopgap until zones): once a player has a first town, a bot picks only among free sites `founding.bots.nearPlayer.min` to `max` (2500 to 4500) from it; with none there, the few nearest to that ring. Before any player town: anywhere, as before (land_office.js botSite; test tools/test_bot_founding.mjs).
 - A city captain holding no business saves for a first one once he has 3 crew.
 - A governor with initiative builds a lumber camp toward the nearest trees first when none are within worker range.
 

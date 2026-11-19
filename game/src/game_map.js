@@ -19,7 +19,7 @@ const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sak
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['deployment', 'Sectors'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
-export function createGameMap({ openTown = () => {}, root, deploymentRoot, game, district, world = null, resourceSpots = null, spotConfig = null, paintConfig = null, atlasConfig = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, devTravel = false, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
+export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, deploymentRoot, game, district, world = null, resourceSpots = null, spotConfig = null, paintConfig = null, atlasConfig = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, devTravel = false, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
   if(deploymentRoot)root.appendChild(deploymentRoot);
   const canvas = root.querySelector('canvas'), tip = root.querySelector('.maptip'), bar = root.querySelector('.maplayers'), side = root.querySelector('.mapside');
   const layers = { deployment: true, territory: true, businesses: true, police: true, units: true };
@@ -231,7 +231,10 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
   const worldState = () => {
     const w = game.state.world, h = game.state.entities[heroId];
     const told = game.state.clans?.[clan]?.knownSites || [], R = game.frontier?.data?.founding?.traits?.nodeRadius ?? 600;
-    return { discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
+    // the old surveyor's rival town marks (goals pass): { x, z, r, clan, name, founded }
+    const rivalHints = (game.state.clans?.[clan]?.rivalHints || []).map(r => ({ ...r, name: game.state.clans?.[r.clan]?.name || 'A rival clan',
+      founded: Object.values(game.state.frontier?.settlements || {}).some(s => s.owner === r.clan && s.founded && !s.capital) }));
+    return { rivalHints, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
       knownSites: told, knownAt: told.map(id => siteXZ[id]).filter(Boolean).map(t => ({ x: t.x, z: t.z, r: R })), highlight: tourStop,
       hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap(),
       rail: { links: game.state.frontier?.rail?.links || {}, trains: game.state.frontier?.rail?.trains || {}, highlight: ledgerOpen ? ledger.train() : null, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600, wars: game.state.frontier?.wars?.list } };
@@ -354,8 +357,10 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     const card = document.createElement('div'); card.className = 'townhover'; card.hidden = true; root.appendChild(card);
     const esc2 = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     worldCanvas.addEventListener('mousemove', e => {
-      const [px, py] = local(e), hit = worldMap.hit(px, py);
-      let c = hit?.kind === 'town' ? hoverCard(hit, { clan, clanName: id => game.state.clans?.[id]?.name || id, roads: game.state.frontier?.roads }) : null;
+      const [px, py] = local(e), hit = worldMap.hit(px, py), hint = !hit && worldMap.hintAt(px, py);
+      let c = hint ? { title: `${hint.name} town, roughly`, sub: 'Somewhere near here', lines: [['', hint.founded ? `The old surveyor says the ${hint.name} built near here.` : `The old surveyor says the ${hint.name} will build near here.`],
+        ['', 'Ride close and you will find the town.'], ['', 'Click the mark to open your goal.']] } : null;
+      if (!c) c = hit?.kind === 'town' ? hoverCard(hit, { clan, clanName: id => game.state.clans?.[id]?.name || id, roads: game.state.frontier?.roads }) : null;
       if (hit?.kind === 'spot') { const t = spotInfo({ ...hit, kind: hit.featureKind }, game.state.frontier?.spots?.[hit.id]); c = { title: t.title, sub: '', lines: t.lines.map(l => ['', l]) }; }
       const tipKind = { site: 'site', resource: 'node', camp: 'camp', bridge: 'bridge', ford: 'ford', pass: 'pass' }[hit?.kind];
       if (!c && tipKind) {   // stats on hover for sites, nodes, camps and crossings (same text as the minimap)
@@ -370,6 +375,7 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
     worldCanvas.addEventListener('mouseleave', () => { card.hidden = true; });
     worldCanvas.addEventListener('click', e => {
       if (worldMap.wasDrag()) return;
+      if (!worldMap.hit(...local(e)) && worldMap.hintAt(...local(e))) { card.hidden = true; close(); openGoal(); return; }   // a rival mark: the goal card
       picked = worldMap.hit(...local(e));
       const p=canvasToWorldPoint(...local(e));
       // clicking a marked place travels to it, landing about half a screen (26 units) away on the screen-lower side, never on top
@@ -450,6 +456,8 @@ export function createGameMap({ openTown = () => {}, root, deploymentRoot, game,
       tourStop = { x: t.x, z: t.z, r: game.frontier?.data?.founding?.traits?.nodeRadius ?? 600 }; worldMap.focus(t, span); worldMap.invalidate(); return true;
     },
     endTour() { tourStop = null; worldMap?.invalidate(); },
+    // after the old surveyor's talk on rival towns (goals pass): the World tab on the whole island, marks showing
+    showRivalHints() { if (!world) return false; if (!isOpen()) open(); setTab('world'); ensureWorldMap(); worldMap.fit(); worldMap.invalidate(); return true; },
     // war 8d-4: open the World tab on a point (the war alert's Show on map)
     showAt(x, z, span = 2600) { if (!world) return false; if (!isOpen()) open(); setTab('world'); ensureWorldMap(); worldMap.focus({ x, z }, span); worldMap.invalidate(); return true; },
     pickPoint(sector, callback) { selectedSector = sector; pointPicker = { sector, callback }; layers.deployment = true; syncLayers(); open(); }, picking: () => !!pointPicker, ping: (x, z) => map?.ping(x, z) };

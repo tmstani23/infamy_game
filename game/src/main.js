@@ -399,6 +399,8 @@ async function start() {
       govorders: () => goal.rows[0].done ? ['[data-act="auto"][data-id="on"]', '[data-act="approve"]'] : ['[data-act="priority"]'],
       stone: () => ['@stone', '[data-act="build-worker-tab"][data-id="spots"]', '[data-act="build-workers"]'],
       workers: () => ['@timber', '[data-act="build-worker-tab"][data-id="spots"]', '[data-act="build-workers"]'], village: () => ['[data-upgrade]'],
+      rail: goal.rows[0].done ? null : () => ['[data-act="build-tool"][data-id="station"]', '[data-act="build-toggle"]', '[data-build]'],
+      shipping: goal.rows[0].done ? null : () => ['[data-act="ship"][data-id^="order:"]', '[data-act="tab"][data-id="ship"]'],
       market: () => goal.rows[0].done ? ['[data-act="keepinput"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'] }[goal.key];
     for (const el of document.querySelectorAll('#townpanel .goal-flash, #towninspect .goal-flash')) el.classList.remove('goal-flash');
     let target = null;
@@ -407,6 +409,8 @@ async function start() {
       : [...document.querySelectorAll(`#townpanel ${sel}, #towninspect ${sel}`)].find(el => el.offsetParent !== null);
     if (step) for (const sel of step()) { target = pick(sel); if (target) break; }
     target?.classList.add('goal-flash');
+    // war goals (goals pass, Tim 2026-11-19): the War banner on the action bar flashes while packing, and at a rival town
+    document.getElementById('warbannerbtn')?.classList.toggle('goal-flash', goal?.key === 'warpack' || (goal?.key === 'war' && !(document.getElementById('warbannerbtn')?.disabled)));
     $('townbtn').classList.toggle('goal-flash', !!step && !target && h?.place === 'world');
     if (leave && !gateCallout) { gateCallout = true; callout('Your settlers are all at your HQ (gold): they will join you outside the island gate. Walk to the gate (G on the minimap) and press Space', 'news', 7000); }
     if (ready && !calloutShown) { calloutShown = true; callout('You can buy a founding permit: go to the telegraph office (gold marker on the map)', 'news', 5000); }
@@ -417,7 +421,7 @@ async function start() {
   const stableMenu = createStableMenu({ panel: $('stablemenu'), game, heroId, send: c => pending.push(c), data: frontier, openCavalry: (t, b) => townWar.show(t, b) });   // Tim 2026-11-07: buy horses and vehicles (8b: its Cavalry tab during a war on the town)
   // the old surveyor's map tour runs on the World tab of the game map (made further down; called only after a click)
   const surveyorTalk = createSurveyorTalk({ panel: $('svtalk'), card: $('svtour'), game, heroId, send: c => pending.push(c),
-    map: { tourTo: (id, span) => gameMap.tourTo(id, span), endTour: () => gameMap.endTour(), isOpen: () => gameMap.isOpen(), close: () => gameMap.close() } });
+    map: { tourTo: (id, span) => gameMap.tourTo(id, span), endTour: () => gameMap.endTour(), isOpen: () => gameMap.isOpen(), close: () => gameMap.close(), showRivalHints: () => gameMap.showRivalHints() } });
   const lieutenantTalk = createLieutenantTalk({ panel: $('lttalk'), game, heroId, send: c => pending.push(c), showOrders: () => { if (!deploymentPanel.isOpen()) $('deploymentbtn').click(); setTimeout(() => document.querySelector('#deploymentpanel .show-away')?.click(), 0); } });
   const landOfficeMenu = createLandOfficeMenu({ panel: $('landoffice'), game, heroId, units, send: c => pending.push(c) });
   const siteMenu = createSiteMenu({ panel: $('sitemenu'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c) });
@@ -588,7 +592,7 @@ async function start() {
   mapWatchBtn.addEventListener('click', e => { cityWatch.start(); e.currentTarget.blur(); });
   $('gamemap').querySelector('.mapcol').insertBefore(mapWatchBtn, $('gamemap').querySelector('.mapclose'));
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
-  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world: simOptions.world, resourceSpots: simOptions.resourceSpots, spotConfig, paintConfig:worldPaint, atlasConfig:worldAtlas, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
+  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, openGoal: () => goalCard.show(), root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world: simOptions.world, resourceSpots: simOptions.resourceSpots, spotConfig, paintConfig:worldPaint, atlasConfig:worldAtlas, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
     onSelectCrew: id => {crewInput.selectUnit(id);unitFrames.inspect(id);},
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),

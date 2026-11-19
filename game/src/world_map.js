@@ -171,6 +171,23 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     if (tl?.points?.length > 1) { const q = pointAt(tl, tr.d), p = worldToCanvas(q.x, q.z, view), r = 9 + 3 * Math.sin(performance.now() / 180);
       ctx.save(); ctx.shadowColor = 'rgba(255,224,156,.95)'; ctx.shadowBlur = 14; ctx.strokeStyle = '#ffe09c'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.px, p.py, r, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = '#ffe09c'; ctx.beginPath(); ctx.arc(p.px, p.py, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.restore(); dirty = true; }
+    // rival towns, roughly (goals pass, Tim 2026-11-19, mock rival_marks_mock.png): an ink wash, a dashed brush ring and a
+    // red question mark; the town stands somewhere inside, never under the mark
+    for (const h of st.rivalHints || []) {
+      const p = worldToCanvas(h.x, h.z, view), R = Math.max(16, h.r * view.scale);
+      ctx.save();
+      const g = ctx.createRadialGradient(p.px, p.py, 0, p.px, p.py, R); g.addColorStop(0, 'rgba(150,46,30,.34)'); g.addColorStop(0.75, 'rgba(150,46,30,.22)'); g.addColorStop(1, 'rgba(150,46,30,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.px, p.py, R, 0, Math.PI * 2); ctx.fill();
+      ctx.setLineDash([R * 0.2, R * 0.16]); ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(245,229,186,.92)'; ctx.lineWidth = Math.max(3, R * 0.07); ctx.beginPath(); ctx.arc(p.px, p.py, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(160,44,30,.96)'; ctx.lineWidth = Math.max(1.6, R * 0.036); ctx.beginPath(); ctx.arc(p.px, p.py, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      const size = Math.max(20, Math.min(90, R * 0.95));
+      ctx.font = `italic bold ${size}px Georgia, serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, size * 0.12); ctx.strokeStyle = '#f5e5ba'; ctx.strokeText('?', p.px, p.py);
+      ctx.fillStyle = '#b03424'; ctx.fillText('?', p.px, p.py);
+      ctx.restore();
+    }
     if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
     // the surveyor's tour stop (Tim 2026-11-06 20:45): a gold ring the size of the area a town draws its nodes from
     if (st.highlight) { const h=st.highlight, p=worldToCanvas(h.x,h.z,view); ctx.save(); ctx.strokeStyle='rgba(240,200,90,.95)'; ctx.lineWidth=2.5; ctx.setLineDash([6,4]);
@@ -205,6 +222,9 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     resize,
     frame(revision) { resize(); if (revision !== rev) { rev = revision; dirty = true; } if (dirty) draw(); },
     hit(px, py) { return px < MARGIN || py < MARGIN ? null : hitTest(hitItems(), px, py, view); },
+    // the rival question mark under a canvas point (inside its ring), or null
+    hintAt(px, py) { if (px < MARGIN || py < MARGIN) return null;
+      return (getState().rivalHints || []).find(h => { const p = worldToCanvas(h.x, h.z, view); return Math.hypot(px - p.px, py - p.py) <= Math.max(18, h.r * view.scale); }) || null; },
     attach() {
       const local = e => { const r = canvas.getBoundingClientRect(); return { px: (e.clientX - r.left) * view.w / r.width, py: (e.clientY - r.top) * view.h / r.height }; };
       canvas.addEventListener('wheel', e => { e.preventDefault(); const p = local(e); zoomAt(world, view, p.px, p.py, e.deltaY < 0 ? 1.15 : 1 / 1.15); dirty = true; }, { passive: false });

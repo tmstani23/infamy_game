@@ -284,7 +284,7 @@ export function createBanners({ scene }) {
       questMark = new THREE.Sprite(new THREE.SpriteMaterial({ map: questTexture(), transparent: true, depthTest: false, depthWrite: false }));
       questMark.renderOrder = 99820; questMark.frustumCulled = false; scene.add(questMark);
     }
-    const active = !!state.clans?.[me]?.surveyPending, beat = active ? 0.5 + 0.5 * Math.sin(time * 5) : 0;
+    const active = !!(state.clans?.[me]?.surveyPending || state.clans?.[me]?.warTalkDue), beat = active ? 0.5 + 0.5 * Math.sin(time * 5) : 0;
     questMark.visible = true;
     questMark.position.set(e.x, 3.1 + (active ? 0.12 * Math.sin(time * 2.5) : 0), e.z);
     questMark.scale.setScalar(active ? 0.8 + 0.12 * beat : 0.62);

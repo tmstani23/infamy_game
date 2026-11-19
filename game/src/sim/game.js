@@ -1040,6 +1040,7 @@ export function createGame(options) {
       if (c.type === 'hire' && clans) { if (c.action === 'cancel') clans.cancelHire(e, c.index); else clans.hire(e, c.business, c.unit,c.count ?? 1); }
       if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'permit') landOffice.buyPermit(e);
       if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'survey') landOffice.survey(e);
+      if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'rivals') landOffice.rivalsTalk(e);
       if (c.type === 'expedition' && landOffice && areas && gate && !stunned(e, state.tick)) expedition(e, c);
       if (c.type === 'inventory') inventory.command(e, c);
       if (c.type === 'omnibus') omnibus?.command(e, c);
