@@ -250,6 +250,7 @@ War bar default position: top 104 px, below the standings bar.
 | ` (backquote), Pause, or the Pause button | Pause / resume (single player): the game stops, menus still work |
 | ? or the Controls button | Open the controls panel (Esc closes it) |
 | Minimap: left-click or drag | Move the view, anywhere on the map. Businesses show as letters: W warehouse, T teahouse, D den, C clinic, P police, M moneylender, H hideout, J dojo. A business letter fills with its owner's colour once explored (your own always) |
+| Minimap on the island: military badges (2026-11-19) | Finished military buildings of towns and war camps show a lettered badge in the owner's colour with a red rim: Barracks B, Armory A, Watchtower W, Rifle range Ri, Supply tents Su, Field clinic Fi, Foundry Fo, Clan hall Cl, Kennel Ke, Hidden dojo Hi, Camp hall Ca, Stockade St; a war camp's Stable is Sb with the red rim; the camp station shows R like a railway station. One letter, or the first two where another badge already uses the first (a wider badge). Enemy ones show as your units last saw them. Hover shows the name and the town or "War camp at <town>". Code `minimap_icons.js`, `minimap.js`; test `tools/test_minimap_military.mjs`. |
 | Minimap: right-click / Ctrl + right-click | Send selected crew there / station them there |
 
 Phase 3G hover labels (2026-10-21): visible units have a small translucent tooltip, suppressed for the targeted unit or while hovering UI.

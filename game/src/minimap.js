@@ -214,7 +214,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     // major buildings of the towns (Tim 2026-11-07): lettered badges, name on hover; they show once you are close enough to tell
     if (islandZoom >= 0.6) for (const b of near(majorBuildings(game.state.frontier))) {
       const [u, v] = at(b.x, b.z); if (u < 0 || v < 0 || u > size || v > size) continue;
-      drawBuildingBadge(ctx, u, v, b.letter, b.owner ? state.clans?.[b.owner]?.color : null, 8 + Math.min(4, (islandZoom - 1) * 2));
+      drawBuildingBadge(ctx, u, v, b.letter, b.owner ? state.clans?.[b.owner]?.color : null, 8 + Math.min(4, (islandZoom - 1) * 2), b.military);
       islandHits.push([u, v, 8, 'building', b]);
     }
     for (const e of Object.values(state.entities)) {
