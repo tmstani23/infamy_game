@@ -155,7 +155,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     }
     selected = next;
     view.setSelected(selected);
+    if (next.length) for (const f of picks) f(next);   // a new crew or troop selection: the worker selection goes (frontier_build_ui.js, Tim 2026-11-19)
   }
+  const picks = [];
   const commandGroup=e=>crewCommandGroup(game.state,e);
   // 7c: war troops of one type near a clicked one (TYPE_REACH world units). Already the selection: the camera centres on the clicked one.
   const TYPE_REACH = 100;
@@ -443,6 +445,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (ids?.length) { setSelected(ids, true); building = null; }
     },
     groupOf(id) { pruneGroups(); return [...groups].find(([, ids]) => ids.includes(id))?.[0] || null; },
+    onPick(f) { picks.push(f); },
     clear() {
       const units=selected.filter(id=>game.state.deployment?.clans[hero()?.owner]?.sectors[game.state.entities[id]?.deployment?.group]);
       if(units.length)send({id:heroId,type:'deployment',action:'return',units,selectionChange:true});

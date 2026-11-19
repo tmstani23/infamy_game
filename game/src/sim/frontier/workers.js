@@ -715,6 +715,9 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
             w.elapsed++;w.phase=Math.min(1,w.elapsed/w.trip.total);
             if(w.elapsed>=w.trip.total) {w.departure=[...w.trip.destination];w.trip=null;w.order={kind:'hold'};w.phase=0;}
           }
+        } else if(!w.order && !w.trip && !w.spot && !w.project && !w.job && !w.garrison && !w.shelter && w.carrying>0 && !busy.has(w)) {
+          // Tim 2026-11-19: an idle worker with a load (no job, no order) walks it to the nearest drop-off instead of standing with it
+          if(!(w.retryAt>state.tick)) {const plan=returnPlan(s,w);if(plan.route && plan.resource)setReturnTrip(w,plan);else w.retryAt=state.tick+(R.retryTicks || 100);}
         } else if(!w.order && !busy.has(w) && !w.project && (w.spot || w.trip?.kind==='return'))gather(s,w);
         else if(state.entities?.[w.entity] && !(s.camp && busy.has(w)))state.entities[w.entity].anim='idle';
         const current=position(w) || resting,e=state.entities?.[w.entity];

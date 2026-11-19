@@ -69,7 +69,7 @@ export function buildPreview(s, request, data, {state,resourceIndex}={}) {
   return result;
 }
 
-export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spotRules, known, send, crewInput, onBuild = () => {}, onMode = () => {}, onStable = () => {}, blocked = () => false }) {
+export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spotRules, known, send, crewInput, onBuild = () => {}, onMode = () => {}, onStable = () => {}, blocked = () => false, menuAt = () => false }) {
   let town = null, opened = false, tool = null, drag = null, mouse = null, selected = [], inspect = null, rot = 0;   // rot: R turns a station
   let eraseConfirm = null;   // { k, until }: the station erase waiting for its second click
   // how many railway lines run from the station under these cells (0 if none or no station)
@@ -98,6 +98,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   const selectedLive = () => workSites().flatMap(s => (s.workers || []).filter(w => selected.includes(w.id)).map(w => ({ s, w })));
   const canvasEvent = e => e.target?.closest?.('canvas#view') && outdoors() && !blocked();
   const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
+  crewInput.onPick?.(() => { if (selected.length) { selected = []; if (inspect?.hover) inspect = null; } });   // one selection at a time: troops or workers
+  // a unit under the pointer (troops, crew, enemies; not workers, they are this file's) wins over the building behind it (Tim 2026-11-19)
+  const unitNear = (x, y) => Object.values(game.state.entities || {}).some(e => e.place === 'world' && !e.dead && !e.garrison && !e.hidden && !e.worker && e.type !== 'horse' && e.type !== 'civilian' && !e.stored && (() => { const u = view.unitToScreen(e.x, e.z, 1); return Math.hypot(u.x - x, u.y - y) < 26; })());
   // Workers row on a spot card (Tim 2026-11-06 22:23): how worked out the spot is now and about how many workers it
   // keeps at full speed. Live estimate: aim to keep at most `aim` of its value worked out (workers.overwork).
   function workRow(spot, n) {
@@ -434,10 +437,19 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const workerHit = !tool && workers().some(p => bodyDistance(view, p.e, e.clientX, e.clientY) < 22);
     drag = { x: e.clientX, y: e.clientY, first: cell, build: opened && !!tool && !workerHit };
     if (drag.build) { consume(e); return; }
-    if (workerHit) consume(e);
-  }, { capture: true });
+  }, { capture: true });   // a press on a worker is not consumed: the crew's drag box may start there too (Tim 2026-11-19)
+  // hover (Tim 2026-11-19): resting the pointer on your town's building shows its card; a clicked card stays until you click
+  // elsewhere or press Esc
+  let hoverAt = 0;
   addEventListener('mousemove', e => {
     mouse = canvasEvent(e) ? { x: e.clientX, y: e.clientY } : null;
+    const now = performance.now(); if (now - hoverAt < 100) return; hoverAt = now;
+    if (inspect && !inspect.hover) return;
+    if (e.buttons || tool || drag || pendingPlan || !mouse || inspectionPressed || e.target?.closest?.('#towninspect')) return;
+    const hit = !unitNear(e.clientX, e.clientY) && townAt(e.clientX, e.clientY);
+    const next = hit ? { town: hit.s.id, cell: hit.cell, hover: true } : null;
+    if (next?.town === inspect?.town && next?.cell === inspect?.cell) return;
+    inspect = next; showInspection();
   });
   addEventListener('mouseup', e => {
     if (!drag || e.button !== 0) return;
@@ -465,6 +477,12 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       crewInput.cancelPointer(); consume(e); return;
     }
     const click = Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6;
+    // Tim 2026-11-19: a drag box with any of your troops or crew in it is theirs (crew_input.js); workers only when none are
+    if (!click) {
+      const [x0, x1, y0, y1] = [Math.min(d.x, e.clientX), Math.max(d.x, e.clientX), Math.min(d.y, e.clientY), Math.max(d.y, e.clientY)];
+      const me = hero()?.owner, inBox = u => { const p = view.unitToScreen(u.x, u.z); return p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1; };
+      if (Object.values(game.state.entities || {}).some(u => u.owner === me && u.place === 'world' && !u.dead && !u.worker && !u.garrison && !u.aboard && u.type !== 'horse' && u.type !== 'civilian' && inBox(u))) return;
+    }
     const picked = workers().filter(p => {
       if (click) return bodyDistance(view, p.e, e.clientX, e.clientY) < 22;
       const u = view.unitToScreen(p.e.x, p.e.z);
@@ -475,13 +493,16 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       select(click ? selected.includes(ids[0]) ? selected.filter(id => id !== ids[0]) : [...selected, ...ids] : ids);
       crewInput.cancelPointer(); consume(e); return;
     }
-    if (!click) { selected = []; return; }
+    if (!click) return;   // Tim 2026-11-19: a drag box with no workers in it is the crew's (crew_input.js); the worker selection stays
+    if (unitNear(e.clientX, e.clientY)) return;   // a click on a unit selects it (crew_input.js), not the building behind it
     const spot = spotAt(e.clientX, e.clientY);
     const hit = townAt(e.clientX,e.clientY);
+    // Tim 2026-11-19: a left-click on your military building (or stockade, or the hall while your town is attacked) opens its menu
+    if (!spot && hit && menuAt(e.clientX, e.clientY)) { inspect = null; card.hidden = true; crewInput.cancelPointer(); consume(e); return; }
     if (spot || hit) {
       inspect = spot ? { spot: spot.id } : { town: hit.s.id, cell: hit.cell };
       showInspection(); crewInput.cancelPointer(); consume(e);
-    } else { selected = []; inspect = null; card.hidden = true; }
+    } else { inspect = null; card.hidden = true; }   // open ground: the card goes, the worker selection stays (only Esc or a new drag clears it)
   }, { capture: true });
 
   function polygon(ctx, s, i, color, status = null) {
@@ -751,6 +772,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (ds.act === 'build-worker-return')orderSelected('return');
       if (ds.act === 'build-worker-drop')requestDrop();
       // Tim 2026-11-11: sending workers into the stockade moved here from the Governor tab
+      if (ds.act === 'build-worker-hall')for(const t of workSites()){if(t.camp)continue;const ids=selectedLive().filter(p=>p.s.id===t.id && !p.w.garrison).map(p=>p.w.id);if(ids.length)command({action:'hallShelter',mode:'enter',town:t.id,workers:ids});}   // Tim 2026-11-19
       if (ds.act === 'build-worker-stockade')for(const t of workSites()){const units=selectedLive().filter(p=>p.s.id===t.id && p.w.entity!=null && !p.w.garrison).map(p=>p.w.entity);if(units.length)command({action:'garrison',mode:'enter',town:t.id,units});}
       if (ds.act === 'build-worker-page')workerPage=Number(ds.id);
       if (ds.act === 'build-worker-tab') {workerFilter=null;workerTab=ds.id==='idle' && workerTab==='idle'?'roster':['log','idle','groups','spots'].includes(ds.id)?ds.id:'roster';workerLogPage=0;workerPage=0;}

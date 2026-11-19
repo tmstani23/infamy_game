@@ -176,21 +176,28 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   assert.equal(ST.damage('player', st, 10), false, 'not your own camp');
   assert.ok(ST.damage(rival, st, st.max, 'melee')); assert.equal(b.stage, 'ruined'); assert.equal(b.queue, undefined, 'the queue is lost'); assert.equal(wk.chest, chest, 'no refund'); }
 
-// ---- town hall shelter: workers run in while attackers are inside the ring, and go back to work after -----
+// ---- town hall shelter (per worker, Tim 2026-11-19): a worker with an attacker near him runs in; the others keep working -----
 { const wk = g.frontier.modules.find(m => m.name === 'workers').workers, SH = S.shelter;
   for (const id of [...troops, archer]) delete g.state.entities[id];
   Object.assign(hero, { x: enemy.x + 600, z: enemy.z });
   enemy.workers.length = 0;
-  for (let k = 0; k < 3; k++) enemy.workers.push({ id: `sw${k}`, spot: null, dropoff: null, phase: 0, carrying: 0, entity: null, elapsed: 0, trip: null, departure: [enemy.x + 40 + k * 3, enemy.z + 30] });
+  const wx = enemy.x + 40, wz = enemy.z + 30;
+  for (let k = 0; k < 3; k++) enemy.workers.push({ id: `sw${k}`, spot: null, dropoff: null, phase: 0, carrying: k === 0 ? 2.5 : 0, cargoResource: k === 0 ? 'timber' : undefined, entity: null, elapsed: 0, trip: null, departure: [wx + k * 3, wz], order: { kind: 'hold' } });
   for (let i = 0; i < SH.calmTicks + 45; i++) g.step([]);   // the earlier attacks are over
   assert.ok(!enemy.shelter && enemy.workers.every(w => !w.shelter), 'no attacker inside the ring: nobody shelters');
-  const raider = g.state.entities[war.spawnTroop(rec, 'grunt', enemy.x + 60, enemy.z - 60)];
+  // an attacker inside the ring but far from every worker: they keep working
+  const raider = g.state.entities[war.spawnTroop(rec, 'grunt', enemy.x - 70, enemy.z - 70)];
   raider.holdFire = true;
-  for (let i = 0; i < 45; i++) g.step([]);
-  assert.ok(enemy.shelter && enemy.workers.every(w => w.shelter), 'attackers inside the ring: the workers head for the hall');
+  for (let i = 0; i < 45; i++) { g.step([]); Object.assign(raider, { x: enemy.x - 70, z: enemy.z - 70 }); }
+  assert.ok(enemy.workers.every(w => !w.shelter), 'an attacker far from them: nobody shelters');
+  // the attacker comes within nearRange of them: they run in
+  for (let i = 0; i < 45; i++) { g.step([]); Object.assign(raider, { x: wx + 20, z: wz + 15 }); }
+  assert.ok(enemy.shelter && enemy.workers.every(w => w.shelter), 'an attacker near them: the workers head for the hall');
   const kept = enemy.workers.map(w => w.shelter.spot); assert.ok(enemy.workers.every(w => w.spot === null), 'no gathering while sheltering');
-  for (let i = 0; i < 900 && !enemy.workers.every(w => w.shelter?.in); i++) { g.step([]); Object.assign(raider, { x: enemy.x + 60, z: enemy.z - 60 }); }
+  const timber = enemy.stock.timber;
+  for (let i = 0; i < 900 && !enemy.workers.every(w => w.shelter?.in); i++) { g.step([]); Object.assign(raider, { x: wx + 20, z: wz + 15 }); }
   assert.ok(enemy.workers.every(w => w.shelter.in), 'they reach the hall and go in');
+  assert.ok(enemy.workers.every(w => !w.carrying) && enemy.stock.timber >= timber + 2.4, 'the load is handed in as they go in');
   for (const w of enemy.workers) { const u = g.state.entities[w.entity]; if (u) assert.ok(u.garrison?.hall, 'inside: cannot be attacked'); }
   assert.equal(g.frontier.garrison.members(enemy).length, 0, 'not counted as a stockade garrison');
   // the enemy leaves: they come out after calmTicks and go back to their jobs
@@ -201,9 +208,23 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   assert.ok(!enemy.shelter && enemy.workers.every(w => !w.shelter && !w.order), 'they come out');
   assert.deepEqual(enemy.workers.map(w => w.spot), kept, 'back to their jobs');
   assert.ok(Object.values(g.state.entities).every(u => !u.garrison?.hall));
+  // by hand: in, they stay with no enemy about; Back to work brings them out; the room is the hall's tier number
+  const rx = r => g.state.frontier.receipts.at(-1);
+  g.step([{ id: hero.id, type: 'frontier', action: 'hallShelter', town: enemy.id, mode: 'enter' }]);
+  assert.equal(rx().ok, false, 'not your town');
+  const own = mine; own.workers = [{ id: 'mw0', spot: null, dropoff: null, phase: 0, carrying: 0, entity: null, elapsed: 0, trip: null, departure: [own.x + 30, own.z + 20] }];
+  g.step([{ id: hero.id, type: 'frontier', action: 'hallShelter', town: own.id, mode: 'enter' }]);
+  assert.ok(rx().ok && own.workers[0].shelter?.manual, 'sent in by hand');
+  for (let i = 0; i < SH.calmTicks + 60; i++) g.step([]);
+  assert.ok(own.workers[0].shelter, 'one sent in by hand stays in with no enemy about (and no war)');
+  g.step([{ id: hero.id, type: 'frontier', action: 'hallShelter', town: own.id, mode: 'leave' }]);
+  assert.ok(rx().ok && !own.workers[0].shelter && !own.shelter, 'Back to work');
+  assert.equal(ST.shelterRoom({ tier: 1 }), SH.capacityByTier[0]); assert.equal(ST.shelterRoom({ tier: 3 }), SH.capacityByTier[2]);
+  own.workers = [];
   // sheltering again, then the hall falls: everyone is out at once
-  const r2 = g.state.entities[war.spawnTroop(rec, 'grunt', enemy.x + 60, enemy.z - 60)]; r2.holdFire = true;
-  for (let i = 0; i < 45; i++) g.step([]);
+  // an attacker comes up to where they stand now
+  const [px, pz] = wk.position(enemy.workers[0]), r2 = g.state.entities[war.spawnTroop(rec, 'grunt', px + 15, pz + 15)]; r2.holdFire = true;
+  for (let i = 0; i < 45; i++) { g.step([]); Object.assign(r2, { x: px + 15, z: pz + 15 }); }
   assert.ok(enemy.workers.every(w => w.shelter));
   const hs = ST.find(key(hall.cell)); assert.ok(ST.damage('player', hs, 99999, 'siege')); assert.equal(hall.stage, 'ruined');
   assert.ok(!enemy.shelter && enemy.workers.every(w => !w.shelter), 'the hall fell: pushed out');

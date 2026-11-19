@@ -30,7 +30,7 @@ const NAMES = { town_hall: 'Town hall', housing: 'House', work: 'Workshop', farm
 const nice = t => NAMES[t] || (t || 'building').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export function createStructureCard({ game, view, heroId, frontierData, send, selected = () => [], badgeRoot = null }) {
+export function createStructureCard({ game, view, heroId, frontierData, send, selected = () => [], badgeRoot = null, menuAt = () => false }) {
   const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
   // the pane is a layout panel (Edit layout: Building pane), so index.html holds its element; small, above the action bar
   const root = document.getElementById('structcard') || Object.assign(document.createElement('div'), { id: 'structcard', hidden: true }); if (!root.parentNode) document.body.append(root);
@@ -38,7 +38,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   const onIsland = () => game.state.entities[heroId]?.place === 'world';
   const ST = () => game.frontier?.structures, GA = () => game.frontier?.garrison;
   const Z = () => frontierData?.war?.structures?.zoneGarrison || {};
-  let key = null, sig = '';
+  let key = null, sig = '', pinned = false;   // pinned: opened by a click (stays); else shown while the pointer rests on it (hover)
   const wars = () => Object.values(game.state.frontier?.wars?.list || {});
   // structures you may look at: your own towns, and the town or camp of a war you are in
   function visible() { return ST()?.list?.() || []; }   // Tim 2026-11-12: any building, yours or the enemy's
@@ -59,7 +59,8 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   }
   // a unit under the pointer wins over the building behind it
   const unitNear = (x, y) => Object.values(game.state.entities || {}).some(e => e.place === 'world' && !e.dead && !e.garrison && !e.hidden && (() => { const u = view.unitToScreen(e.x, e.z, 1); return Math.hypot(u.x - x, u.y - y) < 26; })());
-  const troopsSelected = () => selected().filter(id => { const e = game.state.entities[id]; return e && e.owner === owner() && e.type !== 'hero' && !e.worker && !e.garrison; });
+  // the selected troops and crew, and the hero when he is selected (Tim 2026-11-19: he may garrison too); nothing selected: the hero
+  const troopsSelected = () => { const sel = selected(); return (sel.length ? sel : [heroId]).filter(id => { const e = game.state.entities[id]; return e && e.owner === owner() && !e.worker && !e.garrison; }); };
   // Tim 2026-11-13: a building being built gets the pane too (it is not a structure until it stands): its builders,
   // how much faster they make it and a build bar. Camp sites and camp hall upgrades gain one point of work per builder
   // at the site each tick (sim/frontier/workers.js campBuild); a town's project gains the town's builders each
@@ -145,8 +146,8 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     else if (hp < st.max) parts.push('Damaged');
     return parts.join('. ') || 'Standing';
   }
-  function open(st) { key = st.key; sig = ''; draw(); }
-  function close() { key = null; root.hidden = true; }
+  function open(st, pin = true) { if (key !== st.key || pin) sig = ''; key = st.key; pinned = pin || (pinned && key === st.key); draw(); }
+  function close() { key = null; pinned = false; root.hidden = true; }
   root.addEventListener('mousedown', e => e.stopPropagation());
   root.addEventListener('click', e => {
     const b = e.target.closest?.('[data-x],[data-in],[data-out]'); if (!b) return;
@@ -158,17 +159,30 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     sig = '';
   });
   addEventListener('keydown', e => { if (key && e.code === 'Escape') { close(); } });
-  // left-click (no drag) on a building with no unit there: its card
+  // left-click (no drag) on a building with no unit there (Tim 2026-11-19): your building's menu (town_hover.js menuAt);
+  // houses, workshops, farmhouses and enemy buildings have no menu: this pane, pinned (it has the garrison buttons)
   let down = null;
   // capture phase: other click handlers (crew selection, town tools) must not keep it from seeing the click
   addEventListener('mousedown', e => { if (e.button === 0) down = { x: e.clientX, y: e.clientY }; }, { capture: true });
   addEventListener('mouseup', e => {
     if (e.button !== 0 || !down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
     if (e.target?.closest?.('button, #structcard, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp, #townwar, #crewcommands')) return;
-    if (unitNear(e.clientX, e.clientY)) { close(); return; }
+    if (unitNear(e.clientX, e.clientY)) return;   // a unit: the crew's click (selection); the pane stays as it is
+    if (menuAt(e.clientX, e.clientY)) { close(); return; }
     const st = at(e.clientX, e.clientY);
-    if (st) open(st); else close();   // a click on open ground or a unit puts it away; another building swaps to it
+    if (st) open(st); else if (pinned) close();   // a click on open ground puts a pinned pane away; another building swaps to it
   }, { capture: true });
+  // hover (Tim 2026-11-19): resting the pointer on an enemy building or a war camp building shows its pane; a pinned pane stays until you click
+  // elsewhere, press Esc or close it
+  let hoverAt = 0;
+  addEventListener('mousemove', e => {
+    const now = performance.now(); if (now - hoverAt < 100) return; hoverAt = now;
+    if (pinned || e.buttons) return;
+    const off = e.target?.closest?.('button, #structcard, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp, #townwar, #crewcommands') || !e.target?.closest?.('canvas#view');
+    const hit = off || unitNear(e.clientX, e.clientY) ? null : at(e.clientX, e.clientY);
+    const st = hit && !(hit.town && hit.owner === owner()) ? hit : null;   // your own town's buildings: its town card does the hover (frontier_build_ui.js)
+    if (st) open(st, false); else if (key) close();
+  });
   // Ctrl + right-click your own house, workshop or farmhouse with troops selected: they go in (capture: before move orders)
   addEventListener('mousedown', e => {
     if (e.button !== 2 || !e.ctrlKey || e.target?.closest?.('button, #structcard, #townpanel, #bar, #selpanel, #warcamp, #townwar')) return;

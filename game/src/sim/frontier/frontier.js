@@ -82,6 +82,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   modules.push({ name: 'war', war, econTick: () => war.econTick(), command: (e, c) => war.command(e, c) });
   zones.setFrozen(s => !!war.warOn(s.id));   // 7c: zone cells do not grow or grow back while a war is on the town
   const structures = createStructures({ state, data, world: live, war, garrison, workers });   // F6 checkpoint 6: structure health, attacks, ruins
+  modules.push({ name: 'hallShelter', command: (e, c) => structures.shelterCommand(e, c) });   // Tim 2026-11-19: workers into the town hall by hand
   const warMorale = createWarMorale({ state, data, war });   // F6 checkpoint 8a-1: the morale bar of each side of a war
   const warEnd = createWarEnd({ state, data, war, world: live, morale: warMorale, garrison });   // F6 checkpoint 8a-3: the hall channel and the end of a war
   const warOutcomes = createWarOutcomes({ state, data, war, world: live, rail, garrison });

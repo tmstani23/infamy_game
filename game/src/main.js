@@ -628,7 +628,7 @@ async function start() {
     destination:()=>deploymentPanel.isOpen()?deploymentCards:gameMap.isOpen()?mapCards:null,onRestore:()=>unitFrames.clearInspection()});
   $('layoutreset').addEventListener('click', e => { hudLayout.reset(); e.currentTarget.blur(); });
   if (DEV) window.infamy = { game, view };   // handy from the browser console
-  let frontierBuildUI = null, vehiclesPanel = null;
+  let frontierBuildUI = null, vehiclesPanel = null, townMenuAt = () => false;   // townMenuAt: town_hover.js menuAt, set once the town hover exists
   const standingsPanel = createStandingsPanel({ root: $('standingspanel'), game, heroId });   // click a clan chip in the top bar
   // Town panel (frontier F4.4, replaces the F2.4b dev text box): key O. The console helper stays in the dev build.
   if (game.state.frontier) {
@@ -636,7 +636,7 @@ async function start() {
     frontierBuildUI = createFrontierBuildUI({ game, view, heroId, data: frontier, spotIndex, spotRules: resourceSpotRules,
       known: (x,z) => isDiscovered(world, game.state.world?.discovered?.[game.state.entities[heroId]?.owner] ?? '0', x,z),
       send: c => pending.push(c), crewInput, onBuild: id => townPanel.open(id), onMode: () => townPanel?.render(), onStable: id => stableMenu.openFor(id),
-      blocked: () => foundButton.isPlacing() || gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() || characterPanel.isOpen() || hqStash.isOpen() || shop.isOpen() });
+      menuAt: (x, y) => townMenuAt(x, y), blocked: () => foundButton.isPlacing() || gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() || characterPanel.isOpen() || hqStash.isOpen() || shop.isOpen() });
     const nearTown = () => {
       const h = game.state.entities[heroId];
       if (h?.place !== 'world') return null;
@@ -654,7 +654,7 @@ async function start() {
     for (const [id, f] of [['townbtn', () => townPanel.toggle()], ['townsbtn', () => overview.toggle()], ['vehiclesbtn', () => vehiclesPanel.toggle()]]) { $(id).hidden = false; $(id).addEventListener('click', e => { f(); e.currentTarget.blur(); }); }   // utility menu icons for the frontier windows
     openTownHook = id => townPanel.open(id);
     townTalk = id => townPanel.talk(id);
-    createStructureCard({ game, view, heroId, frontierData: simOptions.frontier, send: c => pending.push(c), selected: () => crewInput.selected(), badgeRoot: $('garrisonbadges') });   // before the town hover: its right-click on a house wins
+    createStructureCard({ game, view, heroId, frontierData: simOptions.frontier, send: c => pending.push(c), selected: () => crewInput.selected(), menuAt: (x, y) => townMenuAt(x, y), badgeRoot: $('garrisonbadges') });   // before the town hover: its right-click on a house wins
     const garrisonCard = createGarrisonCard({ game, heroId, frontierData: simOptions.frontier, units, catalog, send: c => pending.push(c), select: ids => crewInput.select(ids), selected: () => crewInput.selected() });
     const townHover = createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier,
       send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges'),
@@ -662,6 +662,7 @@ async function start() {
       openTownWar: (town, b) => townWar.show(town, b),   // 8b: your military buildings, and the hall or stable during a war on the town
       openGarrison: (town, id) => { const s = game.state.frontier?.settlements?.[town]; if (!garrisonCard.isGarrisonable(s, s?.buildings?.find(x => x.id === id))) return false; garrisonCard.open(town, id); return true; } });
     evacuateGarrison = () => townHover.evacuateAll();
+    townMenuAt = (x, y) => townHover.menuAt(x, y);
     createStructureBars({ game, view, heroId, root: $('structbars') });   // war checkpoint 6: health bars over damaged structures
     closeTown = () => { townPanel.close(); overview.close(); };
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row

@@ -5,6 +5,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 export function workerStatus(w,index) {
   if(w.status)return w.status;
   if(w.garrison)return 'Garrisoned in stockade';
+  if(w.shelter)return w.shelter.in?'Sheltering in the town hall':'Running to the town hall';   // Tim 2026-11-19
   if(w.nextOrder)return w.nextOrder.kind==='hold'?'Returning load, then holding':'Returning load before move';
   if(w.order?.kind==='hold')return 'Standing';
   if(w.order?.kind==='move')return 'Moving';
@@ -92,7 +93,7 @@ export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page
   function selectionBar(){
     const here=all.filter(w=>selected.includes(w.id)),carry=here.some(w=>w.carrying>0);
     // always takes its space so selecting never shifts the cards under the mouse (Tim 2026-11-05)
-    return `<div class="wselbar"${here.length?'':' style="visibility:hidden" aria-hidden="true"'}><span><b>${here.length}</b> selected</span>${button('stop','','Stop (Z)')}${button('return','','Return',false,carry?'':' disabled')}${button('drop','','Drop...',false,carry?'':' disabled')}${stockade?button('stockade','','To stockade',false,` title="Send the selected workers into the stockade (they must be close to it)"`):''}<select data-act="build-worker-assign-selected" aria-label="Assign selected workers to group"${here.length?'':' disabled'}><option value="">Assign selected</option>${options(-1)}</select></div>`;
+    return `<div class="wselbar"${here.length?'':' style="visibility:hidden" aria-hidden="true"'}><span><b>${here.length}</b> selected</span>${button('stop','','Stop (Z)')}${button('return','','Return',false,carry?'':' disabled')}${button('drop','','Drop...',false,carry?'':' disabled')}${!camp?button('hall','','To hall',false,` title="Send the selected workers into the town hall: they hand in their loads and wait inside, safe, until Back to work"`):''}${stockade?button('stockade','','To stockade',false,` title="Send the selected workers into the stockade (they must be close to it)"`):''}<select data-act="build-worker-assign-selected" aria-label="Assign selected workers to group"${here.length?'':' disabled'}><option value="">Assign selected</option>${options(-1)}</select></div>`;
   }
   const pages=Math.max(1,Math.ceil(workers.length/rows));page=Math.max(0,Math.min(page,pages-1));
   const face=msConcept('laborer');

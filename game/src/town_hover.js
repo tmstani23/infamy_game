@@ -129,23 +129,24 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   addEventListener('mousedown', e => {
     if (e.button !== 0 || e.ctrlKey || overUi(e.target)) return;
     const c = cannonAt(e.clientX, e.clientY);
-    if (!c) return;   // Tim 2026-11-12: a left-click on a building shows its pane (structure_card.js); right-click opens its menu
+    if (!c) return;   // Tim 2026-11-12: then 2026-11-19: a left-click on your building opens its menu (menuAt), hover shows its card
     e.stopImmediatePropagation(); e.preventDefault();
     send({ id: heroId, type: 'frontier', action: 'salute', settlement: c.town.id });
   }, { capture: true });
+  // a unit under the pointer (an enemy, or one of yours) wins over the building behind it (Tim 2026-11-19: right-click on an
+  // enemy attacking your building opened the building's menu instead of attacking it)
+  const unitNear = (x, y) => Object.values(game.state.entities || {}).some(e => e.place === 'world' && !e.dead && !e.garrison && !e.hidden && e.type !== 'horse' && !e.stored && (() => { const u = view.unitToScreen(e.x, e.z, 1); return Math.hypot(u.x - x, u.y - y) < 26; })());
+  // right-click is always an order (Tim 2026-11-19): on your own buildings it is the crew's move order (no menu); Ctrl +
+  // right-click your stockade sends them in; an enemy building of your war is attacked. Menus open on a left-click (menuAt).
   // capture phase so the crew's right-click "go there" order does not also fire
   addEventListener('mousedown', e => {
     if (e.button !== 2 || e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp, #townwar, #structcard')) return;
+    if (unitNear(e.clientX, e.clientY)) return;   // crew_input.js: attack the enemy, follow the hero, and so on
     const p = plotAt(e.clientX, e.clientY);
-    // right-click one of your war camp's buildings: its menu (the camp hall and the banner open the hall menu)
-    if (!e.ctrlKey && p?.camp && openCamp && game.state.frontier?.wars?.list?.[p.camp]?.attacker === owner()) {
-      if (openCamp(p.camp, p.kind === 'building' ? p.id : null)) { e.stopImmediatePropagation(); e.preventDefault(); }
-      return;
-    }
-    if (e.ctrlKey && !(p?.kind === 'building' && p.type === 'stockade' && !p.foreign)) return;   // Ctrl + right-click is for garrisons (and the ground's hold order)
+    if (!p) return;
     // war checkpoint 6: right-click an enemy building of a war you are in (the town you attack, or the camp attacking
     // you): the selected crew walk over and attack it; with the hero selected or nothing selected he goes too
-    if (p?.kind === 'building' && (p.foreign || p.camp)) {
+    if (!e.ctrlKey && p.kind === 'building' && (p.foreign || p.camp) && !(p.camp && game.state.frontier?.wars?.list?.[p.camp]?.attacker === owner())) {
       if (e.shiftKey) return;   // Shift + right-click is Torch: crew_input.js hands it to ability_rows.js (Tim 2026-11-13: it was taken here as a plain attack)
       const w = p.camp ? game.state.frontier?.wars?.list?.[p.camp] : Object.values(game.state.frontier?.wars?.list || {}).find(x => x.town === p.town);
       const s = p.camp ? null : game.state.frontier?.settlements?.[p.town], b = (p.camp ? w?.camp?.buildings : s?.buildings)?.find(x => x.id === p.id);
@@ -156,33 +157,50 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       }
       return;
     }
-    if (!p || p.foreign) return;   // a rival town's building: the right-click stays a normal move order
-    e.stopImmediatePropagation(); e.preventDefault();
-    flash(p);
-    // war 8b: right-click your military building: its menu; the town hall during a war on the town: the town war window
-    if (!e.ctrlKey && openTownWar && p.kind === 'building') {
-      const defending = Object.values(game.state.frontier?.wars?.list || {}).some(w => w.town === p.town && w.defender === owner());
-      if (p.type === 'town_hall' ? defending && openTownWar(p.town, null) : openTownWar(p.town, p.id)) return;
-    }
-    // Ctrl + right-click your finished stockade with crew selected (Tim 2026-11-07, Ctrl since 2026-11-12): they go in (far ones walk over first)
-    const s = game.state.frontier?.settlements?.[p.town], ids = selected().length ? selected() : [heroId], b = s?.buildings?.find(x => x.id === p.id);
-    if (!e.ctrlKey && p.kind === 'building' && p.type === 'stockade' && s?.owner === owner() && openGarrison?.(p.town, p.id)) return;   // plain right-click: its garrison card
-    if (e.ctrlKey && p.kind === 'building' && p.type === 'stockade' && b?.stage === 'built' && s.owner === owner() && ids.length) {
-      // the hero goes in only when he is selected or nothing is selected; crew selected without him go alone (Tim 2026-11-10)
-      const ents = game.state.entities || {}, group = [...ids];
+    // Ctrl + right-click your finished stockade (Tim 2026-11-07, Ctrl since 2026-11-12): the selected go in (far ones walk
+    // over first); the hero goes when he is selected or nothing is selected, and his following crew with him
+    const s = p.camp ? null : game.state.frontier?.settlements?.[p.town], b = s?.buildings?.find(x => x.id === p.id);
+    if (e.ctrlKey && !p.foreign && p.kind === 'building' && p.type === 'stockade' && b?.stage === 'built' && s.owner === owner()) {
+      e.stopImmediatePropagation(); e.preventDefault(); flash(p);
+      const ids = selected().length ? selected() : [heroId], ents = game.state.entities || {}, group = [...ids];
       const heroGoes = ids.includes(heroId) || !selected().length;
       if (heroGoes && !group.includes(heroId)) group.push(heroId);
       if (heroGoes) for (const u of Object.values(ents)) if (u.owner === owner() && u.order?.kind === 'follow' && u.order.target === heroId && !group.includes(u.id)) group.push(u.id);   // his following crew come too
       send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: p.town, building: p.id, walk: true, units: group });
-      return;
     }
-    openTown(p.town);
+    // anything else (your own buildings, a rival town's): the right-click goes on as a normal order
   }, { capture: true });
+  // left-click on one of your buildings with no unit there (Tim 2026-11-19): its menu. War camp buildings: the camp menu;
+  // military buildings: their town war menu (the town hall too while your town is attacked); the stockade: its garrison
+  // card. Anything else (the hall in peace, houses, farms, ruins): false, and the click shows the building's card as
+  // before (frontier_build_ui.js town card, structure_card.js pane). True when a menu opened.
+  function menuAt(x, y) {
+    if (unitNear(x, y)) return false;
+    const p = plotAt(x, y);
+    if (!p || p.foreign || p.kind !== 'building') return false;
+    if (p.camp) {
+      const w = game.state.frontier?.wars?.list?.[p.camp], b = w?.camp?.buildings?.find(x => x.id === p.id);
+      if (!openCamp || w?.attacker !== owner() || b?.stage === 'ruined') return false;
+      if (openCamp(p.camp, p.id)) { flash(p); return true; }
+      return false;
+    }
+    const s = game.state.frontier?.settlements?.[p.town], b = s?.buildings?.find(x => x.id === p.id);
+    if (!s || s.owner !== owner() || !b || b.stage === 'ruined') return false;
+    if (openTownWar) {
+      const defending = Object.values(game.state.frontier?.wars?.list || {}).some(w => w.town === p.town && w.defender === owner());
+      if (p.type === 'town_hall' ? defending && openTownWar(p.town, null) : openTownWar(p.town, p.id)) { flash(p); return true; }
+    }
+    if (p.type === 'stockade' && openGarrison?.(p.town, p.id)) { flash(p); return true; }
+    return false;
+  }
   // the garrison count over each of your stockades, with a click to walk everyone out (and Shift+K does it from anywhere)
   const badges = new Map();
   function evacuate(town, building) { send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town, ...(building != null ? { building } : {}) }); }
   function evacuateAll() {
     for (const s of drawableTowns(game.state.frontier, owner())) if (garrisonCount(game.state.frontier, game.state.entities, s)) evacuate(s.id);
+    // the hero in a house, workshop, farmhouse or camp stockade (Tim 2026-11-19) steps out too; troops there stay
+    const h = game.state.entities[heroId];
+    if (h?.garrison?.zone) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', structure: h.garrison.key, units: [heroId] });
   }
   setInterval(() => {
     if (!badgeEl) return;
@@ -199,7 +217,23 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       el.textContent = `Inside ${n}${cap ? ` / ${cap}` : ''} · Evacuate`; el.title = 'Everyone inside walks out (Shift+K)';
       el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
     }
+    // the town hall (Tim 2026-11-19): workers sheltering inside, Back to work; during a war on the town, Shelter workers
+    const SH = frontierData?.war?.structures?.shelter || {};
+    if (onIsland()) for (const s of drawableTowns(game.state.frontier, owner()).filter(t => t.owner === owner() && !t.capital)) {
+      const hall = (s.buildings || []).find(x => x.type === 'town_hall' && x.stage === 'built'); if (!hall || !s.workers?.length) continue;
+      const n = s.workers.filter(w => w.shelter).length, war = Object.values(game.state.frontier?.wars?.list || {}).some(w => w.town === s.id);
+      if (!n && !war) continue;
+      const pl = townPlots([s]).find(q => q.id === hall.id); if (!pl) continue;
+      const bk = `${s.id}|hall`; want.add(bk);
+      let el = badges.get(bk);
+      if (!el) { el = document.createElement('button'); el.className = 'garrisonbadge'; el.addEventListener('click', ev => { ev.stopPropagation(); send({ id: heroId, type: 'frontier', action: 'hallShelter', town: s.id, mode: el.dataset.mode }); }); badgeEl.appendChild(el); badges.set(bk, el); }
+      const t = SH.capacityByTier, cap = t?.length ? t[Math.min(t.length, Math.max(1, s.tier || 1)) - 1] : null;
+      el.dataset.mode = n ? 'leave' : 'enter';
+      el.textContent = n ? `Workers inside ${n}${cap ? ` / ${cap}` : ''} · Back to work` : 'Shelter workers';
+      el.title = n ? 'Every worker in the hall goes back to the job they had' : `Every worker runs to the town hall and waits inside, safe, until Back to work${cap ? ` (room for ${cap})` : ''}`;
+      const u = view.unitToScreen(pl.x, pl.z, 3); el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
+    }
     for (const [id, el] of badges) if (!want.has(id)) { el.remove(); badges.delete(id); }
   }, 150);
-  return { evacuateAll };
+  return { evacuateAll, menuAt };
 }

@@ -8,7 +8,7 @@
 // the town governor rebuilds it on the same spot. Enemies attacking the building itself waits for F7 sieges.
 // createGarrison({ state, data, world }) -> { command, tick, members, capacity, shelter }
 // 7c-3b (Tim 2026-11-12, war plan 2026-11-09b): garrisons in a town's houses, workshops and farmhouses. The town owner's
-// troops and crew (not the hero, not workers) go in, up to war.structures.zoneGarrison.capacity per building:
+// troops, crew and the hero (Tim 2026-11-19; not workers) go in, up to war.structures.zoneGarrison.capacity per building:
 // { action: 'garrison', mode: 'enter' | 'leave', structure: <structure key>, units, walk }. Inside: e.garrison =
 // { town, key, zone: true, x, z }. Hits on them go to the building (structures.damage), at 0 everyone piles out
 // (breakOutKey), melee inside cannot attack, ranged troops shoot out (sim/frontier/structures.js garrisonFire), no
@@ -71,8 +71,9 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
     u.garrison = { ...(st.town ? { town: st.town } : {}), ...(st.war ? { war: st.war } : {}), key: st.key, zone: true, x: st.x, z: st.z, ...(fort(st) ? { fort: true, heal: rules().healFactor || 1 } : {}) };
     delete u.order; delete u.swing; delete u.attackTarget; u.x = st.x; u.z = st.z;
   }
-  // who may hold a house or a stockade the structure way: troops and crew; never the hero, workers, animals, guns on wheels
-  const troopOk = (u, owner) => !!u && u.owner === owner && u.type !== 'hero' && !u.worker && !u.garrison && !u.dead && !u.downed && !u.jailed && u.place === 'world' && !u.aboard && !u.mounted
+  // who may hold a house or a stockade the structure way: troops, crew and the hero (Tim 2026-11-19: the hero may garrison any
+  // garrisonable building; was troops and crew only, 2026-11-12); never workers, animals, guns on wheels
+  const troopOk = (u, owner) => !!u && u.owner === owner && !u.worker && !u.garrison && !u.dead && !u.downed && !u.jailed && u.place === 'world' && !u.aboard && !u.mounted
     && u.type !== 'civilian' && u.type !== 'horse' && !u.wild && !u.cop && !u.guide && !u.gatling;
   function zoneCommand(e, c) {
     const st = zoneSt(c.structure);

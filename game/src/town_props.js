@@ -295,7 +295,7 @@ export function plotInfo(frontier, plot, data, entities = null, clan = null) {
     lines.push(!p.paid ? (p.authorized ? 'Waiting for materials' : 'Planned: not started') : `Under construction: ${Math.round(100 * p.progress / Math.max(1, p.need))}%`);
     lines.push(`Cost: ${Object.entries(p.cost).map(([r, n]) => `${n} ${r}`).join(', ') || 'free'}`);
     lines.push(`${s.name}`);
-    return { title: nice(p.type), lines: [...lines, 'Right-click: open the town panel'] };
+    return { title: nice(p.type), lines: [...lines, 'Click: details'] };
   }
   const b = s.buildings.find(x => x.id === plot.id);
   if (!b) return null;
@@ -309,5 +309,5 @@ export function plotInfo(frontier, plot, data, entities = null, clan = null) {
     if (b.type === 'stockade' && b.stage === 'built' && entities && data?.buildings?.stockade?.garrison) lines.push(`Garrison ${garrisonCount(frontier, entities, s, b)} / ${data.buildings.stockade.garrison.capacity}`);
     lines.push(s.name);
   }
-  return { title: nice(b.type), lines: [...lines, b.type === 'stockade' && b.stage === 'built' ? 'Right-click: send selected crew in (none selected: your hero goes in)' : 'Right-click: open the town panel'] };
+  return { title: nice(b.type), lines: [...lines, b.type === 'stockade' && b.stage === 'built' ? 'Click: garrison card. Ctrl + right-click: send the selected in (none selected: your hero goes in)' : data?.war?.buildings?.[b.type] && b.type !== 'stockade' ? 'Click: open its menu' : 'Click: details'] };
 }

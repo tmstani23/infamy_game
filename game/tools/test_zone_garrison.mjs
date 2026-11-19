@@ -56,6 +56,13 @@ assert.equal(GA.inZone(st.key).length, frontier.war.structures.zoneGarrison.capa
 cmd({ action: 'garrison', mode: 'leave', structure: st.key, units: more.filter(u => u.garrison).map(u => u.id) });
 assert.equal(GA.inZone(st.key).length, 4, 'leave lets the named ones out');
 for (const u of more) u.dead = true;
+// Tim 2026-11-19: the hero may garrison a house too, and steps out again
+{ const was = { x: hero.x, z: hero.z }; Object.assign(hero, { x: st.x + 4, z: st.z + 5 });
+  const rh = cmd({ action: 'garrison', mode: 'enter', structure: st.key, units: [hero.id] });
+  assert.ok(rh?.ok && hero.garrison?.zone && hero.garrison.key === st.key, `the hero goes in (${rh?.reason})`);
+  cmd({ action: 'garrison', mode: 'leave', structure: st.key, units: [hero.id] });
+  assert.ok(!hero.garrison && GA.inZone(st.key).length === 4, 'and comes out, the troops stay');
+  Object.assign(hero, was); }
 // an enemy comes close: the archers shoot out, the grunt does not
 const foe = troop('grunt', st.x + 9, st.z + 2, rival); foe.hp = foe.maxHp = 5000; foe.order = { kind: 'stop' };
 const shooters = new Set(); for (let i = 0; i < 120; i++) { g.step([]); for (const p of g.state.projectiles || []) if (p.garrison) shooters.add(p.a); }

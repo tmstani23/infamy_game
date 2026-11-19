@@ -43,6 +43,8 @@ export const KEY_ACTIONS = [
   A('autoCast', 'Unit ability auto on or off', 'Crew orders', [], { fixed: true, text: 'Right-click the button' }),
   A('workerWork', 'Send workers to build a camp site, repair or put out a fire, or order a ruin rebuilt', 'Crew orders', [], { fixed: true, text: 'Right-click it with workers selected' }),
   A('evacuate', 'Evacuate garrison', 'Crew orders', 'Shift+KeyK'),
+  A('garrisonIn', 'Send the selected into a stockade or house', 'Crew orders', [], { fixed: true, text: 'Ctrl + right-click it' }),
+  A('buildingMenu', 'Open the menu of your military building, stockade or war camp building', 'Panels and menus', [], { fixed: true, text: 'Left-click it' }),
   // Crew groups
   ...[1, 2, 3, 4].map(n => A(`group${n}`, `Select group ${n}`, 'Crew groups', `Digit${n}`)),
   ...[1, 2, 3, 4].map(n => A(`assignGroup${n}`, `Make group ${n}`, 'Crew groups', `Ctrl+Digit${n}`)),
