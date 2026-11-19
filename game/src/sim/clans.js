@@ -69,7 +69,11 @@ export function createClans(state, units, opts = {}) {
 
   function setOwner(businessId, clanId) {
     const b = state.businesses[businessId];
-    if (b) b.owner = clanId;
+    if (!b) return;
+    // who it was taken from and when: the lieutenant's War Mode only raids to win such a business back (Tim 2026-11-19)
+    if (b.lost && b.lost.clan === clanId) delete b.lost;   // won back
+    else if (b.owner && clanId && b.owner !== clanId && !b.hideout) b.lost = { clan: b.owner, tick: state.tick ?? 0 };
+    b.owner = clanId;
   }
 
   const say = noticeFor(state);

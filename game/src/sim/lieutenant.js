@@ -47,7 +47,7 @@ function orderFor(c, state) {
 const DEFEND_ONLY = new Set(['defend', 'any']);
 
 export function createLieutenantRules({ state, rules = {}, units, clans, doors, spawn, removeUnit, businesses, guideAt = () => null }) {
-  const R = { budget: 300, maxBudget: 5000, logEntries: 20, captain: 'city_captain', reserve: 200, jobMinutes: 3, banditJobMinutes: 6, captainWaitSeconds: 60, captainFee: 100, stipend: 150, awayRaidShare: 0.5, wageShare: 0.02, raidReserve: 1000, raidMinCrew: 3, ...rules };
+  const R = { budget: 300, maxBudget: 5000, logEntries: 20, captain: 'city_captain', reserve: 200, jobMinutes: 3, banditJobMinutes: 6, captainWaitSeconds: 60, captainFee: 100, stipend: 150, awayRaidShare: 0.5, raidReserve: 1000, raidMinCrew: 3, ...rules };
   const on = () => modeRules(state).campaignCity;
   const day = () => state.clock?.day ?? 1;
   const boss = id => Object.values(state.entities).find(e => e.owner === id && e.type === 'hero');
@@ -66,6 +66,12 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
   }
   // running: the boss is away, or at home with "keep defending" on (defend only)
   const active = id => on() && !!state.clans?.[id] && (away(id) || record(id).defendAtHome);
+  // War Mode (Tim 2026-11-19): while the clan is in a frontier war (either side) the lieutenant holds what it has:
+  // no new businesses, and a raid or a War Lantern only to win back a business a rival took since the war began.
+  // Shakedowns and Sweeps go on (they earn; Tim 2026-11-19). On by default; record.warMode false switches it off.
+  const wars = id => Object.values(state.frontier?.wars?.list || {}).filter(w => w.attacker === id || w.defender === id);
+  const warHold = id => record(id).warMode !== false && wars(id).length > 0;
+  const lostInWar = (id, b) => !!b && b.lost?.clan === id && b.owner !== id && wars(id).some(w => b.lost.tick >= (w.started ?? 0));
   const captainOf = id => { const c = state.entities[record(id).captain]; return c && !c.dead ? c : null; };
 
   // the lieutenant waiting at the island gate for the player's goal steps (Tim 2026-11-06): talkable, not attackable
@@ -87,10 +93,7 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
       const r = record(id);
       if (state.clans[id]) guide(id, state.clans[id], r);
       if (r.day !== day()) {
-        r.day = day(); r.spent = 0;
-        // ryo sink (Tim 2026-11-06): each new day the clan pays its lieutenant and captain wageShare of its treasury
-        const c0 = state.clans[id], wage = Math.floor(Math.max(0, c0?.ryo || 0) * (R.wageShare || 0));
-        if (wage > 0) { debitRyo(state, c0, wage, 'Lieutenant wages'); log(id, `Paid the lieutenant and captain ${wage} ryo`); }
+        r.day = day(); r.spent = 0;   // no wage (Tim 2026-11-19: the 2026-11-06 wage sink is gone)
       }
       const cap = state.entities[r.captain];
       // a fallen captain is replaced after captainWaitSeconds for captainFee ryo (free when the clan is broke) (Tim 2026-11-06)
@@ -145,9 +148,11 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     if (c.orders !== undefined && (typeof c.orders !== 'object' || c.orders === null || Object.entries(c.orders).some(([k, v]) => !ORDERS.includes(k) || typeof v !== 'boolean'))) return bad('Unknown standing order');
     if (c.budget !== undefined && (!Number.isSafeInteger(c.budget) || c.budget < 0 || c.budget > R.maxBudget)) return bad(`Budget must be 0 to ${R.maxBudget} ryo a day`);
     if (c.defendAtHome !== undefined && typeof c.defendAtHome !== 'boolean') return bad('Bad setting');
+    if (c.warMode !== undefined && typeof c.warMode !== 'boolean') return bad('Bad setting');
     if (c.orders) Object.assign(r.orders, c.orders);
     if (c.budget !== undefined) r.budget = c.budget;
     if (c.defendAtHome !== undefined) r.defendAtHome = c.defendAtHome;
+    if (c.warMode !== undefined) r.warMode = c.warMode;
     return true;
   }
 
@@ -171,6 +176,11 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     if (order === 'buy' && ninja) return { ok: false, why: 'Shinobi do not own businesses' };
     if ((order === 'jobs' || order === 'steal') && !ninja) return { ok: false, why: 'only Shinobi take contracts' };
     if (order === 'raid' && ninja) return { ok: false, why: 'Shinobi do not capture businesses' };
+    if (warHold(id)) {
+      const raidOn = c.type === 'business' && c.action === 'raid' ? state.businesses[c.business] : null;
+      if (order === 'buy') return { ok: false, why: 'War Mode: holding what we have' };
+      if (order === 'raid' && (raidOn ? !lostInWar(id, raidOn) : !Object.values(state.businesses).some(x => lostInWar(id, x)))) return { ok: false, why: 'War Mode: raids only to win back a lost business' };
+    }
     // a War Lantern comes out of the treasury, not the daily budget, and only while it keeps raidReserve (Tim 2026-11-08)
     const lantern = c.type === 'business' && c.action === 'lantern', lanternPrice = units?.rules?.raid?.lanternPrice ?? 1200;
     if (lantern && (clan.ryo || 0) - lanternPrice < R.raidReserve) return { ok: false, why: `keeps ${R.raidReserve} ryo after a War Lantern` };
@@ -205,7 +215,7 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     for (const ch of `${day()}:${raider}:${owner}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
     return ((h >>> 0) % 1000) / 1000 < (R.awayRaidShare ?? 1);
   }
-  return { tick, command, gate, record, active, away, captainOf, log, hq, raidable, guideOf: id => state.entities[record(id).guide] || null, rules: R };
+  return { tick, command, gate, record, active, away, warHold, lostInWar, captainOf, log, hq, raidable, guideOf: id => state.entities[record(id).guide] || null, rules: R };
 }
 
 // The brain: one per clan (player and bots alike), a client that only reads the state and sends commands.
@@ -284,7 +294,7 @@ export function createLieutenantBrain(game, { clan }) {
       if (patient >= 0 && care('clinic', { type: 'clinic', action: 'revive', patient })) return out;
     }
     // buy (Yakuza/Kuroda, Tim 2026-11-06): one free business a day, the nearest to the HQ, inside the budget and the reserve
-    if (!ninja && r.orders.buy && cap && home?.ring && r.boughtDay !== day()) {
+    if (!ninja && r.orders.buy && !L.warHold(clan) && cap && home?.ring && r.boughtDay !== day()) {
       const d = x => Math.hypot(x.ring[0] - home.ring[0], x.ring[1] - home.ring[1]);
       const pick = Object.values(state.businesses).filter(x => !x.owner && !x.hideout && x.ring && price(x) <= left && c.ryo - price(x) >= (R.reserve ?? 200))
         .sort((a, b2) => d(a) - d(b2))[0];
@@ -388,6 +398,9 @@ export function createLieutenantBrain(game, { clan }) {
       return true;
     }
     if (raid && state.tick - raid.at > 20 * 120) raid = null;   // never got there: drop it
+    // War Mode: only a business a rival took since the war began is worth a lantern and a raid
+    const hold = L.warHold(clan), mayRaid = x => !hold || L.lostInWar(clan, x);
+    if (hold && !Object.values(state.businesses).some(x => L.lostInWar(clan, x))) { raid = null; return false; }
     // a War Lantern first, by day or night
     if (!(c.lanterns > 0)) {
       const ml = Object.values(state.businesses).find(x => x.kind === 'moneylender' && x.ring);
@@ -402,10 +415,10 @@ export function createLieutenantBrain(game, { clan }) {
       && (u.place === x.room || near(u, x.ring[0], x.ring[1], 15))).length;
     const okWhy = new Set(['', 'Walk to its door to raid']);
     let target = raid && state.businesses[raid.business];
-    if (target && !okWhy.has(B.canRaid(cap.id, target.id).why)) { target = null; raid = null; }
+    if (target && (!mayRaid(target) || !okWhy.has(B.canRaid(cap.id, target.id).why))) { target = null; raid = null; }
     if (!target) {
       target = Object.values(state.businesses).filter(x => x.owner && x.owner !== clan && state.clans[x.owner] && !x.hideout && x.room && x.ring
-        && L.raidable(clan, x.owner) && okWhy.has(B.canRaid(cap.id, x.id).why))
+        && mayRaid(x) && L.raidable(clan, x.owner) && okWhy.has(B.canRaid(cap.id, x.id).why))
         .sort((p, q) => ((q.owner === lead) - (p.owner === lead)) || defenders(p) - defenders(q))[0];
       if (!target) return false;
     }

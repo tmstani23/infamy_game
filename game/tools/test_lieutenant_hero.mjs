@@ -147,17 +147,13 @@ assert.ok(logged(/captain takes charge/));
   for (const b of mine) b.owner = 'player';
 }
 
-// --- wages (Tim 2026-11-06): each new day the clan pays wageShare of its treasury --------------------------------
+// --- no wage (Tim 2026-11-19: the 2026-11-06 wage sink was removed) ------------------------------------------------
 {
   const r = L.record('player');
   clan.ryo = 5000; r.day = g.state.clock.day - 1;
   g.step([]);
-  const wages = () => (clan.ryoHistory || []).filter(h => h.reason === 'Lieutenant wages').length;
-  const paid = (clan.ryoHistory || []).filter(h => h.reason === 'Lieutenant wages').at(-1), n = wages();
-  assert.ok(paid && paid.amount === Math.floor(5000 * L.rules.wageShare), `wage paid (${paid?.amount})`);
-  assert.ok(logged(/Paid the lieutenant/));
-  g.step([]);
-  assert.equal(wages(), n, 'once a day');
+  assert.equal((clan.ryoHistory || []).filter(h => h.reason === 'Lieutenant wages').length, 0, 'no wage is paid');
+  assert.equal(L.rules.wageShare, undefined);
 }
 
 // --- save while the boss is away: orders, budget, log and the captain come back -------------------------------

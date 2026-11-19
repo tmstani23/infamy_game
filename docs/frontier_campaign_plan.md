@@ -413,16 +413,17 @@ While the hero is on the island the lieutenant runs the city. Only major capital
 
 The hero comes round after `heroRespawnSeconds` at his clan's nearest founded town hall with 30% health, or at the island side of the city gate if he has no town. Crew downed on the island come round at the nearest hall after 30 s with 30% health; Hero-group crew follow the hero again. City crew keep the clinic/HQ rules. Settings: `units.json` `rules.islandRespawn` `{ hpShare, crewSeconds }`. Code: `sim/island_respawn.js`. Test: `tools/test_island_respawn.mjs`.
 
-## Lieutenant fairness and wage (2026-11-06)
+## Lieutenant fairness (2026-11-06)
 
 `settings.json` `campaignCity.lieutenant`:
 - `awayRaidShare` 0.5: rivals raid a clan whose boss is on the island on about half the nights.
 - `stipend` 150: a city holding no business gets 150 ryo each new day while the boss is away.
 - `captainWaitSeconds` 60, `captainFee` 100: a dead city captain is replaced after 60 s for 100 ryo.
 - `banditJobMinutes` 6: time limit for a lieutenant's bandit job. A timed-out bandit job gives back that day's job once.
-- `wageShare` 0.02: each day the lieutenant and captain are paid 2% of the clan's total ryo.
+- No wage: the lieutenant and captain are not paid (Tim 2026-11-19; replaces the 2026-11-06 `wageShare` 0.02 daily ryo sink).
+- War Mode (Tim 2026-11-19, all clans, player and rivals; on by default): while the clan is in any frontier war (attacker or defender) the lieutenant holds what it has. No new business buys. A War Lantern or a raid only to win back a business a rival took since the war began (`business.lost = { clan, tick }`, set when a business changes hands, cleared when the old owner gets it back). Hire, bail, clinic, defend, retake, Shakedowns and Sweeps go on as usual. Ends when the clan's last war ends. Command `lieutenant { warMode: bool }`.
 
-Code: `sim/lieutenant.js`, `sim/bot.js`. Test: `tools/test_lieutenant_hero.mjs`.
+Code: `sim/lieutenant.js`, `sim/bot.js`. Tests: `tools/test_lieutenant_hero.mjs`, `tools/test_lieutenant_war.mjs`.
 
 ## Infirmary (2026-11-06)
 

@@ -15,6 +15,7 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
   pane.innerHTML = '<div class="lt-head"><img class="lt-portrait" alt=""><h4>While I&#39;m away</h4></div><p class="away-status"></p><button type="button" class="away-watch">Watch the city</button><div class="away-orders"></div>'
     // a typeable box and Set (Tim 2026-11-10: no sliders; Set also completes the goal step when the number is unchanged)
     + '<div class="away-budget-row">Budget <input class="away-budget" type="number" min="0" step="50" inputmode="numeric" title="What your lieutenant may spend each day"> ryo a day <button type="button" class="away-budget-set" title="Set the daily budget">Set</button><span class="away-budget-value" hidden></span></div>'
+    + '<label title="While your clan is in a war on the island your lieutenant holds what you have. He buys no new businesses and raids only to win back a business a rival took since the war began. Shakedowns, Sweeps, hiring, bail, the clinic and defence go on as usual."><input class="away-war" type="checkbox"> War Mode during a war</label><p class="away-war-status" hidden>War Mode is on. Your lieutenant is holding what you have.</p>'
     + '<label><input class="away-home" type="checkbox"> Keep defending when I&#39;m back</label><h4>Log</h4><ol class="away-log"></ol>';
   tabs.appendChild(tab); work.appendChild(pane);
   const style = document.createElement('style');
@@ -38,6 +39,8 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
   pane.querySelector('.away-budget-set').addEventListener('click', setBudget);
   budget.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') setBudget(); });
   budget.addEventListener('input', () => { pane.querySelector('.away-budget-value').textContent = budget.value; });
+  const warBox = pane.querySelector('.away-war');
+  warBox.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', warMode: warBox.checked }));
   home.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', defendAtHome: home.checked }));
   const watchBtn = pane.querySelector('.away-watch');
   watchBtn.addEventListener('click', () => { cityWatch?.start(); });
@@ -50,7 +53,7 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
     if (root.dataset.page !== 'away' || root.hidden || !on) return;
     const r = game.state.lieutenants?.[owner()];
     if (!r) { pane.querySelector('.away-status').textContent = 'Your lieutenant takes over when you leave the city.'; return; }
-    const key = JSON.stringify([r.orders, r.budget, r.defendAtHome, r.spent, r.log.length, r.log.at(-1)?.tick, L().away(owner())]);
+    const key = JSON.stringify([r.orders, r.budget, r.defendAtHome, r.warMode, !!L().warHold?.(owner()), r.spent, r.log.length, r.log.at(-1)?.tick, L().away(owner())]);
     if (key === shown) return; shown = key;
     const ninja = game.state.clans?.[owner()]?.kind === 'ninja';
     const pic = pane.querySelector('.lt-portrait'), src = lieutenantPortrait(game.state.clans?.[owner()]);
@@ -59,6 +62,7 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
     budget.max = String(game.settings.lieutenantMax ?? 2000);
     if (document.activeElement !== budget) { budget.value = String(r.budget); pane.querySelector('.away-budget-value').textContent = r.budget; }
     home.checked = !!r.defendAtHome;
+    warBox.checked = r.warMode !== false; pane.querySelector('.away-war-status').hidden = !L().warHold?.(owner());
     pane.querySelector('.away-status').textContent = L().away(owner()) ? `You are away: the city captain holds the HQ. Spent today ${r.spent} of ${r.budget} ryo.` : 'You are in the city. Your lieutenant takes over when you leave.';
     const ol = pane.querySelector('.away-log'); ol.replaceChildren(...r.log.slice().reverse().map(x => { const li = document.createElement('li'); li.textContent = `Day ${x.day}: ${x.text}`; return li; }));
   }
