@@ -5,6 +5,7 @@ import { townCellsToProps, townProps, townSignature, townPlots, plotInfo, drawab
 import { spotPiecesToProps, visibleSpots, coveredBySpot, spotInfo } from '../src/resource_spot_props.js';
 import { makeSpotIndex } from '../src/sim/resource_spots.js';
 import { placePiece } from '../src/sim/geometry.js';
+import { zoneVariant } from '../src/sim/frontier/town_grid.js';
 import { frontierFor, createSnapshotEncoder, FRONTIER_EVERY } from '../src/sim_snapshot.js';
 import { createWorldMap, worldToCanvas, WORLD_LAYERS } from '../src/world_map.js';
 
@@ -40,7 +41,15 @@ assert.equal(close.settlements.seen.workers, undefined, 'never the worker record
 }
 assert.deepEqual(view.spots, { sp1: 'fhs' }, 'only discovered changed spot stages cross the snapshot boundary');
 const cells = townCellsToProps(view.settlements.t.grid, art, town.zones);
-assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['house_construction_2', 'tenements', 'townhouse']);
+assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['house_construction_2', 'tenements', 'townhouse'].map((a, i) => zoneVariant(art._zones.h, a, i)));
+{ // zone variants (Tim 2026-11-18): each stage art has its looks, picked per cell by a fixed hash; render and blocking agree
+  const V = art._zones.h.variants.townhouse, seen = new Set();
+  for (let i = 0; i < 60; i++) { const a = zoneVariant(art._zones.h, 'townhouse', i); assert.ok(V.includes(a)); assert.equal(zoneVariant(art._zones.h, 'townhouse', i), a, 'same cell, same look'); seen.add(a); }
+  assert.equal(seen.size, V.length, 'a street shows every look');
+  assert.equal(zoneVariant(art._zones.h, 'house_construction_2', 5), 'house_construction_2', 'a stage without variants keeps its art');
+  for (const n of Object.values(art._zones).flatMap(d => Object.values(d.variants || {}).flat())) assert.ok(catalog.items[n] && cutouts[`buildings/${n}`]?.blocks && existsSync(new URL(`../art/buildings/${n}.png`, import.meta.url)), n + ' is registered, cut and blocks');
+  for (const n of new Set(Object.values(art._ruin.byType))) assert.ok(catalog.items[n] && cutouts[`buildings/${n}`] && existsSync(new URL(`../art/buildings/${n}.png`, import.meta.url)), n + ' ruin is registered and cut');
+}
 // Housing build phases and ruins (Tim 2026-11-05): zoned stage 0 shows site 1, stage 1 site 2; abandoned swaps in ruin art
 const pre = townCellsToProps({ ...grid, zone: 'hhhh.' + grid.zone.slice(5), stage: '12300' + grid.stage.slice(5) }, art, town.zones);
 assert.equal(pre.find(p => p.key.startsWith('3:zone:'))?.art, 'house_construction_1', 'zoned housing cell shows the first building site');
@@ -173,8 +182,9 @@ console.log('test_town_drawing: ok');
   assert.equal(props.find(p => p.key === `${ruinTown.id}:breach:${wallCell}`)?.art, R.wall, 'a wall gap shows the broken wall');
   assert.equal(props.find(p => p.key === `${ruinTown.id}:breach:${wallCell + 1}`)?.art, R.gate, 'a gate gap shows the broken gate');
   const camp = { id: 'w1', camp: 'w1', name: 'War camp', owner: 'player', x: 40, z: 40, grid: null, zones: {}, foreign: true, projects: [],
-    buildings: [{ id: 'p1', type: 'palisade', stage: 'ruined', off: [3, 0], rot: 0 }, { id: 'p2', type: 'palisade', stage: 'ruined', off: [0, 3], rot: Math.PI / 2 }, { id: 'wt', type: 'watchtower', stage: 'ruined', off: [6, 6] }, { id: 'ar', type: 'armory', stage: 'ruined', off: [9, 9] }] };
+    buildings: [{ id: 'p1', type: 'palisade', stage: 'ruined', off: [3, 0], rot: 0 }, { id: 'p2', type: 'palisade', stage: 'ruined', off: [0, 3], rot: Math.PI / 2 }, { id: 'wt', type: 'watchtower', stage: 'ruined', off: [6, 6] }, { id: 'ar', type: 'armory', stage: 'ruined', off: [9, 9] }, { id: 'st', type: 'stockade', stage: 'ruined', off: [12, 12] }] };
   const cp = townProps([camp], art), at = id => cp.find(p => p.key === `w1:${id}:ruined`);
   assert.equal(at('p1')?.art, R.byType.palisade); assert.notEqual(!!at('p1').flip, !!at('p2').flip, 'a broken palisade piece follows its line');
-  assert.equal(at('wt')?.art, R.byType.watchtower); assert.equal(at('ar')?.art, R.art, 'other buildings show the burned ruin');
+  assert.equal(at('wt')?.art, R.byType.watchtower); assert.equal(at('ar')?.art, 'ruin_barracks', 'an armory shows the burned barracks (Tim 2026-11-18)');
+  assert.equal(at('st')?.art, R.art, 'a type with no ruin of its own shows the burned ruin');
 }

@@ -36,6 +36,8 @@ def art_names(fr):
     for z in ta.get('_zones', {}).values():
         if isinstance(z, dict):
             for v in z.get('stages', []): add(v)
+            for vs in z.get('variants', {}).values():
+                for v in vs: add(v)
             add(z.get('abandoned'))
     P = ta.get('_stationParts', {}); add(P.get('hall')); add(P.get('shed'))
     return names

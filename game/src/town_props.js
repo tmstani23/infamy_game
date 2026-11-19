@@ -3,7 +3,7 @@
 // project is a flat dirt footprint; a project with work done is its building at half opacity; a
 // finished building is drawn as normal. Art names come from data/frontier.json "townArt".
 import { townSlot } from './sim/frontier/town_layout.js';
-import { cellOffset } from './sim/frontier/town_grid.js';
+import { cellOffset, zoneVariant } from './sim/frontier/town_grid.js';
 import { stationParts } from './sim/frontier/station_layout.js';
 // grid towns (L3.1) give cells as grid indices; a town not migrated yet still holds spiral slots
 const slotOf = (s, c, cells) => {
@@ -128,7 +128,7 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
     }
     // Stage 0 shows def.zoned (the construction site just begun); an abandoned kind with its own ruin art swaps it in
     // from the first built stage and drops the grey tint (farms have none, so they keep the tint).
-    const ruin = abandoned && stage > 0 && def.abandoned, name = ruin ? def.abandoned : stage ? def.stages[Math.min(stage, def.stages.length) - 1] : def.zoned;
+    const ruin = abandoned && stage > 0 && def.abandoned, name = ruin ? def.abandoned : stage ? zoneVariant(def, def.stages[Math.min(stage, def.stages.length) - 1], i) : def.zoned;
     if (name) out.push({ ...base, key: `${i}:zone:${stage}:${abandoned}`, art: name, tint: ruin ? undefined : tint, noLights: abandoned, maxFootprint: grid.cell * (G?.zoneFootprint || 1) });
   }
   return out;

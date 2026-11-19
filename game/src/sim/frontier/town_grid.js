@@ -121,11 +121,19 @@ export function campBuildingBoxes(b,data) {
 }
 // what blocks in the war camps, as a string (worker path cache key, like townBlockSignature)
 export function campBlockSignature(frontier){return campsOf(frontier).map(w=>`${w.id}:${campKey(w.camp)}`).join('|');}
+// one of a zone stage's looks (frontier.json townArt._zones variants, Tim 2026-11-18): a fixed hash of the cell, so a
+// house keeps its look across loads and the drawing (town_props.js) and the blocking here always agree
+export function zoneVariant(def,name,cell) {
+  const list=def?.variants?.[name];
+  if(!list?.length)return name;
+  const h=Math.imul((cell+1)^0x5bd1e995,0x9e3779b1)>>>0;
+  return list[(h>>>11)%list.length];
+}
 // the art a grown zone cell shows (the same pick as town_props.js townCellsToProps)
 function zoneArt(s,i,art) {
   const def=art?._zones?.[s.grid.zone[i]],stage=Number(s.grid.stage[i]);
   if(!def?.stages || stage<1)return null;
-  return s.zones?.[def.kind]?.abandoned && def.abandoned || def.stages[Math.min(stage,def.stages.length)-1];
+  return s.zones?.[def.kind]?.abandoned && def.abandoned || zoneVariant(def,def.stages[Math.min(stage,def.stages.length)-1],i);
 }
 const abandonedKey=s=>Object.entries(s.zones || {}).map(([k,z])=>z?.abandoned?k:'').join(',');
 function cellBoxesOf(s,data) {
