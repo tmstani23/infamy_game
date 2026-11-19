@@ -10,6 +10,19 @@ const data = file => JSON.parse(readFileSync(new URL(`../${file}`, import.meta.u
 const world = data('data/world.json');
 const R = world.rules.discovery;
 
+// --- Tim 2026-11-18: a rival town is spotted from townSight away, not from further ---------
+{
+  const t = { id: 'tR', owner: 'rival', x: 7000, z: 3000 };
+  const state = { tick: 0, clans: { player: {}, rival: {} }, frontier: { settlements: { tR: t } }, entities: {
+    h: { id: 'h', type: 'hero', owner: 'player', area: 'world', x: 7000 - R.townSight - 150, z: 3000 } } };
+  const d = createDiscovery({ state, world });
+  const run = () => { state.tick = Math.ceil((state.tick + 1) / R.everyTicks) * R.everyTicks; d.tick(); };
+  assert.equal(R.townSight, 900);
+  run(); assert.ok(!d.isDiscovered('player', t.x, t.z), 'too far: not spotted');
+  state.entities.h.x = 7000 - R.townSight + 50; run();
+  assert.ok(d.isDiscovered('player', t.x, t.z), 'spotted within townSight');
+  assert.ok(!d.isDiscovered('player', t.x + 400, t.z + 400), 'only the town cell, not the land round it');
+}
 // --- pure module: walking reveals cells along the path only ---------------------------
 {
   const state = { tick: 0, clans: { player: {}, rival: {} }, entities: {

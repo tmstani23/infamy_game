@@ -1,7 +1,7 @@
 // Stockade garrison (Tim 2026-11-06): 4-cell building, enter/leave, heal factor, safe from attack.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-import { createGarrison } from '../src/sim/frontier/garrison.js';
+import { createGarrison, stockadeHp } from '../src/sim/frontier/garrison.js';
 const data = JSON.parse(fs.readFileSync(new URL('../data/frontier.json', import.meta.url)));
 const st = data.buildings.stockade;
 assert.equal(st.size, 2, 'stockade is 4 cells');
@@ -52,7 +52,7 @@ console.log('garrison workers ok');
   g3.command(st3.entities.p0, { action: 'garrison', mode: 'enter', town: 't3', units: ['p0', 'p1', 'p2'] });
   g3.tick();
   const [cx, cz] = [st3.entities.p0.x, st3.entities.p0.z];   // they stand at the stockade's centre
-  const b = town3.buildings[0], max = st.garrison.hp, p1 = st3.entities.p1;
+  const b = town3.buildings[0], max = stockadeHp(data, town3.tier), p1 = st3.entities.p1;   // by town hall tier (hpByTier)
   assert.ok(max > 0, 'stockade has health');
   assert.equal(g3.shelter(p1, 60), true, 'absorbed');
   assert.equal(p1.hp, 50, 'the person inside is not hurt');
@@ -90,9 +90,9 @@ console.log('garrison workers ok');
 
 // the stockade as a fortress (Tim 2026-11-16): health by town hall tier, several stockades, each with its own room
 {
-  const { stockadeHp } = await import('../src/sim/frontier/garrison.js');
+  // stockadeHp imported at the top
   const { garrisonCount, stockadeMax } = await import('../src/town_props.js');
-  assert.deepEqual([2, 3].map(t => stockadeHp(data, t)), [40000, 60000], 'Village 40,000, Town 60,000');
+  assert.deepEqual([2, 3].map(t => stockadeHp(data, t)), [32000, 48000], 'Village 32,000, Town 48,000 (Tim 2026-11-18: 20 percent off)');
   assert.deepEqual(data.tiers.list.map(t => t.placed.stockade), [0, 1, 3], 'none, one, three');
   const { buildingCost } = await import('../src/sim/frontier/tiers.js');
   assert.deepEqual([2, 3].map(t => buildingCost(data, 'stockade', { tier: t })), [{ timber: 400, stone: 450 }, { timber: 500, stone: 600 }], 'cost by town rank');
@@ -102,7 +102,7 @@ console.log('garrison workers ok');
   const t = { id: 't5', owner: 'c1', tier: 3, x: 0, z: 0, grid, workers: [], buildings: [{ id: 'f1', type: 'stockade', cells: [10, 11, 19, 20], stage: 'built' }, { id: 'f2', type: 'stockade', cells: [60, 61, 69, 70], stage: 'built' }] };
   const s5 = { tick: 1, frontier: { receipts: [], settlements: { t5: t } }, entities: {} };
   const g5 = createGarrison({ state: s5, data, world: { settlement: id => s5.frontier.settlements[id] } }), last5 = () => s5.frontier.receipts.at(-1);
-  assert.equal(stockadeMax(data, t), 60000);
+  assert.equal(stockadeMax(data, t), 48000);
   const [c1, c2] = t.buildings.map(b => { const e = { id: 'probe' + b.id, owner: 'c1', type: 'crew', place: 'world', x: 0, z: 0 }; s5.entities[e.id] = e; g5.command(e, { action: 'garrison', mode: 'enter', town: 't5', building: b.id, units: [e.id], walk: true }); return [e.order.x, e.order.z]; });
   for (const k of Object.keys(s5.entities)) delete s5.entities[k];
   assert.ok(Math.hypot(c1[0] - c2[0], c1[1] - c2[1]) > 30, 'two stockades apart');
@@ -118,7 +118,7 @@ console.log('garrison workers ok');
   assert.equal(garrisonCount(s5.frontier, s5.entities, t), 45); assert.equal(garrisonCount(s5.frontier, s5.entities, t, t.buildings[1]), 5, 'counted per stockade');
   // a hit on someone inside lands on his own stockade; the other one is untouched
   g5.shelter(s5.entities[rest[0]], 1000, null);
-  assert.equal(t.buildings[1].hp, 59000); assert.equal(t.buildings[0].hp, undefined);
+  assert.equal(t.buildings[1].hp, stockadeHp(data, t.tier) - 1000); assert.equal(t.buildings[0].hp, undefined);
   g5.command(hero5, { action: 'garrison', mode: 'leave', town: 't5', building: 'f2' });
   assert.equal(g5.membersIn(t, t.buildings[1]).length, 0); assert.equal(g5.membersIn(t, t.buildings[0]).length, 40, 'leave one stockade only');
   g5.command(hero5, { action: 'garrison', mode: 'leave', town: 't5' });

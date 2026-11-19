@@ -587,7 +587,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         if(e) {e.anim='hammer';e.dir=dirIndex(b.x-e.x,b.z-e.z);}
       }
       if(crew.length)delete b.idle;else b.idle=true;
-      job.progress=Math.min(job.need,(job.progress || 0)+work);
+      if(!s.war?.terms)job.progress=Math.min(job.need,(job.progress || 0)+work);   // Tim 2026-11-18: no building in a ceasefire
       if(job.progress>=job.need) {
         if(b.upgrade) {b.tier=(b.tier || 1)+1;delete b.upgrade;}
         else {b.stage='built';delete b.progress;delete b.need;delete b.rebuild;}

@@ -61,6 +61,7 @@ import { createCrewOrders } from './crew_orders.js';
 import { createCrewStep } from './crew_step.js';
 import { createCombat } from './combat.js';
 import { createDiscovery } from './discovery.js';
+import { createSightings } from './sightings.js';
 import { createFrontier } from './frontier/frontier.js';
 import { createLandOffice } from './frontier/land_office.js';
 import { createCannonSalute } from './cannon_salute.js';
@@ -236,6 +237,7 @@ export function createGame(options) {
     { x: gate.island[0], z: gate.island[1], to: { x: gate.inside[0], z: gate.inside[1] }, place: 'street', label: 'Into the city', gate: true });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: areas.lightsNear, towers: () => frontier?.structures?.watchers?.() });
   const discovery = createDiscovery({ state, world: options.world });   // island fog and scouting (frontier W2.3)
+  const sightings = options.world ? createSightings({ state, sight: options.worldChunks?.sight || {}, towers: () => frontier?.structures?.watchers?.() || [] }) : null;   // remembered sight of rival towns and camps (Tim 2026-11-18)
   const frontier = options.frontier ? createFrontier({ state, data: options.frontier, world: options.world, spotData:options.resourceSpots, spotRules:options.resourceSpotRules, removeUnit, capitalYard: gate?.island || null, civilians: civData, dayTicks: dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000 }) : null;   // settlement economy (sim/frontier/, F2.3)
   const stats = createStats({ state, units, roamers: banditData?.types, territory, atHome: e => atHome(e),
     formationMultiplier: e => kuroda.damageTaken(e), stealthRules: () => stealth.rules });
@@ -1317,6 +1319,7 @@ export function createGame(options) {
     deployment.sync();
     vision.tick();
     discovery.tick();
+    sightings?.tick();
     frontier?.tick();
     for (const v of frontier?.stable?.bornVehicles?.() || []) {   // built at a station: parked there, empty (Tim 2026-11-06)
       omnibus?.park(v.owner, v.kind, v.x, v.z);
@@ -1390,5 +1393,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, mounts, garage, stationTravel, governorNear, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, mounts, garage, stationTravel, governorNear, dayTicks };
 }

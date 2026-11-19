@@ -116,7 +116,7 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
   const L=saved[p.id];
   if(!L){Object.assign(p.el.style,p.defaults);p.el.dataset.layoutPinned='false';p.el.dataset.layoutSized='false';p.applied=signature(p.el);return;}
   p.el.style.width=L.w?`${L.w}px`:p.defaults.width;p.el.style.minHeight=L.h?`${L.h}px`:p.defaults.minHeight;
-  p.el.style.height=L.h?(UNIFORM.has(p.id)||p.id==='bar'?`${L.h}px`:'auto'):p.defaults.height;
+  p.el.style.height=L.h?(UNIFORM.has(p.id)||p.id==='bar'||p.id==='selpanel'?`${L.h}px`:'auto'):p.defaults.height;   // selpanel: a fixed height, so its cards shrink to fit instead of the pane growing (Tim 2026-11-18)
   p.el.dataset.layoutSized=String(!!(L.w||L.h));
   const [w,h]=dimensions(p),s=clamp(Number(L.s)||1,.5,2.5);
   const x=clamp(L.ax==='l'?L.dx:innerWidth-L.dx-w*s,0,Math.max(0,innerWidth-w*s));

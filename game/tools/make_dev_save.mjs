@@ -25,8 +25,9 @@ const SAVES = {
   // A campaign match (the island gate is open, W3.5) with the two fixture frontier towns: First Frontier is yours, Second Frontier is the first bot clan's (F2.9, F4).
   dev_frontier: { clan: 'yakuza', difficulty: 'easy', mode: 'campaign', ticks: 400, playerRyo: 3000, frontier: true, settlers: 6 },
   // War test (Tim 2026-11-11, replaces campaign_test_yakuza): Yakuza already at war on a rival Kuroda town out on the
-  // island. The hero and his crew stand at the war camp; the camp has a barracks, rifle range, supply tents and stables
-  // built, the hall upgraded, and a full chest and stores, so every roster unit can be trained at once.
+  // island. The hero and his crew stand at the war camp, which has only its hall and the tier-2 pack. The defender
+  // Kurogane has every military building, a station and line to the capital and average stock; the player owns a
+  // small Village, Hamada, with a station and line, for the camp spur (Tim 2026-11-18).
   war_test_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, warTest: true },
   // Defend test (Tim 2026-11-17, replaces rail_test_kuroda): your Village-tier town Tetsumichi (founded the real way,
   // the old rail test town) with a railway station, a line to the capital, average stock and a few military
@@ -201,10 +202,9 @@ function warDefend(game, heroId) {
     }
     throw new Error(`war_defend_yakuza: no room for a camp ${kind} (${JSON.stringify(rec.camp.stock)}, chest ${rec.camp.chest})`);
   };
-  place('barracks'); place('camp_station');
-  layLine(game, rh, `camp:${rec.id}`, rt.id, rec.camp.stock);
-  for (let i = 0; i < 40; i++) game.step([]);   // the marked rail sections appear (rail.js campLines)
-  if (!rec.camp.station?.linked || !rec.camp.buildings.some(b => b.type === 'rail_section')) throw new Error('war_defend_yakuza: the camp spur is not linked: ' + JSON.stringify(rec.camp.station));
+  // Tim 2026-11-18: the camp starts from nothing (hall and the tier-2 pack only); the bot builds its own camp station and
+  // spur to Kurosaki (was: barracks, camp station and a linked spur, 2026-11-17)
+  void place;
   // Tetsumichi puts 1000 ryo from its coffers in its war chest
   rec.defense = { ...(rec.defense || {}), chest: (rec.defense?.chest || 0) + 1000, put: (rec.defense?.put || 0) + 1000 };
   town.stock.ryo = Math.max(0, (town.stock.ryo || 0) - 1000);
@@ -226,7 +226,8 @@ function warTest(game, heroId) {
       traits: { soil: 1, water: 1, defense: 1, nodes: {} }, pop: 8, stock: { food: 300, timber: 300, stone: 300, goods: 200, ryo: 600 }, buildings: [{ type: 'town_hall', stage: 'built', cell: 0 }] });
     game.step([]);   // the hub gives the town its grid
     const [inner, outer] = war.band(town), mid = (inner + outer) / 2;
-    S.clans[hero.owner].warPack = { ryo: 5000, timber: 3000, stone: 2000 };
+    // Tim 2026-11-18: a standard tier-2 pack (what a bot takes to a Village), replacing the 7c sandbox camp
+    S.clans[hero.owner].warPack = { ...(W.general.attack.packByTier?.[1] || W.general.attack.pack) };
     for (let a = 0; a < 16 && !rec; a++) {
       const x = Math.round(town.x + Math.cos(a * Math.PI / 8) * mid), z = Math.round(town.z + Math.sin(a * Math.PI / 8) * mid);
       Object.assign(hero, { place: 'world', area: 'world', x: x + 3, z }); delete hero.aboard;
@@ -244,7 +245,16 @@ function warTest(game, heroId) {
     const other = wd.sites.filter(s => far(s) > 900 && gap(s) >= 700).sort((a, b) => gap(b) - gap(a))[0];
     if (!other) throw new Error('war_test_yakuza: no site for the second rival town');
     game.frontier.world.addTown({ id: 'war_test_town2', name: 'Kuroiwa', region: null, owner: rival, x: other.x, z: other.z, site: other.id ?? null,
-      traits: { soil: 1, water: 1, defense: 1, nodes: {} }, pop: 5, stock: { food: 300, timber: 200, stone: 200, goods: 100, ryo: 300 }, buildings: [{ type: 'town_hall', stage: 'built', cell: 0 }] }); }
+      traits: { soil: 1, water: 1, defense: 1, nodes: {} }, pop: 25, stock: { food: 300, timber: 200, stone: 200, goods: 100, ryo: 300 }, buildings: [{ type: 'town_hall', stage: 'built', cell: 0 }] });
+    // Tim 2026-11-18: Kuroiwa is a Village with a station, a line to the capital and average stock (mirrors Hamada),
+    // so Kuroda can send its coffers to Kurogane by train
+    game.step([]);
+    const k2 = S.frontier.settlements.war_test_town2, rh2 = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === rival), cap2 = r => storageCap(k2, game.frontier.data, r);
+    k2.tier = 2; k2.founded = (S.tick ?? 0) - 12000 * 4;
+    if (!placeBuilt(game, k2, 'station')) throw new Error('war_test_yakuza: no room for the Kuroiwa station');
+    for (const kind of ['storehouse', 'storehouse']) placeBuilt(game, k2, kind);
+    layLine(game, rh2, k2.id, 'capital');
+    Object.assign(k2.stock, { food: Math.min(3000, cap2('food')), timber: Math.min(1500, cap2('timber')), stone: Math.min(800, cap2('stone')), goods: Math.min(300, cap2('goods')), ryo: 2500 }); }
   // Kurogane gets grown houses and workshops, so the defender's archers have somewhere to garrison (7c-3b)
   { const G = S.frontier.settlements.war_test_town.grid, n = G.n, C = centreCell(n), put = (s, i, ch) => s.slice(0, i) + ch + s.slice(i + 1);
     const want = [['h', 2], ['h', 2], ['h', 3], ['h', 2], ['k', 1], ['k', 1]]; let k = 0;
@@ -275,9 +285,31 @@ function warTest(game, heroId) {
     for (const kind of wanted) { const max = F.war.buildings[kind]?.max ?? 1; let k = 0; while (k < max && build(kind)) k++; if (!k) throw new Error(`war_test_yakuza: no room for a ${kind} in Kurogane`); }
     game.frontier.world.recount?.(t.id);
     rec.defense = { chest: 1500, put: 1500 }; }
+  // Tim 2026-11-18: a fair defender. Kurogane gets a railway station and a line to the capital (so the Kuroda treasury
+  // can reach its war chest by train) and average stock as tools/soak_war.mjs SIZES.average.
+  { const t = S.frontier.settlements.war_test_town, rh = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === rival), cap = r => storageCap(t, game.frontier.data, r);
+    if (!placeBuilt(game, t, 'station')) throw new Error('war_test_yakuza: no room for the Kurogane station');
+    layLine(game, rh, t.id, 'capital');
+    Object.assign(t.stock, { food: Math.min(3000, cap('food')), timber: Math.min(1500, cap('timber')), stone: Math.min(800, cap('stone')), goods: Math.min(300, cap('goods')), ryo: 2500 }); }
+  // Tim 2026-11-18: the player's own small Village (Hamada) with a station and a line to the capital, on the camp's side
+  // and outside the war circle, so the camp station can lay its spur to it (a camp never links to the capital, 8e-4).
+  { const kt = S.frontier.settlements.war_test_town, R0 = W.circleRadius ?? 900;
+    const gap = s => Math.min(...Object.values(S.frontier.settlements).filter(t => Number.isFinite(t.x)).map(t => Math.hypot(t.x - s.x, t.z - s.z)), Infinity);
+    const site = wd.sites.map(s => ({ s, d: Math.hypot(s.x - rec.x, s.z - rec.z) })).filter(o => o.d >= 700 && gap(o.s) >= 900 && Math.hypot(o.s.x - kt.x, o.s.z - kt.z) > R0 + 300)
+      .sort((a, b) => a.d - b.d)[0]?.s;
+    if (!site) throw new Error('war_test_yakuza: no site for the player town');
+    const t = game.frontier.world.addTown({ id: 'war_test_home', name: 'Hamada', region: null, owner: hero.owner, x: site.x, z: site.z, site: site.id ?? null,
+      traits: { soil: 1, water: 1, defense: 1, nodes: {} }, pop: 25, stock: { food: 300, timber: 300, stone: 300, goods: 100, ryo: 300 }, buildings: [{ type: 'town_hall', stage: 'built', cell: 0 }] });
+    game.step([]);
+    t.tier = 2; t.founded = (S.tick ?? 0) - 12000 * 4;
+    if (!placeBuilt(game, t, 'station', rec)) throw new Error('war_test_yakuza: no room for the Hamada station');
+    for (const kind of ['storehouse', 'storehouse']) placeBuilt(game, t, kind);
+    layLine(game, hero, t.id, 'capital');
+    const cap = r => storageCap(t, game.frontier.data, r);
+    Object.assign(t.stock, { food: Math.min(3000, cap('food')), timber: Math.min(1500, cap('timber')), stone: Math.min(800, cap('stone')), goods: Math.min(300, cap('goods')), ryo: 2500 }); }
   delete S.clans[hero.owner].warPack;
   const hall = rec.camp.buildings.find(b => b.type === 'camp_hall');
-  // 7c (Tim 2026-11-12): the war test starts with only the camp hall (tier 1) and enough ryo, timber and stone to build everything
+  // the camp starts with only the camp hall (tier 1) and the tier-2 pack (Tim 2026-11-18; was the 7c sandbox of 2026-11-12)
   const place = kind => {
     for (const d of [40, 60, 80, 100, 120]) for (let a = 0; a < 24; a++) {
       const r = war.campCheck(rec.id, kind, { x: hall.x + Math.cos(a * Math.PI / 12) * d, z: hall.z + Math.sin(a * Math.PI / 12) * d });
@@ -290,7 +322,6 @@ function warTest(game, heroId) {
   };
   for (const kind of []) place(kind);   // buildings to start with, built at once (none: Tim builds the camp himself)
   for (const w of rec.camp.workers) delete w.project;
-  rec.camp.chest = 40000; Object.assign(rec.camp.stock, { timber: 12000, stone: 10000 });
   // the hero and his crew by the camp hall
   Object.assign(hero, { x: hall.x + 6, z: hall.z + 4 });
   let k = 0;

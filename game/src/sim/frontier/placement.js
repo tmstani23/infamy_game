@@ -82,6 +82,8 @@ export function createPlacement({ state, data, world, construction, resourceInde
   // Validates without changing anything. Returns a receipt; ok:true means place() would succeed.
   function check(s, { kind, cells, rot = 0 }) {
     if (!s?.grid) return bad('no grid');
+    // Tim 2026-11-18: while surrender terms are on the table for this town's war, nobody builds in it
+    if (Object.values(state?.frontier?.wars?.list || {}).some(w => w.town === s.id && w.terms)) return bad('A ceasefire is on: nobody builds while terms are on the table', Array.isArray(cells) ? cells : []);
     // 7c-4: a ruined town hall stops the town placing anything until workers repair it
     if ((s.buildings || []).some(b => b.type === 'town_hall' && b.stage === 'ruined')) return bad('the town hall is a ruin: send workers to repair it', Array.isArray(cells) ? cells : []);
     const g = s.grid, { n } = g;

@@ -37,8 +37,33 @@ assert.ok(r.ok, r.reason);
 assert.equal(w.camp.chest, 1000 - A.cost[0].ryo);
 assert.equal(w.camp.stock.timber, 500 - A.cost[0].timber);
 assert.equal(w.camp.stock.stone, 500 - A.cost[0].stone);
+// Tim 2026-11-18: a second buy waits in the queue, paid now; a waiting one cancels for its full price back
+const chest1 = w.camp.chest, t1 = w.camp.stock.timber;
 r = buy(hero, 'ranged', 'armor');
-assert.ok(!r.ok && /already/i.test(r.reason), 'one at a time');
+assert.ok(r.ok, r.reason);
+assert.equal(w.camp.chest, chest1 - A.cost[0].ryo, 'queued: paid now');
+assert.equal(w.armory.attacker.queue.length, 1);
+assert.equal(AR.view('w1', 'player').queue[0].level, 1);
+g.step([{ id: hero.id, type: 'frontier', action: 'armoryCancel', war: 'w1', index: 0 }]);
+assert.equal(w.armory.attacker.queue.length, 0, 'cancelled');
+assert.equal(w.camp.chest, chest1, 'full ryo back'); assert.equal(w.camp.stock.timber, t1, 'full timber back');
+// queued levels of one track count up: melee weapons 2 can wait behind level 1 in the work, at the level 2 price
+r = buy(hero, 'melee', 'weapons'); assert.ok(r.ok, r.reason);
+assert.equal(w.camp.chest, chest1 - (A.cost[1] || A.cost[0]).ryo, 'level 2 price');
+assert.equal(AR.view('w1', 'player').groups.find(x => x.group === 'melee').tracks.find(t => t.track === 'weapons').queued, 2);
+// cancelling it refunds it; the queue cap holds
+g.step([{ id: hero.id, type: 'frontier', action: 'armoryCancel', war: 'w1', index: 0 }]);
+assert.equal(w.camp.chest, chest1);
+const cap = A.queue ?? 5; w.camp.chest = 99999; Object.assign(w.camp.stock, { timber: 99999, stone: 99999 });
+for (const gr of ['ranged', 'mounted', 'siege', 'ranged'].slice(0, cap - 1)) assert.ok(buy(hero, gr, gr === 'ranged' && w.armory.attacker.queue.some(q => q.group === 'ranged') ? 'weapons' : 'armor').ok);
+r = buy(hero, 'siege', 'weapons');
+assert.ok(!r.ok && /queue is full/i.test(r.reason), 'queue cap');
+// clear the queue for the checks below (full refunds)
+while (w.armory.attacker.queue.length) g.step([{ id: hero.id, type: 'frontier', action: 'armoryCancel', war: 'w1', index: 0 }]);
+assert.equal(w.camp.chest, 99999, 'all refunded');
+w.camp.chest = chest1; Object.assign(w.camp.stock, { timber: t1, stone: 500 - A.cost[0].stone });
+// a queued level starts when the one in the work is done
+r = buy(hero, 'melee', 'armor'); assert.ok(r.ok, r.reason);
 // the work stops while the armory is down
 arm.stage = 'ruined'; run(secs + 5);
 assert.equal(grunt.warUp, undefined, 'paused with the armory down');
@@ -49,7 +74,7 @@ assert.equal(archer.warUp, undefined, 'other groups unchanged');
 assert.equal(hero.warUp, undefined, 'the hero is never changed');
 assert.match(S.clans.player.notice?.text || '', /melee weapons level 1/i);
 // armor: less damage taken; a troop trained later has the upgrades too
-assert.ok(buy(hero, 'melee', 'armor').ok); run(secs + 5);
+assert.equal(w.armory.attacker.work?.track, 'armor', 'the queued armor level started next'); run(secs + 5);
 assert.equal(grunt.warUp.taken, 1 - A.step);
 const g2 = S.entities[War.spawnTroop(w, 'spearman', cx + 7, cz)];
 assert.deepEqual(g2.warUp, grunt.warUp, 'a new troop of the group gets them');

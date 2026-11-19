@@ -136,7 +136,7 @@
   #partyframes .mate.passive .name { color: #c9e4ff; }
   #partyframes .mate.jailed .name { color: #8fb4ff; }
   #partyframes .mate.jailed .pip { background: repeating-linear-gradient(90deg, #8fb4ff 0 3px, #1a2440 3px 6px); }
-  #selpanel { position: fixed; left: 14px; bottom: 150px; display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); align-content: start; align-items: start; gap: 5px; padding: 7px; width: 300px; box-sizing: border-box; overflow: hidden;   /* Tim 2026-11-12: cards wrap into whatever size the layout gives it, never spill out or stretch */
+  #selpanel { position: fixed; left: 14px; bottom: 150px; display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); align-content: start; align-items: start; gap: 5px; padding: 7px; width: 300px; max-height: 45vh; box-sizing: border-box; overflow: hidden;   /* Tim 2026-11-12: cards wrap into whatever size the layout gives it, never spill out or stretch */
     background: linear-gradient(#14171d, #0b0d11); border: 1px solid #5c4a2c; border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,.6); user-select: none; animation: rise .15s ease-out; }
   #selpanel .card { display: flex; min-width: 0; gap: 6px; align-items: center; padding: 3px; border-radius: 5px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); cursor: pointer; }
   #selpanel .card:hover { border-color: #ffd34d; }

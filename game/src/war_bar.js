@@ -30,6 +30,14 @@ export const WAR_BAR_CSS = `
 #warbar .wb-side.ready .wb-track{box-shadow:inset 0 0 0 1px #e07b6c,0 0 10px #c9473d88}
 #warbar .wb-ready{position:absolute;inset:0;display:grid;place-items:center;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#ffb9a8;animation:wbpulse 1.6s ease-in-out infinite}
 @keyframes wbpulse{0%,100%{opacity:.55}50%{opacity:1}}
+#warbar .wb-terms{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px auto 0;width:max-content;max-width:100%;padding:8px 16px;border-radius:8px;background:linear-gradient(180deg,#2a1c12f2,#14181cf2);border:1px solid #c9a24a;box-shadow:0 4px 18px #000a}
+#warbar .wb-terms b{display:block;font-size:18px;font-weight:600;color:#ffe2a6;letter-spacing:.02em}
+#warbar .wb-terms span{display:block;font-size:11px;color:#c9b07a;margin-top:1px}
+#warbar .wb-terms button{pointer-events:auto;cursor:pointer;border:1px solid #c9a24a;border-radius:6px;background:#3a2a14;color:#ffe9c0;padding:5px 14px;font:600 13px system-ui,sans-serif}
+#warbar .wb-terms button:hover{border-color:#ffe0a1}
+#warbar .wb-terms.owe{border-color:#e0786c}
+#warbar .wb-terms.owe button{animation:wbflash 1s ease-in-out infinite}
+@keyframes wbflash{0%,100%{background:#3a2a14;box-shadow:0 0 0 #0000}50%{background:#8e2d26;box-shadow:0 0 14px #e0786c}}
 #warbar .wb-line{margin:5px auto 0;width:max-content;max-width:100%;padding:3px 12px;border-radius:10px;background:#0f1317e6;border:1px solid #8e2d26;color:#ffb4a4;font-size:12px;text-align:center}
 #warbar .wb-line.good{color:#d9f0c4;border-color:#4d6b3a}
 #warbar .wb-chan{grid-column:1 / 4;height:6px;border-radius:4px;background:#0a0c0e;box-shadow:inset 0 0 0 1px #3a3530;overflow:hidden;margin-top:2px}
@@ -59,7 +67,8 @@ export function warBarHtml(m) {
   };
   return `<div class="wb">${side(m.mine, 'me')}<div class="wb-mid"><span class="wb-eyebrow">${esc(m.channel?.text || m.eyebrow || 'War')}</span><span class="wb-title">${esc(m.title)}</span>${m.watch ? `<button class="wb-watch" data-watch="${esc(m.war)}" title="${esc(m.watch === 'back' ? 'Back to your hero' : 'Look at this war from where you are. You give no orders while you watch.')}">${m.watch === 'back' ? 'Back' : 'Watch'}</button>` : ''}</div>${side(m.foe, 'foe')}`
     + (m.channel ? `<div class="wb-chan${m.channel.mine ? ' mine' : ''}"><i style="width:${(Math.max(0, Math.min(1, m.channel.frac)) * 100).toFixed(1)}%"></i></div>` : '') + '</div>'
-    + (m.line ? `<div class="wb-line${m.line.good ? ' good' : ''}">${esc(m.line.text)}</div>` : '');
+    + (m.notice ? `<div class="wb-terms${m.notice.owe ? ' owe' : ''}"><div><b>${esc(m.notice.text)}</b>${m.notice.sub ? `<span>${esc(m.notice.sub)}</span>` : ''}</div><button data-terms="${esc(m.war)}">Open terms</button></div>`
+      : m.line ? `<div class="wb-line${m.line.good ? ' good' : ''}">${esc(m.line.text)}</div>` : '');
 }
 const nice = t => String(t || 'building').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const LINE_TICKS = 6 * 20, HIT_TICKS = 20;
@@ -93,16 +102,21 @@ export function warBarModel(game, heroId, prefer = null) {
   const line = last ? { text: `${last.side === mySide ? 'Your' : 'Enemy'} ${nice(last.type).toLowerCase()} destroyed, morale down ${last.amount}`, good: last.side !== mySide } : null;
   // 8c: a ceasefire while surrender terms are on the table
   const T = w.terms, truce = T ? { text: T.state === 'outcome' ? (attacking ? 'They left: choose what happens to the town' : 'No terms: the attacker is choosing') : `Ceasefire: ${T.by === (attacking ? 'attacker' : 'defender') ? 'you' : foeClan?.name || 'they'} surrendered, terms are on the table`, good: T.by !== (attacking ? 'attacker' : 'defender') } : null;
-  return { eyebrow: T ? 'Ceasefire' : game.frontier?.warGeneral?.runs?.(w, me) ? 'General in command' : 'War', title: `${attacking ? 'Siege' : 'Defence'} of ${t?.name || 'the town'}`, mine: side(mySide, true), foe: side(foeSide, false), line: truce || line, war: w.id };
+  // Tim 2026-11-18: a big "waiting on terms" notice with an Open terms button, flashing when it is your move
+  const meSide = attacking ? 'attacker' : 'defender', myMove = !!T && (T.state === 'outcome' ? attacking : T.by === meSide ? !T.offer : !!T.offer);
+  const notice = T ? { text: T.state === 'outcome' ? (attacking ? 'Choose what happens to the town' : 'Waiting on the attacker') : myMove ? (T.by === meSide ? 'Terms: make your offer' : 'Terms: your answer is needed') : 'Waiting on terms', owe: myMove,
+    sub: T.state === 'outcome' ? '' : 'Ceasefire: nobody attacks, trains or builds' } : null;
+  return { notice, eyebrow: T ? 'Ceasefire' : game.frontier?.warGeneral?.runs?.(w, me) ? 'General in command' : 'War', title: `${attacking ? 'Siege' : 'Defence'} of ${t?.name || 'the town'}`, mine: side(mySide, true), foe: side(foeSide, false), line: truce || line, war: w.id };
 }
-export function createWarBar({ game, heroId, channelOf = () => null, watch = null }) {
+export function createWarBar({ game, heroId, channelOf = () => null, watch = null, openTerms = () => {} }) {
   if (typeof document === 'undefined') return { update() {} };
   if (!document.getElementById('warbarcss')) { const s = document.createElement('style'); s.id = 'warbarcss'; s.textContent = WAR_BAR_CSS; document.head.appendChild(s); }
   const root = document.createElement('div'); root.id = 'warbar'; root.hidden = true; document.body.appendChild(root);
   let shown = '';
   // 8d-4: Watch looks at the war from afar (war_watch.js); Back returns to the hero
+  root.addEventListener('click', e => { const t = e.target.closest?.('[data-terms]'); if (t) { openTerms(t.dataset.terms); t.blur(); return; } });   // Tim 2026-11-18
   root.addEventListener('click', e => { const b = e.target.closest?.('[data-watch]'); if (!b || !watch) return; if (watch.watching() === b.dataset.watch) watch.end(); else watch.start(b.dataset.watch); b.blur(); });
-  for (const ev of ['pointerdown', 'mousedown']) root.addEventListener(ev, e => { if (e.target.closest?.('[data-watch]')) e.stopPropagation(); });
+  for (const ev of ['pointerdown', 'mousedown']) root.addEventListener(ev, e => { if (e.target.closest?.('[data-watch],[data-terms]')) e.stopPropagation(); });
   function update() {
     const m = warBarModel(game, heroId, watch?.watching() || null);
     if (!m) { if (!root.hidden) { root.hidden = true; shown = ''; } return; }

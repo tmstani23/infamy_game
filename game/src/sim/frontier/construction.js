@@ -133,6 +133,7 @@ export function createConstruction({ state, data, world,resourceIndex }) {
     if (p.progress >= p.need) { finish(s, p); return; }
     // Tim 2026-11-15: the townspeople build a player's placed building at rates.townBuildRate each (half speed); workers
     // he sends add their own work (structures.js workOn). A bot clan's town, or one with Automatic on, builds at full speed.
+    if (Object.values(f()?.wars?.list || {}).some(w => w.town === s.id && w.terms)) { wait(s, 'ceasefire'); return; }   // Tim 2026-11-18: no building in a ceasefire
     if (!s.builders) { if (!sentBuilders(s, p)) wait(s, 'builders'); return; }
     p.progress = Math.min(p.need, p.progress + s.builders * townRate(s));
     if (p.progress >= p.need) finish(s, p);

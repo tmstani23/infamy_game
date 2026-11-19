@@ -555,7 +555,7 @@ async function start() {
   // war 8d-4: the war-declared alert and Watch a war from afar (no orders while watching)
   const warWatch=createWarWatch({game,view,heroId,catalog,frontierData:simOptions.frontier,notify:(...a)=>callout(...a),sound:{clip:(...a)=>sound.clip(...a),bell:()=>sound.bell()},ping:(x,z)=>{minimap.ping(x,z);gameMap.ping(x,z);},showOnMap:(x,z)=>gameMap.showAt(x,z),
     busy:()=>warTerms.isOpen()||townWar.isOpen()||warCamp.isOpen()||gameMap.isOpen()||warBlocked(),onStart:()=>{cityWatch.end();frontierBuildUI?.cancel();deploymentPanel.close();gameMap.close();crewInput.clear();warCamp.close();townWar.close();}});
-  const warBar=createWarBar({game,heroId,channelOf:id=>warOutcome?.channelOf(id)||null,watch:warWatch});   // war 8a-2: both sides' morale at the top of the screen
+  const warBar=createWarBar({game,heroId,channelOf:id=>warOutcome?.channelOf(id)||null,watch:warWatch,openTerms:id=>warTerms.show(id)});   // war 8a-2: both sides' morale at the top of the screen
   const warTerms=createWarTermsPanel({game,heroId,send:c=>pending.push(c),blocked:warBlocked,onStart:()=>{frontierBuildUI?.cancel();warCamp.close();townWar.close();warOutcome.close();}});   // war 8c-3: the surrender terms window
   const warOutcome=createWarOutcomeMenu({game,heroId,send:c=>pending.push(c),blocked:warBlocked});   // war 8a-3: Use at a ruined hall takes it (the outcome picker for a town)
   const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warCamp.cancel();},blocked:warBlocked,openCamp:id=>warCamp.show(id),defending:()=>townWar.defendingHere(),openDefense:id=>townWar.show(id)});

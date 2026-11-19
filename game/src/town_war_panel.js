@@ -13,6 +13,7 @@ import { generalTab, GENERAL_CSS, keepShare, STRATEGY_NAMES } from './war_genera
 import { portrait } from './portraits.js';
 import { SPECIALS } from './sim/special_cast.js';
 import { ABOUT } from './ability_rows.js';
+import { specialHover } from './special_stats.js';
 import { militaryFor, militaryNeeds, militaryCount, warUpgradeCheck, warUpgradeSeconds } from './sim/frontier/town_military.js';
 import { cellToWorld } from './sim/frontier/town_grid.js';
 import { chestSendHtml, chestSendSig, chestSendClick, CHEST_SEND_CSS } from './war_chest_send.js';   // 8e-3
@@ -81,7 +82,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
       const model = (typeof e.model === 'string' ? e.model : e.model?.[faction] || Object.values(e.model || {})[0]) || u.sprite || t;
       const dps = u.gatling ? u.gatling.damage * 20 / Math.max(1, u.gatling.everyTicks) : (u.damage || 0) / Math.max(0.1, u.attackSpeed || 1);
       const range = u.rifle?.range ?? u.gatling?.range ?? u.attackRange ?? 1;
-      const abil = Object.entries(SPECIALS).filter(([, S]) => S.has(u, { type: t })).map(([id, S]) => `${S.name}: ${ABOUT[id] || ''}`);
+      const abil = Object.entries(SPECIALS).filter(([, S]) => S.has(u, { type: t })).map(([id, S]) => specialHover(id, S.name, ABOUT[id], u));   // with its numbers (Tim 2026-11-18)
       if (TRAITS[t]) abil.push(TRAITS[t]);
       return { name: u.name || nice(key), model, hp: u.hp ?? 0, dps, range, speed: u.run ?? 0, abil };
     };
@@ -102,7 +103,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
           return `<div class="ucard" title="${esc(tip)}"><div class="uhead"><div class="ustill${pic.includes('/stills/') ? ' concept' : ''}"${pic ? ` style="background-image:url('${esc(pic)}')"` : ''}></div><div class="ustats"><div class="un">${esc(S.name)}</div>
             <div class="sr"><span>Health</span><b>${S.hp}</b></div><div class="sr"><span>Damage a sec</span><b>${S.dps.toFixed(S.dps < 10 ? 1 : 0)}</b></div><div class="sr"><span>Range</span><b>${S.range}</b></div><div class="sr"><span>Speed</span><b>${S.speed}</b></div></div></div>
             <div class="cost" style="justify-content:flex-start;margin-top:6px"><span class="chip ryo${v.chest < ryo ? ' short' : ''}"><i></i>${ryo}</span><span class="small">${Math.round(seconds)} s each</span></div>
-            <div class="small ab">${S.abil.length ? esc(S.abil.map(x => x.split(':')[0].split('.')[0]).join(', ')) : '&nbsp;'}</div>
+            <div class="small ab">${S.abil.length ? S.abil.map(x => `<span title="${esc(x)}">${esc(x.split(':')[0].split('.')[0])}</span>`).join(', ') : '&nbsp;'}</div>
             <div style="display:flex;gap:6px;margin-top:6px">${num(`t:${bld.id}:${unit}`)}<button class="go" data-train="${esc(bld.id)}" data-unit="${esc(unit)}"${locked ? ' disabled' : ''}>Train</button></div></div>`;
         }).join('');
         const tl = first ? (v.buildings.find(x => x.id === bld.id)?.units.find(u => u.unit === first.unit)?.seconds || 1) * 20 : 1;
@@ -165,9 +166,10 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
   for (const ev of ['keyup', 'pointerdown', 'mousedown', 'wheel']) root.addEventListener(ev, e => e.stopPropagation());
   const count = (key, d = 1) => { const n = Math.floor(Number(counts[key] ?? d)); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
   root.addEventListener('click', e => {
-    const b = e.target.closest?.('[data-close],[data-tab],[data-page],[data-tpage],[data-build],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-put],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup]'); if (!b || !open) return;
+    const b = e.target.closest?.('[data-close],[data-tab],[data-page],[data-tpage],[data-build],[data-cancel],[data-armcancel],[data-train],[data-untrain],[data-upgrade],[data-put],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup]'); if (!b || !open) return;
     const d = b.dataset, s = town(open), w = warOn(open); why = ''; sig = '';
     if ((d.rsend || d.rcancel) && w) { why = chestSendClick(d, { war: w, heroId, counts, send }) || ''; fill(); return; }   // 8e-3
+    if (d.armcancel != null && w) { send({ id: heroId, type: 'frontier', action: 'armoryCancel', war: w.id, index: Number(d.armcancel) }); fill(); return; }   // armory queue (Tim 2026-11-18)
     if (d.armup && w) { const [group, track] = d.armup.split(':'); send({ id: heroId, type: 'frontier', action: 'armoryUp', war: w.id, group, track }); fill(); return; }   // 8e-9
     if (d.close) return close();
     if (d.terms) { if (w) { close(); openTerms(w.id); } return; }
@@ -186,7 +188,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
   });
   addEventListener('keydown', e => { if (!root.hidden && e.code === 'Escape') { close(); e.preventDefault(); e.stopImmediatePropagation(); } }, { capture: true });
   let seen = 0;
-  const ACTS = /^(warChestTown|townTrain|townUntrain|warUpgradeHall|cancel|warSurrender|warStrategy|warKeep|ship|armoryUp|treasuryKeep)$/;
+  const ACTS = /^(warChestTown|townTrain|townUntrain|warUpgradeHall|cancel|warSurrender|warStrategy|warKeep|ship|armoryUp|armoryCancel|treasuryKeep)$/;
   function update() {
     for (const r of game.state.frontier?.receipts || []) if (r.seq > seen) { seen = r.seq; if (!r.ok && open && r.clan === hero()?.owner && ACTS.test(r.action)) { why = r.reason; sig = ''; } }   // refusals first, so this frame shows them
     if (!root.hidden) { if (!mine(town(open)) || blocked()) close(); else fill(); }

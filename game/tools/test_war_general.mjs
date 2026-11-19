@@ -383,7 +383,7 @@ function scene(seed = 47, tune = null) {
   assert.equal(t.cmd({ action: 'devStartWar', town: 'tR', side: 'attack' }).ok, true);
   const w = g.frontier.war.warOn('tR'), SX = g.frontier.structures;
   const fort = SX.list().filter(x => x.town === 'tR' && x.type === 'stockade');
-  assert.equal(fort.length, 3); assert.ok(fort.every(x => x.max === 60000), 'a Town stockade has 60,000 health');
+  assert.equal(fort.length, 3); assert.ok(fort.every(x => x.max === 48000), 'a Town stockade has 48,000 health');
   const mine = () => Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === rival && !e.dead && e.type !== 'horse');
   const held = () => mine().filter(e => e.garrison?.zone);
   n = 0; while (held().length < 2 && n++ < 80) t.run(100);

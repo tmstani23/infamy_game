@@ -628,6 +628,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       if (fire) { fire.doused = (fire.doused || 0) + n; if (fire.doused >= (REP().douseWork ?? 60)) douse(st); return 'working'; }
       const hp = hpOf(st);
       if (hp <= 0 || hp >= st.max) return 'done';
+      if (s.camp ? s.war?.terms : Object.values(f().wars?.list || {}).some(w => w.town === s.id && w.terms)) return 'waiting';   // Tim 2026-11-18: no repairs in a ceasefire
       const gain = Math.min(st.max - hp, per);
       if (!payRepair(s, gain)) return 'waiting';
       if (hp + gain >= st.max - 1e-6) { clearHp(st); return 'done'; }
@@ -638,6 +639,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     if (tp) {
       if (tp.progress >= tp.need) return 'done';
       if (!tp.paid || tp.phase === 'clearing') return 'waiting';
+      if (Object.values(f().wars?.list || {}).some(w => w.town === s.id && w.terms)) return 'waiting';   // Tim 2026-11-18: no building in a ceasefire
       tp.progress = Math.min(tp.need, tp.progress + n * (data.rates?.workerBuildRate ?? 1) / (data.cadenceTicks || 20));
       return 'working';
     }

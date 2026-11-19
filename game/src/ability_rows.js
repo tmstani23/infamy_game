@@ -11,6 +11,7 @@
 // 7c-2: only barracks troops (grunts, spearmen, brutes, enforcers), plain melee crew and a melee hero torch (a 1 second cast); Fire bomb is a special.
 // Presentation and input only; the rules are in sim/frontier/structures.js and sim/special_cast.js.
 import { SPECIALS, specialView } from './sim/special_cast.js';
+import { specialNumbers } from './special_stats.js';
 import { sharedKeybinds } from './keybinds.js';
 const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
 const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -70,7 +71,8 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
     const v = s.v || {};
     const lines = [`<div><span>Ready</span>${v.ready || 0} of ${v.have || 0} selected</div>`];
     if (a.auto) lines.push(`<div><span>Auto</span>${!v.auto ? 'off' : v.auto === v.have ? 'on' : `on for ${v.auto} of ${v.have}`}</div>`);
-    return `<b>${a.name}</b><i>${s.keyText}</i>${lines.join('')}<p>${a.about}</p>${a.special ? `<p>One press, one caster: press again for the next unit.${a.auto ? ' Right-click this button to switch auto-cast on or off.' : ''}</p>` : ''}`;
+    const u = a.special ? picked().units.map(id => units?.types?.[game.state.entities[id]?.type]).find(d => d && specialNumbers(a.id, d)) : null;   // its numbers, from a selected caster (Tim 2026-11-18)
+    return `<b>${a.name}</b><i>${s.keyText}</i>${lines.join('')}<p>${a.about}</p>${u ? `<p>${specialNumbers(a.id, u)}</p>` : ''}${a.special ? `<p>One press, one caster: press again for the next unit.${a.auto ? ' Right-click this button to switch auto-cast on or off.' : ''}</p>` : ''}`;
   }
   function slot(a) {
     let s = slots.get(a.id);

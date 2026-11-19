@@ -13,7 +13,7 @@
 // (capital + cityOffset + their street position; indoors = the capital point); the island units (e.area === 'world') use x, z as is.
 export function createDiscovery({ state, world }) {
   if (!world) return { tick() {}, command() { return false; }, siteDiscovered() { return false; }, enabled: false };
-  const R = { cell: 250, everyTicks: 10, revealHero: 600, revealUnit: 350, scoutRadius: 150, sightRadius: 400, maxPins: 50, pinNoteChars: 40, ...(world.rules?.discovery || {}) };
+  const R = { cell: 250, everyTicks: 10, revealHero: 600, revealUnit: 350, scoutRadius: 150, sightRadius: 400, maxPins: 50, pinNoteChars: 40, townSight: 900, ...(world.rules?.discovery || {}) };
   const cols = Math.ceil(world.size.w / R.cell), rows = Math.ceil(world.size.h / R.cell);
   const off = world.capital.cityOffset || { x: 0, z: 0 };
   // indoors (rooms sit far off the street map, sim/interiors.js) counts as the capital point itself
@@ -53,6 +53,14 @@ export function createDiscovery({ state, world }) {
       let grid = w.discovered[clan];
       const eyes = mine.map(e => ({ e, p: worldPos(e) }));
       for (const { e, p } of eyes) grid = reveal(grid, p.x, p.z, e.type === 'hero' ? R.revealHero : R.revealUnit);
+      // Tim 2026-11-18: a rival town is spotted from townSight away (roofs and smoke carry further than land is
+      // uncovered): its own cell is marked, so it shows on the M map and in the world (sim_snapshot.js frontierFor)
+      for (const t of Object.values(state.frontier?.settlements || {})) {
+        if (t.capital || t.owner === clan || !Number.isFinite(t.x)) continue;
+        if (!eyes.some(({ p }) => Math.hypot(t.x - p.x, t.z - p.z) <= R.townSight)) continue;
+        const i = Math.floor(t.x / R.cell), j = Math.floor(t.z / R.cell), k = j * cols + i;
+        if (i >= 0 && j >= 0 && i < cols && j < rows && grid[k] !== '1') grid = grid.slice(0, k) + '1' + grid.slice(k + 1);
+      }
       w.discovered[clan] = grid;
       const scouted = w.scouted[clan];
       for (const { e, p } of eyes) {

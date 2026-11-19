@@ -459,7 +459,7 @@ session, read it before doing anything else.
 
 **Stockade garrison (built 2026-11-06):** Stockade: 4 cells (size 2), 200 timber, 150 economy ticks to build; Village 1, Town 2. Drawn with the fort cutout. Garrison (`frontier.json` `buildings.stockade.garrison`): capacity 40, range 14, heal 3x. The clan's hero, crew and workers can enter; inside they are not drawn, stand at the building and heal 3x faster, even right after a hit. Workers inside count as idle with status "Garrisoned in stockade"; crew show the same. A destroyed or removed stockade releases everyone. Code: `sim/frontier/garrison.js` (command `{ type: 'frontier', action: 'garrison', mode: 'enter'|'leave', town, units }`, flag `e.garrison`), regeneration in `sim/stats.js`, hostility in `sim/game.js`, hiding in `render/view.js`. Test: `game/tools/test_frontier_garrison.mjs`. Not yet checked in a browser.
 
-**Stockade health (2026-11-06):** `frontier.json` `buildings.stockade.garrison.hpByTier` 40,000 at Village, 60,000 at Town (8d-9). Any hit on a unit inside (area attacks such as dynamite or a cleave included) goes to the stockade instead. At 0 it is ruined, everyone inside piles out round it, and the governor rebuilds it on the same spot. The town panel's Stockade row shows its health. Code: `garrison.shelter()` in `sim/frontier/garrison.js`, called from `sim/combat.js`. Enemies attacking the building itself waits for F6 (war).
+**Stockade health (2026-11-06):** `frontier.json` `buildings.stockade.garrison.hpByTier` 32,000 at Village, 48,000 at Town (8d-9; was 40,000 and 60,000 until 2026-11-18). Any hit on a unit inside (area attacks such as dynamite or a cleave included) goes to the stockade instead. At 0 it is ruined, everyone inside piles out round it, and the governor rebuilds it on the same spot. The town panel's Stockade row shows its health. Code: `garrison.shelter()` in `sim/frontier/garrison.js`, called from `sim/combat.js`. Enemies attacking the building itself waits for F6 (war).
 
 **Frontier building art (2026-11-06):** `tools/add_frontier_building_art.py` cuts `assets/environment/frontier_buildings1.png` into `game/art/buildings/`: fort 520 px, granary 400, sawmill 440, smithy 400, infirmary 440, pier_fish_house 440 (listed in `game/art/cutouts.json` and `game/data/art.json`). `frontier.json` `townArt`: stockade → fort, storehouse → granary, lumber_camp → sawmill, workshop, `zone:k` and the work stage → smithy. Infirmary and pier have no building type yet. Not yet checked in the game.
 
@@ -1028,6 +1028,7 @@ last-seen marker with direction. The snapshot carries only the player's own disc
 Check (pass/fail): walking reveals cells along the path only; the snapshot never contains another
 clan's discovery or unseen enemy positions; discovery survives save/load.
 Done note: "W2.3 discovery and fog in."
+War fog (2026-11-18): rival towns are spotted from `rules.discovery.townSight` (900) by any unit (M map and world). Remembered sight (`sim/sightings.js`, tools/test_sightings.mjs): a rival town's grid layers are sent only for the 3x3-cell blocks your units or watchtowers have seen (live state there); its buildings, and an enemy camp's buildings, show as last seen. Player clans only; bots unchanged.
 
 ### W2.4. World tab  [SMALL]
 Needs: W2.3
@@ -2539,6 +2540,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - Commands: `warSurrender { war }`, `warOffer { war, amount }`, `warLeave { war }`, `warAnswer { war, answer: accept | no | never }`, `warOutcome { war, outcome }`.
    - One offer at a time: a new offer only after the last one is answered. Each offer is open `war.surrender.offerSeconds` (60); The first offer must come within `war.surrender.firstSeconds` (60) of the surrender, and after a No the next within `gapSeconds` (30); running out counts as refused for good. A defender's refused surrender gives the attacker `outcomeSeconds` (60) to pick capture, sack or burn, else sack.
    - Ceasefire while `war.terms` is set: the two sides do not attack each other, towers and garrisons do not fire, fires go out, channels stop, no training (game.js warNeutral, structures.js).
+   - Ceasefire building (Tim 2026-11-18): during a ceasefire neither side builds: no camp or town placing, line, upgrade or rebuild; started sites and repairs pause (the camp and the war town only). The war bar shows a terms notice ("Waiting on terms", "Terms: your answer is needed", "Terms: make your offer") with an Open terms button that flashes when it is your move. While an offer waits for your answer the terms window stays open: Esc does nothing and the close button asks to refuse for good.
    - Results on the history record: `ransomed` (accepted), `attackerSurrendered` (as campFell), or captured / sacked / burned with `terms.by` 'defender'. Cooldown `war.surrender.cooldownDays` 3.
    - Estimate and price: `chance(w, clan)` from what that clan has spotted (`war.spotted[clan]`), never a war chest, seeded noise; `price(w, viewer)`. Snapshots hide the other side's `suggest` / `fair` and `spotted`.
    - The confirm box states that the war ends on the surrendering side's terms or in its defeat, the 60 s for the first offer, and what a defeat costs: an attacker's war chest goes to the town; for a defender the enemy decides what happens to the town (src/war_surrender_foot.js).
@@ -2610,7 +2612,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
        - tools/soak_war.mjs output adds walls, gates, brought, attackerUnits, defenderUnits, campBuilt; `DUMP=1` prints the troops of an unfinished war.
    - **8d-9 built 2026-11-16 (the stockade as a fortress):** garrison.js, structures.js, war_general_brain.js, frontier.json, garrison_card.js, structure_card.js, town_hover.js, town_props.js, selection_panel.js, build_tooltips.js, war_camp_panel.js, war_general_tab.js, index.html (Controls).
      - Health and count:
-       - `buildings.stockade.garrison.hpByTier`: full health by town hall tier: 40,000 at Village, 60,000 at Town (`hp` 40,000 is the fallback). `stockadeHp(data, tier)` in garrison.js; structures.js `townMax` and the garrison card use it.
+       - `buildings.stockade.garrison.hpByTier`: full health by town hall tier: 32,000 at Village, 48,000 at Town (Tim 2026-11-18, was 40,000 and 60,000; `hp` 40,000 is the fallback). `stockadeHp(data, tier)` in garrison.js; structures.js `townMax` and the garrison card use it.
        - `tiers.list[].placed.stockade`: 0, 1, 3.
        - Stockade cost by town hall tier: `buildings.stockade.costByTier`: Village 400 timber and 450 stone, Town 500 timber and 600 stone (`cost` 400 / 450 is the fallback). `buildingCost(data, type, s)` in sim/frontier/tiers.js gives a placed building's cost in a town: `costByTier` by the town's tier when the building has one, else `cost`. Placement, construction projects (rebuilds included), the general's saving check and the build tooltip use it.
        - Each stockade holds `garrison.capacity` (40). Membership is per stockade: `garrison.membersIn(town, building)`, `usedIn`, `forts`, `keyOf`; a sheltering worker carries `worker.garrisonIn` (building id).
@@ -2619,7 +2621,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
        - War troops (`e.warTroop`) hold a stockade the structure way (as a house): `e.garrison = { town | war, key, zone: true, fort: true, heal, x, z }`. The town command above sends them that way; `{ action: 'garrison', structure: <key> }` works for a stockade too. The hero, crew and workers shelter as before (`e.garrison = { town, building, key, heal }`). Both kinds share one stockade's room (`garrison.capOf(st)`, `rangeOf(st)`).
        - Every ranged unit inside a stockade shoots out during a war on its town or camp (structures.js `garrisonFire`), `garrison.reach` (5) further than from a house. Melee units inside do not fight. Troops inside heal `healFactor` times faster. Hits on them go to the stockade; when it falls everyone piles out.
      - War camp stockade:
-       - `war.buildings.stockade`: cost 400 timber and 450 stone, buildTicks 1600, radius 10, max 1. Health `war.structures.campStockade` by camp hall tier: 16,000, 24,000.
+       - `war.buildings.stockade`: cost 400 timber and 450 stone, buildTicks 1600, radius 10, max 1. Health `war.structures.campStockade` by camp hall tier: 32,000, 48,000 (Tim 2026-11-18: the same as a town stockade; was 16,000, 24,000). Fire stays 60 a second.
        - The attacker's troops go in by the structure command (Ctrl + right-click it, or Garrison selected on its building card). Not the hero or camp workers.
      - Generals:
        - `stockade` in a `defend.build` list = a town stockade, as many as the list names and the tier allows: Siege three, Raider one, Rush none. In an `attack.build` list = the camp stockade: Siege builds one; `attack.fortify.build` is now watchtower, stockade, watchtower, watchtower (any camp that digs in).
@@ -2803,6 +2805,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
        - Two tracks per group: Weapons (+5% damage per level) and Armor (+5% defence per level), 3 levels (max +15%). Cost per level (placeholder, data): 100 / 200 / 300 ryo from the war chest plus 100 timber and 100 stone from camp or town stock, 60 s each. No iron (revisit later).
        - Applied in the war stat block for every troop of that side and group, including troops already on the field.
        - Armory menu cards; general buys them (8e-7).
+       - Queue (Tim 2026-11-18): one upgrade in the work per side, up to `war.armory.queue` (5, the one in the work included) queued, each paid when queued. A waiting one cancels for its full price; later levels of the same track in the queue are cancelled and refunded with it. Command `armoryCancel { war, index }`. Bot generals still buy one at a time.
        - Tests: tools/test_armory_upgrades.mjs (buy, cost, applies to group only, not hero/crew, reset at war end, both camp and town).
      - 8e-10 Checkpoint end:
        - All tests touching changed code, bench_war, a short soak, dev save war_test_yakuza rebuilt.

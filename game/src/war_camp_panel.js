@@ -86,6 +86,7 @@ import { generalTab, GENERAL_CSS, STRATEGY_NAMES } from './war_general_tab.js';
 import { portrait } from './portraits.js';
 import { SPECIALS } from './sim/special_cast.js';
 import { ABOUT } from './ability_rows.js';
+import { specialHover } from './special_stats.js';
 import { listVehicles } from './vehicles_panel.js';
 import { sharedKeybinds } from './keybinds.js';
 import { drawBuildArea } from './camp_build_area.js';
@@ -182,7 +183,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       const model = (typeof e.model === 'string' ? e.model : e.model?.[faction] || Object.values(e.model || {})[0]) || u.sprite || t;
       const dps = u.gatling ? u.gatling.damage * 20 / Math.max(1, u.gatling.everyTicks) : (u.damage || 0) / Math.max(0.1, u.attackSpeed || 1);
       const range = u.rifle?.range ?? u.gatling?.range ?? u.attackRange ?? 1;
-      const abil = Object.entries(SPECIALS).filter(([, S]) => S.has(u, { type: t })).map(([id, S]) => `${S.name}: ${ABOUT[id] || ''}`);
+      const abil = Object.entries(SPECIALS).filter(([, S]) => S.has(u, { type: t })).map(([id, S]) => specialHover(id, S.name, ABOUT[id], u));   // with its numbers (Tim 2026-11-18)
       if (TRAITS[t]) abil.push(TRAITS[t]);
       return { t, u, model, name: u.name || nice(key), hp: u.hp ?? 0, dps, range, speed: u.run ?? 0, abil };
     };
@@ -208,7 +209,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         return `<div class="ucard" title="${esc(tip)}"><div class="uhead"><div class="ustill${pic.includes('/stills/') ? ' concept' : ''}"${pic ? ` style="background-image:url('${esc(pic)}')"` : ''}></div><div class="ustats"><div class="un">${esc(S.name)}</div>
           <div class="sr"><span>Health</span><b>${S.hp}</b></div><div class="sr"><span>Damage a sec</span><b>${S.dps.toFixed(S.dps < 10 ? 1 : 0)}</b></div><div class="sr"><span>Range</span><b>${S.range}</b></div><div class="sr"><span>Speed</span><b>${S.speed}</b></div></div></div>
           <div class="cost" style="justify-content:flex-start;margin-top:6px"><span class="chip ryo${(c.chest || 0) < price ? ' short' : ''}"><i></i>${price}</span><span class="small">${Math.round(ticksOf(u) / 20)} s each</span></div>
-          <div class="small ab">${S.abil.length ? esc(S.abil.map(x => x.split(':')[0].split('.')[0]).join(', ')) : '&nbsp;'}</div>
+          <div class="small ab">${S.abil.length ? S.abil.map(x => `<span title="${esc(x)}">${esc(x.split(':')[0].split('.')[0])}</span>`).join(', ') : '&nbsp;'}</div>
           <div style="display:flex;gap:6px;margin-top:6px">${num(`t:${b.id}:${u}`)}<button class="go" data-train="${esc(b.id)}" data-unit="${esc(u)}">Train</button></div></div>`;
       }).join('');
       const sameRun = q.slice(1).reduce((out, x) => { const l = out.at(-1); if (l?.unit === x.unit) l.n++; else out.push({ unit: x.unit, n: 1 }); return out; }, []);
@@ -337,9 +338,10 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   root.addEventListener('change', e => { if (!e.target?.dataset?.tkeep || !open) return; const n = Math.floor(Number(e.target.value)); delete counts.tkeep; sig = ''; if (!Number.isSafeInteger(n) || n < 0) why = 'Type 0 or more'; else { why = ''; send({ id: heroId, type: 'frontier', action: 'ship', mode: 'treasuryKeep', ryo: n }); } fill(); });   // 8e-2
   root.addEventListener('change', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.change?.(a.dataset, e.target.value, s)) { sig = ''; fill(); } });
   root.addEventListener('click', e => {
-    const b = e.target.closest?.('[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-erase],[data-cancel],[data-train],[data-untrain],[data-upgrade],[data-hire],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-campord],[data-campsell],[data-rebuild]'); if (!b || !open) return;
+    const b = e.target.closest?.('[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-erase],[data-cancel],[data-armcancel],[data-train],[data-untrain],[data-upgrade],[data-hire],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-campord],[data-campsell],[data-rebuild]'); if (!b || !open) return;
     const d = b.dataset; why = ''; sig = '';
     if (d.rsend || d.rcancel) { why = chestSendClick(d, { war: rec(open), heroId, counts, send }) || ''; fill(); return; }   // 8e-3
+    if (d.armcancel != null && open) { send({ id: heroId, type: 'frontier', action: 'armoryCancel', war: open, index: Number(d.armcancel) }); fill(); return; }   // armory queue (Tim 2026-11-18)
     if (d.armup) { const [group, track] = d.armup.split(':'); send({ id: heroId, type: 'frontier', action: 'armoryUp', war: open, group, track }); fill(); return; }   // 8e-9
     if (d.campord) { if (d.campord === 'open') stOrder = !stOrder; else { const n = Math.floor(Number(counts[`co:${d.campord}`] ?? 200)) || 0, ryo = Math.max(0, Math.floor(Number(counts['co:ryo'] ?? 0)) || 0); const node = rec(open)?.camp?.station?.node; if (n && node) send({ id: heroId, type: 'frontier', action: 'ship', mode: 'order', town: node, resource: d.campord, amount: n, ...(ryo ? { ryo } : {}) }); else why = 'Type how much'; } fill(); return; }   // 8e-5
     if (d.campsell) { if (d.campsell === 'open') stSell = !stSell; else { const n = Math.floor(Number(counts[`cs:${d.campsell}`] ?? 100)) || 0; const node = rec(open)?.camp?.station?.node; if (n && node) send({ id: heroId, type: 'frontier', action: 'ship', mode: 'sell', town: node, resource: d.campsell, amount: n }); else why = 'Type how much'; } fill(); return; }   // Tim 2026-11-17
@@ -468,7 +470,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     if (placing) draw();
     if (!root.hidden) { if (!rec(open) || blocked()) close(); else fill(); }
     // say why a camp command was refused (receipts live one tick)
-    for (const r of game.state.frontier?.receipts || []) if (r.seq > seen) { seen = r.seq; if (!r.ok && open && r.clan === hero()?.owner && /^camp|^train$|^warStrategy$|^ship$|^armoryUp$/.test(r.action)) { why = r.reason; sig = ''; } }
+    for (const r of game.state.frontier?.receipts || []) if (r.seq > seen) { seen = r.seq; if (!r.ok && open && r.clan === hero()?.owner && /^camp|^train$|^warStrategy$|^ship$|^armoryUp$|^armoryCancel$/.test(r.action)) { why = r.reason; sig = ''; } }
   }
   return { show, close, update, cancel: () => cancelPlacing(false), isOpen: () => !root.hidden, isPlacing: () => !!placing };
 }

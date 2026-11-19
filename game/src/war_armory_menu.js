@@ -1,7 +1,7 @@
 // 8e-9 (mock G, Tim 2026-11-16): the armory's menu, at the war camp and in a defending town. Four groups by row
 // (melee, ranged, mounted, siege), weapons and armor cards with level pips, the next level's cost as chips and a
 // Buy button; the one in the work shows its countdown. Reads war.armory.view (sim/frontier/war_armory.js).
-// armoryHtml({ game, war, owner, artUrl }) -> html; armorySig(game, war, owner) -> string; click: data-armup="<group>:<track>"
+// armoryHtml({ game, war, owner, artUrl }) -> html; armorySig(game, war, owner) -> string; click: data-armup="<group>:<track>", data-armcancel="<queue index>" (Tim 2026-11-18)
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const cap1 = s => s[0].toUpperCase() + s.slice(1);
 const ART = { melee: 'barracks', ranged: 'rifle_range', mounted: 'stable', siege: 'foundry' };
@@ -18,11 +18,15 @@ ${sel} .acard .ab{display:flex;flex-wrap:wrap;justify-content:space-between;alig
 ${sel} .acard .ab .chips{display:flex;gap:3px;align-items:center;margin-left:auto}
 ${sel} .acard .ab .chip{font-size:11px;padding:1px 5px}
 ${sel} .acard .ab button{padding:3px 9px}
-${sel} .acard .prog{margin-top:4px}`;
+${sel} .acard .prog{margin-top:4px}
+${sel} .acard .pips3 i.q{background:#7a6640}
+${sel} .aqueue{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;padding:4px 0 6px}
+${sel} .aqueue .aq{display:inline-flex;gap:4px;align-items:center;font-size:12px;color:#d9cdb2;border:1px solid #ffffff1c;border-radius:5px;padding:1px 2px 1px 6px}
+${sel} .aqueue .aq button{padding:1px 6px;font-size:11px}`;
 
 export function armorySig(game, w, owner) {
   const v = game.frontier?.war?.armory?.view?.(w.id, owner);
-  return JSON.stringify(v ? [v.has, v.work, v.groups.map(g => g.tracks.map(t => [t.level, t.why]))] : null);
+  return JSON.stringify(v ? [v.has, v.work, v.queue, v.groups.map(g => g.tracks.map(t => [t.level, t.queued, t.why]))] : null);
 }
 
 export function armoryHtml({ game, war: w, owner, artUrl = () => '', chip = (r, n) => `${n} ${r}` }) {
@@ -31,15 +35,18 @@ export function armoryHtml({ game, war: w, owner, artUrl = () => '', chip = (r, 
   const pct = Math.round(v.step * 100);
   let h = `<div class="sec"><span>Troop upgrades, this war only</span><b title="Upgrades count for your troops of that group, those already out too. The hero and crew are never changed. They end with the war.">Hero and crew not affected</b></div>`;
   if (!v.has) h += '<div class="small" style="padding:6px 0;color:#ee8a7c">Needs a built armory.</div>';
+  // the queue (Tim 2026-11-18): waiting upgrades, paid, each can be cancelled for its full price back
+  const queue = v.queue || [];
+  if (queue.length) h += `<div class="aqueue"><span class="small">Queued (${queue.length + (v.work ? 1 : 0)} of ${v.queueMax}):</span>${queue.map(x => `<span class="aq">${esc(cap1(x.group))} ${x.track} ${x.level}<button data-armcancel="${x.index}" title="${esc('Cancel: its full price comes back to the war chest and stock. Later levels of the same upgrade in the queue are cancelled too.')}">Cancel</button></span>`).join('')}</div>`;
   for (const g of v.groups) {
     const card = t => {
-      const lvl = t.level, work = v.work && v.work.group === g.group && v.work.track === t.track, max = lvl >= v.max;
+      const lvl = t.level, q = t.queued || 0, top = lvl + q, work = v.work && v.work.group === g.group && v.work.track === t.track, max = top >= v.max;
       const what = t.track === 'weapons' ? 'damage' : 'defence', now = lvl ? `+${lvl * pct}% ${what}` : '';
-      const pips = `<span class="pips3">${Array.from({ length: v.max }, (_, i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</span>`;
+      const pips = `<span class="pips3">${Array.from({ length: v.max }, (_, i) => `<i class="${i < lvl ? 'on' : i < top ? 'q' : ''}"></i>`).join('')}</span>`;
+      const status = work ? `Level ${lvl + 1}, ${v.work.seconds} s left${q > 1 ? `, ${q - 1} more queued` : ''}` : q ? `${now ? now + ', ' : ''}${q} queued` : '';
       let foot;
-      if (work) foot = `<span>Level ${lvl + 1}, ${v.work.seconds} s left</span>`;
-      else if (max) foot = `<span>${now}, maxed</span>`;
-      else foot = `<span>${now ? `${now}, next +${(lvl + 1) * pct}%` : `Next +${pct}% ${what}`}</span><span class="chips">${['ryo', 'timber', 'stone'].filter(r => t.cost?.[r]).map(r => chip(r, t.cost[r])).join('')}<button class="go" data-armup="${esc(`${g.group}:${t.track}`)}"${t.why ? ` disabled title="${esc(t.why)}"` : ` title="${esc(`${cap1(g.group)} ${t.track} level ${lvl + 1}: ${t.cost.ryo || 0} ryo from the war chest${t.cost.timber ? `, ${t.cost.timber} timber` : ''}${t.cost.stone ? `, ${t.cost.stone} stone` : ''}. ${v.seconds} s at the armory, one at a time.`)}"`}>Buy</button></span>`;
+      if (max) foot = `<span>${status || `${now}, maxed`}</span>`;
+      else foot = `<span>${status || (now ? `${now}, next +${(lvl + 1) * pct}%` : `Next +${pct}% ${what}`)}</span><span class="chips">${['ryo', 'timber', 'stone'].filter(r => t.cost?.[r]).map(r => chip(r, t.cost[r])).join('')}<button class="go" data-armup="${esc(`${g.group}:${t.track}`)}"${t.why ? ` disabled title="${esc(t.why)}"` : ` title="${esc(`${cap1(g.group)} ${t.track} level ${top + 1}: ${t.cost.ryo || 0} ryo from the war chest${t.cost.timber ? `, ${t.cost.timber} timber` : ''}${t.cost.stone ? `, ${t.cost.stone} stone` : ''}, paid now. ${v.seconds} s at the armory${v.work ? ', after the upgrades already queued' : ''}.`)}"`}>${v.work ? 'Queue' : 'Buy'}</button></span>`;
       return `<div class="acard"><div class="at"><span>${esc(cap1(g.group))} ${t.track}</span>${pips}</div><div class="ab">${foot}</div>${work ? `<div class="prog"><i style="width:${Math.round(100 * (1 - v.work.seconds / Math.max(1, v.seconds)))}%"></i></div>` : ''}</div>`;
     };
     h += `<div class="arow"><div class="athumb" title="${esc(`${cap1(g.group)}: ${g.units.map(nice).join(', ')}`)}"><img src="${esc(artUrl(ART[g.group]))}" alt=""></div>${g.tracks.map(card).join('')}</div>`;

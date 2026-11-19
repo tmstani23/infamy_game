@@ -69,10 +69,14 @@ export function termsModel(game, heroId, w) {
       : [['Accept', `${amount} ryo goes to the coffers of ${town}. Their camp packs up and leaves, and their war chest goes home with them.`],
         ['No', 'They may offer again.'], ['Refuse for good', `Their troops walk off and their war chest goes to the coffers of ${town}.`]] };
 }
-// ui = { amount: text in the box, why: refusal line }
+// Tim 2026-11-18: with an offer waiting for your answer the window cannot be put away: Esc does nothing and the
+// close button asks to refuse the terms for good first (ui.confirm). Otherwise it closes as before.
+export const owesAnswer = m => !!m && m.face === 'answer' && m.amount != null;
+// ui = { amount: text in the box, why: refusal line, confirm: the close button asked to refuse for good }
 export function termsHtml(m, ui = {}) {
   if (!m) return '';
-  const head = `<header><div><div class="eyebrow">${esc(m.eyebrow)}</div><h2>${esc(m.title)}</h2></div><button data-close="1">Esc</button></header>`;
+  const owes = owesAnswer(m);
+  const head = `<header><div><div class="eyebrow">${esc(m.eyebrow)}</div><h2>${esc(m.title)}</h2></div><button data-close="1"${owes ? ' title="Closing refuses these terms for good (it asks first)"' : ''}>${owes ? 'Close' : 'Esc'}</button></header>`;
   const why = `<div class="why">${esc(ui.why || '')}</div>`;
   if (m.face === 'outcome') {
     const card = c => `<div class="ocard${c.why ? ' lock' : ''}" title="${esc(c.tip)}"><div class="opic${c.id === 'burn' ? ' burn' : ''}"><img class="main" src="${esc(c.art)}" alt="">${c.flag ? `<img class="flag" src="${esc(c.flag)}" alt="">` : ''}</div>
@@ -92,6 +96,8 @@ export function termsHtml(m, ui = {}) {
       <span class="hint" title="A rough guess of what they would take, from what you have seen of them in this war.">Suggested: ${esc(m.suggest ?? 0)} ryo</span></div>
     <div class="said">${esc(m.said)}</div>${what}
     <div class="foot"><span class="small">Give up with no ransom.</span><button class="quiet" data-leave="1" title="Leave without terms: ends the same way as refused for good."${m.waiting ? ' disabled' : ''}>Leave without terms</button></div>`;
+  else if (owes && ui.confirm) main = `<div class="big">Refuse these terms for good?</div><div class="small" style="margin-top:6px">${esc(m.what.find(([a]) => a === 'Refuse for good')?.[1] || '')}</div>
+    <div class="row3"><button class="quiet" data-answer="never">Refuse for good</button><button class="go" data-back="1">Back to the offer</button></div>`;
   else main = m.amount == null ? `<div class="waitline">Waiting for their offer.</div><div class="small" style="margin-top:6px">${m.offers ? 'You said no. They may offer again or leave.' : 'They will offer a ransom to end the war, or leave with nothing.'}</div>`
     : `<div class="big">${esc(m.foe)} offer <b>${esc(m.amount)} ryo</b> to end the war</div>
     ${m.fair ? `<div class="hint" style="margin-top:4px" title="A rough guess from what you have seen: the town, its buildings and how the war is going.">Fair offer: about ${esc(m.fair[0])} to ${esc(m.fair[1])} ryo</div>` : ''}
@@ -107,22 +113,24 @@ export function createWarTermsPanel({ game, heroId, send, blocked = () => false,
   const root = document.createElement('div'); root.id = 'warterms'; root.hidden = true; document.body.append(root);
   const hero = () => game.state.entities?.[heroId];
   const wars = () => Object.values(game.state.frontier?.wars?.list || {}).filter(w => w.terms && (w.attacker === hero()?.owner || w.defender === hero()?.owner));
-  let open = null, sig = '', why = '', amount = null, popped = '', seen = 0;
+  let open = null, sig = '', why = '', amount = null, popped = '', seen = 0, confirm = false;
+  const owes = () => { const w = wars().find(x => x.id === open); return !!w && owesAnswer(termsModel(game, heroId, w)); };
   const cmd = c => send({ id: heroId, type: 'frontier', ...c });
   function close() { open = null; sig = ''; root.hidden = true; root.innerHTML = ''; }
   function show(warId) {
     const w = wars().find(x => x.id === warId) || (warId == null ? wars()[0] : null); if (!w || blocked()) return false;
-    if (open !== w.id) { amount = null; why = ''; }
+    if (open !== w.id) { amount = null; why = ''; confirm = false; }
     open = w.id; sig = ''; onStart(); fill(); return true;
   }
   function fill() {
     const w = wars().find(x => x.id === open), m = w && termsModel(game, heroId, w);
     if (!m) { close(); return; }
-    const { seconds, ...rest } = m, next = JSON.stringify([rest, why]);
+    if (!owesAnswer(m)) confirm = false;
+    const { seconds, ...rest } = m, next = JSON.stringify([rest, why, confirm]);
     if (next !== sig) {
       // a new face or a new round: the box goes back to the suggestion only when it was never typed in
       const box = root.querySelector('input[data-amount]'), focused = box && document.activeElement === box, at = focused ? box.selectionStart : null;
-      root.innerHTML = termsHtml(m, { amount: amount ?? m.suggest, why }); sig = next;
+      root.innerHTML = termsHtml(m, { amount: amount ?? m.suggest, why, confirm }); sig = next;
       if (focused) { const nb = root.querySelector('input[data-amount]'); if (nb && !nb.disabled) { nb.focus(); try { nb.setSelectionRange(at, at); } catch { /* not a text box */ } } }
     }
     const clock = root.querySelector('[data-clock]'); if (clock) { const t = mmss(seconds); if (clock.textContent !== t) clock.textContent = t; }
@@ -132,16 +140,18 @@ export function createWarTermsPanel({ game, heroId, send, blocked = () => false,
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') root.querySelector('[data-offer]')?.click(); } });
   for (const ev of ['keyup', 'pointerdown', 'mousedown', 'wheel']) root.addEventListener(ev, e => e.stopPropagation());
   root.addEventListener('click', e => {
-    const b = e.target.closest?.('[data-close],[data-offer],[data-leave],[data-answer],[data-outcome]'); if (!b || !open || b.disabled) return;
+    const b = e.target.closest?.('[data-close],[data-back],[data-offer],[data-leave],[data-answer],[data-outcome]'); if (!b || !open || b.disabled) return;
     const d = b.dataset; why = ''; sig = '';
-    if (d.close) return close();
+    if (d.close) { if (owes()) { confirm = true; return fill(); } return close(); }
+    if (d.back) { confirm = false; return fill(); }
+    confirm = false;
     if (d.offer) { const box = root.querySelector('input[data-amount]'), n = Math.floor(Number(String(box?.value ?? '').trim())); if (Number.isSafeInteger(n) && n > 0) cmd({ action: 'warOffer', war: open, amount: n }); else why = 'Type how much ryo to offer'; }
     else if (d.leave) cmd({ action: 'warLeave', war: open });
     else if (d.answer) cmd({ action: 'warAnswer', war: open, answer: d.answer });
     else if (d.outcome) cmd({ action: 'warOutcome', war: open, outcome: d.outcome });
     fill();
   });
-  addEventListener('keydown', e => { if (!root.hidden && e.code === 'Escape') { close(); e.preventDefault(); e.stopImmediatePropagation(); } }, { capture: true });
+  addEventListener('keydown', e => { if (!root.hidden && e.code === 'Escape') { if (!owes()) close(); e.preventDefault(); e.stopImmediatePropagation(); } }, { capture: true });   // owed answer: Esc does nothing
   const ACTS = /^(warSurrender|warOffer|warAnswer|warLeave|warOutcome)$/;
   function update() {
     for (const r of game.state.frontier?.receipts || []) if (r.seq > seen) { seen = r.seq; if (!r.ok && open && r.clan === hero()?.owner && ACTS.test(r.action)) { why = r.reason; sig = ''; } }

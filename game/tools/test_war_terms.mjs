@@ -2,6 +2,7 @@
 // offers and answers, the ransom and who pays it, both endings for both sides, the estimate, bots answering and
 // surrendering, timeouts and save parity. (sim/frontier/war_terms.js, war_end.js finish, game.js warNeutral)
 import assert from 'node:assert/strict';
+import { createPlacement } from '../src/sim/frontier/placement.js';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
@@ -76,6 +77,16 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   assert.equal(s.ST.damage(rival, hallSt, 50, 'melee'), false, 'no damage to buildings during the ceasefire');
   r = s.cmd({ action: 'warTakeCamp', war: 'w1' }); assert.equal(r.reason, 'A ceasefire is on: terms are on the table');
   r = s.cmd({ action: 'townTrain', war: 'w1', building: 'x', unit: 'grunt', count: 1 }); assert.equal(r.reason, 'A ceasefire is on: the war is ending');
+  // Tim 2026-11-18: nobody builds in the ceasefire: no camp placing, no town placing, a camp site does not grow
+  { const NB = /nobody builds/;
+    assert.match(s.war.campCheck('w1', 'barracks', { x: s.cx + 60, z: s.cz }).reason || '', NB, 'no camp placing');
+    const P = createPlacement({ data: s.frontier, state: S, construction: {} });
+    assert.match(P.check(town, { kind: 'barracks', cells: [0] }).reason || '', NB, 'no town placing');
+    s.camp.buildings.push({ id: 'w1:site', type: 'barracks', stage: 'site', x: s.cx + 40, z: s.cz + 20, progress: 5, need: 100 });
+    s.camp.workers.push({ id: 'cw1', spot: null, phase: 0, carrying: 0, entity: null, elapsed: 0, trip: null, project: 'w1:site' });
+    s.run(40);
+    assert.equal(s.camp.buildings.find(b => b.id === 'w1:site').progress, 5, 'camp site paused');
+    s.camp.buildings = s.camp.buildings.filter(b => b.id !== 'w1:site'); s.camp.workers = []; }
   // the view and the suggestion
   let v = T.view('w1', 'player');
   assert.ok(v.mine && v.state === 'wait' && v.suggest >= 10 && v.suggest % 10 === 0 && v.fair === undefined, JSON.stringify(v));

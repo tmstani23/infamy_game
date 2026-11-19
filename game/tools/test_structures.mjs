@@ -58,7 +58,7 @@ const kinds = ST.list().reduce((o, s) => { o[s.kind] = (o[s.kind] || 0) + 1; ret
 assert.ok(kinds.building >= 4 && kinds.wall === 1 && kinds.gate === 1 && kinds.zone >= 1, 'town and camp structures listed: ' + JSON.stringify(kinds));
 const sHall = ST.find(key(hall.cell)), sWall = ST.find(key(WALL)), sGate = ST.find(key(GATE)), sHouse = ST.find(key(HOUSE)), sStore = ST.find(key(STORE)), sStk = ST.find(key(stockadeCells[0]));
 assert.ok(sHall && sWall && sGate && sHouse && sStore && sStk);
-assert.equal(sWall.max, S.wall); assert.equal(sGate.max, S.gate); assert.equal(sHouse.max, S.zone[1]); assert.equal(sStore.max, S.town.storehouse); assert.equal(sStk.max, frontier.buildings.stockade.garrison.hp);
+assert.equal(sWall.max, S.wall); assert.equal(sGate.max, S.gate); assert.equal(sHouse.max, S.zone[1]); assert.equal(sStore.max, S.town.storehouse); assert.equal(sStk.max, frontier.buildings.stockade.garrison.hpByTier[0]);   // by town hall tier (Tim 2026-11-18: 32,000 at tiers 1 and 2)
 const campHall = rec.camp.buildings.find(b => b.type === 'camp_hall'), sCamp = ST.find(`c|${rec.id}|${campHall.id}`);
 assert.ok(sCamp && sCamp.max === S.campHall[0], 'camp hall health');
 assert.ok(ST.canDamage('player', sHall) && !ST.canDamage(rival, sHall) && !ST.canDamage(third, sHall), 'only the attacker damages the town');
@@ -162,7 +162,7 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
 
 // ---- stockade: only the attacker's hits reach it ---------------------------------------------------
 { const stk = enemy.buildings.find(b => b.type === 'stockade');
-  const gar = g.frontier.garrison, max = frontier.buildings.stockade.garrison.hp;
+  const gar = g.frontier.garrison, max = frontier.buildings.stockade.garrison.hpByTier[0];   // by town hall tier (Tim 2026-11-18)
   const inside = { garrison: { town: 'enemyTown', building: 'stk' } };
   assert.ok(gar.shelter(inside, 100, { owner: third }) && stk.hp === undefined, 'a clan not at war does not chip the stockade');
   assert.ok(gar.shelter(inside, 100, { owner: 'player' }) && stk.hp === max - 100, 'the attacker does');

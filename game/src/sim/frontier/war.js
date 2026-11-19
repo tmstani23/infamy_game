@@ -359,6 +359,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function campLineCheck(warId, a, b) {
     const war = byId(warId), def = BD().palisade, camp = war?.camp;
     if (!camp || !def?.line) return { ok: false, reason: 'No such war camp', points: [] };
+    if (war.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table', points: [] };   // Tim 2026-11-18
     if (![a?.x, a?.z, b?.x, b?.z].every(Number.isFinite)) return { ok: false, reason: 'Choose a start and an end', points: [] };
     const L = def.length || 5, snap = W.lineSnap ?? 4, joints = jointsOf(camp), locks = {};
     // the start locks onto the nearest piece end within reach
@@ -432,6 +433,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // Read-only for the UI, bots and tests: { ok, reason, point, rot?, replaces?: [ids], lock? }; opts.turn = a gate turned with R
   function campCheck(warId, type, point, opts = {}) {
     const war = byId(warId), p = point && { x: Math.round(point.x), z: Math.round(point.z) };
+    if (war?.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table', point: p };   // Tim 2026-11-18
     if (type === 'palisade') return { ok: false, reason: 'A palisade is placed as a line', point: p };
     if (type === 'gate' && p && war?.camp) {
       const g = gateSpot(war, point.x, point.z, !!opts.turn);
@@ -475,6 +477,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function campRebuildCheck(warId, id) {
     const war = byId(warId), b = war?.camp?.buildings.find(x => x.id === id);
     if (!b) return { ok: false, reason: 'No such camp building' };
+    if (war.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table' };   // Tim 2026-11-18
     if (!REBUILD.has(b.type)) return { ok: false, reason: 'Erase the ruin, then build a new one' };
     if (b.stage !== 'ruined') return { ok: false, reason: 'It is not a ruin' };
     const cost = rebuildCost(b), why = canPay(war.camp, cost);
@@ -544,6 +547,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function campUpgrade(e, c) {
     const war = byId(c.war), U = W?.hallUpgrade;
     if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
+    if (war.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table' };   // Tim 2026-11-18
     const hall = hallOf(war.camp);
     if (!U || !hall || hall.stage !== 'built') return { ok: false, reason: 'No camp hall' };
     if (upgraded(war.camp)) return { ok: false, reason: 'The camp hall is already upgraded' };
@@ -730,7 +734,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
-    if (c.action === 'armoryUp') {   // 8e-9: armory upgrades
+    if (c.action === 'armoryUp' || c.action === 'armoryCancel') {   // 8e-9: armory upgrades (cancel: Tim 2026-11-18 queue)
       const r = armory.command(e, c);
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
