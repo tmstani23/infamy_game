@@ -2235,7 +2235,7 @@ A war is a classic RTS match fought around one enemy town. The hero plants a war
 - **Wars at once:** one war per town at a time; no limit on how many wars a clan runs at once. The hero may leave a war and start another; the bot general runs the camp he left.
 - **Declaring:** free. Planting the war camp banner is the declaration; there is no separate "Declare war" click. Only the hero can plant it, inside the war circle.
 - **Rail lines and trains:** always attackable by anyone (outlaw acts: robbery, blasting a line), war or not. War gates armies, the camp and attacks on the town.
-- A rival capital cannot be targeted until the endgame opens capitals (after taking 9 of the 11 rival zones, per the endgame draft).
+- A clan castle cannot be targeted until the attacker holds 4 of 6 zones with one next to the castle (Phase Z, planned).
 
 ### F6 phase 2: The war camp banner
 
@@ -2483,6 +2483,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - Morale bar per side (src/war_bar.js, sim/frontier/war_morale.js): war.morale.weights (town_hall 40, camp_hall 40, stockade 20, clan_hall 20, barracks / rifle_range / stable / foundry / armory 15, kennel / hidden_dojo 10, watchtower 5); unlisted types do not count. Bar = weight standing over the weight of every counted building that has stood during the war; repaired or new buildings raise it. Each drop: news moraleDrop, flash and a 6 s line. Saved as war.morale = { town: { seen }, camp: { seen }, last }.
    - Taking a hall: at bar 0 the other side's hero, within war.channel.reach (8) of the ruin's edge, presses Use. Attacker picks Capture, Sack or Burn, then a war.channel.seconds (60) channel; defender's channel starts at once. Any health loss restarts it; moving more than moveCancel (1.5), a new order, going down, boarding, leaving the island or Use again stops it. New or repaired buildings do not stop it; the hall cannot be repaired while being taken. Commands warTake { war, outcome }, warTakeCamp, warTakeStop; saved war.channel and hero.hallChannel; news hallChannel, hallChannelReset, hallChannelStop, warEnded (sim/frontier/war_end.js).
    - Capture: the town changes owner with everything in it (ruins stay ruins); its railway lines are torn up; settlement.captured = { tick, from }; a captured town does not count toward the founding limit. Sack: war.outcomes.sackShare (0.5) of the coffers to the attacker's Clan treasury. Burn: the town is removed (world.removeTown) and its site is free. A clan's last town can only be sacked. The rest of the war chest returns to the attacker. Mounts stored in a captured or burned town move to the old owner's nearest other stable (sim/frontier/war_outcomes.js).
+   - Planned change in Phase Z: dropped once castles exist (a clan's last town can only be sacked).
    - Defender wins (campFell): the attacker's war chest goes to the town coffers; the attacker's hero and crew inside the war circle fall back on foot to their nearest own town hall (or the island side of the city gate) with health as it is (island_respawn.js fallBack).
    - After any ending every war troop routs: runs war.rout.run (70) away, fights nobody, fades and is removed after war.rout.seconds (6). The town cooldown starts (cooldownDays 3).
    - Tests: tools/test_war_morale.mjs, tools/test_war_end.mjs.
@@ -2814,6 +2815,17 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
        - Doc proposal: docs/frontier_build_steps.md 8e "Built" notes, docs/controls.md rows; sent to the coordinator.
 After 8e: foreign mercenary pistolmen (needs pistol animation clips). Waiting: gun cavalry.
 
+## Phase Z: Zones and castles (planned, not built)
+
+Design: `frontier_campaign_plan.md`, Zones, castles and campaign win (2026-11-19). Rough steps; each gets a card when its build plan is agreed:
+1. Zone data and the zone control rule, with tests. No visible change.
+2. Zones on the M map and a zone goal.
+3. The default castle, first at the East Plains site for the player; it takes over the frontier jobs of today's capital point (rail hub, selling, arrival).
+4. Rival castles at their sites and rival expansion: more than one town, the 2 per zone cap, the three campaign strategies. The goals pass stopgap (rivals settle 2,500 to 4,500 from the player's first town) comes out here.
+5. The 4 of 6 gate, castle sieges, a clan being out, empty towns and claiming them.
+6. Choosing a start: the home pick on the new campaign screen and the ship ride between the city and any castle. Starts with a check of how much code assumes the east capital point is the frontier hub.
+7. Later content, one piece at a time: the hand-designed castle for each site, rings, moat and drawbridge, castle art.
+
 ## Phase W5: Exploration and natives
 
 Goal (Tim, 2026-11-02): the wilds are worth exploring: native villages with their own relations,
@@ -2882,23 +2894,13 @@ and place a relic in a town.
 
 ## Phase S: Seafaring (outline; expand into full cards before building)
 
-Goal (Tim, 2026-11-02): the sea is part of the campaign: trade by ship, sail the coast yourself,
-fight pirates and rival navies. One phase for now; Tim will expand it later. W1 already stores harbor
-spots and sea lanes, F3.1 links carry a `mode`, and W3.1 plans a `water` movement layer, so this adds
-links, ships and a building, not a rewrite. Needs: W5 done (and F6 war for naval attacks).
+Goal (2026-11-19, replaces the 2026-11-02 trade-by-ship goal): ships are mostly for fighting. No sea cargo or goods system; new systems feed the fights, not town upkeep. W1 already stores harbor spots and sea lanes, F3.1 links carry a `mode`, and W3.1 plans a `water` movement layer, so this adds links, ships and a building, not a rewrite. Needs: comes after train robbery in the build order (and F6 war).
 
-Agreed outline (Tim, 2026-11-02), each line becomes one or more cards when the phase is expanded:
+Outline, each line becomes one or more cards when the phase is expanded:
 1. **Harbors:** coastal towns build a harbor on their W1 harbor spot; the capital already has one.
-2. **Cargo ships:** the same shipment records with `mode: 'sea'`, more cargo and faster along the
-   coast, so coastal towns are valuable; the governor uses them by himself.
-3. **Piloting:** the hero and crew board a boat at a harbor or landing spot and steer it freely on
-   the `water` layer, landing at any landing spot. Small offshore islets with their own set pieces
-   and loot (W5 pattern).
-4. **Pirates:** capped like bandits (F3.6), rare, never a chore; a pirate cove can be a set piece.
-5. **Navy, RTS style:** a **shipyard** (new military building) builds junks, then **steam gunboats**
-   at keep tier. Ships are army units on the `water` layer, ordered like F6 armies: move, attack,
-   escort, blockade a harbor, ferry troops for landings, shell coastal towns in F6 wars. Sea
-   battles use the F6 war rules on water, so they run whether watched or not.
+2. **Piloting:** the hero and crew board a ship like a vehicle and can pilot their own ship as they ride horses; landing at any landing spot. Harbour to harbour travel between towns is shown as a sail that can be skipped. Small offshore islets with their own set pieces and loot (W5 pattern).
+3. **Pirates:** not planned for now.
+4. **Navy:** the **shipyard** is a war building for towns and war camps on the sea or a river. Ships fight inside war circles under the normal war rules; no separate open-sea war system for now.
 Checklist line is added when the cards are written.
 
 
@@ -2953,8 +2955,8 @@ Each becomes its own phase after a short design session with Tim:
 - **Exploration rewards** (plan step 5a, frontier part; now Phase W5): ruins and caches with first-clear claim
   records so reloads cannot reroll. The capital gear, shop and item slot are already built.
 - **Campaign rules** (plan step 7): expulsion, return, victory, season conversion, multiplayer
-  authority.
-- **Armies at the capital city** (Tim, 2026-11-02: not possible at first; maybe much later): attackers pitch a siege camp outside the
+  authority. Victory is now designed (Phase Z).
+- **Armies at the capital city** (Tim, 2026-11-02: not possible at first; maybe much later; 2026-11-19: the port city is never besieged, castles are the siege targets): attackers pitch a siege camp outside the
   city edge (F6 war). The city map is hand-made, so defenders don't build freely: `port_town.json`
   gets a few marked empty lots where defenders can drop quick structures (barricade, rifle nest,
   field barracks tent), and the HQ and owned businesses act as recruit points. Same commands as

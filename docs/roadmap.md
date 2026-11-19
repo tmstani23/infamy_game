@@ -54,3 +54,5 @@ After the start-menu phase and playtest, begin with a read-only architecture aud
 Phase 4 deployment/sector/Rally design (2026-10-25; not built): [implementation plan and open decisions](deployment_sector_plan.md), including the linked Shinobi HQ raid. This records future work; it does not authorize implementation.
 
 Future direction (2026-10-31; design documentation only): [capital and frontier campaign plan](frontier_campaign_plan.md). It records agreed constraints, automated supply, open choices and a possible phased build. No frontier implementation is approved or built.
+
+Frontier build order from 2026-11-19: war test fixes and goals pass; zones and castles (Phase Z); train robbery; ships; world variety (natives, special areas, items, events). See `frontier_campaign_plan.md`, Zones, castles and campaign win.

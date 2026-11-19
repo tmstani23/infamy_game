@@ -27,6 +27,7 @@ continues in this current project. No copy or move is requested now.
 - The hero explores the map and can lead a small crew or join larger frontier battles.
 - Expansion comes from founding or capturing settlements and connecting them.
 - A region's main settlement controls the region in the initial design direction.
+- Zone control and the campaign win: see Zones, castles and campaign win (2026-11-19), which replaces 'a region's main settlement controls the region'.
 - Remaining enemy outposts become contested after that capture; they do not instantly flip into free assets.
 - Rationale: those outposts remain meaningful follow-up objectives and give defenders time to respond.
 - A disconnected capture remains a real possession with a logistics problem, not a magic connection.
@@ -349,6 +350,7 @@ Planned, not built. Full design: `frontier_build_steps.md`, Phase F6: War. It re
 - **After a war:** a fresh build. War troops on both sides disband, the camp packs up, unspent chest ryo returns to the treasury, the hero and crew stay. 3 game days of cooldown before that town can be declared on again. War troops cannot leave their war circle, and only the two sides fight there.
 - **Art:** army kit, cavalry sheets, horse recolours and a warhorse, fire-bomb throwers, second specials, tier 1 hall art and clan castles, Shinobi buildings; after gameplay.
 - **Open:** see the Open list in Phase F6: War.
+- Planned change (2026-11-19, not built): with castles, every town can be captured or burned and the rule that a clan's last town can only be sacked is dropped; rival capitals become clan castles under the 4 of 6 rule. See Zones, castles and campaign win.
 
 ## Endgame and campaign length (2026-11-05)
 
@@ -359,20 +361,17 @@ Agreed with Tim on 2026-11-05 ("ok docs"). Nothing here is built yet.
 - Later, an optional "quick" setting of 8 to 10 hours, done by speeding up growth.
 
 **Map and zones**
-- 12 zones (the 12 coastal regions already in the map plan). The capital's zone is number one.
-- Each zone has a rival town or fortified camp at its heart.
-- Early zones next to yours are easy; later zones are harder; the capitals come last.
+- Six zones; see Zones, castles and campaign win (2026-11-19).
 
 **Core loop:** grow your towns, build a crew, march on the next zone, win, repeat.
 
 **Taking a zone**
-- Beat the leader there: siege their town (F6/F7), or fight at the camp.
-- You found only 2 or 3 towns yourself (permits earned through Influence). The rest come from conquest.
+- Capture or destroy every rival town in the zone while holding a town of your own there.
+- About 2 towns per clan per zone (permits earned through Influence). The rest come from conquest.
 - Captured towns run themselves with the town governor; you steer only the ones you care about.
 
 **Winning**
-- Take 9 of the 11 rival zones, then the capitals open up. Capitals cannot be attacked before that.
-- Final fights are the capitals. Win condition = capitals taken (exact rule still open).
+- Hold 4 of 6 zones, then castles can be besieged; last clan standing wins. See the 2026-11-19 section.
 
 **Damage and rebuilding**
 - Buildings are standing or ruined. No half states.
@@ -387,13 +386,79 @@ Agreed with Tim on 2026-11-05 ("ok docs"). Nothing here is built yet.
 
 **Travel**
 1. Horse for the hero (about 3 times faster; roads faster still).
-2. Fast travel between your own towns by rickshaw or boat, for a small fee. Shown as a short ride on the map (about 5 seconds), skippable with a key. The world keeps running during the ride.
+2. Fast travel between your own towns by rickshaw or boat, for a small fee. Shown as a short ride on the map (about 5 seconds), skippable with a key. The world keeps running during the ride. The city and your castle are linked by a ship ride. Harbour to harbour travel between towns comes with the ships phase.
 3. Crew mounts later, with the warfare phase.
 - Native tribe trade network: parked. Revisit only if travel still feels slow.
 
 **Open questions**
-- Exact win rule and zone difficulty curve.
 - Where this fits in the build order (after the campaign loop checkpoints and warfare F6/F7).
+
+## Zones, castles and campaign win (2026-11-19)
+
+Planned, not built. Map: ![Six zones and castle sites](images/frontier/six_zones_castles_v1.jpg) (the six zones, town spots and the five castle sites; zone names are placeholders, borders should later follow mountains and rivers).
+
+**The campaign:** one shared port city. Three clans, each with a castle in its own home zone, and three free zones in between. Clans found towns outward from home, meet in the free zones and fight over them. Hold 4 of the 6 zones, with one of them next to an enemy castle, and you may besiege that castle. A clan whose castle falls is out. The last clan standing wins.
+
+**Zones**
+- Six zones, each a group of the existing `world.json` regions (three coastal regions are split by an x line):
+
+| Zone | Region ids | Town spots |
+|---|---|---|
+| East Plains | 06, 11, 12, 18, C10, C11, C3 east of x 10500 | 8 |
+| Northern Thaw | 03, 04, 05, C2 east of x 5250, C3 west of x 10500 | 8 |
+| Sutra Heartland | 09, 10, 15, 16, 21, C5 from x 5250 to 7000 | 7 |
+| Southern Wilds | 17, 22, 23, 24, C6, C12, C5 east of x 7000 | 9 |
+| Red Desert | 01, 02, 07, 08, C1, C7, C2 west of x 5250 | 14 |
+| Western Reach | 13, 14, 19, 20, C4, C8, C9, C5 west of x 5250 | 14 |
+
+- Which zones touch: East Plains touches Northern Thaw, Sutra Heartland and Southern Wilds. Red Desert touches Northern Thaw, Sutra Heartland and Western Reach. Western Reach touches Red Desert, Sutra Heartland and Southern Wilds. Sutra Heartland touches every other zone. Northern Thaw and Southern Wilds do not touch each other.
+- A clan may hold about 2 towns per zone.
+- Zone control: a zone is a clan's when it has a town there and every rival town there has been captured or destroyed. A sack does not count. A castle is not a town.
+
+**City and castles**
+- The port city stays one shared, neutral city, never besieged. The city game and each clan's treasury are unchanged.
+- Each clan has a castle that does on the island what the capital does today: it has the railway station, sends treasury ryo out by rail and takes goods for ryo. Castle sieges use the normal war rules at the castle, never the city streets.
+- Travel between the city harbour and the castle harbour is a ship ride, shown as a short sail that can be skipped like a train ride. Settlers and things bought in the city land at the castle with the hero. This ride does not need the ships phase.
+
+**Castle sites**
+
+| Zone | Site | Map position | Character |
+|---|---|---|---|
+| East Plains | the current capital point | 12950, 3420 | open plains, rich soil, weak ground, the city next door |
+| Northern Thaw | S55, Ice-Bell Coast | 5975, 575 | north coast at the head of the Sutra Spine beside a pass, strong ground, poor soil |
+| Southern Wilds | S43, Monsoon Inlet | 10025, 6875 | far south coast beside a pass, strong ground, far from everyone |
+| Red Desert | S56, Red Wall Cliffs | 875, 2825 | desert coast behind the Red Mesa Walls, reached by land only through the passes |
+| Western Reach | S41, Wreck Lantern Shore | 3275, 7325 | mouth of the Ashen Wash, a river crossing, easy ground so the water is the defence |
+
+- All five have a harbour. The Sutra Heartland never has a castle and is always a free zone.
+- Each game uses three of the five sites as clan homes (one per clan); the other zones are that game's free zones.
+
+**Choosing a start:** on the new campaign screen the player picks a home site on the zone map or Random, with East Plains highlighted by default and a one-line description for each start. The two rivals are rolled from the remaining sites and not revealed. Test saves use East Plains with rivals in the Red Desert and Western Reach.
+
+**The castle**
+- Standing from the start: the keep (a step above a Town hall), a full stone wall with gates and watchtowers, stockades, and every war building (barracks, rifle range, clan hall, the clan's second special building, stable, foundry, armory, field clinic, supply tents at their maximum), plus the railway station, market and stable.
+- No zoning, governor, management, upkeep or income of its own.
+- Three rings (outer, inner, keep), with a moat and drawbridge where the site suits it; the drawbridge is a gate. Inner rings are drawn raised on stone bases, with a small range bonus for shooters on a higher ring. No walking on wall tops; towers are garrisoned instead.
+- A default castle layout is used at every site first; a hand-designed layout per site replaces it later. Layouts belong to the site, with marked slots for the clan's own buildings and banners. Castles are assembled from separate pieces on the island ground.
+- Siege: normal war rules (camp, morale bar from military buildings, keep brought down, hero channel). The defender can train the whole roster from the first minute; its war chest fills straight from the clan treasury with no train. No capture or sack choice: the channel ends the clan. A failed siege gets the usual 3 day cooldown, and ruined castle buildings are rebuilt afterwards.
+
+**Winning and losing**
+- A castle can be attacked only by a clan holding 4 of 6 zones, one of which touches the castle's zone or is that zone. This never lifts, the last castle included.
+- Rivals can attack the player's castle and each other's.
+- A clan whose castle falls is out: its towns go empty, its city hideout closes, its crews are gone and its city businesses become free. If it is the player, the campaign ends. The last clan standing wins.
+- Every rival town can be captured or burned.
+- Empty towns: any clan may claim one with the one minute hall channel, within the 2 per zone cap. Unclaimed towns decay to ruins over some days. Empty towns count for nobody.
+
+**Rival behaviour**
+- Each rival rolls a hidden campaign strategy per game and keeps it: Expander (founds fast, thin defences, avoids war while land is free), Fortress (slow, strong walled towns, big war chest first), Warlord (few own towns, grows by capture, hits the weakest town it knows). Separate from the battle strategy (Rush, Siege, Raider).
+- Rivals found in their home zone first, then at the best spot they know in a zone next to it. A clan with no towns left founds again from its castle.
+- One attack at a time. Rivals act only on what they have scouted and never aim at the player. No rule makes clans gang up on the leader.
+
+**Goals:** the "declare war" goal appears once a rival town is in or next to a zone where the player has a town. The goals pass rule that rivals settle 2,500 to 4,500 from the player's first town is removed when zones are built.
+
+**Build order:** war test fixes and goals pass; zones and rival expansion; train robbery; ships; world variety.
+
+**Open:** numbers (founding pace per strategy, decay time of empty towns, castle strength and the attacker's war pack); how zones and owners show on the M map and the 4 of 6 goal text; whether the drawing code supports raised rings; how much code assumes the east capital point is the frontier hub (rail hub, selling, arrival, roads and distances).
 
 ## Goal card (2026-11-06)
 
