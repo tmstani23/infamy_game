@@ -108,6 +108,36 @@ assert.ok(new Set(rolled).size > 1, 'random varies with the seed');
   const d = g.castles.dock('player');
   assert.ok(!hero.aboard && hero.place === 'world' && Math.hypot(hero.x - d.land.x, hero.z - d.land.z) < 20, 'landed at the castle dock');
   assert.equal(Object.values(S.entities).filter(u => u.type === 'settler' && u.owner === 'player' && u.place === 'world').length, 5, 'with the settlers');
+  // Tim 2026-11-20: your horse, 2 crew horses and 2 omnibuses wait outside the castle gate; Mount up, then the Found card
+  // with a Ride to a town site row pointing at the surveyor's picks
+  const cm = clan.castleMounts;
+  assert.ok(cm, 'mounts placed at the castle gate');
+  const mine = Object.values(S.entities).filter(u => !u.dead && ((u.type === 'horse' && u.horseOwner === 'player') || (g.omnibus.isVehicle(u) && u.omnibusOwner === 'player')));
+  const horses = mine.filter(u => u.type === 'horse'), buses = mine.filter(u => u.type === 'omnibus');
+  assert.equal(horses.length, 3, `3 horses (${horses.length})`); assert.equal(buses.length, 2, `2 omnibuses (${buses.length})`);
+  assert.ok(mine.every(u => Math.hypot(u.x - cm.x, u.z - cm.z) < 40), 'all by the gate');
+  assert.ok(clan.mount && horses.some(h => h.id === clan.mount), 'one is your mount');
+  let goal2 = g.goals.current('player');
+  assert.equal(goal2.key, 'mount'); assert.ok(goal2.rows[0].where?.place === 'world', 'the mounts are pinged on the minimap');
+  for (let i = 0; i < 60 * 20 && !hero.mounted; i++) g.step(i % 20 ? [] : [{ id: hero.id, type: 'mount', horse: clan.mount }]);
+  assert.ok(hero.mounted, 'he rides');
+  for (let i = 0; i < 21; i++) g.step([]);
+  assert.ok(Math.hypot(cm.x - d.land.x, cm.z - d.land.z) < 20, 'the mounts wait at the dock');
+  goal2 = g.goals.current('player');
+  assert.equal(goal2.key, 'castleOut', `then out through the land gate (${goal2.key})`);
+  const ap = g.castles.approach('player');
+  assert.ok(goal2.rows[0].where && Math.hypot(goal2.rows[0].where.x - ap.x, goal2.rows[0].where.z - ap.z) < 1, 'the land gate is pinged');
+  Object.assign(hero, { x: ap.x, z: ap.z });
+  for (let i = 0; i < 21; i++) g.step([]);
+  goal2 = g.goals.current('player');
+  assert.equal(goal2.key, 'found0', `then the Found card (${goal2.key})`);
+  const siteRow = goal2.rows.find(r => r.label === 'Ride to a town site');
+  assert.ok(siteRow && !siteRow.done && siteRow.where && /Any open ground/.test(siteRow.how), 'Ride to a town site, optional picks');
+  assert.ok(goal2.sites?.length, 'the picks go on the World map');
+  const far = goal2.sites.map(s => Math.round(Math.hypot(s.x - c.x, s.z - c.z)));
+  const pick = goal2.sites[0]; Object.assign(hero, { x: pick.x + 50, z: pick.z });
+  assert.ok(g.goals.current('player').rows.find(r => r.label === 'Ride to a town site').done, 'near a site: done');
+  console.log(`  castle mounts ok; site picks at ${far.join(', ')} from the castle`);
   console.log(`  pick: western_reach, rivals ${homes.join(', ')}; sailed with 5 settlers`);
 }
 // --- nobody chose by the fallback day: the rivals go first and their sites are taken --------------------------------

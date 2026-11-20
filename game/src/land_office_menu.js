@@ -1,7 +1,8 @@
 // Land Office panel (frontier E1, Tim 2026-11-05), opened with Space at the telegraph office's door ring.
 // Same look as the police and clinic menus (the shared menu shell, menu restyle 2026-11-10). Reads the state and sends
 // commands only: 'landOffice' { action: 'permit' } and 'hire' { business: <Land Office>, unit: 'settler', count }; the rules
-// are in sim/frontier/land_office.js and sim/clans.js. Keys: 1 = buy the permit, 2 = hire a settler, 3 = hire 5.
+// are in sim/frontier/land_office.js and sim/clans.js. Keys: 1 = buy the permit, 2 = hire all the settlers
+// a town still needs (Tim 2026-11-20: the full amount is the only choice).
 import { msInstall, msShell, msAside, msArt, msSec, msRow, msBtn, msNote, msConcept, msEsc } from './menu_shell.js';
 export function createLandOfficeMenu({ panel, game, heroId, units, send }) {
   let open = false, shown = '';
@@ -9,12 +10,17 @@ export function createLandOfficeMenu({ panel, game, heroId, units, send }) {
   const clan = () => game.state.clans[hero()?.owner];
   const L = () => game.landOffice;
   const at = () => !!L() && L().atOffice(hero());
+  // settlers a town still needs: the founding number less those you have and those signing up
+  const missing = () => { const c = clan(); if (!c) return 0;
+    const have = game.clans.settlersOf(c.id).length + (c.settlersWaiting || 0), queued = c.queue.filter(q => q.unit === 'settler').length;
+    return Math.max(0, (game.frontier?.data?.founding?.minSettlers ?? 5) - have - queued); };
 
   function pick(i) {
     const h = hero(), b = L()?.office();
     if (!open || !h || !b || !at()) return;
     if (i === 0) send({ id: h.id, type: 'landOffice', action: 'permit' });
-    if (i === 1 || i === 2) send({ id: h.id, type: 'hire', business: b.id, unit: 'settler', count: i === 1 ? 1 : 5 });
+    const n = missing();
+    if (i === 1 && n) send({ id: h.id, type: 'hire', business: b.id, unit: 'settler', count: n });
   }
   msInstall(panel, () => close());
   panel.addEventListener('click', e => {
@@ -44,8 +50,9 @@ export function createLandOfficeMenu({ panel, game, heroId, units, send }) {
     const settlers = msSec('Settlers', `${have}${queued ? ` and ${queued} signing up` : ''}${full ? `, ${cap} is the most` : ''}`,
       `Settlers are unarmed and do not count as crew. ${F.minSettlers ?? 5} found a town. They wait safely at your HQ and all come along through the island gate.`)
       + (price === null ? msNote('Settlers sign up in campaign games only')
-        : msRow({ key: 2, thumb: face, name: 'Settler', sub: `${t.hp || 0} hp, unarmed, waits at your HQ`, right: msBtn({ label: `${price} ryo`, data: 'data-pick="1"', go: true, off: !canHire(1) }) })
-        + msRow({ key: 3, thumb: face, name: 'Five settlers', sub: 'Enough to found a town', right: msBtn({ label: `${price * 5} ryo`, data: 'data-pick="2"', go: true, off: !canHire(5) }) }));
+        : missing() ? msRow({ key: 2, thumb: face, name: `Hire ${missing()} settler${missing() > 1 ? 's' : ''}`, sub: `Enough to found a town. ${t.hp || 0} hp each, unarmed, wait at your HQ`,
+          right: msBtn({ label: `${price * missing()} ryo`, data: 'data-pick="1"', go: true, off: !canHire(missing()) }) })
+        : msRow({ thumb: face, name: 'Settlers ready', sub: 'Enough to found a town', subClass: 'ms-good' }));
     const notice = c.notice && game.state.tick - c.notice.tick < 20 * 4 ? msNote(c.notice.text, true) : '';
     const aside = msAside({ art: msArt('telegraph_office'), label: 'Telegraph office', coins: [
       { v: Math.floor(c.ryo), label: 'Ryo', red: true, tip: "Your clan's ryo" },

@@ -41,7 +41,7 @@ assert.equal(clan.queue.length, 0); assert.match(clan.notice?.text || '', /found
 clan.permit = true;
 const crewBefore = g.clans.crewCount('player'), ryoBefore = clan.ryo;
 for (let i = 0; i < 5; i++) g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler' }]);
-assert.equal(clan.queue.length, 5);
+assert.equal(clan.queue.length, 0, 'they sign up at once (Tim 2026-11-20)');
 assert.equal(clan.ryo, ryoBefore - 5 * U.types.settler.price, 'flat price each');
 assert.equal(g.clans.hirePrice('player', 'settler'), U.types.settler.price, 'price does not climb');
 for (let i = 0; i < 1300 && (clan.settlersWaiting || 0) < 5; i++) g.step([]);

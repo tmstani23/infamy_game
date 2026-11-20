@@ -195,7 +195,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
       const clan = clanOf(b.owner);
       if (clan) whistlesOf(b.owner).some(w => w.horse === id) || whistlesOf(b.owner).push({ horse: id, name, kind: b.kind });
       if (clan && !mountOf(b.owner)) clan.mount = id;
-      say(b.owner, `${name} is ready ${b.town === 'capital' ? 'outside the island gate' : 'at the stable'}, her whistle is in your Field supplies${clan?.mount === id ? ' (H to call and ride her)' : ''}`);
+      say(b.owner, `${name} is ready ${b.where || (b.town === 'capital' ? 'outside the island gate' : 'at the stable')}, her whistle is in your Field supplies${clan?.mount === id ? ' (H to call and ride her)' : ''}`);
     }
     if (state.tick % 20 === 0) for (const clan of Object.values(state.clans || {})) {   // a dead horse takes her whistle with her
       if (!clan.whistles?.length) continue;

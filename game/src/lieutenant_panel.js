@@ -14,12 +14,12 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
   const pane = document.createElement('section'); pane.className = 'pane-away';
   pane.innerHTML = '<div class="lt-head"><img class="lt-portrait" alt=""><h4>While I&#39;m away</h4></div><p class="away-status"></p><button type="button" class="away-watch">Watch the city</button><div class="away-orders"></div>'
     // a typeable box and Set (Tim 2026-11-10: no sliders; Set also completes the goal step when the number is unchanged)
-    + '<div class="away-budget-row">Budget <input class="away-budget" type="number" min="0" step="50" inputmode="numeric" title="What your lieutenant may spend each day"> ryo a day <button type="button" class="away-budget-set" title="Set the daily budget">Set</button><span class="away-budget-value" hidden></span></div>'
+    + '<div class="away-budget-row">Budget <input class="away-budget" type="text" inputmode="numeric" maxlength="5" autocomplete="off" title="What your lieutenant may spend each day"> ryo a day <button type="button" class="away-budget-set" title="Set the daily budget">Set</button><span class="away-budget-tip">800 a day is a good start</span><span class="away-budget-value" hidden></span></div>'
     + '<label title="While your clan is in a war on the island your lieutenant holds what you have. He buys no new businesses and raids only to win back a business a rival took since the war began. Shakedowns, Sweeps, hiring, bail, the clinic and defence go on as usual."><input class="away-war" type="checkbox"> War Mode during a war</label><p class="away-war-status" hidden>War Mode is on. Your lieutenant is holding what you have.</p>'
     + '<label><input class="away-home" type="checkbox"> Keep defending when I&#39;m back</label><h4>Log</h4><ol class="away-log"></ol>';
   tabs.appendChild(tab); work.appendChild(pane);
   const style = document.createElement('style');
-  style.textContent = '#deploymentpanel:not([data-page="away"]) .pane-away{display:none}#deploymentpanel .pane-away label{display:block;margin:4px 0}#deploymentpanel .away-budget-row{margin:4px 0}#deploymentpanel .away-budget{width:6em}#deploymentpanel .away-log{max-height:160px;overflow-y:auto;font-size:11px;padding-left:18px}';
+  style.textContent = '#deploymentpanel:not([data-page="away"]) .pane-away{display:none}#deploymentpanel .pane-away label{display:block;margin:4px 0}#deploymentpanel .away-budget-row{margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;border-radius:6px}#deploymentpanel .away-budget{width:64px;background:#07090b;border:1px solid #826f4c;border-radius:4px;padding:4px 6px;text-align:right;font:600 15px system-ui;color:#f3e3bd;box-shadow:inset 0 1px 3px rgba(0,0,0,.6)}#deploymentpanel .away-budget:focus{outline:none;border-color:#f0c85a}#deploymentpanel .away-budget-set{background:linear-gradient(#5a2a20,#2a1410);border:1px solid #c9a35c;border-radius:4px;color:#f3e3bd;font:600 13px system-ui;padding:4px 14px;cursor:pointer}#deploymentpanel .away-budget-set:hover{border-color:#f0c85a}#deploymentpanel .away-budget-tip{font-size:11px;color:#c9b88f}#deploymentpanel .away-log{max-height:160px;overflow-y:auto;font-size:11px;padding-left:18px}';
   document.head.appendChild(style);
   tab.addEventListener('click', () => {
     root.dataset.page = 'away';
@@ -35,10 +35,10 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
     l.append(c, ' ' + label); pane.querySelector('.away-orders').appendChild(l); return [k, c];
   }));
   const budget = pane.querySelector('.away-budget'), home = pane.querySelector('.away-home');
-  const setBudget = () => { const max = Number(budget.max) || 2000, v = Math.max(0, Math.min(max, Math.round(Number(budget.value) || 0))); budget.value = String(v); send({ id: heroId, type: 'lieutenant', budget: v }); budget.blur(); };
+  const setBudget = () => { const max = Number(budget.dataset.max) || 2000, v = Math.max(0, Math.min(max, Math.round(Number(budget.value) || 0))); budget.value = String(v); send({ id: heroId, type: 'lieutenant', budget: v }); budget.blur(); };
   pane.querySelector('.away-budget-set').addEventListener('click', setBudget);
   budget.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') setBudget(); });
-  budget.addEventListener('input', () => { pane.querySelector('.away-budget-value').textContent = budget.value; });
+  budget.addEventListener('input', () => { const d = budget.value.replace(/[^0-9]/g, ''); if (d !== budget.value) budget.value = d; pane.querySelector('.away-budget-value').textContent = budget.value; });   // digits only (typed box, Tim 2026-11-20)
   const warBox = pane.querySelector('.away-war');
   warBox.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', warMode: warBox.checked }));
   home.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', defendAtHome: home.checked }));
@@ -59,7 +59,7 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
     const pic = pane.querySelector('.lt-portrait'), src = lieutenantPortrait(game.state.clans?.[owner()]);
     if (pic.getAttribute('src') !== src) pic.setAttribute('src', src);
     for (const [k, c] of Object.entries(boxes)) { c.parentElement.hidden = k in FOR_NINJA && FOR_NINJA[k] !== ninja; if (document.activeElement !== c) c.checked = !!r.orders[k]; }
-    budget.max = String(game.settings.lieutenantMax ?? 2000);
+    budget.dataset.max = String(game.settings.lieutenantMax ?? 2000);
     if (document.activeElement !== budget) { budget.value = String(r.budget); pane.querySelector('.away-budget-value').textContent = r.budget; }
     home.checked = !!r.defendAtHome;
     warBox.checked = r.warMode !== false; pane.querySelector('.away-war-status').hidden = !L().warHold?.(owner());

@@ -1,3 +1,4 @@
+import { RICH_NAME } from './sim/resource_spots.js';
 import { modeRules } from './sim/modes/index.js';
 import { createRailLedger } from './rail_ledger.js';
 // The full game map (M, Tim 2026-10-20, docs/territory_plan.md): the whole district over the
@@ -231,6 +232,7 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
     tabs.addEventListener('click', e => { const t = e.target.closest('button')?.dataset.tab; if (t) { setTab(t); e.target.blur(); } });
   }
   let zoneKey = '', zoneState = null;
+  let goalSites = [], goalSitesAt = 0;
   const worldState = () => {
     const w = game.state.world, h = game.state.entities[heroId];
     const told = game.state.clans?.[clan]?.knownSites || [], R = game.frontier?.data?.founding?.traits?.nodeRadius ?? 600;
@@ -241,7 +243,9 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
     const zr = game.frontier?.data?.campaignZones, grid = w?.discovered?.[clan] ?? '0';
     if (zr) { const key = `${grid}:${Object.values(game.state.frontier?.settlements || {}).map(s => `${s.id}${s.owner}${s.founded ?? ''}`).join()}:${game.state.day ?? Math.floor((game.state.tick ?? 0) / 2400)}`;
       if (key !== zoneKey) { zoneKey = key; zoneState = zoneMapState({ rules: zr, world, settlements: game.state.frontier?.settlements, clans: game.state.clans, clan, known: (x, z) => isDiscovered(world, grid, x, z) }); } }
-    return { zones: zr ? zoneState : null, zoneRules: zr, rivalHints, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
+    // the Found card's site picks (Tim 2026-11-20), read twice a second
+    if (!goalSitesAt || performance.now() - goalSitesAt > 500) { goalSitesAt = performance.now(); goalSites = game.goals?.current?.(clan)?.sites || []; }
+    return { zones: zr ? zoneState : null, zoneRules: zr, rivalHints, goalSites, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
       knownSites: told, knownAt: told.map(id => siteXZ[id]).filter(Boolean).map(t => ({ x: t.x, z: t.z, r: R })), highlight: tourStop,
       hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap(),
       rail: { links: game.state.frontier?.rail?.links || {}, trains: game.state.frontier?.rail?.trains || {}, highlight: ledgerOpen ? ledger.train() : null, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600, wars: game.state.frontier?.wars?.list } };
@@ -367,6 +371,11 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
       const [px, py] = local(e), hit = worldMap.hit(px, py), hint = !hit && worldMap.hintAt(px, py);
       let c = hint ? { title: `${hint.name} town, roughly`, sub: 'Somewhere near here', lines: [['', hint.founded ? `The old surveyor says the ${hint.name} built near here.` : `The old surveyor says the ${hint.name} will build near here.`],
         ['', 'Ride close and you will find the town.'], ['', 'Click the mark to open your goal.']] } : null;
+      const pick = !c && !hit && worldMap.goalSiteAt(px, py), ps = pick && game.landOffice?.sites?.(clan)?.find(s => s.id === pick.id);
+      if (ps) { const n = Object.entries(ps.traits?.nodes || {}).filter(([, v]) => v).map(([k, v]) => `${v > 1 ? `${v} x ` : ''}${RICH_NAME[k] || k}`);
+        c = { title: "The surveyor's pick", sub: ps.region || '', lines: [['', `Soil ${ps.traits.soil}, water ${ps.traits.water}, defence ${ps.traits.defense}`],
+          ['', n.length ? `Close by: ${n.join(', ')}` : 'No rich ground close by'], ['', ps.campWarn ? `Bandit camp ${ps.campDistance} away: bring crew` : 'No bandit camp near'],
+          ['', 'A suggestion only: you may found on any open ground']] }; }
       if (!c) c = hit?.kind === 'town' ? hoverCard(hit, { clan, clanName: id => game.state.clans?.[id]?.name || id, roads: game.state.frontier?.roads }) : null;
       if (hit?.kind === 'spot') { const t = spotInfo({ ...hit, kind: hit.featureKind }, game.state.frontier?.spots?.[hit.id]); c = { title: t.title, sub: '', lines: t.lines.map(l => ['', l]) }; }
       const tipKind = { site: 'site', resource: 'node', camp: 'camp', bridge: 'bridge', ford: 'ford', pass: 'pass' }[hit?.kind];
@@ -446,7 +455,10 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
   function dock(on, sector) {
     root.classList.toggle('docked', on);
     if (sector && overlay.sectors.some(s => s.id === sector)) selectedSector = sector;
-    if (on) { layers.deployment = true; if (!isOpen()) open(); }
+    if (on) { layers.deployment = true; if (!isOpen()) open();
+      // the World tab hides the Deployment menu: in the city it docks on the City tab (Tim 2026-11-20: the lieutenant's
+      // Show me opened the World tab, left there by the surveyor's tour, and showed nothing)
+      if (tab === 'world' && game.state.entities[heroId]?.place !== 'world') setTab('city'); }
     else pointPicker = null;
     syncLayers(); drawSide(); map?.invalidate();
   }

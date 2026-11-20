@@ -192,6 +192,14 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       ctx.fillStyle = '#b03424'; ctx.fillText('?', p.px, p.py);
       ctx.restore();
     }
+    // the Found card's site picks (Tim 2026-11-20): a pulsing gold ring and a gold ! like the goal marks, hover for the site
+    if (st.goalSites?.length) { const t = performance.now() / 300;
+      for (const g of st.goalSites) { const p = worldToCanvas(g.x, g.z, view), r = 13 + 2.5 * Math.sin(t);
+        ctx.save(); ctx.shadowColor = 'rgba(255,214,110,.9)'; ctx.shadowBlur = 12; ctx.strokeStyle = '#f0c85a'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(p.px, p.py, r, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.font = 'bold 18px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = '#2a1d0c';
+        ctx.strokeText('!', p.px, p.py - r - 10); ctx.fillStyle = '#f0c85a'; ctx.fillText('!', p.px, p.py - r - 10); ctx.restore(); }
+      dirty = true; }
     if (layers.zones && st.zones) drawZoneLabels(ctx, st.zones, zproj);   // zone chips and the castles you know
     if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
     // the surveyor's tour stop (Tim 2026-11-06 20:45): a gold ring the size of the area a town draws its nodes from
@@ -228,6 +236,9 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     resize,
     frame(revision) { resize(); if (revision !== rev) { rev = revision; dirty = true; } if (dirty) draw(); },
     hit(px, py) { return px < MARGIN || py < MARGIN ? null : hitTest(hitItems(), px, py, view); },
+    // the Found card's site pick under a canvas point, or null
+    goalSiteAt(px, py) { if (px < MARGIN || py < MARGIN) return null;
+      return (getState().goalSites || []).find(g => { const p = worldToCanvas(g.x, g.z, view); return Math.hypot(px - p.px, py - p.py) <= 20 || Math.hypot(px - p.px, py - (p.py - 25)) <= 12; }) || null; },
     // the rival question mark under a canvas point (inside its ring), or null
     hintAt(px, py) { if (px < MARGIN || py < MARGIN) return null;
       return (getState().rivalHints || []).find(h => { const p = worldToCanvas(h.x, h.z, view); return Math.hypot(px - p.px, py - p.py) <= Math.max(18, h.r * view.scale); }) || null; },

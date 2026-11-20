@@ -227,7 +227,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   function teamOf(e, me) {
     if (e.id === me?.id) return 'hero';
     if (e.worker) return me && e.workerOwner === me.owner ? 'worker' : 'enemy';   // workers stand out from townsfolk and crew (Tim 2026-11-12)
-    if (e.type === 'civilian') return 'townsfolk';
+    if (e.type === 'civilian' || (e.guide && !e.owner)) return 'townsfolk';   // the old surveyor and other clanless guides read as townsfolk (Tim 2026-11-20)
     if (me && e.owner === me.owner) return 'crew';
     if (e.owner === 'bandits') return e.angry && Object.keys(e.angry).length ? 'enemy' : 'bandit';
     // police: blue, red while after your clan
@@ -443,7 +443,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
         e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
       if (e.type === 'rickshaw' || drivers.has(id)) syncDriver(e, s, fdt, loaded);   // its coachman (frontier rickshaw)
       // salute cannons: no health bar; a ridden horse neither: its bar sat on the rider's and the two flickered (Tim 2026-11-16), her health shows on her Mount card
-      if (e.cannon || (e.type === 'horse' && e.rider)) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp, SIDE_BAR[teamOf(e, state.entities[followId])]);
+      if (e.cannon || (e.guide && !e.owner) || (e.type === 'horse' && e.rider)) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp, SIDE_BAR[teamOf(e, state.entities[followId])]);   // nor the clanless guides (Tim 2026-11-20)
       s.setNameplate(e.name || entityName(units || { types: {} }, e), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
         state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), !!state.clans?.[e.owner], e.type === 'hero',
         teamOf(e, state.entities[followId]) === 'enemy' ? '#e63c32' : null);   // enemies: a red border, the crest keeps the clan colour (Tim 2026-11-19)

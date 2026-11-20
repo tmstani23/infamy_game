@@ -110,6 +110,9 @@ export function createClans(state, units, opts = {}) {
     const prices=Array.from({length:count},(_,i)=>hirePrice(clan.id,type,i)),total=prices.reduce((n,v)=>n+v,0);
     if (clan.ryo < total) return say(clan, `Not enough ryo (${total} needed)`);
     debitRyo(state, clan, total, 'Crew hired', { target: type });
+    // a player's settlers sign up at once and wait at the HQ (Tim 2026-11-20: the goal card waited on each one)
+    if (settler && !clan.bot && modeRules(state).founding) { clan.settlersWaiting = (clan.settlersWaiting || 0) + count;
+      return say(clan, `${count === 1 ? 'A settler waits' : `${count} settlers wait`} safely at your HQ (${total} ryo)`); }
     const duration=types[type].hireSeconds * (home && !office ? rules.hideout?.hireTimeFactor ?? 1 : 1);
     for(let i=0;i<count;i++)clan.queue.push({ unit: type, business: b.id, left:duration, duration, paid: prices[i] });
     return say(clan, count===1?`Hired a ${types[type].name || type} for ${total} ryo`:`Queued ${count} ${types[type].name || type} for ${total} ryo`);

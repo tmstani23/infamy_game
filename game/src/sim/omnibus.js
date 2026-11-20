@@ -289,6 +289,14 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     b.anim = step < 0.04 ? 'idle' : step > top * 0.6 ? 'run' : 'trot';
     Object.assign(b, { x: fx, z: fz });
   }
+  // a follower far behind: along a planned way (replanned each second) toward its place in the line
+  function catchUp(b, p) {
+    const n = nav(), c = b.catchUp;
+    if (!c || state.tick - c.at >= 20 || Math.hypot(c.to[0] - p[0], c.to[1] - p[1]) > 6) { const pts = n?.findPath?.(b.x, b.z, p[0], p[1]); b.catchUp = { at: state.tick, to: [p[0], p[1]], pts: pts?.length ? [...pts] : [p] }; }
+    const pts = b.catchUp.pts;
+    while (pts.length > 1 && (Math.hypot(pts[0][0] - b.x, pts[0][1] - b.z) < 3 || n?.clearLine?.(b.x, b.z, pts[1][0], pts[1][1]))) pts.shift();
+    drive(b, pts[0][0], pts[0][1], 0, 1 / 20);
+  }
   function selfDrive(b) {
     const o = b.vorder;
     if (o.kind === 'move') {
@@ -354,8 +362,12 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
           if (!hero || hero.place !== b.place || hero.dead) { b.anim = 'idle'; continue; }
           const ahead = prev; gap += spacing(prev, b); prev = b;
           const p = ht.length && back([...ht, [hero.x, hero.z]], gap);
-          if (ahead && tooClose(ahead, b, p || [hero.x, hero.z])) { b.anim = 'idle'; continue; }   // never into the one ahead
-          if (!p) { drive(b, hero.x, hero.z, gap, 1 / 20); continue; }
+          // no trail that far back yet: the second and later ones close up behind the one ahead at once (Tim 2026-11-20:
+          // the second omnibus waited until the hero had ridden off, then lagged and stuck)
+          if (!p) { if (ahead) drive(b, ahead.x, ahead.z, spacing(ahead, b), 1 / 20); else drive(b, hero.x, hero.z, gap, 1 / 20); continue; }
+          if (ahead && tooClose(ahead, b, p)) { b.anim = 'idle'; continue; }   // never into the one ahead
+          // fallen well behind its place: drive a planned way round walls and buildings to it, not straight at it
+          if (Math.hypot(p[0] - b.x, p[1] - b.z) > (R().catchUp ?? 8)) { catchUp(b, p); continue; }
           // it closes on its place in the line at a pace that grows with how far behind it is (Tim 2026-11-10: at a
           // trot it raced up at full speed, jumped onto the spot and twitched back and forth); full speed from about 2 back
           closeOn(b, p);

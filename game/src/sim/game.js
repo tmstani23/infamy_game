@@ -138,8 +138,9 @@ export function createGame(options) {
     if (b.business === 'land_office' && b.door && options.frontier && options.world) {
       const [rx, rz] = ringAt(b), ox = b.door[0] - b.x, oz = b.door[1] - b.z, l = Math.hypot(ox, oz) || 1;
       doors.push({ x: rx, z: rz, menu: 'land_office', business: `b${i}`, place: 'street', label: 'Open the Land Office' });
-      // the old surveyor beside the Land Office door (Tim 2026-11-06 20:45): talk after a permit, he shows you sites
-      doors.push({ x: rx - oz / l * 4.5, z: rz + ox / l * 4.5, menu: 'surveyor', business: `b${i}`, place: 'street', label: 'Talk to the old surveyor' });
+      // the old surveyor beside the Land Office door (Tim 2026-11-06 20:45): talk after a permit, he shows you sites.
+      // Further from the office door and a reach round his figure (Tim 2026-11-20: the two used to run together)
+      doors.push({ x: rx - oz / l * 7, z: rz + ox / l * 7, r: 2.2, menu: 'surveyor', business: `b${i}`, place: 'street', label: 'Talk to the old surveyor' });
     }
     if (b.business === 'police_hq' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'police_hq', business: `b${i}`, place: 'street', label: 'Open the police HQ' });
   });
@@ -229,8 +230,11 @@ export function createGame(options) {
     danger: (e, r) => Object.values(state.entities).some(u => u.place === e.place && Math.hypot(u.x - e.x, u.z - e.z) <= r && baseHostile(u, e)),
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
   // the lieutenant's spot by the gate (goal steps, Tim 2026-11-06): Space here talks to him (sim/lieutenant.js guide)
-  if (gate) { const [gx, gz] = gate.city, [ix, iz] = gate.inside, dx = ix - gx, dz = iz - gz, l = Math.hypot(dx, dz) || 1;
-    doors.push({ x: gx + dx / l * 3 - dz / l * 4, z: gz + dz / l * 3 + dx / l * 4, place: 'street', menu: 'lieutenant', label: 'Talk to your lieutenant' }); }
+  // Tim 2026-11-20: he stood behind the gate roof and was hard to see: now out along the road toward the railway
+  // station (placed below, once gate.station is known), with a reach round his figure
+  const ltDoor = gate && { place: 'street', menu: 'lieutenant', r: 2.2, label: 'Talk to your lieutenant' };
+  if (ltDoor) { const [gx, gz] = gate.city, [ix, iz] = gate.inside, dx = ix - gx, dz = iz - gz, l = Math.hypot(dx, dz) || 1;
+    Object.assign(ltDoor, { x: gx + dx / l * 3 - dz / l * 4, z: gz + dz / l * 3 + dx / l * 4 }); doors.push(ltDoor); }
   // the city's railway station by the gate (Tim 2026-11-07): Space at its door ring opens the station menu;
   // trains from your towns let you off here (sim/frontier/rail.js uses gate.station)
   const railStation = gate && district.buildings.find(b => b.railStation && b.door);
@@ -241,7 +245,9 @@ export function createGame(options) {
   // train rolls into the city and stands at the station; nobody boards out there (sim/frontier/rail.js endpoint, preview)
   if (railStation && gate.side === 'E') { const rz = areas.city.minZ - district.bounds.minZ + railStation.z;
     gate.rail = [areas.city.maxX - 70, rz]; gate.railApproach = [areas.city.maxX + 30, rz]; }
-  if (railStation) { gate.station = ringAt(ticketHall || railStation); doors.push({ x: gate.station[0], z: gate.station[1], place: 'street', menu: 'rail_station', label: 'Railway station: trains to your towns' }); }
+  if (railStation) { gate.station = ringAt(ticketHall || railStation); doors.push({ x: gate.station[0], z: gate.station[1], place: 'street', menu: 'rail_station', label: 'Railway station: trains to your towns' });
+    if (ltDoor) { const [gx, gz] = gate.city, dx = gate.station[0] - gx, dz = gate.station[1] - gz, l = Math.hypot(dx, dz) || 1, k = Math.min(9, l * 0.6);
+      Object.assign(ltDoor, { x: gx + dx / l * k, z: gz + dz / l * k }); } }
   // the capital stable (Tim 2026-11-07, the old rickshaw station): Space at its ring opens the stable menu (src/stable_menu.js)
   const capitalStable = gate && district.buildings.find(b => b.capitalStable && b.door);
   if (capitalStable) { const [x, z] = ringAt(capitalStable); doors.push({ x, z, place: 'street', menu: 'capital_stable', label: 'Capital stable: horses, rickshaws and omnibuses' }); }
@@ -624,8 +630,33 @@ export function createGame(options) {
     const want = !!d && modeRules(state).founding && Object.values(state.clans || {}).some(c => !c.bot);
     if (g && (!want || g.dead || g.downed)) { removeUnit(g.id); delete state.surveyorNpc; return; }
     if (!want) return;
-    if (!g) state.surveyorNpc = spawn('city_captain', model, d.x + 0.8, d.z, { owner: null, place: 'street', guide: true, surveyor: true, holdFire: true, hp: 100, name: 'Old surveyor' });
-    else Object.assign(g, { x: d.x + 0.8, z: d.z, place: 'street', anim: 'idle' });
+    if (!g) state.surveyorNpc = spawn('city_captain', model, d.x, d.z, { owner: null, place: 'street', guide: true, surveyor: true, holdFire: true, hp: 100, name: 'Old surveyor' });
+    else Object.assign(g, { x: d.x, z: d.z, place: 'street', anim: 'idle' });
+  }
+  // mounts waiting at your castle dock (Tim 2026-11-20): once, for a player clan with a castle and no town yet, your
+  // horse, two horses for crew and two omnibuses, free, just inside the harbour gate where the ship lands;
+  // clan.castleMounts = { x, z, rode, out } is where they wait (the Mount up goal), rode once the boss rides, out once he
+  // is through the land gate (castles.approach: the Ride out of your castle goal, sim/campaign_goals.js). They come out
+  // through the stable's usual born lists. Placeholders: units.json rules.castleMounts { horse, crewHorse, crewHorses, omnibuses }.
+  function castleMounts() {
+    if (!castles || !landOffice || state.tick % 20) return;
+    const M = units?.rules?.castleMounts || {};
+    for (const [id, c] of Object.entries(state.clans || {})) {
+      const cm = c.castleMounts, h = cm && (!cm.rode || !cm.out) && Object.values(state.entities).find(e => e.type === 'hero' && e.owner === id);
+      if (h?.mounted && !h.aboard) cm.rode = true;   // the Mount up goal is met
+      const ap = h && h.place === 'world' && !h.aboard && castles.approach(id);
+      if (ap && Math.hypot(h.x - ap.x, h.z - ap.z) < (M.outReach ?? 30)) cm.out = true;   // through the land gate
+      if (c.bot || cm || landOffice.townsOf(id)) continue;
+      const d = castles.dock(id);
+      if (!d) continue;
+      const l = Math.hypot(d.land.x - d.end.x, d.land.z - d.end.z) || 1, ox = (d.land.x - d.end.x) / l, oz = (d.land.z - d.end.z) / l;   // in from the sea
+      const at = (inward, side) => ({ x: d.land.x + ox * inward - oz * side, z: d.land.z + oz * inward + ox * side });
+      const where = 'at your castle dock', H = (state.frontier.bornHorses ||= []), V = (state.frontier.bornVehicles ||= []);
+      H.push({ owner: id, kind: M.horse || 'black_beauty', ...at(6, 0), town: castles.castleOf(id)?.id, where });
+      for (let i = 0; i < (M.crewHorses ?? 2); i++) H.push({ owner: id, kind: M.crewHorse || 'calico', ...at(6, (i % 2 ? 1 : -1) * 2.5 * (1 + (i >> 1))), town: castles.castleOf(id)?.id, where });
+      for (let i = 0; i < (M.omnibuses ?? 2); i++) V.push({ owner: id, kind: 'omnibus', ...at(14, (i % 2 ? 1 : -1) * 5 * (1 + (i >> 1))), town: castles.castleOf(id)?.id, quiet: true });
+      c.castleMounts = { ...at(6, 0) };
+    }
   }
   const cannons = createCannonSalute({ state, spawn: (...a) => spawn(...a), removeUnit: id => removeUnit(id), cell: options.frontier?.townGrid?.cellSize || 11, rules: units?.rules?.cannonSalute });
   const townCount = owner => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === owner && s.founded !== undefined).length;
@@ -769,9 +800,17 @@ export function createGame(options) {
   function doorNear(id) {
     const e = state.entities[id];
     // back windows (d.ninja) are only a way in for the Shinobi clan (sim/stealth.js)
-    return e ? doors.find(d => (!d.ninja || (state.clans?.[e.owner]?.kind === 'ninja'
-      && (!state.businesses[d.business]?.hideout || state.businesses[d.business].owner === e.owner)))
-      && Math.hypot(d.x - e.x, d.z - e.z) < DOOR_RADIUS) || null : null;
+    // the closest door in reach wins (Tim 2026-11-20: Space by the old surveyor opened the Land Office); a door may
+    // carry its own reach (d.r, the surveyor's is his figure)
+    if (!e) return null;
+    let best = null, bd = Infinity;
+    for (const d of doors) {
+      if (d.ninja && !(state.clans?.[e.owner]?.kind === 'ninja'
+        && (!state.businesses[d.business]?.hideout || state.businesses[d.business].owner === e.owner))) continue;
+      const k = Math.hypot(d.x - e.x, d.z - e.z);
+      if (k < (d.r || DOOR_RADIUS) && k < bd) { best = d; bd = k; }
+    }
+    return best;
   }
 
   function serviceAt(id, menu = null, preferred = []) {
@@ -837,7 +876,7 @@ export function createGame(options) {
   frontier?.rivalCampaign?.setCastles(castles);   // Z4: clan castles on the island
   // the ship between the city harbour pier and your castle dock (Tim 2026-11-19): a skippable sail, sim/frontier/ferry.js
   const shipRules = options.frontier?.campaignZones;
-  const ferry = castles && shipRules?.ship && options.world?.capital?.port ? createFerry({ state, rules: shipRules, pier: shipRules.ship.pier, seaGate: options.world.capital.port, castles,
+  const ferry = castles && shipRules?.ship && options.world?.capital?.port ? createFerry({ state, rules: shipRules, world: options.world, pier: shipRules.ship.pier, seaGate: options.world.capital.port, castles,
     navOf: p => navOf(p), followOffset: (...a) => followOffset(...a), freeSlot: (...a) => freeSlot(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; }, areas, mounts: { dismount: e => mounts?.dismount(e) },
     waiting: e => { const clan = state.clans?.[e.owner], st = units?.types?.settler, n = clan?.settlersWaiting || 0; if (!n || !st) return [];   // Z7: settlers at the HQ sail with him
       clan.settlersWaiting = 0; return Array.from({ length: n }, () => state.entities[spawn('settler', st.sprite, e.x, e.z, { owner: e.owner, hp: st.hp, holdFire: true, place: 'street' })]); } }) : null;
@@ -845,7 +884,7 @@ export function createGame(options) {
   if (ferry) frontier.modules.unshift({ name: 'ferry', command: (e, c) => ferry.command(e, c) });
   const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base), zones: frontier.campaignZones, castles }) : null;
   frontier?.rivalCampaign?.setLandOffice(landOffice, units?.types?.settler);   // Z2: rival homes, strategies and later towns
-  const goals = createCampaignGoals({ state, clans, landOffice, influence, zones: frontier?.campaignZones, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, harbourAt: () => ferry ? { x: ferry.pier[0], z: ferry.pier[1] } : null, hasCastle: id => !!castles?.castleOf(id), rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
+  const goals = createCampaignGoals({ state, clans, landOffice, influence, zones: frontier?.campaignZones, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, harbourAt: () => ferry ? { x: ferry.pier[0], z: ferry.pier[1] } : null, castleApproach: id => castles?.approach?.(id) || null, hasCastle: id => !!castles?.castleOf(id), rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
   frontier?.attach({rangeScale:(a,b)=>castles?.rangeScale(a,b) ?? 1,unitOf:e=>statsOf(e),moveTo:(...a)=>moveTo(...a),hit:(...a)=>hit(...a),fight,paths,dirIndex,damageOf:e=>stats.damage(e),intervalOf:e=>stats.attackInterval(e),swingTicks:(unit,speed)=>Math.max(4,Math.round(Math.min(speed*0.85,unit.swingSeconds||0.7)/DT)),areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),
     // a war camp fell (sim/frontier/war_end.js): the attacker's hero and crew in the war circle fall back to their nearest town, on foot
     // (8c: o.side 'defender' = the defender leaving the town he surrendered, to his nearest other town; o.why = what he is told)
@@ -905,7 +944,7 @@ export function createGame(options) {
     spawn, guardSpots, patrolSpots, roomOf: roomOfBusiness, remove: removeUnit, payoutBonus: territory.payoutBonus, addHeatGain: (clan, amount, reason) => state.heatGains.push({ clan, amount, reason }) }) : null;
   // C2/C3: the lieutenant's standing orders, budget, log and the city captain (campaign only, sim/lieutenant.js)
   const lieutenant = clans ? createLieutenantRules({ state, rules: options.settings?.campaignCity?.lieutenant, units, clans, doors, spawn, removeUnit: id => removeUnit(id), businesses,
-    guideAt: () => { const d = doors.find(x => x.menu === 'lieutenant'); return d && { x: d.x + 1.2, z: d.z }; } }) : null;
+    guideAt: () => { const d = doors.find(x => x.menu === 'lieutenant'); return d && { x: d.x, z: d.z }; } }) : null;
   // Shinobi contracts (sim/contracts.js): the back room is the floor spot furthest from the way in, as for raids
   const backRoomOf = b => {
     const room = b && roomOfBusiness(b);
@@ -1354,11 +1393,12 @@ export function createGame(options) {
     for (const v of frontier?.stable?.bornVehicles?.() || []) {   // built at a station: parked there, empty (Tim 2026-11-06)
       omnibus?.park(v.owner, v.kind, v.x, v.z);
       const clan = state.clans?.[v.owner], town = state.frontier.settlements?.[v.town];
-      if (clan && v.town !== 'capital') clan.notice = { tick: state.tick, text: `${town?.name || 'Your town'}: a new ${v.kind} is parked at the station` };   // capital stable: its own notice
+      if (clan && v.town !== 'capital' && !v.quiet) clan.notice = { tick: state.tick, text: `${town?.name || 'Your town'}: a new ${v.kind} is parked at the station` };   // capital stable: its own notice
     }
     omnibus?.tick();
     mounts?.tick(DT);
     garage?.tick(DT);
+    castleMounts();
     // quest log milestones (campaign only); at the end of the tick so loot, raids and buys made by units this tick count (Tim 2026-11-06)
     goals.record(state.news, state.casts, state.ryoLosses);
     state.tick++;

@@ -51,7 +51,8 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map, home 
     if (needsHome(c)) return ['A founding permit! Good. But before any town, your clan needs a castle on this coast: its harbour, its station, its walls.', 'Five harbours can hold one. Choose where yours stands. The ship at the city pier will take you there.'];
     if (warTalk(c)) return WAR()[Math.min(page, WAR().length - 1)];
     if (c?.surveyPending) return [c.survey ? 'Another permit? Then I ride out past your last town and see what lies beyond.' : 'A founding permit! Good. I have walked every road on this island. Let me show you where a town could stand.'];
-    if (c?.survey) return ['Those sites are on your map. Take your settlers through the island gate and ride straight to one.'];
+    if (c?.survey) return [game.castles?.castleOf?.(c.id) ? 'I have marked the best town sites near your castle on your map. Sail there with your settlers, ride out and found where you like: my marks are only advice.'
+      : 'Those sites are on your map. Take your settlers through the island gate and ride straight to one.'];
     return ['I have walked every road on this island. Buy a founding permit at the Land Office and I will tell you where to settle.'];
   }
   // tour stops: the intro (first report only), each site, then his pick
@@ -64,7 +65,7 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map, home 
     const best = [...list].sort((a, b) => score(b) - score(a))[0], why = [];
     if (best.traits.soil >= 2) why.push('the soil is good'); if ((best.traits.nodes?.forest || 0) + (best.traits.nodes?.quarry || 0)) why.push('timber and stone are close');
     if (!best.campWarn) why.push('no bandits nearby'); if (best.traits.defense >= 2) why.push('it is easy to hold');
-    out.push({ site: best.id, title: 'MY PICK', text: [`${best.region}, ${best.id}${why.length ? `: ${why.join(', ')}.` : '.'}`, 'Take at least 5 settlers through the island gate and choose Ride to a known site.'] });
+    out.push({ site: best.id, title: 'MY PICK', text: [`${best.region}, ${best.id}${why.length ? `: ${why.join(', ')}.` : '.'}`, game.castles?.castleOf?.(c.id) ? 'Sail to your castle with your settlers and ride out to one, or found on any open ground you like.' : 'Take at least 5 settlers through the island gate and choose Ride to a known site.'] });
     return out;
   }
   function startTour() { const c = clan(); if (!c?.survey) return; tour = { list: stops(c), i: 0 }; close(); show(); }
@@ -87,7 +88,7 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map, home 
   });
   function act(a) {
     const c = clan();
-    if (a === 'home' && needsHome(c) && homePick) send({ id: heroId, type: 'landOffice', action: 'home', zone: homePick });
+    if (a === 'home' && needsHome(c) && homePick) { send({ id: heroId, type: 'landOffice', action: 'home', zone: homePick }); close(); return; }   // his report comes with it: done here (Tim 2026-11-20)
     else if (a === 'survey' && c?.surveyPending) { waitFor = (c.survey?.n || 0) + 1; send({ id: heroId, type: 'landOffice', action: 'survey' }); }
     else if (a === 'again') startTour();
     else if (a === 'wnext') page++;
@@ -102,7 +103,7 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map, home 
     if (needsHome(c)) return [...(homePick ? [['home', `Raise my castle in ${homeName(homePick)}`]] : []), ['close', 'Later']];
     if (warTalk(c)) { const last = page >= WAR().length - 1;
       return [last ? ['wmark', 'Mark them on my map'] : ['wnext', 'Go on'], ...(page ? [['wback', 'Back']] : []), ['close', 'Later']]; }
-    return c?.surveyPending ? [['survey', 'Show me on the map']] : c?.survey ? [['again', 'Show me again'], ['close', 'Later']] : [['close', 'Later']]; }
+    return c?.surveyPending ? [['survey', 'Show me on the map']] : c?.survey ? [['again', 'Show me the sites'], ['close', 'Thanks']] : [['close', 'Later']]; }
   function update() {
     const c = clan();
     if (waitFor && (c?.survey?.n || 0) >= waitFor) { waitFor = null; startTour(); }

@@ -53,15 +53,17 @@ assert.ok(goal.rows.every(r => r.icon && r.label), 'every row has a seal and a l
 
 clan.permit = true;
 goal = g.goals.current('player');
-assert.equal(goal.step, 8); assert.match(goal.rows[0].how, /telegraph office/);
-// the old surveyor's card comes between the permit and the settlers while his report waits (Tim 2026-11-10)
+assert.equal(goal.step, 7); assert.match(goal.rows[0].how, /telegraph office/); assert.ok(goal.rows[0].where, 'the Land Office is pinged');
+assert.match(goal.rows[0].how, new RegExp(`hires all ${frontier.founding.minSettlers}`), 'the card asks for the full number');
+// settlers first, then the old surveyor's card while his report waits (Tim 2026-11-20)
 clan.surveyPending = true;
-goal = g.goals.current('player');
-assert.equal(goal.step, 7); assert.match(goal.title, /old surveyor/); assert.ok(goal.rows[0].where, 'the surveyor is pinged');
-delete clan.surveyPending;
+assert.equal(g.goals.current('player').key, 'settlers0', 'settlers come before the surveyor');
 
 const settlers = g.clans.settlersOf;
 g.clans.settlersOf = () => Array(frontier.founding.minSettlers).fill({});
+goal = g.goals.current('player');
+assert.equal(goal.step, 8); assert.match(goal.title, /old surveyor/); assert.ok(goal.rows[0].where, 'the surveyor is pinged');
+delete clan.surveyPending;
 goal = g.goals.current('player');
 const hero = Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === 'player'), place = hero.place;
 // lieutenant goal steps (Tim 2026-11-06): meet him at the gate, then open While I'm away and set his budget
@@ -70,7 +72,7 @@ assert.ok(goal.rows[0].where, 'the gate lieutenant is pinged');
 g.step([]);
 const guide = g.lieutenant.guideOf('player');
 assert.ok(guide && guide.guide && guide.place === 'street', 'he waits by the gate');
-assert.ok(Math.hypot(guide.x - g.gate.city[0], guide.z - g.gate.city[1]) < 8, 'beside the gate');
+assert.ok(Math.hypot(guide.x - g.gate.city[0], guide.z - g.gate.city[1]) < 11, 'out in front of the gate, toward the station (Tim 2026-11-20)');
 assert.ok(!g.clans.crewOf('player').includes(guide), 'not crew');
 const door = g.doors.find(d => d.menu === 'lieutenant');
 assert.ok(door && /lieutenant/.test(door.label), 'Space here talks to him');
@@ -87,7 +89,7 @@ g.step([]);
 assert.ok(g.lieutenant.guideOf('player'), 'he stays by the gate while the boss is in the city (Tim 2026-11-10)');
 hero.place = 'world';
 goal = g.goals.current('player');
-assert.equal(goal.step, 12); assert.match(goal.title, /Found your town/);
+assert.equal(goal.step, 14); assert.match(goal.title, /Found your town/);
 assert.ok(goal.rows.some(r => r.label === 'Town founded' && !r.done && /Found a town button/.test(r.how)));
 hero.place = place;
 g.clans.settlersOf = settlers;
@@ -109,7 +111,7 @@ g.clans.settlersOf = settlers;
   assert.equal(out.length, 5, 'the waiting settlers stepped out with the hero');
   assert.ok(out.every(u => u.place === 'world' && Math.hypot(u.x - hero.x, u.z - hero.z) < 10));
   assert.equal(clan.settlersWaiting, 0);
-  assert.equal(g.goals.current('player').step, 12, 'goal: found the town');
+  assert.equal(g.goals.current('player').step, 14, 'goal: found the town');
   console.log('settlers wait at HQ ok');
 }
 
@@ -117,7 +119,7 @@ g.clans.settlersOf = settlers;
 g.state.frontier.settlements.__t = { owner: 'player', founded: true, name: 'Test' };
 clan.permit = false;
 goal = g.goals.current('player');
-assert.equal(goal.step, 25); assert.match(goal.title, /Influence/);
+assert.equal(goal.step, 27); assert.match(goal.title, /Influence/);
 assert.equal(goal.rows[0].label, 'Influence');
 delete g.state.frontier.settlements.__t;
 console.log('campaign goals ok');

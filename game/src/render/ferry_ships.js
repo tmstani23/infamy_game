@@ -8,6 +8,7 @@
 import { castleIndex } from '../sim/frontier/castle.js';
 import { cellToWorld } from '../sim/frontier/town_grid.js';
 import { dirIndex } from '../sim/geometry.js';
+import { alongRoute } from '../sim/frontier/sea_route.js';
 
 // a castle's dock as world points: land (on the planks) and the open water off its end (as sim/castles.js dock)
 export function castleDock(bp, s) {
@@ -56,9 +57,10 @@ export function createFerryShips({ scene, carSprite, bp, rules }) {
         const d = castleDock(bp, s); if (!d) continue;
         const b = castleBerth(d, B().castle); put(`dock:${s.id}`, b.x, b.z, b.dir, 'idle', dt); seen.add(`dock:${s.id}`);
       }
-      for (const [o, u] of sea) { const r = u.shipRide, dx = r.dest[0] - r.from[0], dz = r.dest[1] - r.from[1];
+      for (const [o, u] of sea) { const r = u.shipRide;
         const k = Math.min(1, Math.max(0, ((state.tick ?? 0) - 1 + alpha - r.since) / Math.max(1, r.until - r.since)));
-        put(`sea:${o}`, r.from[0] + dx * k, r.from[1] + dz * k, dirIndex(dx, dz), 'walk', dt); seen.add(`sea:${o}`); }
+        const p = alongRoute(r.path || [r.from, r.dest], k);   // round the island by sea (sim/frontier/sea_route.js)
+        put(`sea:${o}`, p.x, p.z, dirIndex(p.dx, p.dz), 'walk', dt); seen.add(`sea:${o}`); }
     }
     for (const [k, s] of ships) if (!seen.has(k)) { show(s, false); if (k.startsWith('sea:') && !sea.has(k.slice(4))) drop(k); }
   }

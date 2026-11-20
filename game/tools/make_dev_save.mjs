@@ -24,7 +24,7 @@ const SAVES = {
   // Pre-frontier test (Tim 2026-11-20, replaces dev_classic): a fresh campaign still in the capital, the hero with 8 crew,
   // 300 Renown, 3 businesses and 3000 ryo, so the founding permit can be bought at the Land Office at once. Nothing else is
   // done: the goal cards, surveyor home pick, castle, ship, settlers and first town all follow the real way.
-  pre_frontier_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 8 },
+  pre_frontier_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', home: 'pick', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 8 },
   // Castle test (Tim 2026-11-19, zones build Z4, replaces dev_frontier): a fresh campaign game, the hero alone on the island
   // in front of the drawbridge of his grey block castle on the East Plains cape, to walk round it.
   castle_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 20, realGame: true, railTown: true, castleTest: true, castleTour: true },   // castleTour: test only (Tim 2026-11-19), take out after
@@ -370,7 +370,7 @@ export function build(name, spec) {
   // the rail save needs the island's resource spots (as main.js loads them) so workers have work and camps sit by them
   const spots = spec.railTown || spec.warDefend ? { resourceSpots: data('data/world_spots.json'), resourceSpotRules: data('data/resource_spots.json') } : {};
   const game = createGame(spec.realGame ? { ...options, ...spots, frontier: { ...options.frontier, fixtureTowns: false } } : options);   // E6b: real games have no fixture towns
-  const m = setupMatch(game, { clan: spec.clan, difficulty: spec.difficulty, mode: spec.mode, bots: data('data/bots.json'),
+  const m = setupMatch(game, { clan: spec.clan, difficulty: spec.difficulty, mode: spec.mode, home: spec.home, bots: data('data/bots.json'),   // home 'pick': chosen with the surveyor (Tim 2026-11-20)
     spawns: options.district.spawns, test: { playerRyo: spec.playerRyo } });
   game.civilians.populate();
   if (spec.cityMix) shareCity(game);

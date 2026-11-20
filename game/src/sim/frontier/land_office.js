@@ -73,7 +73,10 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   // permit, makes the nearest open sites known (the rest you discover on the island). Measured from your towns
   // (Tim 20:43: each permit pushes the known sites out past your last town); the first from the capital.
   // clan.survey = { sites, n, tick } is what the screen's map tour shows.
-  const atSurveyor = e => e?.type === 'hero' && e.place === 'street' && doorNear(e.id)?.menu === 'surveyor';
+  // beside the old surveyor: his ring, or as close as his talk stays open (3.5, src/surveyor_talk.js; Tim 2026-11-20:
+  // Show me did nothing from just outside his ring)
+  const atSurveyor = e => { if (e?.type !== 'hero' || e.place !== 'street') return false; if (doorNear(e.id)?.menu === 'surveyor') return true;
+    const g = state.entities[state.surveyorNpc]; return !!g && Math.hypot(g.x - e.x, g.z - e.z) < 3.5; };
 
   // Choosing a home (Z7, Tim 2026-11-20): a player who started without a castle (new game: match home 'pick') chooses
   // where it stands with the old surveyor, once he holds a founding permit: { id, type: 'landOffice', action: 'home',
@@ -96,6 +99,9 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     if (!c) return say(clan, 'The castle could not be raised there');
     if (state.match) state.match.home = zone;
     (state.news ||= []).push({ kind: 'homeChosen', clan: clan.id, zone, town: c.id, x: c.x, z: c.z });
+    // his site report comes with the castle (Tim 2026-11-20: the goal went back to Show me on the map): the sites
+    // nearest the castle are marked now and the goals move on to the lieutenant
+    if (clan.surveyPending) survey(e);
     return say(clan, `Your castle stands in ${site.name}. The ship at the harbour takes you there`);
   }
   function survey(e) {

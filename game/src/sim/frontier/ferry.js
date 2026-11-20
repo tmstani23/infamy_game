@@ -13,7 +13,8 @@ function segDist(x, z, a, b) {
   const t = L ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / L)) : 0;
   return Math.hypot(x - a.x - dx * t, z - a.z - dz * t);
 }
-export function createFerry({ state, rules, pier, seaGate, castles, navOf, followOffset, freeSlot, forget, areas, mounts, waiting = null }) {
+import { seaRoute, alongRoute } from './sea_route.js';
+export function createFerry({ state, rules, world = null, pier, seaGate, castles, navOf, followOffset, freeSlot, forget, areas, mounts, waiting = null }) {
   const S = () => rules?.ship || {};
   const say = (owner, text) => { const c = state.clans?.[owner]; if (c) c.notice = { tick: state.tick, text }; return true; };
   const riding = e => String(e?.aboard || '').startsWith('ship:');
@@ -64,10 +65,11 @@ export function createFerry({ state, rules, pier, seaGate, castles, navOf, follo
     const d = castles.dock(e.owner), now = state.tick ?? 0, to = here === 'city' ? 'castle' : 'city';
     const group = [...inZone(e, c), ...(to === 'castle' ? waiting?.(e) || [] : [])], crew = [e, ...group].slice(0, S().seats ?? 40);
     const from = to === 'castle' ? [seaGate.x, seaGate.z] : [d.sea.x, d.sea.z], dest = to === 'castle' ? [d.sea.x, d.sea.z] : [seaGate.x, seaGate.z];
+    const path = seaRoute(world, from, dest, { margin: S().seaMargin ?? 300 });   // round the island by sea (Tim 2026-11-20)
     for (const u of crew) {
       if (u.mounted) { if (mounts?.dismount) mounts.dismount(u); else { delete u.mounted; delete u.ride; } }   // horses stay ashore
       delete u.order; delete u.attackTarget; delete u.swing; delete u.execute; forget?.(u.id);
-      Object.assign(u, { aboard: `ship:${e.owner}`, shipRide: { to, since: now, until: now + Math.round((S().seconds ?? 20) * 20), from, dest }, place: 'world', x: from[0], z: from[1], anim: 'idle' });
+      Object.assign(u, { aboard: `ship:${e.owner}`, shipRide: { to, since: now, until: now + Math.round((S().seconds ?? 20) * 20), from, dest, path }, place: 'world', x: from[0], z: from[1], anim: 'idle' });
     }
     const left = group.length + 1 - crew.length;
     return say(e.owner, `${to === 'castle' ? 'Sailing for your castle' : 'Sailing for the city'}${left ? ` (${left} could not fit and stayed)` : ''}`);
@@ -105,7 +107,7 @@ export function createFerry({ state, rules, pier, seaGate, castles, navOf, follo
       else if (u.shipCall && now >= u.shipCall.until) allAboard(u);   // the call ran out
       if (!u.shipRide || !riding(u)) continue;
       const r = u.shipRide, k = Math.min(1, (now - r.since) / Math.max(1, r.until - r.since));
-      u.x = r.from[0] + (r.dest[0] - r.from[0]) * k; u.z = r.from[1] + (r.dest[1] - r.from[1]) * k;
+      const p = alongRoute(r.path || [r.from, r.dest], k); u.x = p.x; u.z = p.z;
       if (now >= r.until) done.add(u.owner);
     }
     for (const owner of done) land(owner);

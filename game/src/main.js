@@ -60,7 +60,7 @@ import { createTownsOverview } from './towns_overview.js';
 import { createRyoBadge } from './ryo_badge.js';
 import { createLootNotice } from './loot_notice.js';
 import { drawCrest } from './render/banners.js';
-import { createCrewInput } from './crew_input.js';
+import { createCrewInput, bodyDistance } from './crew_input.js';
 import { createActionBar } from './action_bar.js';
 import { createCrewBar } from './crew_bar.js';
 import { createSelectionPanel, unitWhere } from './selection_panel.js';
@@ -375,7 +375,8 @@ async function start() {
     const orders = goal?.key === 'orders', awayPage = $('deploymentpanel').dataset.page === 'away' && deploymentPanel.isOpen();
     $('deploymentbtn').classList.toggle('goal-flash', (!!op || orders) && !menuOpen);
     document.querySelector('#deploymentpanel .show-away')?.classList.toggle('goal-flash', orders && deploymentPanel.isOpen() && !awayPage);
-    document.querySelector('#deploymentpanel .away-budget')?.classList.toggle('goal-flash', orders && awayPage);
+    // the whole While I'm away section lights up on its page: his orders (toggles) and the budget row (Tim 2026-11-20)
+    for (const sel of ['.away-orders', '.away-budget-row', '.away-budget']) document.querySelector(`#deploymentpanel ${sel}`)?.classList.toggle('goal-flash', orders && awayPage);
     if (orders && awayPage && !goal.rows[0].done && !ordersSent) { ordersSent = true; pending.push({ id: heroId, type: 'lieutenant', guide: 'opened' }); }
     // Lieutenant's report (Tim 2026-11-06): the first time the boss walks back into the city, a callout and the log flashes until read
     const ms = c?.milestones || {};
@@ -396,7 +397,7 @@ async function start() {
       .filter(id => Object.values(game.state.entities).some(e => e.owner === h.owner && e.type !== 'hero' && !e.dead && e.deployment?.group === id)) } : null;
     // Land Office menu (Tim 2026-11-06): the permit's Buy button flashes once it can be bought; Five settlers during the settlers goal
     for (const btn of $('landoffice').querySelectorAll('[data-pick]')) btn.classList.toggle('goal-flash',
-      !btn.disabled && ((btn.dataset.pick === '0' && !!goal?.key?.startsWith('permit') && L.permitStatus(c.id).ok) || (btn.dataset.pick === '2' && !!goal?.key?.startsWith('settlers'))));
+      !btn.disabled && ((btn.dataset.pick === '0' && !!goal?.key?.startsWith('permit') && L.permitStatus(c.id).ok) || (btn.dataset.pick === '1' && !!goal?.key?.startsWith('settlers'))));
     // Town setup goals (Tim 2026-11-06): flash the next button in the town panel, or the Town icon while it is shut
     const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm', 'Work cells': 'work', Storehouse: 'storehouse', 'Lumber camp': 'lumber_camp', Quarry: 'quarry', People: 'housing', Infirmary: 'infirmary' };
     const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"]', '[data-act="build-workers"]', '[data-build]'];
@@ -488,6 +489,25 @@ async function start() {
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
   onKey('Escape', () => { warOutcome.close(); crewInput.cancelTarget(); crewInput.endAttackMode(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   let abilityRows = null;   // war checkpoint 7: made after the action bar
+  // left-click a quest figure (the old surveyor, your lieutenant, a town governor) or the Land Office to open its talk or
+  // menu, as Space there does (Tim 2026-11-20). Out of reach: a callout to walk up first. Capture phase, so the
+  // click does not also select or start a box.
+  addEventListener('mousedown', e => {
+    if (e.button !== 0 || e.shiftKey || e.ctrlKey || e.target.id !== 'view') return;   // only clicks on the scene
+    const h = game.state.entities[heroId]; if (!h) return;
+    const guide = Object.values(game.state.entities).find(u => u.guide && !u.dead && u.place === h.place && (u.surveyor || u.owner === h.owner || !u.owner)
+      && bodyDistance(view, u, e.clientX, e.clientY) < 22);
+    let opened = null, far = '';
+    if (guide?.surveyor) { far = 'Walk up to the old surveyor first'; if (surveyorTalk.at()) { if (!surveyorTalk.isOpen()) surveyorTalk.toggle(); opened = true; } }
+    else if (guide?.captain && h.place === 'street') { far = 'Walk up to your lieutenant first'; if (!lieutenantTalk.isOpen()) lieutenantTalk.toggle(); opened = lieutenantTalk.isOpen(); }
+    else if (guide && !guide.captain) { far = 'Walk up to the governor first'; const gov = game.governorNear?.(heroId);
+      if (gov) { pending.push({ id: heroId, type: 'lieutenant', guide: 'governor' }); townTalk(gov.governor); opened = true; } }
+    else if (h.place === 'street') { const i = view.buildingAt(e.clientX, e.clientY), lo = game.doors.find(d => d.menu === 'land_office');
+      if (i !== null && lo && lo.business === `b${i}`) { far = 'Walk up to the Land Office door first'; if (!landOfficeMenu.isOpen()) landOfficeMenu.toggle(); opened = landOfficeMenu.isOpen(); } }
+    if (!far) return;
+    e.stopPropagation(); e.preventDefault();
+    if (!opened) callout(far, 'news', 2500);
+  }, { capture: true });
   bindCrewNumberKeys({ onAction, onKeyFirst, crewInput, menus: [clinicMenu, policeMenu, landOfficeMenu, surveyorTalk, siteMenu, stableMenu, stationMenu, contractMenu, hireMenu] });
   const sound = createSound();
   const music = createGameMusic({settings:sound.getSettings()});
@@ -904,6 +924,7 @@ async function start() {
       frontierBuildUI?.update();
       view.updateCamera(game.state, heroId, dt);   // live map footprint; scene painting stays suspended
       presentation.measure('map',()=>gameMap.update());
+      officeHint(now * 1000);   // the goal flashes on the docked Deployment menu run with the map open too (Tim 2026-11-20)
     }
     if(!presentation.map){bar.update(game.state.tick - 1 + clock.alpha());crewBar.update();}
     selectionDock.update();

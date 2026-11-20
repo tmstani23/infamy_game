@@ -79,11 +79,10 @@ atOffice();
 
 // --- settlers: hired here, then wait safely at the HQ as a count (Tim 2026-11-06), not as units -------
 g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler', count: 5 }]);
-assert.equal(clan.queue.filter(q => q.unit === 'settler').length, 5);
+assert.equal(clan.settlersWaiting, 5, 'five settlers wait at the HQ at once (Tim 2026-11-20), no queue');
+assert.equal(clan.queue.length, 0);
 g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'thug' }]);
-assert.equal(clan.queue.length, 5, 'the Land Office hires settlers only');
-for (let i = 0; i < 2000 && (clan.settlersWaiting || 0) < 5; i++) g.step([]);
-assert.equal(clan.settlersWaiting, 5, 'five settlers wait at the HQ');
+assert.equal(clan.queue.length, 0, 'the Land Office hires settlers only');
 assert.equal(g.clans.settlersOf('player').length, 0, 'no settler units in the city streets');
 g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler', count: 1 }]);
 assert.equal(clan.queue.length, 0, `no 6th settler (Tim 2026-11-06): ${clan.notice?.text}`);
@@ -195,5 +194,16 @@ assert.equal(L.permitStatus('player').ok, false, 'maxTowns: no second permit unt
   assert.deepEqual(Object.keys(real.settlements), ['capital'], 'only the capital');
   assert.deepEqual(Object.keys(real.roads), [], 'no fixture roads');
   assert.ok(Object.keys(g.state.frontier.settlements).includes('s_frontier_1'), 'tests keep the fixture towns');
+}
+// Space by the old surveyor talks to him, not the Land Office (Tim 2026-11-20): his spot is clear of the office ring
+// and the closest door in reach wins
+{
+  const { g, hero } = match('campaign');
+  const lo = g.doors.find(d => d.menu === 'land_office'), sv = g.doors.find(d => d.menu === 'surveyor');
+  assert.ok(Math.hypot(lo.x - sv.x, lo.z - sv.z) >= 6, 'the surveyor stands well clear of the office door');
+  Object.assign(hero, { place: 'street', x: sv.x + 1, z: sv.z });
+  assert.equal(g.doorNear(hero.id)?.menu, 'surveyor', 'beside him: his talk');
+  Object.assign(hero, { x: lo.x, z: lo.z });
+  assert.equal(g.doorNear(hero.id)?.menu, 'land_office', 'at the office door: the office');
 }
 console.log('test_land_office: ok');
