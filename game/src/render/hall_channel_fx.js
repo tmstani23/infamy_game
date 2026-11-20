@@ -12,6 +12,7 @@
 import * as THREE from 'three';
 import { CAM_QUAT, CAM_UP, CAM_RIGHT, VIEW_DIR } from './iso.js';
 import { fireMaterial, fireSources, ROOF_SOURCES, PAD_W, PAD_H } from './hq_fire.js';
+import { groundY } from '../castle_height.js';
 
 const AFTER_SECONDS = 40;
 const OUTCOME_LOOK = { burn: 'burn', sack: 'sack', capture: 'capture' };
@@ -74,7 +75,7 @@ export function createHallChannelFx({ scene, lights = null, thingAt = () => null
   // the banner: stands at the ruin's middle, its pole foot the pivot it tilts up about
   function banner(a, want, state) {
     if (!a.banner) {
-      const c = a.thing.mesh.position, gx = c.x - VIEW_DIR.x * c.y / VIEW_DIR.y, gz = c.z - VIEW_DIR.z * c.y / VIEW_DIR.y;
+      const c = a.thing.mesh.position, cy = c.y - (a.thing.lift || 0), gx = c.x - VIEW_DIR.x * cy / VIEW_DIR.y, gz = c.z - VIEW_DIR.z * cy / VIEW_DIR.y;   // lift: a castle terrace's height (Z4h)
       const t = artThing({ art: 'war_banner', x: gx, z: gz, noLights: true });
       if (!t) return;   // still loading: next frame
       a.banner = { mesh: t.mesh, centre: t.mesh.position.clone(), w: Math.abs(t.mesh.scale.x), h: Math.abs(t.mesh.scale.y) };
@@ -119,7 +120,7 @@ export function createHallChannelFx({ scene, lights = null, thingAt = () => null
       } else a.ring.geometry = geo;
       a.ringSteps = steps; scene.add(a.ring);
     }
-    a.ring.position.set(e.x, 0.06, e.z);
+    a.ring.position.set(e.x, (0.06)+groundY(e.x, e.z), e.z);
   }
   function update(state, place) {
     const want = place === 'world' ? wanted(state) : new Map();

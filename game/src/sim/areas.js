@@ -29,7 +29,7 @@ function heap() {
   };
 }
 
-export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers = () => [], dynamicVersion = null }) {
+export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers = () => [], dynamicVersion = null, walkOver = null }) {
   const S = cfg.chunk, CELL = cfg.navCell, N = Math.round(S / CELL), PAD = cfg.navPad ?? 0.4;
   const TC = world.terrain.cell, K = Math.round(S / TC);
   const NX = world.terrain.rows[0].length, NZ = world.terrain.rows.length;
@@ -51,7 +51,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   // ---------- chunks ----------
   function build(cx, cz) {
     const t0 = performance.now();
-    const gen = buildChunk(world, cfg, cx, cz, seed, { city });
+    const gen = buildChunk(world, cfg, cx, cz, seed, { city, walk: walkOver?.boxes() });
     const grid = new Uint8Array(N * N), x0 = gen.x0, z0 = gen.z0;
     const buckets = Array.from({ length: NB * NB }, () => []);
     gen.blockers.forEach((b, n) => {
@@ -80,7 +80,11 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
 
   // Which chunks are active: those within loadRadius of any standing unit on the island.
   // Deterministic from the units' positions, so a loaded save activates the same chunks.
+  let walkKey = null;
   function update(entities) {
+    // castle ground over water (walkOver, sim/castles.js): a castle placed or a save loaded after chunks were built
+    // rebuilds them with its docks walkable (castles are placed at the start, so this is rare)
+    if (walkOver) { const k = walkOver.version(); if (k !== walkKey) { cache.clear(); workerGrids.clear(); walkKey = k; } }
     const want = new Map();
     for (const e of entities) {
       if (e.place !== 'world' || e.dead || e.worldCamp || e.worker) continue;

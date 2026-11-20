@@ -57,8 +57,9 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
       // Tim 2026-11-18 remembered sight (sim/sightings.js): only the blocks your units have seen, buildings as last seen
       const mask = sightings?.seenMask?.(clan, id), seenCell = c => { if (!sightings) return true; if (!mask || !Number.isInteger(c)) return false; const n = s.grid?.n || 1, B = sightings.BLOCK, nb = Math.ceil(n / B); return mask[Math.floor(Math.floor(c / n) / B) * nb + Math.floor((c % n) / B)] === '1'; };
       const blds = sightings ? Object.values(sightings.remembered(clan, id)) : (s.buildings || []);
-      if (!s.capital && Number.isFinite(s.x)) Object.assign(settlements[id], { x: s.x, z: s.z, tier: s.tier || 1, grid: sightings ? maskGrid(s.grid, mask, sightings.BLOCK) : s.grid,
-        buildings: blds.map(({ id, type, cell, cells, stage, rot }) => ({ id, type, cell, cells, stage, rot })), ...(s.breaches ? { breaches: s.breaches } : {}),
+      // a rival castle (Z4, castle.js) is a capital with a place on the island: drawn once its ground is discovered
+      if ((!s.capital || s.castle && discovery?.isDiscovered?.(clan, s.x, s.z)) && Number.isFinite(s.x)) Object.assign(settlements[id], { x: s.x, z: s.z, tier: s.tier || 1, grid: sightings ? maskGrid(s.grid, mask, sightings.BLOCK) : s.grid,
+        buildings: blds.map(({ id, type, cell, cells, stage, rot }) => ({ id, type, cell, cells, stage, rot })), ...(s.castle ? { castle: s.castle } : {}), ...(s.breaches ? { breaches: s.breaches } : {}),
         projects: (s.projects || []).filter(p => seenCell(p.cell ?? p.cells?.[0])).map(({ id, type, cell, cells, phase, paid, progress, need }) => ({ id, type, cell, cells, phase, paid, progress, need })),
         zones: Object.fromEntries(Object.entries(s.zones || {}).map(([k, z]) => [k, { abandoned: !!z.abandoned }])), tierUpgrade: s.tierUpgrade || null, ...(s.captured ? { captured: s.captured } : {}) });
       // walked up to it (Tim 2026-11-10): one of your units near the town sees everything there, stores and people included
@@ -70,9 +71,7 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
     return p && discovery?.isDiscovered?.(clan, p.x, p.z);
   }));
   // F6 war: declared wars are public; a camp's chest and stores only to its own side
-  // war 8a: lastTown = the defender holds no other town (the outcome picker's last-town rule, without showing his towns);
   // history = wars that ended in the last minute (render/hall_channel_fx.js: a sacked hall's fires die down)
-  const lastTown = w => Object.values(f.settlements || {}).filter(s => s.owner === w.defender && !s.capital).length <= 1;
   // 8c: a surrender is public to its two sides, but the suggested ransom only to the side that surrendered and the fair
   // range only to the other; what each side has spotted of the other (spotted) stays in the sim
   const termsFor = w => {
@@ -84,7 +83,7 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
   };
   // 8b-2: the defender's war chest only to the defender
   const wars = f.wars && { cooldown: f.wars.cooldown || {}, list: Object.fromEntries(Object.entries(f.wars.list || {}).map(([id, w]) => [id, termsFor(w)]).map(([id, w0]) => [id, w0.defender === clan || !w0.defense ? w0 : (({ defense, ...rest }) => rest)(w0)]).map(([id, w]) => [id,
-    w.attacker === clan ? (w.camp ? { ...w, lastTown: lastTown(w), camp: { ...w.camp, workers: (w.camp.workers || []).map(k => campWorker(k, w.camp, workerPosition)) } } : { ...w, lastTown: lastTown(w) }) : { ...w, camp: w.camp && { x: w.camp.x, z: w.camp.z, buildings: (sightings ? Object.values(sightings.campRemembered(clan, w.id)) : w.camp.buildings || []).map(({ queue, ...b }) => b) } }])),
+    w.attacker === clan ? (w.camp ? { ...w, camp: { ...w.camp, workers: (w.camp.workers || []).map(k => campWorker(k, w.camp, workerPosition)) } } : w) : { ...w, camp: w.camp && { x: w.camp.x, z: w.camp.z, buildings: (sightings ? Object.values(sightings.campRemembered(clan, w.id)) : w.camp.buildings || []).map(({ queue, ...b }) => b) } }])),
     history: (f.wars.history || []).slice(-4).map(({ id, town, attacker, defender, result, ended }) => ({ id, town, attacker, defender, result, ended })) };
   return { version: f.version, econTick: f.econTick, settlements, spots, ...(wars ? { wars } : {}), ...(structures?.length ? { structures } : {}),   // structures: damaged or burning ones of this clan's wars (checkpoint 6)
     roads: f.roads || {}, townOrder: f.townOrder?.[clan] || [],

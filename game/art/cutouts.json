@@ -5048,6 +5048,24 @@
   "bottomY": 250,
   "glows": []
  },
+ "buildings/castle_wall": {
+  "w": 164,
+  "h": 235,
+  "left": 0,
+  "right": 163,
+  "bottomX": 0,
+  "bottomY": 232,
+  "glows": []
+ },
+ "buildings/castle_gate": {
+  "w": 290,
+  "h": 348,
+  "left": 0,
+  "right": 289,
+  "bottomX": 0,
+  "bottomY": 345,
+  "glows": []
+ },
  "buildings/town_gate": {
   "w": 400,
   "h": 299,

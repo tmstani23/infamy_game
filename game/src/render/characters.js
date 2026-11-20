@@ -14,6 +14,7 @@ import { loadSheetSet, setSheetFrame } from './packed_sheets.js';
 import { createTextureCache } from './texture_cache.js';
 import { halfUrl, ktxUrl, compressedAt, createDetailPicker } from './sprite_detail.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { groundY } from '../castle_height.js';
 
 const TRAIL = 5;   // hero swing trail: how many earlier glow frames are drawn behind the blade
 
@@ -386,7 +387,9 @@ export class CharacterSprite {
 
     // gear effects after the weapon glow, so a glint can ride on it; gearFocus = character page hover
     this.gearFx?.update(dt,{anim,sheet,dir,frame,swingT,x,z,focus:this.gearFocus});
-    this.pos.set(x, 0, z);
+    // castle terraces (Z4h): everything a unit draws stands on the ground height under it (src/castle_height.js)
+    const gy = groundY(x, z);
+    this.pos.set(x, gy, z);
     const r = 0.2;
     if (size !== this.size) {
       this.size = size;
@@ -395,21 +398,21 @@ export class CharacterSprite {
       this.shadow.scale.setScalar(size);
       this.ring.scale.setScalar(size);
     }
-    this.thing.mesh.position.set(x, this.feetUp * size + (this.lift || 0), z);   // lift: riding a horse (render/view.js)
+    this.thing.mesh.position.set(x, this.feetUp * size + (this.lift || 0) + gy, z);   // lift: riding a horse (render/view.js)
     if (this.seat) this.thing.mesh.position.addScaledVector(CAM_RIGHT, this.seat[0]).addScaledVector(CAM_UP, this.seat[1]);   // seat: onto the saddle, screen right and up in world units
     if (this.roll || this.rolled) {
       // turn about the ground point: the centre sits feetUp above it, split into screen-up and toward-camera parts
       const r = this.roll || 0, h = this.feetUp * size, up = h * CAM_UP.y, back = h * VIEW_DIR.y;
-      this.thing.mesh.position.set(x, 0, z).addScaledVector(VIEW_DIR, back)
+      this.thing.mesh.position.set(x, gy, z).addScaledVector(VIEW_DIR, back)
         .addScaledVector(CAM_UP, up * Math.cos(r)).addScaledVector(CAM_RIGHT, -up * Math.sin(r));
       this.thing.mesh.quaternion.copy(CAM_QUAT).multiply(ROLL_Q.setFromAxisAngle(Z_AXIS, r));
       this.rolled = !!r;
     }
-    this.hidden.position.set(x, FEET_UP * size, z);
-    u.uDepthAt.value.set(x, 0, z, 0.45);
+    this.hidden.position.set(x, FEET_UP * size + gy, z);
+    u.uDepthAt.value.set(x, gy, z, 0.45);
     this.thing.foot = { minX: x - r, maxX: x + r, minZ: z - r, maxZ: z + r };
     this.thing.updateScreen();
-    this.shadow.position.set(x, 0.01, z);
+    this.shadow.position.set(x, 0.01 + gy + (gy ? 0.08 : 0), z);   // a little higher on raised ground, so a land bridge's slope never cuts it
     if (this.footShadow) {
       // dir 0..7 = S, SW, W, NW, N, NE, E, SE on screen (more rows split those steps); length along the heading
       const a = this.heading ?? dir * 2 * Math.PI / this.dirs, S = Math.SQRT1_2;
@@ -417,9 +420,9 @@ export class CharacterSprite {
       this.shadow.rotation.set(-Math.PI / 2, 0, Math.atan2(-hx, -hz));
       this.shadow.scale.set(this.footShadow[1] / 1.5 * size, this.footShadow[0] / 1.5 * size, 1);
     }
-    this.ring.position.set(x, 0.02, z);
-    this.bar.position.set(x, BAR_UP * size, z).addScaledVector(CAM_RIGHT, -BAR_W / 2);
-    this.nameplate.position.set(x, (BAR_UP + 0.35) * size, z);
+    this.ring.position.set(x, 0.02 + gy + (gy ? 0.08 : 0), z);
+    this.bar.position.set(x, BAR_UP * size + gy, z).addScaledVector(CAM_RIGHT, -BAR_W / 2);
+    this.nameplate.position.set(x, (BAR_UP + 0.35) * size + gy, z);
     this.nameplate.scale.setScalar(size * (this.heroNameplate ? 1.12 : 1));
   }
 

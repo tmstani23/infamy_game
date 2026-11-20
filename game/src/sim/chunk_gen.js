@@ -47,7 +47,7 @@ function coastDist(segments, x, z) {
   return d;
 }
 
-export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
+export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = null } = {}) {
   const size = cfg.chunk, tc = world.terrain.cell, n = Math.round(size / tc);
   const x0 = cx * size, z0 = cz * size;
   const rng = rngFor(seed, cx, cz);
@@ -94,6 +94,20 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
       previous = current;
     }
   }
+  // castle ground over water (Tim 2026-11-20): the dock planks run out over the sea, so the water under a placed castle's
+  // ground (walk, sim/castles.js castleWalkBoxes) is cut out of the terrain blockers and the whole dock is walkable
+  const piers = (walk || []).filter(b => b.maxX > x0 && b.minX < x0 + size && b.maxZ > z0 && b.minZ < z0 + size);
+  for (const p of piers) for (let k = blockers.length - 1; k >= 0; k--) {
+    const b = blockers[k];
+    if (b.kind !== 'terrain' || b.maxX <= p.minX || b.minX >= p.maxX || b.maxZ <= p.minZ || b.minZ >= p.maxZ) continue;
+    const parts = [];
+    if (b.minX < p.minX) parts.push({ ...b, maxX: p.minX });
+    if (b.maxX > p.maxX) parts.push({ ...b, minX: p.maxX });
+    const lo = Math.max(b.minX, p.minX), hi = Math.min(b.maxX, p.maxX);
+    if (b.minZ < p.minZ) parts.push({ ...b, minX: lo, maxX: hi, maxZ: p.minZ });
+    if (b.maxZ > p.maxZ) parts.push({ ...b, minX: lo, maxX: hi, minZ: p.maxZ });
+    blockers.splice(k, 1, ...parts);
+  }
   if (city && city.maxX > x0 && city.minX < x0 + size && city.maxZ > z0 && city.minZ < z0 + size)
     blockers.push({ minX: Math.max(city.minX, x0), maxX: Math.min(city.maxX, x0 + size), minZ: Math.max(city.minZ, z0), maxZ: Math.min(city.maxZ, z0 + size), kind: 'city' });
 
@@ -101,6 +115,7 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
   const C = cfg.clear || {};
   const near = (list, r) => (list || []).filter(p => p.x > x0 - r && p.x < x0 + size + r && p.z > z0 - r && p.z < z0 + size + r);
   const sites = near(world.sites, C.site || 0), nodes = near(world.nodes, C.node || 0);
+  const castles = (world.castleClear || []).filter(b => b.maxX > x0 - 10 && b.minX < x0 + size + 10 && b.maxZ > z0 - 10 && b.minZ < z0 + size + 10);
   const segs = [];
   for (const c of world.corridors || []) for (let k = 1; k < c.points.length; k++) {
     const [a, b] = [c.points[k - 1], c.points[k]], r = C.corridor || 0;
@@ -110,7 +125,8 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null } = {}) {
   const clearAt = (x, z, noTrail = false) => (noTrail || !segs.some(([a, b]) => segDist(x, z, a, b) < (C.corridor || 0)))
     && !sites.some(p => Math.hypot(p.x - x, p.z - z) < (C.site || 0))
     && !nodes.some(p => Math.hypot(p.x - x, p.z - z) < (C.node || 0))
-    && !(city && x > city.minX - (C.city || 0) && x < city.maxX + (C.city || 0) && z > city.minZ - (C.city || 0) && z < city.maxZ + (C.city || 0));
+    && !(city && x > city.minX - (C.city || 0) && x < city.maxX + (C.city || 0) && z > city.minZ - (C.city || 0) && z < city.maxZ + (C.city || 0))
+    && !castles.some(b => x > b.minX - 4 && x < b.maxX + 4 && z > b.minZ - 4 && z < b.maxZ + 4);   // castle spots (sim/castles.js)
 
   // W3.10: when cfg.paint is on, props come from the painted rules (jittered grid, groves, edge trees,
   // trail clearance, stamps; docs/world_painting.md layer 7). Otherwise the older per-cell scatter below.

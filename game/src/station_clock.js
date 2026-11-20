@@ -32,7 +32,7 @@ export function createStationClock({ game, heroId, view }) {
   function anchors(rail, owner, place) {
     const out = [];
     for (const id of new Set(rail.linksOf(owner).filter(l => l.done).flatMap(l => [l.from, l.to]))) {
-      if (id === 'capital') {
+      if (id === 'capital' && !rail.hubOf?.(owner)) {   // (a clan with a castle: the board stands at the castle station, Z4f)
         const st = game.gate?.station;
         if (place === 'street' && st) out.push({ id, x: st[0], z: st[1] });
         else if (place === 'world' && !game.gate?.rail) { const p = rail.endpoint(owner, id); if (p) out.push({ id, x: p.x, z: p.z }); }   // no board out there: the train stands inside the wall (Tim 2026-11-10)

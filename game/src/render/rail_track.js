@@ -184,8 +184,10 @@ export function createRailTrack({ scene, carSprite = null, hide = null }) {   //
     if (c && c.key === key) return c.r;
     const r = smoothLine(l); smooths.set(l.id, { key, r }); return r;
   }
+  let carSpots = [];   // where each drawn car stands this frame (render/world_ground.js fades a gate a train runs through)
   function moveTrains(frontier, links, dt, clock, night = 0) {
     const list = frontier?.rail?.trains || {};
+    carSpots = [];
     for (const [id, s] of trains) if (!list[id] || !links[list[id].link]) { dropTrain(s); trains.delete(id); }
     for (const t of Object.values(list)) {
       const l = links[t.link]; if (!l?.done) continue;
@@ -218,6 +220,7 @@ export function createRailTrack({ scene, carSprite = null, hide = null }) {   //
           if (hide?.(x, z)) { c.sprite.thing.mesh.visible = c.sprite.shadow.visible = false; c.glow?.hide(); continue; }
           c.sprite.update(dt, x, z, c.sprite.row, moving ? 'run' : 'idle', null, 1);
           c.sprite.thing.mesh.visible = c.sprite.shadow.visible = true;
+          carSpots.push([x, z]);
           if (c.kind === 'carriage') (c.glow ||= carriageGlow(scene)).set(x, z, night);
           if (c.kind === 'engine' || c.kind === 'guard') { const n = Math.hypot(f.x - b.x, f.z - b.z) || 1, pose = { x, z, fx: (f.x - b.x) / n, fz: (f.z - b.z) / n }; if (c.kind === 'engine') eng = pose; else tail = pose; }
         }
@@ -237,6 +240,7 @@ export function createRailTrack({ scene, carSprite = null, hide = null }) {   //
         c.mesh.position.set(p.x, 0.05, p.z);
         c.mesh.rotation.y = Math.atan2(ahead.x - p.x, ahead.z - p.z) || 0;
         c.mesh.visible = true;
+        carSpots.push([p.x, p.z]);
         carThing(c);
       });
     }
@@ -282,7 +286,7 @@ export function createRailTrack({ scene, carSprite = null, hide = null }) {   //
   function dispose() { for (const id of [...shown.keys()]) drop(id); for (const s of trains.values()) dropTrain(s); trains.clear(); track?.dispose(); bridge?.dispose(); }
   const lights = () => [...trains.values()].flatMap(s => s.fx?.lights || []);
   const focus = id => trains.get(id)?.focus || null;   // where train id's engine is drawn, or null
-  return { update, things, lights, focus, dispose };
+  return { update, things, lights, focus, carSpots: () => carSpots, dispose };
 }
 
 // The capital's railway station (Tim 2026-11-07): a track out of the station's open east front over the edge of the city
@@ -339,6 +343,9 @@ export function createCityStation({ scene, carSprite, station, edgeX }) {
   function update(frontier, show, dt, owner = null, night = 0) {
     clock += dt;
     const links = { ...(frontier?.rail?.links || {}) }, list = show ? Object.values(frontier?.rail?.trains || {}) : [];
+    // a clan with a castle has its rail hub there (Z4f, sim/frontier/rail.js): its 'capital' lines never come to the city
+    const hubs = new Set(Object.values(frontier?.settlements || {}).filter(s => s.castle && s.buildings?.some(b => b.type === 'station' && b.stage === 'built')).map(s => s.owner));
+    for (const [id, l] of Object.entries(links)) if (hubs.has(l.owner)) delete links[id];
     const capital = Object.values(links).filter(l => l.done && (l.from === 'capital' || l.to === 'capital')).map(l => l.id).sort();
     setLanes(Math.max(1, capital.length));
     for (const l of lanes) l.mesh.visible = show;

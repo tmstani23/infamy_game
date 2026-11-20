@@ -17,6 +17,8 @@ function cellCost(s, i, mine, clear = false) {
   if (g.ground[i] === 'x') return Infinity;          // water, cliffs
   const u = g.use[i], z = g.zone[i];
   if (u === 'B' || u === 'w') return Infinity;       // buildings, walls
+  if (u === 'm' || u === 'k') return Infinity;       // a castle's moat and cliffs (castle.js)
+  if (g.level && (g.level[i] > '0' || g.slope[i] !== '.')) return Infinity;   // nor up its terraces and land bridges
   if (z === 'h' || z === 'k') return Infinity;       // houses, workshops
   if (clear && nextToRock(s, i)) return Infinity;
   if (s.railCells?.[i]) return 0.6;                  // share an existing line's corridor
@@ -108,7 +110,7 @@ function straighten(s, pts, mine, clear, dir0 = null) {
 // the world route `points` (station first) through town s: [new points] or null if the town is boxed in
 export function townExit(s, data, startCells, points, opts = {}) {
   if (!s?.grid || !startCells?.length || points.length < 2) return null;
-  const { n, cell } = s.grid, reach = Math.min((n - 1) / 2 * cell - 2 * cell, ringRadius(s, data) + 4 * cell);
+  const { n, cell } = s.grid, reach = Math.min((n - 1) / 2 * cell - 2 * cell, opts.reach ?? ringRadius(s, data) + 4 * cell);   // opts.reach: a castle's own (past its moat)
   // where the world route leaves the town's reach
   let d = 0, k = 1, exit = null, rest = [];
   for (; k < points.length; k++) {

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CAM_QUAT, CAM_UP, VIEW_DIR } from './iso.js';
 import { shared, FOG_QUAD } from './shading.js';
+import { groundY } from '../castle_height.js';
 
 // A burning HQ (Tim OK'd the mock 2026-10-26): one quad over the building draws
 // smoke, ragged flames on the roof and round the base, licks that break off the
@@ -157,7 +158,7 @@ export function createGroundFirePatch(x,z,radius,seed=1,soft=0) {
   const sources=Array.from({length:9},(_,i)=>[.5+(i-4)*.045,.06,.2+Math.random()*.1,seed+i*7.3]);
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),fireMaterial(1,sources,seed,soft));
   mesh.quaternion.copy(CAM_QUAT);mesh.scale.set(radius*3.4,radius*3.4*PAD_H/PAD_W,1);
-  mesh.position.set(x,0,z).addScaledVector(CAM_UP,mesh.scale.y/2);
+  mesh.position.set(x,(0)+groundY(x,z),z).addScaledVector(CAM_UP,mesh.scale.y/2);
   mesh.frustumCulled=false;mesh.renderOrder=99805;
   return mesh;
 }

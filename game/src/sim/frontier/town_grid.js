@@ -2,7 +2,8 @@
 // town hall replaces the spiral slots of town_layout.js (which stays for migrating old towns only).
 // settlement.grid = { n, cell, ground, use, zone, by, stage }: the last five are strings of n*n chars
 // (strings, not arrays, keep saves small).
-//   ground: x unbuildable, o overgrown, c cleared      use:  . free, r road, w wall, g gate, B building
+//   ground: x unbuildable, o overgrown, c cleared      use:  . free, r road, w wall, g gate, B building,
+//                                                             m moat, k cliff (castles only, castle.js)
 //   zone:   . none, h housing, f farm, k work          by:   . none, p player, g governor
 //   stage:  0-3
 // A cell index is row * n + col; the town hall takes the centre cell. All numbers live in
@@ -140,7 +141,7 @@ function cellBoxesOf(s,data) {
   const g=s.grid;
   let per=blockerCache.get(s);if(!per)blockerCache.set(s,per=new Map());
   const dk=data || per;let e=per.get(dk);
-  if(e && e.use===g.use && e.stage===g.stage && e.zone===g.zone && e.ground===g.ground && e.x===s.x && e.z===s.z && e.n===s.buildings.length) {
+  if(e && e.use===g.use && e.stage===g.stage && e.zone===g.zone && e.ground===g.ground && e.slope===g.slope && e.x===s.x && e.z===s.z && e.n===s.buildings.length) {
     if(e.epoch===blockerEpoch)return e.cells;
     const key=builtKey(s);if(key===e.key && e.ab===abandonedKey(s)){e.epoch=blockerEpoch;return e.cells;}
   }
@@ -186,6 +187,24 @@ function cellBoxesOf(s,data) {
           add({minX:Math.min(ax,bx)-pad,maxX:Math.max(ax,bx)+pad,minZ:Math.min(az,bz)-pad,maxZ:Math.max(az,bz)+pad});
         }
       }
+    } else if(g.use[i]==='g' && s.castle) {
+      // a castle gate (Tim 2026-11-20): only the doorway under the middle of the gatehouse is open (townGrid.castleGateDoor
+      // world units wide); the rest of the gate run is wall, a thin line along the run like a wall cell's
+      const at=(dc,dr)=>{const cc=c+dc,rr=r+dr;return cc>=0 && rr>=0 && cc<g.n && rr<g.n?g.use[rr*g.n+cc]:'.';};
+      const alongZ='wg'.includes(at(0,-1)) || 'wg'.includes(at(0,1));
+      const vertical=at(0,-1)==='g' || at(0,1)==='g' || (!(at(-1,0)==='g' || at(1,0)==='g') && alongZ);
+      const [dc,dr]=vertical?[0,1]:[1,0];
+      let k=0;while(at(-dc*(k+1),-dr*(k+1))==='g')k++;
+      let m=k+1;while(at(dc*(m-k),dr*(m-k))==='g')m++;
+      const D=(data?.townGrid?.castleGateDoor ?? 5)/2,u0=(k-(m-1)/2)*g.cell;
+      for(const [a,b] of [[u0-half,Math.min(u0+half,-D)],[Math.max(u0-half,D),u0+half]]) {
+        if(b-a<1e-6)continue;
+        if(vertical)add({minX:x-pad,maxX:x+pad,minZ:z+a-u0,maxZ:z+b-u0});
+        else add({minX:x+a-u0,maxX:x+b-u0,minZ:z-pad,maxZ:z+pad});
+      }
+    } else if(g.use[i]==='m' || g.use[i]==='k') {
+      // a castle's moat and cliff cells (sim/frontier/castle.js): solid for everyone, never broken
+      add({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z+half});
     } else if(g.use[i]==='B' && owner.has(i) && !byArt.has(owner.get(i))) {
       // a building's "collide" (0-1) shrinks its blocking box toward the footprint centre to match its art (Tim 2026-11-07)
       const b=owner.get(i),k=data?.buildings?.[b.type]?.collide ?? data?.townGrid?.buildingCollide;
@@ -198,9 +217,33 @@ function cellBoxesOf(s,data) {
       const zf=art?._ground?.zoneFootprint || 0.8;
       if(!artAt(zoneArt(s,i,art),x,z,g.cell*zf,false)){const h=half*zf;add({minX:x-h,maxX:x+h,minZ:z-h,maxZ:z+h});}
     }
+    if(g.slope && g.slope[i]!=='.' && g.slope[i]!==undefined) {
+      // a castle land bridge (Z4h): it is drawn raised, so its long sides are a thin solid edge wherever the next cell is
+      // not ramp too; the ends stay open (the low end meets the ground, the high end the cut in the cliff)
+      const d=g.slope[i],t=data?.townGrid?.rampEdge ?? 1;
+      const side=(dc,dr)=>{const cc=c+dc,rr=r+dr;return cc<0 || rr<0 || cc>=g.n || rr>=g.n || g.slope[rr*g.n+cc]==='.';};
+      if(d==='E' || d==='W') {
+        if(side(0,-1))add({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z-half+t});
+        if(side(0,1))add({minX:x-half,maxX:x+half,minZ:z+half-t,maxZ:z+half});
+      } else {
+        if(side(-1,0))add({minX:x-half,maxX:x-half+t,minZ:z-half,maxZ:z+half});
+        if(side(1,0))add({minX:x+half-t,maxX:x+half,minZ:z-half,maxZ:z+half});
+      }
+    }
+    if(g.level && g.level[i]>'0' && g.level[i]<='9' && g.use[i]!=='k') {
+      // a castle terrace edge (blueprint v5): the cliff is the cell line between two levels, a thin solid edge on the
+      // higher cell that nothing breaks, so a broken terrace wall still leaves the land bridge as the only way up.
+      // A land bridge cell beside it (the top of the ramp at the gate) keeps the edge open.
+      const t=data?.townGrid?.rampEdge ?? 1,L=g.level[i];
+      const low=(dc,dr)=>{const cc=c+dc,rr=r+dr;if(cc<0 || rr<0 || cc>=g.n || rr>=g.n)return false;const j=rr*g.n+cc,l=g.level[j];return l>='0' && l<L && !(g.slope && g.slope[j]!=='.' && g.slope[j]!==undefined);};
+      if(low(0,-1))add({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z-half+t});
+      if(low(0,1))add({minX:x-half,maxX:x+half,minZ:z+half-t,maxZ:z+half});
+      if(low(-1,0))add({minX:x-half,maxX:x-half+t,minZ:z-half,maxZ:z+half});
+      if(low(1,0))add({minX:x+half-t,maxX:x+half,minZ:z-half,maxZ:z+half});
+    }
   }
   blockerVersion++;
-  per.set(dk,{ab:abandonedKey(s),use:g.use,stage:g.stage,zone:g.zone,ground:g.ground,key,x:s.x,z:s.z,n:s.buildings.length,epoch:blockerEpoch,cells});
+  per.set(dk,{ab:abandonedKey(s),use:g.use,slope:g.slope,stage:g.stage,zone:g.zone,ground:g.ground,key,x:s.x,z:s.z,n:s.buildings.length,epoch:blockerEpoch,cells});
   return cells;
 }
 // which cells block walking, as a string: changes only when something solid appears or goes (worker path cache key)

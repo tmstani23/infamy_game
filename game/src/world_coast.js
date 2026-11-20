@@ -114,6 +114,10 @@ export function createCoastline(world, cfg, paint, chunkSize) {
           let clear = 1;
           for (const h of nearbyHarbors) clear = Math.min(clear, smooth(cfg.harborClear, cfg.harborClear + cfg.clearFeather, Math.hypot(h.x - x, h.z - z)));
           for (const f of crossings) clear = Math.min(clear, smooth(cfg.inland.crossingClear, cfg.inland.crossingClear + cfg.clearFeather, Math.hypot(f.x - x, f.z - z)));
+          // a castle's dock and moat take over the shore they stand on (Z4): no beach strip inside a castle's box or within
+          // castleClear units of it (world.castleClear, sim/castles.js)
+          for (const c of world.castleClear || []) { const m = cfg.castleClear ?? 30;
+            clear = Math.min(clear, smooth(m, m + cfg.clearFeather, Math.hypot(Math.max(c.minX - x, 0, x - c.maxX), Math.max(c.minZ - z, 0, z - c.maxZ)))); }
           alpha.push(clear);
         }
         // Both faces are enabled by the material; orientation is irrelevant to lighting.

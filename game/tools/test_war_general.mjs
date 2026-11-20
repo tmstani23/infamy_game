@@ -167,7 +167,8 @@ function scene(seed = 47, tune = null) {
   const brainR = t.bots.find(b => b.config.clan === rival), free = () => mine().filter(e => !e.garrison && !e.order?.garrisonKey && !e.downed);
   t.run(200);
   assert.equal(brainR.view().wars[w.id].defender.mode, 'hold', 'not strong enough by the old rule, and no sally at edge 99');
-  assert.ok(free().length >= 4 && free().length < want.sortieAt, `a small army (${free().length} of ${want.sortieAt})`);
+  // (Z4e: its archers now stand in the town's watchtowers too, so fewer are left in the open)
+  assert.ok(free().length >= 3 && free().length < want.sortieAt, `a small army (${free().length} of ${want.sortieAt})`);
   const strongGuard = [0, 1, 2, 3, 4, 5, 6, 7].map(i => S.entities[g.frontier.war.spawnTroop(w, 'enforcer', w.x + i * 2, w.z - 30, 'player')]);
   for (const e of strongGuard) e.order = { kind: 'station', x: e.x, z: e.z };
   g.frontier.data.war.general.sallyEdge = 1.5;
@@ -238,15 +239,15 @@ function scene(seed = 47, tune = null) {
   assert.equal(brain.view().wars[w.id].attacker.mode, 'push', 'the army pushes once it is big enough');
   assert.ok(w.camp.buildings.some(b => b.type === 'barracks' && b.stage === 'built'));
   assert.ok(Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === rival && !e.dead).length >= 6);
-  // the town has no defences here: the hall falls, the bot's hero takes it, the war ends (its last town: a sack)
+  // the town has no defences here: the hall falls, the bot's hero takes it, the war ends (Z2: a last town is captured like any other)
   n = 0;
   while (War.warOn('tP') && n++ < 20) t.run(500);
   assert.equal(War.warOn('tP'), null, 'the war ends');
-  assert.equal(S.frontier.wars.history.at(-1).result, 'sacked');
-  // afterwards he walks home, and leaves the sacked town alone
+  assert.equal(S.frontier.wars.history.at(-1).result, 'captured');
+  assert.notEqual(S.frontier.settlements.tP.owner, 'player', 'the town is his now');
+  // afterwards he starts no new war: the player has no town left
   t.run(2000);
-  assert.equal(brain.view().goal?.why, 'home');
-  assert.equal(brain.view().plan, null, 'no new war on a town under truce');
+  assert.equal(brain.view().plan, null, 'no new war');
   console.log('ok bot attack');
 }
 

@@ -86,7 +86,41 @@ export function createPaint(world, cfg) {
   // Water mask value: signed distance to the (rounded) shoreline, 0.5 on the bank line, +-WATER_RANGE units to 0 / 1.
   // Linear across a pixel, so the shader's 0.5 contour follows the true fillets instead of the coarse cell grid.
   const WATER_RANGE = 4;
+  // castle moats (Z4, render/world_ground.js setExtraWater): painted as real water. Each entry is one castle's grid:
+  // { x, z, n, cell, use } with the moat cells marked 'm' in use. extraWet -> signed distance into the water (units)
+  let extra = [];
+  function extraWet(x, z) {
+    let best = -Infinity;
+    for (const g of extra) {
+      const c = (g.n - 1) / 2, fx = (x - g.x) / g.cell + c + 0.5, fz = (z - g.z) / g.cell + c + 0.5;
+      if (fx < -1 || fz < -1 || fx > g.n + 1 || fz > g.n + 1) continue;
+      const col = Math.floor(fx), row = Math.floor(fz), wet = (cc, rr) => cc >= 0 && rr >= 0 && cc < g.n && rr < g.n && g.use[rr * g.n + cc] === 'm';
+      if (wet(col, row)) {   // inside: distance to the nearest dry neighbour edge
+        let d = g.cell;
+        for (const [dc, dr] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) if (!wet(col + dc, row + dr)) d = Math.min(d, (dc ? (dc < 0 ? fx - col : col + 1 - fx) : (dr < 0 ? fz - row : row + 1 - fz)) * g.cell);
+        best = Math.max(best, d);
+      } else {
+        let d = Infinity;
+        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if ((dc || dr) && wet(col + dc, row + dr)) {
+          const ex = dc < 0 ? fx - col : dc > 0 ? col + 1 - fx : 0, ez = dr < 0 ? fz - row : dr > 0 ? row + 1 - fz : 0;
+          d = Math.min(d, Math.hypot(ex, ez) * g.cell);
+        }
+        best = Math.max(best, -d);
+      }
+    }
+    return best;
+  }
+  const setExtraWater = list => { extra = (list || []).filter(g => g && g.use && g.n); };
+  // the moat's bank (Tim 2026-11-20: "it looks really sharp"): the bank line wobbles a little like a real shore
+  // (cfg.moatBank.ragged units), and the ground beside it takes the coast's wet tint and bank mud (paintChunk, bankAt)
+  const MB = cfg.moatBank || {};
+  const moatWet = (x, z) => { const e = extraWet(x, z); return e === -Infinity ? e : e + (fbm(x, z, MB.noiseScale || 9, seed + 73) - 0.5) * 2 * (MB.ragged || 0); };
   function waterAt(x, z) {
+    const e = extra.length ? moatWet(x, z) : -Infinity;
+    const own = baseWaterAt(x, z);
+    return e === -Infinity ? own : Math.max(own, Math.max(0, Math.min(1, 0.5 + e / (2 * WATER_RANGE))));
+  }
+  function baseWaterAt(x, z) {
     if (!shore) { const n = (vnoise(x, z, 6, seed + 9) - 0.5) * 2; return waterFrac(x + n, z - n, 2.5); }
     const d = shore.distanceAt(x, z, WATER_RANGE, null);
     // drawing-only fillets (beside fords) count here, but not for props, biomes or walking
@@ -94,7 +128,7 @@ export function createPaint(world, cfg) {
     return Math.max(0, Math.min(1, 0.5 + (wet ? d : -d) / (2 * WATER_RANGE)));
   }
   const blockedAt = (x, z) => BLOCKED_BIOME.has(gridAt(x, z));
-  const bankAt = (x, z) => Math.min(1, waterFrac(x, z, F.bank) * 2.4);
+  const bankAt = (x, z) => Math.min(1, waterFrac(x, z, F.bank) * 2.4 + (extra.length ? Math.max(0, 1 + moatWet(x, z) / (MB.bank || F.bank)) * (MB.bankStrength ?? 0.6) : 0));
 
   // layer 5: trails along corridors. segs = [[a, b], ...] near the point. -> [trail, verge] in 0..1
   const T = cfg.trail;
@@ -249,7 +283,10 @@ export function createPaint(world, cfg) {
         const d = shore.distanceAt(x, z, CT.end + CT.ragged, bankDistance);
         const profile = bankDistance.body !== 'sea' && CT.inland ? CT.inland : CT;
         const ragged = (vnoise(x, z, CT.noiseScale, seed + 61) - 0.5) * 2 * profile.ragged;
-        const amount = (1 - smooth(profile.start, profile.end, d + ragged)) * profile.strength;
+        let amount = (1 - smooth(profile.start, profile.end, d + ragged)) * profile.strength;
+        // a castle moat's bank gets the same wet tint as a shore (cfg.moatBank start/end/strength)
+        if (extra.length && MB.end) { const dm = -moatWet(x, z);
+          if (dm < MB.end + (MB.ragged || 0)) amount = Math.max(amount, (1 - smooth(MB.start || 0, MB.end, Math.max(0, dm) + (vnoise(x, z, CT.noiseScale, seed + 67) - 0.5) * 2 * (MB.ragged || 0))) * (MB.strength ?? profile.strength)); }
         if (amount > 0) {
           fieldAt(x, z, F0);
           O[k * 4 + 1] = Math.round(amount * 255);
@@ -280,7 +317,7 @@ export function createPaint(world, cfg) {
 
   const paint = {
     cfg, seed, biomes: cfg.biomes, blockedAt, B, matIds, M, gridAt, fieldAt, waterAt, waterFrac, trailAt, trailDist, trailClear, grove,
-    stampsIn, stampAt, stampClear, materialsAt, paintChunk, fordAt, NB, NM,
+    stampsIn, stampAt, stampClear, materialsAt, paintChunk, fordAt, NB, NM, setExtraWater,
   };
   made.set(cfg, { world, paint });
   return paint;

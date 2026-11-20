@@ -1,6 +1,7 @@
 // Presentation only: finite projectile meshes and visible, state-driven control effects.
 import * as THREE from 'three';
 import { onFxLayer } from './bloom.js';
+import { groundY } from '../castle_height.js';
 
 export function createCrewFx({scene,spriteOf}){
   const shots=new Map(),bindings=new Map(),braces=new Map(),bursts=[];
@@ -46,33 +47,33 @@ export function createCrewFx({scene,spriteOf}){
     clear(){for(const map of [shots,bindings,braces]){for(const v of map.values())remove(v.mesh||v);map.clear();}for(const b of bursts)remove(b.mesh);bursts.length=0;},
     cast(c){
       if(!visible(c.a))return;
-      if(c.kind==='boarded'){for(const radius of [1.6,2.4]){const m=ring(radius,0xffd34d);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.5,expand:true});}}
-      if(c.kind==='refuseMount'){for(const radius of [1.1,1.6]){const m=ring(radius,0xff5a3c);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.55,expand:true});}}
-      if(c.kind==='dogsGone'){const m=ring(.45,0xcbb48a);m.position.set(c.x,.12,c.z);bursts.push({mesh:m,time:0,life:.45,expand:true});}   // a loosed dog vanishes in a dust puff (sim/dogs.js)
+      if(c.kind==='boarded'){for(const radius of [1.6,2.4]){const m=ring(radius,0xffd34d);m.position.set(c.x,.13+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life:.5,expand:true});}}
+      if(c.kind==='refuseMount'){for(const radius of [1.1,1.6]){const m=ring(radius,0xff5a3c);m.position.set(c.x,.13+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life:.55,expand:true});}}
+      if(c.kind==='dogsGone'){const m=ring(.45,0xcbb48a);m.position.set(c.x,.12+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life:.45,expand:true});}   // a loosed dog vanishes in a dust puff (sim/dogs.js)
       if(c.kind==='firebombMark'){   // war 7c-2: where a fire bomb will land, shown through the wind-up and the flight
         const m=ring(c.radius,0xff5a22);m.userData.fxOpacity=.95;
         const fill=new THREE.Mesh(new THREE.CircleGeometry(c.radius,40),material(0xff7a2a));fill.userData.fxOpacity=.28;m.add(fill);
         const core=new THREE.Mesh(new THREE.RingGeometry(c.radius*.45-.05,c.radius*.45+.05,32),material(0xffc070));core.userData.fxOpacity=.8;m.add(core);
-        m.position.set(c.x,.15,c.z);bursts.push({mesh:m,time:0,life:(c.ticks||40)/20,steady:true});
+        m.position.set(c.x,.15+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life:(c.ticks||40)/20,steady:true});
       }
       if(c.kind==='torchCast'){   // Tim 2026-11-13: the 1 s Torch channel in the fire bomb look, toned to the softer building fire, with a warm glow
         const life=(c.ticks||20)/20,m=ring(.85,0xd36134);m.userData.fxOpacity=.8;
         const fill=new THREE.Mesh(new THREE.CircleGeometry(.85,32),material(0xdb7a3d));fill.userData.fxOpacity=.24;m.add(fill);
-        m.position.set(c.x,.15,c.z);bursts.push({mesh:m,time:0,life,steady:true});
+        m.position.set(c.x,.15+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life,steady:true});
         const flame=new THREE.Group(),outer=new THREE.Mesh(new THREE.ConeGeometry(.17,.48,8),material(0xd66d31)),inner=new THREE.Mesh(new THREE.ConeGeometry(.08,.3,8),material(0xf4c175)),stick=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.5,5),material(0x5a3b22));
         outer.userData.fxOpacity=.7;inner.userData.fxOpacity=.8;inner.position.y=-.05;stick.userData.fxOpacity=1;stick.position.y=-.45;flame.add(outer,inner,stick);
         const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:0xeca767,transparent:true,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false}));
         halo.scale.set(1.5,1.5,1);halo.position.y=.05;halo.userData.fxOpacity=.38;flame.add(halo);
         const pool=new THREE.Mesh(new THREE.CircleGeometry(1.3,32),new THREE.MeshBasicMaterial({map:glowTex(),color:0xdb7a3d,transparent:true,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false}));
-        pool.rotation.x=-Math.PI/2;pool.position.set(c.x,.12,c.z);pool.userData.fxOpacity=.22;scene.add(pool);pool.traverse(onFxLayer);bursts.push({mesh:pool,time:0,life,steady:true});   // light on the ground round him
-        flame.position.set(c.x,1.75,c.z);scene.add(flame);flame.traverse(onFxLayer);bursts.push({mesh:flame,time:0,life,steady:true});
+        pool.rotation.x=-Math.PI/2;pool.position.set(c.x,.12+groundY(c.x,c.z),c.z);pool.userData.fxOpacity=.22;scene.add(pool);pool.traverse(onFxLayer);bursts.push({mesh:pool,time:0,life,steady:true});   // light on the ground round him
+        flame.position.set(c.x,1.75+groundY(c.x,c.z),c.z);scene.add(flame);flame.traverse(onFxLayer);bursts.push({mesh:flame,time:0,life,steady:true});
       }
-      if(c.kind==='dogsBite'){const m=ring(.7,0xff6a4a);m.position.set(c.x,.14,c.z);bursts.push({mesh:m,time:0,life:.4});}
+      if(c.kind==='dogsBite'){const m=ring(.7,0xff6a4a);m.position.set(c.x,.14+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life:.4});}
       if(c.kind==='hamstringHit'){
-        const m=ring(.9,0x83ffd1);m.position.set(c.x,.13,c.z);bursts.push({mesh:m,time:0,life:.6});
+        const m=ring(.9,0x83ffd1);m.position.set(c.x,.13+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life:.6});
       }
       if(c.kind==='taunt'&&c.style==='shinobi_enforcer'){
-        for(const radius of [.8,1.2]){const m=ring(radius,0xba9fff);m.position.set(c.x,.12,c.z);bursts.push({mesh:m,time:0,life:.6,expand:true});}
+        for(const radius of [.8,1.2]){const m=ring(radius,0xba9fff);m.position.set(c.x,.12+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life:.6,expand:true});}
       }
       if(c.kind==='taunt'&&c.cone){
         // A translucent ward sector, with a few angular spell marks. The fill
@@ -90,7 +91,7 @@ export function createCrewFx({scene,spriteOf}){
         }
         const glyphs=new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(points,3)),new THREE.LineBasicMaterial({color:0xffbe95,transparent:true,opacity:.4,depthWrite:false}));
         glyphs.userData.fxOpacity=.4;m.add(glyphs);
-        m.rotation.x=-Math.PI/2;m.rotation.z=-Math.PI*(1+c.dir)/4;m.position.set(c.x,.08,c.z);scene.add(m);bursts.push({mesh:m,time:0,life:.8});
+        m.rotation.x=-Math.PI/2;m.rotation.z=-Math.PI*(1+c.dir)/4;m.position.set(c.x,.08+groundY(c.x,c.z),c.z);scene.add(m);bursts.push({mesh:m,time:0,life:.8});
       }
     },
     update(dt,state,heroId,viewPlace=null){
@@ -101,18 +102,18 @@ export function createCrewFx({scene,spriteOf}){
         v.elapsed=Math.max(v.elapsed+dt*20,state.tick-p.at-1);
         const u=Math.min(1,v.elapsed/(p.until-p.at)),dx=p.tx-p.x,dz=p.tz-p.z;
         // A shallow arc remains readable without making a close shot look lobbed.
-        v.mesh.position.set(p.x+dx*u,1.2+(p.kind==='firebomb'?1.6:p.kind==='cannonball'?.8:p.kind==='bullet'?0:.25)*Math.sin(Math.PI*u),p.z+dz*u);   // bombs and cannon balls are lobbed
-        direction.set(dx,(p.kind==='bullet'?0:.25)*Math.PI*Math.cos(Math.PI*u),dz).normalize();v.mesh.quaternion.setFromUnitVectors(up,direction);
+        v.mesh.position.set(p.x+dx*u,groundY(p.x,p.z)*(1-u)+groundY(p.tx,p.tz)*u+1.2+(p.kind==='firebomb'?1.6:p.kind==='cannonball'?.8:p.kind==='bullet'?0:.25)*Math.sin(Math.PI*u),p.z+dz*u);   // bombs and cannon balls are lobbed
+        direction.set(dx,groundY(p.tx,p.tz)-groundY(p.x,p.z)+(p.kind==='bullet'?0:.25)*Math.PI*Math.cos(Math.PI*u),dz).normalize();v.mesh.quaternion.setFromUnitVectors(up,direction);
       }
       for(const [key,v] of shots)if(!present.has(key)){remove(v.mesh);shots.delete(key);}
       const activeBindings=new Set(),activeBraces=new Set();
       for(const e of Object.values(state.entities)){
         if(e.dead||e.downed||e.jailed||e.place!==hero?.place||!visible(e.id))continue;
         if(e.buffs?.snared?.hamstring&&e.buffs.snared.until>state.tick){
-          activeBindings.add(e.id);let m=bindings.get(e.id);if(!m){m=ring(.42,0x83ffd1);bindings.set(e.id,m);}m.position.set(e.x,.25,e.z);m.rotation.z+=dt*1.8;m.scale.setScalar(1+.08*Math.sin(state.tick*.35));
+          activeBindings.add(e.id);let m=bindings.get(e.id);if(!m){m=ring(.42,0x83ffd1);bindings.set(e.id,m);}m.position.set(e.x,.25+groundY(e.x,e.z),e.z);m.rotation.z+=dt*1.8;m.scale.setScalar(1+.08*Math.sin(state.tick*.35));
         }
         if(e.type==='kuroda_enforcer'&&e.buffs?.bulwark?.until>state.tick){
-          activeBraces.add(e.id);let m=braces.get(e.id);if(!m){m=ring(.8,0xff514d);braces.set(e.id,m);}m.position.set(e.x,.09,e.z);m.material.opacity=.4+.15*Math.sin(state.tick*.2);
+          activeBraces.add(e.id);let m=braces.get(e.id);if(!m){m=ring(.8,0xff514d);braces.set(e.id,m);}m.position.set(e.x,.09+groundY(e.x,e.z),e.z);m.material.opacity=.4+.15*Math.sin(state.tick*.2);
         }
       }
       for(const [map,active] of [[bindings,activeBindings],[braces,activeBraces]])for(const [id,m] of map)if(!active.has(id)){remove(m);map.delete(id);}

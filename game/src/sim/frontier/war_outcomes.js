@@ -9,7 +9,7 @@
 //             stays with its clan, its ruins as they are.
 //   burned:   the town is wiped: its record, people, lines and roads go (world.removeTown) and its site is free to
 //             found on again under the usual rules.
-// A clan's last town can only be sacked (war_end.js outcomeList).
+// Any town can be captured, sacked or burned, a clan's last one too (Z2, Tim 2026-11-19).
 // The old owner's horses and vehicles stored in a town he no longer holds move to another of his stables
 // (sim/vehicle_garage.js).
 // createWarOutcomes({ state, data, war, world, rail, garrison }) -> { captured, sacked, burned, attach }

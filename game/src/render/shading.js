@@ -436,6 +436,43 @@ export function groundMaterial(textures, splatA, splatB, bounds, tile) {
   });
 }
 
+// ---------- castle terraces (Z4h): raised ground drawn as real 3D (render/world_ground.js, src/castle_height.js) ----------
+// Opaque and writing depth, so what is depth tested in a castle (units, buildings, decals) hides behind a cliff.
+export function terraceMaterial(map, tint = '#ffffff') {
+  return new THREE.ShaderMaterial({
+    uniforms: { ...shared, uMap: { value: map }, uTint: { value: new THREE.Color(tint).convertLinearToSRGB() } },   // the painted (sRGB) tint as written, like every colour here
+    vertexShader: /* glsl */`
+attribute float shade;
+varying vec2 vUv;
+varying vec3 vWorld;
+varying float vShade;
+void main() {
+  vUv = uv; vShade = shade;
+  vec4 w = modelMatrix * vec4(position, 1.0);
+  vWorld = w.xyz;
+  gl_Position = projectionMatrix * viewMatrix * w;
+}`,
+    fragmentShader: /* glsl */`
+${LIGHTING}
+uniform sampler2D uMap;
+uniform vec3 uTint;
+varying vec2 vUv;
+varying vec3 vWorld;
+varying float vShade;
+float terraceHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float terraceNoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(terraceHash(i), terraceHash(i + vec2(1.0, 0.0)), f.x), mix(terraceHash(i + vec2(0.0, 1.0)), terraceHash(i + vec2(1.0, 1.0)), f.x), f.y); }
+void main() {
+  vec3 col = texture2D(uMap, vUv).rgb * uTint * vShade;
+  // slow light and dark patches over the paving, so the repeating texture does not read as a grid from far off
+  vec2 q = vWorld.xz + vWorld.y * 0.37;
+  col *= 0.86 + 0.28 * (0.65 * terraceNoise(q / 19.0) + 0.35 * terraceNoise(q / 6.5));
+  gl_FragColor = vec4(fogged(grade(col, vWorld, false, vec3(0.0)), vWorld.xz), 1.0);
+}`,
+    side: THREE.DoubleSide,
+  });
+}
+
 // ---------- island ground (frontier W3.10): a material mosaic instead of fixed channels ----------
 // Up to 16 materials per chunk (each spot mixes at most 4) live in one texture array. Per pixel: the chunk's weight maps say how much of each;
 // every material is sampled with random tiling (each 10-unit cell gets its own offset and 90-degree turn,

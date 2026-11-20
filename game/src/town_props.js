@@ -14,16 +14,16 @@ const slotOf = (s, c, cells) => {
 // a war camp's buildings stand where they were placed (off: offset from the camp), not on a grid cell
 const spotOf = (s, b, i) => b.off || slotOf(s, b.cell ?? i, b.cells);
 
-// Which towns to draw: your own (full records, with a position) from the frontier snapshot.
+// Which towns to draw: your own (full records, with a position) from the frontier snapshot; castles too (Z4c).
 export function drawableTowns(frontier, clan) {
-  return Object.values(frontier?.settlements || {}).filter(s => s.owner === clan && !s.capital && Number.isFinite(s.x) && Array.isArray(s.buildings));
+  return Object.values(frontier?.settlements || {}).filter(s => s.owner === clan && (!s.capital || s.castle) && Number.isFinite(s.x) && Array.isArray(s.buildings));
 }
 
 // F6 war: rival towns on discovered ground (the snapshot gives them position, grid and buildings) and war
 // camps, drawn like towns but without Space doors (foreign: true). A camp is a small pseudo-town: its camp
 // hall, its banner, its finished buildings and its building sites (checkpoint 4), each where it was placed.
 export function drawableWarSites(frontier, clan) {
-  const out = Object.values(frontier?.settlements || {}).filter(s => s.owner !== clan && !s.capital && Number.isFinite(s.x) && Array.isArray(s.buildings))
+  const out = Object.values(frontier?.settlements || {}).filter(s => s.owner !== clan && (!s.capital || s.castle) && Number.isFinite(s.x) && Array.isArray(s.buildings))
     .map(s => ({ ...s, projects: s.projects || [], foreign: true }));
   for (const w of Object.values(frontier?.wars?.list || {})) {
     const c = w.camp; if (!c || !Number.isFinite(c.x)) continue;
@@ -63,6 +63,9 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
     const x = (i % grid.n - mid) * grid.cell, z = (Math.floor(i / grid.n) - mid) * grid.cell;
     return grid.use[i] !== '.' || grid.zone[i] !== '.' || Math.hypot(x, z) <= G.foundationRadius;
   };
+  // a neighbour whose clearing is drawn too (a castle's moat, sea and cliff cells are not: the dirt fades out at the
+  // water there like a bank, Tim 2026-11-20 "sharp edges on the wall side")
+  const drawn = i => cleared(i) && grid.use[i] !== 'm' && grid.use[i] !== 'k';
   for (let i = 0; i < grid.n * grid.n; i++) {
     if (grid.ground[i] === 'x') continue;
     const x = (i % grid.n - mid) * grid.cell, z = (Math.floor(i / grid.n) - mid) * grid.cell;
@@ -70,12 +73,18 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
     const base = { cell: i, x, z };
     const patch = (key, width, height, tint, texture) => out.push({ ...base, key: `${i}:${key}`, dirt: true, width, height, tint, texture, cornerRadius:Math.min(width,height)*(G?.tileRoundness || 0) });
     // Open plains are already cleared in the sim; only the foundation and used cells need a dirt decal.
-    if (G && cleared(i)) {
+    if (G && cleared(i) && use !== 'k' && use !== 'm' && !(grid.level && grid.level[i] > '0')) {   // nor the raised terraces: paved by their own ground   // castle cliffs and moat have their own ground (Z4h)
       patch('clear', grid.cell, grid.cell, G.clearTint, G.clearTexture);
       // Fade only the clearing's perimeter; adjoining cells share uninterrupted earth.
       Object.assign(out[out.length - 1], { tile: G.textureTile, edgeFade: G.edgeFade, opacity: G.clearOpacity,
-        edges: [i % grid.n === 0 || !cleared(i - 1), i % grid.n === grid.n - 1 || !cleared(i + 1), !cleared(i - grid.n), !cleared(i + grid.n)].map(Number) });
+        edges: [i % grid.n === 0 || !drawn(i - 1), i % grid.n === grid.n - 1 || !drawn(i + 1), !drawn(i - grid.n), !drawn(i + grid.n)].map(Number) });
+      // beside a castle's water the fade is wider and the corners rounder (G.bankFade, G.bankCorner: world units)
+      const wet = j => j >= 0 && j < grid.n * grid.n && grid.use[j] === 'm';
+      if (G.bankFade && [i % grid.n ? i - 1 : -1, i % grid.n < grid.n - 1 ? i + 1 : -1, i - grid.n, i + grid.n].some(wet))
+        Object.assign(out[out.length - 1], { edgeFade: G.bankFade, cornerRadius: G.bankCorner ?? out[out.length - 1].cornerRadius });
     }
+    // castles (Z4h): the moat is painted into the island's own water and the terraces, cliffs and land bridges are
+    // raised ground drawn by render/world_ground.js (src/castle_height.js), so no tiles here
     if (G && (use === 'r' || use === 'g')) {
       // One whole-cell tile per road cell, picked by which neighbours are roads (16 pre-made tiles).
       const col = i % grid.n, row = Math.floor(i / grid.n);
@@ -86,7 +95,35 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
       patch('road', grid.cell, grid.cell, '#ffffff', `art/ground/road/road_${mask}.png`);
       Object.assign(out[out.length - 1], { cornerRadius: 0, road: { arms, mask } });
     }
-    if (use === 'w' || use === 'g') {
+    // castle walls (Tim 2026-11-19): fitted art (tools/fit_castle_wall_art.py) that climbs the ground diagonal exactly and
+    // repeats end to end, count pieces per cell; the wall runs on through a gate and one gatehouse stands over the middle
+    // of each run of gate cells, drawn in front of the wall
+    if ((use === 'w' || use === 'g') && art._walls?.castle) {
+      const W = art._walls, col = i % grid.n, row = Math.floor(i / grid.n);
+      const at = (dc, dr) => col + dc >= 0 && col + dc < grid.n && row + dr >= 0 && row + dr < grid.n ? grid.use[(row + dr) * grid.n + col + dc] : '.';
+      const joins = (dc, dr) => 'wg'.includes(at(dc, dr));
+      const alongX = joins(-1, 0) || joins(1, 0), alongZ = joins(0, -1) || joins(0, 1), corner = alongX && alongZ;
+      for (const vertical of corner ? [false, true] : [alongZ]) {
+        const low = corner && !joins(vertical ? 0 : -1, vertical ? -1 : 0) ? 0 : -grid.cell / 2;
+        const high = corner && !joins(vertical ? 0 : 1, vertical ? 1 : 0) ? 0 : grid.cell / 2;
+        const count = Math.max(1, Math.round(W.w.count * (high - low) / grid.cell));
+        for (let k = 0; k < count; k++) {
+          const d = low + (k + 0.5) * (high - low) / count;
+          out.push({ ...base, key: `${i}:${use === 'g' ? 'cwg' : 'cw'}:${vertical}:${k}`, x: x + (vertical ? 0 : d), z: z + (vertical ? d : 0), art: W.w.art, flip: W.w.alongZ ? !vertical : vertical, s: W.w.scale, noLights: true });
+        }
+      }
+      if (corner && W.w.post) out.push({ ...base, key: `${i}:cw:post`, x, z, art: W.w.post, s: W.w.postScale ?? W.w.scale, depthBias: W.w.postDepthBias, noLights: true });   // the corner pillar caps the join, drawn over both walls
+      if (use === 'g') {
+        const vertical = at(0, -1) === 'g' || at(0, 1) === 'g' || (!(at(-1, 0) === 'g' || at(1, 0) === 'g') && alongZ);
+        const [dc, dr] = vertical ? [0, 1] : [1, 0];
+        if (at(-dc, -dr) !== 'g') {   // the first cell of the run: the gatehouse over the run's middle
+          let m = 1; while (at(dc * m, dr * m) === 'g') m++;
+          const off = (m - 1) / 2 * grid.cell;
+          out.push({ ...base, key: `${i}:cgate`, x: x + (vertical ? 0 : off), z: z + (vertical ? off : 0), art: W.g.art, flip: W.g.alongZ ? !vertical : vertical, s: W.g.scale, depthBias: W.g.depthBias, noLights: true });
+        }
+      }
+    }
+    else if (use === 'w' || use === 'g') {
       const col = i % grid.n, row = Math.floor(i / grid.n);
       const joins = (dc, dr) => col + dc >= 0 && col + dc < grid.n && row + dr >= 0 && row + dr < grid.n && 'wg'.includes(grid.use[(row + dr) * grid.n + col + dc]);
       const alongX = joins(-1, 0) || joins(1, 0), alongZ = joins(0, -1) || joins(0, 1);
@@ -136,6 +173,11 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
 
 export function townProps(towns, townArt, townLights = {}, openGates = null) {
   const out = [];
+  // castle moats for the island ground painter (render/world_ground.js): each castle's grid, its moat cells painted as water
+  // and their levels, ramps and cliffs for the raised terraces (src/castle_height.js)
+  out.castleWater = towns.filter(s => s.castle && s.grid?.use && Number.isFinite(s.x)).map(s => ({ id: s.id, x: s.x, z: s.z, n: s.grid.n, cell: s.grid.cell,
+    use: s.grid.use, level: s.grid.level || null, slope: s.grid.slope || null, ramps: s.castle.ramps || [], pier: s.castle.pier || [] }));
+  out.castleArt = townArt?._castle || null;
   for (const s of towns) {
     const lighting = townLights.automatic;
     if (lighting && s.grid) {
@@ -149,8 +191,11 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
           if ((c-mid)%lighting.spacingCells===0 && (r-mid)%lighting.spacingCells===0 || g.use[i]==='B' && s.buildings.some(b=>b.type==='town_hall' && b.cell===i)) corners.add(`${c},${r}`);
         }
       }
+      // never in a castle's moat or on its cliffs (Z4h): a corner touching one of those cells gets no lantern
+      const wet=(c,r)=>c>=0 && r>=0 && c<g.n && r<g.n && (g.use[r*g.n+c]==='m' || g.use[r*g.n+c]==='k');
       for(const key of corners) {
         const [c,r]=key.split(',').map(Number);
+        if(wet(c,r) || wet(c-1,r) || wet(c,r-1) || wet(c-1,r-1))continue;
         out.push({key:`${s.id}:auto-light:${key}`,art:lighting.art,x:s.x+(c-mid-.5)*g.cell,z:s.z+(r-mid-.5)*g.cell,lightRadius:lighting.radius});
       }
     }
@@ -193,7 +238,7 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
       // (townLights.camp[type] = [[art, angle in degrees, distance], ...], existing lit art from data/art.json)
       if (b.stage === 'built' && s.camp) (townLights.camp?.[b.type] || []).forEach(([art, deg, d], k) => out.push({ key: `${s.id}:${b.id}:light${k}`, art, x: s.x + ox + Math.cos(deg * Math.PI / 180) * d, z: s.z + oz + Math.sin(deg * Math.PI / 180) * d }));
     });
-    for (const p of townCellsToProps(s.grid, townArt, s.zones)) out.push({ ...p, key: `${s.id}:${p.key}`, x: s.x + p.x, z: s.z + p.z });
+    for (const p of townCellsToProps(s.grid, s.castle && townArt._castleWalls ? { ...townArt, _walls: townArt._castleWalls } : townArt, s.zones)) out.push({ ...p, key: `${s.id}:${p.key}`, x: s.x + p.x, z: s.z + p.z });
     // a breached wall or gate cell (war checkpoint 6): rubble on open ground
     if (s.grid) for (const br of s.breaches || []) {
       const R = townArt._ruin || {}, [bx, bz] = cellOffset(s, br.cell), n = s.grid.n, col = br.cell % n, row = Math.floor(br.cell / n);

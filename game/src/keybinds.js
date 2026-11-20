@@ -15,7 +15,7 @@ export const KEY_ACTIONS = [
   A('moveDown', 'Move down', 'Movement', 'KeyS', { held: true }),
   A('moveRight', 'Move right', 'Movement', 'KeyD', { held: true }),
   A('walk', 'Walk while held; a clean tap while riding switches gallop', 'Movement', [], { fixed: true, text: 'Shift' }),
-  A('use', 'Use door, shop, station or talk; take a ruined hall in a war', 'Movement', ['Space', 'Enter']),
+  A('use', 'Use door, shop, station, ship or talk; take a ruined hall in a war', 'Movement', ['Space', 'Enter']),
   A('unstuck', 'Unstuck', 'Movement', 'KeyU'),
   // Camera
   A('panUp', 'Pan camera up', 'Camera', 'ArrowUp', { held: true }),

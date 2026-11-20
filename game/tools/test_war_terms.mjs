@@ -154,8 +154,8 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   r = s.cmd({ action: 'warLeave', war: 'w1' }); assert.equal(r.reason, 'You have already left');
   r = s.cmd({ action: 'warOutcome', war: 'w1', outcome: 'sack' }); assert.equal(r.reason, 'Only the attacker chooses');
   s.run(s.frontier.war.surrender.bot.answerSeconds * 20 + 4);
-  assert.equal(s.ended()?.result, 'sacked', 'a last town can only be sacked');
-  assert.equal(town.owner, 'player');
+  assert.equal(s.ended()?.result, 'captured', 'a bot takes the town, a last town too (Z2: the last-town rule is gone)');
+  assert.equal(town.owner, s.rival);
   assert.ok(Math.abs(S.frontier.wars.cooldown.tE - (S.tick + 3 * dayTicks(s))) < 200, 'the usual cooldown is 3 days too');
 }
 
@@ -240,7 +240,7 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   s2.run(s2.frontier.war.surrender.offerSeconds * 20 + 2);
   assert.equal(s2.w().terms.state, 'outcome', 'no answer in time counts as refused for good');
   assert.equal(s2.w().terms.ended, 'timeout');
-  assert.deepEqual(s2.T.view('w1', 'player').outcomes.map(o => o.ok), [false, true, false], 'their last town: sack only');
+  assert.deepEqual(s2.T.view('w1', 'player').outcomes.map(o => o.ok), [true, true, true], 'a last town may be captured or burned too (Z2)');
   s2.run(s2.frontier.war.surrender.outcomeSeconds * 20 + 2);
   assert.equal(s2.ended()?.result, 'sacked', 'no choice in time: the town is sacked');
 }

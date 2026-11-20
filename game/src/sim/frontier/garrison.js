@@ -44,7 +44,10 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
   const zoneOk = st => (!!st && !!Z() && (st.kind === 'zone' || st.kind === 'building') && (Z().types || []).includes(st.type)) || fort(st);
   const inZone = key => Object.values(state.entities || {}).filter(e => e.garrison?.zone && e.garrison.key === key && !e.dead);
   // room and reach of a structure troops can hold: a stockade's own numbers (less the hero, crew and workers inside), else a house's
-  const capOf = st => fort(st) ? (rules().capacity || 0) - (st.s && st.b ? membersIn(st.s, st.b).length : 0) : Z()?.capacity ?? 10;
+  // Z4e (Tim 2026-11-19): watchtowers are garrisonable too, in towns, war camps and castles: zoneGarrison.byType gives a
+  // type its own room (capacity) and how much further its ranged troops reach from up there (reach)
+  const byType = st => Z()?.byType?.[st?.type] || null;
+  const capOf = st => fort(st) ? (rules().capacity || 0) - (st.s && st.b ? membersIn(st.s, st.b).length : 0) : byType(st)?.capacity ?? Z()?.capacity ?? 10;
   const rangeOf = st => fort(st) ? rules().range ?? 14 : Z()?.range ?? 9;
   function outAt(u, cx, cz, reach = 7) {
     delete u.garrison;
@@ -68,7 +71,7 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
     return true;
   }
   function admitZone(u, st) {
-    u.garrison = { ...(st.town ? { town: st.town } : {}), ...(st.war ? { war: st.war } : {}), key: st.key, zone: true, x: st.x, z: st.z, ...(fort(st) ? { fort: true, heal: rules().healFactor || 1 } : {}) };
+    u.garrison = { ...(st.town ? { town: st.town } : {}), ...(st.war ? { war: st.war } : {}), key: st.key, zone: true, x: st.x, z: st.z, ...(fort(st) ? { fort: true, heal: rules().healFactor || 1 } : {}), ...(byType(st)?.reach ? { reach: byType(st).reach } : {}) };
     delete u.order; delete u.swing; delete u.attackTarget; u.x = st.x; u.z = st.z;
   }
   // who may hold a house or a stockade the structure way: troops, crew and the hero (Tim 2026-11-19: the hero may garrison any

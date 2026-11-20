@@ -37,7 +37,7 @@ export function siteTraits(world, x, z, cfg) {
   return { soil: level(soil / n, cfg.soilShare), water, defense: level(hard / n, cfg.defenseShare), nodes };
 }
 
-export function createFounding({ state, data, world, removeUnit, resourceIndex }) {
+export function createFounding({ state, data, world, removeUnit, resourceIndex, zones = null }) {
   const D = data.founding, f = () => state.frontier;
   let navigation = null, afterFound = null;
   const attach = ({areas, onFound}) => {navigation=areas?.nav; if (onFound) afterFound = onFound;};
@@ -54,6 +54,12 @@ export function createFounding({ state, data, world, removeUnit, resourceIndex }
     if(Math.hypot(point.x-hero.x,point.z-hero.z)>(D.placementRange || D.gatherRadius))return 'Hall is too far from the hero';
     // Tim 2026-11-06: the capital has its own, smaller gap so a town can go up a short walk from the gate
     const capGap = D.capitalSpacing ?? D.minSpacing;
+    // Z2 (Tim 2026-11-19): two towns a clan in one campaign zone; nobody founds on a clan castle's ground
+    if (zones) {
+      const zid = zones.zoneAt(point.x, point.z), closed = zones.closedSites();
+      if (zid && zones.full(clan.id, zid)) return `Zone full: you already have ${zones.count(clan.id, zid)} towns in ${zones.zone(zid).name}`;
+      if (zones.nearCastle(point.x, point.z) || (wd.sites || []).some(si => closed.has(si.id) && Math.hypot(point.x - si.x, point.z - si.z) <= (D.botSiteRadius ?? 80))) return 'This ground is kept for a clan castle';
+    }
     if (Math.hypot(point.x - wd.capital.x, point.z - wd.capital.z) < capGap) return `Too close to the capital (${capGap} units apart)`;
     for (const s of Object.values(f().settlements)) {
       if (s.x === undefined || s.capital) continue;

@@ -6,9 +6,10 @@ import { pointAt } from './sim/frontier/rail_route.js';
 import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots } from './resource_spot_props.js';
+import { drawZoneGround, drawZoneLabels, drawZoneGoal } from './zone_map.js';
 // Extend the map UI without changing the accepted atlas or its glyph system.
 // Railways (Tim 2026-11-08): your lines get their own switch and a key entry
-export const WORLD_LAYERS = [...ATLAS_LAYERS, { id: 'spots', label: 'Spots', on: false }, { id: 'rail', label: 'Railways', on: true }];
+export const WORLD_LAYERS = [...ATLAS_LAYERS, { id: 'spots', label: 'Spots', on: false }, { id: 'rail', label: 'Railways', on: true }, { id: 'zones', label: 'Zones', on: true }];
 export const worldFeatureName = it => it?.kind === 'spot' ? `${it.featureKind} spot · ${it.id}` : atlasFeatureName(it);
 // Resource markers (brighter, Tim 2026-11-05): a soft glow, a dark rim and a bright dot; big = rich spot or node.
 export const SPOT_COLORS = { timber: '#8ff09a', forest: '#8ff09a', stone: '#f2eee2', quarry: '#f2eee2', ore: '#ffb35c', fish: '#7fe2ff', fishing: '#7fe2ff', forage: '#ffe07a', fertile: '#d4f57a' };
@@ -142,6 +143,9 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       }
       ctx.globalAlpha=.24; transform(); ctx.drawImage(biomeCache,0,0,world.size.w,world.size.h); cssTransform(); ctx.globalAlpha=1;
     }
+    // campaign zones (Z3, Tim 2026-11-19): holder tint and dashed borders under the marks (src/zone_map.js)
+    const zproj = (x, z) => worldToCanvas(x, z, view);
+    if (layers.zones && st.zones) drawZoneGround(ctx, world, st.zoneRules, st.zones, zproj);
     ctx.lineJoin = 'round';
     // Fallback stays usable while the illustration loads or if it is unavailable.
     if (!illustration) { ctx.strokeStyle = '#4670aa'; ctx.lineWidth = Math.max(1, 2 * view.scale * 10); for (const r of world.rivers) path(r.points); }
@@ -188,6 +192,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       ctx.fillStyle = '#b03424'; ctx.fillText('?', p.px, p.py);
       ctx.restore();
     }
+    if (layers.zones && st.zones) drawZoneLabels(ctx, st.zones, zproj);   // zone chips and the castles you know
     if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
     // the surveyor's tour stop (Tim 2026-11-06 20:45): a gold ring the size of the area a town draws its nodes from
     if (st.highlight) { const h=st.highlight, p=worldToCanvas(h.x,h.z,view); ctx.save(); ctx.strokeStyle='rgba(240,200,90,.95)'; ctx.lineWidth=2.5; ctx.setLineDash([6,4]);
@@ -198,6 +203,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     ctx.fillStyle = '#dfcc9b'; ctx.font = '600 12px sans-serif'; ctx.textAlign = 'center';
     for (const l of rulerLabels(Math.ceil(world.size.w/GRID),i=>worldToCanvas((i+.5)*GRID,0,view).px,columnLetters,s=>ctx.measureText(s).width,MARGIN+4,view.w-4)) ctx.fillText(l.text,l.at,16);
     for (const l of rulerLabels(Math.ceil(world.size.h/GRID),i=>worldToCanvas(0,(i+.5)*GRID,view).py,i=>String(i+1),()=>12,MARGIN+4,view.h-4,4)) ctx.fillText(l.text,12,l.at+4);
+    if (layers.zones && st.zones) drawZoneGoal(ctx, st.zones, MARGIN + 16, MARGIN + 12);   // the campaign goal row, fixed in the corner
     ctx.textAlign = 'left';
     const label = hover && canvasToWorld(hover.px, hover.py, view);
     if (label && hover.px>=MARGIN && hover.py>=MARGIN && inWorld(label)) {

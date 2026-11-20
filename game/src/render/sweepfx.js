@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { onFxLayer } from './bloom.js';
 import { createSweepTrail } from './sweep_trail.js';
 import { SWEEP } from '../sim/sweep.js';
+import { groundY } from '../castle_height.js';
 
 // Bounded instanced markers. Geometry is shared across operations; no per-frame mesh allocation.
 export function createSweepFx({scene,spriteOf}){
@@ -43,16 +44,16 @@ export function createSweepFx({scene,spriteOf}){
       const leader=team[0],leaderVisible=clan===own||spriteOf(leader.id)?.thing.mesh.visible;
       if(!leaderVisible)p.history.clear();
       const points=leaderVisible?p.history.update(op,leader,state.tick):[];
-      points.forEach((v,i)=>{matrix.position.set(v.x,.065,v.z);matrix.rotation.set(0,v.angle,0);matrix.scale.setScalar(1);matrix.updateMatrix();p.trail.setMatrixAt(i,matrix.matrix);});
+      points.forEach((v,i)=>{matrix.position.set(v.x,(.065)+groundY(v.x,v.z),v.z);matrix.rotation.set(0,v.angle,0);matrix.scale.setScalar(1);matrix.updateMatrix();p.trail.setMatrixAt(i,matrix.matrix);});
       p.trail.count=points.length;p.trail.instanceMatrix.needsUpdate=true;
       const holding=op.reached&&op.state!=='Marching';
       let count=0;
       if(holding)for(const e of visible){if(count===32)break;if(!(e.buffs?.sweep?.until>state.tick)||Math.hypot(e.x-op.point.x,e.z-op.point.z)>SWEEP.holdRadius)continue;
-        matrix.position.set(e.x,.32,e.z);matrix.rotation.set(0,(state.tick/20)*.18+count*1.7,0);matrix.scale.setScalar(1);matrix.updateMatrix();p.shields.setMatrixAt(count++,matrix.matrix);
+        matrix.position.set(e.x,(.32)+groundY(e.x,e.z),e.z);matrix.rotation.set(0,(state.tick/20)*.18+count*1.7,0);matrix.scale.setScalar(1);matrix.updateMatrix();p.shields.setMatrixAt(count++,matrix.matrix);
       }
       p.shields.count=count;p.shields.instanceMatrix.needsUpdate=true;
       p.ring.visible=p.progress.visible=clan===own;
-      p.ring.position.set(op.point.x,.055,op.point.z);p.progress.position.set(op.point.x,.06,op.point.z);
+      p.ring.position.set(op.point.x,(.055)+groundY(op.point.x,op.point.z),op.point.z);p.progress.position.set(op.point.x,.06,op.point.z);
       p.ring.material.opacity=op.contested?.62:.46;
       p.progress.material.uniforms.progress.value=Math.min(1,op.hold/SWEEP.holdTicks);
     }

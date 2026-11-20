@@ -10,6 +10,8 @@ import { createMinimap } from './minimap.js';
 import { createDeploymentMapData } from './deployment_map_data.js';
 import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
 import { portrait } from './portraits.js';
+import { zoneMapState } from './zone_map.js';
+import { isDiscovered } from './world_map.js';
 import { createWorldMap, canvasToWorld, gridLabel, WORLD_LAYERS as ATLAS_LAYERS, worldFeatureName as atlasFeatureName } from './world_map.js';
 import { ATLAS_DEV_LAYERS, ATLAS_MARKERS, atlasGlyphSVG } from './world_atlas.js';
 import { spotInfo } from './resource_spot_props.js';
@@ -228,13 +230,18 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
     root.querySelector('h3').after(tabs); root.appendChild(worldSide);
     tabs.addEventListener('click', e => { const t = e.target.closest('button')?.dataset.tab; if (t) { setTab(t); e.target.blur(); } });
   }
+  let zoneKey = '', zoneState = null;
   const worldState = () => {
     const w = game.state.world, h = game.state.entities[heroId];
     const told = game.state.clans?.[clan]?.knownSites || [], R = game.frontier?.data?.founding?.traits?.nodeRadius ?? 600;
     // the old surveyor's rival town marks (goals pass): { x, z, r, clan, name, founded }
     const rivalHints = (game.state.clans?.[clan]?.rivalHints || []).map(r => ({ ...r, name: game.state.clans?.[r.clan]?.name || 'A rival clan',
       founded: Object.values(game.state.frontier?.settlements || {}).some(s => s.owner === r.clan && s.founded && !s.capital) }));
-    return { rivalHints, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
+    // campaign zones (Z3): what your clan knows of each zone, worked out again only when towns or discovery change
+    const zr = game.frontier?.data?.campaignZones, grid = w?.discovered?.[clan] ?? '0';
+    if (zr) { const key = `${grid}:${Object.values(game.state.frontier?.settlements || {}).map(s => `${s.id}${s.owner}${s.founded ?? ''}`).join()}:${game.state.day ?? Math.floor((game.state.tick ?? 0) / 2400)}`;
+      if (key !== zoneKey) { zoneKey = key; zoneState = zoneMapState({ rules: zr, world, settlements: game.state.frontier?.settlements, clans: game.state.clans, clan, known: (x, z) => isDiscovered(world, grid, x, z) }); } }
+    return { zones: zr ? zoneState : null, zoneRules: zr, rivalHints, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
       knownSites: told, knownAt: told.map(id => siteXZ[id]).filter(Boolean).map(t => ({ x: t.x, z: t.z, r: R })), highlight: tourStop,
       hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap(),
       rail: { links: game.state.frontier?.rail?.links || {}, trains: game.state.frontier?.rail?.trains || {}, highlight: ledgerOpen ? ledger.train() : null, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600, wars: game.state.frontier?.wars?.list } };

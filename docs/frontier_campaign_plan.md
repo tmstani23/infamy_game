@@ -456,6 +456,8 @@ Planned, not built. Map: ![Six zones and castle sites](images/frontier/six_zones
 
 **Goals:** the "declare war" goal appears once a rival town is in or next to a zone where the player has a town. The goals pass rule that rivals settle 2,500 to 4,500 from the player's first town is removed when zones are built.
 
+**Built so far (2026-11-20):** see `frontier_build_steps.md`, Phase Z built so far. The 2026-11-09 rule that a clan's last town can only be sacked is gone, and the 2026-11-19 stopgap that rivals settle 2500 to 4500 from the player's first town is gone.
+
 **Build order:** war test fixes and goals pass; zones and rival expansion; train robbery; ships; world variety.
 
 **Open:** numbers (founding pace per strategy, decay time of empty towns, castle strength and the attacker's war pack); how zones and owners show on the M map and the 4 of 6 goal text; whether the drawing code supports raised rings; how much code assumes the east capital point is the frontier hub (rail hub, selling, arrival, roads and distances).

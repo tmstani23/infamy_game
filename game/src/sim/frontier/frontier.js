@@ -11,6 +11,8 @@ import { createGovernor } from './governor.js';
 import { createCommands } from './commands.js';
 import { createAlerts } from './alerts.js';
 import { createFounding } from './founding.js';
+import { createCampaignZones } from '../campaign_zones.js';
+import { createRivalCampaign } from './rival_campaign.js';
 import { ensureGrid, townBlockersIn, townBlockersTick, townBlockersVersion } from './town_grid.js';
 import { createGarrison } from './garrison.js';
 import { createInfirmary } from './infirmary.js';
@@ -61,7 +63,10 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const alerts = createAlerts({ state, data });
   const arrivals = createArrivals({ state, data });
   const townsfolk = createTownsfolk({ state, data, civilians });   // Tim 2026-11-07: citizens wandering your towns in peacetime
-  const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit, resourceIndex:workers.index }) : null;
+  // Z2 (Tim 2026-11-19): the campaign zones (who has towns where, the two towns a zone cap) and the rivals' campaign
+  const campaignZones = data.campaignZones ? createCampaignZones({ rules: data.campaignZones, world: worldData, settlements: () => state.frontier?.settlements, isClan: id => !!state.clans?.[id] }) : null;
+  const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit, resourceIndex:workers.index, zones: campaignZones }) : null;
+  const rivalCampaign = campaignZones && founding ? createRivalCampaign({ state, data, worldData, zones: campaignZones, founding, world: () => live, construction, dayTicks }) : null;
   const placement = createPlacement({ state, data, world: live, construction, resourceIndex:workers.index });
   modules.push({ name: 'placement', placement }, { name: 'zones', zones });
   const commandHooks = {};   // .rail once it exists (a removed station tears up its lines)
@@ -144,6 +149,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     warMorale.tick();              // F6 8a: morale drops as counted buildings fall
     warEnd.tick();                 // F6 8a: hall channels, the end of a war, routed troops
     warTerms.tick();               // F6 8c: surrender, offers, answers and the bots' part in them
+    rivalCampaign?.tick();         // Z2: rival settlers on their way to a new town
     arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
     townsfolk.tick();              // townsfolk wander the town by day, go in at night or when enemies come
     // keyed off state.tick (not a counter of our own), so a loaded save keeps the same rhythm
@@ -159,6 +165,6 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     return false;
   }
 
-  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);war.attach(services);structures.attach(services);warEnd.attach(services);warTerms.attach(services);warOutcomes.attach(services);}
-  return { get world() { return ensure(); }, tick, command, modules, data, founding, garrison, infirmary, stable, rail, shipments, war, structures, warMorale, warEnd, warTerms, warGeneral, attach };
+  function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);rivalCampaign?.attach(services);war.attach(services);structures.attach(services);warEnd.attach(services);warTerms.attach(services);warOutcomes.attach(services);}
+  return { get world() { return ensure(); }, tick, command, modules, data, founding, campaignZones, rivalCampaign, garrison, infirmary, stable, rail, shipments, war, structures, warMorale, warEnd, warTerms, warGeneral, attach };
 }

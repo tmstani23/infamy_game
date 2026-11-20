@@ -12,6 +12,7 @@ import { createCrewFx } from './crewfx.js';
 import { copySpriteFrame } from './packed_sheets.js';
 
 import { flat, WAVE_GEO, DISC_GEO, AURA_GEO, THIN_WAVE_GEO, HALF_WAVE_GEO, BUFF_AURA_GEO, AMBUSH_AURA_GEO, STREAK_GEO, AURAS, STEEL, WHITE, GOLD, PURPLE, GUNSMOKE, MUZZLE, SOOT, SOOT_TINT, DUSK, MIST_BLUE, PETALS, FIRE, pick, count, LANTERNS, ORBIT, rand, screenAngle, OUTLINE, OUTLINE_GEO, OUTLINE_RGB, OUTLINE_VERT, OUTLINE_FRAG, outlineMesh, LANTERN_GEO, HALO_GEO, HALO_TEX, SEAL_TEX } from './abilityfx_assets.js';
+import { groundY } from '../castle_height.js';
 
 export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen, hallChannelOf = () => null }) {
   const kurodaFx = createKurodaFx({ scene, spriteOf, posOf });
@@ -159,7 +160,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
   }
   function wave(x, z, radius, color, life, delay = 0, geo = WAVE_GEO) {
     const m = flat(geo, color, 0.9);
-    m.position.set(x, 0.04, z);
+    m.position.set(x, (0.04)+groundY(x, z), z);
     m.visible = false;
     scene.add(m);
     waves.push({ m, radius, life, age: -delay });
@@ -507,7 +508,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         }
         if (Math.random() < dt * 14) motes(s.x + rand(-s.r, s.r) * 0.6, s.z + rand(-s.r, s.r) * 0.6, 1, 0.4, rand(0.5, 2));
         let ring = smokeRings.get(key);
-        if (!ring) { ring = flat(THIN_WAVE_GEO, 0x5c3c8c, 0.6); ring.position.set(s.x, 0.04, s.z); ring.scale.set(s.r, s.r, 1); scene.add(ring); smokeRings.set(key, ring); }
+        if (!ring) { ring = flat(THIN_WAVE_GEO, 0x5c3c8c, 0.6); ring.position.set(s.x, (0.04)+groundY(s.x, s.z), s.z); ring.scale.set(s.r, s.r, 1); scene.add(ring); smokeRings.set(key, ring); }
       }
       for (const [key, ring] of smokeRings) if (!live.has(key)) {
         ring.material.opacity -= dt * 1.5;
@@ -625,7 +626,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
           const a = now * 1.3 + i * Math.PI * 2 / LANTERNS, r = ORBIT * (0.4 + 0.6 * grow);
           const ox = Math.cos(a) * r, oz = Math.sin(a) * r;
           const y = 1.75 + 0.18 * Math.sin(now * 2.2 + i * 1.7);
-          body.position.set(p.x + ox, y, p.z + oz);
+          body.position.set(p.x + ox, (y)+groundY(p.x + ox, p.z + oz), p.z + oz);
           halo.position.copy(body.position);
           body.quaternion.copy(CAM_Q); body.rotateZ(0.12 * Math.sin(now * 1.8 + i));
           halo.quaternion.copy(CAM_Q);
@@ -641,7 +642,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
             life: rand(0.5, 0.9), size: rand(0.08, 0.16), color: pick(FIRE), shape: SHAPE.ember });
         });
         const pulse = 1 + 0.06 * Math.sin(now * 5);
-        L.seal.position.set(p.x, 0.04, p.z);
+        L.seal.position.set(p.x, (0.04)+groundY(p.x, p.z), p.z);
         L.seal.scale.set(1.5 * grow * pulse, 1.5 * grow * pulse, 1);
         L.seal.rotation.z = now * 0.7;
         L.seal.material.opacity = 0.85 * grow;
@@ -676,7 +677,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         const fade = s.done ? 1 - (s.age - s.done) / 0.3 : 1;
         if (fade <= 0 || !p) { scene.remove(s.m); s.m.material.dispose(); streaks.splice(i, 1); continue; }
         const dx = p.x - s.x, dz = p.z - s.z, len = Math.hypot(dx, dz);
-        s.m.position.set(s.x + dx / 2, 0.05, s.z + dz / 2);
+        s.m.position.set(s.x + dx / 2, (0.05)+groundY(s.x + dx / 2, s.z + dz / 2), s.z + dz / 2);
         s.m.rotation.set(-Math.PI / 2, 0, -Math.atan2(dz, dx));
         s.m.scale.set(Math.max(len, 0.01), 0.55 * fade + 0.1, 1);
         s.m.material.opacity = 0.75 * fade;
@@ -733,7 +734,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
             shrink = 0.3 + 0.7 * Math.max(0, left);
           }
           const pulse = 1 + 0.08 * Math.sin(performance.now() / 160 + e.id * 1.7);
-          m.position.set(p.x, 0.035, p.z);
+          m.position.set(p.x, (0.035)+groundY(p.x, p.z), p.z);
           const ring = a.size * pulse * shrink * (1 + 0.18 * i);
           m.scale.set(ring, ring, 1);
         }

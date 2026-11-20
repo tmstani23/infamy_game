@@ -56,7 +56,7 @@ export function createDiscovery({ state, world }) {
       // Tim 2026-11-18: a rival town is spotted from townSight away (roofs and smoke carry further than land is
       // uncovered): its own cell is marked, so it shows on the M map and in the world (sim_snapshot.js frontierFor)
       for (const t of Object.values(state.frontier?.settlements || {})) {
-        if (t.capital || t.owner === clan || !Number.isFinite(t.x)) continue;
+        if ((t.capital && !t.castle) || t.owner === clan || !Number.isFinite(t.x)) continue;   // rival castles are spotted too (Z5)
         if (!eyes.some(({ p }) => Math.hypot(t.x - p.x, t.z - p.z) <= R.townSight)) continue;
         const i = Math.floor(t.x / R.cell), j = Math.floor(t.z / R.cell), k = j * cols + i;
         if (i >= 0 && j >= 0 && i < cols && j < rows && grid[k] !== '1') grid = grid.slice(0, k) + '1' + grid.slice(k + 1);

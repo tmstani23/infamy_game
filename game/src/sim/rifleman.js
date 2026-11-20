@@ -15,7 +15,7 @@ import { castWanted, autoOn } from './special_cast.js';   // war checkpoint 7-1:
 
 export const RIFLE = { range: 10, meleeRange: 2, aimTicks: 20, cooldownTicks: 60, retryTicks: 40, damage: 80, staggerTicks: 30,
   threatRadius: 3.5, closeRadius: 2.2, cornerTicks: 30, fleeTicks: 40 };
-export function createRifleman({ state, vision, hit, stun, clearLine, clearCombat, hostile = () => false, canAttack = hostile, inCombat = () => false,
+export function createRifleman({ state, vision, rangeScale = () => 1, hit, stun, clearLine, clearCombat, hostile = () => false, canAttack = hostile, inCombat = () => false,
   attackStep = () => {}, moveTo = () => false, inRally = () => false, nearestFree = (x, z) => [x, z], canOccupy = () => true, fightTarget = () => null, rules = {} }) {
   const R = { ...RIFLE, ...rules };
   const isRifleman = e => e?.type === 'kuroda_rifleman';
@@ -23,7 +23,7 @@ export function createRifleman({ state, vision, hit, stun, clearLine, clearComba
   const shootable = (e, t) => alive(t) && t.owner !== e.owner && t.place === e.place && !t.deployment?.transfer
     && (e.order?.kind === 'attack' && e.order.target === t.id ? canAttack(e, t)
       : (state.clans?.[t.owner] || t.owner === WILD) && t.type !== 'civilian' && !t.cop && hostile(e, t))
-    && vision.canSee(e.owner, t) && dist(e, t) <= R.range && clearLine(e, t);
+    && vision.canSee(e.owner, t) && dist(e, t) <= R.range * rangeScale(e, t) && clearLine(e, t);   // rangeScale: castle high ground (Z4h)
   function pick(e) {
     const ordered = e.order?.kind === 'attack' && state.entities[e.order.target];
     const want = castWanted(state, e);   // asked for by the player: the shootable enemy nearest that spot
@@ -97,7 +97,7 @@ export function createRifleman({ state, vision, hit, stun, clearLine, clearComba
       const since = state.tick - (r.firedAt ?? -1e9);
       if (since < 10) { clearCombat(e); e.anim = 'fire'; return true; }
       if (onDuty(e) && pick(e)) { clearCombat(e); e.anim = since < 70 ? 'reload' : 'idle'; return true; }   // on duty: hold ground, don't walk into melee
-      if (od <= R.range && shootable(e, ordered)) { clearCombat(e); e.dir = dirIndex(ordered.x - e.x, ordered.z - e.z); e.anim = since < 70 ? 'reload' : 'idle'; return true; }   // ordered: reload in place
+      if (od <= R.range * rangeScale(e, ordered) && shootable(e, ordered)) { clearCombat(e); e.dir = dirIndex(ordered.x - e.x, ordered.z - e.z); e.anim = since < 70 ? 'reload' : 'idle'; return true; }   // ordered: reload in place
       return false;
     }
     // auto off: he only aims when the player asks (an attack order on a target still shoots it)

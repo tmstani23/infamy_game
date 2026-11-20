@@ -1,5 +1,5 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json, dev_frontier.json, war_test_yakuza.json, war_defend_yakuza.json
+//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json, castle_test.json, war_test_yakuza.json, war_defend_yakuza.json
 //   node game/tools/make_dev_save.mjs war_test_yakuza   -> only the saves named
 // Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 4).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
@@ -11,19 +11,21 @@ import { cellToWorld, zoneStructureAt, centreCell, setUse } from '../src/sim/fro
 import { createPlacement } from '../src/sim/frontier/placement.js';
 import { militaryFor } from '../src/sim/frontier/town_military.js';
 import { storageCap } from '../src/sim/frontier/storage.js';
+import { addCastle } from '../src/sim/frontier/castle.js';
 
 const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'),
-  police: data('data/police.json'), settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: data('data/world_chunks.json'), frontier: { ...data('data/frontier.json'), railways: data('data/railways.json') } };   // railways as main.js gives them
+  police: data('data/police.json'), settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: data('data/world_chunks.json'), frontier: { ...data('data/frontier.json'), railways: data('data/railways.json'), castleBlueprint: data('data/castle_default.json'), campaignZones: data('data/campaign_zones.json') } };   // railways, castle and zones as main.js gives them
 const dir = new URL('../../saves/', import.meta.url);
 
 const SAVES = {
   // A Classic city match: Yakuza, medium, 3 clans with bots, 20 s in, spare ryo to buy and hire.
   dev_classic: { clan: 'yakuza', difficulty: 'medium', ticks: 400, playerRyo: 3000 },
-  // A campaign match (the island gate is open, W3.5) with the two fixture frontier towns: First Frontier is yours, Second Frontier is the first bot clan's (F2.9, F4).
-  dev_frontier: { clan: 'yakuza', difficulty: 'easy', mode: 'campaign', ticks: 400, playerRyo: 3000, frontier: true, settlers: 6 },
+  // Castle test (Tim 2026-11-19, zones build Z4, replaces dev_frontier): a fresh campaign game, the hero alone on the island
+  // in front of the drawbridge of his grey block castle on the East Plains cape, to walk round it.
+  castle_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 20, realGame: true, railTown: true, castleTest: true, castleTour: true },   // castleTour: test only (Tim 2026-11-19), take out after
   // War test (Tim 2026-11-11, replaces campaign_test_yakuza): Yakuza already at war on a rival Kuroda town out on the
   // island. The hero and his crew stand at the war camp, which has only its hall and the tier-2 pack. The defender
   // Kurogane has every military building, a station and line to the capital and average stock; the player owns a
@@ -369,6 +371,31 @@ export function build(name, spec) {
   if (spec.railTown) railTown(game, m.heroId);
   if (spec.warTest) warTest(game, m.heroId);
   if (spec.warDefend) warDefend(game, m.heroId);
+  if (spec.castleTest) { const h = game.state.entities[m.heroId], p = game.castles?.approach('player'); if (!h || !p) throw new Error('castle_test: no castle');
+    // Z4f (Tim 2026-11-19): the rail hub is the castle; a town with a station and a finished line to it, to see and ride
+    { const t = Object.values(game.state.frontier.settlements).find(x => x.owner === h.owner && x.founded !== undefined); if (t) layLine(game, h, t.id, 'capital'); }
+    Object.assign(h, { place: 'world', x: p.x, z: p.z }); delete h.order;
+    // Tim 2026-11-19: his horse (Black Beauty, H) waits beside him, to ride round the castle
+    (game.state.frontier.bornHorses ||= []).push({ owner: h.owner, kind: 'black_beauty', x: p.x + 3, z: p.z + 2, stable: 'capital', town: 'capital' });
+    game.areas.update(Object.values(game.state.entities)); for (let i = 0; i < 20; i++) game.step([]); }
+  // castle tour (Tim 2026-11-19, test only, to be taken out again): a castle at every castle spot (the two spots no clan
+  // holds this game get an empty one), all of them seen and pinned on the map, so World map dev travel visits each
+  if (spec.castleTour) {
+    const S = game.state, ROT = { north: 0, east: 1, south: 2, west: 3 }, F = options.frontier, cellOf = F.townGrid?.cellSize || 11;
+    for (const c of game.castles.spots()) if (!Object.values(S.frontier.settlements).some(t => t.castle && Math.hypot(t.x - c.x, t.z - c.z) < 50))
+      addCastle({ world: game.frontier.world, worldData: options.world, data: F, bp: F.castleBlueprint, id: `castle_${c.zone}`, name: `${F.campaignZones.zones.find(z => z.id === c.zone)?.name || c.zone} castle (empty)`, owner: null, x: c.x, z: c.z, rot: ROT[c.sea] ?? 0 });
+    const W = S.world, R = options.world.rules?.discovery?.cell ?? 250, cols = Math.ceil(options.world.size.w / R), rows = Math.ceil(options.world.size.h / R);
+    let grid = (W.discovered.player || '0'.repeat(cols * rows)).split('');
+    const pins = (W.pins ||= {}).player ||= [];
+    for (const t of Object.values(S.frontier.settlements).filter(t => t.castle)) {
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) if (Math.hypot((i + 0.5) * R - t.x, (j + 0.5) * R - t.z) <= 700) grid[j * cols + i] = '1';
+      if (t.owner !== 'player') { const n = t.grid.n, b = {}; for (const x of t.buildings) { const { queue, workers, paidCost, ...r } = x; b[x.id] = r; }
+        ((S.sightings ||= {}).player ||= {})['town:' + t.id] = { m: '1'.repeat(Math.ceil(n / 3) ** 2), b }; }
+      pins.push({ id: `pin_${t.id}`, x: Math.round(t.x), z: Math.round(t.z), note: t.owner === 'player' ? 'Your castle' : t.name });
+    }
+    W.discovered.player = grid.join('');
+    for (let i = 0; i < 5; i++) game.step([]);
+  }
   if (spec.frontier) game.frontier.world.assignStartOwners({ player: 'player', bot: m.rivals[0]?.clan });
   // E2: settlers waiting round the hero, following him (dev travel on the World map takes them along), so founding can be tried at once.
   if (spec.settlers) game.state.clans.player.permit = true;   // E1: founding needs a permit (Land Office); the dev save holds one

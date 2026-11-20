@@ -4,6 +4,7 @@
 import { createGroundFirePatch } from './hq_fire.js';
 import { createParticles, SHAPE } from './vfx.js';
 import * as THREE from 'three';
+import { groundY } from '../castle_height.js';
 
 export function createStructureFire({ scene }) {
   const burning = new Map();
@@ -19,7 +20,7 @@ export function createStructureFire({ scene }) {
       if (burning.has(s.key)) continue;
       const mesh = createGroundFirePatch(s.x, s.z, Math.max(2.5, Math.min(7, s.r || 4)), (s.x * 7 + s.z * 13) % 97, 1);   // soft: muted and see-through (Tim 2026-11-13)
       const r = Math.max(2.5, Math.min(7, s.r || 4)), pool = new THREE.Mesh(new THREE.CircleGeometry(r * 1.7, 32), new THREE.MeshBasicMaterial({ map: glowTex(), color: 0xdb7a3d, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false }));
-      pool.rotation.x = -Math.PI / 2; pool.position.set(s.x, 0.1, s.z); pool.renderOrder = 99804; scene.add(pool); mesh.userData.pool = pool;
+      pool.rotation.x = -Math.PI / 2; pool.position.set(s.x, (0.1)+groundY(s.x, s.z), s.z); pool.renderOrder = 99804; scene.add(pool); mesh.userData.pool = pool;
       scene.add(mesh); burning.set(s.key, mesh);
     }
   }

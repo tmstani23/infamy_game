@@ -1062,5 +1062,6 @@
   "railLap": 0.15,
   "fog": 0.94,
   "out": 0.6
- }
+ },
+  "moatBank": { "_note": "Castle moat banks (Tim 2026-11-20, too sharp): ragged = how far the bank line wobbles (units), noiseScale its size; start/end/strength = the wet tint band on the ground beside the moat, like coastTransition; bank/bankStrength = the band of bank mud.", "ragged": 2.5, "noiseScale": 9, "start": 0, "end": 10, "strength": 0.7, "bank": 6, "bankStrength": 0.7 }
 }

@@ -63,8 +63,7 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   r = s.cmd({ action: 'warTake', war: 'w1', outcome: 'sack' });
   assert.ok(!r.ok && r.reason === 'Walk up to the ruined hall', r.reason);
   const p = WE.hallPoint(s.w(), 'town'); near(hero, p);
-  assert.deepEqual(WE.outcomeList(s.w()).map(o => o.ok), [false, true, false], 'a last town can only be sacked');
-  for (const outcome of ['capture', 'burn']) { r = s.cmd({ action: 'warTake', war: 'w1', outcome }); assert.equal(r.reason, 'Their last town can only be sacked'); }
+  assert.deepEqual(WE.outcomeList(s.w()).map(o => o.ok), [true, true, true], 'a last town may be captured or burned too (Z2: the last-town rule is gone)');
   r = s.cmd({ action: 'warTake', war: 'w1' }); assert.equal(r.reason, 'Pick capture, sack or burn');
   r = s.cmd({ action: 'warTakeCamp', war: 'w1' }); assert.equal(r.reason, 'Only the defender takes the camp hall');
   r = s.cmd({ action: 'warTake', war: 'w1', outcome: 'sack' });
@@ -220,12 +219,12 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   assert.ok(!/[\u2014\u00b7\u2192]/.test(root.innerHTML), 'no special characters');
   assert.equal(menu.prompt(), '', 'no prompt under the open picker');
   hero.x += 200; menu.update(); assert.ok(!menu.isOpen() && root.hidden, 'walking off closes it'); hero.x -= 200;
-  // a last town: only Sack has a button
+  // a last town: all three still have a button (Z2)
   delete S.frontier.settlements.tF;
   let cards = outcomeModel(g, hero.id, s.w()).cards;
-  assert.deepEqual(cards.map(c => c.why), ['Their last town can only be sacked', '', 'Their last town can only be sacked']);
+  assert.deepEqual(cards.map(c => c.why), ['', '', '']);
   menu.use(); menu.update();
-  assert.ok(!/data-outcome="capture"/.test(root.innerHTML) && /data-outcome="sack"/.test(root.innerHTML));
+  assert.ok(/data-outcome="capture"/.test(root.innerHTML) && /data-outcome="sack"/.test(root.innerHTML));
   root.on.click({ target: { closest: () => ({ dataset: { outcome: 'sack' } }) } });
   assert.deepEqual(sent, [{ id: hero.id, type: 'frontier', action: 'warTake', war: 'w1', outcome: 'sack' }]); assert.ok(!menu.isOpen());
   flush();
@@ -239,14 +238,14 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   assert.ok(menu.use()); flush();
   assert.ok(!s.w().channel, 'Use again stops it'); assert.equal(menu.channelOf('w1'), null);
   assert.equal(menu.prompt(), 'Space  Take the town hall');
-  // the screen's copy of the war (sim_snapshot.js): it carries the last-town rule without listing the defender's towns
+  // the screen's copy of the war (sim_snapshot.js) never lists the defender's other towns
   const { frontierFor } = await import('../src/sim_snapshot.js');
   const all = { isDiscovered: () => false, siteDiscovered: () => false };
   let snap = frontierFor(S.frontier, 'player', all, [], new Map());
-  assert.equal(snap.wars.list.w1.lastTown, true, 'only Enemyton left');
+  assert.equal(snap.wars.list.w1.lastTown, undefined, 'the last-town flag is gone (Z2)');
   g.frontier.world.addTown({ id: 'tG', name: 'Hidden', owner: s.rival, x: s.site2.x, z: s.site2.z, pop: 3, founded: true, stock: {}, buildings: [{ type: s.frontier.founding.townHall, stage: 'built', cell: 0 }] });
   snap = frontierFor(S.frontier, 'player', all, [], new Map());
-  assert.equal(snap.wars.list.w1.lastTown, false); assert.ok(!snap.settlements.tG, 'the other town stays hidden');
+  assert.ok(!snap.settlements.tG, 'the other town stays hidden');
   assert.deepEqual(WE.outcomeList(snap.wars.list.w1).map(o => o.ok), [true, true, true]);
   assert.equal(S.frontier.wars.list.w1.lastTown, undefined, 'never on the saved record');
   console.log('screen ok');

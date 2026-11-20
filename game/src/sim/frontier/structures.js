@@ -547,10 +547,13 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       const sides = [[campList(w), w.attacker, w.defender], [townList(town(w.town)), w.defender, w.attacker]];
       for (const [l, mine, foe] of sides) for (const st of l) {
         if (st.type !== 'watchtower' || (st.b.shotAt ?? -Infinity) + (T.everyTicks ?? 30) > now) continue;
-        let best = null, bd = (T.range ?? 16) ** 2;
+        // nearest foe in range; a tower on a castle terrace reaches further down (high ground, Z4h: rt.rangeScale)
+        let best = null, bd = Infinity;
+        const range = T.range ?? 16, from = { x: st.x, z: st.z, place: 'world' };
         for (const e of Object.values(state.entities)) {
           if (e.owner !== foe || e.place !== 'world' || e.dead || e.downed || e.jailed || e.garrison || e.aboard || e.type === 'civilian' || e.type === 'horse' || e.guide) continue;
-          const d = (e.x - st.x) ** 2 + (e.z - st.z) ** 2;
+          const d = (e.x - st.x) ** 2 + (e.z - st.z) ** 2, r = range * (rt?.rangeScale?.(from, e) ?? 1);
+          if (d >= r * r) continue;
           if (d < bd || (d === bd && best && e.id < best.id)) { bd = d; best = e; }
         }
         if (!best) continue;
@@ -596,11 +599,12 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       const g = u.garrison; if (!g || g.hall || !(g.zone || g.building) || u.dead || u.owner == null || (g.next ?? 0) > now) continue;   // a house, or a stockade (8d-9: everyone ranged inside one)
       const unit = rt.unitOf(u); if (!unit?.projectile && !unit?.rifle) continue;
       const w = g.war ? war.byId(g.war) : war.warOn(g.town); if (!w || w.terms || (u.owner !== w.defender && u.owner !== w.attacker)) continue;
-      const foe = u.owner === w.defender ? w.attacker : w.defender, reach = (unit.rifle?.range ?? unit.attackRange ?? 6) + 3 + (g.fort || g.building ? data.buildings?.stockade?.garrison?.reach ?? 0 : 0);
-      let best = null, bd = reach * reach;
+      const foe = u.owner === w.defender ? w.attacker : w.defender, reach = (unit.rifle?.range ?? unit.attackRange ?? 6) + 3 + (g.fort || g.building ? data.buildings?.stockade?.garrison?.reach ?? 0 : 0) + (g.reach || 0);   // g.reach: from a watchtower (Z4e)
+      let best = null, bd = Infinity;
       for (const e of Object.values(state.entities)) {
         if (e.owner !== foe || e.place !== 'world' || e.dead || e.downed || e.jailed || e.garrison || e.aboard || e.hidden || e.type === 'civilian' || e.type === 'horse' || e.guide) continue;
-        const d = (e.x - u.x) ** 2 + (e.z - u.z) ** 2;
+        const d = (e.x - u.x) ** 2 + (e.z - u.z) ** 2, r = reach * (rt?.rangeScale?.(u, e) ?? 1);   // castle high ground (Z4h)
+        if (d >= r * r) continue;
         if (d < bd || (d === bd && best && e.id < best.id)) { bd = d; best = e; }
       }
       if (!best) continue;

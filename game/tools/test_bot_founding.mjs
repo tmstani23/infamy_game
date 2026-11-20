@@ -31,21 +31,8 @@ const botTowns = g => Object.values(g.state.frontier.settlements).filter(s => s.
   assert.ok(differ >= 1);
 }
 
-// Tim 2026-11-19: with a player town on the island, rivals pick sites bots.nearPlayer.min to max from it
-{
-  const N = B.nearPlayer, sites = data('data/world.json').sites;
-  for (const seed of [5, 77, 987654]) for (const home of [sites[0], sites[Math.floor(sites.length / 2)], sites[sites.length - 1]]) {
-    const g = match('campaign', seed).g;
-    g.state.frontier.settlements.ph = { id: 'ph', owner: 'player', founded: true, name: 'Home', x: home.x, z: home.z, site: home.id };
-    for (const id of ['kuroda', 'shinobi']) {
-      const pick = sites.find(s => s.id === g.landOffice.botSite(id)), d = Math.hypot(pick.x - home.x, pick.z - home.z);
-      const any = sites.some(s => !g.landOffice.siteBlocked(s, id) && Math.hypot(s.x - home.x, s.z - home.z) >= N.min && Math.hypot(s.x - home.x, s.z - home.z) <= N.max);
-      assert.ok(!any || (d >= N.min && d <= N.max), `${id} settles in reach of the player's town (${Math.round(d)}, seed ${seed})`);
-      g.landOffice.claim(id, pick.id);
-    }
-  }
-  console.log('rivals settle near the player ok');
-}
+// (the goals pass stopgap that kept rivals near the player's first town went out with Z2: rivals settle their home
+// zone first, tools/test_rival_campaign.mjs)
 
 // not due before the player founds or fallbackDay
 {

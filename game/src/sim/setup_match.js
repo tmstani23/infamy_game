@@ -35,6 +35,8 @@ export function setupMatch(game, { clan, difficulty, mode, bots, spawns = {}, te
   game.state.match = { ...options };
   // E6 (Tim 2026-11-05): bot site picks vary per game; the screen passes a random seed, tests a fixed one
   if (modeRules(game.state).founding) game.state.campaignSeed = Number.isFinite(seed) ? Math.floor(seed) : 1;
+  // Z4 (Tim 2026-11-19): the player's castle on the East Plains cape (the start pick comes in Z7)
+  if (modeRules(game.state).founding) game.castles?.place('player', 'east_plains');
   game.deployment.enable();
   const previewCommands=test.setup==='assignments'?stageAssignmentPreview(game,heroId,rivals):test.setup==='shakedown'?stageShakedownPreview(game,heroId,rivals):[];
   return { heroId, rivals, options, previewCommands };

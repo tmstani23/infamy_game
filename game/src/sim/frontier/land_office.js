@@ -11,7 +11,7 @@ import { siteTraits } from './founding.js';
 //    through the gate on foot, again with the Hero group and settlers.
 // Sites are claimed when chosen, so no two clans pick the same one. A new town has a grace of
 // founding.graceDays in which camp bandits leave its people alone.
-export function createLandOffice({ state, data, worldData, units, clans, doorNear, discovered = null, dayTicks = 12000, seed = () => state.campaignSeed ?? 1, maxTowns = (id, base) => base }) {
+export function createLandOffice({ state, data, worldData, units, clans, doorNear, discovered = null, dayTicks = 12000, seed = () => state.campaignSeed ?? 1, maxTowns = (id, base) => base, zones = null }) {
   const D = data.founding, P = D.permit || {}, U = units?.rules || {};
   const say = (clan, text) => { if (clan) clan.notice = { tick: state.tick, text }; return null; };
   const fr = () => state.frontier;
@@ -137,6 +137,10 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   // why a site can't be chosen by clan `id`, or null
   function siteBlocked(si, id) {
     const by = claims()[si.id];
+    // Z2 (Tim 2026-11-19): castle ground is closed to everyone; two towns a clan in one campaign zone
+    if (zones?.closedSites().has(si.id) || zones?.nearCastle(si.x, si.z)) return 'Kept for a clan castle';
+    const zid = id && zones?.zoneOfSite(si);
+    if (zid && zones.full(id, zid)) return `Zone full (${zones.count(id, zid)} towns in ${zones.zone(zid).name})`;
     if (by && by !== id) return `${state.clans?.[by]?.name || 'Another clan'} has claimed it`;
     if (worldData?.capital && Math.hypot(si.x - worldData.capital.x, si.z - worldData.capital.z) < (D.capitalSpacing ?? D.minSpacing)) return 'Too close to the capital';
     for (const s of Object.values(fr().settlements)) {
@@ -226,6 +230,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   function botDue(id, order = 0) {
     const B = D.bots || {}, clan = state.clans?.[id];
     if (!on() || !clan?.bot || townsOf(id) >= (P.maxTowns ?? 1)) return false;
+    if (fr().rivals?.[id]?.founded) return false;   // Z2: the boss founds the first town only; later ones are the lieutenant's (rival_campaign.js)
     return day() >= botDay(order);
   }
   // the day bot number `order` may leave (Tim 2026-11-11): afterPlayerDays after the player's first town, or from
@@ -237,21 +242,24 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   const settlerPrice = () => units?.types?.settler?.price ?? 0;
   const botBudget = () => (P.ryo || 0) + D.minSettlers * settlerPrice() + D.cost + (D.bots?.reserve ?? 0);
   // a seeded per-game pick among the best free sites for this clan's taste
-  function botSite(id) {
+  function botSite(id, skip = []) {
     const B = D.bots || {}, clan = state.clans?.[id], taste = B.taste?.[clan?.faction || clan?.kind || id] || B.taste?.[id] || {};
     const mine = Object.entries(claims()).find(([, v]) => v === id)?.[0];
     if (mine) return mine;
     let r = (Math.abs(seed() | 0) ^ [...id].reduce((n, ch) => n * 31 + ch.charCodeAt(0), 7)) % 2147483646 + 1;
     const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
-    // Tim 2026-11-19: with a player's first town on the island, only sites bots.nearPlayer.min to max from it
-    // (none there: the few nearest to that ring), so rivals settle in reach
-    let free = (worldData?.sites || []).filter(si => !siteBlocked(si, id));
-    const N = B.nearPlayer, home = N && Object.values(fr().settlements).filter(s => s.founded && !s.capital && Number.isFinite(s.x) && state.clans?.[s.owner] && !state.clans[s.owner].bot)
-      .sort((a, b) => (a.foundedTick ?? 0) - (b.foundedTick ?? 0))[0];
-    if (home) {
-      const d = si => Math.hypot(si.x - home.x, si.z - home.z), off = si => Math.max(0, (N.min ?? 0) - d(si), d(si) - (N.max ?? Infinity));
-      const ring = free.filter(si => off(si) === 0);
-      free = ring.length ? ring : [...free].sort((a, b) => off(a) - off(b) || (a.id < b.id ? -1 : 1)).slice(0, Math.max(1, B.topPick ?? 3));
+    let free = (worldData?.sites || []).filter(si => !siteBlocked(si, id) && !skip.includes(si.id));
+    // Z2 (Tim 2026-11-19): a rival with a home zone settles there first, then the zones touching it, then onward
+    const homeZone = zones && fr().rivals?.[id]?.home, homeAt = homeZone && zones.castles().find(c => c.zone === homeZone);
+    if (homeZone) {
+      const seen = new Set([homeZone]); let ring = [homeZone];
+      while (ring.length) {
+        const here = free.filter(si => ring.includes(zones.zoneOfSite(si)));
+        if (here.length) { free = here; break; }
+        ring = zones.zones().map(z => z.id).filter(z => !seen.has(z) && ring.some(r => zones.touches(r, z)));
+        for (const z of ring) seen.add(z);
+        if (!ring.length) free = [];
+      }
     }
     const scored = free.map(si => {
       const t = traitsOf(si);
@@ -259,7 +267,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
       for (const g of si.tags || []) s += taste.tags?.[g] || 0;
       s += taste.terrain?.[si.terrain] || 0;
       for (const [k, w] of Object.entries(taste.traits || {})) s += (t[k] || 0) * w;
-      s -= (si.travelCostToCapital || 0) / (B.travelScale || 6000);
+      s -= (homeAt && Number.isFinite(homeAt.x) ? Math.hypot(si.x - homeAt.x, si.z - homeAt.z) * (B.homePull ?? 3) : (si.travelCostToCapital || 0)) / (B.travelScale || 6000);
       // Tim 2026-11-06 22:33: rich deposits within a camp's reach of the town (workers.range + campReach) are a bonus
       const far = (data.workers?.range ?? 600) + (data.workers?.campReach ?? 0);
       for (const n of worldData?.nodes || []) if (Math.hypot(n.x - si.x, n.z - si.z) <= far) s += B.richNode ?? 0.5;

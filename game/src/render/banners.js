@@ -8,6 +8,7 @@ import { CAM_QUAT, CAM_UP } from './iso.js';
 import { Thing } from './scenery.js';
 import { doorMaterial } from './shading.js';
 import { cellToWorld } from '../sim/frontier/town_grid.js';
+import { groundY } from '../castle_height.js';
 
 const W = 112, H = 300;                      // canvas pixels
 const WORLD_H = 2.4,   // about a third of a building, a little taller than a person (Tim 2026-10-19)
@@ -124,7 +125,7 @@ export function createBanners({ scene }) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: lanternTex, transparent: true, depthWrite: false }));
     mesh.quaternion.copy(CAM_QUAT);
     mesh.scale.set(L_W, L_H, 1);
-    mesh.position.set(x, 0, z).addScaledVector(CAM_UP, L_H / 2 - 0.02).addScaledVector(right, L_W * (0.5 - L_FOOT));
+    mesh.position.set(x, (0)+groundY(x, z), z).addScaledVector(CAM_UP, L_H / 2 - 0.02).addScaledVector(right, L_W * (0.5 - L_FOOT));
     mesh.frustumCulled = false;
     // soft red glow around the paper, drawn over the sprite
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
@@ -134,7 +135,7 @@ export function createBanners({ scene }) {
     // a faint pool of red light and a thin ring on the ground
     const pool = new THREE.Mesh(POOL_GEO, new THREE.MeshBasicMaterial({ color: 0xc82818, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
     const ring = createRune(RUNE.raid, 0xffa27e);
-    for (const m of [pool, ring]) { m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); m.renderOrder = 2; }
+    for (const m of [pool, ring]) { m.rotation.x = -Math.PI / 2; m.position.set(x, (0.03)+groundY(x, z), z); m.renderOrder = 2; }
     const thing = new Thing(mesh, { minX: x - 0.3, maxX: x + 0.3, minZ: z - 0.3, maxZ: z + 0.3 });
     thing.extras.push(glow);
     scene.add(mesh, glow, pool, ring);
@@ -165,11 +166,11 @@ export function createBanners({ scene }) {
     mesh.quaternion.copy(CAM_QUAT);
     mesh.scale.set(WORLD_W, WORLD_H, 1);
     // the pole's foot (canvas x 22 of 112, bottom) stands on the spot
-    mesh.position.set(x, 0, z).addScaledVector(CAM_UP, WORLD_H / 2 - 0.02);
+    mesh.position.set(x, (0)+groundY(x, z), z).addScaledVector(CAM_UP, WORLD_H / 2 - 0.02);
     mesh.position.add(new THREE.Vector3(1, 0, 0).applyQuaternion(CAM_QUAT).multiplyScalar(WORLD_W * (0.5 - 22 / W)));
     mesh.frustumCulled = false;
     const ring = new THREE.Mesh(RING_GEO, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
-    ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.03, z); ring.renderOrder = 2;
+    ring.rotation.x = -Math.PI / 2; ring.position.set(x, (0.03)+groundY(x, z), z); ring.renderOrder = 2;
     const thing = new Thing(mesh, { minX: x - 0.1, maxX: x + 0.1, minZ: z - 0.1, maxZ: z + 0.1 });
     scene.add(mesh, ring);
     things.push(thing);
@@ -224,7 +225,7 @@ export function createBanners({ scene }) {
     for (const [id, [x, z]] of want) {
       let m = spaceRings.get(id);
       if (!m) { m = spaceRing(); scene.add(m); spaceRings.set(id, m); }
-      m.position.set(x, 0.03, z);
+      m.position.set(x, (0.03)+groundY(x, z), z);
       const { inner, outer, pool } = m.userData;
       inner.rotation.z = time * 0.25; outer.rotation.z = -time * 0.08;
       outer.material.opacity = 0.7 + 0.15 * beat; inner.material.opacity = 0.4 + 0.15 * beat; pool.material.opacity = 0.06 + 0.06 * beat;
@@ -254,7 +255,7 @@ export function createBanners({ scene }) {
     }
     const c = state.clans?.[me], active = !!c?.permit && !c?.milestones?.metLieutenant, beat = active ? 0.5 + 0.5 * Math.sin(time * 5) : 0;
     ltMark.visible = true;
-    ltMark.position.set(e.x, 3.1 + (active ? 0.12 * Math.sin(time * 2.5) : 0), e.z);
+    ltMark.position.set(e.x, (3.1 + (active ? 0.12 * Math.sin(time * 2.5) : 0))+groundY(e.x, e.z), e.z);
     ltMark.scale.setScalar(active ? 0.8 + 0.12 * beat : 0.62);
     ltMark.material.opacity = active ? 0.75 + 0.25 * beat : 0.55;
   }
@@ -271,7 +272,7 @@ export function createBanners({ scene }) {
     const beat = 0.5 + 0.5 * Math.sin(time * 5);
     govMark.visible = true;
     const fig = state.entities[s.governorNpc];
-    govMark.position.set(fig ? fig.x : s.x, (fig ? 3.3 : 7) + 0.15 * Math.sin(time * 2.5), fig ? fig.z : s.z);
+    govMark.position.set(fig ? fig.x : s.x, ((fig ? 3.3 : 7) + 0.15 * Math.sin(time * 2.5))+groundY(fig ? fig.x : s.x, fig ? fig.z : s.z), fig ? fig.z : s.z);
     govMark.scale.setScalar((fig ? 0.8 : 1.1) + 0.15 * beat);
     govMark.material.opacity = 0.75 + 0.25 * beat;
   }
@@ -286,7 +287,7 @@ export function createBanners({ scene }) {
     }
     const active = !!(state.clans?.[me]?.surveyPending || state.clans?.[me]?.warTalkDue), beat = active ? 0.5 + 0.5 * Math.sin(time * 5) : 0;
     questMark.visible = true;
-    questMark.position.set(e.x, 3.1 + (active ? 0.12 * Math.sin(time * 2.5) : 0), e.z);
+    questMark.position.set(e.x, (3.1 + (active ? 0.12 * Math.sin(time * 2.5) : 0))+groundY(e.x, e.z), e.z);
     questMark.scale.setScalar(active ? 0.8 + 0.12 * beat : 0.62);
     questMark.material.opacity = active ? 0.75 + 0.25 * beat : 0.55;
   }
@@ -304,7 +305,7 @@ export function createBanners({ scene }) {
       if (!staffed.has(id) || task.operation || !task.task || !task.objective) continue;
       assigned.add(id); let mark = assignmentRunes.get(id);
       if (!mark) { mark = createRune(RUNE.assignment, state.clans[me]?.color || 0x94b9ac, .34); mark.renderOrder=2; scene.add(mark); assignmentRunes.set(id,mark); }
-      mark.position.set(task.objective.x,.045,task.objective.z);mark.scale.setScalar(1.2);
+      mark.position.set(task.objective.x,(.045)+groundY(task.objective.x,task.objective.z),task.objective.z);mark.scale.setScalar(1.2);
     }
     for (const [id, mark] of assignmentRunes) if (!assigned.has(id)) {scene.remove(mark);mark.material.dispose();assignmentRunes.delete(id);}
     const visits = (state.hqCamping?.visits || []).filter(v => v.clan === me && (v.inside || v.active));
@@ -319,7 +320,7 @@ export function createBanners({ scene }) {
         ring.rotation.x = -Math.PI / 2; ring.renderOrder = 99810;
         scene.add(ring); campingRings.set(v.business, ring);
       }
-      ring.position.set(v.x, 0.04, v.z); ring.scale.setScalar(v.radius);
+      ring.position.set(v.x, (0.04)+groundY(v.x, v.z), v.z); ring.scale.setScalar(v.radius);
       ring.material.color.setHex(v.active ? 0xff6045 : 0xffcb63);
       ring.material.opacity = v.active ? 0.17 + 0.07 * Math.sin(time * 3)
         : 0.22 + 0.15 * Math.sin(time * 5);
@@ -331,7 +332,7 @@ export function createBanners({ scene }) {
     }
     if (jobRing) {
       jobRing.visible = !!spot && job.counter?.place === place;
-      if (spot) { jobRing.position.set(spot.x, 0.05, spot.z); jobRing.scale.setScalar(spot.r); jobRing.material.opacity = spot.on ? .64 + .06 * Math.sin(time * 3) : .38; runeProgress(jobRing, job.counter?.progress / job.counter?.need); }
+      if (spot) { jobRing.position.set(spot.x, (0.05)+groundY(spot.x, spot.z), spot.z); jobRing.scale.setScalar(spot.r); jobRing.material.opacity = spot.on ? .64 + .06 * Math.sin(time * 3) : .38; runeProgress(jobRing, job.counter?.progress / job.counter?.need); }
     }
     if(job?.mark&&!jobMark){
       const canvas=document.createElement('canvas');canvas.width=384;canvas.height=192;const g=canvas.getContext('2d');
@@ -340,7 +341,7 @@ export function createBanners({ scene }) {
       const material=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(canvas),transparent:true,depthTest:false,depthWrite:false});
       jobMark=new THREE.Sprite(material);jobMark.renderOrder=99820;scene.add(jobMark);
     }
-    if(jobMark){jobMark.visible=!!job?.mark && job.mark.place===place;if(job?.mark){jobMark.position.set(job.mark.x,2.7+Math.sin(time*2)*.12,job.mark.z);jobMark.scale.set(3.8,1.9,1);jobMark.material.opacity=.85+.12*Math.sin(time*2.5);}}
+    if(jobMark){jobMark.visible=!!job?.mark && job.mark.place===place;if(job?.mark){jobMark.position.set(job.mark.x,(2.7+Math.sin(time*2)*.12)+groundY(job.mark.x,job.mark.z),job.mark.z);jobMark.scale.set(3.8,1.9,1);jobMark.material.opacity=.85+.12*Math.sin(time*2.5);}}
     const claimed = [];
     for (const b of Object.values(state.businesses)) {
       const s = shown.get(b.id);
@@ -361,7 +362,7 @@ export function createBanners({ scene }) {
       let r = holds.get(a.business);
       if (!r) {
         r = createRune(RUNE.raid, 0xe8c279);
-        r.rotation.x = -Math.PI / 2; r.position.set(a.hold.x, 0.05, a.hold.z); r.scale.setScalar(a.hold.r); r.renderOrder = 3;
+        r.rotation.x = -Math.PI / 2; r.position.set(a.hold.x, (0.05)+groundY(a.hold.x, a.hold.z), a.hold.z); r.scale.setScalar(a.hold.r); r.renderOrder = 3;
         scene.add(r); holds.set(a.business, r);
       }
       r.visible = a.room === place;
@@ -393,7 +394,7 @@ export function createBanners({ scene }) {
         hintMarks = { pool, ring };
       }
       const cyc = (time % 4) / 4, flare = cyc < 0.375 ? Math.sin(cyc / 0.375 * Math.PI) : 0, r = 2.2 + 0.8 * flare;
-      for (const m of [hintMarks.pool, hintMarks.ring]) { m.position.set(hint[0], 0.04, hint[1]); m.scale.setScalar(r); m.visible = true; }
+      for (const m of [hintMarks.pool, hintMarks.ring]) { m.position.set(hint[0], (0.04)+groundY(hint[0], hint[1]), hint[1]); m.scale.setScalar(r); m.visible = true; }
       hintMarks.pool.material.opacity = 0.05 + 0.3 * flare;
       hintMarks.ring.material.opacity = 0.25 + 0.7 * flare;
     } else if (hintMarks) { hintMarks.pool.visible = hintMarks.ring.visible = false; }
@@ -409,7 +410,7 @@ export function createBanners({ scene }) {
         scene.add(m); knocks.set(a.business, m);
       }
       const u = state.entities[k.by] || k;
-      m.position.set(u.x, 0.05, u.z);
+      m.position.set(u.x, (0.05)+groundY(u.x, u.z), u.z);
       m.visible = place === 'street';
       runeProgress(m, (state.tick - k.start) / (k.ticks || 80));
       m.material.opacity = .62 + .05 * Math.sin(time * 3);

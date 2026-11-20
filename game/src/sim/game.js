@@ -64,6 +64,8 @@ import { createDiscovery } from './discovery.js';
 import { createSightings } from './sightings.js';
 import { createFrontier } from './frontier/frontier.js';
 import { createLandOffice } from './frontier/land_office.js';
+import { createCastles, castleClearings, castleWalkBoxes } from './castles.js';
+import { createFerry } from './frontier/ferry.js';
 import { createCannonSalute } from './cannon_salute.js';
 import { createCampaignGoals } from './campaign_goals.js';
 import { createInfluence } from './influence/influence.js';
@@ -182,9 +184,19 @@ export function createGame(options) {
   const scoreOf = Object.fromEntries(Object.entries(units?.rules?.businesses || {}).map(([k, v]) => [k, v.score || 0]));
   const leader = createLeader({ state, standings: () => territory?.standings() || [], rules: units?.rules?.leader });   // ganging up on the leader (sim/leader.js)
   const territory = createTerritory({ state, bounds: district.bounds, rules: units?.rules?.territory, season: units?.rules?.season, scores: scoreOf, quarters: district.quarters || [] });
+  // Z4 castles: the island keeps its trees and rocks off every castle spot (sim/chunk_gen.js); set once on the shared world data
+  if (options.world && !options.world.castleClear) options.world.castleClear = castleClearings(options.world, options.frontier);
+  // castle ground over the island's water (the docks) is walkable (sim/castles.js castleWalkBoxes); the boxes of the
+  // castles placed this game, kept until a castle is added or the state is replaced by a loaded save
+  function castleWalkOver() {
+    let key = null, boxes = [];
+    const castlesNow = () => Object.values(state.frontier?.settlements || {}).filter(s => s.castle);
+    const version = () => castlesNow().map(s => s.id).join(',');
+    return { version, boxes() { const k = version(); if (k !== key) { key = k; boxes = castlesNow().flatMap(castleWalkBoxes); } return boxes; } };
+  }
   // the island as a walkable place, e.place === 'world' (sim/areas.js, frontier W3.2); the city sits on it
   // at world.capital + cityOffset, as a blocker whose way in is the gate (W3.5)
-  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds), dynamicBlockers: (...box) => townBlockersIn(state.frontier,...box,options.frontier), dynamicVersion: () => townBlockersVersion(state.frontier, options.frontier) }) : null;
+  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds), dynamicBlockers: (...box) => townBlockersIn(state.frontier,...box,options.frontier), dynamicVersion: () => townBlockersVersion(state.frontier, options.frontier), walkOver: castleWalkOver() }) : null;
   // the city gate out to the island (frontier W3.5, district.islandGate): a pair of doors, open in a
   // campaign match only. The island side stands just outside the city's west wall on the island.
   // The island side is the gate's spot on the island, pushed out past the nearest edge of the city.
@@ -346,7 +358,7 @@ export function createGame(options) {
     clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
     onCharmed:(target,clan)=>{for(const a of Object.values(state.entities))if(a.owner===clan){if(a.charmAttack?.target===target.id)delete a.charmAttack;if(a.order?.kind==='attack'&&a.order.target===target.id)endAttack(a,true);if(a.attackTarget===target.id)delete a.attackTarget;if(a.swing?.target===target.id)delete a.swing;if(fight[a.id]?.target===target.id)delete fight[a.id].target;if(a.rifle?.aim?.target===target.id)rifleman.interrupted(a);}},
     clearCombat: e => { delete e.swing; delete e.execute; delete e.attackTarget; delete paths[e.id]; if (fight[e.id]) delete fight[e.id].target; } });
-  const rifleman = createRifleman({ state, vision, hit: (a, t, d, crit, kind) => {const hp=t.hp;hit(a,t,d,crit,kind);if(t.hp<hp)kuroda.rangedHit(a,t);},
+  const rifleman = createRifleman({ state, vision, rangeScale: (a, b) => castles?.rangeScale(a, b) ?? 1, hit: (a, t, d, crit, kind) => {const hp=t.hp;hit(a,t,d,crit,kind);if(t.hp<hp)kuroda.rangedHit(a,t);},
     canAttack: (a, b) => attackAllowed(a, b) && sees(a, b),
     stun: (t, ticks) => { delete t.swing; addBuff(t, 'stunned', ticks / TICK_RATE); }, clearLine: (a, b) => navOf(a.place)?.clearLine(a.x, a.z, b.x, b.z) ?? true,
     hostile: (a, b) => hostile(a, b) && sees(a, b), attackStep: (e, unit, t) => { if (!swingStep(e, unit)) engage(e, unit, t); },
@@ -445,7 +457,8 @@ export function createGame(options) {
   // (night bandits) are not limited.
   // a hidden ninja (sim/stealth.js) is seen by nobody but its own side
   const sees = (a, b) => !(b?.hidden && b.owner !== a.owner && !(b.detectedBy?.[a.owner] > state.tick)) && !(b && blind(a, b)) && (!state.clans?.[a.owner] || vision.canSee(a.owner, b));
-  const reachOf = (a, b) => (statsOf(a).attackRange || 1) + statsOf(b).radius;
+  // castle high ground (Z4h, sim/castles.js): a little more reach down from a higher terrace
+  const reachOf = (a, b) => (statsOf(a).attackRange || 1) * (castles?.rangeScale(a, b) ?? 1) + statsOf(b).radius;
 
   // City decisions at a lower rate while no player is in the city (lag step 1, Tim 2026-11-05).
   // Away = no hero of a non-bot clan anywhere but the island ('world'); checked at the start of
@@ -820,9 +833,18 @@ export function createGame(options) {
   const dayTicks = dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000;
   // C4 Influence (campaign only): Renown + businesses held per day + frontier trade; unlocks permits and prices
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
-  const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base) }) : null;
-  const goals = createCampaignGoals({ state, clans, landOffice, influence, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
-  frontier?.attach({unitOf:e=>statsOf(e),moveTo:(...a)=>moveTo(...a),hit:(...a)=>hit(...a),fight,paths,dirIndex,damageOf:e=>stats.damage(e),intervalOf:e=>stats.attackInterval(e),swingTicks:(unit,speed)=>Math.max(4,Math.round(Math.min(speed*0.85,unit.swingSeconds||0.7)/DT)),areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),
+  const castles = frontier ? createCastles({ state, data: options.frontier, world: options.world, frontier }) : null;
+  frontier?.rivalCampaign?.setCastles(castles);   // Z4: clan castles on the island
+  // the ship between the city harbour pier and your castle dock (Tim 2026-11-19): a skippable sail, sim/frontier/ferry.js
+  const shipRules = options.frontier?.campaignZones;
+  const ferry = castles && shipRules?.ship && options.world?.capital?.port ? createFerry({ state, rules: shipRules, pier: shipRules.ship.pier, seaGate: options.world.capital.port, castles,
+    navOf: p => navOf(p), followOffset: (...a) => followOffset(...a), freeSlot: (...a) => freeSlot(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; }, areas, mounts: { dismount: e => mounts?.dismount(e) } }) : null;
+  if (ferry) doors.push({ x: ferry.pier[0], z: ferry.pier[1], place: 'street', menu: 'harbour', label: 'Harbour pier: ship to your castle' });   // the ring on the pier (Use there boards, main.js)
+  if (ferry) frontier.modules.unshift({ name: 'ferry', command: (e, c) => ferry.command(e, c) });
+  const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base), zones: frontier.campaignZones }) : null;
+  frontier?.rivalCampaign?.setLandOffice(landOffice, units?.types?.settler);   // Z2: rival homes, strategies and later towns
+  const goals = createCampaignGoals({ state, clans, landOffice, influence, zones: frontier?.campaignZones, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
+  frontier?.attach({rangeScale:(a,b)=>castles?.rangeScale(a,b) ?? 1,unitOf:e=>statsOf(e),moveTo:(...a)=>moveTo(...a),hit:(...a)=>hit(...a),fight,paths,dirIndex,damageOf:e=>stats.damage(e),intervalOf:e=>stats.attackInterval(e),swingTicks:(unit,speed)=>Math.max(4,Math.round(Math.min(speed*0.85,unit.swingSeconds||0.7)/DT)),areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),
     // a war camp fell (sim/frontier/war_end.js): the attacker's hero and crew in the war circle fall back to their nearest town, on foot
     // (8c: o.side 'defender' = the defender leaving the town he surrendered, to his nearest other town; o.why = what he is told)
     warSendHome:(w,o={})=>{const t=state.frontier?.settlements?.[w.town];return islandRespawn?.fallBack(o.side==='defender'?w.defender:w.attacker,t?.x??w.x,t?.z??w.z,options.frontier?.war?.circleRadius??900,e=>{delete paths[e.id];delete intents[e.id];delete e.attackTarget;delete e.swing;delete e.execute;delete e.lootTarget;if(fight[e.id])delete fight[e.id].target;mounts?.dismount(e);if(e.aboard){delete e.aboard;if(e.ride?.kind==='omnibus')delete e.ride;}if(e.type==='hero')delete e.order;else if(e.order&&e.order.kind!=='follow')e.order={kind:'stop'};},{skip:o.side==='defender'?w.town:null,why:o.why})||null;},
@@ -989,6 +1011,7 @@ export function createGame(options) {
       if ((e.dead || e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment', 'world', 'frontier'].includes(c.type)) continue;
       // inside the omnibus (sim/omnibus.js): no fighting or looting; a door (the gate) steps everyone out first
       // on horseback everything works (Tim 2026-11-14: attacks and abilities from the saddle); only a vehicle seat blocks
+      if (ferry?.riding(e) && c.type !== 'frontier') continue;   // at sea: nothing but skipping the crossing
       if (e.aboard && ['attack', 'ability', 'execute', 'loot', 'snuff', 'interiorDoor', 'item'].includes(c.type)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'Step out of the omnibus first (Q)' }; continue; }
       if (e.aboard && c.type === 'use') omnibus?.deploy(e);
       if (e.mounted && c.type === 'use') mounts?.dismount(e);
@@ -1322,6 +1345,7 @@ export function createGame(options) {
     discovery.tick();
     sightings?.tick();
     frontier?.tick();
+    ferry?.tick();   // the ship to the castle
     for (const v of frontier?.stable?.bornVehicles?.() || []) {   // built at a station: parked there, empty (Tim 2026-11-06)
       omnibus?.park(v.owner, v.kind, v.x, v.z);
       const clan = state.clans?.[v.owner], town = state.frontier.settlements?.[v.town];
@@ -1394,5 +1418,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, mounts, garage, stationTravel, governorNear, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, castles, ferry, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, mounts, garage, stationTravel, governorNear, dayTicks };
 }

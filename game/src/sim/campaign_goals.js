@@ -17,7 +17,15 @@ import { SHOP } from './gear_catalog.js';
 export const MAIN_STEPS = ['permit', 'surveyor', 'settlers', 'lieutenant', 'orders', 'leave', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'warpack', 'war'];   // after the clan's starter goals
 const ORDINAL = ['', '2nd ', '3rd ', '4th '];
 
-export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null }) {
+export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null, zones = null }) {
+  // Z2 (Tim 2026-11-19): the war goals (news of rival towns, pack, declare) wait until a rival town stands in a zone
+  // where this clan has a town, or in a zone touching one
+  const rivalInReach = id => {
+    if (!zones) return true;
+    const all = Object.values(state.frontier?.settlements || {}).filter(s => s.founded !== undefined && !s.capital && s.owner != null);
+    const mine = new Set(all.filter(s => s.owner === id).map(s => zones.zoneOfTown(s)).filter(Boolean));
+    return all.some(s => s.owner !== id && state.clans?.[s.owner]?.bot && (z => z && (mine.has(z) || [...mine].some(m => zones.touches(m, z))))(zones.zoneOfTown(s)));
+  };
   const D = data.founding || {}, P = D.permit || {}, G = data.goals || {};
   const townsOf = id => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === id && s.founded).length;
   const heroOf = id => Object.values(state.entities).find(e => e.type === 'hero' && e.owner === id);
@@ -233,6 +241,7 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
     if (!m.railOrder || !m.shipped) return { key: 'shipping', title: 'Ship by rail', step: step('shipping'), steps, rows: [
       pin(row('office', 'Rail order placed', m.railOrder ? 1 : 0, 1, panel + 'open the Shipments tab (gold), type an amount on a row and press Order')),
       pin(row('business', 'Shipment delivered', m.shipped ? 1 : 0, 1, 'A train brings it in: see it on the Shipments tab, or the rail ledger on the World map (M)'))] };
+    if (!m.warDeclared && !rivalInReach(id)) return null;   // no rival town in reach yet (Z2)
     if (!m.warTalk) { const d = surveyorAt();
       return { key: 'registrar', title: 'News of rival towns', step: step('registrar'), steps, rows: [{ ...row('office', 'Talk at the Land Office', 0, 1,
         'Back in the capital, the old surveyor outside the Land Office (telegraph office, gold mark) has news of the rival towns: stand beside him and press Space'), at: d ? spot(d.x, d.z) : null }] }; }
@@ -317,5 +326,5 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
       rows: [row('influence', 'Influence', st.value, st.next.at, 'Hold businesses (every dawn) and sell town goods at a Market')] };
     return null;
   }
-  return { current, record };
+  return { current, record, rivalInReach };
 }

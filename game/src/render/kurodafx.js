@@ -5,6 +5,7 @@ import { onFxLayer } from './bloom.js';
 import { VIEW_DIR, CAM_QUAT, CAM_RIGHT, CAM_UP } from './iso.js';
 import { SCREEN_RIGHT, SCREEN_DOWN } from '../sim/geometry.js';
 import { createParticles, createCards, SHAPE } from './vfx.js';
+import { groundY } from '../castle_height.js';
 
 const CRIMSON = 0xe82c48, GOLD = 0xffce83, HOT = 0xfff0c2;
 const rand = (a,b) => a + Math.random()*(b-a);
@@ -100,17 +101,17 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
     for(let i=0;i<n;i++){
       const a=i*Math.PI*2/n+rand(-.2,.2),v=rand(1.2,2.8)*scale;
       const g=group(),m=polygon([[0,.16],[-.035,0],[0,-.12],[.035,0]],i%3?GOLD:CRIMSON,.85);
-      g.position.set(x,y,z);m.quaternion.copy(CAM_QUAT);m.rotateZ(a);g.add(m);
+      g.position.set(x,(y)+groundY(x,z),z);m.quaternion.copy(CAM_QUAT);m.rotateZ(a);g.add(m);
       burst(g,.4+Math.random()*.2,0,0,(k,dt)=>{g.position.x+=Math.cos(a)*v*dt;g.position.z+=Math.sin(a)*v*dt;g.position.y+=dt*(1-k);m.rotateZ(dt*3);});
     }
   }
   function shieldFlash(x,y,z,size=1) {
-    const g=group(),ward=crest(size);g.position.set(x,y,z);ward.quaternion.copy(CAM_QUAT);g.add(ward);
+    const g=group(),ward=crest(size);g.position.set(x,(y)+groundY(x,z),z);ward.quaternion.copy(CAM_QUAT);g.add(ward);
     burst(g,.5,0,0,k=>ward.scale.setScalar(size*(1+.3*k)));
     impact(x,y,z,.9*size);shards(x,y,z,12,size);
   }
   function formationSet(f) {
-    const g = group(); g.position.set(f.x,0,f.z);
+    const g = group(); g.position.set(f.x,(0)+groundY(f.x,f.z),f.z);
     const rings=[ring(g,f.radius,CRIMSON,.07,.65),ring(g,f.radius-.12,GOLD,.025,.78),ring(g,f.radius+.06,CRIMSON,.014,.3)];
     for(const y of [.32,1.12]){const m=ring(g,f.radius,CRIMSON,.012,.16);m.position.y=y;rings.push(m);}
     const floor=crest(f.radius*.7,.38);floor.rotation.x=-Math.PI/2;floor.position.y=.055;
@@ -134,7 +135,7 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
     return { g, rings, symbols, floor, floorMaterials, segments, outer, f, age: 0, out: 0 };
   }
   function arc(x,z,r,life=.5,dir=0) {
-    const g=group(),d=facing(dir);g.position.set(x,.95,z);g.rotation.y=-Math.atan2(d.z,d.x);
+    const g=group(),d=facing(dir);g.position.set(x,(.95)+groundY(x,z),z);g.rotation.y=-Math.atan2(d.z,d.x);
     for(const [radius,width,color,alpha,lag] of [[r,.62,CRIMSON,.58,0],[r+.03,.055,HOT,.95,0],[r-.04,.13,GOLD,.9,0],[r-.35,.14,CRIMSON,.4,-.38],[r-.65,.065,GOLD,.45,-.7]]) {
       const points=[],widths=[];
       for(let i=0;i<=64;i++){
@@ -153,7 +154,7 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
   function thrust(c) {
     const dx=c.tx-c.x,dz=c.tz-c.z,len=Math.hypot(dx,dz);
     if (!len) return;
-    const g=group();g.position.set(c.x,1.15,c.z);
+    const g=group();g.position.set(c.x,(1.15)+groundY(c.x,c.z),c.z);
     const finish=c.strike===3;
     const shaft=new THREE.Group();shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(dx,0,dz).normalize());g.add(shaft);
     const width=finish ? .21 : .14,head=Math.min(.8,len*.4);
@@ -196,7 +197,7 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
       if (c.kind==='counterstun') shieldFlash(c.tx,1.55,c.tz,.75);
       if (c.kind==='pursuit') {
         // The unfinished brace opens into two streaming ribbons.
-        const d=facing(c.dir),g=group();g.position.set(c.x,1.2,c.z);
+        const d=facing(c.dir),g=group();g.position.set(c.x,(1.2)+groundY(c.x,c.z),c.z);
         for(const side of [-1,1]){
           const points=[],widths=[];
           for(let i=0;i<=20;i++){const t=i/20;points.push([-d.x*t*1.8-d.z*side*(.25+t*.3),Math.sin(t*4)*.16,-d.z*t*1.8+d.x*side*(.25+t*.3)]);widths.push(.2*(1-t));}
@@ -266,7 +267,7 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
             const materials=[],parts=[];badge.traverse(o=>{if(o.isMesh){materials.push([o.material,o.material.opacity]);parts.push(o.geometry);}});
             v={g,m,badge,coil,materials,parts};counters.set(e.id,v);
           }
-          v.g.position.set(p.x,0,p.z);v.m.rotation.z+=dt*2;
+          v.g.position.set(p.x,(0)+groundY(p.x,p.z),p.z);v.m.rotation.z+=dt*2;
           v.m.material.color.set(e.brace?GOLD:CRIMSON);
           v.m.material.opacity=e.brace ? .65 : .3+.12*Math.sin(state.tick*.4);
           const d=facing(e.dir);
@@ -291,7 +292,7 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
         if(e.buffs?.formation?.until>state.tick){
           activeWards.add(e.id);let v=wards.get(e.id);
           if(!v){const g=group(),badge=mesh(new THREE.PlaneGeometry(.32,.44),GOLD,.65,glyphTexture());g.add(badge);v={g,badge};wards.set(e.id,v);}
-          v.g.position.set(p.x,2.1+Math.sin(state.tick*.1+e.id)*.045,p.z);
+          v.g.position.set(p.x,(2.1+Math.sin(state.tick*.1+e.id)*.045)+groundY(p.x,p.z),p.z);
           v.badge.quaternion.copy(CAM_QUAT);v.badge.material.opacity=.55+.15*Math.sin(state.tick*.15+e.id);
         }
         if(e.buffs?.pursuit?.until>state.tick){
@@ -299,7 +300,7 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
           if(old&&old.place===e.place&&d>.005&&d<2){
             const dx=p.x-old.x,dz=p.z-old.z,a=angleOf(dx,dz),ux=dx/d,uz=dz/d;
             if(Math.random()<dt*14){
-              const g=group();g.position.set(p.x,0,p.z);
+              const g=group();g.position.set(p.x,(0)+groundY(p.x,p.z),p.z);
               for(const side of [-1,1])for(const [width,color,alpha] of [[.18,CRIMSON,.5],[.026,GOLD,.85]]) {
                 const points=[],widths=[];
                 for(let i=0;i<=16;i++){
@@ -319,7 +320,7 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
         if (e.buffs?.stunned?.until>state.tick) {
           activeStuns.add(e.id);let v=stuns.get(e.id);
           if (!v) { const g=group(), stars=[];for(let i=0;i<3;i++){const m=mesh(new THREE.OctahedronGeometry(.07),GOLD,.9);g.add(m);stars.push(m);}v={g,stars};stuns.set(e.id,v); }
-          v.g.position.set(p.x,2.35,p.z);v.g.rotation.y+=dt*5;
+          v.g.position.set(p.x,(2.35)+groundY(p.x,p.z),p.z);v.g.rotation.y+=dt*5;
           v.stars.forEach((m,i)=>m.position.set(Math.cos(i*Math.PI*2/3)*.25,0,Math.sin(i*Math.PI*2/3)*.25));
         }
       }

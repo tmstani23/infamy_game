@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { CAM_QUAT } from './iso.js';
 import { onFxLayer } from './bloom.js';
 import { SPRITE_SAMPLE, copySpriteFrame } from './packed_sheets.js';
+import { groundY } from '../castle_height.js';
 
 // pixels per world unit for the target being drawn; view.js sets it before each render
 export const fxShared = { uPx: { value: 100 } };
@@ -201,7 +202,8 @@ export function createParticles(scene, { max = 1500, additive = true } = {}) {
     emit(o) {
       if (list.length >= max) return;
       list.push({ vx: 0, vy: 0, vz: 0, gravity: 0, drag: 0, grow: 0, spin: 0, twinkle: 0, sway: 0, shape: 0, alpha: 1,
-        ...o, age: 0, rot: o.rot ?? Math.random() * 6.28, seed: Math.random() * 100 });
+        ...o, y: (o.y || 0) + (o.x !== undefined ? groundY(o.x, o.z) : 0),   // y above the ground there (castle terraces, Z4h)
+        age: 0, rot: o.rot ?? Math.random() * 6.28, seed: Math.random() * 100 });
     },
     update(dt) {
       for (let i = list.length - 1; i >= 0; i--) {
@@ -281,7 +283,7 @@ export function createCards(scene) {
     // four-point star flash on steel at a world point
     glint(x, y, z, size = 1.4, color = 0xffffff, life = 0.3) {
       const m = new THREE.Mesh(CARD_GEO, basic(getStar(), color));
-      m.position.set(x, y, z);
+      m.position.set(x, y + groundY(x, z), z);   // y above the ground there (castle terraces, Z4h)
       m.renderOrder = 99830;
       const spin = (Math.random() - 0.5) * 2;
       add(m, life, (k, dt) => {
@@ -294,7 +296,7 @@ export function createCards(scene) {
     // tapered blade stroke through a world point, at a screen angle (radians)
     stroke(x, y, z, angle, length = 2.6, width = 0.32, color = 0xeef4ff, life = 0.26) {
       const m = new THREE.Mesh(CARD_GEO, basic(getStroke(), color));
-      m.position.set(x, y, z);
+      m.position.set(x, y + groundY(x, z), z);
       m.renderOrder = 99835;
       add(m, life, (k) => {
         const grow = Math.min(1, k / 0.2);
@@ -307,11 +309,11 @@ export function createCards(scene) {
     // kanji seal on the ground; follow() may return a moving centre
     seal(x, z, radius, ch, color, life, { spin = 0.6, follow = null, opacity = 0.9 } = {}) {
       const m = new THREE.Mesh(CARD_GEO, basic(getSeal(ch), color));
-      m.position.set(x, 0.045, z);
+      m.position.set(x, 0.045 + groundY(x, z), z);
       m.renderOrder = 4;
       add(m, life, (k, dt) => {
         const p = follow?.();
-        if (p) m.position.set(p.x, 0.045, p.z);
+        if (p) m.position.set(p.x, 0.045 + groundY(p.x, p.z), p.z);
         const s = radius * 2 * (k < 0.15 ? 0.6 + 0.4 * (1 - (1 - k / 0.15) ** 3) : 1);
         m.scale.set(s, s, 1);
         m.rotateZ(spin * dt);
@@ -321,7 +323,7 @@ export function createCards(scene) {
     // dark ink ring rolling outward
     ink(x, z, radius, life = 0.7, color = 0x12061c) {
       const m = new THREE.Mesh(CARD_GEO, new THREE.MeshBasicMaterial({ map: getInk(), color, transparent: true, depthTest: false, depthWrite: false }));
-      m.position.set(x, 0.04, z);
+      m.position.set(x, 0.04 + groundY(x, z), z);
       m.renderOrder = 3;
       m.rotation.z = Math.random() * 6;
       add(m, life, (k) => {
@@ -337,7 +339,7 @@ export function createCards(scene) {
       m.renderOrder = 99645;
       add(m, life, (k) => {
         const p = follow();
-        if (p) m.position.set(p.x, 0, p.z).addScaledVector(new THREE.Vector3(0, 1, 0), height / 2 * (k < 0.2 ? k / 0.2 : 1));
+        if (p) m.position.set(p.x, groundY(p.x, p.z), p.z).addScaledVector(new THREE.Vector3(0, 1, 0), height / 2 * (k < 0.2 ? k / 0.2 : 1));
         const grow = k < 0.2 ? k / 0.2 : 1;
         m.scale.set(width * (1 - 0.5 * k), height * grow, 1);
         m.material.opacity = k < 0.2 ? 1 : 1 - (k - 0.2) / 0.8;

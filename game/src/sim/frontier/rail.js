@@ -31,6 +31,7 @@ import { stationParts } from './station_layout.js';
 import { tierOf } from './tiers.js';
 import { modeRules } from '../modes/index.js';
 import { dirIndex } from '../geometry.js';
+import { castleBox } from './castle.js';
 
 export function createRail({ state, data, world, worldData, stable }) {
   const R = data.railways, L = () => R?.link || {}, GANG = () => R?.gang || {};
@@ -40,6 +41,12 @@ export function createRail({ state, data, world, worldData, stable }) {
   const T = () => R?.train || {};
   const linksOf = owner => Object.values(rec().links).filter(l => l.owner === owner);
   const town = id => id === 'capital' ? null : state.frontier.settlements?.[id];
+  // Z4f (Tim 2026-11-19): a clan with a castle has its rail hub there. The node is still called 'capital' (shipments,
+  // orders and saves keep working), but its track ends at the castle's station like a town's, and you board and get
+  // off there on the island. A clan with no castle (rivals until Z5) keeps the city end.
+  const hub = owner => owner == null ? null : Object.values(state.frontier.settlements || {}).find(s => s.castle && s.owner === owner && stable?.of(s, 'station')) || null;
+  const node = (owner, id) => id === 'capital' ? hub(owner) : town(id);
+  const hubReach = t => t.castle ? (Math.hypot(...(data.castleBlueprint?.size || [36, 43])) / 2 + 4) * t.grid.cell : undefined;
   const secs = () => Math.max(1, data.cadenceTicks || 20) / 20;
   const isCamp = id => typeof id === 'string' && id.startsWith('camp:');
   const warOfNode = id => state.frontier.wars?.list?.[String(id).slice(5)] || null;
@@ -47,9 +54,28 @@ export function createRail({ state, data, world, worldData, stable }) {
 
   // where a station's track ends: the capital end just outside the island gate, a town's at its station
   function endpoint(owner, id) {
+    if (id === 'capital' && hub(owner)) return stationEnd(hub(owner));
     if (id === 'capital') { const g = runtime?.gate?.rail || runtime?.gate?.island; return g ? { x: g[0], z: g[1] } : null; }   // east of the city station (Tim 2026-11-10), else the gate
     if (isCamp(id)) { const w = warOfNode(id), b = campStation(w); return b && (owner == null || w.attacker === owner) ? { x: b.x, z: b.z } : null; }   // 8e-4
-    const s = town(id), b = s && s.owner === owner && stable?.of(s, 'station');
+    const s = town(id);
+    return s && s.owner === owner ? stationEnd(s) : null;
+  }
+  // the straight run out of a castle (castle_default.json rail_gate and rail_bridge): the point out in front of the bridge,
+  // on the line through the middle of the gate, where the track may start to turn
+  function castleStraight(c) {
+    const bp = data.castleBlueprint, g = bp?.gates?.find(q => q.id === 'rail_gate'), br = bp?.bridges?.find(q => q.id === 'rail_bridge');
+    if (!g || !br || !c?.castle) return null;
+    const along = g.rect[2] - g.rect[0] < g.rect[3] - g.rect[1] ? 'x' : 'z';   // a gate one cell thick in x: the track runs along x
+    const out = bp.railOut ?? 4, sgn = along === 'x' ? Math.sign(br.rect[0] - g.rect[0]) || 1 : Math.sign(br.rect[1] - g.rect[1]) || 1;
+    const mid = along === 'x' ? (g.rect[1] + g.rect[3] - 1) / 2 : (g.rect[0] + g.rect[2] - 1) / 2;
+    const far = along === 'x' ? (sgn > 0 ? br.rect[2] - 1 : br.rect[0]) + sgn * out : (sgn > 0 ? br.rect[3] - 1 : br.rect[1]) + sgn * out;
+    const [bx, bz] = along === 'x' ? [far, mid] : [mid, far];
+    let dx = bx - bp.hall[0], dz = bz - bp.hall[1];
+    for (let k = 0; k < c.castle.rot; k++) [dx, dz] = [-dz, dx];
+    return { out: [c.x + dx * c.grid.cell, c.z + dz * c.grid.cell] };
+  }
+  function stationEnd(s) {
+    const b = stable?.of(s, 'station');
     if (!b) return null;
     const parts = stationParts(s, b);   // the 3x2 station (Tim 2026-11-07): the line ends in its shed
     if (parts) return { x: s.x + parts.shed[0], z: s.z + parts.shed[1] };
@@ -89,7 +115,8 @@ export function createRail({ state, data, world, worldData, stable }) {
     const g = G();
     if (!g) return { error: 'no railway data' };
     // the capital: routed to a point out in front of the wall, then straight in through it to the end (Tim 2026-11-10)
-    const ap = to === 'capital' && runtime?.gate?.rail && runtime.gate.railApproach, target = ap ? { x: ap[0], z: ap[1] } : b;
+    const H = to === 'capital' ? hub(owner) : null, dest = H || town(to);   // the far end's town grid, if it has one
+    const ap = to === 'capital' && !H && runtime?.gate?.rail && runtime.gate.railApproach, target = ap ? { x: ap[0], z: ap[1] } : b;
     // a camp station off the route grid: from the nearest open cell, then a short straight run to the station
     const open0 = camp ? nearestOpen(g, a.x, a.z) : null;
     let coarse = routeRail(g, open0 || a, target, { reuse: linksOf(owner).filter(l => l !== relay) });
@@ -98,20 +125,27 @@ export function createRail({ state, data, world, worldData, stable }) {
     // inside the end towns the track takes a fine path round buildings and houses (Tim 2026-11-07)
     // a 3x2 station (Tim 2026-11-07): out of the shed straight through the railway slot, then round the town
     const exitOf = (t, route) => { const st = stable.of(t, 'station'), parts = st && stationParts(t, st);
-      if (!parts) return townExit(t, data, st ? (st.cells || [st.cell]) : [], route);
-      const far = [t.x + parts.slotFar[0], t.z + parts.slotFar[1]], r = townExit(t, data, parts.slotCells, [far, ...route.slice(1)], { dir: parts.dir });
+      if (!parts) return townExit(t, data, st ? (st.cells || [st.cell]) : [], route, { reach: hubReach(t) });
+      const far = [t.x + parts.slotFar[0], t.z + parts.slotFar[1]], r = townExit(t, data, parts.slotCells, [far, ...route.slice(1)], { dir: parts.dir, reach: hubReach(t) });
       return r && [route[0], ...r]; };
     const boxed = t => stationParts(t, stable.of(t, 'station')) ? `No room for a train to curve out of ${t.name}'s station: turn it (R) or clear a way`
       : `Buildings box in ${t.name}'s station: clear a way out`;
     let pts = camp ? coarse.points : exitOf(s, coarse.points);   // a camp station stands in the open
     if (!pts) return { error: boxed(s) };
-    if (to !== 'capital') {
-      const back = exitOf(town(to), [...pts].reverse());
-      if (!back) return { error: boxed(town(to)) };
+    if (dest) {
+      const back = exitOf(dest, [...pts].reverse());
+      if (!back) return { error: boxed(dest) };
       pts = back.reverse();
     } else if (ap) pts.push([b.x, b.z]);
+    // a castle end (Tim 2026-11-19): dead straight from the station through the middle of the rail gate and over the rail
+    // bridge, out to open ground beyond the moat, and only there does the track turn toward the route
+    if (H?.castle) { const st = castleStraight(H); if (st) {
+      const box = castleBox(data.castleBlueprint, H.x, H.z, H.castle.rot, H.grid.cell), inBox = ([x, z]) => x > box.minX - H.grid.cell && x < box.maxX + H.grid.cell && z > box.minZ - H.grid.cell && z < box.maxZ + H.grid.cell;
+      let j = pts.length - 2; while (j > 0 && inBox(pts[j])) j--;
+      pts = [...pts.slice(0, j + 1), st.out, [b.x, b.z]];
+    } }
     // round every corner to a curve a train could take (Tim 2026-11-08), keeping clear of rock, water and buildings
-    const ends = [s, town(to)].filter(t => t?.grid).map(t => { const st = stable.of(t, 'station'); return [t, new Set(st ? (st.cells || [st.cell]) : [])]; });
+    const ends = [s, dest].filter(t => t?.grid).map(t => { const st = stable.of(t, 'station'); return [t, new Set(st ? (st.cells || [st.cell]) : [])]; });
     // strict first (a cell clear of rock and water), then just off rock and buildings where the strict curve won't fit
     const ok = [(p, q) => openRun(g, p, q) && ends.every(([t, mine]) => clearRun(t, p, q, mine, true)),
       (p, q) => openRun(g, p, q, 0) && ends.every(([t, mine]) => clearRun(t, p, q, mine))];
@@ -359,7 +393,7 @@ export function createRail({ state, data, world, worldData, stable }) {
   const placeName = id => id === 'capital' ? 'the capital' : isCamp(id) ? `the ${town(warOfNode(id)?.town)?.name || ''} camp`.replace('the  camp', 'the camp') : town(id)?.name || id;
   // is e standing at station `id` (a town's station on the island, or the capital: either side of the gate)?
   function atStation(e, owner, id) {
-    if (id === 'capital') {
+    if (id === 'capital' && !hub(owner)) {
       const g = runtime?.gate; if (!g) return false;
       const st = g.station || g.city;   // the city railway station (Tim 2026-11-07), else the gate
       // with a city station the train stands inside the wall: boarding only at the station in the city (Tim 2026-11-10)
@@ -409,13 +443,13 @@ export function createRail({ state, data, world, worldData, stable }) {
     if (!t || t.owner !== e.owner || !at || !atStation(e, e.owner, at)) return say(e.owner, 'No train standing here');
     // no leaving the capital with a Rally up (Tim 2026-11-10): rallied sector crew rode out, the Hero group went far over
     // six on the island and the city was left short. Once the Rally is over only the Hero group boards (inZone).
-    if (at === 'capital' && e.place === 'street' && rallyUp(e.owner)) return say(e.owner, 'A Rally is up: the train waits until your crew are back at their posts');
+    if (at === 'capital' && !hub(e.owner) && e.place === 'street' && rallyUp(e.owner)) return say(e.owner, 'A Rally is up: the train waits until your crew are back at their posts');
     if (t.call) return say(e.owner, 'Boarding is already called');
     // the call never holds the train (Tim 2026-11-08): with less than callSeconds before it leaves, that is all you get
     const ticks = Math.max(1, Math.min(Math.round((RIDE().callSeconds ?? 10) * 20), t.wait - 1));
     // the zone lies on the ground round the station (Tim 2026-11-08): a town's shed, the city railway station, or the
     // line's end outside the island gate
-    const g = runtime?.gate, p = at === 'capital' ? (e.place === 'street' ? (g?.station && { x: g.station[0], z: g.station[1] }) : endpoint(e.owner, 'capital')) : endpoint(e.owner, at);
+    const g = runtime?.gate, p = at === 'capital' && !hub(e.owner) ? (e.place === 'street' ? (g?.station && { x: g.station[0], z: g.station[1] }) : endpoint(e.owner, 'capital')) : endpoint(e.owner, at);
     t.call = { hero: e.id, x: p?.x ?? e.x, z: p?.z ?? e.z, place: e.place, r: RIDE().zoneRadius ?? 25, until: (state.tick ?? 0) + ticks, ticks };
     return say(e.owner, 'All aboard! Get your crew into the zone (Space boards now)');
   }
@@ -490,7 +524,7 @@ export function createRail({ state, data, world, worldData, stable }) {
     if (!riders.length) return;
     const hero = riders.find(u => u.type === 'hero') || riders[0];
     let place = 'world', px, pz;
-    if (at === 'capital') { place = 'street'; [px, pz] = runtime?.gate?.station || runtime?.gate?.inside || runtime?.gate?.city || [hero.x, hero.z]; }
+    if (at === 'capital' && !hub(t.owner)) { place = 'street'; [px, pz] = runtime?.gate?.station || runtime?.gate?.inside || runtime?.gate?.city || [hero.x, hero.z]; }
     else { const p = endpoint(t.owner, at) || pointAt(l, t.d); px = p.x + 6; pz = p.z + 6; }
     const grid = runtime?.navOf?.(place);
     riders.forEach((u, k) => {
@@ -559,10 +593,13 @@ export function createRail({ state, data, world, worldData, stable }) {
   // Lines laid before the capital end moved from the gate to the station (Tim 2026-11-10): routed again to the new end,
   // once; trains and laying progress keep their share of the way. A line with no way there keeps its old end.
   function capitalEnds() {
-    const p = endpoint(null, 'capital'), r = rec(); if (!p) return;
-    const key = `${p.x},${p.z}`; if (r.capitalEnd === key) return;
+    const city = endpoint(null, 'capital'), r = rec(); if (!city) return;
+    // each clan's own end (Z4f): its castle station, else the city's
+    const hubs = Object.values(state.frontier.settlements || {}).filter(s => s.castle && s.owner != null).map(s => [s.owner, endpoint(s.owner, 'capital')]);
+    const key = [`${city.x},${city.z}`, ...hubs.map(([o, q]) => `${o}:${q.x},${q.z}`)].join('|'); if (r.capitalEnd === key) return;
     r.capitalEnd = key;
     for (const l of Object.values(r.links)) {
+      const p = endpoint(l.owner, 'capital') || city;
       const end = l.to === 'capital' && l.points?.at(-1);
       if (!end || Math.hypot(end[0] - p.x, end[1] - p.z) < 1) continue;
       const n = preview(l.owner, l.from, 'capital', l).line; if (!n) continue;
@@ -574,5 +611,5 @@ export function createRail({ state, data, world, worldData, stable }) {
     }
   }
   const setShipping = (arrive, depart, tear = null, gone = null, cut = null) => { arriveHook = arrive; departHook = depart; tearHook = tear; trainHook = gone; cutHook = cut; };
-  return { command, tick, econTick, attach, endpoint, preview, campSpurs, isCamp, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, serviceAt, atStation, inZone, setShipping, trains: () => Object.values(rec().trains) };
+  return { command, tick, econTick, attach, hubOf: hub, endpoint, preview, campSpurs, isCamp, linksOf, linesAt, tearUp, addTrain, stationOf, boardable, service, serviceAt, atStation, inZone, setShipping, trains: () => Object.values(rec().trains) };
 }

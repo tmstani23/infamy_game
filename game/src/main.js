@@ -128,7 +128,8 @@ async function start() {
   const island = modeRules(bootFile ? decode(bootFile.state) : { match: selected }).island;
   const islandOnly = v => island ? v : null;
   const railways = await getJSON('data/railways.json').catch(() => null);   // train plan: railway rules
-  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), frontier: islandOnly(frontier && { ...frontier, railways, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
+  const castleBlueprint = await getJSON('data/castle_default.json').catch(() => null), campaignZones = await getJSON('data/campaign_zones.json').catch(() => null);   // Z4: castles and zones
+  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), frontier: islandOnly(frontier && { ...frontier, railways, castleBlueprint, campaignZones, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
   const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST, seed: Math.floor(Math.random() * 2147483646) + 1 };   // seed: per-game bot site picks (E6)
   // A read-only replica supplies existing UI queries and static geometry. Only
   // the worker advances the match, including while Map/Deployment is open.
@@ -190,6 +191,8 @@ async function start() {
   onAction('use', () => {
     if (stationMenu.calling()) { stationMenu.boardCall(); return; }   // All aboard called: Space boards now (Tim 2026-11-08)
     if (warOutcome.use()) return;   // at a ruined hall of your war: take it (war 8a-3)
+    // the ship between the city harbour pier and your castle dock (Tim 2026-11-19): board here, or skip the crossing
+    { const sp = game.ferry?.prompt(game.state.entities[heroId]); if (sp) { pending.push({ id: heroId, type: 'frontier', action: 'ferry', mode: sp.riding ? 'skip' : 'board' }); return; } }
     if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
     // on the island at your omnibus station, or by your omnibus away from the gate: travel (Tim 2026-11-06)
     if (stableMenu.isOpen() || stableMenu.at()) { stableMenu.toggle(); return; }
@@ -836,7 +839,7 @@ async function start() {
       const stablePrompt = !door && !innerDoor && !knockable && stableMenu.at() && !stableMenu.isOpen();
       const travel = !door && !innerDoor && !knockable && !stablePrompt && stationMenu.at() && !stationMenu.isOpen();
       const lamp = !door && !travel && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
-      const allAboard = stationMenu.callPrompt() || warOutcome.prompt();   // (or the ruined hall of a war: take it)
+      const allAboard = stationMenu.callPrompt() || warOutcome.prompt() || game.ferry?.prompt(game.state.entities[heroId])?.text;   // (or the ruined hall of a war: take it)
       // the world prompts name the Use key: whatever it is bound to now (Tim 2026-11-12)
       const usePrompt = t => typeof t === 'string' && t.startsWith('Space  ') ? keybinds.badge('use') + t.slice(5) : t;
       $('prompt').textContent = usePrompt(allAboard ? allAboard : knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? (door.menu === 'rail_station' && stationMenu.trainPrompt()) || `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`

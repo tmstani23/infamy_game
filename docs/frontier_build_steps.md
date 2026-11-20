@@ -2826,6 +2826,98 @@ Design: `frontier_campaign_plan.md`, Zones, castles and campaign win (2026-11-19
 6. Choosing a start: the home pick on the new campaign screen and the ship ride between the city and any castle. Starts with a check of how much code assumes the east capital point is the frontier hub.
 7. Later content, one piece at a time: the hand-designed castle for each site, rings, moat and drawbridge, castle art.
 
+### Phase Z built so far (2026-11-19 to 2026-11-20)
+
+Zone data and caps, the zones map, the default castle with its rail hub, rival castles and rival expansion, and the ship ride are built. What is not built yet is listed at the end.
+
+**Castle (first default layout, v5; replaced by v6 below)**
+
+- Data `data/castle_default.json` version 2: 36 by 43 cells of 11 units. Outer wall with moat on three sides, sea side with a plank dock, drawbridge and land gate, rail gate and rail bridge, inner terrace (level 1) and keep terrace (level 2), each reached by one land bridge. Terrace edges are thin cliffs on the cell line and cannot be broken.
+- East Plains castle stood at (13055, 2125) with v5, dock toward the sea. Site S47 is closed.
+- A castle is a settlement with `capital: true`, so town rules for economy, governor, zoning, founding limits and war targets skip it.
+- Shooters on a higher terrace reach 15 percent further per level (placeholder).
+
+**Watchtower garrison**
+
+- Watchtowers can be garrisoned in towns, war camps and castles: 4 troops, plus 4 reach while inside (placeholders, `frontier.json` `war.structures.zoneGarrison.byType`).
+- Bot defenders put ranged troops in watchtowers as they do in houses.
+
+**Rail hub at the castle**
+
+- A clan with a castle has its rail hub at the castle station. The node is still called `capital` in orders, shipments and saves.
+- The line leaves the station, passes the rail gate and crosses the rail bridge. Trains are boarded and left at the castle station on the island.
+- Lines laid to the city before the castle stood are routed to the castle once.
+- A clan with no castle (rivals, until rival castles are built) keeps the city end.
+
+**Campaign zones in play**
+
+- Cap: a clan may found at most 2 towns in one zone. The site list says "Zone full". Founding on foot is held to the same cap. Captured towns count toward the 2.
+- Castle sites (S55, S43, S56, S41) and S47 are closed to founding.
+
+**Rival campaign**
+
+- Data: `data/campaign_zones.json` `rivals`. Code: `sim/frontier/rival_campaign.js`. Saved in `state.frontier.rivals`.
+- Each rival rolls a home zone (never East Plains, never Sutra Heartland) and one hidden strategy at the start of a campaign.
+- First town: the boss's own trip, to a site in the home zone.
+- Later towns: the clan pays the permit, the settlers and the founding cost from its treasury. The settlers land at the home harbour, run to the site and found the town with the normal founding rules. They are real units. If fewer than the minimum arrive, the trip is lost and the founding cost comes back.
+- Site order: home zone first, then zones touching it, then onward. A site with no way to it on foot is skipped.
+- No settlers are sent while one of the clan's towns is under attack.
+- Strategies (placeholders): Expander founds every 3 days up to 8 towns and starts no war while it can still found. Fortress founds every 6 days up to 5 towns and starts no war with under 3000 ryo in the treasury. Warlord founds 2 towns, then goes to war, and picks the least defended town it knows.
+- A rival's general only targets towns it knows: towns in zones where it has a town or its home, zones touching those, and towns of any clan that attacked it.
+- A clan that lost every town founds again from home the same way.
+
+**Rules replaced (from 2026-11-19)**
+
+- The 2026-11-09 rule "a clan's last town can only be sacked" is gone. Any town can be captured, sacked or burned.
+- The 2026-11-19 stopgap that made rivals settle 2500 to 4500 from the player's first town is gone.
+- The war goals (news of rival towns, pack a war chest, declare war) now wait until a rival town stands in a zone where the player has a town, or in a zone touching one.
+
+**Tests**
+
+- `tools/test_castle_rail.mjs`, `tools/test_tower_garrison.mjs`, `tools/test_rival_campaign.mjs`. Updated: `test_castle`, `test_bot_founding`, `test_war_end`, `test_war_terms`, `test_war_general`.
+- Tests that need the castle, zones or rival campaign must pass `castleBlueprint` and `campaignZones` in the frontier options.
+
+**Not built yet**
+
+- Castle sieges (the 4 of 6 gate, a clan being out, empty towns). Start pick on the new campaign screen.
+- Per-strategy town build order (Fortress walls first, Expander light defences).
+
+
+**Rival castles (Z5)**
+- Each rival's castle stands at its home zone's castle spot from the start of a campaign, the default layout turned so its dock faces the sea. Spots (`data/campaign_zones.json`): Northern Thaw S55 area, Southern Wilds S43 area (S37 closed), Red Desert S56 area, Western Reach S41 area. No town may be founded within 900 of any castle spot (`castleSpacing`).
+- A rival's rail hub is its castle station. Its settlers land in front of its drawbridge.
+- A rival castle shows like a rival town: only the parts your units have seen, remembered as last seen.
+
+**Ship to your castle**
+- Space on the city harbour pier, or on your castle's dock, takes the ship across. You and your party within 16 go aboard (up to 40); horses stay ashore. The crossing takes 20 seconds; Space skips it after 3. Placeholders in `campaign_zones.json` `ship`.
+- Only a clan with a castle sails. Code `sim/frontier/ferry.js`, test `tools/test_ship_ride.mjs`.
+
+**Zones on the World map (Z3)**
+- Layer "Zones" on the World tab, on by default: dashed borders between the six zones, a tint over a zone one clan holds, and a label per zone with its name, who holds it and "Your towns n of 2".
+- Rival towns count only once their ground is discovered. A zone where you have a town shows its true holder. A zone with no known towns reads "Free" once a third of it is discovered, else "No towns known".
+- Your castle is always marked, a rival castle once discovered. The goal row reads "Hold 4 of 6 zones, one next to a rival castle" with a bar.
+- Code `src/zone_map.js`, test `tools/test_zone_map.mjs`. Label spots: `labelAt` per zone in `campaign_zones.json`.
+
+**Castle walls**
+- Castle walls and gates use art fitted by `tools/fit_castle_wall_art.py`: each wall piece climbs exactly the ground diagonal and is half a cell long, so pieces join end to end. A gate run (2 or 3 cells) is the wall running on with one gatehouse over its middle.
+- Art `castle_wall` and `castle_gate` (made from `town_wall` and `town_gate`); `frontier.json` `_castleWalls`. Town walls are unchanged.
+- The castle track runs dead straight from the castle station through the middle of the rail gate and over the rail bridge, and turns only out past the moat (`castleStraight` in `sim/frontier/rail.js`).
+
+
+**Default castle v6 (Tim chose "a third smaller")**
+- Every castle uses the same layout, now 28 by 31 cells (was 36 by 43): the same three levels, walls, gates, towers and buildings, packed tighter. The keep is 6 cells a side, yards are 2 to 3 cells wide, both land bridges are 2 cells long. File `data/castle_default.json` (hall [12,16]).
+- The castle spots moved 5 cells toward the sea so the docks still reach the water: East Plains 13055, 2180; Northern Thaw 5869, 513; Southern Wilds 9820, 6560; Red Desert 769, 2906; Western Reach 3411, 7516 (`campaign_zones.json`).
+- Castles stay free of management: no zones, workers or upkeep (Tim reconfirmed 2026-11-19).
+
+**Castle gates**
+- You walk through a castle gate only between its door posts, 5 world units across the middle of the gate run (`townGrid.castleGateDoor`). The rest of the run blocks like wall.
+- The rail gatehouse, and the wall running through it, turn see-through black while a train car is under it (also the city's railway gate). Drawing only (`render/world_ground.js` fadeGates).
+- The stone pillar at each wall corner is drawn over both walls (`_castleWalls.w.postDepthBias`).
+
+**Dev save**
+- castle_test keeps the castle tour (Tim 2026-11-20: leave it in): empty castles at the two spots no clan holds, all castles seen and pinned on the World map.
+- Castle docks are walkable: the water under a placed castle's ground is cut out of the terrain blockers (`sim/castles.js` castleWalkBoxes, `sim/areas.js` walkOver, `sim/chunk_gen.js` option `walk`). Moat banks: `world_paint.json` `moatBank`, `frontier.json` `townArt._ground` `bankFade` / `bankCorner`.
+
 ## Phase W5: Exploration and natives
 
 Goal (Tim, 2026-11-02): the wilds are worth exploring: native villages with their own relations,

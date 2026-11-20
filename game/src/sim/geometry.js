@@ -33,6 +33,7 @@ export function artItem(catalog, name) {
     corner: !!a.corner,
     cord: a.cord ?? null,              // [x, y] art pixel where a hanging cord starts                // the art's lowest pixel is the front corner of a long box (alcoves, shelves)
     artAnchor: a.artAnchor,
+    anchor: a.anchor,                  // [x, y] art pixel on the footprint centre, mirrored with the art (artAnchor is not)
     file: a.file ?? `art/${kind}/${name}.png`,
   };
 }
@@ -71,7 +72,7 @@ export function placePiece(entry, catalog, cutouts) {
     flip: false, indoor: false, ...entry, item, meta, ...f,
     // An interior can calibrate the painted floor-contact pixel without moving
     // its recipe footprint or gameplay blocker.
-    center: entry.artAnchor ?? item.artAnchor ?? f.center,
+    center: entry.artAnchor ?? item.artAnchor ?? (item.anchor ? (entry.flip ? [meta.w - item.anchor[0], item.anchor[1]] : item.anchor) : f.center),
     // a painting whose base is turned off the ground diagonal is sheared back upright-safe (art.json "shear",
     // tools/measure_art_slant.py, Tim 2026-11-07); mirrored art mirrors it
     shear: entry.shear ?? (entry.flip ? -1 : 1) * (item.shear || 0),

@@ -46,7 +46,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   // troops go in from this card: houses, workshops and farmhouses, and a war camp's stockade (a town stockade has its own garrison card)
   const campFort = st => !!st.war && st.kind === 'building' && st.type === 'stockade' && !!frontierData?.buildings?.stockade?.garrison;
   const zoneOk = st => ((Z().types || []).includes(st.type) && (st.kind === 'zone' || st.kind === 'building')) || campFort(st);
-  const capOf = st => st.type === 'stockade' ? frontierData?.buildings?.stockade?.garrison?.capacity ?? 0 : Z().capacity ?? 10;
+  const capOf = st => st.type === 'stockade' ? frontierData?.buildings?.stockade?.garrison?.capacity ?? 0 : Z().byType?.[st.type]?.capacity ?? Z().capacity ?? 10;
   function at(x, y) {
     if (!onIsland()) return null;
     let best = null, bd = Infinity;
@@ -127,7 +127,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
       <div class="stat">${esc(stat)}</div>
       ${up ? `<div class="bar build" title="${up.pct}% upgraded"><i style="width:${up.pct}%"></i></div><div class="dim" style="margin:4px 0 2px"${up.tip ? ` title="${esc(up.tip)}"` : ''}>${esc(up.text)}</div>` : ''}
       <div class="row"><span class="dim">Health ${hp} of ${st.max}</span><span title="${esc(zoneOk(st) || st.type === 'stockade' ? 'Troops inside' : 'Nobody can garrison this')}"><span class="gar">${n}</span>${canG ? `<span class="dim"> of ${cap}</span>` : ''}</span></div>
-      ${canG ? `<div class="row"><button data-in="1"${troopsSelected().length ? '' : ' disabled'} title="Your selected troops walk over and go in. Melee troops inside cannot fight; ranged troops shoot out. Hits on them go to the building.${st.type === 'stockade' ? ' Troops inside a stockade recover faster.' : ''}">Garrison selected</button><button data-out="1"${n ? '' : ' disabled'}>Send all out</button></div>
+      ${canG ? `<div class="row"><button data-in="1"${troopsSelected().length ? '' : ' disabled'} title="Your selected troops walk over and go in. Melee troops inside cannot fight; ranged troops shoot out. Hits on them go to the building.${st.type === 'stockade' ? ' Troops inside a stockade recover faster.' : st.type === 'watchtower' ? ' Ranged troops in a watchtower reach further.' : ''}">Garrison selected</button><button data-out="1"${n ? '' : ' disabled'}>Send all out</button></div>
         <div class="dim" style="margin-top:6px">Ctrl + right-click it with troops selected to send them in.</div>` : ''}${hint ? `<div class="dim" style="margin-top:6px">${esc(hint)}</div>` : ''}`;
     root.hidden = false;
   }

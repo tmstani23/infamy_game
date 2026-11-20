@@ -23,6 +23,7 @@ import { createWorldGround } from './world_ground.js';
 import { createRailTrack, createCityStation } from './rail_track.js';
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
+import { groundY, maxGroundY } from '../castle_height.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
@@ -254,7 +255,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     if (!sp || !AURA_MAT[sp]) { if (s.aura) s.aura.visible = false; return; }
     if (!s.aura) { s.aura = new THREE.Mesh(AURA_GEO, AURA_MAT[sp]); s.aura.rotation.x = -Math.PI / 2; s.aura.renderOrder = 1; scene.add(s.aura); }
     s.aura.material = AURA_MAT[sp]; s.aura.visible = s.thing.mesh.visible !== false;
-    s.aura.position.set(s.pos.x, 0.015, s.pos.z); s.aura.scale.setScalar(s.size);
+    s.aura.position.set(s.pos.x, 0.015 + s.pos.y, s.pos.z); s.aura.scale.setScalar(s.size);
   }
   function updateTeamRing(s, e, me) {
     if (!s.team) {
@@ -270,7 +271,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     TEAM_TIME.value = performance.now() / 1000;
     TEAM_FAR.value = THREE.MathUtils.clamp((0.6 - zoomNow) / (0.6 - minZoom('world')), 0, 1);
     s.team.children[1].material = TEAM_MAT[teamOf(e, me)];
-    s.team.position.set(s.pos.x, 0.018, s.pos.z);
+    s.team.position.set(s.pos.x, 0.018 + s.pos.y, s.pos.z);
     s.team.scale.setScalar(s.size * (1 + 0.3 * TEAM_FAR.value));
   }
 
@@ -321,7 +322,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
 
   function updateLights(time) {
-    const wild = ((heroPlace === 'world' && !cityView) || worldView) && heroPos ? [...(worldGround?.lights() || []), Object.assign(wildGlow, { pos: wildGlow.pos.set(heroPos.x, 1.2, heroPos.z) })] : [];
+    const wild = ((heroPlace === 'world' && !cityView) || worldView) && heroPos ? [...(worldGround?.lights() || []), Object.assign(wildGlow, { pos: wildGlow.pos.set(heroPos.x, 1.2 + groundY(heroPos.x, heroPos.z), heroPos.z) })] : [];
     const trainLamps = [...(railTrack?.lights() || []), ...(cityStation?.lights() || [])];   // train oil lamps (render/train_fx.js)
     const near = [...lights, ...wild, ...trainLamps].filter(l => !l.off)
       .map(l => ({ l, d: (l.pos.x - camTarget.x) ** 2 + (l.pos.z - camTarget.z) ** 2 }))
@@ -345,12 +346,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (hero) {
         const s = t.screen, hs = hero.thing.screen;
         covering = s.x0 < hs.x1 && hs.x0 < s.x1 && s.y0 < hs.y1 && hs.y0 < s.y1 && behind(hero.thing, t)
-          && [0.25, 1.0, 1.8].some(y => t.covers(probe.copy(hero.pos).setY(y)));
+          && [0.25, 1.0, 1.8].some(y => t.covers(probe.copy(hero.pos).setY(hero.pos.y + y)));
       }
       t.cut = THREE.MathUtils.clamp(t.cut + (covering ? dt : -dt) * 4, 0, 1);
       const u = t.mesh.material.uniforms;
       u.uCut.value = t.cut;
-      if (hero) u.uCutCenter.value.copy(hero.pos).setY(1.0);
+      if (hero) u.uCutCenter.value.copy(hero.pos).setY(hero.pos.y + 1.0);
     }
   }
 
@@ -469,7 +470,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
         u.uSelfLight.value.setRGB(0.55 + 0.25 * k, 0.12, 0.05);
         let l = lanternLights.get(id);
         if (!l) { l = { pos: new THREE.Vector3(), radius: 7, color: new THREE.Color(1, 0.28, 0.1), fire: true, seed: Math.random() * 10 }; lanternLights.set(id, l); lights.push(l); }
-        l.pos.set(s.pos.x, 1.6, s.pos.z);
+        l.pos.set(s.pos.x, 1.6 + s.pos.y, s.pos.z);
       } else if (s.lanternTint) {
         u.uTint.value.setRGB(1, 1, 1);
         u.uSelfLight.value.setRGB(0.2, 0.18, 0.16);
@@ -527,6 +528,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     worldGround?.update(camTarget.x, camTarget.z, (heroPlace === 'world' && !cityView) || worldView, dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
     mark('ground');
     railTrack?.update(state.frontier, (heroPlace === 'world' && !cityView) || worldView, dt, shared.uNight.value);
+    worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
     cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);
     mark('rail');
     updateLights(time);
@@ -557,10 +559,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const hqFire = createHQFire({ scene, things, lights });
   const structureFire = createStructureFire({ scene });
   const hallFx = createHallChannelFx({ scene, lights, thingAt: k => worldGround?.thingAt(k) || null, artThing: p => worldGround?.artThing(p) || null, seconds: () => hallSeconds });   // war 8a: taking a hall
-  const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
+  const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9 + groundY(x, z), z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   let hallChannelOf = () => null;   // main.js: the running hall channel of a war (sim/frontier/war_end.js view)
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null, hallChannelOf: id => hallChannelOf(id),
-    unitToScreen: (x, z, y = 0.9) => { v.set(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
+    unitToScreen: (x, z, y = 0.9) => { v.set(x, y + groundY(x, z), z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   function addCasts(casts) {
     for (const c of casts) {
       abilityFx.cast(c);
@@ -619,7 +621,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     const sample = { id: followId, place: h.place, x: h.x, z: h.z };
     const jumped = cameraDiscontinuity(previousCameraHero, sample);
     previousCameraHero = sample;
-    cameraPoint.set(h.x, 0, h.z);
+    cameraPoint.set(h.x, groundY(h.x, h.z), h.z);   // on a castle terrace the view centres on the raised ground (Z4h)
     // Don't interpolate through a whole-island test travel.
     if (position && Math.hypot(position.x - h.x, position.z - h.z) <= 60) cameraPoint.copy(position);
     // aboard a train (Tim 2026-11-07): the camera follows the drawn engine; boarding drops a pan or a watch,
@@ -743,7 +745,23 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     screenToGround(px, py) {
       camera.updateMatrixWorld();
       raycaster.setFromCamera({ x: px / innerWidth * 2 - 1, y: 1 - py / innerHeight * 2 }, camera);
-      return raycaster.ray.intersectPlane(groundPlane, v) ? { x: v.x, z: v.z } : null;
+      // castle terraces (Z4h): the first raised ground the view ray meets (src/castle_height.js), stepping down from the
+      // highest terrace, so a click on a cliff top lands on top, not on the ground hidden behind it
+      const ray = raycaster.ray, top = maxGroundY();
+      if (top > 0 && Math.abs(ray.direction.y) > 1e-6) {
+        const at = h => { const t = (h - ray.origin.y) / ray.direction.y; return [ray.origin.x + ray.direction.x * t, ray.origin.z + ray.direction.z * t]; };
+        const steps = Math.ceil(top / 0.25);
+        let above = top + 0.01;
+        for (let k = 0; k <= steps; k++) {
+          const h = top * (1 - k / steps), [x, z] = at(h);
+          if (groundY(x, z) < h - 1e-4) { above = h; continue; }
+          let a = above, b = h;   // a: ray above the ground, b: at or under it
+          for (let i = 0; i < 12; i++) { const m = (a + b) / 2, [mx, mz] = at(m); if (groundY(mx, mz) >= m) b = m; else a = m; }
+          const [bx, bz] = at(b);
+          return { x: bx, z: bz };
+        }
+      }
+      return ray.intersectPlane(groundPlane, v) ? { x: v.x, z: v.z } : null;
     },
     // page pixel -> index of the street building painted there (the frontmost one), or null.
     // Any point on the click's view ray works for Thing.covers, so the ground point is used.
@@ -758,7 +776,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     setHoverUnit(id) { hoverUnitId = id; },
     // a unit's body centre (about 0.9 above its feet) -> page pixel { x, y }; y = another height
     unitToScreen(x, z, y = 0.9) {
-      v.set(x, y, z).project(camera);
+      v.set(x, y + groundY(x, z), z).project(camera);   // y above the ground there (castle terraces, src/castle_height.js)
       return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
     },
     // where a lantern prop's lights actually glow, as page pixels [{ x, y }] (for hovering it to snuff, Tim 2026-10-21)

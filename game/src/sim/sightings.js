@@ -70,7 +70,7 @@ export function createSightings({ state, sight = {}, towers = () => [] }) {
     const F = state.frontier; if (!F) return;
     for (const clan of players()) {
       const eyes = eyesOf(clan); if (!eyes.length) continue;
-      for (const t of Object.values(F.settlements || {})) if (!t.capital && t.owner !== clan && Number.isFinite(t.x)) townTick(clan, t, eyes);
+      for (const t of Object.values(F.settlements || {})) if ((!t.capital || t.castle) && t.owner !== clan && Number.isFinite(t.x)) townTick(clan, t, eyes);   // rival castles too (Z5)
       for (const w of Object.values(F.wars?.list || {})) if (w.camp && w.attacker !== clan) campTick(clan, w, eyes);
     }
     // a town or war that is gone (or became yours) is forgotten
@@ -90,11 +90,12 @@ export function createSightings({ state, sight = {}, towers = () => [] }) {
 export function maskGrid(g, mask, block = BLOCK) {
   if (!g?.n) return g;
   const n = g.n, nb = Math.ceil(n / block);
-  if (!mask) return { ...g, use: '.'.repeat(n * n), zone: '.'.repeat(n * n), by: '.'.repeat(n * n), stage: '0'.repeat(n * n) };
+  if (!mask) return { ...g, use: g.use.replace(/[^mk]/g, '.'), zone: '.'.repeat(n * n), by: '.'.repeat(n * n), stage: '0'.repeat(n * n) };
   const use = g.use.split(''), zone = g.zone.split(''), by = g.by.split(''), stage = g.stage.split('');
   for (let i = 0; i < n * n; i++) {
     if (mask[Math.floor(Math.floor(i / n) / block) * nb + Math.floor((i % n) / block)] === '1') continue;
-    use[i] = '.'; zone[i] = '.'; by[i] = '.'; stage[i] = '0';
+    if (use[i] !== 'm' && use[i] !== 'k') use[i] = '.';   // a castle's moat and cliffs are landscape, seen with the ground (Z4h)
+    zone[i] = '.'; by[i] = '.'; stage[i] = '0';
   }
   return { ...g, use: use.join(''), zone: zone.join(''), by: by.join(''), stage: stage.join('') };
 }

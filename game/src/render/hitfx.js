@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { CAM_QUAT, CAM_RIGHT } from './iso.js';
 import { onFxLayer } from './bloom.js';
+import { groundY } from '../castle_height.js';
 
 const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'kuroda_spearman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto']);
 const MAX_NUMBERS = 40, NUMBER_LIFE = 0.85, TRAIL_LIFE = 0.16, SPARK_LIFE = 0.32, MAX_SPARKS = 400;
@@ -86,7 +87,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     // swing across the side the attacker faces on screen
     const right = new THREE.Vector3(attacker.fx, 0, attacker.fz).dot(CAM_RIGHT) >= 0;
     m.scale.set(right ? 1 : -1, 1, 1);
-    m.position.set(attacker.x + attacker.fx * 0.5, 1.15, attacker.z + attacker.fz * 0.5);
+    m.position.set(attacker.x + attacker.fx * 0.5, 1.15 + groundY(attacker.x, attacker.z), attacker.z + attacker.fz * 0.5);
     m.renderOrder = 99700;
     m.frustumCulled = false;
     scene.add(onFxLayer(m));

@@ -25,6 +25,8 @@ import { makeSpotIndex } from '../sim/resource_spots.js';
 import { spotPiecesToProps, visibleSpots, coveredBySpot } from '../resource_spot_props.js';
 import { isDiscovered } from '../world_map.js';
 import { createSpotGlow } from './spot_glow.js';
+import { terraceMaterial } from './shading.js';
+import { createHeightField, setHeightField, terrainPieces, groundY, nearCastle } from '../castle_height.js';
 
 // world prop kind -> art in data/art.json and a size factor (placeholders until the forest and
 // mountain art is cut in, W3.4b)
@@ -189,6 +191,8 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     }
     const piece = placePiece({ name, x: p.x, z: p.z, flip: p.art ? !!p.flip : !cfg.biomeProps?.noMirror?.kinds?.includes(p.kind) && Math.floor(p.x * 7 + p.z * 3) % 2 === 0 }, catalog, cutouts);
     if (!piece) return null;
+    // drawn in front of what stands on the same line (a castle gatehouse over its wall, src/town_props.js)
+    if (p.depthBias) piece.foot = { minX: piece.foot.minX + p.depthBias, maxX: piece.foot.maxX + p.depthBias, minZ: piece.foot.minZ + p.depthBias, maxZ: piece.foot.maxZ + p.depthBias };
     let fenceWidth=1;
     if(p.fenceHeading) {
       let [dx,dz]=p.fenceHeading;const length=Math.hypot(dx,dz);
@@ -214,6 +218,8 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (p.opacity !== undefined && thing?.mesh.material.uniforms?.uOpacity) thing.mesh.material.uniforms.uOpacity.value = p.opacity;
     return thing;
   }
+  // how far a sprite's depth card is pulled toward the camera: half its footprint's diagonal (its front corner) and a bit
+  const pullOf = t => { const f = t.foot; return f ? Math.max(0.45, ((f.maxX - f.minX) + (f.maxZ - f.minZ)) * Math.SQRT1_2 / 2 + 0.3) : 0.45; };
   function removeThing(key) {
     const t = sprites.get(key);
     if (!t) return;
@@ -257,10 +263,10 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (revision !== spotRevision && nowMs - spotAppliedAt >= 500) { spotRevision = revision; propAt = null; spotAppliedAt = nowMs; }
     glow?.update(glowItems, active, viewScale);
     if (!active) {
-      if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) { c.mesh.visible = false; if (c.coastMesh) c.coastMesh.visible = false; } list = []; shown = false; last = null; propAt = null; if (cityFog) cityFog.visible = false; }
+      if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) { c.mesh.visible = false; if (c.coastMesh) c.coastMesh.visible = false; } for (const m of terrain) m.visible = false; list = []; shown = false; last = null; propAt = null; if (cityFog) cityFog.visible = false; }
       return;
     }
-    if (!shown) { for (const c of loaded.values()) { c.mesh.visible = true; if (c.coastMesh) c.coastMesh.visible = true; } shown = true; if (cityFog) cityFog.visible = true; }
+    if (!shown) { for (const c of loaded.values()) { c.mesh.visible = true; if (c.coastMesh) c.coastMesh.visible = true; } for (const m of terrain) m.visible = !!m.material.uniforms.uMap.value; shown = true; if (cityFog) cityFog.visible = true; }
     frame++;
     const vx = last && dt > 0 ? (x - last[0]) / dt : 0, vz = last && dt > 0 ? (z - last[1]) / dt : 0;
     last = [x, z];
@@ -324,8 +330,10 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       const t = makeThing(p);
       if (t === undefined) { pending = true; continue; }
       if (!t) continue;
+      liftThing(t, p.x, p.z, t.decal ? 0 : pullOf(t));
       scene.add(t.mesh, ...t.extras);
       t.drawSignature = sigOf(p);
+      t.at = [p.x, p.z];
       sprites.set(k, t); changed = true;
     }
     if (pending) propAt = null;
@@ -367,9 +375,100 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     }
     waterEffects.capture(camera, time, waterVisible, hidden);
   }
-  function setTowns(list) { towns = list; propAt = null; }
+  // castle terraces (Z4h): the raised tops, cliff rims, land bridges and cliff faces of every drawn castle as real 3D
+  // (src/castle_height.js); built again only when a castle's levels change. Things standing in a castle are lifted to
+  // the ground height under them and depth tested, so a cliff hides what is behind it.
+  let terrain = [], heightSig = '';
+  const terrainTex = new Map();
+  const CASTLE_NEAR = 30;   // units round a castle's box where things are depth tested against its terraces
+  function buildTerrain(cw, art) {
+    for (const m of terrain) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }
+    terrain = [];
+    const H = art?.levelHeight ?? 6, field = createHeightField(cw, { levelHeight: H });
+    setHeightField(field);
+    for (const c of field.list) {
+      const pieces = terrainPieces(c, H);
+      for (const [kind, quads] of Object.entries(pieces)) {
+        if (!quads.length) continue;
+        const P = art?.pieces?.[kind] || {}, tile = P.tile || 8;
+        const pos = new Float32Array(quads.length * 12), uv = new Float32Array(quads.length * 8), shade = new Float32Array(quads.length * 4), idx = [];
+        quads.forEach((f, k) => {
+          const sh = (P.gain ?? 1) * (kind !== 'face' ? 1 : f.side === 'E' ? (P.shadeEast ?? 0.7) : (P.shadeSouth ?? 0.88));   // gain: lifts a dark texture
+          f.q.forEach(([x, y, z], v) => {
+            pos.set([x, y, z], k * 12 + v * 3);
+            // tops tile by ground position; faces by their run along the edge and height
+            // (a cliff face, pieces.face.span: one painted cliff strip every span units along the edge, mirrored on east faces
+            // like the island's cliff art, and once up each level)
+            uv.set(kind !== 'face' ? [x / (tile * (P.aspect ?? 1)), z / tile] : P.span ? [(f.side === 'E' ? -z : x) / P.span, y / H] : [(f.side === 'E' ? z : x) / tile, y / tile], k * 8 + v * 2);
+            shade[k * 4 + v] = sh;
+          });
+          const b = k * 4; idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+        });
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+        geo.setAttribute('shade', new THREE.BufferAttribute(shade, 1));
+        geo.setIndex(idx);
+        const file = P.texture || 'art/ground/dirt.jpg';
+        // the mesh joins the scene once its texture is in (never drawn black with an empty one)
+        const cached = terrainTex.get(file);
+        const ready = cached instanceof Promise ? cached : cached ? Promise.resolve(cached) : loadTex(file).then(t => { t.wrapS = P.span || P.mirror ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping; t.wrapT = P.mirror ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.needsUpdate = true; terrainTex.set(file, t); return t; });
+        if (!cached) terrainTex.set(file, ready);
+        const tex = cached && !(cached instanceof Promise) ? cached : null;
+        const mesh = new THREE.Mesh(geo, terraceMaterial(tex, P.tint || '#ffffff'));
+        mesh.renderOrder = -0.9;   // after the island ground (-1), before the town decals and every sprite
+        mesh.frustumCulled = false;
+        mesh.visible = shown && !!tex;
+        scene.add(mesh); terrain.push(mesh);
+        if (!tex) ready.then(t => { mesh.material.uniforms.uMap.value = t; if (terrain.includes(mesh)) mesh.visible = shown; }).catch(e => console.error('Castle ground texture:', file, e));
+      }
+    }
+    propAt = null;
+  }
+  // a thing in a castle: lifted to the ground height at its spot and depth tested against the terraces (with its depth
+  // taken as an upright card at its feet, pulled toward the camera by pull so its own bottom edge is not cut)
+  function liftThing(t, x, z, pull) {
+    if (!t || !nearCastle(x, z, CASTLE_NEAR)) return t;
+    const h = groundY(x, z), mat = t.mesh.material;
+    if (h) { t.mesh.position.y += h; for (const e of t.extras) e.position.y += h; for (const l of t.lights) l.pos.y += h; }
+    if (mat?.uniforms?.uDepthAt) {
+      mat.depthTest = true;
+      if (t.decal) mat.uniforms.uDepthAt.value.set(x, h, z, 0);   // flat on the ground: its own depth is right
+      else mat.uniforms.uDepthAt.value.set(x, h, z, pull);
+    }
+    if (!t.decal) t.updateScreen?.();
+    t.lift = h;
+    return t;
+  }
+  let waterSig = '';
+  function setTowns(list) {
+    towns = list; propAt = null;
+    const hs = (list.castleWater || []).map(g => `${g.id}:${g.x},${g.z}:${g.level}:${g.use}`).join('|') + JSON.stringify(list.castleArt || null);
+    if (hs !== heightSig) { heightSig = hs; buildTerrain(list.castleWater || [], list.castleArt); for (const k of [...sprites.keys()]) if (k.startsWith('town:')) removeThing(k); }
+    // castle moats (Z4): painted as real water; the ground chunks under a castle are painted again when they change
+    const cw = list.castleWater || [], sig = cw.map(g => `${g.id}:${g.x},${g.z}:${g.use.length}:${[...g.use].filter(ch => ch === 'm').length}`).join('|');
+    if (sig === waterSig || !cfg.paint?.enabled) return;
+    waterSig = sig;
+    createPaint(world, cfg.paint).setExtraWater(cw);
+    for (const [key, c] of [...loaded]) if (cw.some(g => { const h = (g.n / 2 + 1) * g.cell; return c.gen.x0 < g.x + h && c.gen.x0 + S > g.x - h && c.gen.z0 < g.z + h && c.gen.z0 + S > g.z - h; })) dropChunk(key);
+  }
   // war 8a (render/hall_channel_fx.js): the thing drawing a prop by its key ('town:' + town_props key), and a new
   // thing for an art name the caller owns (added to the scene and disposed by the caller)
-  const thingAt = key => sprites.get(key) || null, artThing = p => makeThing(p) || null;
-  return { update, setTowns, captureWater, thingAt, artThing, waterStats: () => waterEffects?.stats(), things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };
+  const thingAt = key => sprites.get(key) || null, artThing = p => { const t = makeThing(p) || null; return t ? liftThing(t, p.x, p.z, t.decal ? 0 : pullOf(t)) : t; };
+  // Tim 2026-11-19: a gatehouse a train runs through goes see-through black while a car is under it, with the wall that runs
+  // on through its gate cells (castle gates, the city's railway gate). cars: [[x, z]] from render/rail_track.js carSpots
+  const GATE_FADE = { reach: 9, opacity: 0.5, dark: 1, rate: 6 }, white = new THREE.Color(1, 1, 1), black = new THREE.Color(0, 0, 0);
+  function fadeGates(cars, dt) {
+    for (const [k, t] of sprites) {
+      if (!(k.endsWith(':cgate') || k.includes(':cwg:') || k === 'rail-gate') || !t.at || !t.mesh?.material?.uniforms?.uOpacity) continue;
+      const near = cars.some(([x, z]) => Math.hypot(x - t.at[0], z - t.at[1]) < GATE_FADE.reach);
+      const f = t.gateFade = Math.max(0, Math.min(1, (t.gateFade || 0) + (near ? 1 : -1) * GATE_FADE.rate * dt));
+      if (!f && !t.gateFaded) continue;
+      t.gateFaded = f > 0;
+      const u = t.mesh.material.uniforms;
+      u.uOpacity.value = 1 - (1 - GATE_FADE.opacity) * f;
+      u.uTint.value.copy(white).lerp(black, GATE_FADE.dark * f);
+    }
+  }
+  return { update, setTowns, captureWater, thingAt, fadeGates, artThing, waterStats: () => waterEffects?.stats(), things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };
 }

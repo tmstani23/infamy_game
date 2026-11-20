@@ -833,10 +833,13 @@ export function createGeneralBrain(game, { clan }) {
   function pickTown(from, A) {
     const War = F().war, hist = state.frontier.wars?.history || [], data = F().data, tierWorth = W().surrender?.worth?.tier || [0, 300, 900, 2000];
     const skip = ((A.sackedSkipDays ?? 6) + (W().cooldownDays ?? 0)) * gen().dayTicks;
+    // Z2: a Warlord (campaign strategy `weakest`) goes for the least defended town it knows, then the usual score
+    const weakest = !!F().rivalCampaign?.strategy(clan)?.weakest, forts = s => (s.buildings || []).filter(b => b.stage === 'built' && isMilitary(b.type, data)).length;
     return Object.values(state.frontier.settlements).filter(s => !s.capital && s.owner != null && s.owner !== clan && s.grid && Number.isFinite(s.x) && s.founded !== undefined
+      && (F().rivalCampaign?.knows(clan, s) ?? true)   // Z2: only towns it knows (its zones, the zones touching them, its attackers)
       && canPack(from, A, s) && !War.warOn(s.id) && !War.cooldownDays(s.id) && !hist.some(x => x.town === s.id && x.result === 'sacked' && state.tick - (x.ended ?? 0) < skip))
       .map(s => ({ s, score: ((tierWorth[s.tier || 1] ?? 300) + (s.pop || 0) * (A.popWorth ?? 5) - (s.buildings || []).filter(b => b.stage === 'built' && isMilitary(b.type, data)).length * (A.fortPenalty ?? 60)) / (1 + dist(s, from) / (A.distanceScale ?? 1500)) }))
-      .sort((a, b) => b.score - a.score || (a.s.id < b.s.id ? -1 : 1))[0]?.s || null;
+      .sort((a, b) => (weakest ? forts(a.s) - forts(b.s) : 0) || b.score - a.score || (a.s.id < b.s.id ? -1 : 1))[0]?.s || null;
   }
   // a banner spot in the band round the target: one with trees and stone in reach of the camp (attack.resourceRange,
   // outside the town's ring) before one without, then the side the hero comes from first
@@ -868,6 +871,7 @@ export function createGeneralBrain(game, { clan }) {
         if (home) return;
       }
       if ((state.tick ?? 0) % Math.max(1, Math.round((A.planSeconds ?? 60) * 20)) !== 0) return;
+      if (F().rivalCampaign && !F().rivalCampaign.mayWar(clan)) return;   // Z2: its campaign strategy holds it back (Expander with land left, Fortress short of ryo)
       const from = launchTown(A), target = from && pickTown(from, A);
       if (!target) return;
       p = mem.plan = { from: from.id, town: target.id, stage: 'pack', at: state.tick };

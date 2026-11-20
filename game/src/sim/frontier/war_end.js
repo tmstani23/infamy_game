@@ -52,8 +52,9 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
   const townsOf = clan => Object.values(f()?.settlements || {}).filter(s => s.owner === clan && !s.capital);
   // which outcomes the attacker may pick, each { id, ok, why }
   function outcomeList(w) {
-    const last = w.lastTown ?? townsOf(w.defender).length <= 1;   // lastTown: set on the screen's copy (sim_snapshot.js), which does not see every town
-    return ['capture', 'sack', 'burn'].map(id => ({ id, ok: id === 'sack' || !last, why: id !== 'sack' && last ? 'Their last town can only be sacked' : '' }));
+    // Z2 (Tim 2026-11-19): every town can be captured or burned. The rule of 2026-11-09 (a clan's last town can only be
+    // sacked) went with the big picture plan: a clan lives on in its home and founds again (rival_campaign.js).
+    return ['capture', 'sack', 'burn'].map(id => ({ id, ok: true, why: '' }));
   }
   // may this hero start taking that side's hall now: { ok, reason }
   function check(hero, w, side, outcome = null) {

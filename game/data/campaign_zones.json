@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "_note": "Campaign zones (Z1, Tim 2026-11-19, docs/frontier_campaign_plan.md). Not the town zoning in frontier.json 'zones'. A zone is a group of world.json regions; a region listed with xMin/xMax belongs to the zone only inside that x span (xMin included, xMax excluded). townCap = towns one clan may have in one zone. siege.zonesNeeded = zones a clan must hold to attack a castle, one of them the castle's zone or a zone touching it. castle.site = a world.json site id, or castle x, z for a spot that is not a site (East Plains: the cape, Tim 2026-11-19); sea = the side the dock faces; blocksSites = town spots the castle stands on or beside, closed to founding; a castle is not a town. Names are placeholders.",
+  "townCap": 2,
+  "castleSpacing": 900,
+  "_castleSpacing": "Z5 placeholder: nobody founds a town on foot within this many units of a castle spot. Castle x, z (Z5, 2026-11-19): where the default castle fits nearest the picked site, land part on buildable ground and the dock in the sea (to_delete/_zones/fit_near.mjs); with a site id the site is closed too.",
+  "siege": { "zonesNeeded": 4 },
+  "ship": { "_note": "the ship between the city harbour pier and your castle dock (sim/frontier/ferry.js); placeholders", "pier": [28, -44], "seconds": 20, "skipSeconds": 3, "reach": 7, "radius": 16, "seats": 40 },
+  "rivals": {
+    "_note": "Z2 (Tim 2026-11-19), placeholders, Tim to tune. Each rival bot clan rolls a home zone (never playerHome) and one hidden strategy, saved with the game (sim/frontier/rival_campaign.js). After the boss's own first town, a rival founds a new town everyDays days after its last one while it has fewer than maxTowns founded towns, can pay, and a site is free under the zone cap: home zone first, then the zones touching it, then onward. Its settlers land at the home harbour and run to the site at trekSpeed (world units a second). noWarWhileLand: the bot general starts no war while the clan may still found. warRyo: no war with less than this in the clan treasury. weakest: the general picks the town with the fewest military buildings among those it knows.",
+    "playerHome": "east_plains",
+    "trekSpeed": 5.4,
+    "strategies": {
+      "expander": { "name": "Expander", "everyDays": 3, "maxTowns": 8, "noWarWhileLand": true },
+      "fortress": { "name": "Fortress", "everyDays": 6, "maxTowns": 5, "warRyo": 3000 },
+      "warlord": { "name": "Warlord", "everyDays": 3, "maxTowns": 2, "weakest": true }
+    }
+  },
+  "zones": [
+    { "id": "east_plains", "labelAt": [11300, 4350], "name": "East Plains", "regions": ["06", "11", "12", "18", "C10", "C11", { "id": "C3", "xMin": 10500 }],
+      "touches": ["northern_thaw", "sutra_heartland", "southern_wilds"], "castle": { "x": 13055, "z": 2180, "sea": "south", "blocksSites": ["S47"] } },
+    { "id": "northern_thaw", "labelAt": [8300, 1750], "name": "Northern Thaw", "regions": ["03", "04", "05", { "id": "C2", "xMin": 5250 }, { "id": "C3", "xMax": 10500 }],
+      "touches": ["east_plains", "sutra_heartland", "red_desert"], "castle": { "site": "S55", "x": 5869, "z": 513, "sea": "north" } },
+    { "id": "sutra_heartland", "labelAt": [6900, 4500], "name": "Sutra Heartland", "regions": ["09", "10", "15", "16", "21", { "id": "C5", "xMin": 5250, "xMax": 7000 }],
+      "touches": ["east_plains", "northern_thaw", "southern_wilds", "red_desert", "western_reach"], "castle": null },
+    { "id": "southern_wilds", "labelAt": [10900, 6250], "name": "Southern Wilds", "regions": ["17", "22", "23", "24", "C6", "C12", { "id": "C5", "xMin": 7000 }],
+      "touches": ["east_plains", "sutra_heartland", "western_reach"], "castle": { "site": "S43", "x": 9820, "z": 6560, "sea": "west", "blocksSites": ["S37"] } },
+    { "id": "red_desert", "labelAt": [3100, 2500], "name": "Red Desert", "regions": ["01", "02", "07", "08", "C1", "C7", { "id": "C2", "xMax": 5250 }],
+      "touches": ["northern_thaw", "sutra_heartland", "western_reach"], "castle": { "site": "S56", "x": 769, "z": 2906, "sea": "west" } },
+    { "id": "western_reach", "labelAt": [3000, 5500], "name": "Western Reach", "regions": ["13", "14", "19", "20", "C4", "C8", "C9", { "id": "C5", "xMax": 5250 }],
+      "touches": ["red_desert", "sutra_heartland", "southern_wilds"], "castle": { "site": "S41", "x": 3411, "z": 7516, "sea": "south" } }
+  ]
+}
