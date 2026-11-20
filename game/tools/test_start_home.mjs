@@ -98,7 +98,9 @@ assert.ok(new Set(rolled).size > 1, 'random varies with the seed');
   assert.equal(goal?.title, 'Sail to your castle', `the sail card (${goal?.title})`);
   const pier = g.ferry.pier;
   Object.assign(hero, { place: 'street', x: pier[0], z: pier[1] });
-  g.step([{ id: hero.id, type: 'frontier', action: 'ferry', mode: 'board' }]);
+  g.step([{ id: hero.id, type: 'frontier', action: 'ferry', mode: 'board' }]);   // All aboard: the call runs out and they sail
+  assert.ok(hero.shipCall && !hero.aboard, 'All aboard called');
+  for (let i = 0; i < 10 * 20 + 1; i++) g.step([]);
   const aboard = Object.values(S.entities).filter(u => u.aboard === 'ship:player');
   assert.ok(aboard.includes(hero) && aboard.filter(u => u.type === 'settler').length === 5, `he and 5 settlers sail (${aboard.map(u => u.type)})`);
   assert.equal(clan.settlersWaiting, 0);

@@ -2935,8 +2935,14 @@ Zone data and caps, the zones map, the default castle with its rail hub, rival c
   - Goal cards: "Choose your home" (row Castle site chosen, points at the surveyor) after the permit, then "Sail to your castle" (row Ship from the harbour, points at the city pier). The sail takes the hero's party plus the clan's waiting settlers (`clan.settlersWaiting`), who land at the castle dock.
   - Ships (`render/ferry_ships.js`): the ferry uses the coastal ship model, drawn at berth.size, until a passenger ship is made. One ship lies at the city harbour pier, one off each castle's dock (out past the dock end, lying across it). While a clan's party is at sea a sailing ship is drawn where they are and that clan's moored ships are hidden; the city ship is away while any party is at sea.
   - Ship sprite exported at full character scale (pxPerUnit 160/3, 768 px cells, 10 pages; was 80/3, 384). Far out the half pages are used.
-  - Numbers (placeholders), `data/campaign_zones.json` ship.berth: size 1.725, city [19.5, -40, 1] (x, z, dir), castle { out 14, side 0, turn true }.
+  - Numbers (placeholders), `data/campaign_zones.json` ship.berth: size 1.725, city [19.5, -40, 1] (x, z, dir), castle { out 12.5, side 0, turn true }.
   - Tests: `tools/test_start_home.mjs`.
+- Z7b ship boarding, dock fixes, smooth sailing (2026-11-20):
+  - The ship's Use prompt works anywhere on the castle dock's planks (within ship.dockReach of the line from the landing point to the dock's sea end).
+  - Boarding is an All aboard call, as on trains. Use on the city pier or the castle dock calls it: a gold zone of ship.zoneRadius shows for ship.callSeconds, with a banner (seconds left, crew in the zone, "Space sails now"); the prompt reads "Space  All aboard now: N crew in the zone, sailing in S s". Castle side, the zone lies at the sea end of the dock, ship.zoneInset back along it, so its far edge reaches the moored ship; city side, on the pier point.
+  - When the call runs out, the hero and every unit of the hero's in the zone sail (on foot or horseback; never workers, vehicles, sector crew or city reserves). Settlers waiting at the HQ join when sailing to the castle. Use again during the call sails at once. The hero may stand anywhere on the pier or dock; leaving it calls boarding off.
+  - The moored ship lies ship.berth.castle.out off the dock end. A sailing ship is drawn between sim ticks, so it glides.
+  - Numbers (placeholders), `data/campaign_zones.json` ship: dockReach 20, zoneRadius 20, zoneInset 9, callSeconds 10; berth.castle.out 12.5.
 
 ## Phase W5: Exploration and natives
 

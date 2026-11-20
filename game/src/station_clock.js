@@ -1,7 +1,7 @@
 // Station clock (Tim 2026-11-08): over each of your railway stations, a small board says when the next train
 // comes in and where it goes, so you need not walk to the window and press Space. One row per line (up to 3):
 // a ring that fills as the train nears, then "Boarding · leaves 0:42" in gold while it stands there. Also draws
-// the All aboard zone while you call one.
+// the All aboard zone while you call one, for a train or for the ship at the harbour pier or your castle dock (Z7).
 // Draw only: reads rail.serviceAt(owner, station) (sim/frontier/rail.js). The capital's board stands over the
 // city railway station (in the city) and over the line's end outside the island gate (on the island).
 const STYLE = `
@@ -48,14 +48,16 @@ export function createStationClock({ game, heroId, view }) {
   const ctx = canvas.getContext('2d');
   let drawn = false;
   function zones(rail, hero) {
-    const calls = rail && hero && !document.body.classList.contains('ui-hidden') ? rail.trains().filter(t => t.call && t.owner === hero.owner && t.call.place === hero.place) : [];
+    const shown = hero && !document.body.classList.contains('ui-hidden');
+    const calls = [...(shown && rail ? rail.trains().filter(t => t.call && t.owner === hero.owner && t.call.place === hero.place).map(t => ({ c: t.call, n: () => rail.inZone(t).length, sub: 'Space boards now' })) : []),
+      ...(shown && hero.shipCall?.place === hero.place && game.ferry ? [{ c: hero.shipCall, n: () => game.ferry.inZone(hero).length, sub: 'Space sails now' }] : [])];
     if (!calls.length) { if (drawn) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawn = false; } return; }
     const dpr = devicePixelRatio || 1;
     if (canvas.width !== innerWidth * dpr || canvas.height !== innerHeight * dpr) { canvas.width = innerWidth * dpr; canvas.height = innerHeight * dpr; }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, innerWidth, innerHeight); drawn = true;
     const now = performance.now() / 1000;
-    for (const t of calls) {
-      const c = t.call, left = Math.max(0, (c.until - game.state.tick) / 20), k = c.ticks ? left * 20 / c.ticks : 0, n = rail.inZone(t).length;
+    for (const z of calls) {
+      const c = z.c, left = Math.max(0, (c.until - game.state.tick) / 20), k = c.ticks ? left * 20 / c.ticks : 0, n = z.n();
       const pts = Array.from({ length: 64 }, (_, i) => { const a = i / 64 * Math.PI * 2; return view.unitToScreen(c.x + Math.sin(a) * c.r, c.z + Math.cos(a) * c.r, 0.05); });
       const pulse = 0.5 + 0.5 * Math.sin(now * 5);
       ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath();
@@ -68,7 +70,7 @@ export function createStationClock({ game, heroId, view }) {
       // the banner over the far edge of the ring
       // kept on the screen when the ring's far edge is off it (the zone is wider than a zoomed-in view, Tim 2026-11-10)
       const far = pts.reduce((a, p) => p.y < a.y ? p : a, pts[0]), top = { x: Math.max(160, Math.min(innerWidth - 160, far.x)), y: Math.max(150, Math.min(innerHeight - 40, far.y)) };
-      const text = `ALL ABOARD!  ${Math.ceil(left)}`, sub = `${n} crew in the zone. Space boards now`;
+      const text = `ALL ABOARD!  ${Math.ceil(left)}`, sub = `${n} crew in the zone. ${z.sub}`;
       ctx.textAlign = 'center'; ctx.font = '800 20px system-ui,sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = '#1a1208';
       ctx.strokeText(text, top.x, top.y - 22); ctx.fillStyle = '#ffd34d'; ctx.fillText(text, top.x, top.y - 22);
       ctx.font = '600 12px system-ui,sans-serif'; ctx.lineWidth = 3; ctx.strokeText(sub, top.x, top.y - 6); ctx.fillStyle = '#f3e3bb'; ctx.fillText(sub, top.x, top.y - 6);

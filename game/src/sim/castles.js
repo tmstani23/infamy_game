@@ -5,7 +5,7 @@
 //   createCastles({ state, data, world, frontier }) -> { spots, castleOf, place }
 //     place(clan, zoneId) -> the castle record (once per clan); castleOf(clan) -> its castle or null;
 //     approach(clan) -> { x, z } on the open ground in front of its drawbridge
-//     dock(clan) -> { land, sea }: where the ship from the city lands and the water off the dock's end
+//     dock(clan) -> { land, end, sea }: where the ship from the city lands, the dock's sea end, and the water off it
 //     levelAt(x, z) -> the castle terrace level under a point (0 off the terraces; a land bridge counts as its low end)
 //     rangeScale(a, b) -> how much further shooter a reaches at b from higher ground (castle_default.json highGround)
 import { addCastle, castleIndex, castleBox } from './frontier/castle.js';
@@ -67,7 +67,7 @@ export function createCastles({ state, data, world, frontier }) {
     if (!c?.grid || !r) return null;
     const mid = Math.floor((r[0] + r[2] - 1) / 2), ix = castleIndex(bp, c.grid.n, c.castle.rot);
     const [lx, lz] = cellToWorld(c, ix(mid, Math.max(r[1], r[3] - 2))), [sx, sz] = cellToWorld(c, ix(mid, r[1]));
-    return { land: { x: lx, z: lz }, sea: { x: sx + (sx - lx) * 3, z: sz + (sz - lz) * 3 } };
+    return { land: { x: lx, z: lz }, end: { x: sx, z: sz }, sea: { x: sx + (sx - lx) * 3, z: sz + (sz - lz) * 3 } };
   }
   // high ground (Z4h, plan Z8: "a small range bonus for shooters on a higher ring"): each terrace level a shooter stands
   // above its target adds highGround.rangePerLevel of its range (placeholder, Tim to tune)

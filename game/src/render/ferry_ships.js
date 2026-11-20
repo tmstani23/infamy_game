@@ -3,7 +3,8 @@
 // (city coordinates), one at each castle's dock (island), and while a clan's party is at sea (sim/frontier/ferry.js,
 // riders aboard 'ship:<owner>') a sailing one is drawn where they are, and that clan's moored ships are hidden.
 // Reads the view state only. Placement: data/campaign_zones.json ship.berth (placeholders, set by eye).
-// createFerryShips({ scene, carSprite, bp, rules }) -> { update(state, showCity, showWorld, dt), things(), dispose() }
+// createFerryShips({ scene, carSprite, bp, rules }) -> { update(state, showCity, showWorld, dt, alpha), things(), dispose() }
+// A sailing ship is drawn between sim ticks (alpha, as the units are), so it glides instead of stepping 20 times a second.
 import { castleIndex } from '../sim/frontier/castle.js';
 import { cellToWorld } from '../sim/frontier/town_grid.js';
 import { dirIndex } from '../sim/geometry.js';
@@ -40,7 +41,7 @@ export function createFerryShips({ scene, carSprite, bp, rules }) {
     s.sprite.update(dt, x, z, dir, anim, null, size());
     show(s, true);
   }
-  function update(state, showCity, showWorld, dt) {
+  function update(state, showCity, showWorld, dt, alpha = 1) {
     const seen = new Set();
     // at sea: the riders of each clan, the hero first
     const sea = new Map();
@@ -56,7 +57,8 @@ export function createFerryShips({ scene, carSprite, bp, rules }) {
         const b = castleBerth(d, B().castle); put(`dock:${s.id}`, b.x, b.z, b.dir, 'idle', dt); seen.add(`dock:${s.id}`);
       }
       for (const [o, u] of sea) { const r = u.shipRide, dx = r.dest[0] - r.from[0], dz = r.dest[1] - r.from[1];
-        put(`sea:${o}`, u.x, u.z, dirIndex(dx, dz), 'walk', dt); seen.add(`sea:${o}`); }
+        const k = Math.min(1, Math.max(0, ((state.tick ?? 0) - 1 + alpha - r.since) / Math.max(1, r.until - r.since)));
+        put(`sea:${o}`, r.from[0] + dx * k, r.from[1] + dz * k, dirIndex(dx, dz), 'walk', dt); seen.add(`sea:${o}`); }
     }
     for (const [k, s] of ships) if (!seen.has(k)) { show(s, false); if (k.startsWith('sea:') && !sea.has(k.slice(4))) drop(k); }
   }

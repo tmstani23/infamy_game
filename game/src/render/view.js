@@ -537,7 +537,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
     cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);
-    ferryShips?.update(state, (heroPlace === 'street' || cityView) && !worldView, (heroPlace === 'world' && !cityView) || worldView, dt);
+    ferryShips?.update(state, (heroPlace === 'street' || cityView) && !worldView, (heroPlace === 'world' && !cityView) || worldView, dt, alpha);
     mark('rail');
     updateLights(time);
     updateCutaway(hero, dt);

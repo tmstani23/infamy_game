@@ -1,10 +1,18 @@
 // The ship between the city harbour and your castle dock (Tim 2026-11-19, zones build): a skippable sail like the
-// train ride. The boss stands on the city's harbour pier (or on his castle's dock) and presses Use: he and his party
-// nearby go aboard, the ship sails, and they step off at the other end. Space again skips the crossing after a moment.
+// train ride. The boss stands on the city's harbour pier (or on his castle's dock) and presses Use: All aboard is called
+// (Tim 2026-11-20, as the trains): a zone of ship.zoneRadius round him for ship.callSeconds, then everyone of his in it
+// goes aboard, the ship sails, and they step off at the other end. Use again during the call boards at once; Use at sea
+// skips the crossing after a moment.
 //   { id, type: 'frontier', action: 'ferry', mode: 'board' | 'skip' }
+// The call: hero.shipCall = { x, z, place, from: 'city' | 'castle', r, until, ticks }. The zone lies at the ship (zoneAt).
 // Riders carry e.aboard = 'ship:<owner>' (hidden, like train riders) and e.shipRide = { to, since, until, from, dest }.
 // Numbers: data/campaign_zones.json `ship` (placeholders). Only a clan with a castle sails; bots do not use it.
 // waiting(e) -> the settlers held at the HQ, called out to board with him (Z7: as they join him at the island gate)
+function segDist(x, z, a, b) {
+  const dx = b.x - a.x, dz = b.z - a.z, L = dx * dx + dz * dz;
+  const t = L ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / L)) : 0;
+  return Math.hypot(x - a.x - dx * t, z - a.z - dz * t);
+}
 export function createFerry({ state, rules, pier, seaGate, castles, navOf, followOffset, freeSlot, forget, areas, mounts, waiting = null }) {
   const S = () => rules?.ship || {};
   const say = (owner, text) => { const c = state.clans?.[owner]; if (c) c.notice = { tick: state.tick, text }; return true; };
@@ -16,23 +24,45 @@ export function createFerry({ state, rules, pier, seaGate, castles, navOf, follo
     const d = castles?.dock(e.owner); if (!d) return null;
     const r = S().reach ?? 7;
     if (e.place === 'street' && Math.hypot(e.x - pier[0], e.z - pier[1]) <= r) return 'city';
-    if (e.place === 'world' && Math.hypot(e.x - d.land.x, e.z - d.land.z) <= r * 2) return 'castle';
+    // anywhere on the dock's planks, from where the ship lands out to the sea end (Tim 2026-11-20)
+    if (e.place === 'world' && segDist(e.x, e.z, d.land, d.end ?? d.land) <= (S().dockReach ?? 20)) return 'castle';
     return null;
   }
-  // the boss's party around him: on foot or on horseback, never workers, vehicles, sector crew or reserves in the city
-  function party(e) {
-    const r = S().radius ?? 16;
+  // who boards with him: his units in the zone, on foot or on horseback, never workers, vehicles, sector crew or reserves
+  // in the city. c = { x, z, place, r } (the All aboard call); nearest first
+  function inZone(e, c = e?.shipCall) {
+    if (!e || !c) return [];
     const mine = u => u.place !== 'street' || !u.deployment || (!u.deployment.transfer && (u.deployment.group || 'hero') === 'hero');
     return Object.values(state.entities).filter(u => u.owner === e.owner && u.type !== 'hero' && !u.dead && !u.downed && !u.jailed && !u.garrison && !u.aboard
       && !u.worker && !u.railGang && !u.vehicle && u.type !== 'horse' && u.type !== 'rickshaw' && u.type !== 'omnibus' && mine(u)
-      && u.place === e.place && Math.hypot(u.x - e.x, u.z - e.z) <= r)
-      .sort((a, b) => Math.hypot(a.x - e.x, a.z - e.z) - Math.hypot(b.x - e.x, b.z - e.z));
+      && u.place === c.place && Math.hypot(u.x - c.x, u.z - c.z) <= c.r)
+      .sort((a, b) => Math.hypot(a.x - c.x, a.z - c.z) - Math.hypot(b.x - c.x, b.z - c.z));
   }
-  function board(e) {
+  // where the zone lies (Tim 2026-11-20): on the city pier, or at the sea end of the castle dock, ship.zoneInset back
+  // along the dock so its far edge just reaches the moored ship
+  function zoneAt(e, here) {
+    const d = here === 'castle' && castles?.dock(e.owner);
+    if (!d?.end) return { x: pier[0], z: pier[1] };
+    const dx = d.end.x - d.land.x, dz = d.end.z - d.land.z, L = Math.hypot(dx, dz) || 1, k = (S().zoneInset ?? 9) / L;
+    return { x: d.end.x - dx * k, z: d.end.z - dz * k };
+  }
+  // Use at the pier or the dock: call All aboard (the zone lies at the ship); Use again during the call: aboard at once
+  function call(e) {
+    if (e.shipCall) return allAboard(e);
     const here = at(e);
     if (!here) return say(e.owner, riding(e) ? 'Already at sea' : 'The ship lies at the city harbour pier and at your castle dock');
+    const ticks = Math.max(1, Math.round((S().callSeconds ?? 10) * 20)), z = zoneAt(e, here);
+    e.shipCall = { x: z.x, z: z.z, place: e.place, from: here, r: S().zoneRadius ?? 20, until: (state.tick ?? 0) + ticks, ticks };
+    return say(e.owner, 'All aboard! Get your crew into the zone (Space sails now)');
+  }
+  // the call runs out (or Use again): he and everyone of his in the zone go aboard, and the settlers waiting at the HQ
+  function allAboard(e) {
+    const c = e.shipCall; delete e.shipCall;
+    if (!c || riding(e)) return true;
+    const here = at(e);
+    if (!here || here !== (c.from ?? here)) return say(e.owner, `Boarding called off: you left the ${c.from === 'castle' ? 'dock' : 'pier'}`);   // he may stand anywhere on the pier or dock
     const d = castles.dock(e.owner), now = state.tick ?? 0, to = here === 'city' ? 'castle' : 'city';
-    const group = [...party(e), ...(to === 'castle' ? waiting?.(e) || [] : [])], crew = [e, ...group].slice(0, S().seats ?? 40);
+    const group = [...inZone(e, c), ...(to === 'castle' ? waiting?.(e) || [] : [])], crew = [e, ...group].slice(0, S().seats ?? 40);
     const from = to === 'castle' ? [seaGate.x, seaGate.z] : [d.sea.x, d.sea.z], dest = to === 'castle' ? [d.sea.x, d.sea.z] : [seaGate.x, seaGate.z];
     for (const u of crew) {
       if (u.mounted) { if (mounts?.dismount) mounts.dismount(u); else { delete u.mounted; delete u.ride; } }   // horses stay ashore
@@ -66,11 +96,13 @@ export function createFerry({ state, rules, pier, seaGate, castles, navOf, follo
     if (c.action !== 'ferry') return false;
     if (e.type !== 'hero') return true;
     if (c.mode === 'skip') return skip(e);
-    return board(e);
+    return call(e);
   }
   function tick() {
     const now = state.tick ?? 0, done = new Set();
     for (const u of Object.values(state.entities)) {
+      if (u.shipCall && (u.dead || u.downed || u.jailed || u.aboard)) delete u.shipCall;
+      else if (u.shipCall && now >= u.shipCall.until) allAboard(u);   // the call ran out
       if (!u.shipRide || !riding(u)) continue;
       const r = u.shipRide, k = Math.min(1, (now - r.since) / Math.max(1, r.until - r.since));
       u.x = r.from[0] + (r.dest[0] - r.from[0]) * k; u.z = r.from[1] + (r.dest[1] - r.from[1]) * k;
@@ -84,8 +116,12 @@ export function createFerry({ state, rules, pier, seaGate, castles, navOf, follo
       const now = state.tick ?? 0, left = Math.max(0, Math.ceil((e.shipRide.until - now) / 20)), wait = Math.max(0, Math.ceil(((S().skipSeconds ?? 3) * 20 - (now - e.shipRide.since)) / 20));
       return { riding: true, text: `${e.shipRide.to === 'castle' ? 'Sailing to your castle' : 'Sailing to the city'}: ${left} s${wait ? '' : ' (Space skips)'}` };
     }
+    if (e?.shipCall) {
+      const left = Math.max(0, Math.ceil((e.shipCall.until - (state.tick ?? 0)) / 20));
+      return { calling: true, text: `Space  All aboard now: ${inZone(e).length} crew in the zone, sailing in ${left} s` };
+    }
     const here = at(e);
     return here ? { text: here === 'city' ? 'Space  Ship to your castle' : 'Space  Ship to the city' } : null;
   }
-  return { command, tick, at, riding, prompt, pier };
+  return { command, tick, at, riding, prompt, inZone, pier };
 }
