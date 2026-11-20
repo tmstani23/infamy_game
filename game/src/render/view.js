@@ -22,7 +22,7 @@ import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createWeather } from './weather.js';
 import { createRailTrack, createCityStation } from './rail_track.js';
-import { createFerryShips } from './ferry_ships.js';
+import { createFerryShips, seaSpot } from './ferry_ships.js';
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
 import { groundY, maxGroundY } from '../castle_height.js';
@@ -402,7 +402,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
 
   // state: current tick; prev: the tick before; alpha: how far between them (0..1)
+  let frameAlpha = 1;   // this frame's time between sim ticks, for the camera on a ship
   function render(state, prev, alpha, dt, time, followId) {
+    frameAlpha = alpha;
     const frameStart=performance.now();renderer.info.reset();partAt=frameStart;
     frameWorkers=Object.values(state.entities).filter(e=>e.worker).length;
     updateFlashes(dt);
@@ -423,9 +425,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const [id, d] of drivers) if (!state.entities[id]) { if (d) { scene.remove(d.thing.mesh); d.dispose(); } drivers.delete(id); }
     for (const [id, s] of sprites) {
       if (!s) continue;
-      const e = state.entities[id];
+      let e = state.entities[id];
       let p = prev.entities[id] || e;
       if (Math.hypot(e.x - p.x, e.z - p.z) > 3) p = e;    // went through a door: no sliding
+      if (e.shipRide) { const q = seaSpot(state, e.shipRide, alpha); p = e = { ...e, x: q.x, z: q.z }; }   // at sea: on the drawn ship
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
       // a rifleman standing about within 3 s of a shot plays his reload (sim/rifleman.js firedAt)
       // on horseback (sim/mounts.js, Tim 2026-11-06): the hero sits up on the horse ('ride' clip, the idle until it is exported)
@@ -637,6 +640,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     const ride = typeof h.aboard === 'string' && h.aboard.startsWith('rail:') ? h.aboard.slice(5) : null, eng = ride && railTrack?.focus(ride);
     if (ride !== lastRide) { if (ride) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; roomView = null; } lastRide = ride; }
     if (eng && Math.hypot(eng.x - h.x, eng.z - h.z) <= 60) cameraPoint.set(eng.x, 0, eng.z);
+    // at sea (Tim 2026-11-20: very jerky): the camera sits on the drawn ship itself, no lag behind it
+    const sea = h.shipRide && !freeCam && !watchFn ? seaSpot(state, h.shipRide, frameAlpha) : null;
+    if (sea) cameraPoint.set(sea.x, 0, sea.z);
     if (jumped) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; roomView = null; camTarget.copy(cameraPoint); }
     const w = watchFn && watchFn();
     if (watchFn && !w) watchFn = null;
@@ -648,6 +654,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     heroPlace = h.place;
     if (!camReady || camTarget.distanceTo(cameraPoint) > (farCam || freeCam ? Infinity : 20)) { camTarget.copy(cameraPoint); camReady = true; freeCam = null; }
     camTarget.lerp(freeCam || cameraPoint, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
+    if (sea) camTarget.copy(cameraPoint);
     (heroPos ||= new THREE.Vector3()).copy(cameraPoint);
     const place = cameraPlace(h);
     const wantZoom = !['street', 'world'].includes(place) ? INDOOR_ZOOM : THREE.MathUtils.clamp(zoom, minZoom(place), 1.0);

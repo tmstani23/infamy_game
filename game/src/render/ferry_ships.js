@@ -25,6 +25,13 @@ export function castleBerth(dock, B = {}) {
   return { x: dock.end.x + ux * out - uz * side, z: dock.end.z + uz * out + ux * side, dir: B.turn === false ? dirIndex(ux, uz) : dirIndex(-uz, ux) };
 }
 
+// where a ship at sea is drawn this frame: along its route at the frame's time between sim ticks (alpha), so the ship,
+// its riders and the camera all glide on the same spot (Tim 2026-11-20: very jerky at every zoom)
+export function seaSpot(state, r, alpha = 1) {
+  const k = Math.min(1, Math.max(0, ((state.tick ?? 0) - 1 + alpha - r.since) / Math.max(1, r.until - r.since)));
+  return alongRoute(r.path || [r.from, r.dest], k);   // round the island by sea (sim/frontier/sea_route.js)
+}
+
 export function createFerryShips({ scene, carSprite, bp, rules }) {
   const S = () => rules?.ship || {}, B = () => S().berth || {};
   const size = () => B().size ?? 1.5;
@@ -58,8 +65,7 @@ export function createFerryShips({ scene, carSprite, bp, rules }) {
         const b = castleBerth(d, B().castle); put(`dock:${s.id}`, b.x, b.z, b.dir, 'idle', dt); seen.add(`dock:${s.id}`);
       }
       for (const [o, u] of sea) { const r = u.shipRide;
-        const k = Math.min(1, Math.max(0, ((state.tick ?? 0) - 1 + alpha - r.since) / Math.max(1, r.until - r.since)));
-        const p = alongRoute(r.path || [r.from, r.dest], k);   // round the island by sea (sim/frontier/sea_route.js)
+        const p = seaSpot(state, r, alpha);
         put(`sea:${o}`, p.x, p.z, dirIndex(p.dx, p.dz), 'walk', dt); seen.add(`sea:${o}`); }
     }
     for (const [k, s] of ships) if (!seen.has(k)) { show(s, false); if (k.startsWith('sea:') && !sea.has(k.slice(4))) drop(k); }
