@@ -15,6 +15,9 @@ export function layoutCategory(id){
 }
 const STRUCTURAL=new Set(['shopmarker','view','vignette','fx','selbox','lock','hudlayout','startscreen','loading','gamemap','gamesettings','blacksmithshop','hqstash','characterpage','controls','results','towngrowthfx','townbuildoverlay','townbuildhint','gatefade']);   // full-screen effect layers are never movable panels
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+// Panel opacity (Tim 2026-11-20): saved._all.o fades every panel (default 0.88), saved[id].o overrides it for one panel (30 means 30).
+export const OPACITY_ALL='_all',OPACITY_DEFAULT=.88,OPACITY_MIN=.3;
+const opNum=v=>{const n=Number(v);return Number.isFinite(n)?clamp(n,OPACITY_MIN,1):null;};
 const clone=v=>JSON.parse(JSON.stringify(v));
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{};}catch{return {};}};
 // Saved layouts (Tim 2026-11-16): data/ui_layout.json is the shipped Default (the game never writes it); the player's
@@ -62,7 +65,7 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
   const isDefault=layoutName===DEFAULT_LAYOUT;saveBtn.disabled=delBtn.disabled=isDefault;
   onLayouts({names:all,current:layoutName});
  }
- function apply(next){drag=null;saved=clone(next||{});for(const p of panels.values())place(p);update();}
+ function apply(next){drag=null;saved=clone(next||{});for(const p of panels.values())place(p);showOpacity();update();}
  async function refresh(){names=await listLayouts();showLayouts();return names;}
  async function choose(n){
   if(n===layoutName)return true;
@@ -92,6 +95,30 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
  const filters=document.createElement('div');filters.className='layout-filters';toolbar.appendChild(filters);
  const snapButton=document.createElement('button');snapButton.type='button';snapButton.dataset.action='grid';snapButton.textContent='Grid: Off (10px)';snapButton.setAttribute('aria-pressed','false');
  snapButton.addEventListener('click',()=>{drag=null;toolbarDrag=null;snapGrid=!snapGrid;snapButton.textContent=`Grid: ${snapGrid?'On':'Off'} (10px)`;snapButton.setAttribute('aria-pressed',String(snapGrid));layer.classList.toggle('layout-grid',snapGrid);});toolbar.appendChild(snapButton);
+ const opacityAll=()=>opNum(saved[OPACITY_ALL]?.o)??OPACITY_DEFAULT,opacityOwn=id=>opNum(saved[id]?.o),opacityOf=id=>opacityOwn(id)??opacityAll();
+ function paintOpacity(p){const v=String(opacityOf(p.id));if(p.el.style.opacity!==v)p.el.style.opacity=v;}
+ // the Opacity row: every panel, then the selected panel. A typeable % box, the slider is an extra.
+ const ops=document.createElement('div');ops.className='layout-sets layout-opacity';toolbar.appendChild(ops);
+ const opsLab=document.createElement('label');opsLab.textContent='Opacity';ops.appendChild(opsLab);
+ function opControl(name,title,onSet){
+  const lab=document.createElement('small');lab.textContent=name;ops.appendChild(lab);
+  const range=document.createElement('input');range.type='range';range.min=String(OPACITY_MIN*100);range.max='100';range.step='1';range.style.width='120px';range.title=title;range.setAttribute('aria-label',`${name} opacity slider`);ops.appendChild(range);
+  const box=document.createElement('input');box.type='text';box.inputMode='numeric';box.maxLength=3;box.size=3;box.style.width='42px';box.style.textAlign='right';box.title=title;box.setAttribute('aria-label',`${name} opacity percent`);ops.appendChild(box);
+  const pct=document.createElement('small');pct.textContent='%';ops.appendChild(pct);
+  const set=raw=>{const n=Number(String(raw).trim());if(Number.isFinite(n))onSet(clamp(Math.round(n),OPACITY_MIN*100,100)/100);showOpacity();};
+  range.addEventListener('input',()=>set(range.value));box.addEventListener('change',()=>set(box.value));
+  box.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();set(box.value);}});
+  return {lab,range,box,show:(v,off=false)=>{const t=String(Math.round(v*100));range.value=t;if(document.activeElement!==box)box.value=t;range.disabled=box.disabled=off;}};
+ }
+ function setOpacity(id,v){const n=opNum(v);if(n==null)return;if(id===OPACITY_ALL){saved[OPACITY_ALL]={o:n};for(const p of panels.values())paintOpacity(p);return;}
+  const p=panels.get(id);if(!p)return;const {o,...rest}=saved[id]||{};saved[id]={...rest,o:n};if(!Object.keys(saved[id]).length)delete saved[id];paintOpacity(p);}
+ const opAll=opControl('All panels','Opacity of every panel, 30 to 100',v=>setOpacity(OPACITY_ALL,v));
+ const opOne=opControl('Selected panel','Opacity of the selected panel, 30 to 100. It overrides All panels until you press Reset.',v=>{if(selected)setOpacity(selected,v);});
+ const opReset=document.createElement('button');opReset.type='button';opReset.textContent='Reset';opReset.title='All panels back to 88, the selected panel back to 100';ops.appendChild(opReset);
+ const resetOpacity=()=>{for(const id of panels.keys())followAll(id);setOpacity(OPACITY_ALL,OPACITY_DEFAULT);showOpacity();};
+ opReset.addEventListener('click',()=>{if(selected)followAll(selected);else resetOpacity();showOpacity();});
+ function followAll(id){const p=panels.get(id);if(!p||!saved[id])return;const {o,...rest}=saved[id];if(Object.keys(rest).length)saved[id]=rest;else delete saved[id];paintOpacity(p);}
+ function showOpacity(){opAll.show(opacityAll());const p=selected&&panels.get(selected);opOne.lab.textContent=p?(opacityOwn(p.id)==null?`${p.name} (follows All)`:p.name):'Selected panel';opOne.show(p?opacityOf(p.id):opacityAll(),!p);opReset.textContent=p?'Reset selection':'Reset all';opReset.title=p?`${p.name} follows All panels again`:'Every panel back to 88';}
  const picker=document.createElement('select');picker.setAttribute('aria-label','Select UI panel');filters.appendChild(picker);
  const empty=document.createElement('option');empty.value='';empty.textContent='Select a panel...';picker.appendChild(empty);
  for(const [category,label]of [['main','Main HUD'],['tooltips','Tooltips'],['alerts','Alerts'],['windows','Windows']]){
@@ -106,15 +133,16 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
  // (tooltips, alerts) join the list once it closes.
  const lateOptions=[];const addOption=o=>{if(document.activeElement===picker)lateOptions.push(o);else picker.appendChild(o);};
  picker.addEventListener('blur',()=>{while(lateOptions.length)picker.appendChild(lateOptions.shift());});
- function select(id){drag=null;selected=id;picker.value=id||'';for(const p of panels.values()){
+ function select(id){drag=null;selected=id;picker.value=id||'';showOpacity();for(const p of panels.values()){
   const on=p.id===id;p.handle.classList.toggle('selected',on);p.handle.setAttribute('aria-pressed',String(on));p.el.classList.toggle('layout-focused',editing&&on);
  }}
  const signature=el=>PROPS.map(k=>el.style[k]||'').join('|');
  function dimensions(p){const w=p.el.offsetWidth,h=p.el.offsetHeight,L=saved[p.id];if(w)p.w=w;if(h)p.h=h;return [w||L?.w||p.w||220,h||L?.h||p.h||70];}
  function place(p){
+  paintOpacity(p);
   if(p.el.classList.contains('hud-docked'))return;
   const L=saved[p.id];
-  if(!L){Object.assign(p.el.style,p.defaults);p.el.dataset.layoutPinned='false';p.el.dataset.layoutSized='false';p.applied=signature(p.el);return;}
+  if(!L||!L.ax){Object.assign(p.el.style,p.defaults);p.el.dataset.layoutPinned='false';p.el.dataset.layoutSized='false';p.applied=signature(p.el);return;}
   p.el.style.width=L.w?`${L.w}px`:p.defaults.width;p.el.style.minHeight=L.h?`${L.h}px`:p.defaults.minHeight;
   p.el.style.height=L.h?(UNIFORM.has(p.id)||p.id==='bar'||p.id==='selpanel'?`${L.h}px`:'auto'):p.defaults.height;   // selpanel: a fixed height, so its cards shrink to fit instead of the pane growing (Tim 2026-11-18)
   p.el.dataset.layoutSized=String(!!(L.w||L.h));
@@ -124,7 +152,7 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
   Object.assign(p.el.style,{position:'fixed',left:`${x-w*(1-s)/2}px`,top:`${y-h*(1-s)/2}px`,right:'auto',bottom:'auto',transform:'none',scale:String(s)});
   p.el.dataset.layoutPinned='true';p.applied=signature(p.el);
  }
- function keep(p,x,y,s,snap=false){const [w,h]=dimensions(p);if(snap){x=grid(x);y=grid(y);}s=clamp(s,.5,2.5);x=clamp(x,0,Math.max(0,innerWidth-w*s));y=clamp(y,0,Math.max(0,innerHeight-h*s));const ax=x+w*s/2<innerWidth/2?'l':'r',ay=y+h*s/2<innerHeight/2?'t':'b';const o=saved[p.id]||{};saved[p.id]={...(o.w?{w:o.w}:{}),...(o.h?{h:o.h}:{}),ax,ay,dx:Math.round(ax==='l'?x:innerWidth-x-w*s),dy:Math.round(ay==='t'?y:innerHeight-y-h*s),s:+s.toFixed(3)};place(p);}
+ function keep(p,x,y,s,snap=false){const [w,h]=dimensions(p);if(snap){x=grid(x);y=grid(y);}s=clamp(s,.5,2.5);x=clamp(x,0,Math.max(0,innerWidth-w*s));y=clamp(y,0,Math.max(0,innerHeight-h*s));const ax=x+w*s/2<innerWidth/2?'l':'r',ay=y+h*s/2<innerHeight/2?'t':'b';const o=saved[p.id]||{};saved[p.id]={...(o.w?{w:o.w}:{}),...(o.h?{h:o.h}:{}),...(o.o!=null?{o:o.o}:{}),ax,ay,dx:Math.round(ax==='l'?x:innerWidth-x-w*s),dy:Math.round(ay==='t'?y:innerHeight-y-h*s),s:+s.toFixed(3)};place(p);}
  function register(el,id=el?.id,label=el?.dataset?.layoutLabel||NAMES[id]||id){
   if(!el||!id||panels.has(id)||el===layer||el===toolbar)return;
   const p={id,el,name:label,category:el.dataset?.layoutCategory||layoutCategory(id),defaults:Object.fromEntries(PROPS.map(k=>[k,el.style[k]||'']))};panels.set(id,p);
@@ -140,8 +168,8 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
   handle.addEventListener('mousedown',e=>{if(!editing||e.button!==0||hiddenCategories.has(p.category))return;e.preventDefault();e.stopPropagation();select(id);drag={p,x:e.clientX,y:e.clientY,rect:{...p.rect},s:saved[id]?.s||1,resize:e.target===grip,edge:e.target?.dataset?.edge};});
   handle.addEventListener('focus',()=>{if(editing&&!hiddenCategories.has(p.category))select(id);});
   handle.addEventListener('keydown',e=>{if(!editing||selected!==id)return;const r=p.rect,step=e.shiftKey||snapGrid?10:1,delta={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.code];if(delta){e.preventDefault();keep(p,r.left+delta[0],r.top+delta[1],saved[id]?.s||1,true);}else if(['+','=','-'].includes(e.key)){e.preventDefault();keep(p,r.left,r.top,(saved[id]?.s||1)+(e.key==='-'?-.05:.05));}update();});
-  if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>{if(saved[id])place(p);}).observe(el);
-  if(saved[id])place(p);
+  if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>{if(saved[id]?.ax)place(p);}).observe(el);
+  if(saved[id]?.ax)place(p);else paintOpacity(p);
  }
  // full-screen click-through layers (fades, effect canvases) are never panels: their box would cover every other one
  const screenLayer=el=>{if(typeof getComputedStyle!=='function')return false;const c=getComputedStyle(el);return c.position==='fixed'&&c.pointerEvents==='none'&&['top','left','right','bottom'].every(k=>c[k]==='0px');};
@@ -166,7 +194,7 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
     const top=L&&L.ay==='t'&&Number.isFinite(L.dy)?L.dy:Math.max(0,rect.top);
     p.pages.update(p.el.offsetWidth,Math.min(L?.h||600,Math.max(160,(innerHeight-top-24)/s)));
    }
-   if(saved[p.id]&&signature(p.el)!==p.applied)place(p);
+   if(saved[p.id]?.ax&&signature(p.el)!==p.applied)place(p);else paintOpacity(p);
    if(!editing)continue;
    // write only on change: this runs every frame, and touching the options flickers an open picker
    const filtered=hiddenCategories.has(p.category);if(p.handle.hidden!==filtered)p.handle.hidden=filtered;if(p.option.hidden!==filtered)p.option.hidden=filtered;if(p.el.classList.contains('layout-filtered')!==filtered)p.el.classList.toggle('layout-filtered',filtered);
@@ -200,8 +228,8 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
  });
  const endLive=()=>{if(live?.moved)store(saved);live=null;};
  addEventListener('mouseup',endLive,{capture:true});addEventListener('blur',endLive);
- function finish(commit){if(!editing)return;drag=null;if(commit)store(saved);else{saved=before;for(const p of panels.values())place(p);if(beforeName!==null&&beforeName!==layoutName){layoutName=beforeName;setCurrentName(layoutName);showLayouts();}}before=null;beforeName=null;editing=false;select(null);for(const p of panels.values())p.el.classList.remove('layout-filtered');layer.hidden=true;onEnd();}
- function begin(){if(editing)return;before=clone(saved);beforeName=layoutName;editing=true;note();refresh();layer.hidden=false;onBegin();update();actions.done.focus();}
+ function finish(commit){if(!editing)return;drag=null;if(commit)store(saved);else{saved=before;for(const p of panels.values())place(p);showOpacity();if(beforeName!==null&&beforeName!==layoutName){layoutName=beforeName;setCurrentName(layoutName);showLayouts();}}before=null;beforeName=null;editing=false;select(null);for(const p of panels.values())p.el.classList.remove('layout-filtered');layer.hidden=true;onEnd();}
+ function begin(){if(editing)return;before=clone(saved);beforeName=layoutName;editing=true;note();refresh();showOpacity();layer.hidden=false;onBegin();update();actions.done.focus();}
  function reset(){drag=null;toolbarDrag=null;toolbar.style.left='max(10px,calc(50% - 470px))';toolbar.style.top='10px';try{localStorage.removeItem(TB_KEY);}catch{}layoutName=DEFAULT_LAYOUT;setCurrentName(DEFAULT_LAYOUT);apply(base);try{localStorage.setItem(KEY,JSON.stringify(saved));}catch{}showLayouts();note('Back to Default');}   // Reset layout = the Default layout (Tim 2026-11-16)
  actions.done.addEventListener('click',()=>finish(true));actions.cancel.addEventListener('click',()=>finish(false));actions.reset.addEventListener('click',reset);
  addEventListener('mousemove',e=>{if(!editing)return;if(toolbarDrag){if(typeof e.buttons==='number'&&!(e.buttons&1)){toolbarDrag=null;return;}const w=toolbar.offsetWidth,h=toolbar.offsetHeight;toolbar.style.left=`${clamp(toolbarDrag.left+e.clientX-toolbarDrag.x,0,Math.max(0,innerWidth-w))}px`;toolbar.style.top=`${clamp(toolbarDrag.top+e.clientY-toolbarDrag.y,0,Math.max(0,innerHeight-h))}px`;return;}if(!drag)return;if(typeof e.buttons==='number'&&!(e.buttons&1)){drag=null;return;}const {p,rect:r,s,resize,edge}=drag,dx=e.clientX-drag.x,dy=e.clientY-drag.y;
@@ -213,9 +241,9 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
    keep(p,x,y,s);update();return;
   }keep(p,resize?r.left:r.left+dx,resize?r.top:r.top+dy,resize?s*Math.max(grid(r.width+dx)/r.width,grid(r.height+dy)/r.height):s,!resize);update();});
  addEventListener('mouseup',()=>{if(toolbarDrag)saveToolbarPos();drag=null;toolbarDrag=null;},{capture:true});addEventListener('blur',()=>{drag=null;toolbarDrag=null;});
- addEventListener('resize',()=>{for(const p of panels.values())if(saved[p.id])place(p);update();});
+ addEventListener('resize',()=>{for(const p of panels.values())if(saved[p.id]?.ax)place(p);update();});
  layer.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();e.stopPropagation();finish(false);}if(e.code==='Tab'){const stops=[...layer.querySelectorAll('button,select,[tabindex="0"]')].filter(el=>{const h=el.closest('.layout-handle');return !el.closest('[hidden]')&&(!h||el===h||h.classList.contains('selected'));}),first=stops[0],last=stops.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
  for(const type of ['mousedown','mouseup','click','contextmenu','wheel'])layer.addEventListener(type,e=>{e.stopPropagation();if(type==='contextmenu')e.preventDefault();});
  showLayouts();refresh();
- return {begin,done:()=>finish(true),cancel:()=>finish(false),reset,update,register,isEditing:()=>editing,registered:()=>[...panels.keys()],layouts:()=>[DEFAULT_LAYOUT,...names],current:()=>layoutName,choose,saveAs,remove,refresh};
+ return {setOpacity,opacity:id=>id===OPACITY_ALL?opacityAll():opacityOf(id),followAll,resetOpacity,begin,done:()=>finish(true),cancel:()=>finish(false),reset,update,register,isEditing:()=>editing,registered:()=>[...panels.keys()],layouts:()=>[DEFAULT_LAYOUT,...names],current:()=>layoutName,choose,saveAs,remove,refresh};
 }

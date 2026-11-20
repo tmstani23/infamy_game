@@ -61,4 +61,16 @@ L.begin(); L.done();
 assert.equal(puts.at(-1), 'My layout'); assert.equal(L.current(), 'My layout'); assert.ok(L.layouts().includes('My layout'));
 // Cancel goes back to the layout used when editing started
 L.begin(); await L.choose('Streaming'); L.cancel(); assert.equal(L.current(), 'My layout');
+// Panel opacity (Tim 2026-11-20): every panel 0.88 by default; a panel's own value overrides All panels; saved with the layout
+L.reset(); assert.equal(panel.style.opacity, '0.88', 'slightly see-through by default');
+L.setOpacity('_all', .5); assert.equal(panel.style.opacity, '0.5');
+L.setOpacity('contract', .3); assert.equal(panel.style.opacity, '0.3', '30 means 30, not 30 percent of All panels');
+L.setOpacity('_all', .9); assert.equal(L.opacity('contract'), .3, 'a set panel keeps its value');
+L.setOpacity('contract', .1); assert.equal(L.opacity('contract'), .3, 'never below 30 percent');
+L.setOpacity('contract', .8); L.setOpacity('_all', .5); L.begin(); L.done();
+assert.deepEqual(files['My layout']._all, { o: .5 }); assert.equal(files['My layout'].contract.o, .8, 'saved with the layout');
+assert.equal(files['My layout'].contract.ax, 'l', 'keeps its spot');
+L.followAll('contract'); assert.equal(L.opacity('contract'), .5, 'Reset makes it follow All panels again');
+L.setOpacity('contract', .4); L.resetOpacity(); assert.equal(L.opacity('contract'), .88, 'Reset all clears panel values too'); L.setOpacity('_all', .5);
+L.begin(); L.setOpacity('_all', 1); L.cancel(); assert.equal(L.opacity('_all'), .5, 'Cancel undoes it');
 console.log('test_layouts: ok');
