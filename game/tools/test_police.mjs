@@ -129,6 +129,7 @@ const tierOk = g => g.police.tierOf('player') === 2;
   assert.equal(clan(g).jail.length, 0, 'bailed out');
   assert.equal(clan(g).ryo, ryo - Math.round(U.types.thug.price * P.bailShare));
   assert.ok(Object.values(g.state.entities).some(e => e.type === 'thug' && e.owner === 'player'), 'thug back on the street');
+  for (const o of cops(g)) delete g.state.entities[o.id];   // squads now all come out of the HQ, where the freed thug stands: clear them
   // no time limit: jailed crew stay until bailed (Tim 2026-10-18), and still count for the crew cap
   const before = g.clans.crewCount ? g.clans.crewCount('player') : null;
   clan(g).jail.push({ id: 'jailX', unit: 'thug', model: 'thug', bail: 30 });

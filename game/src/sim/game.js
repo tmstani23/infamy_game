@@ -943,7 +943,7 @@ export function createGame(options) {
   const businesses = clans ? createBusinesses({ state, units, clans, campaignCity: options.settings?.campaignCity, onRaidPlaced: clan => rally.raidPlaced(clan), payoutShare: id => police?.payoutShare(id) ?? 1, tierOf: id => police?.tierOf(id) ?? 0,
     spawn, guardSpots, patrolSpots, roomOf: roomOfBusiness, remove: removeUnit, payoutBonus: territory.payoutBonus, addHeatGain: (clan, amount, reason) => state.heatGains.push({ clan, amount, reason }) }) : null;
   // C2/C3: the lieutenant's standing orders, budget, log and the city captain (campaign only, sim/lieutenant.js)
-  const lieutenant = clans ? createLieutenantRules({ state, rules: options.settings?.campaignCity?.lieutenant, units, clans, doors, spawn, removeUnit: id => removeUnit(id), businesses,
+  const lieutenant = clans ? createLieutenantRules({ state, rules: options.settings?.campaignCity?.lieutenant, units, clans, doors, spawn, bribeCost: id => police?.bribeCost(id), removeUnit: id => removeUnit(id), businesses,
     guideAt: () => { const d = doors.find(x => x.menu === 'lieutenant'); return d && { x: d.x, z: d.z }; } }) : null;
   // Shinobi contracts (sim/contracts.js): the back room is the floor spot furthest from the way in, as for raids
   const backRoomOf = b => {

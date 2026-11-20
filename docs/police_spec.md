@@ -18,11 +18,11 @@ Heat itself (how it is gained and cools) is in `combat_spec.md`, section H. Infa
 
 - Junsa: 360 HP, hit for 14, run 4.8 (the hero runs 6.0). They carry a jitte.
 - Regular patrol/reinforcement police require explicit hero/crew attacks: no automatic acquisition or retaliation. Exception: unclaimed-business attack-wave officers retain automatic combat; their hits add no infamy. Business attacks still add 15 heat on success or failure (Tim, 2026-10-21).
-- A knocked-out officer is replaced after 60 s, coming out of the HQ or any police box.
+- A knocked-out officer is replaced after 60 s, coming out of the HQ.
 
 ## Routine daytime patrols (Tim, 2026-10-21)
 
-Eight officers emerge at dawn or initial daytime: four from police HQ and two from each police box. They patrol and return to their own station at dusk after active pursuits/arrests finish. Replacement delay remains; shifts do not duplicate. Heat-based squads are additional and still operate at night.
+Four officers emerge at dawn or initial daytime, all from police HQ; police boxes have no day patrol (box 0, HQ 4; Tim 2026-11-20, so box bribe spots stay clear). Officers can still wander or chase past a box. They patrol and return to their own station at dusk after active pursuits/arrests finish. Replacement delay remains; shifts do not duplicate. Heat-based squads are additional and still operate at night.
 
 ## Rival HQ camping (Tim, 2026-10-21)
 
@@ -30,11 +30,11 @@ Eight officers emerge at dawn or initial daytime: four from police HQ and two fr
 - Warn after 20 accumulated seconds; activate after 30 within a rolling 60 seconds. Warning flashes amber; active penalty has a subtle red outline/pulse and a small notice.
 - While active, every five occupied seconds adds exactly 12 heat and 12 lifetime infamy. Camping alone bypasses top-infamy heat scaling; other sources are unchanged.
 - Clear an active alarm by keeping the entire visiting clan outside for 30 uninterrupted seconds. Re-entry immediately resumes penalties and resets the full decay. The alert bar drains outside and stays full inside.
-- No special camping-avoidance AI for now; revisit if playtests reveal problems.
+- Crew with no sector duty (hero group, idle crew) also walk out of a rival HQ zone once the warning shows, then resume their old order (a follow order only if the boss is not in the zone). A live move order from the player stays. Sector crew already did this (assignments.avoidCamping). Code: `crew_step.js` freeCampingEscape; test `tools/test_camping_escape.mjs` (Tim 2026-11-20).
 
 ## New officers
 
-Every new officer (the first squad at a tier, officers added when heat rises, and replacements) walks out of the HQ or any police box and patrols around the clan's last fight. It joins the hunt only once it sees the hero itself (within 9 steps, same floor). At Most Wanted (120+) new officers always know where he is and come straight for him.
+Every new officer (the first squad at a tier, officers added when heat rises, and replacements) walks out of the HQ (never a police box) and patrols around the clan's last fight. It joins the hunt only once it sees the hero itself (within 9 steps, same floor). At Most Wanted (120+) new officers always know where he is and come straight for him.
 
 ## Losing the police (60-119 heat)
 

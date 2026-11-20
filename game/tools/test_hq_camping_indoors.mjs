@@ -30,7 +30,8 @@ assert.equal(game.state.hqCamping.visits.find(v => v.clan === 'player'), undefin
 run(35);
 assert.equal(game.state.clans.player.infamy, infamy, 'indoor presence cannot start a fresh alarm');
 const crewId = game.spawn('thug', 'thug', ...rival.ring, { owner: 'player', order: { kind: 'stop' } });
-run(35);
+// a crew with a live move order is the player's choice, so it stays (idle crew now walk out, test_camping_escape)
+for (let i = 0; i < 35 * 20; i++) { game.state.entities[crewId].order = { kind: 'move', x: rival.ring[0], z: rival.ring[1] }; game.step(); }
 assert.ok(game.state.clans.player.infamy > infamy, 'crew actually outdoors still count while the hero is inside');
 assert.equal(hqCampingNoticeVisit(game.state, heroId), null, 'outside crew cannot show a leave-area warning indoors');
 hero.place = 'street';

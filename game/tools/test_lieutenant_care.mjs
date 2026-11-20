@@ -62,6 +62,18 @@ function scenario(id, leave) {
 
 // the player: the boss walks out through the gate
 scenario('player', hero => { g.state.clans.player.permit = true; Object.assign(hero, { place: 'street', x: gate.x, z: gate.z }); g.step([{ id: hero.id, type: 'expedition', action: 'walk', units: [] }]); });
+// the player's lieutenant bribes the police from heat 40 (Tim 2026-11-20), not below
+{
+  const clan = g.state.clans.player, mine = brainOf('player'), r = L.record('player');
+  for (const o of Object.keys(r.orders)) r.orders[o] = o === 'hire';
+  clan.ryo = 5000; r.budget = 2000; r.spent = 0; clan.jail = [];
+  clan.heat = 35; const low = run(mine, 600);
+  assert.ok(!low.some(c => c.type === 'police' && c.action === 'bribe'), 'no bribe below 40');
+  clan.heat = 60;
+  const sent = run(mine, 4000, () => clan.heat < 40);
+  assert.ok(sent.some(c => c.type === 'police' && c.action === 'bribe' && c.by === 'lieutenant'), 'the captain bribed at 60');
+  assert.ok(clan.heat < 40, 'heat came down');
+}
 // a rival: its boss is put out on the island (its own bot brain is not run here)
 const rival = Object.keys(g.state.clans).find(id => id !== 'player' && g.state.clans[id].bot && g.state.clans[id].kind !== 'ninja' && brainOf(id) && heroOf(id));
 assert.ok(rival, 'a rival clan with a lieutenant');

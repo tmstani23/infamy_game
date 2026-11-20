@@ -3,7 +3,38 @@
 import { distractionStep } from './distraction.js';
 import { stunned } from './kuroda.js';
 import { DOOR_RADIUS } from './game.js';
+import { nearRivalHQ } from './sector_patrol.js';
+import { bossAway } from './util.js';
 export function createCrewStep({ gatling = { step: () => false }, firebomb = { step: () => false }, assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures = () => null, sweep, swingStep, taunt }) {
+  // Crew with no sector duty (the hero group left behind, the lieutenant's idle crew) also walk out of a rival HQ
+  // camping zone once its warning shows, then take their old order back (Tim 2026-11-20: 123 infamy from standing there)
+  function freeCampingEscape(e, unit) {
+    if (e.type === 'hero' || e.guard || e.cop || e.place !== 'street' || !state.clans?.[e.owner]) return false;
+    if (state.deployment.clans[e.owner]?.sectors[e.deployment?.group]) return false;   // sector crew: assignments.avoidCamping
+    let esc = e.campingEscape;
+    if (!esc) {
+      const w = state.hqCamping?.visits.find(v => v.clan === e.owner && v.inside && Math.hypot(e.x - v.x, e.z - v.z) <= v.radius + 1);
+      const boss = Object.values(state.entities).find(h => h.owner === e.owner && h.type === 'hero');
+      const k = e.order?.kind, idle = !k || k === 'stop' || (k === 'move' && e.order.arrived) || (k === 'follow' && bossAway(boss));
+      if (!w || !idle || e.swing || e.execute || rally.participating(e) && !w.active) return false;
+      const nav = navOf('street'), cands = [];
+      for (const r of [w.radius + 7, w.radius + 15, w.radius + 25]) for (let i = 0; i < 12; i++) {
+        const p = nav?.nearestFree(w.x + Math.cos(i * Math.PI / 6) * r, w.z + Math.sin(i * Math.PI / 6) * r);
+        if (p && !nearRivalHQ(state, e.owner, { x: p[0], z: p[1] })) cands.push(p);
+      }
+      const p = cands.sort((a, b) => Math.hypot(a[0] - e.x, a[1] - e.z) - Math.hypot(b[0] - e.x, b[1] - e.z))[0];
+      if (!p) return false;
+      esc = e.campingEscape = { x: p[0], z: p[1], until: state.tick + 1200, prev: e.order ? { ...e.order } : null };
+      delete paths[e.id]; e.order = { kind: 'stop' };
+    }
+    if (state.tick < esc.until && Math.hypot(e.x - esc.x, e.z - esc.z) > 1 && moveTo(e, unit, esc.x, esc.z, true)) return true;
+    // arrived or stuck: resume the old task (a follow order only when the boss is not himself in the zone)
+    const boss = Object.values(state.entities).find(h => h.owner === e.owner && h.type === 'hero');
+    delete e.campingEscape; delete paths[e.id];
+    if (esc.prev && !(esc.prev.kind === 'follow' && boss && boss.place === 'street' && nearRivalHQ(state, e.owner, boss, 0))) e.order = esc.prev;
+    e.anim = 'idle';
+    return false;
+  }
   function crewStep(e, unit) {
     if(e.crewJob&&(e.dead||e.downed||e.jailed||e.deployment?.transfer||stunned(e,state.tick)))crewJobs.cancel(e);
     if(e.deployment?.cleanup&&(e.deployment.transfer||e.deployment.duty?.manual||rally.participating(e)
@@ -24,7 +55,7 @@ export function createCrewStep({ gatling = { step: () => false }, firebomb = { s
     if (gatling.step(e, unit)) return;   // war checkpoint 7-4: a Gatling crew sets up, fires and packs up on its own (sim/gatling.js)
     if (shakedown.step(e, unit) || sweep.step(e, unit)) return;
     if (sectorRecovery.step(e, unit)) return;
-    if (assignments.avoidCamping(e,unit)) return;
+    if (assignments.avoidCamping(e,unit) || freeCampingEscape(e, unit)) return;
     if (distractionStep(e, unit, state, moveTo, u => { delete paths[u.id]; })) return;
     if (diversion.step(e, unit)) return;
     if (rifleman.step(e, unit)) return;

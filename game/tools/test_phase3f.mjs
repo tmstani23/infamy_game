@@ -85,10 +85,10 @@ const routine = g => Object.values(g.state.entities).filter(e => e.routine && !e
 {
   const g = world({ night: true }); run(g, 15); assert.equal(routine(g).length, 0);
   g.step([{ type: 'time', night: false }]); run(g, 20);
-  const patrol = routine(g); assert.equal(patrol.length, 8);
+  const patrol = routine(g); assert.equal(patrol.length, 4);   // boxes keep no day patrol (Tim 2026-11-20)
   const stations = Object.groupBy(patrol, o => o.station);
   assert.deepEqual(Object.fromEntries(Object.entries(stations).map(([id, list]) => [g.state.businesses[id].kind + ':' + id, list.length])),
-    { 'police_hq:b3': 4, 'police_box:b1': 2, 'police_box:b35': 2 });
+    { 'police_hq:b3': 4 });
   assert.ok(patrol.every(o => !o.clan && !o.angry), 'quiet routine police are neutral');
   const positions = patrol.map(o => [o.x, o.z]); run(g, 10);
   assert.ok(patrol.some((o, i) => Math.hypot(o.x - positions[i][0], o.z - positions[i][1]) > 1), 'routine patrols move');
@@ -100,7 +100,7 @@ const routine = g => Object.values(g.state.entities).filter(e => e.routine && !e
     assert.ok(m.deadline && home.door, 'return route belongs to its issuing station');
   }
   // Dawn before every returning officer has arrived cannot create a second shift.
-  g.step([{ type: 'time', night: false }]); run(g, 2); assert.equal(routine(g).length, 8);
+  g.step([{ type: 'time', night: false }]); run(g, 2); assert.equal(routine(g).length, 4);
   g.step([{ type: 'time', night: true }]); run(g, 120); assert.equal(routine(g).length, 0);
 }
 console.log('day police: eight officers from all three stations, moving patrols, night return and dawn deduplication ok');
@@ -108,8 +108,8 @@ console.log('day police: eight officers from all three stations, moving patrols,
   const g = world(); run(g, 20);
   const officer = routine(g)[0], station = officer.station;
   officer.dead = true; g.police.knockedOut(officer);
-  run(g, 59); assert.equal(routine(g).length, 7, 'knocked-out patrol officers are not replaced immediately');
-  run(g, 2); assert.equal(routine(g).length, 8);
+  run(g, 59); assert.equal(routine(g).length, 3, 'knocked-out patrol officers are not replaced immediately');
+  run(g, 2); assert.equal(routine(g).length, 4);
   assert.equal(routine(g).filter(o => o.station === station).length, 4, 'replacement belongs to its original station');
 }
 {

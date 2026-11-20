@@ -31,7 +31,7 @@
   "police": {
     "_note": "officersPerTier: Quiet, Watched, Wanted, Manhunt, Most Wanted",
     "officersPerTier": [0, 2, 4, 8, 10],
-    "dayPatrol": { "hq": 4, "box": 2 },
+    "dayPatrol": { "hq": 4, "box": 0 },
     "heroJailSeconds": 60,
     "bribeHeat": 40,
     "bribePerTier": 10,

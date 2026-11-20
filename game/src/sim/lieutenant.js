@@ -39,14 +39,14 @@ function orderFor(c, state) {
   // hiring mix (Tim 2026-11-10): the captain lets one basic crewman go to make room for a real unit, under Hire
   if (c.type === 'dismiss') return c.unit != null && c.unit !== 'all' && c.patient == null && c.prisoner == null ? 'hire' : null;
   // crew care (Tim 2026-11-10): the captain bails prisoners out and fetches recovered patients, under Hire
-  if (c.type === 'police') return c.action === 'bail' ? 'hire' : null;
+  if (c.type === 'police') return c.action === 'bail' || c.action === 'bribe' ? 'hire' : null;   // bribe from heat 40 (Tim 2026-11-20)
   if (c.type === 'clinic') return c.action === 'revive' ? 'hire' : null;
   if (c.type === 'business') return c.action === 'buy' ? (c.expand ? 'buy' : 'retake') : c.action === 'knock' ? 'defend' : ['lantern', 'raid'].includes(c.action) ? 'raid' : null;
   return null;
 }
 const DEFEND_ONLY = new Set(['defend', 'any']);
 
-export function createLieutenantRules({ state, rules = {}, units, clans, doors, spawn, removeUnit, businesses, guideAt = () => null }) {
+export function createLieutenantRules({ state, rules = {}, units, clans, doors, spawn, bribeCost = () => 0, removeUnit, businesses, guideAt = () => null }) {
   const R = { budget: 300, maxBudget: 5000, logEntries: 20, captain: 'city_captain', reserve: 200, jobMinutes: 3, banditJobMinutes: 6, captainWaitSeconds: 60, captainFee: 100, stipend: 150, awayRaidShare: 0.5, raidReserve: 1000, raidMinCrew: 3, ...rules };
   const on = () => modeRules(state).campaignCity;
   const day = () => state.clock?.day ?? 1;
@@ -161,6 +161,7 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     if (c.type === 'hire') return Array.from({ length: c.count ?? 1 }, (_, i) => clans.hirePrice(id, c.unit, i) ?? Infinity).reduce((n, v) => n + v, 0);
     if (c.type === 'business' && c.action === 'buy') return businesses?.rules?.[state.businesses[c.business]?.kind]?.price ?? Infinity;
     if (c.type === 'police' && c.action === 'bail') return state.clans[id]?.jail?.[c.prisoner]?.bail ?? Infinity;
+    if (c.type === 'police' && c.action === 'bribe') return bribeCost(id) ?? Infinity;
     if (c.type === 'clinic' && c.action === 'revive') { const p = state.clans[id]?.clinic?.[c.patient]; return p?.kind === 'recover' ? clans.reviveCost(p, id) : Infinity; }
     return 0;
   }
@@ -198,7 +199,7 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
     if (c.type === 'business' && c.action === 'raid') r.raidDay = day();
     const name = id => state.businesses[id]?.kind?.replace(/_/g, ' ') || 'business';
     const job = take && state.contracts.board.find(x => x.id === c.job);
-    const said = c.type === 'police' ? `Bailed out a ${clan.jail[c.prisoner].unit} (${price} ryo)` : c.type === 'clinic' ? `Fetched a ${clan.clinic[c.patient].unit} from the clinic (${price} ryo)`
+    const said = c.type === 'police' && c.action === 'bribe' ? `Paid off the police (${price} ryo)` : c.type === 'police' ? `Bailed out a ${clan.jail[c.prisoner].unit} (${price} ryo)` : c.type === 'clinic' ? `Fetched a ${clan.clinic[c.patient].unit} from the clinic (${price} ryo)`
       : c.type === 'dismiss' ? `Let a ${state.entities[c.unit]?.type || 'crewman'} go to hire better` : c.type === 'hire' ? `Hired a ${c.unit} (${price} ryo)` : buyNew ? `Buying the ${name(c.business)} (${price} ryo)` : c.type === 'business' && c.action === 'buy' ? `Buying back the ${name(c.business)} (${price} ryo)`
       : take ? `Took a contract: ${job?.label || job?.kind}` : c.type === 'contract' && c.action === 'drop' ? 'Called off the contract'
       : c.type === 'deployment' && c.action === 'shakedown' ? `Shakedown on the ${name(c.business)}` : c.type === 'deployment' && c.action === 'sweep' ? 'Sent a Sweep'
@@ -286,8 +287,8 @@ export function createLieutenantBrain(game, { clan }) {
         return true;
       };
       // a rival's captain pays the police off at Wanted, like its boss does at home (Tim 2026-11-11)
-      const bribe = c.bot ? game.police?.bribeCost?.(clan) : null;
-      if (bribe != null && (c.heat || 0) >= (R.bribeAtHeat ?? 60) && can(bribe) && care('police_box', { type: 'police', action: 'bribe' })) return out;
+      const bribe = game.police?.bribeCost?.(clan);   // the player's lieutenant too, from heat 40 (Tim 2026-11-20)
+      if (bribe != null && (c.heat || 0) >= (c.bot ? (R.bribeAtHeat ?? 60) : (R.playerBribeAtHeat ?? 40)) && can(bribe) && care('police_box', { type: 'police', action: 'bribe' })) return out;
       const prisoner = (c.jail || []).map((p, i) => [p.bail, i]).filter(([n]) => can(n)).sort((p, q) => p[0] - q[0])[0]?.[1];
       if (prisoner !== undefined && care('police_hq', { type: 'police', action: 'bail', prisoner })) return out;
       const patient = c.clinic.findIndex(p => p.kind === 'recover' && p.left <= 0 && can(game.clans.reviveCost(p, clan)));

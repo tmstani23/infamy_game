@@ -32,7 +32,7 @@ const DEFAULTS = {
   bribeHeat: 40, bribePerTier: 10, clinicScale: 2, clinicScaleFrom: 2, payoutCutFrom: null,
   topInfamyHeatBonus: 0.25, noPoliceAreas: [], lostSeconds: 8, searchSeconds: 20, searchRadius: 5, bribeBlockSeconds: 5, replaceSeconds: 60,
   patrolFightSeconds: 30, patrolRadius: 12,
-  dayPatrol: { hq: 4, box: 2 },
+  dayPatrol: { hq: 4, box: 0 },
   tiers: [
     { name: 'Quiet', min: 0, officers: 0 },
     { name: 'Watched', min: 30, officers: 2, hunt: 'fighting' },
@@ -229,7 +229,9 @@ export function createPolice({ state, data, units, district, nav, doors = [], sp
   // hero itself within sight (except at Most Wanted, where they always know where he is)
   function comeOut(clanId) {
     const kind = R.officer, model = statsOf(kind).sprite || kind, extra = { owner: POLICE, cop: true, clan: clanId };
-    const from = [hq, ...boxes].filter(b => b?.door);
+    // squads and replacements come out of the HQ only, so the police boxes stay clear for bribing (Tim 2026-11-20)
+    const from = [hq].filter(b => b?.door), anyBox = [hq, ...boxes].filter(b => b?.door);
+    if (!from.length) from.push(...anyBox);
     let id;
     if (from.length) {
       const station = from[Math.floor(rng() * from.length)];
