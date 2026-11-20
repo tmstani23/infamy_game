@@ -56,6 +56,13 @@ try {
   assert.deepEqual(input.selected(), ['c']); assert.equal(sent.length, 0, 'indoor selection issues no orders');
   assert.equal(input.groupOf('c'), 3, 'drag selection keeps membership');
   input.selectAll(); assert.deepEqual(input.selected(), ['a', 'b', 'c'], 'C includes indoor and outdoor crew');
+  // A drag box always takes the hero standing in it, alone or with crew (Tim 2026-11-20); mounted or not, but not while aboard a vehicle.
+  const drag = (x0, y0, x1, y1) => { handlers.mousedown.forEach(fn => fn({ ...pointer, clientX: x0, clientY: y0 })); handlers.mouseup.forEach(fn => fn({ ...pointer, clientX: x1, clientY: y1 })); };
+  h.place = 'street'; h.x = 100; h.z = 100; a.x = 110; a.z = 110;
+  drag(90, 90, 120, 120); assert.deepEqual(input.selected().sort(), ['a', 'h'], 'box over hero and crew takes both');
+  drag(95, 95, 105, 105); assert.deepEqual(input.selected(), ['h'], 'box over the hero alone takes him');
+  h.mounted = true; drag(95, 95, 105, 105); assert.deepEqual(input.selected(), ['h'], 'mounted hero too'); h.mounted = false;
+  h.aboard = 'bus'; input.clear(); drag(95, 95, 105, 105); assert.deepEqual(input.selected(), [], 'a hero aboard a vehicle is not boxed'); delete h.aboard;
 
   // number keys go through the rebindable key table (Tim 2026-11-12): menus first, then group actions
   const acts = {}, firsts = [], menus = [0, 1, 2, 3].map(() => ({ open: false, picks: [], isOpen() { return this.open; }, pick(i) { this.picks.push(i); } }));

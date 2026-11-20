@@ -347,7 +347,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       if (foe) picked = [foe.id];
     } else {
       const [x0, x1] = [Math.min(x, e.clientX), Math.max(x, e.clientX)], [y0, y1] = [Math.min(y, e.clientY), Math.max(y, e.clientY)];
-      const boxed = [...myCrew(), ...myVehicles()].filter(u => { const s = view.unitToScreen(u.x, u.z); return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1; });
+      const h0 = hero(), heroIn = h0 && h0.place === commandPlace() && !h0.dead && !h0.jailed && !h0.aboard ? [h0] : [];   // the hero is in every drag box he stands in, mounted or not (Tim 2026-11-20)
+      const boxed = [...heroIn, ...myCrew(), ...myVehicles()].filter(u => { const s = view.unitToScreen(u.x, u.z); return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1; });
       picked = boxed.filter(u => !u.dead).map(u => u.id);
       building = null;
       if (picked.length) { setSelected(picked); if (looked && game.omnibus?.isVehicle(game.state.entities[looked])) looked = null; }   // a drag picks exactly the crew in the box (Tim 2026-10-20); an empty box keeps the selection; a group goes to crew select only, not the target box (Tim 2026-11-07)

@@ -97,7 +97,7 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 |---|---|
 | Left-click a crew member | Select its deployment command group, replacing other groups; double-click selects individual. Ordinary selection never combines deployment groups |
 | Double-click a crew name / a group header | Camera follows that crew member / that group; arrows, a map click or Home stop following |
-| Left-drag a box | Select exactly the crew inside it (the rest are dropped; an empty box changes nothing) |
+| Left-drag a box | Select exactly the crew inside it, the hero included (alone or with crew, mounted or on foot, city and island); a hero aboard a vehicle selects the vehicle. The rest are dropped; an empty box changes nothing (2026-11-20). |
 | Crew frame tabs 1–4 | Click selects that control group (same as 1–4); Ctrl+click puts the selected crew in it (same as Ctrl+1–4); again dissolves it |
 | Shift + click a crew name | Add or remove that crew member from the selection |
 | Click a group header in the Crew frame | Select that whole group |
