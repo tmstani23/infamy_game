@@ -1,7 +1,7 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/dev_classic.json, castle_test.json, war_test_yakuza.json, war_defend_yakuza.json
+//   node game/tools/make_dev_save.mjs            -> saves/pre_frontier_yakuza.json, castle_test.json, war_test_yakuza.json, war_defend_yakuza.json
 //   node game/tools/make_dev_save.mjs war_test_yakuza   -> only the saves named
-// Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 4).
+// Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 5).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
@@ -21,8 +21,10 @@ const options = { district: data('data/port_town.json'), catalog: data('data/art
 const dir = new URL('../../saves/', import.meta.url);
 
 const SAVES = {
-  // A Classic city match: Yakuza, medium, 3 clans with bots, 20 s in, spare ryo to buy and hire.
-  dev_classic: { clan: 'yakuza', difficulty: 'medium', ticks: 400, playerRyo: 3000 },
+  // Pre-frontier test (Tim 2026-11-20, replaces dev_classic): a fresh campaign still in the capital, the hero with 8 crew,
+  // 300 Renown, 3 businesses and 3000 ryo, so the founding permit can be bought at the Land Office at once. Nothing else is
+  // done: the goal cards, surveyor home pick, castle, ship, settlers and first town all follow the real way.
+  pre_frontier_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 8 },
   // Castle test (Tim 2026-11-19, zones build Z4, replaces dev_frontier): a fresh campaign game, the hero alone on the island
   // in front of the drawbridge of his grey block castle on the East Plains cape, to walk round it.
   castle_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 20, realGame: true, railTown: true, castleTest: true, castleTour: true },   // castleTour: test only (Tim 2026-11-19), take out after
@@ -37,11 +39,15 @@ const SAVES = {
   // supply line sections stand). Pots as an average war: the camp brought the tier-2 pack, Tetsumichi put 1000 ryo
   // from its coffers in its war chest. The hero and four crew stand at the station.
   war_defend_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 8, railTown: true, warDefend: true },
+  // Railway and upgrade test (Tim 2026-11-20, back from 2026-11-07): the Kuroda hero by the station of his town Tetsumichi,
+  // laid out as before but at town hall tier 1 (Camp) with a ton of stock, coffers, clan ryo and people, so both hall
+  // upgrades (and the tier art of the hall and stockade) can be tried at once.
+  rail_test_kuroda: { clan: 'kuroda', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 50000, renown: 300, crew: 11, railTown: true, railTier: 1, richTown: true },
 };
 
 // A grown tier-2 town for the railway test: founded with the real command, then roads, buildings and zones are
 // placed with the build-bar commands; projects are finished at once and the zones start grown.
-function railTown(game, heroId) {
+function railTown(game, heroId, spec = {}) {
   const S = game.state, hero = S.entities[heroId], clan = S.clans[hero.owner], W = game.frontier.world, wd = options.world;
   const [gx, gz] = game.gate.island, far = s => Math.hypot(s.x - gx, s.z - gz);
   const sites = wd.sites.filter(s => far(s) > 1400 && far(s) < 2800).sort((a, b) => far(a) - far(b));
@@ -61,7 +67,7 @@ function railTown(game, heroId) {
   }
   if (!town) throw new Error('railTown: could not found a town');
   game.step([]);
-  town.tier = 2;
+  town.tier = spec.railTier ?? 2;
   const g = town.grid, n = g.n, cell = (r, c) => r * n + c;
   let hall = 0, best = Infinity;
   for (let i = 0; i < n * n; i++) { const [x, z] = cellToWorld(town, i), d = Math.hypot(x - town.x, z - town.z); if (d < best) { best = d; hall = i; } }
@@ -80,11 +86,12 @@ function railTown(game, heroId) {
     return Array.from({ length: n * n }, (_, i) => i).filter(i => d(i) > 14).sort((a, b) => d(a) - d(b)).slice(0, 400); };
   const at = { lumber_camp: besideSpot('timber'), quarry: besideSpot('stone') };
   for (const kind of ['station', 'storehouse', 'storehouse', 'market', 'stable', 'infirmary', 'lumber_camp', 'quarry']) {
+    let tries = 0;   // a lower hall tier allows fewer buildings: give up on a kind after 60 refused spots (each try is a game step)
     for (const i of at[kind] || byDist) {
       if (g.use[i] !== '.' || g.zone[i] !== '.') continue;
       const before = (town.projects || []).length;
       cmd({ action: 'place', kind, cells: [i] });
-      if ((town.projects || []).length > before) break;
+      if ((town.projects || []).length > before || ++tries >= 60) break;
     }
   }
   for (const p of [...(town.projects || [])]) {
@@ -95,12 +102,12 @@ function railTown(game, heroId) {
   // zones, nearest the hall first: housing grown to houses, workshops and fields grown
   const want = { housing: [30, '2'], work: [10, '1'], farm: [20, '1'] };
   for (const [kind, [count, stage]] of Object.entries(want)) {
-    let got = 0;
+    let got = 0, misses = 0;
     for (const i of byDist) {
-      if (got >= count) break;
+      if (got >= count || misses >= 60) break;   // the tier's cell cap or build ring is reached
       if (g.use[i] !== '.' || g.zone[i] !== '.') continue;
       cmd({ action: 'zone', kind, cells: [i] });
-      if (g.zone[i] !== '.') { g.stage = g.stage.slice(0, i) + stage + g.stage.slice(i + 1); got++; }
+      if (g.zone[i] !== '.') { g.stage = g.stage.slice(0, i) + stage + g.stage.slice(i + 1); got++; misses = 0; } else misses++;
     }
   }
   town.pop = 45; town.autoBuild = true; town.focusSet = true;   // the governor has his orders (goal step)
@@ -122,6 +129,8 @@ function railTown(game, heroId) {
   const crew = Object.values(S.entities).filter(u => u.owner === clan.id && ['thug', 'kuroda_rifleman', 'kuroda_enforcer', 'ninja'].includes(u.type) && !u.dead && game.settings.units.types[u.type] && !u.worker && !u.railGang).slice(0, 4);
   crew.forEach((u, k) => { const c = open[Math.min(k + 1, open.length - 1)]; Object.assign(u, { place: 'world', x: c.x + (k % 2 ? 1 : -1), z: c.z + 1, order: { kind: 'follow', target: hero.id } }); });
   game.areas.update(Object.values(S.entities));
+  // richTown: plenty for both hall upgrades (stock above the storage cap stays, it only cannot grow)
+  if (spec.richTown) { for (const r of ['food', 'timber', 'stone', 'goods']) town.stock[r] = 6000; town.stock.ryo = 5000; town.pop = Math.max(town.pop, 70); clan.ryo = Math.max(clan.ryo, spec.ryo || 0); }
   return town;
 }
 
@@ -368,7 +377,7 @@ export function build(name, spec) {
   if (spec.crew) readyClans(game, spec);
   const bots = makeBots(game, m.rivals);
   for (let i = 0; i < spec.ticks; i++) game.step(bots.flatMap(b => b.tick()));
-  if (spec.railTown) railTown(game, m.heroId);
+  if (spec.railTown) railTown(game, m.heroId, spec);
   if (spec.warTest) warTest(game, m.heroId);
   if (spec.warDefend) warDefend(game, m.heroId);
   if (spec.castleTest) { const h = game.state.entities[m.heroId], p = game.castles?.approach('player'); if (!h || !p) throw new Error('castle_test: no castle');
