@@ -128,6 +128,7 @@ async function start() {
   const island = modeRules(bootFile ? decode(bootFile.state) : { match: selected }).island;
   const islandOnly = v => island ? v : null;
   const railways = await getJSON('data/railways.json').catch(() => null);   // train plan: railway rules
+  const weatherCfg = await getJSON('data/weather.json').catch(() => null);   // frontier weather, visual only (Tim 2026-11-20)
   const castleBlueprint = await getJSON('data/castle_default.json').catch(() => null), campaignZones = await getJSON('data/campaign_zones.json').catch(() => null);   // Z4: castles and zones
   const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), frontier: islandOnly(frontier && { ...frontier, railways, castleBlueprint, campaignZones, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
   const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST, seed: Math.floor(Math.random() * 2147483646) + 1 };   // seed: per-game bot site picks (E6)
@@ -155,7 +156,7 @@ async function start() {
   let view;
   try {
     view = await createView({
-      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world: simOptions.world, worldChunks: simOptions.worldChunks, cutouts, resourceSpots: simOptions.resourceSpots, spotConfig: frontier?.townArt?._spots, hallSeconds: frontier?.war?.channel?.seconds ?? 60,
+      canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world: simOptions.world, worldChunks: simOptions.worldChunks, cutouts, resourceSpots: simOptions.resourceSpots, spotConfig: frontier?.townArt?._spots, hallSeconds: frontier?.war?.channel?.seconds ?? 60, weather: weatherCfg,
       doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || modeRules(game.state).island)), units,   // back windows: Shinobi only; the island gate: campaign only (W3.5)
     });
   } catch (e) {

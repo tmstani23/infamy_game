@@ -20,6 +20,7 @@ import { createHQFire } from './hq_fire.js';
 import { createHallChannelFx } from './hall_channel_fx.js';
 import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
+import { createWeather } from './weather.js';
 import { createRailTrack, createCityStation } from './rail_track.js';
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
@@ -27,7 +28,7 @@ import { groundY, maxGroundY } from '../castle_height.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
-export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null, resourceSpots = null, spotConfig = null, hallSeconds = 60 }) {
+export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null, resourceSpots = null, spotConfig = null, hallSeconds = 60, weather: weatherCfg = null }) {
   // Use one close interior camera setting without enlarging character sprites separately.
   const INDOOR_ZOOM = 1.1;
   const minZoom = place => place === 'world' ? 0.175 : 0.35;
@@ -114,6 +115,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street'), railZ: (district.buildings || []).find(b => b.railStation)?.z ?? null, resourceSpots, spotConfig }) : null;
   // train plan: railway track on the island; each train car is a sprite (train_* art, Tim 2026-11-07), only its body and shadow
   const railTrack = worldGround ? createRailTrack({ scene, hide: (() => { const c = cityOnIsland(world, district.bounds); return (x, z) => x > c.minX && x < c.maxX + 0.6 && z > c.minZ && z < c.maxZ; })(), carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
+  // frontier weather, purely visual (render/weather.js, Tim 2026-11-20): fog banks, rain, snow
+  const weather = worldGround ? createWeather({ scene, camera, renderer, world, cfg: weatherCfg }) : null;
   // the capital's railway station (Tim 2026-11-07): an engine with its nose out and a track off the east edge, in the city
   const cityStationAt = (district.buildings || []).find(b => b.railStation);
   const cityStation = cityStationAt ? createCityStation({ scene, station: cityStationAt, edgeX: district.bounds.maxX,
@@ -528,6 +531,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     worldGround?.update(camTarget.x, camTarget.z, (heroPlace === 'world' && !cityView) || worldView, dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
     mark('ground');
     railTrack?.update(state.frontier, (heroPlace === 'world' && !cityView) || worldView, dt, shared.uNight.value);
+    weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
     cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);
     mark('rail');

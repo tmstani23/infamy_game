@@ -1,0 +1,25 @@
+{
+  "_note": "Frontier weather, purely visual (Tim 2026-11-20). Picked per half-day from the biome at the camera; see src/weather_pick.js and src/render/weather.js.",
+  "seed": 7151,
+  "fadeSeconds": 12,
+  "kinds": {
+    "clear":     { "fog": 0,    "rain": 0,    "snow": 0 },
+    "mist":      { "fog": 0.45, "rain": 0,    "snow": 0 },
+    "fog":       { "fog": 1,    "rain": 0,    "snow": 0 },
+    "drizzle":   { "fog": 0.5,  "rain": 0.4,  "snow": 0 },
+    "rain":      { "fog": 0.3,  "rain": 1,    "snow": 0 },
+    "haze":      { "fog": 0.55, "rain": 0,    "snow": 0 },
+    "flurries":  { "fog": 0.3,  "rain": 0,    "snow": 0.45 },
+    "snow":      { "fog": 0.4,  "rain": 0,    "snow": 1 },
+    "snowstorm": { "fog": 0.8,  "rain": 0,    "snow": 1.6, "wind": 2.2 }
+  },
+  "biomes": {
+    "forest": { "tint": "mist",  "day": { "clear": 32, "mist": 24, "fog": 14, "drizzle": 12, "rain": 18 }, "night": { "clear": 22, "mist": 26, "fog": 24, "drizzle": 10, "rain": 18 } },
+    "snow":   { "tint": "frost", "day": { "clear": 20, "mist": 12, "flurries": 18, "snow": 32, "snowstorm": 12, "fog": 6 }, "night": { "clear": 14, "mist": 14, "flurries": 16, "snow": 30, "snowstorm": 12, "fog": 14 } },
+    "dry":    { "tint": "dust",  "day": { "clear": 56, "haze": 34, "drizzle": 10 }, "night": { "clear": 44, "haze": 26, "mist": 22, "drizzle": 8 } }
+  },
+  "wind": { "min": 0.8, "max": 2.0 },
+  "fog": { "banks": 16, "length": [36, 66], "width": [20, 34], "opacity": 0.62, "veil": 0.2, "ghostLights": 3 },
+  "rain": { "drops": 1400, "splashes": 260, "fall": 26 },
+  "snow": { "flakes": 1100, "fall": 2.6 }
+}

@@ -103,3 +103,12 @@
 
 - Concept images are in `assets/concepts`. Every character, its role and its pipeline status are in `cast_tracker.md`.
 - NPC variety later comes from swaps (hats, colours, hair, props) on these bodies.
+
+## Frontier weather (2026-11-20)
+
+- Purely visual, no gameplay. Frontier island only (not the capital street or interiors). Settings > Video Weather checkbox turns it off.
+- Picked per half-day (day and night of each clock day) from the biome under the camera (islandBiome: forest / snow / dry) with a fixed hash: no saved state, same on every client. Fades over about 12 s. One wind for the island per half-day.
+- Kinds: clear, mist, fog, drizzle, rain (forest); clear, mist, flurries, snow, snowstorm, fog (snow); clear, haze, drizzle, night mist (dry).
+- Fog: soft banks lying on the ground, drifting with the wind and wrapping round the view; drawn above ground decals and under sprites, plus a faint veil over sprites. Never a full-screen grey. Night: moonlit, catches lantern light, rare ghost lights (hitodama) in thick fog.
+- Rain (streaks + ground splashes) and snow: GPU points round the camera.
+- Files: game/src/weather_pick.js (picker), game/src/render/weather.js (drawing), game/data/weather.json (numbers), game/tools/test_weather.mjs.
