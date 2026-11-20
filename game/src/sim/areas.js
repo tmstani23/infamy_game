@@ -16,7 +16,7 @@
 // - nav: the same calls the city grid answers (sim/nav.js): findPath, beginPath, clearLine, free,
 //   nearestFree, so crew orders, combat and AI work on the island unchanged.
 import { buildChunk, chunkId } from './chunk_gen.js';
-import { passable } from './world_data.js';
+import { passable, crossingCell } from './world_data.js';
 
 const SQ2 = Math.SQRT2;
 
@@ -333,7 +333,8 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
     const pass = new Uint8Array(NX * NZ);
     for (let i = 0; i < NZ; i++) for (let j = 0; j < NX; j++) {
       const x = (j + 0.5) * TC, z = (i + 0.5) * TC;
-      pass[tIdx(i, j)] = passable(world, x, z) && !(city && x > city.minX && x < city.maxX && z > city.minZ && z < city.maxZ) ? 1 : 0;
+      // crossingCell: a river cell holding part of a ford bar or bridge deck stays in the route graph (its fine grid has the way across)
+      pass[tIdx(i, j)] = (passable(world, x, z) || crossingCell(world, x, z)) && !(city && x > city.minX && x < city.maxX && z > city.minZ && z < city.maxZ) ? 1 : 0;
     }
     graph = { pass, borders: new Map(), cross: new Map(), intra: new Map(), ms: 0 };
     for (let cz = 0; cz < CZ; cz++) for (let cx = 0; cx < CX; cx++) { setBorder('E', cx, cz); setBorder('S', cx, cz); }
