@@ -41,11 +41,19 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   // the island view while the boss is out there, except in Watch the city (then the capital map, with the camera's box)
   const onIsland = () => !!world && ((game.state.entities[heroId]?.place === 'world' && !view.isCityWatch?.()) || !!view.isWarWatch?.());
   // world point <-> minimap pixel (screen right = x - z, screen down = x + z)
-  const toMap = (x, z) => [size / 2 + (x - midX - (z - midZ)) * S * k, size / 2 + (x - midX + (z - midZ)) * S * k];
+  // the town map's middle: the district's middle, but zoomed in it follows the camera (hero follow, pans, Home), frozen while dragging
+  let cenX = midX, cenZ = midZ, dragging = false;
+  const toMap = (x, z) => [size / 2 + (x - cenX - (z - cenZ)) * S * k, size / 2 + (x - cenX + (z - cenZ)) * S * k];
   const toWorld = (u, v) => {
     const a = (u - size / 2) / (S * k), b = (v - size / 2) / (S * k);
-    return { x: midX + (a + b) / 2, z: midZ + (b - a) / 2 };
+    return { x: cenX + (a + b) / 2, z: cenZ + (b - a) / 2 };
   };
+  function followCamera() {
+    // indoors the camera point is the room, not the street: hold the map where it was
+    const cam = view.cameraXZ?.(), place = view.commandPlace?.(game.state, heroId);
+    if (big || mapZoom <= 1 || !cam || dragging || (place && place !== 'street')) { if (mapZoom <= 1) { cenX = midX; cenZ = midZ; } return; }
+    cenX = Math.max(g.minX, Math.min(g.minX + g.w, cam.x)); cenZ = Math.max(g.minZ, Math.min(g.minZ + g.h, cam.z));
+  }
 
   // the map itself, one pixel per cell: ground, then buildings
   const base = mapTerrain(game,district,g);
@@ -315,6 +323,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     const state = fog.seen(game.state);
     if (onIsland()) { paintIsland(state); return; }
     islandC = null;
+    followCamera();
     paintCells();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#05060a';
@@ -323,7 +332,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     ctx.save();
     ctx.translate(size / 2, size / 2);
     ctx.transform(S * k, S * k, -S * k, S * k, 0, 0);
-    ctx.translate(g.minX - midX, g.minZ - midZ);
+    ctx.translate(g.minX - cenX, g.minZ - cenZ);
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(cells, 0, 0);
     ctx.restore();
@@ -467,7 +476,6 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     }
     return toWorld(u,v);
   };
-  let dragging = false;
   // the business under a map point (for the big map's hover and click), within a few pixels
   const pxAt = e => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) * size / r.width, (e.clientY - r.top) * size / r.height]; };
   const businessAt = e => {
