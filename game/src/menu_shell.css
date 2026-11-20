@@ -583,3 +583,19 @@ body .uf .pic { background-color: #1d1a16; }
    to see: they take the gold go look, like the surveyor tour's Next, while they flash */
 #utilitymenu .utility-button.goal-flash, #deploymentpanel .page-tabs button.goal-flash, #deploymentpanel button.show-away.goal-flash, #deploymentpanel .first-zone-options button.goal-flash {
   border-color: var(--ms-go-line); background: linear-gradient(var(--ms-go1), var(--ms-dk1)); color: var(--ms-on-text); animation: goalflash 2.6s ease-in-out infinite; }
+/* Tim 2026-11-20: the governor's Asks first / Builds himself switch clips its buttons (overflow hidden), which cut the flash glow off */
+#townpanel .gseg:has(.goal-flash) { overflow: visible; }
+#townpanel .gseg button.goal-flash { border-radius: 6px; background: linear-gradient(var(--ms-go1), var(--ms-dk1)); color: var(--ms-on-text); }
+/* Workers pane layout (Tim 2026-11-20): the job coins are one row across the top at full size (their grid rule was
+   lost when .tcoins became .wcoins, so they stacked down the side and left the middle empty); tabs under them; the list
+   fills the rest; Look buttons size to their text. The town panel's Workers card (.wcard, 2026-11-16) no longer
+   restyles the roster's worker cards. */
+#townpanel .workerroster .wcoins { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+#townpanel .workerroster button.wcoin { min-height: 58px; min-width: 0; }   /* full-size coins: icon, count, label (they select and filter) */
+#townpanel .workerroster .wcoin b { font-size: 18px; }
+#townpanel .workerroster .wtabs button { padding: 5px 4px 4px; }
+#townpanel .workerroster .wcard { gap: 6px; align-items: stretch; padding: 6px; margin: 0; border: 1px solid #3a3530; box-shadow: none; background: linear-gradient(#1d2228, #14181c); cursor: pointer; }
+#townpanel .workerroster .wcard.sel { border-color: var(--ms-accent); box-shadow: 0 0 8px color-mix(in srgb, var(--ms-accent) 35%, transparent); background: linear-gradient(color-mix(in srgb, var(--ms-accent) 14%, #1d2228), #14181c); }
+#townpanel .workerroster .wspots { gap: 4px; }
+#townpanel .workerroster .wspot { padding: 4px 8px; }
+#townpanel .workerroster .wspot button { flex: none; width: auto; padding: 3px 12px; }

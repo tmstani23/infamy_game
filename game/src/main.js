@@ -352,17 +352,17 @@ async function start() {
   let ordersSent = false, reportSent = false, lastPlace = null;   // While I'm away opened during the orders step: told to the sim once
   // Town goal flashes (Tim 2026-11-20): the town panel and the build bar redraw often, which wiped the gold flash
   // between checks; the panel calls this after every redraw too, and the build bar (#buildmini) counts as well
-  let townStepFn = null;
+  let townStepFn = null, workerPicked = false;
   function applyTownFlash() {
     const roots = ['#townpanel', '#towninspect', '#buildmini'];
-    for (const el of document.querySelectorAll(roots.map(r => `${r} .goal-flash`).join(', '))) el.classList.remove('goal-flash');
-    if (!townStepFn) return null;
     // '@timber' (Tim 2026-11-06): the nearest timber Look button on the Workers pane Spots tab (else the Spots tab flashes)
     const pick = sel => sel[0] === '@' ? [...document.querySelectorAll('#townpanel [data-act="build-worker-spot"]')].find(el => el.dataset.kind === sel.slice(1) && el.offsetParent !== null)
       : [...document.querySelectorAll(roots.map(r => `${r} ${sel}`).join(', '))].find(el => el.offsetParent !== null);
     let target = null;
-    for (const sel of townStepFn()) { target = pick(sel); if (target) break; }
-    target?.classList.add('goal-flash');
+    if (townStepFn) for (const sel of townStepFn()) { target = pick(sel); if (target) break; }
+    // only the old target loses the class: taking it off and back on every check restarted the pulse, so it never showed (Tim 2026-11-20)
+    for (const el of document.querySelectorAll(roots.map(r => `${r} .goal-flash`).join(', '))) if (el !== target) el.classList.remove('goal-flash');
+    if (target && !target.classList.contains('goal-flash')) { target.style.animationDelay = `-${Math.round(performance.now() % 2600)}ms`; target.classList.add('goal-flash'); }
     return target;
   }
   function officeHint(now) {
@@ -423,13 +423,15 @@ async function start() {
     const workerSteps = kind => {
       const q = s => document.querySelector(`#townpanel ${s}`);
       if (!q('[data-act="build-worker-tab"]')) return ['[data-act="build-workers"]'];
-      if (!q('.wface[aria-pressed="true"]')) return ['.wface', '[data-act="build-worker-tab"][data-id="roster"]'];
+      // the Spots tab shows no worker cards: remember whether one was selected on the roster (Tim 2026-11-20: Look never flashed)
+      if (q('.wface')) workerPicked = !!q('.wface[aria-pressed="true"]');
+      if (!workerPicked) return ['.wface', '[data-act="build-worker-tab"][data-id="roster"]'];
       return [`@${kind}`, '[data-act="build-worker-tab"][data-id="spots"]'];
     };
     if (!window.__goalLookHint) { window.__goalLookHint = true;   // pressing the flashing Look button: tell the player how to send him
       document.addEventListener('click', e => { const b = e.target.closest?.('#townpanel [data-act="build-worker-spot"]');
         if (b && (game.goalKey === 'workers' || game.goalKey === 'stone')) callout(`Now right-click the ${b.dataset.kind === 'stone' ? 'rocks' : 'trees'} to send your selected worker there`, 'news', 9000); }, true); }
-    const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"].buildbig', '[data-act="build-workers"]', '[data-build]'];
+    const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"].buildbig', '[data-build]'];   // the Workers button only flashes in the worker steps (Tim 2026-11-20)
     const step = goal && { layout: toolSteps, goods: toolSteps, storehouse: toolSteps, camps: toolSteps, people: toolSteps, infirmary: toolSteps,
       govorders: () => goal.rows[0].done ? ['[data-act="auto"][data-id="on"]', '[data-act="approve"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="priority"][data-id="grow"]', '[data-act="tab"][data-id="governor"]'],
       // Tim 2026-11-20: one step at a time: Workers button, a worker card to select, the Spots tab, the node's Look button; then a callout says to right-click
@@ -442,7 +444,7 @@ async function start() {
     const target = applyTownFlash();
     // war goals (goals pass, Tim 2026-11-19): the War banner on the action bar flashes while packing, and at a rival town
     document.getElementById('warbannerbtn')?.classList.toggle('goal-flash', goal?.key === 'warpack' || (goal?.key === 'war' && !(document.getElementById('warbannerbtn')?.disabled)));
-    $('townbtn').classList.toggle('goal-flash', !!step && !target && h?.place === 'world' && !document.querySelector('#buildmini:not([hidden])'));
+    $('townbtn').classList.toggle('goal-flash', !!step && !target && h?.place === 'world' && !document.querySelector('#buildmini:not([hidden])') && !$('townpanel').getClientRects().length);
     if (leave && !gateCallout) { gateCallout = true; callout('Your settlers are all at your HQ (gold): they will join you outside the island gate. Walk to the gate (G on the minimap) and press Space', 'news', 7000); }
     if (ready && !calloutShown) { calloutShown = true; callout('You can buy a founding permit: go to the telegraph office (gold marker on the map)', 'news', 5000); }
   }
