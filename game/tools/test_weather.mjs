@@ -44,4 +44,15 @@ for (let i = 0; i < 400; i++) w = easeWeather(w, b, 0.5, 12);
 assert.equal(w.tint, 'dust');
 assert.ok(Math.abs(w.fog - 0.55) < 0.01 && Math.abs(w.wind.speed - 2) < 0.01);
 
+// fog on about one night in three, at random, so runs of fog or of clear nights happen (Tim 2026-11-20)
+for (const b of Object.keys(cfg.biomes)) {
+  let foggy = 0; for (let d = 1; d <= 1000; d++) if (pickWeather(cfg, b, d, true).fog > 0) foggy++;
+  assert.ok(foggy > 270 && foggy < 400, `${b}: fog on ${foggy} of 1000 nights`);
+}
+
+// and the hash really is random night to night: some fog streaks and some long clear runs
+{ let run = 0, longest = 0, back2back = 0, prev = false;
+  for (let d = 1; d <= 1000; d++) { const f = pickWeather(cfg, 'forest', d, true).fog > 0; run = f ? 0 : run + 1; longest = Math.max(longest, run); if (f && prev) back2back++; prev = f; }
+  assert.ok(longest >= 5 && back2back > 20, `clear run ${longest}, fog two nights running ${back2back}`); }
+
 console.log('weather ok');

@@ -28,6 +28,8 @@ float wNoise(vec2 p) {
   return mix(mix(wHash(i), wHash(i + vec2(1.0, 0.0)), f.x), mix(wHash(i + vec2(0.0, 1.0)), wHash(i + vec2(1.0, 1.0)), f.x), f.y);
 }
 float wFbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * wNoise(p); p = p * 2.03 + vec2(17.1, 9.3); a *= 0.5; } return s; }
+// three octaves for the broad shapes (warp, ragged edge): cheaper, and the fine detail is not seen there
+float wFbm3(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 3; i++) { s += a * wNoise(p); p = p * 2.03 + vec2(17.1, 9.3); a *= 0.5; } return s * 1.143; }
 `;
 
 const BANK_VERT = /* glsl */`
@@ -49,14 +51,15 @@ void main() {
   vec2 c = vec2(dot(d, uWindDir), dot(d, vec2(-uWindDir.y, uWindDir.x)));   // along and across the wind
   c = c * vec2(0.065, 0.11) + uSeed;                                         // wisps stretched along the wind
   float t = uTime * uFlow;
-  vec2 warp = vec2(wFbm(c * 0.8 + vec2(t * 0.05, 0.0)), wFbm(c * 0.8 + vec2(5.2, 1.3) - vec2(0.0, t * 0.04)));
-  vec2 c2 = c + (warp - 0.5) * 2.2 - vec2(t * 0.09, 0.0);                    // curls stream through the bank
-  float dens = wFbm(c2 * 1.3);
   // the bank is a slowly bending ribbon with a ragged edge, and always fades out before the quad ends
   vec2 e = vUv * 2.0;
   e.y += 0.32 * sin(e.x * 2.6 + uSeed + uTime * 0.12 * uFlow);
-  float edge = length(e * vec2(1.0, 1.1)) + (wFbm(c * 0.9 + 3.7) - 0.5) * 0.6;
+  float edge = length(e * vec2(1.0, 1.1)) + (wFbm3(c * 0.9 + 3.7) - 0.5) * 0.6;
   float env = smoothstep(1.0, 0.25, edge) * smoothstep(1.0, 0.75, length(vUv * 2.0)) * uLife;
+  if (env < 0.003) discard;                                                 // outside the bank: skip the noise
+  vec2 warp = vec2(wFbm3(c * 0.8 + vec2(t * 0.05, 0.0)), wFbm3(c * 0.8 + vec2(5.2, 1.3) - vec2(0.0, t * 0.04)));
+  vec2 c2 = c + (warp - 0.5) * 2.2 - vec2(t * 0.09, 0.0);                    // curls stream through the bank
+  float dens = wFbm(c2 * 1.3);
   float th = mix(0.6, 0.33, clamp(uAmount, 0.0, 1.0));
   float a = uVeil > 0.0 ? smoothstep(th + 0.08, th + 0.4, dens) * uVeil : smoothstep(th, th + 0.3, dens);
   a *= env * uOpacity * (1.0 + 0.25 * uNight);
@@ -69,7 +72,7 @@ void main() {
   moon += vec3(0.03, 0.09, 0.09) * (0.5 + 0.5 * sin(uTime * 0.35 + uSeed * 4.0 + c.x * 0.9)) * shade;
   vec3 lamp = vec3(0.0);
   for (int i = 0; i < MAX_LIGHTS; i++) {
-    if (i >= uLightCount) break;
+    if (i >= uLightCount || uNight < 0.01) break;   // lanterns only light the fog at night
     float k = clamp(1.0 - length(uLightPos[i].xz - vWorld.xz) / (uLightPos[i].w * 1.3), 0.0, 1.0);
     lamp += uLightCol[i].rgb * (k * k * uLightCol[i].a);
   }
@@ -99,12 +102,19 @@ uniform float uTime, uBox, uHeight, uFall, uShow, uSize, uDpr, uSway;
 uniform vec2 uCenter, uDrift;
 attribute vec4 aSeed;
 varying float vShow; varying float vSeed;
+// wrap a ground point into the box seen on screen (axes screen-right and screen-up on the ground, so no corner is missed)
+uniform vec2 uAxisU, uAxisV, uBoxUV; uniform float uOffV;
+vec2 wrapView(vec2 s) {   // s: position along (uAxisU, uAxisV) in the world
+  vec2 c = vec2(dot(uCenter, uAxisU), dot(uCenter, uAxisV)) + vec2(0.0, uOffV);
+  vec2 r = mod(s - c + uBoxUV * 0.5, uBoxUV) - uBoxUV * 0.5 + c;
+  return uAxisU * r.x + uAxisV * r.y;
+}
 void main() {
   vSeed = aSeed.w;
   float span = uHeight / uFall;                                           // seconds to fall the whole height
   float fall = fract(aSeed.y + uTime / span * (0.8 + 0.4 * aSeed.w));
-  vec2 p = aSeed.xz * uBox + uDrift * fall * span + vec2(sin(uTime * 0.9 + aSeed.w * 40.0), cos(uTime * 0.7 + aSeed.x * 30.0)) * uSway;
-  p = mod(p - uCenter + uBox * 0.5, uBox) + uCenter - uBox * 0.5;
+  vec2 move = uDrift * fall * span + vec2(sin(uTime * 0.9 + aSeed.w * 40.0), cos(uTime * 0.7 + aSeed.x * 30.0)) * uSway;
+  vec2 p = wrapView(aSeed.xz * uBoxUV + vec2(dot(move, uAxisU), dot(move, uAxisV)));
   vec3 w = vec3(p.x, uHeight * (1.0 - fall), p.y);
   vShow = step(aSeed.z, uShow) * smoothstep(0.0, 0.08, fall) * smoothstep(1.0, 0.9, fall);
   gl_PointSize = vShow > 0.0 ? uSize * (0.7 + 0.6 * aSeed.w) * uDpr : 0.0;
@@ -135,12 +145,18 @@ uniform float uTime, uBox, uShow, uSize, uDpr;
 uniform vec2 uCenter;
 attribute vec4 aSeed;
 varying float vPhase; varying float vShow;
+// wrap a ground point into the box seen on screen (axes screen-right and screen-up on the ground, so no corner is missed)
+uniform vec2 uAxisU, uAxisV, uBoxUV; uniform float uOffV;
+vec2 wrapView(vec2 s) {   // s: position along (uAxisU, uAxisV) in the world
+  vec2 c = vec2(dot(uCenter, uAxisU), dot(uCenter, uAxisV)) + vec2(0.0, uOffV);
+  vec2 r = mod(s - c + uBoxUV * 0.5, uBoxUV) - uBoxUV * 0.5 + c;
+  return uAxisU * r.x + uAxisV * r.y;
+}
 float h1(float n) { return fract(sin(n) * 43758.5453); }
 void main() {
   float period = 0.45 + 0.4 * aSeed.w, k = uTime / period + aSeed.y, cyc = floor(k);
   vPhase = fract(k);
-  vec2 p = vec2(h1(cyc * 12.9898 + aSeed.x * 78.233), h1(cyc * 39.346 + aSeed.z * 11.135)) * uBox;
-  p = mod(p - uCenter + uBox * 0.5, uBox) + uCenter - uBox * 0.5;
+  vec2 p = wrapView(vec2(h1(cyc * 12.9898 + aSeed.x * 78.233), h1(cyc * 39.346 + aSeed.z * 11.135)) * uBoxUV);
   vShow = step(aSeed.z, uShow);
   gl_PointSize = vShow > 0.0 ? uSize * uDpr : 0.0;
   gl_Position = projectionMatrix * viewMatrix * vec4(p.x, 0.02, p.y, 1.0);
@@ -190,6 +206,8 @@ export function createWeather({ scene, camera, renderer, world, cfg }) {
     g.setAttribute('aSeed', new THREE.BufferAttribute(a, 4)); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3)); return g; };
   const fallUniforms = () => ({ uTime: shared.uTime, uBox: { value: 70 }, uHeight: { value: 14 }, uFall: { value: 20 }, uShow: { value: 0 }, uSize: { value: 20 },
     uDpr: { value: 1 }, uSway: { value: 0 }, uCenter: { value: new THREE.Vector2() }, uDrift: { value: new THREE.Vector2() },
+    uAxisU: { value: new THREE.Vector2(CAM_RIGHT.x, CAM_RIGHT.z).normalize() }, uAxisV: { value: new THREE.Vector2(GROUND_FWD.x, GROUND_FWD.z) },
+    uBoxUV: { value: new THREE.Vector2(70, 70) }, uOffV: { value: 0 },
     uColor: { value: new THREE.Color() }, uAlpha: { value: 0.4 }, uSlant: { value: new THREE.Vector2(0, 1) } });
   const points = (n, vert, frag) => { const p = new THREE.Points(seeds(n), new THREE.ShaderMaterial({ uniforms: fallUniforms(), vertexShader: vert, fragmentShader: frag,
     transparent: true, depthTest: false, depthWrite: false })); p.frustumCulled = false; p.renderOrder = FALL_ORDER; p.visible = false; scene.add(p); return p; };
@@ -281,16 +299,19 @@ export function createWeather({ scene, camera, renderer, world, cfg }) {
 
     // rain and snow: a box round the camera big enough for the view, everything sized to the view so it looks the same at any zoom
     const box = 2 * Math.max(hw, hd) + 6, k = box / 70, dpr = renderer.getPixelRatio(), night = shared.uNight.value;
-    const fallSet = (p, show, fall, size, alpha, day, dark, sway) => {
+    // the ground box that covers the screen: a drop high up shows higher on screen, so the box reaches further toward the camera
+    const cosE = Math.sqrt(1 - SIN_E * SIN_E), H = 14 * k;
+    const fallSet = (p, show, fall, size, alpha, day, dark, sway, ground = false) => {
       p.visible = show > 0.01;
       if (!p.visible) return;
       const un = p.material.uniforms;
-      un.uBox.value = box; un.uHeight.value = 14 * k; un.uFall.value = fall * k; un.uShow.value = show; un.uSize.value = size; un.uDpr.value = dpr;
+      un.uBox.value = box; un.uBoxUV.value.set(2 * hw + 4 * k, ground ? 2 * hd + 4 * k : 2 * hd + H * cosE / SIN_E + 4 * k); un.uOffV.value = ground ? 0 : -H * cosE / SIN_E * 0.5;
+      un.uHeight.value = 14 * k; un.uFall.value = fall * k; un.uShow.value = show; un.uSize.value = size; un.uDpr.value = dpr;
       un.uSway.value = sway * k; un.uCenter.value.set(cam.x, cam.z); un.uDrift.value.set(vx * k, vz * k); un.uAlpha.value = alpha;
       un.uColor.value.setRGB(...day).lerp(new THREE.Color(...dark), night);
     };
     fallSet(rain, Math.min(1, now.rain), cfg.rain.fall, 28, 0.55, [0.78, 0.82, 0.88], [0.50, 0.58, 0.72], 0);
-    fallSet(splash, Math.min(1, now.rain), 1, 16, 0.6, [0.82, 0.86, 0.92], [0.50, 0.58, 0.72], 0);
+    fallSet(splash, Math.min(1, now.rain), 1, 16, 0.6, [0.82, 0.86, 0.92], [0.50, 0.58, 0.72], 0, true);
     fallSet(snow, Math.min(1, now.snow / 1.6), cfg.snow.fall * (1 + Math.max(0, now.snow - 1)), 7, 0.9, [1, 1, 1], [0.70, 0.76, 0.90], 0.5);
     if (rain.visible) {   // streaks lean with the wind as seen on screen
       const sx = (vx * CAM_RIGHT.x + vz * CAM_RIGHT.z) / cfg.rain.fall, dir = new THREE.Vector2(THREE.MathUtils.clamp(sx, -0.6, 0.6), 1).normalize();
