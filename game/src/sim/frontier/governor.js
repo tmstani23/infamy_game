@@ -143,6 +143,35 @@ export function createGovernor({ state, data, world, economy, construction, zone
     }
     return false;
   }
+  // Tim 2026-11-20: a work camp (lumber camp, quarry, food camp) the governor places goes out beside the nearest
+  // matching spot a camp could reach, not on the next free town cell. Spots a built or planned camp of that type
+  // already serves are skipped (a second camp goes to fresh ground). Returns the placed project id, or null (the
+  // caller then falls back to the old nearest-free-cell queue). Shared by Initiative On towns and bot towns.
+  function siteCamp(s, type) {
+    const R = data.workers, res = R.campTakes?.[type]?.[0];
+    if (!res || !workers?.index?.spotsNear || !placement() || !(R.gatherBuildings || []).includes(type)) return null;
+    const reach = R.campReach || 0, grid = (data.townGrid?.radius ?? 600) - 2 * (s.grid?.cell || 11);
+    const mine = [...s.buildings.filter(b => b.stage === 'built'), ...s.projects].filter(b => b.type === type && Number.isInteger(b.cell)).map(b => cellToWorld(s, b.cell));
+    const spots = workers.index.spotsNear(s.x, s.z, grid + reach).filter(p => R.resources[p.kind] === res && !mine.some(([x, z]) => Math.hypot(p.x - x, p.z - z) <= reach * 0.5))
+      .map(p => ({ p, d: Math.hypot(p.x - s.x, p.z - s.z) })).sort((a, b) => a.d - b.d || (a.p.id < b.p.id ? -1 : 1));
+    for (const { p, d } of spots.slice(0, G.campSiteTries ?? 4)) {
+      const k = Math.min(1, grid / d), tx = s.x + (p.x - s.x) * k, tz = s.z + (p.z - s.z) * k;
+      if (Math.hypot(p.x - tx, p.z - tz) > reach) continue;
+      const g = s.grid, n2 = g.n, c0 = worldToCell(s, tx, tz);
+      if (c0 < 0) continue;
+      const cc = c0 % n2, cr = (c0 - cc) / n2, cand = [];
+      for (let r = cr - 4; r <= cr + 4; r++) for (let c = cc - 4; c <= cc + 4; c++) if (r >= 0 && c >= 0 && r < n2 && c < n2) cand.push([(r - cr) ** 2 + (c - cc) ** 2, r * n2 + c]);
+      cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      for (const [, i] of cand) {
+        if (!placement().check(s, { kind: type, cells: [i] }).ok) continue;
+        const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
+        if (r.ok && r.project) return r.project;
+      }
+    }
+    return null;
+  }
+  const isCamp = type => (data.workers?.gatherBuildings || []).includes(type);
+
   // a camp on the free grid cell nearest a point, authorized at once
   function placeNear(s, type, tx, tz, text) {
     const g = s.grid, n2 = g.n, c0 = worldToCell(s, tx, tz);
@@ -286,7 +315,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const sg = s.suggestions.shift();
     const zk = zoneKind(s, sg.type);
     if (zk) { zones.autoZone(s, zk); return; }
-    const pid = construction.queue(s.id, sg.type, null);
+    const pid = (isCamp(sg.type) && siteCamp(s, sg.type)) || construction.queue(s.id, sg.type, null);
     if (!pid) return;
     construction.find(pid).project.byGov = true;
     tryAuthorize(s, pid);
@@ -352,7 +381,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (!sg) return false;
     const zk = zoneKind(s, sg.type);
     if (zk) { if (!zones.autoZone(s, zk).ok) return false; s.suggestions.splice(index, 1); return true; }
-    const pid = construction.queue(s.id, sg.type, null);
+    const pid = (isCamp(sg.type) && siteCamp(s, sg.type)) || construction.queue(s.id, sg.type, null);
     if (!pid) return false;
     construction.authorize(pid);
     s.suggestions.splice(index, 1);

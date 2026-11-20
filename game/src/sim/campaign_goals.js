@@ -190,9 +190,9 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
     const has = type => (town.buildings || []).some(b => b.type === type && b.stage !== 'ruined') || (town.projects || []).some(p => p.type === type);
     const tool = (name, what) => panel + `Build bar (gold), pick ${name} (gold) and ${what}`;
     if (on('timber') < 1) return { key: 'workers', title: 'Put workers to work', step: S0 + MAIN_STEPS.indexOf('workers'), steps, rows: [pin(row('crew', 'Workers on timber', on('timber'), 1,
-      panel + 'Workers (gold), click the timber spot (gold) to look there, select a worker, then right-click the trees')), holdRow(id)] };
+      panel + 'Follow the gold flashes: Workers, click a worker card to select him, Spots tab, Look at the timber spot, then right-click the trees')), holdRow(id)] };
     if (on('stone') < 1) return { key: 'stone', title: 'Gather stone', step: S0 + MAIN_STEPS.indexOf('stone'), steps, rows: [pin(row('crew', 'Workers on stone', on('stone'), 1,
-      panel + 'Workers (gold), click the stone spot (gold) to look there, select a worker, then right-click the rocks')), holdRow(id)] };
+      panel + 'Follow the gold flashes: Workers, click a worker card to select him, Spots tab, Look at the stone spot, then right-click the rocks')), holdRow(id)] };
     const work = count(g.zone, /k/g);
     if (work < (G.workCells ?? 2)) return { key: 'goods', title: 'Make goods', step: S0 + MAIN_STEPS.indexOf('goods'), steps, rows: [pin(row('business', 'Work cells', work, G.workCells ?? 2,
       tool('Work', 'drag next to a road: workshops turn timber and stone into goods'))), holdRow(id)] };

@@ -400,11 +400,22 @@ async function start() {
       !btn.disabled && ((btn.dataset.pick === '0' && !!goal?.key?.startsWith('permit') && L.permitStatus(c.id).ok) || (btn.dataset.pick === '1' && !!goal?.key?.startsWith('settlers'))));
     // Town setup goals (Tim 2026-11-06): flash the next button in the town panel, or the Town icon while it is shut
     const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm', 'Work cells': 'work', Storehouse: 'storehouse', 'Lumber camp': 'lumber_camp', Quarry: 'quarry', People: 'housing', Infirmary: 'infirmary' };
+    game.goalKey = goal?.key;
+    const workerSteps = kind => {
+      const q = s => document.querySelector(`#townpanel ${s}`);
+      if (!q('[data-act="build-worker-tab"]')) return ['[data-act="build-workers"]'];
+      if (!q('.wface[aria-pressed="true"]')) return ['.wface', '[data-act="build-worker-tab"][data-id="roster"]'];
+      return [`@${kind}`, '[data-act="build-worker-tab"][data-id="spots"]'];
+    };
+    if (!window.__goalLookHint) { window.__goalLookHint = true;   // pressing the flashing Look button: tell the player how to send him
+      document.addEventListener('click', e => { const b = e.target.closest?.('#townpanel [data-act="build-worker-spot"]');
+        if (b && (game.goalKey === 'workers' || game.goalKey === 'stone')) callout(`Now right-click the ${b.dataset.kind === 'stone' ? 'rocks' : 'trees'} to send your selected worker there`, 'news', 9000); }, true); }
     const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"]', '[data-act="build-workers"]', '[data-build]'];
     const step = goal && { layout: toolSteps, goods: toolSteps, storehouse: toolSteps, camps: toolSteps, people: toolSteps, infirmary: toolSteps,
       govorders: () => goal.rows[0].done ? ['[data-act="auto"][data-id="on"]', '[data-act="approve"]'] : ['[data-act="priority"]'],
-      stone: () => ['@stone', '[data-act="build-worker-tab"][data-id="spots"]', '[data-act="build-workers"]'],
-      workers: () => ['@timber', '[data-act="build-worker-tab"][data-id="spots"]', '[data-act="build-workers"]'], village: () => ['[data-upgrade]'],
+      // Tim 2026-11-20: one step at a time: Workers button, a worker card to select, the Spots tab, the node's Look button; then a callout says to right-click
+      stone: () => workerSteps('stone'),
+      workers: () => workerSteps('timber'), village: () => ['[data-upgrade]'],
       rail: goal.rows[0].done ? null : () => ['[data-act="build-tool"][data-id="station"]', '[data-act="build-toggle"]', '[data-build]'],
       shipping: goal.rows[0].done ? null : () => ['[data-act="ship"][data-id^="order:"]', '[data-act="tab"][data-id="ship"]'],
       market: () => goal.rows[0].done ? ['[data-act="keepinput"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'] }[goal.key];

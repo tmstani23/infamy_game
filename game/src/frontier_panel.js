@@ -244,6 +244,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       if (b && s && buildUI?.click(b.dataset, s, e)) { lastHtml = ''; render(); b.blur?.(); }
     });
   }
+  // Tim 2026-11-20: a click anywhere on a worker card selects it (not only the portrait); the group dropdown and buttons keep their own clicks
+  const btnOf = e => e.target.closest('button[data-act]') || (e.target.closest('select, input, button, a') ? null : e.target.closest('.wcard')?.querySelector('button.wface'));
   root.addEventListener('mousedown', e => {
     e.stopPropagation();
     // a typed Shipments amount counts before the button under the mouse is clicked (its change event would redraw the row first)
@@ -251,7 +253,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (t?.dataset?.act === 'shipinput' && t !== e.target && root.contains(t)) { shipTab.input(t.dataset, t.value, pick()); t.dataset.act = 'shipdone'; }
   });
   root.addEventListener('dblclick',e=>{
-    const b=e.target.closest('button[data-act]'),s=pick();
+    const b=btnOf(e),s=pick();
     if(b && s && buildUI?.doubleClick?.(b.dataset,s)){lastHtml='';render();}
   });
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
@@ -262,7 +264,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   });
   root.addEventListener('click', e => {
     const turn = e.target.closest?.('[data-ms-page]'); if (turn?.dataset?.msPage !== undefined) { pageState.page += Number(turn.dataset.msPage); paginate(); return; }
-    const b = e.target.closest('button[data-act]'); if (!b) return;
+    const b = btnOf(e); if (!b) return;
     if (b.dataset.act === 'panel-close') { close(); return; }
     const s = pick(), id = b.dataset.id, sid = s?.id;
     if (s && buildUI?.click(b.dataset, s, e)) { lastHtml = ''; render(); b.blur?.(); return; }
