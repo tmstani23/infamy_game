@@ -9,7 +9,7 @@
 //   }
 // cfg is game/data/world_chunks.json. city (optional) = { minX, maxX, minZ, maxZ } in island
 // coordinates: the walled city is a blocker on the island (the way in is its gate, W3.5).
-import { terrainAt, passable } from './world_data.js';
+import { terrainAt, passable, crossingCell } from './world_data.js';
 import { shorelineTopology } from './shoreline.js';
 import {islandArt} from './island_art.js';
 import { createPaint, trailSegments, hash2 } from '../world_paint.js';
@@ -60,10 +60,13 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = n
   // blocked terrain cells, merged into runs along each row
   const blockers = [];
   const shore = world.terrain.shoreline?.radius ? shorelineTopology(world) : null;
+  // cells drawn with fine rectangles below: rounded ocean corners, and river cells holding part of a ford bar
+  // or bridge deck (only the crossing art is walkable, Tim 2026-11-20)
+  const fineCell = (i, j) => !!shore?.affectedCell(x0 / tc + j, z0 / tc + i) || crossingCell(world, x0 + (j + 0.5) * tc, z0 + (i + 0.5) * tc);
   for (let i = 0; i < n; i++) {
     let start = -1;
     for (let j = 0; j <= n; j++) {
-      const blocked = j < n && !shore?.affectedCell(x0 / tc + j, z0 / tc + i) && !passable(world, x0 + (j + 0.5) * tc, z0 + (i + 0.5) * tc);
+      const blocked = j < n && !fineCell(i, j) && !passable(world, x0 + (j + 0.5) * tc, z0 + (i + 0.5) * tc);
       if (blocked && start < 0) start = j;
       if (!blocked && start >= 0) {
         blockers.push({ minX: x0 + start * tc, maxX: x0 + j * tc, minZ: z0 + i * tc, maxZ: z0 + (i + 1) * tc, kind: 'terrain' });
@@ -71,11 +74,11 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = n
       }
     }
   }
-  // Only cells touched by a rounded ocean corner need fine rectangles. They feed
+  // Only cells touched by a rounded ocean corner or a crossing need fine rectangles. They feed
   // both live sliding and the nav grid. Half-unit steps remain within the
   // existing corner-slip distance so movement cannot snag on a raster stair.
-  if (shore) for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-    if (!shore.affectedCell(x0 / tc + j, z0 / tc + i)) continue;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    if (!fineCell(i, j)) continue;
     const count = Math.ceil(tc / Math.min(cfg.navCell || 1, 0.5)), pitch = tc / count;
     const ax = x0 + j * tc, az = z0 + i * tc;
     let previous = new Map();
@@ -87,7 +90,7 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = n
         if (!blocked && start >= 0) {
           const k = `${start},${col}`, old = previous.get(k);
           if (old) old.maxZ = az + (row + 1) * pitch;
-          const b = old || { minX: ax + start * pitch, maxX: ax + col * pitch, minZ: az + row * pitch, maxZ: az + (row + 1) * pitch, kind: 'terrain', shoreCorners: shore.cellCorners(x0 / tc + j, z0 / tc + i) };
+          const b = old || { minX: ax + start * pitch, maxX: ax + col * pitch, minZ: az + row * pitch, maxZ: az + (row + 1) * pitch, kind: 'terrain', shoreCorners: shore?.cellCorners(x0 / tc + j, z0 / tc + i) };
           if (!old) blockers.push(b); current.set(k, b); start = -1;
         }
       }

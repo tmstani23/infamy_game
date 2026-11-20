@@ -2,15 +2,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {buildChunk} from '../src/sim/chunk_gen.js';
 import {slideWorld} from '../src/sim/world_slide.js';
-import {terrainAt,passable} from '../src/sim/world_data.js';
+import {terrainAt,passable,crossingCell} from '../src/sim/world_data.js';
 import {islandArt} from '../src/sim/island_art.js';
 import {placePiece} from '../src/sim/geometry.js';
 const read=f=>JSON.parse(fs.readFileSync(new URL('../'+f,import.meta.url)));
 const w=read('data/world.json'),cfg=read('data/world_chunks.json'),catalog=read('data/art.json'),cuts=read('art/cutouts.json'),T=w.terrain.cell,r=.35;
 const choices=[];
 for(let z=T/2;z<w.size.h;z+=T)for(let x=T/2;x<w.size.w;x+=T){
-  if(passable(w,x,z))continue;
-  for(const [dx,dz]of [[1,0],[-1,0],[0,1],[0,-1]])if(passable(w,x+dx*T,z+dz*T))choices.push({x:x+dx*(T/2+r+.001),z:z+dz*(T/2+r+.001),dx,dz,code:terrainAt(w,x,z)});
+  if(passable(w,x,z)||crossingCell(w,x,z))continue;   // a river cell holding a ford bar or bridge deck is not a square wall (finely cut, test_crossings)
+  for(const [dx,dz]of [[1,0],[-1,0],[0,1],[0,-1]])if(passable(w,x+dx*T,z+dz*T)&&!crossingCell(w,x+dx*T,z+dz*T))choices.push({x:x+dx*(T/2+r+.001),z:z+dz*(T/2+r+.001),dx,dz,code:terrainAt(w,x,z)});
 }
 assert.ok(choices.length>=200);
 const cache=new Map(),chunk=(cx,cz)=>{const k=cx+','+cz;if(!cache.has(k))cache.set(k,buildChunk(w,cfg,cx,cz));return cache.get(k);};

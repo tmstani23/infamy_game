@@ -25,12 +25,52 @@ export function terrainName(world, x, z) {
   return world.terrain.codes[terrainAt(world, x, z)] || 'unknown';
 }
 
-// River cells within rules.fordRadius of a crossing count as walkable (route graph and walk grid, 50-unit
-// cells), bridges included, so the water beside a bridge is walkable too. Deck-only walking is parked:
-// see to_delete/bridge_deck_attempt/NOTES.md.
+// River water is walkable only on the crossing art (Tim 2026-11-20): a ford's gravel bar or a bridge deck.
+// Each crossing is a strip across its river: `along` = half its size along the flow (ford: rules.fordAlong,
+// the solid part of the gravel bar in world_crossings.json fordBed; bridge: rules.bridgeHalfWidth, half the
+// plank strip's width in world_crossings.json bridge.width), `lo..hi` = across the river from bank to bank
+// (river terrain cells, plus a margin). passable() tests the exact point; crossingCell() says whether a
+// 50-unit river cell holds part of a crossing, so the route graph keeps it and chunk_gen rasterizes it finely.
+const crossCache = new WeakMap();
+function crossingBands(world) {
+  let list = crossCache.get(world);
+  if (list) return list;
+  const rules = world.rules || {};
+  list = (world.fords || []).map(f => {
+    const r = (world.rivers || []).find(r => r.id === f.river);
+    let tx = 1, tz = 0;
+    if (r) {
+      let best = Infinity;
+      for (let i = 0; i < r.points.length - 1; i++) {
+        const [a, b] = [r.points[i], r.points[i + 1]], dx = b[0] - a[0], dz = b[1] - a[1], l = dx * dx + dz * dz || 1;
+        const t = Math.max(0, Math.min(1, ((f.x - a[0]) * dx + (f.z - a[1]) * dz) / l));
+        const d = Math.hypot(a[0] + t * dx - f.x, a[1] + t * dz - f.z);
+        if (d < best) { best = d; const n = Math.sqrt(l); tx = dx / n; tz = dz / n; }
+      }
+    }
+    const nx = -tz, nz = tx, edge = sign => { let s = 0; while (s < 400 && rawCode(world, f.x + nx * (s + 5) * sign, f.z + nz * (s + 5) * sign) === 'r') s += 5; return (s + 15) * sign; };
+    const along = f.kind === 'bridge' ? (rules.bridgeHalfWidth ?? 10.5) : (rules.fordAlong ?? 80);
+    return { x: f.x, z: f.z, tx, tz, along, lo: edge(-1), hi: edge(1) };
+  });
+  crossCache.set(world, list);
+  return list;
+}
+function rawCode(world, x, z) {
+  const g = grid(world), i = Math.floor(z / g.cell), j = Math.floor(x / g.cell);
+  return (i < 0 || j < 0 || i >= g.nz || j >= g.nx) ? 'w' : g.rows[i][j];
+}
+const inBand = (f, x, z, grow) => {
+  const dx = x - f.x, dz = z - f.z, u = dx * f.tx + dz * f.tz, v = -dx * f.tz + dz * f.tx;
+  return Math.abs(u) <= f.along + grow && v >= f.lo - grow && v <= f.hi + grow;
+};
 function nearFord(world, x, z) {
-  const r = world.rules.fordRadius;
-  return (world.fords || []).some(f => Math.hypot(f.x - x, f.z - z) < r);
+  return crossingBands(world).some(f => inBand(f, x, z, 0));
+}
+// The 50-unit river cell around (x, z) holds part of a ford bar or bridge deck.
+export function crossingCell(world, x, z) {
+  if (rawCode(world, x, z) !== 'r') return false;
+  const T = world.terrain.cell, h = T / 2, cx = (Math.floor(x / T) + 0.5) * T, cz = (Math.floor(z / T) + 0.5) * T;
+  return crossingBands(world).some(f => inBand(f, cx, cz, h * (Math.abs(f.tx) + Math.abs(f.tz))));
 }
 
 // Walkable on foot: not mountain or water; river only at a ford or bridge.

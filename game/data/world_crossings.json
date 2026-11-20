@@ -22,8 +22,8 @@
   "maxWidth": 0
  },
  "bridge": {
-  "_note": "Plain plank strip across the river at each of the 9 bridges (units). overhang = extra length past each edge of the painted water.",
+  "_note": "Plain plank strip across the river at each of the 9 bridges (units). overhang = extra length past each edge of the painted water. width 21 (Tim 2026-11-20: 3x wider); the deck is the only walkable river there, keep world.json rules.bridgeHalfWidth (default 10.5 in sim/world_data.js) at half of it.",
   "overhang": 6,
-  "width": 7
+  "width": 21
  }
 }

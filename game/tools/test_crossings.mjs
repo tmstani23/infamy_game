@@ -60,11 +60,27 @@ for (const f of world.fords) {
   assert.ok(r && r.points.length, `${f.id} has a route across`);
   const pts = [A, ...r.points];
   const used = near(pts, f);
-  // a route may use a nearer crossing, but it never fords the river anywhere else
-  for (let i = 0; i < pts.length - 1; i++) for (let t = 0; t <= 1; t += 0.05) {
-    const x = pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t, z = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t;
-    if (terrainAt(world, x, z) === 'r') assert.ok(world.fords.some(c => Math.hypot(c.x - x, c.z - z) < R + 1), `${f.id}: route wades river at ${x | 0},${z | 0} away from every crossing`);
+  // a route may use a nearer crossing, but the path units really walk (fine grid) never wades anywhere else
+  areas.update([{ place: 'world', x: f.x, z: f.z }]);
+  const A2 = bank(f, k, 1, 10), B2 = bank(f, k, -1, 10), nA = areas.nav.nearestFree(...A2), nB = areas.nav.nearestFree(...B2);   // just off the water: a bank point can sit on a tree
+  assert.ok(nA && nB, `${f.id} banks near free ground (${A2.map(Math.round)} ${B2.map(Math.round)})`);
+  const [a0, a1] = nA, [b0, b1] = nB;
+  // a long trip is refined only ahead (replanAt coarse waypoints follow): ask again from the refined end, as crews do
+  const wp = [[a0, a1]];
+  for (let leg = 0; leg < 6 && Math.hypot(wp.at(-1)[0] - b0, wp.at(-1)[1] - b1) > 1; leg++) {
+    const walk = areas.nav.findPath(...wp.at(-1), b0, b1);
+    assert.ok(walk && walk.length, `${f.id} has a walked path across`);
+    wp.push(...walk.slice(0, walk.length - (walk.replanAt || 0)));
   }
+  assert.ok(Math.hypot(wp.at(-1)[0] - b0, wp.at(-1)[1] - b1) <= 1, `${f.id} walked path reaches the far bank`);
+  for (let i = 0; i < wp.length - 1; i++) for (let t = 0; t <= 1; t += 0.05) {
+    const x = wp[i][0] + (wp[i + 1][0] - wp[i][0]) * t, z = wp[i][1] + (wp[i + 1][1] - wp[i][1]) * t;
+    if (terrainAt(world, x, z) === 'r') assert.ok([[0, 0], [1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5]].some(([u, v]) => passable(world, x + u, z + v)), `${f.id}: route wades river at ${x | 0},${z | 0} off the crossing art`);   // 1.5 u: walk-grid cell
+  }
+  // only the crossing art is walkable (Tim 2026-11-20): the water beside a bridge deck or past a ford's gravel bar blocks
+  const off = f.kind === 'bridge' ? 25 : 130;
+  for (const s of [-1, 1]) { const x = f.x + s * k.dx / Math.hypot(k.dx, k.dz) * off, z = f.z + s * k.dz / Math.hypot(k.dx, k.dz) * off;
+    if (terrainAt(world, x, z) === 'r') assert.ok(!passable(world, x, z), `${f.id}: river ${off} u along the flow is not walkable`); }
   if (used > R) bad.push(`${f.id} (route passes ${used.toFixed(0)} u away, via another crossing)`);
 }
 // Drawing: gravel bar at every ford (not elsewhere), plank strip across the river at every bridge.
@@ -89,4 +105,4 @@ for (const d of decals) {
   assert.equal(d.reach, d.width / 2);
 }
 console.log('crossings routed through another crossing:', bad.length ? bad.join('; ') : 'none');
-console.log('test_crossings: 17 crossings on the river, banks walkable, routes only wade at crossings, 8 gravel fords, 9 plank bridges');
+console.log('test_crossings: 17 crossings on the river, banks walkable, routes only wade on the crossing art, water beside it blocks, 8 gravel fords, 9 plank bridges');
