@@ -1,6 +1,6 @@
 // Hover tooltip and right-click on a founded town's buildings (frontier E5, Tim 2026-11-04). Reads the
 // frontier snapshot only; right-click opens the town panel for that town and flashes the plot.
-import { drawableTowns, drawableWarSites, townPlots, plotInfo, garrisonCount } from './town_props.js';
+import { drawableTowns, drawableWarSites, townPlots, garrisonCount } from './town_props.js';
 import { pointAt } from './sim/frontier/rail_route.js';
 
 export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null, openGarrison = null, openCamp = null, openTownWar = null }) {
@@ -118,7 +118,8 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp, #townwar');
     const cn = blocked ? null : cannonAt(e.clientX, e.clientY);
     if (cn || hoverCannon) { showCannon(cn, e.clientX, e.clientY); if (cn) return; }
-    const tr = blocked ? null : trainAt(e.clientX, e.clientY), p = blocked || tr ? null : plotAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : p && plotInfo(game.state.frontier, p, frontierData, game.state.entities, owner());
+    // trains only: buildings have no hover tooltip any more (Tim 2026-11-20: it got in the way of moving units); a left-click shows their card
+    const tr = blocked ? null : trainAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : null;
     if (!info) { tipEl.hidden = true; return; }
     const html = `<b>${info.title}</b>${info.lines.map(l => `<div>${l}</div>`).join('')}`;
     if (tipEl.dataset.html !== html) { tipEl.innerHTML = html; tipEl.dataset.html = html; }
@@ -129,7 +130,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   addEventListener('mousedown', e => {
     if (e.button !== 0 || e.ctrlKey || overUi(e.target)) return;
     const c = cannonAt(e.clientX, e.clientY);
-    if (!c) return;   // Tim 2026-11-12: then 2026-11-19: a left-click on your building opens its menu (menuAt), hover shows its card
+    if (!c) return;   // Tim 2026-11-12: then 2026-11-19: a left-click on your building opens its menu (menuAt); 2026-11-20: with its card beside it
     e.stopImmediatePropagation(); e.preventDefault();
     send({ id: heroId, type: 'frontier', action: 'salute', settlement: c.town.id });
   }, { capture: true });

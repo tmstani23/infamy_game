@@ -22,6 +22,7 @@ import { workerCap } from './sim/frontier/tiers.js';
 import { shapeOf, stationParts } from './sim/frontier/station_layout.js';
 import { sharedKeybinds } from './keybinds.js';
 import { isMilitary, militaryFor, militaryNeeds, militaryCount } from './sim/frontier/town_military.js';
+import { openMenu, placeBeside, unplace } from './card_beside.js';
 const keybinds = sharedKeybinds();   // rebindable keys (Tim 2026-11-12): Turn a station, Workers hold
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -297,6 +298,10 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     return `<div class="ti-row${good ? ' good' : warn ? ' warn' : ''}">${m ? `<span>${esc(m[1])}</span><b>${esc(m[2])}</b>` : `<span class="ti-txt">${esc(t)}</span>`}</div>`;
   };
   function showInspection() {
+    // a card opened with a building menu sits beside it and goes when the menu closes (Tim 2026-11-20)
+    const menu = inspect?.menu ? openMenu() : null;
+    if (inspect?.menu && !menu) inspect = null;
+    if (!inspect?.menu) unplace(card);
     if(!inspect && selected.length===1 && outdoors() && !blocked()) {
       const p=selectedLive()[0];if(!p){card.hidden=true;return;}
       const d=workerDetails(p.w,spotIndex),html=tiHead(p.w.spot?`Worker, ${p.w.spot}`:'Worker',/^w\d+$/.test(p.w.id)?`Worker ${p.w.id.slice(1)}`:`Worker ${p.w.id}`)
@@ -360,6 +365,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const training=card.querySelector?.('[data-worker-training]');
     if(training && info.hall)training.innerHTML=workerTrainingHTML(trainTown,game.state.tick,data);
     card.hidden = false;
+    if (menu) placeBeside(card, menu);
   }
   card.addEventListener('click', e => {
     inspectionPressed = false;
@@ -419,7 +425,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   }, { capture: true });
   addEventListener('blur', cancel);
   addEventListener('mousedown', e => {
-    if (e.button === 0 && !e.target?.closest?.('#towninspect')) { inspect = null; card.hidden = true; }
+    if (e.button === 0 && !inspect?.menu && !e.target?.closest?.('#towninspect')) { inspect = null; card.hidden = true; }   // beside a menu the card stays until the menu closes
     if (!canvasEvent(e)) return;
     if (e.button === 0) { pendingPlan = null; review.hidden = true; }
     if (e.button === 2 && tool) { cancel(); consume(e); return; }
@@ -438,19 +444,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     drag = { x: e.clientX, y: e.clientY, first: cell, build: opened && !!tool && !workerHit };
     if (drag.build) { consume(e); return; }
   }, { capture: true });   // a press on a worker is not consumed: the crew's drag box may start there too (Tim 2026-11-19)
-  // hover (Tim 2026-11-19): resting the pointer on your town's building shows its card; a clicked card stays until you click
-  // elsewhere or press Esc
-  let hoverAt = 0;
-  addEventListener('mousemove', e => {
-    mouse = canvasEvent(e) ? { x: e.clientX, y: e.clientY } : null;
-    const now = performance.now(); if (now - hoverAt < 100) return; hoverAt = now;
-    if (inspect && !inspect.hover) return;
-    if (e.buttons || tool || drag || pendingPlan || !mouse || inspectionPressed || e.target?.closest?.('#towninspect')) return;
-    const hit = !unitNear(e.clientX, e.clientY) && townAt(e.clientX, e.clientY);
-    const next = hit ? { town: hit.s.id, cell: hit.cell, hover: true } : null;
-    if (next?.town === inspect?.town && next?.cell === inspect?.cell) return;
-    inspect = next; showInspection();
-  });
+  // no card on hover any more (Tim 2026-11-20, was 2026-11-19: it got in the way of moving units): a left-click shows it
+  addEventListener('mousemove', e => { mouse = canvasEvent(e) ? { x: e.clientX, y: e.clientY } : null; });
   addEventListener('mouseup', e => {
     if (!drag || e.button !== 0) return;
     const d = drag; drag = null;
@@ -498,11 +493,12 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const spot = spotAt(e.clientX, e.clientY);
     const hit = townAt(e.clientX,e.clientY);
     // Tim 2026-11-19: a left-click on your military building (or stockade, or the hall while your town is attacked) opens its menu
-    if (!spot && hit && menuAt(e.clientX, e.clientY)) { inspect = null; card.hidden = true; crewInput.cancelPointer(); consume(e); return; }
+    // Tim 2026-11-20: and the building's card opens beside the menu
+    if (!spot && hit && menuAt(e.clientX, e.clientY)) { inspect = { town: hit.s.id, cell: hit.cell, menu: true }; showInspection(); crewInput.cancelPointer(); consume(e); return; }
     if (spot || hit) {
       inspect = spot ? { spot: spot.id } : { town: hit.s.id, cell: hit.cell };
       showInspection(); crewInput.cancelPointer(); consume(e);
-    } else { inspect = null; card.hidden = true; }   // open ground: the card goes, the worker selection stays (only Esc or a new drag clears it)
+    } else if (!inspect?.menu) { inspect = null; card.hidden = true; }   // open ground: the card goes, the worker selection stays (only Esc or a new drag clears it)
   }, { capture: true });
 
   function polygon(ctx, s, i, color, status = null) {
