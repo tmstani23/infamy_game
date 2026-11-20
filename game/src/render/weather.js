@@ -248,7 +248,7 @@ export function createWeather({ scene, camera, renderer, world, cfg }) {
     common.uAmount.value = Math.min(1, now.fog); common.uWindDir.value.copy(windDir);
     common.uFlow.value = 1 + Math.max(0, now.snow - 1) * 3;   // a snowstorm whips the banks into spindrift
     const fogOn = now.fog > 0.02;
-    const vx = windDir.x * now.wind.speed * (1 + Math.max(0, now.snow - 1)), vz = windDir.y * now.wind.speed * (1 + Math.max(0, now.snow - 1));
+    const vx = windDir.x * now.wind.speed, vz = windDir.y * now.wind.speed;   // the kind's wind (snowstorm x2.2) is already in the speed
     for (const b of banks) {
       b.under.visible = b.over.visible = fogOn;
       if (!fogOn) continue;
@@ -274,7 +274,7 @@ export function createWeather({ scene, camera, renderer, world, cfg }) {
     }
 
     // ghost lights: only in thick fog at night
-    const haunt = fogOn && now.fog > 0.4 ? shared.uNight.value : 0;
+    const haunt = fogOn && now.fog > 0.7 ? shared.uNight.value : 0;   // fog and snowstorm only, not mist, drizzle or haze
     ghostWait -= dt;
     for (const g of ghosts) {
       if (g.life <= 0) {
