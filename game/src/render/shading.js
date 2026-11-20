@@ -438,16 +438,26 @@ export function groundMaterial(textures, splatA, splatB, bounds, tile) {
 
 // ---------- castle terraces (Z4h): raised ground drawn as real 3D (render/world_ground.js, src/castle_height.js) ----------
 // Opaque and writing depth, so what is depth tested in a castle (units, buildings, decals) hides behind a cliff.
-export function terraceMaterial(map, tint = '#ffffff') {
+// fade: the piece carries a per-corner alpha attribute (the castle footing's soft outer edge, castle_height.js) and is
+// drawn see-through, without writing depth
+export function terraceMaterial(map, tint = '#ffffff', { fade = false } = {}) {
   return new THREE.ShaderMaterial({
+    transparent: fade, depthWrite: !fade, defines: fade ? { FADE: 1 } : {},
     uniforms: { ...shared, uMap: { value: map }, uTint: { value: new THREE.Color(tint).convertLinearToSRGB() } },   // the painted (sRGB) tint as written, like every colour here
     vertexShader: /* glsl */`
 attribute float shade;
 varying vec2 vUv;
 varying vec3 vWorld;
 varying float vShade;
+#ifdef FADE
+attribute float alpha;
+varying float vAlpha;
+#endif
 void main() {
   vUv = uv; vShade = shade;
+#ifdef FADE
+  vAlpha = alpha;
+#endif
   vec4 w = modelMatrix * vec4(position, 1.0);
   vWorld = w.xyz;
   gl_Position = projectionMatrix * viewMatrix * w;
@@ -459,6 +469,9 @@ uniform vec3 uTint;
 varying vec2 vUv;
 varying vec3 vWorld;
 varying float vShade;
+#ifdef FADE
+varying float vAlpha;
+#endif
 float terraceHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float terraceNoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(terraceHash(i), terraceHash(i + vec2(1.0, 0.0)), f.x), mix(terraceHash(i + vec2(0.0, 1.0)), terraceHash(i + vec2(1.0, 1.0)), f.x), f.y); }
@@ -467,7 +480,11 @@ void main() {
   // slow light and dark patches over the paving, so the repeating texture does not read as a grid from far off
   vec2 q = vWorld.xz + vWorld.y * 0.37;
   col *= 0.86 + 0.28 * (0.65 * terraceNoise(q / 19.0) + 0.35 * terraceNoise(q / 6.5));
-  gl_FragColor = vec4(fogged(grade(col, vWorld, false, vec3(0.0)), vWorld.xz), 1.0);
+  float a = 1.0;
+#ifdef FADE
+  a = smoothstep(0.0, 1.0, vAlpha) * (0.75 + 0.25 * terraceNoise(vWorld.xz * 0.9));   // a soft, broken edge
+#endif
+  gl_FragColor = vec4(fogged(grade(col, vWorld, false, vec3(0.0)), vWorld.xz), a);
 }`,
     side: THREE.DoubleSide,
   });

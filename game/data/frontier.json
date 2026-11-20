@@ -139,7 +139,11 @@
         "top2": { "texture": "art/ground/cobbles.jpg", "tile": 4.5, "aspect": 1.53, "mirror": true, "tint": "#fffaf0", "gain": 1.6 },
         "rim": { "texture": "art/ground/island/rocky_patch.jpg", "tile": 12, "tint": "#a29b92" },
         "pier": { "texture": "art/ground/planks.jpg", "tile": 7, "tint": "#fff4e0" },
-        "ramp": { "texture": "art/ground/stone_steps.jpg", "tile": 7, "tint": "#f0e8d8" },
+        "ramp": { "texture": "art/ground/stone_steps.jpg", "tile": 4.5, "tint": "#f6efe2", "gain": 1.2 },
+        "rampFace": { "texture": "art/ground/cobbles.jpg", "tile": 5, "tint": "#b8b0a4", "shadeEast": 0.75, "shadeSouth": 0.95, "_note": "a land bridge's cut-stone sides (Tim 2026-11-20)" },
+        "parapet": { "texture": "art/ground/paving.jpg", "tile": 2.6, "tint": "#efe6d6", "gain": 1.35, "_note": "the low stone walls along a land bridge's open sides (src/castle_height.js PARAPET)" },
+        "footing": { "texture": "art/ground/gravel.jpg", "tile": 4, "tint": "#d8d0c4", "gain": 1.2, "_note": "the sloped rubble footing along the bottom of every terrace and land bridge face (Tim 2026-11-20, src/castle_height.js FOOT)" },
+        "footFade": { "texture": "art/ground/gravel.jpg", "tile": 4, "tint": "#d8d0c4", "gain": 1.2, "_note": "the footing's soft edge fading onto the ground (same look as footing)" },
         "face": { "texture": "art/ground/island/castle_cliff_forest.jpg", "span": 50, "tint": "#ffffff", "shadeEast": 0.8, "shadeSouth": 1, "_note": "the rock face cut out of the island cliff art (props/cliff_forest_a, made flat); castle_cliff_dry.jpg is the dry one. span = world units one strip covers along the edge" }
       } },
     "_ground": {

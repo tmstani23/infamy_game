@@ -2917,6 +2917,8 @@ Zone data and caps, the zones map, the default castle with its rail hub, rival c
 **Dev save**
 - castle_test keeps the castle tour (Tim 2026-11-20: leave it in): empty castles at the two spots no clan holds, all castles seen and pinned on the World map.
 - Castle docks are walkable: the water under a placed castle's ground is cut out of the terrain blockers (`sim/castles.js` castleWalkBoxes, `sim/areas.js` walkOver, `sim/chunk_gen.js` option `walk`). Moat banks: `world_paint.json` `moatBank`, `frontier.json` `townArt._ground` `bankFade` / `bankCorner`.
+- Castle look (2026-11-20): land bridges are stone ramps with cut-stone sides, low parapets on open sides and steps across the climb. Every terrace and ramp face has a sloped stone footing whose outer and top edges wander and fade softly (no straight lines); the top edge on the face varies in height.
+  - `src/castle_height.js`: `PARAPET`, `FOOT` (wobbleUp 0.45, fadeUp 1.6, lift 0.04); piece kinds rampFace, parapet, footing, footFade. `src/render/world_ground.js` adds uvw and per-corner alpha; `src/render/shading.js` terraceMaterial has a fade option. Pieces in `data/frontier.json` townArt._castle.pieces; tested by `tools/test_castle.mjs`.
 
 ## Phase W5: Exploration and natives
 

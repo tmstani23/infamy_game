@@ -392,15 +392,18 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
         if (!quads.length) continue;
         const P = art?.pieces?.[kind] || {}, tile = P.tile || 8;
         const pos = new Float32Array(quads.length * 12), uv = new Float32Array(quads.length * 8), shade = new Float32Array(quads.length * 4), idx = [];
+        const fade = quads.some(f => f.alpha), alpha = fade ? new Float32Array(quads.length * 4) : null;   // see-through edges (footFade)
         quads.forEach((f, k) => {
-          const sh = (P.gain ?? 1) * (kind !== 'face' ? 1 : f.side === 'E' ? (P.shadeEast ?? 0.7) : (P.shadeSouth ?? 0.88));   // gain: lifts a dark texture
+          const sh = (P.gain ?? 1) * (f.shade ?? (kind !== 'face' && kind !== 'rampFace' ? 1 : f.side === 'E' ? (P.shadeEast ?? 0.7) : (P.shadeSouth ?? 0.88)));   // gain: lifts a dark texture
           f.q.forEach(([x, y, z], v) => {
             pos.set([x, y, z], k * 12 + v * 3);
             // tops tile by ground position; faces by their run along the edge and height
             // (a cliff face, pieces.face.span: one painted cliff strip every span units along the edge, mirrored on east faces
             // like the island's cliff art, and once up each level)
-            uv.set(kind !== 'face' ? [x / (tile * (P.aspect ?? 1)), z / tile] : P.span ? [(f.side === 'E' ? -z : x) / P.span, y / H] : [(f.side === 'E' ? z : x) / tile, y / tile], k * 8 + v * 2);
+            // uvw: a piece's own texture position in world units (land bridge steps and parapets, castle_height.js)
+            uv.set(f.uvw ? [f.uvw[v][0] / (tile * (P.aspect ?? 1)), f.uvw[v][1] / tile] : f.side ? (P.span ? [(f.side === 'E' ? -z : x) / P.span, y / H] : [(f.side === 'E' ? z : x) / tile, y / tile]) : [x / (tile * (P.aspect ?? 1)), z / tile], k * 8 + v * 2);
             shade[k * 4 + v] = sh;
+            if (alpha) alpha[k * 4 + v] = f.alpha ? f.alpha[v] : 1;
           });
           const b = k * 4; idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
         });
@@ -408,6 +411,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
         geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
         geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
         geo.setAttribute('shade', new THREE.BufferAttribute(shade, 1));
+        if (alpha) geo.setAttribute('alpha', new THREE.BufferAttribute(alpha, 1));
         geo.setIndex(idx);
         const file = P.texture || 'art/ground/dirt.jpg';
         // the mesh joins the scene once its texture is in (never drawn black with an empty one)
@@ -415,8 +419,8 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
         const ready = cached instanceof Promise ? cached : cached ? Promise.resolve(cached) : loadTex(file).then(t => { t.wrapS = P.span || P.mirror ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping; t.wrapT = P.mirror ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.needsUpdate = true; terrainTex.set(file, t); return t; });
         if (!cached) terrainTex.set(file, ready);
         const tex = cached && !(cached instanceof Promise) ? cached : null;
-        const mesh = new THREE.Mesh(geo, terraceMaterial(tex, P.tint || '#ffffff'));
-        mesh.renderOrder = -0.9;   // after the island ground (-1), before the town decals and every sprite
+        const mesh = new THREE.Mesh(geo, terraceMaterial(tex, P.tint || '#ffffff', { fade }));
+        mesh.renderOrder = fade ? -0.85 : -0.9;   // after the island ground (-1), before the town decals and every sprite
         mesh.frustumCulled = false;
         mesh.visible = shown && !!tex;
         scene.add(mesh); terrain.push(mesh);

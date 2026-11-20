@@ -148,7 +148,10 @@ assert.ok(CASTLE_BLOCK.includes('m') && CASTLE_BLOCK.includes('k'));
   assert.ok(pc.face.every(q => q.q[0][1] > q.q[3][1] - 1e-9 && q.q[1][1] >= q.q[2][1] - 1e-9), 'faces run from the top down');
   // the south face of the inner terrace stands from the yard to the terrace top; the land bridge has side faces
   assert.ok(pc.face.some(q => q.cell === at(9, 22) && q.side === 'S' && Math.abs(q.q[0][1] - H) < 1e-9 && Math.abs(q.q[3][1]) < 1e-9));
-  assert.ok(pc.face.some(q => q.cell === at(6, 17) && q.side === 'S'), 'the land bridge side shows a face');
+  assert.ok(pc.rampFace.some(q => q.cell === at(6, 17) && q.side === 'S') && !pc.face.some(q => q.cell === at(6, 17)), 'the land bridge side shows a cut-stone face');
+  // Tim 2026-11-20 stone ramp: steps run across the climb, a low parapet on each open side, capped at its ends
+  assert.ok(pc.ramp.every(q => q.uvw?.length === 4), 'land bridge steps follow the climb');
+  assert.ok(pc.parapet.length >= 10 * 3, 'parapets along the land bridges');
   setHeightField(f); assert.equal(groundY(...w(12, 17)), 2 * H); assert.ok(nearCastle(...w(5, 23), 0)); assert.equal(maxGroundY(), 2 * H);
   setHeightField(null); assert.equal(groundY(...w(12, 17)), 0);
   // a rival castle's moat and cliffs show with its ground, before its buildings are seen
