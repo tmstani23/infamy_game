@@ -156,6 +156,28 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     return islandC;
   }
   const spotIndex = resourceSpots ? makeSpotIndex(resourceSpots) : null;
+  // castles (Tim 2026-11-20): the real castle ground from its town grid (sim/frontier/castle.js), one pixel a cell:
+  // moat and harbour water, the yard, inner and keep terraces, land bridges, walls, gates, the dock and buildings.
+  // Kept per castle and redrawn only when its grid changes (a wall broken or rebuilt)
+  const CASTLE_COL = { water: [52, 92, 118], wall: [52, 46, 40], gate: [128, 88, 50], pier: [160, 122, 72], building: [92, 74, 56], ramp: [138, 122, 92], level: [[150, 140, 118], [176, 166, 140], [202, 192, 162]] };
+  const castleImgs = new Map();
+  function castleImage(s, color) {
+    const g = s.grid, old = castleImgs.get(s.id);
+    if (old && old.use === g.use && old.color === color) return old.cv;
+    const n = g.n, cv = old?.cv || document.createElement('canvas');
+    cv.width = cv.height = n;
+    const cx = cv.getContext('2d'), im = cx.createImageData(n, n), pier = new Set(s.castle.pier || []), hall = (n * n - 1) / 2, own = color ? rgb(color) : null;
+    for (let i = 0; i < n * n; i++) {
+      const u = g.use[i], lv = g.level?.[i];
+      const col = pier.has(i) ? CASTLE_COL.pier : u === 'm' ? CASTLE_COL.water : u === 'w' || u === 'k' ? CASTLE_COL.wall : u === 'g' ? CASTLE_COL.gate
+        : i === hall && own ? own : u === 'B' ? CASTLE_COL.building : !lv || lv === '.' ? null : g.slope?.[i] && g.slope[i] !== '.' ? CASTLE_COL.ramp : CASTLE_COL.level[Math.min(2, +lv || 0)];
+      if (!col) continue;
+      im.data.set([col[0], col[1], col[2], 255], i * 4);
+    }
+    cx.putImageData(im, 0, 0);
+    castleImgs.set(s.id, { cv, use: g.use, color });
+    return cv;
+  }
   function paintIsland(state) {
     const me = game.state.entities[heroId], ic = islandCentre();
     if (!islandImg) islandImg = worldTerrainCache(world);
@@ -171,6 +193,15 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(illustration || islandImg, 0, 0, world.size.w, world.size.h);
+    // castles near the window and seen (all of them once explored, yours always): drawn over the painted ground, cells sharp
+    ctx.imageSmoothingEnabled = false;
+    const castleReach = ISLAND_SPAN * Math.SQRT2 / islandZoom * 1.25, seenGrid = game.state.world?.discovered?.[clan] ?? '0';
+    for (const c of Object.values(game.state.frontier?.settlements || {})) {
+      if (!c.castle || !c.grid?.use || Math.abs(c.x - ic.x) > castleReach || Math.abs(c.z - ic.z) > castleReach) continue;
+      if (c.owner !== clan && !isDiscovered(world, seenGrid, c.x, c.z)) continue;
+      const span = c.grid.n * c.grid.cell;
+      ctx.drawImage(castleImage(c, c.owner ? state.clans?.[c.owner]?.color : null), c.x - span / 2, c.z - span / 2, span, span);
+    }
     ctx.restore();
     // corridors as faint trails, the city as an outline
     ctx.strokeStyle = 'rgba(90,70,45,.8)'; ctx.lineWidth = 1.2;
