@@ -97,14 +97,14 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 |---|---|
 | Left-click a crew member | Select its deployment command group, replacing other groups; double-click selects individual. Ordinary selection never combines deployment groups |
 | Double-click a crew name / a group header | Camera follows that crew member / that group; arrows, a map click or Home stop following |
-| Left-drag a box | Select exactly the crew inside it, the hero included (alone or with crew, mounted or on foot, city and island); a hero aboard a vehicle selects the vehicle. The rest are dropped; an empty box changes nothing (2026-11-20). |
+| Left-drag a box | Select exactly the crew inside it, the hero included (alone or with crew, mounted or on foot, city and island), but not while inside a vehicle; a hero aboard a vehicle selects the vehicle. The rest are dropped; an empty box changes nothing (2026-11-20). |
 | Crew frame tabs 1–4 | Click selects that control group (same as 1–4); Ctrl+click puts the selected crew in it (same as Ctrl+1–4); again dissolves it |
 | Shift + click a crew name | Add or remove that crew member from the selection |
 | Click a group header in the Crew frame | Select that whole group |
 | Home, or double-click the hero frame | Camera back to the hero |
 | Drag a crew name onto another group | Transfer them (selected crew go together); they take that group's duty. Sector and Hero group targets also accept transfers. While dragging, gold = room, red = can't take them; dropping on red flashes the reason |
 | Drag title bar (or the top strip) | Move any window-type menu (hire, clinic, police, contracts, town, towns overview, war camp, town war, vehicles, land office, lieutenant/surveyor talk, settings, stash, character, shop, deployment), no Edit layout needed; position is saved; resizing stays in Edit layout. |
-| C | Select hero party, or active Rally force; replace sector selection. Out on the island the hero is selected too. |
+| C | Select hero party, or active Rally force; replace sector selection. The hero is selected too, listed first, in the city and on the island (2026-11-20; was island only), unless down, jailed or inside a vehicle. |
 | Ctrl + 1–4 | Assign selected crew to an exclusive control group, replacing that number's membership and transferring crew from other groups. Reassign exactly the same members to the same number to dissolve it |
 | 1–4 | Recall a numbered selection filtered by active deployment command group; manual move/attack continues, then duty; open clinic, police, contract and hiring menus take priority |
 | Esc | Clear selection, returning released manually controlled sector crew to saved duty; clear hero attack/loot and cancel hero execution. Menus close as before; Ctrl behavior unchanged |
@@ -373,7 +373,7 @@ War camp (2026-11-10, campaign):
 - Unit ability row (above the action bar, only when the selection has special abilities): Shift + Q, E, R, F by position, then click to target; one press sends one caster (the ready unit nearest the click). Each button shows ready out of total; grey with the shortest cooldown when none is ready.
 - Right-click a unit ability button: auto on or off (moving dotted border and the word Auto).
 - Shift while riding: the sprint toggle fires only on a clean tap.
-- Shift + C or the Troops button (crew command bar, shown while you have war troops): selects every war troop where the hero is, hero group left out. C selects the hero group only and never picks war troops. Out on the island the hero is selected too.
+- Shift + C or the Troops button (crew command bar, shown while you have war troops): selects every war troop where the hero is, hero group left out. C selects the hero group only and never picks war troops. C and Shift+C select the hero too, listed first, in the city and on the island, unless the hero is down, jailed or inside a vehicle (2026-11-20).
 - Double-click a war troop: selects every war troop of that type within 100; double-click one of them again centres the camera on it.
 - Drag box on the island: selects crew and war troops together (not the hero). One right-click sends the whole selection on one shared route. In the city a selection stays one command group.
 - Right-click an enemy building, wall, gate or house of a war you are in with nothing selected: the hero attacks it. With the hero or his crew in the selection he goes with the troops.

@@ -123,8 +123,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
   // selected with them (war troops, cavalry); a selection of war troops alone leaves him be (Tim 2026-11-15)
   const heroJoins = () => { const h = hero(); if (!h || h.place !== commandPlace()) return false; return mine().some(id => { const u = game.state.entities[id]; return id === heroId || (u && !u.warTroop && u.owner === h.owner && ['hero', 'rally'].includes(commandGroup(u))); }); };
   const bodyJobUnits=()=>mine().length?mine():myCrew().filter(e=>!e.dead&&!e.downed&&!e.jailed&&!e.deployment?.transfer&&['hero','rally'].includes(commandGroup(e))).map(e=>e.id);
-  // out on the island C and Shift+C take the hero too, first in the selection (Tim 2026-11-15); in the city they never do
-  const heroOut = () => { const h = hero(); return h && !h.dead && !h.downed && h.place === 'world' && commandPlace() === 'world' && !h.aboard ? [heroId] : []; };
+  // C and Shift+C take the hero too, first in the selection, in the city and on the island (Tim 2026-11-20; was island only)
+  const heroOut = () => { const h = hero(); return h && !h.dead && !h.downed && !h.jailed && h.place === commandPlace() && !h.aboard ? [heroId] : []; };
   const groupable = id => {
     const u = game.state.entities[id];
     return u && u.owner === hero()?.owner && u.type !== 'hero' && u.type !== 'civilian' && !u.guard && !u.guide && !u.wild && !u.cop && !u.dead;
