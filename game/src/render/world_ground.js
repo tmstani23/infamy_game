@@ -149,20 +149,22 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (p.dirt) {   // E5: an unbuilt project is a flat patch of trodden dirt (island ground texture, lit like the ground)
       const tex = textureFor(p.texture || 'art/ground/island/dirt_trail.jpg');
       if (!tex) return undefined;
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.width, p.height), spriteMaterial(tex));
+      const B = p.blob, pad = B ? B.pad : 0;   // a soft blob cell is drawn pad wider on every side (its feathered rim lies outside the cell)
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.width + 2 * pad, p.height + 2 * pad), spriteMaterial(tex));
       if (p.tile || p.cornerRadius) {
         if (p.tile && tex.wrapS !== THREE.MirroredRepeatWrapping) {
           tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping; tex.needsUpdate = true;
         }
         const mat = mesh.material;
         Object.assign(mat.uniforms, {
-          uGroundTile: { value: p.tile }, uGroundSize: { value: new THREE.Vector2(p.width, p.height) },
+          uGroundTile: { value: p.tile }, uGroundSize: { value: new THREE.Vector2(p.width + 2 * pad, p.height + 2 * pad) },
+          uBlobNb: { value: new THREE.Matrix3().set(...(B ? B.nb : new Array(9).fill(0))) }, uBlobCell: { value: new THREE.Vector2(p.width, p.height) }, uBlobPad: { value: pad }, uBlobCfg: { value: new THREE.Vector4(B ? B.blur : 0, B ? B.lo : 0, B ? B.hi : 1, B ? B.wobble : 0) },
           uGroundEdges: { value: new THREE.Vector4(...(p.edges || [0, 0, 0, 0])) }, uGroundFade: { value: p.edgeFade || 0.01 },
           uCornerRadius:{value:p.cornerRadius || 0},uCornerEdges:{value:new THREE.Vector4(...(p.edges || [1,1,1,1]))}
         });
         mat.uniforms.uGroundTile.value ||= 1;
         mat.fragmentShader = mat.fragmentShader.replace('varying vec2 vUv;',
-          'uniform float uGroundTile, uGroundFade, uCornerRadius; uniform vec2 uGroundSize; uniform vec4 uGroundEdges,uCornerEdges; varying vec2 vUv;')
+          'uniform float uGroundTile, uGroundFade, uCornerRadius, uBlobPad; uniform vec2 uGroundSize, uBlobCell; uniform vec4 uGroundEdges,uCornerEdges,uBlobCfg; uniform mat3 uBlobNb; varying vec2 vUv;')
           .replace('vec4 t = spriteTex(vUv);', `vec4 t = ${p.tile?'texture2D(uMap, vWorld.xz / uGroundTile)':'spriteTex(vUv)'};
             vec4 distanceToEdge = vec4(vUv.x, 1.0-vUv.x, 1.0-vUv.y, vUv.y) * uGroundSize.xxyy;
             float roughness = 0.15 * sin(vWorld.x * 3.1 + sin(vWorld.z * 2.7));
@@ -170,7 +172,24 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
             float radius=uCornerRadius*(vUv.x<0.5?uCornerEdges.x:uCornerEdges.y)*(vUv.y>0.5?uCornerEdges.z:uCornerEdges.w);
             vec2 q=abs((vUv-0.5)*uGroundSize)-uGroundSize*0.5+radius;
             float rounded=length(max(q,vec2(0.0)))+min(max(q.x,q.y),0.0)-radius;
-            t.a *= fade.x * fade.y * fade.z * fade.w * (1.0-smoothstep(0.0,0.15,rounded));`)
+            ${B?`// soft blob: box-blur coverage of the drawn cells round this one (3x3, row-major, z south), thresholded wide and soft
+            vec2 lp = vec2(vUv.x - 0.5, 0.5 - vUv.y) * uGroundSize;
+            float bw = uBlobCfg.x, own = 1e3; int ownK = 4; float cov = 0.0;
+            for (int k = 0; k < 9; k++) {
+              if (k != 4 && uBlobNb[k - (k / 3) * 3][k / 3] < 0.5) continue;
+              vec2 cc = vec2(float(k - (k / 3) * 3 - 1), float(k / 3 - 1)) * uBlobCell;
+              vec2 q = max(abs(lp - cc) - 0.5 * uBlobCell, 0.0);
+              float bd = max(q.x, q.y) + 0.001 * float(k);
+              if (bd < own) { own = bd; ownK = k; }
+              vec2 lo = max(lp - bw, cc - 0.5 * uBlobCell), hi = min(lp + bw, cc + 0.5 * uBlobCell);
+              vec2 ov = max(hi - lo, 0.0) / (2.0 * bw);
+              cov += ov.x * ov.y;
+            }
+            float wob = sin(vWorld.x * 1.3 + sin(vWorld.z * 0.9) * 2.0) * sin(vWorld.z * 1.1 + sin(vWorld.x * 0.7) * 2.0)
+              + 1.3 * sin(vWorld.x * 0.37 + vWorld.z * 0.21 + sin(vWorld.z * 0.31) * 2.5) * sin(vWorld.z * 0.43 - vWorld.x * 0.17 + sin(vWorld.x * 0.27) * 2.5);
+            cov += uBlobCfg.w * wob;
+            float blobA = ownK == 4 ? smoothstep(uBlobCfg.y, uBlobCfg.z, cov) : 0.0;
+            t.a *= blobA;`:`t.a *= fade.x * fade.y * fade.z * fade.w * (1.0-smoothstep(0.0,0.15,rounded));`}`)
           .replace('grade(t.rgb, vWorld, true, uSelfLight)', 'grade(t.rgb, vWorld, false, uSelfLight)');
       }
       if (p.opacity !== undefined) mesh.material.uniforms.uOpacity.value = p.opacity;

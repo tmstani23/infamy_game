@@ -78,6 +78,14 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
       // Fade only the clearing's perimeter; adjoining cells share uninterrupted earth.
       Object.assign(out[out.length - 1], { tile: G.textureTile, edgeFade: G.edgeFade, opacity: G.clearOpacity,
         edges: [i % grid.n === 0 || !drawn(i - 1), i % grid.n === grid.n - 1 || !drawn(i + 1), !drawn(i - grid.n), !drawn(i + grid.n)].map(Number) });
+      // soft rounded blob (Tim 2026-11-20): which of the 8 neighbours are drawn too (row-major 3x3, middle 0), so the
+      // shader blurs the whole clearing into one smooth shape, rounded at every corner (render/world_ground.js)
+      if (G.blur) {
+        const col = i % grid.n, row = Math.floor(i / grid.n), nb = [];
+        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++)
+          nb.push((dr || dc) && col + dc >= 0 && col + dc < grid.n && row + dr >= 0 && row + dr < grid.n && drawn(i + dr * grid.n + dc) ? 1 : 0);
+        Object.assign(out[out.length - 1], { blob: { nb, blur: G.blur, pad: G.blobPad, lo: G.blobFeather[0], hi: G.blobFeather[1], wobble: G.blobWobble } });
+      }
       // beside a castle's water the fade is wider and the corners rounder (G.bankFade, G.bankCorner: world units)
       const wet = j => j >= 0 && j < grid.n * grid.n && grid.use[j] === 'm';
       if (G.bankFade && [i % grid.n ? i - 1 : -1, i % grid.n < grid.n - 1 ? i + 1 : -1, i - grid.n, i + grid.n].some(wet))
@@ -260,7 +268,8 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
         const height = offsets ? Math.max(...offsets.map(p => p[1])) - Math.min(...offsets.map(p => p[1])) + s.grid.cell : 6;
         out.push({ key: `${s.id}:${p.id}:dirt`, dirt: true, width, height, x, z,
           texture: townArt._ground?.clearTexture, tint: townArt._ground?.clearTint, tile: townArt._ground?.textureTile,
-          edgeFade: townArt._ground?.edgeFade, edges: [1, 1, 1, 1], opacity: townArt._ground?.clearOpacity,cornerRadius:Math.min(width,height)*(townArt._ground?.tileRoundness || 0) });
+          edgeFade: townArt._ground?.edgeFade, edges: [1, 1, 1, 1], opacity: townArt._ground?.clearOpacity,cornerRadius:Math.min(width,height)*(townArt._ground?.tileRoundness || 0),
+          ...(townArt._ground?.blur ? { blob: { nb: new Array(9).fill(0), blur: townArt._ground.blur, pad: townArt._ground.blobPad, lo: townArt._ground.blobFeather[0], hi: townArt._ground.blobFeather[1], wobble: townArt._ground.blobWobble } } : {}) });   // soft blob rim like the town ground (Tim 2026-11-20)
       }
     });
   }

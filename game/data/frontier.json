@@ -149,7 +149,7 @@
     "_ground": {
       "_note": "placeholder, Tim to tune (L3.7): art-only dirt foundation, road and crop decals; sizes are fractions of a town cell except foundationRadius (world units).",
       "foundationRadius": 44, "fieldFade": 3, "fieldOpacity": 0.8, "cropOpacity": 0.45, "fieldSize": 0.9, "cropRows": 0, "fieldTile": 16, "cropWidth": 0.045, "zoneFootprint": 0.68,
-      "clearTexture": "art/ground/dirt.jpg", "textureTile": 5.5, "edgeFade": 1.4, "clearOpacity": 0.9, "tileRoundness": 0.08, "bankFade": 4, "bankCorner": 4, "_bankFade": "Tim 2026-11-20: a castle's dirt fades out over its moat and sea this wide (world units), corners rounded this much, like a bank",
+      "clearTexture": "art/ground/dirt.jpg", "textureTile": 5.5, "edgeFade": 1.4, "clearOpacity": 0.9, "tileRoundness": 0.08, "blur": 5.5, "blobPad": 4, "blobFeather": [0.18, 0.6], "blobWobble": 0.055, "_blur": "Tim 2026-11-20: ground pads under built buildings melt into the land as one soft rounded shape: blur = half-width in world units of the blur over the drawn cells (corner roundness), blobPad = how far the feathered rim reaches outside a cell, blobFeather = coverage range (0 to 1) that fades from nothing to solid, blobWobble = wobble of the rim. Remove blur to get the old square tiles", "bankFade": 4, "bankCorner": 4, "_bankFade": "Tim 2026-11-20: a castle's dirt fades out over its moat and sea this wide (world units), corners rounded this much, like a bank",
       "clearTint": "#ffffff", "fieldTint": "#f0e8d8", "fieldTexture": "art/ground/road/field_rows.jpg", "cropTint": "#9eb877", "abandonedTint": "#686054"
     },
     "_castleWalls": {

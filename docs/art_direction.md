@@ -114,3 +114,9 @@
 - Rain (streaks + ground splashes) and snow: GPU points wrapping in a screen-aligned ground box, so they cover the whole screen at any zoom. Fog shader skips noise outside each bank.
 - Numbers (game/data/weather.json): 13 fog banks, 480 rain drops, 100 splashes.
 - Files: game/src/weather_pick.js (picker), game/src/render/weather.js (drawing), game/data/weather.json (numbers), game/tools/test_weather.mjs.
+
+## Soft town ground edges (2026-11-20)
+
+- The cleared dirt under every town grid cell (houses, zone buildings, watchtowers, castle ground) and construction-site dirt patches draw as one soft, rounded, slightly uneven blob instead of square tiles. Road tiles, fields and castle terraces are unchanged. War camps draw no ground pad.
+- `game/src/town_props.js`: each clear patch carries a blob with its 8 drawn neighbours; project dirt patches carry a blob with no neighbours. `game/src/render/world_ground.js`: the shader blurs the neighbours' coverage and thresholds it; each cell quad is drawn blobPad wider; one owner cell per fragment, so no double blend.
+- Numbers in `game/data/frontier.json` townArt._ground: blur 5.5, blobPad 4, blobFeather [0.18, 0.6], blobWobble 0.055. Removing blur restores square tiles.
