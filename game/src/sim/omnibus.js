@@ -189,7 +189,7 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
   }
   const HERO_RUN = rules?.mount?.heroRun ?? 6;
   // one step of a vehicle driving itself toward (tx, tz); true while it still moves
-  function drive(b, tx, tz, stopAt, dt) {
+  function drive(b, tx, tz, stopAt, dt, boost = 0) {
     const dx = tx - b.x, dz = tz - b.z, d = Math.hypot(dx, dz);
     if (d <= stopAt + 0.02) { b.anim = 'idle'; return false; }
     const r = steer(b, Math.atan2(dx, dz), { turnDegrees: R(b.type).turnDegrees ?? 120 }, dt);
@@ -198,14 +198,14 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
     const D = R().drive || {}, turn = Math.abs(r.diff) > (D.pivotDegrees ?? 70) * Math.PI / 180 ? D.pivotSpeed ?? 0.15 : r.slow ?? 1;
     b.pace = state.tick - (b.paceAt ?? -99) > 3 ? D.startPace ?? 0.25 : Math.min(1, (b.pace ?? 0) + dt / (D.pullAwaySeconds ?? 0.7)); b.paceAt = state.tick;
     const ease = () => Math.min(1, (D.startPace ?? 0.25) + (d - stopAt) / (D.drawUp ?? 8));
-    const step = Math.min(d - stopAt, (R(b.type).speed ?? 3) * HERO_RUN * dt * turn * b.pace * (b.vorder?.last === false ? 1 : ease()));
+    const step = Math.min(d - stopAt, Math.max(R(b.type).speed ?? 3, boost * 1.2) * HERO_RUN * dt * turn * b.pace * (b.vorder?.last === false ? 1 : ease()));
     // free ground keeps the exact spot (nearestFree answers a cell centre: the drive went in 1-step jumps, Tim 2026-11-10 'clunky')
     const nx = b.x + r.hx * step, nz = b.z + r.hz * step, nvg = nav(), [fx, fz] = !nvg || nvg.free?.(nx, nz) ? [nx, nz] : nvg.nearestFree(nx, nz) || [nx, nz];
     if (Math.hypot(fx - nx, fz - nz) > 2) { b.anim = 'idle'; return false; }   // blocked: wait there
     // never drive into another vehicle that is on the move: the later one (by id) waits for it to pass
     if (Object.values(state.entities).some(o => o !== b && isVehicle(o) && !o.dead && o.place === b.place && (o.anim === 'run' || o.anim === 'trot' || o.driver) && o.id < b.id
       && Math.hypot(o.x - fx, o.z - fz) < ((R(o.type).length ?? 6) + (R(b.type).length ?? 6)) / 2 && Math.hypot(o.x - fx, o.z - fz) < Math.hypot(o.x - b.x, o.z - b.z))) { b.anim = 'idle'; return true; }
-    Object.assign(b, { x: fx, z: fz, anim: 'run' }); b.trail = [];   // vehicles move at gallop pace: gallop sheets (art.json run)
+    Object.assign(b, { x: fx, z: fz, anim: 'run', rolled: state.tick }); b.trail = [];   // vehicles move at gallop pace: gallop sheets (art.json run)
     return true;
   }
 
@@ -265,6 +265,25 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
       for (const u of riders(mover)) Object.assign(u, { x: fx, z: fz });
     }
   }
+  // a follower's room in the line (Tim 2026-11-20: the third waited seconds, then lagged far behind): a line that forms
+  // up bunched starts off together with only a little room each, and opens out to the full spacing while on the move
+  function room(b, a, lead, moving) {
+    const full = spacing(a, b), least = (full - (R().followClearance ?? 3)) * 0.7;   // as close as parked ones stand (separate)
+    if (b.fgap == null || state.tick - (b.fgapAt ?? -99) > 20) b.fgap = Math.max(least, Math.min(full, Math.hypot(b.x - lead.x, b.z - lead.z)));
+    if (moving && state.tick - (b.rolled ?? -99) <= 1) b.fgap = Math.min(full, b.fgap + (R().openUp ?? 1.2) / 20);   // only once it rolls too
+    b.fgapAt = state.tick;
+    return b.fgap;
+  }
+  // close up to r behind `a` (no trail that far back yet, or its place runs into `a`): smoothly, like its place in the line
+  function tail(b, a, r, boost = 0) {
+    const d = Math.hypot(b.x - a.x, b.z - a.z);
+    if (d <= r + 0.03) { b.anim = 'idle'; return; }
+    if (d - r > (R().catchUp ?? 8)) return catchUp(b, [a.x + (b.x - a.x) / d * r, a.z + (b.z - a.z) / d * r], boost);
+    closeOn(b, [a.x + (b.x - a.x) / d * r, a.z + (b.z - a.z) / d * r], boost);
+  }
+  // its place is behind it (the line just opened out, or a bend): it waits there, never backs up
+  const pastPlace = (b, p, lead) => (p[0] - b.x) * (lead.x - b.x) + (p[1] - b.z) * (lead.z - b.z) < 0;
+  const heroAt = {};   // hero id -> where he stood last tick: the line opens out only while he moves
   const heroTrails = {};   // hero id -> his recent positions on the island, for vehicles following him on foot or horseback
   // the track a follower drives along: the point `gap` back along the lead's trail
   function back(trail, gap) {
@@ -279,23 +298,23 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
 
   // a follower closes on its place in the line at a pace that grows with how far behind it is, full speed from about
   // 2 back (Tim 2026-11-10: at a trot it raced up at full speed, jumped onto the spot and twitched back and forth)
-  function closeOn(b, p) {
+  function closeOn(b, p, boost = 0) {
     const dx = p[0] - b.x, dz = p[1] - b.z, far = Math.hypot(dx, dz);
     if (far <= 0.03) { b.anim = 'idle'; return; }
-    const top = (R(b.type).speed ?? 3) * HERO_RUN / 20, step = Math.min(far, top * Math.min(1, 0.2 + far / 2.5));
+    const top = Math.max(R(b.type).speed ?? 3, far > 3 ? boost * 1.2 : 0) * HERO_RUN / 20, step = Math.min(far, top * Math.min(1, 0.2 + far / 2.5));
     steer(b, Math.atan2(dx, dz), { turnDegrees: (R(b.type).turnDegrees ?? 120) * 2 }, 1 / 20);
     const nx = b.x + dx / far * step, nz = b.z + dz / far * step, nvg = nav(), [fx, fz] = !nvg || nvg.free?.(nx, nz) ? [nx, nz] : nvg.nearestFree(nx, nz) || [nx, nz];
     if (Math.hypot(fx - nx, fz - nz) > 2) { b.anim = 'idle'; return; }   // blocked: wait there
     b.anim = step < 0.04 ? 'idle' : step > top * 0.6 ? 'run' : 'trot';
-    Object.assign(b, { x: fx, z: fz });
+    Object.assign(b, { x: fx, z: fz }); if (step >= 0.04) b.rolled = state.tick;
   }
   // a follower far behind: along a planned way (replanned each second) toward its place in the line
-  function catchUp(b, p) {
+  function catchUp(b, p, boost = 0) {
     const n = nav(), c = b.catchUp;
     if (!c || state.tick - c.at >= 20 || Math.hypot(c.to[0] - p[0], c.to[1] - p[1]) > 6) { const pts = n?.findPath?.(b.x, b.z, p[0], p[1]); b.catchUp = { at: state.tick, to: [p[0], p[1]], pts: pts?.length ? [...pts] : [p] }; }
     const pts = b.catchUp.pts;
     while (pts.length > 1 && (Math.hypot(pts[0][0] - b.x, pts[0][1] - b.z) < 3 || n?.clearLine?.(b.x, b.z, pts[1][0], pts[1][1]))) pts.shift();
-    drive(b, pts[0][0], pts[0][1], 0, 1 / 20);
+    drive(b, pts[0][0], pts[0][1], 0, 1 / 20, boost);
   }
   function selfDrive(b) {
     const o = b.vorder;
@@ -342,10 +361,11 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
         for (const b of list) {
           if (b === lead || !riders(b).length) continue;
           if (b.vorder && b.vorder.kind !== 'follow') { selfDrive(b); continue; }
-          const ahead = prev; gap += spacing(prev, b); prev = b;
+          const ahead = prev, r = room(b, ahead, ahead, moved && h.anim !== 'idle'); gap += r; prev = b;
           const p = back([...lead.trail, [h.x, h.z]], gap);   // measured from where he is now, not his last crumb (it moved in half-step jumps)
-          if (p && tooClose(ahead, b, p)) { b.anim = 'idle'; continue; }   // never into the one ahead
-          if (!p) { b.anim = 'idle'; continue; }
+          // no trail that far back yet, or its place runs into the one ahead: it keeps on behind that one, never into it
+          if (!p || tooClose(ahead, b, p)) { tail(b, ahead, r); continue; }
+          if (pastPlace(b, p, ahead)) { b.anim = 'idle'; continue; }
           b.place = lead.place; closeOn(b, p);   // the row sweeps round (sim/vehicle_steer.js)
         }
       } else {
@@ -355,22 +375,29 @@ export function createOmnibus({ state, rules, spawn, remove, nav, freeSlot, foll
         const hero = heroOf(list[0].omnibusOwner), ht = hero && (heroTrails[hero.id] ||= []), hl = ht?.[ht.length - 1];
         if (hero && (hero.place !== 'world' || hero.dead)) ht.length = 0;
         else if (hero && (!hl || Math.hypot(hero.x - hl[0], hero.z - hl[1]) > 0.5)) { if (hl && Math.hypot(hero.x - hl[0], hero.z - hl[1]) > 12) ht.length = 0; ht.push([hero.x, hero.z]); if (ht.length > 160) ht.shift(); }
+        const was = hero && heroAt[hero.id], moving = !!was && Math.hypot(hero.x - was[0], hero.z - was[1]) > 0.01;
+        if (hero) heroAt[hero.id] = [hero.x, hero.z];
         let gap = 0, prev = null;
         for (const b of list) {
           if (!riders(b).length || b.driver) continue;
           if (b.vorder && b.vorder.kind !== 'follow') { selfDrive(b); continue; }
           if (!hero || hero.place !== b.place || hero.dead) { b.anim = 'idle'; continue; }
-          const ahead = prev; gap += spacing(prev, b); prev = b;
+          const ahead = prev, r = room(b, ahead, ahead || hero, moving); gap += r; prev = b;
           const p = ht.length && back([...ht, [hero.x, hero.z]], gap);
           // no trail that far back yet: the second and later ones close up behind the one ahead at once (Tim 2026-11-20:
           // the second omnibus waited until the hero had ridden off, then lagged and stuck)
-          if (!p) { if (ahead) drive(b, ahead.x, ahead.z, spacing(ahead, b), 1 / 20); else drive(b, hero.x, hero.z, gap, 1 / 20); continue; }
-          if (ahead && tooClose(ahead, b, p)) { b.anim = 'idle'; continue; }   // never into the one ahead
+          // behind a galloping hero they may close up at a horse's pace (Tim 2026-11-20: the third lagged far behind and
+          // stopped), a little faster than his mount so they make up the ground; at their place they keep his pace
+          const boost = hero.mounted ? rules?.mount?.speed ?? 3.75 : 0;
+          if (!p) { tail(b, ahead || hero, r, boost); continue; }
+          // its place runs into the one ahead (that one lags, or a sharp turn): it keeps on behind that one, never into it
+          if (ahead && tooClose(ahead, b, p)) { tail(b, ahead, r, boost); continue; }
+          if (pastPlace(b, p, ahead || hero)) { b.anim = 'idle'; continue; }
           // fallen well behind its place: drive a planned way round walls and buildings to it, not straight at it
-          if (Math.hypot(p[0] - b.x, p[1] - b.z) > (R().catchUp ?? 8)) { catchUp(b, p); continue; }
+          if (Math.hypot(p[0] - b.x, p[1] - b.z) > (R().catchUp ?? 8)) { catchUp(b, p, boost); continue; }
           // it closes on its place in the line at a pace that grows with how far behind it is (Tim 2026-11-10: at a
           // trot it raced up at full speed, jumped onto the spot and twitched back and forth); full speed from about 2 back
-          closeOn(b, p);
+          closeOn(b, p, boost);
         }
       }
       for (const b of list) for (const u of riders(b)) {   // riders sit inside

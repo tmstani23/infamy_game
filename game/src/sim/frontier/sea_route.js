@@ -6,23 +6,25 @@
 //   alongRoute(path, k) -> { x, z, dx, dz }: the point a share k (0..1) of the way along, and the heading there
 import { onIsland } from '../world_data.js';
 
-// open water all the way, the first and last stretch excepted (the city's sea gate sits on its shore)
-function clear(world, a, b, ends = 80) {
+// open water all the way, `room` clear of land on each side (the first and last stretch excepted: the city's sea gate
+// sits on its shore)
+const wet = (world, x, z, room) => !onIsland(world, x, z) && (!room || [[room, 0], [-room, 0], [0, room], [0, -room], [room * 0.7, room * 0.7], [-room * 0.7, room * 0.7], [room * 0.7, -room * 0.7], [-room * 0.7, -room * 0.7]].every(([dx, dz]) => !onIsland(world, x + dx, z + dz)));
+function clear(world, a, b, ends = 80, room = 0) {
   const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.ceil(L / 40);
   for (let i = 1; i < n; i++) { const t = i / n, d = t * L;
     if (d < ends || L - d < ends) continue;
-    if (onIsland(world, a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)) return false; }
+    if (!wet(world, a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, d < ends * 4 || L - d < ends * 4 ? 0 : room)) return false; }
   return true;
 }
 const len = path => path.reduce((n, q, i) => i ? n + Math.hypot(q[0] - path[i - 1][0], q[1] - path[i - 1][1]) : 0, 0);
 // a coarse sea grid (cell units, cached per world): a cell is sea when it and the ground round it are off the island
 const grids = new WeakMap();
-function gridOf(world, cell) {
-  const had = grids.get(world); if (had?.cell === cell) return had;
-  const W = Math.ceil((world.size?.w ?? 14000) / cell), H = Math.ceil((world.size?.h ?? 8000) / cell), sea = new Uint8Array(W * H), r = cell * 0.6;
+function gridOf(world, cell, wide) {
+  const key = `${cell}:${wide}`, all = grids.get(world) || {}; if (all[key]) return all[key];
+  const W = Math.ceil((world.size?.w ?? 14000) / cell), H = Math.ceil((world.size?.h ?? 8000) / cell), sea = new Uint8Array(W * H), r = cell * wide;
   for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = (i + 0.5) * cell, z = (j + 0.5) * cell;
-    sea[j * W + i] = [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]].every(([dx, dz]) => !onIsland(world, x + dx, z + dz)) ? 1 : 0; }
-  const g = { cell, W, H, sea }; grids.set(world, g); return g;
+    sea[j * W + i] = wet(world, x, z, r) ? 1 : 0; }
+  const g = { cell, W, H, sea }; all[key] = g; grids.set(world, all); return g;
 }
 function nearestSea(g, x, z) {
   const ci = Math.floor(x / g.cell), cj = Math.floor(z / g.cell);
@@ -33,11 +35,8 @@ function nearestSea(g, x, z) {
     if (best !== null) return best; }
   return null;
 }
-export function seaRoute(world, from, dest, { margin = 300 } = {}) {
-  if (!world?.coast?.length || clear(world, from, dest)) return [from, dest];
-  const g = gridOf(world, Math.max(50, Math.round(margin / 3))), s0 = nearestSea(g, ...from), t0 = nearestSea(g, ...dest);
-  if (s0 === null || t0 === null) return [from, dest];
-  // A* over the sea cells, eight ways
+function search(g, s0, t0) {
+  if (s0 === null || t0 === null) return null;
   const N = g.W * g.H, cost = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), done = new Uint8Array(N);
   const h = k => Math.hypot(k % g.W - t0 % g.W, Math.floor(k / g.W) - Math.floor(t0 / g.W));
   const open = [[h(s0), s0]]; cost[s0] = 0;
@@ -54,12 +53,36 @@ export function seaRoute(world, from, dest, { margin = 300 } = {}) {
       const c = cost[k] + (di && dj ? Math.SQRT2 : 1); if (c < cost[n]) { cost[n] = c; prev[n] = k; push(c + h(n), n); }
     }
   }
-  if (!done[t0]) return [from, dest];
-  const cells = []; for (let k = t0; k !== -1; k = prev[k]) cells.unshift([(k % g.W + 0.5) * g.cell, (Math.floor(k / g.W) + 0.5) * g.cell]);
+  return done[t0] ? { prev, done } : null;
+}
+export function seaRoute(world, from, dest, { margin = 400 } = {}) {
+  if (!world?.coast?.length || clear(world, from, dest, 80, margin * 0.4)) return [from, dest];
+  // the widest berth from land that joins the two ends without a long way round (a castle dock can sit in a narrow
+  // bay, and the strait between the north coast and the map's edge is narrow)
+  const cell = Math.max(50, Math.round(margin / 4)), tries = [];
+  for (const wide of [1.8, 1.0, 0.6]) {
+    const g = gridOf(world, cell, wide), t0 = nearestSea(g, ...dest), r = search(g, nearestSea(g, ...from), t0);
+    if (!r) continue;
+    const cells = []; for (let k = t0; k !== -1; k = r.prev[k]) cells.unshift([(k % g.W + 0.5) * g.cell, (Math.floor(k / g.W) + 0.5) * g.cell]);
+    tries.push({ cells, length: len(cells) });
+  }
+  if (!tries.length) return [from, dest];
+  const best = Math.min(...tries.map(t => t.length)), { cells } = tries.find(t => t.length <= best * 1.25);
   // pull the string: from each point, the furthest point still in open water
-  const pts = [from, ...cells, dest], out = [from];
-  for (let i = 0; i < pts.length - 1;) { let j = pts.length - 1; while (j > i + 1 && !clear(world, pts[i], pts[j], i === 0 || j === pts.length - 1 ? 80 : 0)) j--; out.push(pts[j]); i = j; }
-  return out;
+  // (Tim 2026-11-20: it cut corners over headlands and islets) every straight keeps `room` of open water each side
+  const room = margin * 0.4, pts = [from, ...cells, dest], out = [from];
+  for (let i = 0; i < pts.length - 1;) { let j = pts.length - 1; while (j > i + 1 && !clear(world, pts[i], pts[j], i === 0 || j === pts.length - 1 ? 80 : 0, room)) j--; out.push(pts[j]); i = j; }
+  // round the corners (Chaikin, three passes) so the ship turns smoothly; a pass that would touch land is dropped
+  let path = out;
+  for (let k = 0; k < 3; k++) {
+    const next = [path[0]];
+    for (let i = 0; i < path.length - 1; i++) { const [ax, az] = path[i], [bx, bz] = path[i + 1];
+      if (i > 0) next.push([ax * 0.75 + bx * 0.25, az * 0.75 + bz * 0.25]);
+      if (i < path.length - 2) next.push([ax * 0.25 + bx * 0.75, az * 0.25 + bz * 0.75]); }
+    next.push(path.at(-1));
+    if (next.every((q, i) => !i || clear(world, next[i - 1], q, i === 1 || i === next.length - 1 ? 80 : 0, i === 1 || i === next.length - 1 ? 0 : room * 0.5))) path = next; else break;
+  }
+  return path;
 }
 export function alongRoute(path, k) {
   const total = len(path), want = Math.min(1, Math.max(0, k)) * total;

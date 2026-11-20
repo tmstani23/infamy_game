@@ -65,11 +65,14 @@ export function createFerry({ state, rules, world = null, pier, seaGate, castles
     const d = castles.dock(e.owner), now = state.tick ?? 0, to = here === 'city' ? 'castle' : 'city';
     const group = [...inZone(e, c), ...(to === 'castle' ? waiting?.(e) || [] : [])], crew = [e, ...group].slice(0, S().seats ?? 40);
     const from = to === 'castle' ? [seaGate.x, seaGate.z] : [d.sea.x, d.sea.z], dest = to === 'castle' ? [d.sea.x, d.sea.z] : [seaGate.x, seaGate.z];
-    const path = seaRoute(world, from, dest, { margin: S().seaMargin ?? 300 });   // round the island by sea (Tim 2026-11-20)
+    const path = seaRoute(world, from, dest, { margin: S().seaMargin ?? 400 });   // round the island by sea (Tim 2026-11-20)
+    // a steady speed along the route (Tim 2026-11-20: too fast, about 40% slower)
+    const routeLen = path.reduce((n, q, i) => i ? n + Math.hypot(q[0] - path[i - 1][0], q[1] - path[i - 1][1]) : 0, 0);
+    const sailTicks = Math.round((S().speed ? Math.max(S().minSeconds ?? 8, routeLen / S().speed) : S().seconds ?? 20) * 20);
     for (const u of crew) {
       if (u.mounted) { if (mounts?.dismount) mounts.dismount(u); else { delete u.mounted; delete u.ride; } }   // horses stay ashore
       delete u.order; delete u.attackTarget; delete u.swing; delete u.execute; forget?.(u.id);
-      Object.assign(u, { aboard: `ship:${e.owner}`, shipRide: { to, since: now, until: now + Math.round((S().seconds ?? 20) * 20), from, dest, path }, place: 'world', x: from[0], z: from[1], anim: 'idle' });
+      Object.assign(u, { aboard: `ship:${e.owner}`, shipRide: { to, since: now, until: now + sailTicks, from, dest, path }, place: 'world', x: from[0], z: from[1], anim: 'idle' });
     }
     const left = group.length + 1 - crew.length;
     return say(e.owner, `${to === 'castle' ? 'Sailing for your castle' : 'Sailing for the city'}${left ? ` (${left} could not fit and stayed)` : ''}`);

@@ -56,7 +56,10 @@ assert.equal(hero.place, 'world');
 run(40);
 assert.ok(ferry.prompt(hero).riding, 'the prompt shows the crossing');
 g.step([{ id: hero.id, type: 'move', x: 5, z: 5 }]); assert.ok(hero.aboard, 'orders do nothing at sea');
-run(ship.seconds * 20);
+// a steady speed along a route that keeps to the sea (Tim 2026-11-20)
+{ const r = hero.shipRide, len = r.path.reduce((n, q, i) => i ? n + Math.hypot(q[0] - r.path[i - 1][0], q[1] - r.path[i - 1][1]) : 0, 0);
+  assert.ok(Math.abs((r.until - r.since) - Math.round(Math.max(ship.minSeconds, len / ship.speed) * 20)) <= 1, 'route length / speed');
+  run(r.until - g.state.tick + 1); }
 assert.ok(!hero.aboard && !mate.aboard && !hero.shipRide, 'landed');
 assert.equal(hero.place, 'world');
 assert.ok(Math.hypot(hero.x - dock.land.x, hero.z - dock.land.z) < 25, `on the dock (${Math.round(Math.hypot(hero.x - dock.land.x, hero.z - dock.land.z))} away)`);

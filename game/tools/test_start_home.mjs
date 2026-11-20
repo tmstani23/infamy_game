@@ -104,7 +104,7 @@ assert.ok(new Set(rolled).size > 1, 'random varies with the seed');
   const aboard = Object.values(S.entities).filter(u => u.aboard === 'ship:player');
   assert.ok(aboard.includes(hero) && aboard.filter(u => u.type === 'settler').length === 5, `he and 5 settlers sail (${aboard.map(u => u.type)})`);
   assert.equal(clan.settlersWaiting, 0);
-  for (let i = 0; i < 30 * 20 && hero.aboard; i++) g.step([]);
+  for (let i = 0; i < 120 * 20 && hero.aboard; i++) g.step([]);
   const d = g.castles.dock('player');
   assert.ok(!hero.aboard && hero.place === 'world' && Math.hypot(hero.x - d.land.x, hero.z - d.land.z) < 20, 'landed at the castle dock');
   assert.equal(Object.values(S.entities).filter(u => u.type === 'settler' && u.owner === 'player' && u.place === 'world').length, 5, 'with the settlers');
