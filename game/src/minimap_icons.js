@@ -28,6 +28,7 @@ export const MAJOR_BUILDINGS = {
   camp_station: ['R', 'Camp station'],
 };
 // a camp's stable and stockade count as military there
+const CASTLE_WALL = new Set(['watchtower']);
 const CAMP_MILITARY = new Set(['stable', 'stockade']);
 
 export const CITY_NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sake brewery', manor: 'Manor', customs_house: 'Customs house', warehouse: 'Warehouse', teahouse: 'Teahouse', shop: 'Shop', tenements: 'Tenements', gambling_den: 'Gambling den', clinic: 'Clinic', police_box: 'Police box', police_hq: 'Police headquarters', moneylender: 'Moneylender', hideout: 'Hideout', dojo: 'Shinobi dojo' };
@@ -36,10 +37,11 @@ export const CITY_NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_b
 export function majorBuildings(frontier) {
   const out = [];
   for (const s of Object.values(frontier?.settlements || {})) {
-    if (s.capital || !s.grid || !Number.isFinite(s.x) || !Number.isFinite(s.z)) continue;
+    // castles (Tim 2026-11-20): every castle gets its badges, but not its wall watchtowers; other capitals none
+    if ((s.capital && !s.castle) || !s.grid || !Number.isFinite(s.x) || !Number.isFinite(s.z)) continue;
     for (const b of s.buildings || []) {
       const info = MAJOR_BUILDINGS[b.type];
-      if (!info || b.stage !== 'built') continue;
+      if (!info || b.stage !== 'built' || (s.castle && CASTLE_WALL.has(b.type))) continue;
       const cells = (b.cells?.length ? b.cells : [b.cell]).filter(i => Number.isInteger(i));
       if (!cells.length) continue;
       const pts = cells.map(i => cellToWorld(s, i));
