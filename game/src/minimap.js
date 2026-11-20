@@ -112,7 +112,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     return ['#ff4632', 2.6];
   }
 
-  // Island only: north up, like the World map. The city map keeps its camera orientation.
+  // Island: turned to match the camera like the city map (Tim 2026-11-19); the World map (M) stays north up.
   let islandImg = null, islandHits = [];
   // the painted atlas illustration (same file as the World map) replaces the flat terrain drawing once loaded
   let illustration = null;
@@ -160,13 +160,13 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     const me = game.state.entities[heroId], ic = islandCentre();
     if (!islandImg) islandImg = worldTerrainCache(world);
     const kk = size / 2 / ISLAND_SPAN * islandZoom;   // + / - zoom in on the island too
-    const mv = { cx: ic.x, cz: ic.z, scale: kk, w: size, h: size };
-    const at = (x, z) => { const p = worldToCanvas(x, z, mv); return [p.px, p.py]; };
+    // turned like the camera (Tim 2026-11-19): screen right = x - z, screen down = x + z, so running down the screen moves down the minimap
+    const at = (x, z) => [size / 2 + ((x - ic.x) - (z - ic.z)) * S * kk, size / 2 + ((x - ic.x) + (z - ic.z)) * S * kk];
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, size, size);
     ctx.save();
     ctx.translate(size / 2, size / 2);
-    ctx.scale(kk, kk);
+    ctx.transform(S * kk, S * kk, -S * kk, S * kk, 0, 0);
     ctx.translate(-ic.x, -ic.z);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
@@ -182,7 +182,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     [[b.minX, b.minZ], [b.maxX, b.minZ], [b.maxX, b.maxZ], [b.minX, b.maxZ]].forEach(([x, z], i) => { const [u, v] = at(cx + x, cz + z); if (i) ctx.lineTo(u, v); else ctx.moveTo(u, v); });
     ctx.closePath(); ctx.stroke();
     // camps, ruins, caches, sites and nodes appear once you are close (within the minimap's reach)
-    const reach = ISLAND_SPAN / islandZoom * 1.25, camps = state.world?.camps || {};
+    const reach = ISLAND_SPAN * Math.SQRT2 / islandZoom * 1.25, camps = state.world?.camps || {};
     // fog of war (Tim 2026-11-10): other clans' units, camps and buildings show only where you currently see or have revealed
     const grid = game.state.world?.discovered?.[clan] ?? '0';   // enemy units are already cut to what you see by fog.seen (data/world_chunks.json sight)
     const revealed = f => (f.owner && f.owner === clan) || isDiscovered(world, grid, f.x, f.z);
@@ -245,6 +245,11 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       corners.forEach((p, i) => { const [u, v] = at(p.x, p.z); i ? ctx.lineTo(u, v) : ctx.moveTo(u, v); });
       ctx.closePath(); ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1; ctx.stroke();
     }
+    // north arrow: north is -z, which the turned view puts up and to the right
+    { const ox = size - 26, oy = 26, nx = S, ny = -S, r = 17;
+      ctx.beginPath(); ctx.arc(ox, oy, r + 5, 0, Math.PI * 2); ctx.fillStyle = 'rgba(10,20,27,.8)'; ctx.fill(); ctx.strokeStyle = '#6b5a38'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ox + nx * r, oy + ny * r); ctx.lineTo(ox - ny * 6 - nx * 7, oy + nx * 6 - ny * 7); ctx.lineTo(ox + ny * 6 - nx * 7, oy - nx * 6 - ny * 7); ctx.closePath(); ctx.fillStyle = '#f3dfae'; ctx.fill();
+      ctx.font = '700 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f3dfae'; ctx.fillText('N', ox + nx * (r + 11), oy + ny * (r + 11)); }
     ctx.font = '600 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = 'rgba(10,20,27,.85)'; ctx.fillRect(4, size - 24, 100, 20);
     ctx.fillStyle = '#f3dfae'; ctx.fillText(`World, ${gridLabel(ic.x, ic.z)}`, 10, size - 10);
   }
@@ -412,7 +417,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   const at = e => { const r = canvas.getBoundingClientRect(),u=(e.clientX-r.left)*size/r.width,v=(e.clientY-r.top)*size/r.height;
     if(onIsland()) {
       const ic=islandC||islandCentre(),scale=size/2/ISLAND_SPAN*islandZoom;
-      return {x:ic.x+(u-size/2)/scale,z:ic.z+(v-size/2)/scale};
+      const a=(u-size/2)/(S*scale),b=(v-size/2)/(S*scale);   // inverse of the turned island view
+      return {x:ic.x+(a+b)/2,z:ic.z+(b-a)/2};
     }
     return toWorld(u,v);
   };
