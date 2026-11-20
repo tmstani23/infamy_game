@@ -112,5 +112,5 @@
 - Fog: soft banks lying on the ground, drifting with the wind and wrapping round the view; drawn above ground decals and under sprites, plus a faint veil over sprites. Never a full-screen grey. Night: moonlit, catches lantern light, rare ghost lights (hitodama) in thick fog.
 - Night weather: fog on about 30% of nights, each night rolled on its own (runs of foggy or clear nights happen). Day tables unchanged. Flurries have no fog.
 - Rain (streaks + ground splashes) and snow: GPU points wrapping in a screen-aligned ground box, so they cover the whole screen at any zoom. Fog shader skips noise outside each bank.
-- Numbers (game/data/weather.json): 13 fog banks, 840 rain drops, 156 splashes.
+- Numbers (game/data/weather.json): 13 fog banks, 480 rain drops, 100 splashes.
 - Files: game/src/weather_pick.js (picker), game/src/render/weather.js (drawing), game/data/weather.json (numbers), game/tools/test_weather.mjs.

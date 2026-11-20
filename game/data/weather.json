@@ -20,6 +20,6 @@
   },
   "wind": { "min": 0.8, "max": 2.0 },
   "fog": { "banks": 13, "length": [36, 66], "width": [20, 34], "opacity": 0.62, "veil": 0.2, "ghostLights": 3 },
-  "rain": { "drops": 840, "splashes": 156, "fall": 26 },
+  "rain": { "drops": 480, "splashes": 100, "fall": 17 },
   "snow": { "flakes": 1100, "fall": 2.6 }
 }

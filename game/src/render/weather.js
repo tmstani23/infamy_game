@@ -310,11 +310,11 @@ export function createWeather({ scene, camera, renderer, world, cfg }) {
       un.uSway.value = sway * k; un.uCenter.value.set(cam.x, cam.z); un.uDrift.value.set(vx * k, vz * k); un.uAlpha.value = alpha;
       un.uColor.value.setRGB(...day).lerp(new THREE.Color(...dark), night);
     };
-    fallSet(rain, Math.min(1, now.rain), cfg.rain.fall, 28, 0.55, [0.78, 0.82, 0.88], [0.50, 0.58, 0.72], 0);
-    fallSet(splash, Math.min(1, now.rain), 1, 16, 0.6, [0.82, 0.86, 0.92], [0.50, 0.58, 0.72], 0, true);
+    fallSet(rain, Math.min(1, now.rain), cfg.rain.fall, 18, 0.3, [0.78, 0.82, 0.88], [0.50, 0.58, 0.72], 0);
+    fallSet(splash, Math.min(1, now.rain), 1, 14, 0.35, [0.82, 0.86, 0.92], [0.50, 0.58, 0.72], 0, true);
     fallSet(snow, Math.min(1, now.snow / 1.6), cfg.snow.fall * (1 + Math.max(0, now.snow - 1)), 7, 0.9, [1, 1, 1], [0.70, 0.76, 0.90], 0.5);
     if (rain.visible) {   // streaks lean with the wind as seen on screen
-      const sx = (vx * CAM_RIGHT.x + vz * CAM_RIGHT.z) / cfg.rain.fall, dir = new THREE.Vector2(THREE.MathUtils.clamp(sx, -0.6, 0.6), 1).normalize();
+      const sx = (vx * CAM_RIGHT.x + vz * CAM_RIGHT.z) / cfg.rain.fall, dir = new THREE.Vector2(THREE.MathUtils.clamp(sx, -0.3, 0.3), 1).normalize();
       rain.material.uniforms.uSlant.value.copy(dir);
     }
   }
