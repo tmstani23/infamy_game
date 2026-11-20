@@ -838,12 +838,14 @@ export function createGame(options) {
   // the ship between the city harbour pier and your castle dock (Tim 2026-11-19): a skippable sail, sim/frontier/ferry.js
   const shipRules = options.frontier?.campaignZones;
   const ferry = castles && shipRules?.ship && options.world?.capital?.port ? createFerry({ state, rules: shipRules, pier: shipRules.ship.pier, seaGate: options.world.capital.port, castles,
-    navOf: p => navOf(p), followOffset: (...a) => followOffset(...a), freeSlot: (...a) => freeSlot(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; }, areas, mounts: { dismount: e => mounts?.dismount(e) } }) : null;
+    navOf: p => navOf(p), followOffset: (...a) => followOffset(...a), freeSlot: (...a) => freeSlot(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; }, areas, mounts: { dismount: e => mounts?.dismount(e) },
+    waiting: e => { const clan = state.clans?.[e.owner], st = units?.types?.settler, n = clan?.settlersWaiting || 0; if (!n || !st) return [];   // Z7: settlers at the HQ sail with him
+      clan.settlersWaiting = 0; return Array.from({ length: n }, () => state.entities[spawn('settler', st.sprite, e.x, e.z, { owner: e.owner, hp: st.hp, holdFire: true, place: 'street' })]); } }) : null;
   if (ferry) doors.push({ x: ferry.pier[0], z: ferry.pier[1], place: 'street', menu: 'harbour', label: 'Harbour pier: ship to your castle' });   // the ring on the pier (Use there boards, main.js)
   if (ferry) frontier.modules.unshift({ name: 'ferry', command: (e, c) => ferry.command(e, c) });
-  const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base), zones: frontier.campaignZones }) : null;
+  const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base), zones: frontier.campaignZones, castles }) : null;
   frontier?.rivalCampaign?.setLandOffice(landOffice, units?.types?.settler);   // Z2: rival homes, strategies and later towns
-  const goals = createCampaignGoals({ state, clans, landOffice, influence, zones: frontier?.campaignZones, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
+  const goals = createCampaignGoals({ state, clans, landOffice, influence, zones: frontier?.campaignZones, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, harbourAt: () => ferry ? { x: ferry.pier[0], z: ferry.pier[1] } : null, hasCastle: id => !!castles?.castleOf(id), rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
   frontier?.attach({rangeScale:(a,b)=>castles?.rangeScale(a,b) ?? 1,unitOf:e=>statsOf(e),moveTo:(...a)=>moveTo(...a),hit:(...a)=>hit(...a),fight,paths,dirIndex,damageOf:e=>stats.damage(e),intervalOf:e=>stats.attackInterval(e),swingTicks:(unit,speed)=>Math.max(4,Math.round(Math.min(speed*0.85,unit.swingSeconds||0.7)/DT)),areas,gate,navOf:p=>navOf(p),followOffset:(...a)=>followOffset(...a),freeSlot:(...a)=>freeSlot(...a),forget:id=>{delete paths[id];delete intents[id];if(fight[id])delete fight[id].target;},spawn,remove:removeUnit,onFound:id=>landOffice?.founded(id),
     // a war camp fell (sim/frontier/war_end.js): the attacker's hero and crew in the war circle fall back to their nearest town, on foot
     // (8c: o.side 'defender' = the defender leaving the town he surrendered, to his nearest other town; o.why = what he is told)
@@ -1030,6 +1032,8 @@ export function createGame(options) {
         if (d?.gate && !modeRules(state).island) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'The gate to the island opens in a campaign' }; }
         // out to the island only with a founding permit, or once you have a town (Tim 2026-11-10)
         else if (d?.gate && d.place === 'world' && landOffice && !landOffice.mayLeave(e.owner)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'The island gate opens once you hold a founding permit (telegraph office)' }; }
+        // Z7: and once you have chosen your home with the old surveyor
+        else if (d?.gate && d.place === 'world' && landOffice?.needsHome(e.owner)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'Choose your home with the old surveyor first' }; }
         // nor with a Rally up (Tim 2026-11-10): rallied crew would follow him out and leave the city short
         else if (d?.gate && d.place === 'world' && e.type === 'hero' && rally.status(e.owner)?.active) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'A Rally is up: the gate opens once your crew are back at their posts' }; }
         else if (d?.to && deployment.canActAt(e, d.to.x, d.to.z, d.place) && (!businesses || businesses.mayEnter(e, d.place))) {   // menu doors (the clinic) have no room
@@ -1063,6 +1067,7 @@ export function createGame(options) {
       if (c.type === 'hire' && clans) { if (c.action === 'cancel') clans.cancelHire(e, c.index); else clans.hire(e, c.business, c.unit,c.count ?? 1); }
       if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'permit') landOffice.buyPermit(e);
       if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'survey') landOffice.survey(e);
+      if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'home') landOffice.chooseHome(e, c.zone);
       if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'rivals') landOffice.rivalsTalk(e);
       if (c.type === 'expedition' && landOffice && areas && gate && !stunned(e, state.tick)) expedition(e, c);
       if (c.type === 'inventory') inventory.command(e, c);

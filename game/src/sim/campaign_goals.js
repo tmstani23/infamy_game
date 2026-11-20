@@ -17,7 +17,7 @@ import { SHOP } from './gear_catalog.js';
 export const MAIN_STEPS = ['permit', 'surveyor', 'settlers', 'lieutenant', 'orders', 'leave', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'warpack', 'war'];   // after the clan's starter goals
 const ORDINAL = ['', '2nd ', '3rd ', '4th '];
 
-export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null, zones = null }) {
+export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null, zones = null, harbourAt = () => null, hasCastle = () => false }) {
   // Z2 (Tim 2026-11-19): the war goals (news of rival towns, pack, declare) wait until a rival town stands in a zone
   // where this clan has a town, or in a zone touching one
   const rivalInReach = id => {
@@ -294,6 +294,10 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
         return { key: `permit${towns}`, title: `Buy a ${nth}founding permit`, step: S0 + MAIN_STEPS.indexOf('permit'), steps, rows };
       }
       // the old surveyor's report on this permit (Tim 2026-11-10: he had no card and was easy to miss)
+      // Z7: a player with no castle yet chooses his home with him first
+      if (!clan.bot && clan.permit && landOffice?.needsHome?.(id)) { const d = surveyorAt();
+        return { key: `home${towns}`, title: 'Choose your home', step: S0 + MAIN_STEPS.indexOf('surveyor'), steps,
+          rows: [{ ...row('office', 'Castle site chosen', 0, 1, 'The old surveyor outside the telegraph office (gold mark) shows you the five castle sites: stand beside him, press Space, then pick one on his map'), at: d ? spot(d.x, d.z) : null }] }; }
       if (!clan.bot && clan.surveyPending) { const d = surveyorAt();
         return { key: `surveyor${towns}`, title: 'Talk to the old surveyor', step: S0 + MAIN_STEPS.indexOf('surveyor'), steps,
           rows: [{ ...row('office', 'Surveyor report', 0, 1, 'He stands outside the telegraph office with a gold mark over his head: stand beside him, press Space, then Show me on the map'), at: d ? spot(d.x, d.z) : null }] }; }
@@ -312,6 +316,12 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
         return { key: 'orders', title: 'Give him his orders', step: S0 + MAIN_STEPS.indexOf('orders'), steps,
           rows: [row('office', 'Open While I’m away', m.ordersOpened ? 1 : 0, 1, 'Click Deployment (gold) in the icon menu, then the While I’m away tab (gold)'),
             row('ryo', 'Set his budget', 0, 1, 'Type what he may spend each day in the Budget box (gold) and press Set; every order starts on')] };
+      // Z7: with a castle, out by the ship from the harbour pier to the castle dock (the settlers at the HQ board with you)
+      const pier = !out && hasCastle(id) && harbourAt();
+      if (pier)
+        return { key: `sail${towns}`, title: 'Sail to your castle', step: S0 + MAIN_STEPS.indexOf('leave'), steps,
+          rows: [row('settler', 'Settlers ready', have, need, ''),
+            { ...row('gate', 'Ship from the harbour', 0, 1, 'Your settlers wait at your HQ and board with you: go to the harbour pier (gold marker) and press Space'), at: spot(pier.x, pier.z) }] };
       if (!out)
         return { key: `leave${towns}`, title: 'Leave the city', step: S0 + MAIN_STEPS.indexOf('leave'), steps, gate: true,
           rows: [row('settler', 'Settlers ready', have, need, ''),

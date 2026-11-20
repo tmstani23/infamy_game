@@ -2927,6 +2927,16 @@ Zone data and caps, the zones map, the default castle with its rail hub, rival c
   - Rivals: the general besieges the nearest castle its gate allows (pickCastle), never singling out the player, and claims known empty towns within its cap before launching a war.
   - End screens (`src/campaign_end.js`), shown when `state.campaignEnd` is set: the camera goes to the player's castle (victory) or the fallen castle (defeat) at zoom 0.2 and drifts side to side; HUD and unit overlays hidden. Victory: gold rays, embers, gold crest, rival crests struck through with the day each fell, stats (Days, Zones, Towns, Castles taken); Main menu, Keep playing (restores HUD, camera and zoom). Defeat: colour drained, fire glow, ash, cracked grey crest, the clan still standing highlighted; Load a save, Main menu (both reload to the start screen).
   - Tests: `tools/test_castle_siege.mjs`, `tools/test_castle_siege_bots.mjs`.
+- Z7 choosing your home, the sail to your castle, ferry ships (2026-11-20):
+  - A new campaign starts with no player castle (start screen passes home 'pick'; `match_options` home is 'pick', 'random' or a zone id, default east_plains for non-founding setups).
+  - After buying the founding permit, the player chooses a home at the old surveyor (city). The talk shows a coast map (`src/home_map.js`): terrain, zone borders, the city, the five castle sites; sites taken by rivals are greyed and cannot be picked. Button "Raise my castle in X" places the castle (castles.place), sets `state.match.home` and posts news 'homeChosen'. A home is chosen once.
+  - Until then: survey refuses "Choose your home first", the island expedition refuses "Choose your home with the old surveyor first", and the island gate refuses. With no towns yet, survey distance is measured from the castle.
+  - Rival castles wait while a non-bot clan has no castle, until founding.bots.fallbackDay (10); rivals then roll their homes from the free sites.
+  - Goal cards: "Choose your home" (row Castle site chosen, points at the surveyor) after the permit, then "Sail to your castle" (row Ship from the harbour, points at the city pier). The sail takes the hero's party plus the clan's waiting settlers (`clan.settlersWaiting`), who land at the castle dock.
+  - Ships (`render/ferry_ships.js`): the ferry uses the coastal ship model, drawn at berth.size, until a passenger ship is made. One ship lies at the city harbour pier, one off each castle's dock (out past the dock end, lying across it). While a clan's party is at sea a sailing ship is drawn where they are and that clan's moored ships are hidden; the city ship is away while any party is at sea.
+  - Ship sprite exported at full character scale (pxPerUnit 160/3, 768 px cells, 10 pages; was 80/3, 384). Far out the half pages are used.
+  - Numbers (placeholders), `data/campaign_zones.json` ship.berth: size 1.725, city [19.5, -40, 1] (x, z, dir), castle { out 14, side 0, turn true }.
+  - Tests: `tools/test_start_home.mjs`.
 
 ## Phase W5: Exploration and natives
 

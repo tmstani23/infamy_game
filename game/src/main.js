@@ -158,7 +158,7 @@ async function start() {
   try {
     view = await createView({
       canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world: simOptions.world, worldChunks: simOptions.worldChunks, cutouts, resourceSpots: simOptions.resourceSpots, spotConfig: frontier?.townArt?._spots, hallSeconds: frontier?.war?.channel?.seconds ?? 60, weather: weatherCfg,
-      doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || modeRules(game.state).island)), units,   // back windows: Shinobi only; the island gate: campaign only (W3.5)
+      doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || modeRules(game.state).island)), units, ships: campaignZones?.ship && castleBlueprint ? { bp: castleBlueprint, rules: campaignZones } : null,   // back windows: Shinobi only; the island gate: campaign only (W3.5)
     });
   } catch (e) {
     status('This browser could not start WebGL, which the game needs.');
@@ -425,7 +425,8 @@ async function start() {
   const stationMenu = createStationMenu({ panel: $('stationmenu'), game, heroId, send: c => pending.push(c) });
   const stableMenu = createStableMenu({ panel: $('stablemenu'), game, heroId, send: c => pending.push(c), data: frontier, openCavalry: (t, b) => townWar.show(t, b) });   // Tim 2026-11-07: buy horses and vehicles (8b: its Cavalry tab during a war on the town)
   // the old surveyor's map tour runs on the World tab of the game map (made further down; called only after a click)
-  const surveyorTalk = createSurveyorTalk({ panel: $('svtalk'), card: $('svtour'), game, heroId, send: c => pending.push(c),
+  const surveyorTalk = createSurveyorTalk({ panel: $('svtalk'), card: $('svtour'), game, heroId, send: c => pending.push(c), home: simOptions.world && campaignZones ? { world: simOptions.world, rules: campaignZones } : null,   // Z7: choosing your home
+   
     map: { tourTo: (id, span) => gameMap.tourTo(id, span), endTour: () => gameMap.endTour(), isOpen: () => gameMap.isOpen(), close: () => gameMap.close(), showRivalHints: () => gameMap.showRivalHints() } });
   const lieutenantTalk = createLieutenantTalk({ panel: $('lttalk'), game, heroId, send: c => pending.push(c), showOrders: () => { if (!deploymentPanel.isOpen()) $('deploymentbtn').click(); setTimeout(() => document.querySelector('#deploymentpanel .show-away')?.click(), 0); } });
   const landOfficeMenu = createLandOfficeMenu({ panel: $('landoffice'), game, heroId, units, send: c => pending.push(c) });

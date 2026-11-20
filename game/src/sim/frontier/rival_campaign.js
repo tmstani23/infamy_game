@@ -34,8 +34,11 @@ export function createRivalCampaign({ state, data, worldData, zones, founding, w
     if (!on()) return null;
     const rec = (fr().rivals ||= {}), need = bots().filter(c => !rec[c.id]);
     if (!need.length) return placeHomes(rec);
+    // Z7: rivals choose after the player has chosen his home with the surveyor, or from founding.bots.fallbackDay anyway
+    if (castles && Object.values(state.clans || {}).some(c => !c.bot && !c.out && !castles.castleOf(c.id)) && day() < (D.bots?.fallbackDay ?? 10)) return null;
     const taken = new Set(Object.values(rec).map(r => r.home)), kinds = Object.keys(R().strategies || {});
-    const homes = zones.castles().map(c => c.zone).filter(z => z !== (R().playerHome ?? 'east_plains') && !taken.has(z));
+    const castleAt = z => !!fr().settlements?.[`castle_${z}`];   // a site with a castle on it already (sim/castles.js place)
+    const homes = zones.castles().map(c => c.zone).filter(z => !castleAt(z) && !taken.has(z) && (castles || z !== (R().playerHome ?? 'east_plains')));
     for (const c of need) {
       const rnd = rng(`rival:${c.id}`);
       const home = homes.length ? homes.splice(Math.floor(rnd() * homes.length), 1)[0] : null;

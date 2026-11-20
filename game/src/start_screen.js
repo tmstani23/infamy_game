@@ -110,7 +110,7 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
     }).catch(() => {});   // no save server: the buttons stay hidden
     form.addEventListener('submit', e => {
       e.preventDefault();
-      const options = matchOptions({ clan: value('clan'), difficulty: value('difficulty'), mode: value('mode') });
+      const options = matchOptions({ clan: value('clan'), difficulty: value('difficulty'), mode: value('mode'), home: 'pick' });   // Z7: the home is chosen in the game, with the old surveyor
       form.querySelector('button').disabled = true;
       try { sessionStorage.setItem(STORAGE, JSON.stringify(options)); } catch {}
       root.hidden = true; loading.hidden = false;

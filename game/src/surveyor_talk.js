@@ -8,6 +8,7 @@
 // Reads the state and sends commands only. Wording on resources only states what the rules do today.
 import { RICH_NAME, RICH_GIVES } from './sim/resource_spots.js';
 import { msInstall, msShell, msAside, msBtn, msConcept, msEsc } from './menu_shell.js';
+import { homeField } from './home_map.js';
 // each world node near a site is a rich deposit (names from sim/resource_spots.js); camps and quarries near
 // forests and stone veins work faster (frontier.json traits.nodeKinds)
 const BONUS = { forest: 'lumber camps here cut faster', quarry: 'quarries here dig faster' };
@@ -17,7 +18,9 @@ const INTRO = [
   'Then the ground round it. A Rich forest or a Rich stone vein near a town makes its lumber camps and quarries work faster, more for each one close by. Rich fishing and fertile grounds are food your people can gather. Ore veins are dug as stone for now; iron comes later.',
   'Small glowing spots near a town are its first supply. The rich deposits give much more and grow back faster.',
 ];
-export function createSurveyorTalk({ panel, card, game, heroId, send, map }) {
+// home = { world, rules } (Z7): the island and data/campaign_zones.json for choosing your home, the first thing he does
+// after a permit while your clan has no castle ({ type: 'landOffice', action: 'home', zone }, sim/frontier/land_office.js)
+export function createSurveyorTalk({ panel, card, game, heroId, send, map, home = null }) {
   let open = false, shown = '', waitFor = null, tour = null, cardShown = '', page = 0, hintsWait = false;
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans?.[hero()?.owner];
@@ -39,7 +42,13 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map }) {
       ['They can come for you too. Keep ryo in each town’s coffers: in a war it fills the defenders’ war chest, which trains your troops. Walls, watchtowers and a stockade help hold a town.'],
     ]; };
   const warTalk = c => !!c?.warTalkDue && !c?.surveyPending;
+  // Z7: choosing your home
+  let homePick = null;
+  const needsHome = c => !!home && !!c?.permit && !!game.landOffice?.needsHome?.(c.id);
+  const homeSites = () => game.landOffice?.homeSites?.() || [];
+  const homeName = id => homeSites().find(s => s.zone === id)?.name || '';
   function lines(c) {
+    if (needsHome(c)) return ['A founding permit! Good. But before any town, your clan needs a castle on this coast: its harbour, its station, its walls.', 'Five harbours can hold one. Choose where yours stands. The ship at the city pier will take you there.'];
     if (warTalk(c)) return WAR()[Math.min(page, WAR().length - 1)];
     if (c?.surveyPending) return [c.survey ? 'Another permit? Then I ride out past your last town and see what lies beyond.' : 'A founding permit! Good. I have walked every road on this island. Let me show you where a town could stand.'];
     if (c?.survey) return ['Those sites are on your map. Take your settlers through the island gate and ride straight to one.'];
@@ -78,7 +87,8 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map }) {
   });
   function act(a) {
     const c = clan();
-    if (a === 'survey' && c?.surveyPending) { waitFor = (c.survey?.n || 0) + 1; send({ id: heroId, type: 'landOffice', action: 'survey' }); }
+    if (a === 'home' && needsHome(c) && homePick) send({ id: heroId, type: 'landOffice', action: 'home', zone: homePick });
+    else if (a === 'survey' && c?.surveyPending) { waitFor = (c.survey?.n || 0) + 1; send({ id: heroId, type: 'landOffice', action: 'survey' }); }
     else if (a === 'again') startTour();
     else if (a === 'wnext') page++;
     else if (a === 'wback') page = Math.max(0, page - 1);
@@ -89,6 +99,7 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map }) {
   msInstall(panel, () => close());
   panel.addEventListener('click', e => { const a = e.target.dataset?.pick; if (a) act(a); });
   function buttons(c) {
+    if (needsHome(c)) return [...(homePick ? [['home', `Raise my castle in ${homeName(homePick)}`]] : []), ['close', 'Later']];
     if (warTalk(c)) { const last = page >= WAR().length - 1;
       return [last ? ['wmark', 'Mark them on my map'] : ['wnext', 'Go on'], ...(page ? [['wback', 'Back']] : []), ['close', 'Later']]; }
     return c?.surveyPending ? [['survey', 'Show me on the map']] : c?.survey ? [['again', 'Show me again'], ['close', 'Later']] : [['close', 'Later']]; }
@@ -102,10 +113,15 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map }) {
     if (!open) return;
     // menu restyle (Tim 2026-11-10): the shared shell with his 3D still
     const aside = msAside({ art: msConcept('surveyor1') || '', label: 'Land Office', labelTip: 'He walks you round the sites a founding permit shows.' });
-    const body = `<div class="ms-speech">${lines(c).map(t => `<p>${msEsc(t)}</p>`).join('')}</div>`
+    const choosing = needsHome(c);
+    if (choosing && !homePick) homePick = homeSites().find(s => s.free)?.zone || null;
+    const body = `<div class="ms-speech">${lines(c).map(t => `<p>${msEsc(t)}</p>`).join('')}</div>${choosing ? '<div class="sv-home"></div>' : ''}`
       + `<div class="ms-foot"><span class="ms-small">Number keys, Space or Esc</span><span>${buttons(c).map(([a, t], i) => `<button class="ms-btn${!i && a !== 'close' ? ' ms-go goal-flash' : ''}" data-pick="${a}">${i + 1}. ${msEsc(t)}</button>`).join('')}</span></div>`;
     const html = msShell({ eyebrow: 'Outside the Land Office', title: 'The old surveyor', escTip: 'Close (Space or Esc)', aside, body });
-    if (html !== shown) { panel.innerHTML = html; shown = html; }
+    if (html !== shown) { panel.innerHTML = html; shown = html;
+      const el = choosing && panel.querySelector('.sv-home');
+      if (el) { const f = homeField({ world: home.world, zones: home.rules, initial: homePick, held: homeSites().filter(s => !s.free).map(s => s.zone) });
+        el.innerHTML = f.html; const m = f.mount(el, id => { homePick = id; update(); }); m.show(true); m.clan(c?.color); } }
   }
   function close() { open = false; update(); }
   return {

@@ -4,7 +4,8 @@
 //   { id, type: 'frontier', action: 'ferry', mode: 'board' | 'skip' }
 // Riders carry e.aboard = 'ship:<owner>' (hidden, like train riders) and e.shipRide = { to, since, until, from, dest }.
 // Numbers: data/campaign_zones.json `ship` (placeholders). Only a clan with a castle sails; bots do not use it.
-export function createFerry({ state, rules, pier, seaGate, castles, navOf, followOffset, freeSlot, forget, areas, mounts }) {
+// waiting(e) -> the settlers held at the HQ, called out to board with him (Z7: as they join him at the island gate)
+export function createFerry({ state, rules, pier, seaGate, castles, navOf, followOffset, freeSlot, forget, areas, mounts, waiting = null }) {
   const S = () => rules?.ship || {};
   const say = (owner, text) => { const c = state.clans?.[owner]; if (c) c.notice = { tick: state.tick, text }; return true; };
   const riding = e => String(e?.aboard || '').startsWith('ship:');
@@ -31,7 +32,7 @@ export function createFerry({ state, rules, pier, seaGate, castles, navOf, follo
     const here = at(e);
     if (!here) return say(e.owner, riding(e) ? 'Already at sea' : 'The ship lies at the city harbour pier and at your castle dock');
     const d = castles.dock(e.owner), now = state.tick ?? 0, to = here === 'city' ? 'castle' : 'city';
-    const group = party(e), crew = [e, ...group].slice(0, S().seats ?? 40);
+    const group = [...party(e), ...(to === 'castle' ? waiting?.(e) || [] : [])], crew = [e, ...group].slice(0, S().seats ?? 40);
     const from = to === 'castle' ? [seaGate.x, seaGate.z] : [d.sea.x, d.sea.z], dest = to === 'castle' ? [d.sea.x, d.sea.z] : [seaGate.x, seaGate.z];
     for (const u of crew) {
       if (u.mounted) { if (mounts?.dismount) mounts.dismount(u); else { delete u.mounted; delete u.ride; } }   // horses stay ashore

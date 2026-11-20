@@ -11,7 +11,7 @@ import { siteTraits } from './founding.js';
 //    through the gate on foot, again with the Hero group and settlers.
 // Sites are claimed when chosen, so no two clans pick the same one. A new town has a grace of
 // founding.graceDays in which camp bandits leave its people alone.
-export function createLandOffice({ state, data, worldData, units, clans, doorNear, discovered = null, dayTicks = 12000, seed = () => state.campaignSeed ?? 1, maxTowns = (id, base) => base, zones = null }) {
+export function createLandOffice({ state, data, worldData, units, clans, doorNear, discovered = null, dayTicks = 12000, seed = () => state.campaignSeed ?? 1, maxTowns = (id, base) => base, zones = null, castles = null }) {
   const D = data.founding, P = D.permit || {}, U = units?.rules || {};
   const say = (clan, text) => { if (clan) clan.notice = { tick: state.tick, text }; return null; };
   const fr = () => state.frontier;
@@ -74,12 +74,39 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   // (Tim 20:43: each permit pushes the known sites out past your last town); the first from the capital.
   // clan.survey = { sites, n, tick } is what the screen's map tour shows.
   const atSurveyor = e => e?.type === 'hero' && e.place === 'street' && doorNear(e.id)?.menu === 'surveyor';
+
+  // Choosing a home (Z7, Tim 2026-11-20): a player who started without a castle (new game: match home 'pick') chooses
+  // where it stands with the old surveyor, once he holds a founding permit: { id, type: 'landOffice', action: 'home',
+  // zone }. The castle goes up at once (sim/castles.js place). Until then the island gate stays shut to him; the rivals
+  // roll their homes from the sites left once he has chosen (sim/frontier/rival_campaign.js).
+  const needsHome = id => { const c = state.clans?.[id]; return !!c && !c.bot && on() && !!castles?.spots?.().length && !castles.castleOf(id); };
+  // the five sites: { zone, name, x, z, free }; a site with a castle on it already is not free (a rival's, when the
+  // rivals chose first after the fallback day)
+  const homeSites = () => (castles?.spots?.() || []).filter(c => Number.isFinite(c.x)).map(c => ({ zone: c.zone, name: zones?.zone?.(c.zone)?.name || c.zone, x: c.x, z: c.z, free: !fr()?.settlements?.[`castle_${c.zone}`] }));
+  function chooseHome(e, zone) {
+    const clan = state.clans?.[e?.owner];
+    if (!clan || !standing(e) || !on()) return null;
+    if (!needsHome(clan.id)) return say(clan, castles?.castleOf(clan.id) ? 'Your castle already stands' : 'No home to choose here');
+    if (!atSurveyor(e)) return say(clan, 'Talk to the old surveyor outside the Land Office');
+    if (!clan.permit) return say(clan, 'Bring him a founding permit first');
+    const site = homeSites().find(s => s.zone === zone);
+    if (!site) return say(clan, 'No castle site there');
+    if (!site.free) return say(clan, `Another clan holds ${site.name}`);
+    const c = castles.place(clan.id, zone);
+    if (!c) return say(clan, 'The castle could not be raised there');
+    if (state.match) state.match.home = zone;
+    (state.news ||= []).push({ kind: 'homeChosen', clan: clan.id, zone, town: c.id, x: c.x, z: c.z });
+    return say(clan, `Your castle stands in ${site.name}. The ship at the harbour takes you there`);
+  }
   function survey(e) {
     const clan = state.clans?.[e?.owner];
     if (!clan || !standing(e) || !on()) return null;
     if (!atSurveyor(e)) return say(clan, 'Talk to the old surveyor outside the Land Office');
     if (!clan.surveyPending) return say(clan, clan.permit ? 'He has already surveyed for this permit' : 'Bring him a founding permit first');
-    const homes = Object.values(state.frontier?.settlements || {}).filter(s => s.owner === clan.id && s.founded !== undefined);
+    if (needsHome(clan.id)) return say(clan, 'Choose your home first');
+    // measured from your towns, the first time from your castle (Z7), else from the capital
+    const castle = castles?.castleOf?.(clan.id);
+    const homes = Object.values(state.frontier?.settlements || {}).filter(s => s.owner === clan.id && (s.founded !== undefined || (s === castle && !townsOf(clan.id))));
     const from = si => homes.length ? Math.min(...homes.map(h => Math.hypot(si.x - h.x, si.z - h.z))) : (si.travel ?? Infinity);
     const near = sites(clan.id).filter(s => s.open && !s.known).sort((a, b) => from(a) - from(b)).slice(0, D.siteMenu?.surveyed ?? 3);
     clan.knownSites = [...new Set([...(clan.knownSites || []), ...near.map(s => s.id)])];
@@ -187,6 +214,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     const settlers = partyAtGate(e, c.units), waiting = settlersWaiting(clan.id), n = settlers.length + waiting;
     const crew = heroCrew(e);
     if (!mayLeave(clan.id)) return { ok: false, reason: 'The island gate opens once you hold a founding permit (telegraph office)' };
+    if (needsHome(clan.id)) return { ok: false, reason: 'Choose your home with the old surveyor first' };
     // nobody leaves with a Rally up, rivals included (Tim 2026-11-10): rallied crew would go along and leave the city short
     const rally = state.deployment?.clans?.[clan.id]?.rally;
     if (rally?.active && rally.endsAt > state.tick) return { ok: false, reason: 'A Rally is up: the gate opens once your crew are back at their posts' };
@@ -277,6 +305,6 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return top.length ? top[Math.floor(rnd() * top.length)].id : null;
   }
 
-  return { mayLeave, office, atOffice, atGate, atSurveyor, survey, rivalsTalk, businessesHeld, townsOf, atLimit, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
+  return { mayLeave, needsHome, homeSites, chooseHome, office, atOffice, atGate, atSurveyor, survey, rivalsTalk, businessesHeld, townsOf, atLimit, permitStatus, buyPermit, sites, siteBlocked, partyAtGate, heroCrew, settlersWaiting,
     expeditionCheck, claim, founded, inGrace, botDue, botDay, botBudget, botSite, settlerPrice, day };
 }

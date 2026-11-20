@@ -107,14 +107,16 @@
     "feetUp": 0.736
   },
   "ship_coastal_idle": {
-    "size": 384,
+    "size": 768,
+    "dirs": 8,
     "frames": 12,
     "fps": 6,
     "cellWorld": 14.4,
     "feetUp": 3.351
   },
   "ship_coastal_sail": {
-    "size": 384,
+    "size": 768,
+    "dirs": 8,
     "frames": 8,
     "fps": 6,
     "cellWorld": 14.4,

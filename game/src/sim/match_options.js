@@ -19,9 +19,14 @@ export const MODE_CHOICES = [
   { id: 'classic', name: 'Classic', about: 'The city only: take businesses, win the season and earn Renown.' },
   { id: 'campaign', name: 'Campaign (early)', about: 'The city plus the island: found towns, send out settlers and workers. No season end; still unfinished.' },
 ];
-export function matchOptions({ clan = 'yakuza', difficulty = 'easy', mode = 'classic' } = {}) {
+// home (Z7): 'pick' = no castle at the start, the player chooses his home in the game with the old surveyor (the
+// start screen sends this); or a zone whose castle he starts in, or 'random' (tests and dev saves). Campaign only; the
+// zones are in data/campaign_zones.json, so an unknown zone falls back to the default when the match is set up
+export const DEFAULT_HOME = 'east_plains';
+export function matchOptions({ clan = 'yakuza', difficulty = 'easy', mode = 'classic', home = DEFAULT_HOME } = {}) {
   if (!CLAN_CHOICES.some(c => c.id === clan)) throw new Error(`Unknown clan: ${clan}`);
   if (!DIFFICULTY_CHOICES.some(d => d.id === difficulty)) throw new Error(`Unknown difficulty: ${difficulty}`);
   if (!MODES.includes(mode)) throw new Error(`Unknown mode: ${mode}`);
-  return { clan, difficulty, mode };
+  if (mode !== 'campaign') return { clan, difficulty, mode };
+  return { clan, difficulty, mode, home: typeof home === 'string' && /^[a-z_]+$/.test(home) ? home : DEFAULT_HOME };
 }

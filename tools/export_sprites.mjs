@@ -196,7 +196,7 @@ const MOUNTS = {
   // Boats (hull cut at the waterline; the game draws the water): sized by hull length, and at half the
   // characters' pixel scale (pxPerUnit) so the big hulls stay a sane sheet size; fps 6 halves their frames (art.json plays them at speed 0.5; Tim 2026-11-06). Wake and spray come later as effects.
   boat_river: { file: 'boat_river.glb', length: 6, yaw: 90, pxPerUnit: 160 / 3 , fps: 6 },
-  ship_coastal: { file: 'ship_coastal.glb', length: 12, yaw: 90, pxPerUnit: 80 / 3 , fps: 6 },
+  ship_coastal: { file: 'ship_coastal.glb', length: 12, yaw: 90, pxPerUnit: 160 / 3 , fps: 6 },   // full size (Tim 2026-11-20: the ferry draws it larger); far out the half pages are used
   ship_war: { file: 'ship_war.glb', length: 16, yaw: 90, pxPerUnit: 80 / 3 , fps: 6 },
 };
 
