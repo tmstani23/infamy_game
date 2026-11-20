@@ -54,7 +54,7 @@ const STEER = {
     on: 'On: the governor zones, builds, lays roads, trains workers and sends idle workers gathering by himself.'
   }
 };
-export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, miniRoot = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {}, onStable = null, onTownWar = null }) {
+export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, miniRoot = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {}, onStable = null, onTownWar = null, afterRender = () => {} }) {
   // Tim 2026-11-07: the old "More: projects & steering" page is gone; each part is a tab along the top (like Workers)
   // Tim 2026-11-07: Steer merged into Governor (his talk, focus, taxes, market, stockade and initiative on one tab)
   const TABS = [['town', 'Overview'], ['governor', 'Governor'], ['stable', 'Stable'], ['ship', 'Shipments']];   // Shipments: rail shipments S4 (Tim 2026-11-09)
@@ -142,7 +142,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     document.body?.classList?.toggle('buildmode', !!on);
     if (!miniRoot) return;
     miniRoot.hidden = !on; root.style.display = on ? 'none' : '';
-    if (on) { const h = buildUI.miniHtml(s); if (h !== miniHtml) { miniRoot.innerHTML = h; miniHtml = h; } } else miniHtml = '';
+    if (on) { const h = buildUI.miniHtml(s); if (h !== miniHtml) { miniRoot.innerHTML = h; miniHtml = h; afterRender(); } } else miniHtml = '';
   }
   function render() {
     if (root.hidden) { showMini(false); return; }
@@ -235,7 +235,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const key = h + tab;
     if (['keepinput', 'shipinput'].includes(document.activeElement?.dataset?.act) && root.contains(document.activeElement)) return;   // typing a keep level
     const pk = `${mode}|${tab}|${rosterOpen}|${usageResource}`; if (pk !== pageKey) { pageKey = pk; pageState.page = 0; }
-    if (key !== lastHtml) { root.innerHTML = h; lastHtml = key; paginate(); }
+    if (key !== lastHtml) { root.innerHTML = h; lastHtml = key; paginate(); afterRender(); }
   }
   if (miniRoot) {
     miniRoot.addEventListener('mousedown', e => e.stopPropagation());

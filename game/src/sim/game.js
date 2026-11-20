@@ -610,7 +610,7 @@ export function createGame(options) {
   function townGovernors() {
     if (!state.frontier || state.tick % 20) return;
     const model = units?.rules?.governorModel || 'merchant', cell = options.frontier?.townGrid?.cellSize || 11;
-    const [ox, oz] = units?.rules?.governorSpot || [0.15, -0.62];
+    const [ox, oz] = units?.rules?.governorSpot || [0.43, -1.77];   // about 20 units out in front of the hall (Tim 2026-11-20; was [0.15, -0.62])
     for (const s of Object.values(state.frontier.settlements || {})) {
       const g = s.governorNpc && state.entities[s.governorNpc];
       const want = !state.night && s.founded && s.owner && !state.clans?.[s.owner]?.bot && Number.isFinite(s.x);

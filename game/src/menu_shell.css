@@ -579,3 +579,7 @@ body .uf .pic { background-color: #1d1a16; }
 #hudlayout .layout-sets button:disabled { opacity: .4; cursor: default; }
 .settings-window .layout-pick { display: inline-flex; gap: 6px; align-items: center; }
 .settings-window .layout-choose { padding: 4px 8px; background: #07090b; color: #f3e3bd; border: 1px solid #826f4c; border-radius: 4px; font: 12px system-ui, sans-serif; }
+/* Tim 2026-11-20: goal steps on the icon menu and the Deployment page tabs (Map & deployment, While I'm away) were too faint
+   to see: they take the gold go look, like the surveyor tour's Next, while they flash */
+#utilitymenu .utility-button.goal-flash, #deploymentpanel .page-tabs button.goal-flash, #deploymentpanel button.show-away.goal-flash, #deploymentpanel .first-zone-options button.goal-flash {
+  border-color: var(--ms-go-line); background: linear-gradient(var(--ms-go1), var(--ms-dk1)); color: var(--ms-on-text); animation: goalflash 2.6s ease-in-out infinite; }

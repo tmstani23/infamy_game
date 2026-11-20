@@ -118,7 +118,7 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
 - Site (2026-11-19, stopgap until zones): once a player has a first town, a bot picks only among free sites `founding.bots.nearPlayer.min` to `max` (2500 to 4500) from it; with none there, the few nearest to that ring. Before any player town: anywhere, as before (land_office.js botSite; test tools/test_bot_founding.mjs).
 - A city captain holding no business saves for a first one once he has 3 crew.
 - A governor with initiative builds a lumber camp toward the nearest trees first when none are within worker range.
-- Camp placement (2026-11-20, `sim/frontier/governor.js`): the governor and rival bots put lumber camps, quarries and food camps on the free cell nearest the matching resource.
+- Camp placement (2026-11-20, `sim/frontier/governor.js`): the governor and rival bots put lumber camps, quarries and food camps on the free cell nearest the closest matching resource spot a camp can reach (siteCamp); spots already covered by a camp of that type are skipped, so a second camp goes to fresh ground; with no spot in reach it falls back to the nearest free cell. The governor figure stands about 20 units in front of the hall (`game.js` governorSpot default [0.43, -1.77] cells).
 
 ### Town governor
 - game.js townGovernors: model units.rules.governorModel (governer1) at rules.governorSpot (cells, default [0.15, -0.62]) in front of each player town hall by day; owner null, guide true, not attackable; removed at night. Space near him or the hall talks.

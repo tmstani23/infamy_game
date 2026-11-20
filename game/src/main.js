@@ -350,6 +350,21 @@ async function start() {
   // Every Goal card step with a place pings the same way (the minimap pulse and the street blink).
   let hintAt = 0, calloutShown = false, gateCallout = false, leaveSince = 0;
   let ordersSent = false, reportSent = false, lastPlace = null;   // While I'm away opened during the orders step: told to the sim once
+  // Town goal flashes (Tim 2026-11-20): the town panel and the build bar redraw often, which wiped the gold flash
+  // between checks; the panel calls this after every redraw too, and the build bar (#buildmini) counts as well
+  let townStepFn = null;
+  function applyTownFlash() {
+    const roots = ['#townpanel', '#towninspect', '#buildmini'];
+    for (const el of document.querySelectorAll(roots.map(r => `${r} .goal-flash`).join(', '))) el.classList.remove('goal-flash');
+    if (!townStepFn) return null;
+    // '@timber' (Tim 2026-11-06): the nearest timber Look button on the Workers pane Spots tab (else the Spots tab flashes)
+    const pick = sel => sel[0] === '@' ? [...document.querySelectorAll('#townpanel [data-act="build-worker-spot"]')].find(el => el.dataset.kind === sel.slice(1) && el.offsetParent !== null)
+      : [...document.querySelectorAll(roots.map(r => `${r} ${sel}`).join(', '))].find(el => el.offsetParent !== null);
+    let target = null;
+    for (const sel of townStepFn()) { target = pick(sel); if (target) break; }
+    target?.classList.add('goal-flash');
+    return target;
+  }
   function officeHint(now) {
     if (now - hintAt < 250) return;
     hintAt = now;
@@ -374,7 +389,11 @@ async function start() {
     // lieutenant goal steps (Tim 2026-11-06): Deployment icon, then the While I'm away tab, then the budget slider
     const orders = goal?.key === 'orders', awayPage = $('deploymentpanel').dataset.page === 'away' && deploymentPanel.isOpen();
     $('deploymentbtn').classList.toggle('goal-flash', (!!op || orders) && !menuOpen);
-    document.querySelector('#deploymentpanel .show-away')?.classList.toggle('goal-flash', orders && deploymentPanel.isOpen() && !awayPage);
+    // Tim 2026-11-20: a full hero group shows "Choose your first assignment zone" first: its zone buttons flash, then the tab
+    const zoneBox = document.querySelector('#deploymentpanel .first-zone'), zoneFirst = orders && deploymentPanel.isOpen() && !awayPage && !!zoneBox && !zoneBox.hidden && !game.zonePicked;
+    if (zoneBox && !zoneBox.dataset.goalHook) { zoneBox.dataset.goalHook = '1'; zoneBox.addEventListener('click', e => { if (e.target.closest('button')) game.zonePicked = true; }); }
+    for (const b of document.querySelectorAll('#deploymentpanel .first-zone-options button')) b.classList.toggle('goal-flash', zoneFirst);
+    document.querySelector('#deploymentpanel .show-away')?.classList.toggle('goal-flash', orders && deploymentPanel.isOpen() && !awayPage && !zoneFirst);
     // the whole While I'm away section lights up on its page: his orders (toggles) and the budget row (Tim 2026-11-20)
     for (const sel of ['.away-orders', '.away-budget-row', '.away-budget']) document.querySelector(`#deploymentpanel ${sel}`)?.classList.toggle('goal-flash', orders && awayPage);
     if (orders && awayPage && !goal.rows[0].done && !ordersSent) { ordersSent = true; pending.push({ id: heroId, type: 'lieutenant', guide: 'opened' }); }
@@ -410,25 +429,20 @@ async function start() {
     if (!window.__goalLookHint) { window.__goalLookHint = true;   // pressing the flashing Look button: tell the player how to send him
       document.addEventListener('click', e => { const b = e.target.closest?.('#townpanel [data-act="build-worker-spot"]');
         if (b && (game.goalKey === 'workers' || game.goalKey === 'stone')) callout(`Now right-click the ${b.dataset.kind === 'stone' ? 'rocks' : 'trees'} to send your selected worker there`, 'news', 9000); }, true); }
-    const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"]', '[data-act="build-workers"]', '[data-build]'];
+    const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"].buildbig', '[data-act="build-workers"]', '[data-build]'];
     const step = goal && { layout: toolSteps, goods: toolSteps, storehouse: toolSteps, camps: toolSteps, people: toolSteps, infirmary: toolSteps,
-      govorders: () => goal.rows[0].done ? ['[data-act="auto"][data-id="on"]', '[data-act="approve"]'] : ['[data-act="priority"]'],
+      govorders: () => goal.rows[0].done ? ['[data-act="auto"][data-id="on"]', '[data-act="approve"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="priority"][data-id="grow"]', '[data-act="tab"][data-id="governor"]'],
       // Tim 2026-11-20: one step at a time: Workers button, a worker card to select, the Spots tab, the node's Look button; then a callout says to right-click
       stone: () => workerSteps('stone'),
       workers: () => workerSteps('timber'), village: () => ['[data-upgrade]'],
       rail: goal.rows[0].done ? null : () => ['[data-act="build-tool"][data-id="station"]', '[data-act="build-toggle"]', '[data-build]'],
       shipping: goal.rows[0].done ? null : () => ['[data-act="ship"][data-id^="order:"]', '[data-act="tab"][data-id="ship"]'],
       market: () => goal.rows[0].done ? ['[data-act="keepinput"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'] }[goal.key];
-    for (const el of document.querySelectorAll('#townpanel .goal-flash, #towninspect .goal-flash')) el.classList.remove('goal-flash');
-    let target = null;
-    // '@timber' (Tim 2026-11-06): the nearest timber Look button on the Workers pane Spots tab (else the Spots tab flashes)
-    const pick = sel => sel[0] === '@' ? [...document.querySelectorAll('#townpanel [data-act="build-worker-spot"]')].find(el => el.dataset.kind === sel.slice(1) && el.offsetParent !== null)
-      : [...document.querySelectorAll(`#townpanel ${sel}, #towninspect ${sel}`)].find(el => el.offsetParent !== null);
-    if (step) for (const sel of step()) { target = pick(sel); if (target) break; }
-    target?.classList.add('goal-flash');
+    townStepFn = step || null;
+    const target = applyTownFlash();
     // war goals (goals pass, Tim 2026-11-19): the War banner on the action bar flashes while packing, and at a rival town
     document.getElementById('warbannerbtn')?.classList.toggle('goal-flash', goal?.key === 'warpack' || (goal?.key === 'war' && !(document.getElementById('warbannerbtn')?.disabled)));
-    $('townbtn').classList.toggle('goal-flash', !!step && !target && h?.place === 'world');
+    $('townbtn').classList.toggle('goal-flash', !!step && !target && h?.place === 'world' && !document.querySelector('#buildmini:not([hidden])'));
     if (leave && !gateCallout) { gateCallout = true; callout('Your settlers are all at your HQ (gold): they will join you outside the island gate. Walk to the gate (G on the minimap) and press Space', 'news', 7000); }
     if (ready && !calloutShown) { calloutShown = true; callout('You can buy a founding permit: go to the telegraph office (gold marker on the map)', 'news', 5000); }
   }
@@ -684,7 +698,7 @@ async function start() {
       return Object.values(game.state.frontier.settlements).filter(s => s.owner === h.owner && !s.capital && Math.hypot(s.x-h.x,s.z-h.z) <= frontier.workers.range)
         .sort((a,b) => Math.hypot(a.x-h.x,a.z-h.z)-Math.hypot(b.x-h.x,b.z-h.z))[0]?.id || null;
     };
-    townPanel = createFrontierPanel({ root: $('townpanel'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c), buildUI: frontierBuildUI, miniRoot: $('buildmini'), focus:(x,z)=>view.jumpTo(x,z),
+    townPanel = createFrontierPanel({ afterRender: () => applyTownFlash(), root: $('townpanel'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c), buildUI: frontierBuildUI, miniRoot: $('buildmini'), focus:(x,z)=>view.jumpTo(x,z),
       nearbyTown: () => nearTown(), onStable: id => stableMenu.openFor(id), onTownWar: id => townWar.show(id) });
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
     onAction('townPanel', () => townPanel.toggle());
