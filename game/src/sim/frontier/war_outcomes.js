@@ -58,5 +58,41 @@ export function createWarOutcomes({ state, data, war, world, rail = null, garris
     say(w.attacker, `${name} burned to the ground`); say(from, `${name} was burned to the ground`);
     return { townName: name };
   }
-  return { captured, sacked, burned, attach: s => { runtime = s; } };
+  // Z6 (2026-11-20): a castle's keep is taken. Its clan is out of the campaign: every town of it goes empty (no owner,
+  // buildings and stores kept, for anyone to claim, sim/frontier/empty_towns.js), the castle too; its railway is torn
+  // up; its city businesses are free and its hideout closes; every unit of it leaves the map. clan.out = { tick, by }.
+  // When the player's clan is out the campaign is lost; when one clan is left it has won:
+  //   state.campaignEnd = { tick, winner: <clan id> | null, lost: <clan id> | null }
+  function clanOut(clan, by = null) {
+    const c = state.clans?.[clan]; if (!c || c.out) return null;
+    const now = state.tick ?? 0, towns = Object.values(state.frontier?.settlements || {}).filter(s => s.owner === clan);
+    for (const s of towns) {
+      cutRail(s, clan); clearPeople(s);
+      world.setOwner(s.id, null);
+      if (!s.capital) s.empty = { tick: now, from: clan };
+    }
+    for (const b of Object.values(state.businesses || {})) {
+      if (b.owner === clan) b.owner = null;
+      if (b.hideout === clan) { b.closedHideout = clan; delete b.hideout; }
+    }
+    // war troops rout with the war; the player's hero stays so the end screen can show the fallen castle (campaign_end.js)
+    for (const e of Object.values(state.entities || {})) if (e.owner === clan && !e.warTroop && !(e.type === 'hero' && !c.bot)) runtime?.remove?.(e.id);
+    c.out = { tick: now, by, day: state.season?.day ?? null };
+    (state.news ||= []).push({ kind: 'clanOut', clan, by, towns: towns.filter(s => !s.capital).length });
+    say(by, `${c.name || clan} is out of the campaign`);
+    const left = Object.keys(state.clans || {}).filter(id => !state.clans[id].out);
+    const day = state.season?.day ?? null;
+    if (!c.bot) state.campaignEnd = { tick: now, day, winner: null, lost: clan, by };
+    else if (left.length === 1 && !state.campaignEnd) state.campaignEnd = { tick: now, day, winner: left[0], lost: null };
+    return { towns: towns.length };
+  }
+  function fell(w, by) {
+    const s = town(w.town); if (!s) return null;
+    const from = s.owner, name = s.name;
+    s.fallen = { tick: state.tick ?? 0, from, by: w.attacker };
+    const r = clanOut(from, w.attacker);
+    say(from, `${name} has fallen`);
+    return { townName: name, clan: from, towns: r?.towns ?? 0 };
+  }
+  return { captured, sacked, burned, fell, clanOut, attach: s => { runtime = s; } };
 }

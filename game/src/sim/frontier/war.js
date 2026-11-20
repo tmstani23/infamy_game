@@ -22,8 +22,9 @@ import { coversResources } from './resource_clearance.js';
 import { debitRyo, creditRyo } from '../treasury.js';
 import { createWarDefense } from './war_defense.js';
 import { createWarArmory } from './war_armory.js';
+import { castleBox } from './castle.js';
 
-export function createWar({ state, data, world = null, worldData = null, resourceIndex = null, dayTicks = 12000 }) {
+export function createWar({ state, data, world = null, worldData = null, resourceIndex = null, dayTicks = 12000, zones = null }) {
   const W = data.war || null;
   const f = () => state.frontier;
   // old saves have no war records: add the empty shape on first use
@@ -39,6 +40,28 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   const warsOf = clan => active().filter(w => w.attacker === clan || w.defender === clan);
   const town = id => f().settlements[id] || null;
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  // Z6 (2026-11-20): a castle can be besieged. Its banner band and ring are measured from its outer edge (the
+  // blueprint's box), not from the keep deep inside it. Other capitals (the city end) are never war targets.
+  const isCastle = s => !!s?.castle && !!data.castleBlueprint;
+  const target = s => !!s && (!s.capital || isCastle(s));
+  const boxOf = s => castleBox(data.castleBlueprint, s.x, s.z, s.castle.rot || 0, s.grid?.cell || data.townGrid?.cellSize || 11);
+  function boxDist(s, p) {
+    const b = boxOf(s);
+    return Math.hypot(Math.max(b.minX - p.x, 0, p.x - b.maxX), Math.max(b.minZ - p.z, 0, p.z - b.maxZ));
+  }
+  // how far p is from what the band is measured from: the hall of a town, the outer edge of a castle
+  const reachOf = (t, p) => isCastle(t) ? boxDist(t, p) : dist(t, p);
+  // inside a settlement's ring (pad = the size of what stands at p)
+  const inRingOf = (s, p, pad = 0) => isCastle(s) ? boxDist(s, p) - pad <= 0 : dist(p, s) - pad <= ringRadius(s, data);
+  // points r out from what the band is measured from (a circle round a hall, a rounded box round a castle)
+  function* around(t, r) {
+    if (!isCastle(t)) { for (let a = 0; a < 32; a++) yield { x: t.x + Math.cos(a * Math.PI / 16) * r, z: t.z + Math.sin(a * Math.PI / 16) * r }; return; }
+    const b = boxOf(t), step = 25;
+    for (let x = b.minX; x <= b.maxX; x += step) { yield { x, z: b.minZ - r }; yield { x, z: b.maxZ + r }; }
+    for (let z = b.minZ; z <= b.maxZ; z += step) { yield { x: b.minX - r, z }; yield { x: b.maxX + r, z }; }
+    for (const [cx, cz, a0] of [[b.maxX, b.maxZ, 0], [b.minX, b.maxZ, 1], [b.minX, b.minZ, 2], [b.maxX, b.minZ, 3]])
+      for (let k = 1; k < 4; k++) { const a = (a0 + k / 4) * Math.PI / 2; yield { x: cx + Math.cos(a) * r, z: cz + Math.sin(a) * r }; }
+  }
 
   // Active wars whose circle (radius war.circleRadius round the target's town hall) holds the point
   function warsAt(x, z) {
@@ -63,15 +86,25 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // band.inner to + band.outer; when no ground in it can be built on, the outer edge widens in
   // band.widenStep steps as far as the war circle.
   function band(t) {
-    const ring = ringRadius(t, data), inner = ring + W.band.inner;
+    const ring = isCastle(t) ? 0 : ringRadius(t, data), inner = ring + W.band.inner;   // a castle's band: from its outer edge
     let outer = ring + W.band.outer;
     if (!worldData) return [inner, outer];
-    const any = (r0, r1) => { for (let r = r0; r <= r1; r += 25) for (let a = 0; a < 32; a++) if (groundOk(t.x + Math.cos(a * Math.PI / 16) * r, t.z + Math.sin(a * Math.PI / 16) * r)) return true; return false; };
+    const any = (r0, r1) => { for (let r = r0; r <= r1; r += 25) for (const p of around(t, r)) if (groundOk(p.x, p.z)) return true; return false; };
     const step = Math.max(10, W.band.widenStep || 50);
     while (!any(inner, outer) && outer < W.circleRadius) outer = Math.min(W.circleRadius, outer + step);
     return [inner, outer];
   }
 
+  // the line r out from what t's band is measured from, as world points for the screen: a circle round a town hall,
+  // a rounded box round a castle
+  function bandOutline(t, r) {
+    if (!isCastle(t)) return Array.from({ length: 73 }, (_, i) => ({ x: t.x + Math.cos(i / 72 * Math.PI * 2) * r, z: t.z + Math.sin(i / 72 * Math.PI * 2) * r }));
+    const b = boxOf(t), pts = [];
+    for (const [cx, cz, a0] of [[b.maxX, b.maxZ, 0], [b.minX, b.maxZ, 1], [b.minX, b.minZ, 2], [b.maxX, b.minZ, 3]])
+      for (let k = 0; k <= 8; k++) { const a = (a0 + k / 8) * Math.PI / 2; pts.push({ x: cx + Math.cos(a) * r, z: cz + Math.sin(a) * r }); }
+    pts.push(pts[0]);
+    return pts;
+  }
   // Why a banner cannot be planted, or null when it can.
   function whyNot(hero, t, point) {
     if (!W) return 'War is not available';
@@ -79,14 +112,19 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!hero || hero.type !== 'hero') return 'Only a hero can plant a war banner';
     if (hero.dead || hero.downed || hero.place !== 'world') return 'Plant the banner out on the island';
     if (!t) return 'No such town';
-    if (t.capital) return 'A capital cannot be attacked yet';
+    if (!target(t)) return 'A capital cannot be attacked';
     if (!Number.isFinite(t.x)) return 'No such town';
     if (t.owner == null) return 'Nobody holds this town';
     if (t.owner === hero.owner) return 'This is your own town';
     if (warOn(t.id)) return `${t.name} is already at war`;
     const days = cooldownDays(t.id);
     if (days) return `${t.name} is under truce for ${days} more ${days === 1 ? 'day' : 'days'}`;
-    if (dist(hero, t) > W.circleRadius) return `Come within ${W.circleRadius} of ${t.name}'s town hall`;
+    if (isCastle(t)) {   // the siege gate (Z6): 4 of 6 zones, one of them the castle's own or next to it; never lifts once a siege is on
+      const g = zones?.siege?.(hero.owner, zones.zoneOfTown(t));
+      if (!g) return 'A castle cannot be attacked here';
+      if (!g.ok) return g.held < g.need ? `Hold ${g.need} of 6 zones to besiege a castle (you hold ${g.held})` : `Hold a zone next to ${t.name} to besiege it`;
+    }
+    if (dist(hero, t) > W.circleRadius) return `Come within ${W.circleRadius} of ${t.name}'s ${isCastle(t) ? 'keep' : 'town hall'}`;
     if (!Number.isFinite(point?.x) || !Number.isFinite(point?.z)) return 'Choose a spot for the banner';
     if (dist(point, hero) > W.placeRange) return 'The banner is too far from the hero';
     const spot = spotWhy(t, point);
@@ -98,12 +136,13 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   }
   // the ground rules for a banner spot by town t (band, other rings, other camps, ground, resources), or null
   function spotWhy(t, point) {
-    const [inner, outer] = band(t), d = dist(point, t);
-    if (d < inner) return `Too close to ${t.name}: plant the banner ${Math.round(inner)} to ${Math.round(outer)} from its town hall`;
-    if (d > outer) return `Too far from ${t.name}: plant the banner ${Math.round(inner)} to ${Math.round(outer)} from its town hall`;
+    const [inner, outer] = band(t), d = reachOf(t, point), from = isCastle(t) ? 'walls' : 'town hall';
+    if (d < inner) return `Too close to ${t.name}: plant the banner ${Math.round(inner)} to ${Math.round(outer)} from its ${from}`;
+    if (d > outer) return `Too far from ${t.name}: plant the banner ${Math.round(inner)} to ${Math.round(outer)} from its ${from}`;
+    if (dist(point, t) > W.circleRadius) return `Stay inside ${t.name}'s war circle`;
     for (const s of Object.values(f().settlements)) {
-      if (s === t || s.capital || !Number.isFinite(s.x)) continue;
-      if (dist(point, s) <= ringRadius(s, data)) return `Inside ${s.name}'s town ring`;
+      if (s === t || !target(s) || !Number.isFinite(s.x)) continue;
+      if (inRingOf(s, point)) return isCastle(s) ? `Inside ${s.name}` : `Inside ${s.name}'s town ring`;
     }
     for (const w of active()) if (dist(point, w) < (W.campSpacing || 0)) return 'Too close to another war camp';
     if (!groundOk(point.x, point.z)) return 'This ground cannot be built on';
@@ -143,7 +182,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // camp gets war.dev.camp as its pack (or the attacker's own pack).
   function devStart(e, c) {
     const t = town(c.town);
-    if (!t || t.capital || !Number.isFinite(t.x) || t.owner == null) return { ok: false, reason: 'No such town' };
+    if (!t || !target(t) || !Number.isFinite(t.x) || t.owner == null) return { ok: false, reason: 'No such town' };
     if (warOn(t.id)) return { ok: false, reason: `${t.name} is already at war` };
     let attacker = e.owner;
     if (c.side === 'defend') {
@@ -153,9 +192,9 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     } else if (t.owner === e.owner) return { ok: false, reason: 'This is your own town' };
     const [inner, outer] = band(t);
     let point = null;
-    for (let r = Math.ceil((inner + outer) / 2); !point && r <= outer; r += 25) for (let a = 0; !point && a < 32; a++) {
-      const p = { x: Math.round(t.x + Math.cos(a * Math.PI / 16) * r), z: Math.round(t.z + Math.sin(a * Math.PI / 16) * r) };
-      if (!spotWhy(t, p)) point = p;
+    for (let r = Math.ceil((inner + outer) / 2); !point && r <= outer; r += 25) for (const q of around(t, r)) {
+      const p = { x: Math.round(q.x), z: Math.round(q.z) };
+      if (!spotWhy(t, p)) { point = p; break; }
     }
     if (!point) return { ok: false, reason: 'No ground for a banner round that town' };
     const clan = state.clans?.[attacker], pack = clan?.warPack || W.dev?.camp || { ryo: 0, timber: 0, stone: 0 };
@@ -316,8 +355,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!t) return 'No such town';
     if (dist(p, t) + r > W.circleRadius) return 'Stay inside the war circle';
     for (const s of Object.values(f().settlements)) {
-      if (s.capital || !Number.isFinite(s.x)) continue;
-      if (dist(p, s) - r <= ringRadius(s, data)) return `Inside ${s.name}'s town ring`;
+      if (!target(s) || !Number.isFinite(s.x)) continue;
+      if (inRingOf(s, p, r)) return isCastle(s) ? `Inside ${s.name}` : `Inside ${s.name}'s town ring`;
     }
     // 7c-4 (Tim 2026-11-12): the build area is the ground within chainDistance of a normal camp building. A resource
     // camp (lumber camp, quarry) may also stand outside it, by its resource (within resourceCampReach of a spot it
@@ -757,7 +796,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  const api = { isResourceCamp, check, plant, end, command, econTick, band, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campEraseCheck, campRebuildCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, setGeneral: g => { generalOn = () => !!g?.enabled(); }, generalOn: () => generalOn(), get data() { return W; },
+  const api = { isResourceCamp, check, plant, end, command, econTick, band, bandOutline, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campEraseCheck, campRebuildCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, setGeneral: g => { generalOn = () => !!g?.enabled(); }, generalOn: () => generalOn(), get data() { return W; },
     get defense() { return defense; }, get armory() { return armory; }, settleDefense: w => defense.settle(w) };
   defense = createWarDefense({ state, data, war: api, world });   // 8b-2: the defending town's war chest and training
   armory = createWarArmory({ state, data, war: api, world });   // 8e-9: armory upgrades

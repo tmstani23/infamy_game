@@ -67,7 +67,7 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     const R = W()?.circleRadius ?? 900;
     let best = null, bd = Infinity;
     for (const s of Object.values(game.state.frontier?.settlements || {})) {
-      if (s.capital || s.owner === h.owner || s.owner == null || !Number.isFinite(s.x)) continue;
+      if ((s.capital && !s.castle) || s.owner === h.owner || s.owner == null || !Number.isFinite(s.x)) continue;   // castles can be besieged (Z6)
       const d = Math.hypot(h.x - s.x, h.z - s.z);
       if (d <= R && d < bd) { bd = d; best = s; }
     }
@@ -173,9 +173,14 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     const ctx = ghost.getContext('2d');
     const band = war().band(t), R = W().circleRadius;
     ring(ctx, t.x, t.z, R, 'rgba(224,162,74,.75)', 2, [14, 10]);
-    ring(ctx, t.x, t.z, band[0], '#7dffa0', 2); ring(ctx, t.x, t.z, band[1], '#7dffa0', 2);
-    ring(ctx, t.x, t.z, (band[0] + band[1]) / 2, 'rgba(101,239,136,.18)', Math.max(4, Math.abs(view.unitToScreen(t.x + band[1], t.z, 0).x - view.unitToScreen(t.x + band[0], t.z, 0).x)));
-    ring(ctx, t.x, t.z, band[0] - (W().band?.inner ?? 150), 'rgba(228,106,94,.9)', 2, [7, 6]);
+    const line = (r, stroke, width, dash = []) => {   // a castle's band runs round its walls (Z6), a town's round its hall
+      if (!war().bandOutline) { ring(ctx, t.x, t.z, r, stroke, width, dash); return; }
+      ctx.beginPath(); war().bandOutline(t, r).forEach((q, i) => { const p = view.unitToScreen(q.x, q.z, 0); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); });
+      ctx.setLineDash(dash); ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.stroke(); ctx.setLineDash([]);
+    };
+    line(band[0], '#7dffa0', 2); line(band[1], '#7dffa0', 2);
+    line((band[0] + band[1]) / 2, 'rgba(101,239,136,.18)', Math.max(4, Math.abs(view.unitToScreen(t.x + band[1], t.z, 0).x - view.unitToScreen(t.x + band[0], t.z, 0).x)));
+    if (!t.castle) line(band[0] - (W().band?.inner ?? 150), 'rgba(228,106,94,.9)', 2, [7, 6]);
     if (!mouse) { hint.hidden = true; return; }
     const p = view.screenToGround(mouse.x, mouse.y); if (!p) { hint.hidden = true; return; }
     const next = JSON.stringify([game.state.tick, Math.round(p.x), Math.round(p.z)]);

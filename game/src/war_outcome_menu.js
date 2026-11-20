@@ -17,6 +17,7 @@ export const OUTCOME_CSS = `
 #waroutcome button:hover{border-color:#ffe0a1}#waroutcome button:disabled{opacity:.45;cursor:default}
 #waroutcome .go{border-color:#e07b6c;background:linear-gradient(#8e2d26,#5e1c18);color:#ffe9dc;letter-spacing:.06em;box-shadow:0 0 12px #c9473d55;padding:7px 18px;font-size:13px}
 #waroutcome .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:14px 16px 6px}
+#waroutcome .cards.one{grid-template-columns:minmax(0,280px);justify-content:center}
 #waroutcome .ocard{border:1px solid #4a4335;border-radius:8px;background:radial-gradient(ellipse at 50% 30%,#2b2520,#14130f 75%);padding:10px 10px 12px;text-align:center;cursor:help}
 #waroutcome .ocard:hover{border-color:#d8b56c}
 #waroutcome .ocard.lock{opacity:.6}
@@ -36,8 +37,8 @@ export function outcomeHtml(m) {
   const card = c => `<div class="ocard${c.why ? ' lock' : ''}" title="${esc(c.tip)}"><div class="opic${c.id === 'burn' ? ' burn' : ''}"><img class="main" src="${esc(c.art)}" alt="">${c.flag ? `<img class="flag" src="${esc(c.flag)}" alt="">` : ''}</div>
     <div class="ot">${esc(c.title)}</div>${c.lines.map(l => `<div class="ol">${l}</div>`).join('')}
     ${c.warn && !c.why ? `<div class="owhy">${esc(c.warn)}</div>` : ''}${c.why ? `<div class="owhy">${esc(c.why)}</div>` : `<div class="obtn"><button class="go" data-outcome="${esc(c.id)}">${esc(c.button || c.title)}</button></div>`}</div>`;
-  return `<div class="win" role="dialog" aria-label="Take the town hall"><header><div><div class="eyebrow">${esc(m.clan)}, war on ${esc(m.town)}</div><h2>Take the town hall</h2></div><button data-close="1">Esc</button></header>
-    <div class="cards">${m.cards.map(card).join('')}</div><div class="note">${esc(m.note)}</div></div>`;
+  return `<div class="win" role="dialog" aria-label="${esc(m.title || 'Take the town hall')}"><header><div><div class="eyebrow">${esc(m.clan)}, war on ${esc(m.town)}</div><h2>${esc(m.title || 'Take the town hall')}</h2></div><button data-close="1">Esc</button></header>
+    <div class="cards${m.cards.length === 1 ? ' one' : ''}">${m.cards.map(card).join('')}</div><div class="note">${esc(m.note)}</div></div>`;
 }
 
 const ART = { capture: 'art/buildings/manor.png', flag: 'art/buildings/war_banner.png', sack: 'art/buildings/storehouse.png', burn: 'art/buildings/burned_ruin.png' };
@@ -46,6 +47,13 @@ export function outcomeModel(game, heroId, w) {
   const st = game.state, me = st.entities?.[heroId]?.owner, WE = game.frontier.warEnd, t = st.frontier?.settlements?.[w.town], name = t?.name || 'the town';
   const R = WE.rules(), ryo = Math.floor(Math.max(0, t?.stock?.ryo || 0) * R.sackShare), why = Object.fromEntries(WE.outcomeList(w).map(o => [o.id, o.ok ? '' : o.why]));
   const days = game.frontier.war.data?.cooldownDays ?? 6, share = Math.round(R.sackShare * 100);
+  if (t?.castle) {   // Z6: a castle has one outcome, its clan is out
+    const foe = st.clans?.[w.defender]?.name || 'Their clan';
+    return { clan: st.clans?.[me]?.name || 'Your clan', town: name, title: 'Take the keep', cards: [
+      { id: 'fall', title: 'Take the castle', art: 'art/buildings/castle_gate.png', lines: [`<b>${esc(foe)}</b> is out of the campaign`, 'Their towns stand empty'], button: 'Take the castle',
+        tip: `Take the castle: ${foe} is out. Its towns go empty for anyone to claim, its city hideout closes and its crews are gone. The castle cannot be held or sacked.` }],
+      note: `Your hero channels at the keep for ${R.channel.seconds} seconds. Any hit on him starts it over, and the enemy is warned.` };
+  }
   return { clan: st.clans?.[me]?.name || 'Your clan', town: name, cards: [
     { id: 'capture', title: 'Capture', art: ART.capture, flag: ART.flag, lines: [`${name} becomes <b>yours</b>`, 'Keeps its people and stores'], button: 'Capture', why: why.capture,
       tip: `Capture: the town changes hands with everything in it: people, workers, stores, its station and the track inside its ring. Its lines to other towns are torn up. Its ruined buildings must be rebuilt. It has no defences until you build them, and it can be attacked again after the ${days} day truce. A captured town does not count toward your founding limit.` },
@@ -76,9 +84,22 @@ export function createWarOutcomeMenu({ game, heroId, send, blocked = () => false
   }
   function close() { if (!open) return; open = null; shown = ''; root.hidden = true; root.innerHTML = ''; }
   // the Use key: true when it was ours
+  // Z6d: an empty town whose hall my hero stands at (or the claim he is making)
+  const ET = () => game.frontier?.emptyTowns;
+  function claimAt() {
+    const h = hero(), et = ET(); if (!h || !et || h.place !== 'world' || h.dead || h.downed) return null;
+    if (h.claimTown) return { claiming: et.view(h) };
+    const s = et.at(h); return s ? { town: s } : null;
+  }
   function use() {
     if (open) { close(); return true; }
-    const a = at(); if (!a || blocked()) return false;
+    const a = at();
+    if (!a && !blocked()) {
+      const c = claimAt();
+      if (c?.claiming) { send({ id: heroId, type: 'frontier', action: 'claimStop' }); return true; }
+      if (c?.town) { send({ id: heroId, type: 'frontier', action: 'claimTown', town: c.town.id }); return true; }
+    }
+    if (!a || blocked()) return false;
     if (a.mine) send({ id: heroId, type: 'frontier', action: 'warTakeStop', war: a.w.id });
     else if (a.side === 'camp') send({ id: heroId, type: 'frontier', action: 'warTakeCamp', war: a.w.id });
     else open = a.w.id;
@@ -86,8 +107,14 @@ export function createWarOutcomeMenu({ game, heroId, send, blocked = () => false
   }
   // the prompt line over the hero ('' when there is nothing to take)
   function prompt() {
-    const a = open ? null : at(); if (!a) return '';
-    return a.mine ? 'Space  Stop taking the hall' : a.side === 'camp' ? 'Space  Take their camp hall and end the war' : 'Space  Take the town hall';
+    const a = open ? null : at();
+    if (!a && !open) {
+      const c = claimAt();
+      if (c?.claiming) return `Space  Stop claiming ${c.claiming.name} (${c.claiming.seconds} s left)`;
+      if (c?.town) { const why = ET().check(hero(), c.town.id); return why.ok ? `Space  Claim ${c.town.name}` : why.reason; }
+    }
+    if (!a) return '';
+    return a.mine ? 'Space  Stop taking the hall' : a.side === 'camp' ? 'Space  Take their camp hall and end the war' : game.state.frontier?.settlements?.[a.w.town]?.castle ? 'Space  Take the keep' : 'Space  Take the town hall';
   }
   root.addEventListener('click', ev => {
     const b = ev.target.closest('button'); if (!b || !open) return;

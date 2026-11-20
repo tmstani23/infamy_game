@@ -258,7 +258,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
 
   // called by the frontier hub each economy tick
   function run() {
-    for (const s of Object.values(f().settlements)) if (!s.capital) econTick(s);
+    for (const s of Object.values(f().settlements)) if (!s.capital && !s.empty) econTick(s);   // Z6d: an empty town stands still
   }
 
   return { econTick, run, assignJobs, hit, setTax, setAutoTax, setMarketKeep };

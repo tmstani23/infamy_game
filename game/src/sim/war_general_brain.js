@@ -72,7 +72,7 @@ export function createGeneralBrain(game, { clan }) {
   // ---- defence -------------------------------------------------------------------------------------------------
   // the town coffers into the defender's war chest, down to the keep line (a bot keeps general.botKeepShare)
   function fillChest(out, cmd, w) {
-    const s = town(w.town); if (!s || s.owner !== clan) return;
+    const s = town(w.town); if (!s || s.owner !== clan || s.castle) return;   // Z6: a castle pays from the Clan treasury
     const G = GEN().rules(), keep = state.clans[clan]?.bot ? (G.botKeepShare ?? G.keepShare) : GEN().keepOf(s);
     const m = memory(w, 'defender');
     // the line is a share of the coffers as the war found them (what is already in the chest counted back in), so
@@ -222,8 +222,10 @@ export function createGeneralBrain(game, { clan }) {
     armory(out, cmd, w, 'defender');
     // 8e-7: the Clan treasury by train (keep line and daily share apply, sim side), once the coffers are spent
     // (Tim 2026-11-17: and from the clan's other towns' coffers, chestByTrain)
-    chestByTrain(out, cmd, w, 'defender', w.defense?.chest || 0, (memory(w, 'defender').room || 0) * (gen().rules().troopRyo ?? 120));
-    sellSpare(out, cmd, w);
+    if (!town(w.town)?.castle) {   // Z6: a castle has no chest to fill and nothing to sell
+      chestByTrain(out, cmd, w, 'defender', w.defense?.chest || 0, (memory(w, 'defender').room || 0) * (gen().rules().troopRyo ?? 120));
+      sellSpare(out, cmd, w);
+    }
     train(out, cmd, w);
     // the attacker has (almost) no troops left and the town can train no more: the archers come out of the houses and the whole army goes for his camp
     const all = troops(w).filter(e => !e.downed), theirs = Object.values(state.entities).filter(e => e.warTroop === w.id && e.owner === w.attacker && !e.dead && e.type !== 'horse').length;
@@ -781,8 +783,8 @@ export function createGeneralBrain(game, { clan }) {
   function armory(out, cmd, w, side) {
     const AR = F().war.armory, v = AR?.view(w.id, clan);
     if (!v?.has || v.work) return;
-    const R = gen().rules().armory?.reserve || {}, chest = side === 'attacker' ? w.camp?.chest || 0 : w.defense?.chest || 0;
-    const stock = side === 'attacker' ? w.camp?.stock || {} : town(w.town)?.stock || {};
+    const R = gen().rules().armory?.reserve || {}, chest = side === 'attacker' ? w.camp?.chest || 0 : town(w.town)?.castle ? Math.max(0, state.clans[clan]?.ryo || 0) : w.defense?.chest || 0;
+    const stock = side === 'attacker' ? w.camp?.stock || {} : town(w.town)?.castle ? { timber: Infinity, stone: Infinity } : town(w.town)?.stock || {};
     const count = {}; for (const e of troops(w)) { const g = AR.groupOf(e.warUnit); if (g) count[g] = (count[g] || 0) + 1; }
     const picks = v.groups.flatMap(g => g.tracks.map(t => ({ group: g.group, track: t.track, level: t.level, cost: t.cost, ok: !t.why, n: count[g.group] || 0 })))
       .filter(p => p.ok && p.n > 0 && chest >= (p.cost.ryo || 0) + (R.ryo ?? 300) && ['timber', 'stone'].every(r => (stock[r] || 0) >= (p.cost[r] || 0) + (R[r] ?? 0)))
@@ -807,7 +809,7 @@ export function createGeneralBrain(game, { clan }) {
       const p = F().warEnd.hallPoint(w, 'town');
       if (p) goal = { x: p.x + p.r + 2, z: p.z, near: 3, why: 'take' };
       if (h && !w.channel) {
-        const pick = ['capture', 'sack'].find(o => F().warEnd.check(h, w, 'town', o).ok);
+        const pick = (t?.castle ? ['fall'] : ['capture', 'sack']).find(o => F().warEnd.check(h, w, 'town', o).ok);   // Z6: a keep has one outcome
         if (pick) out.push(cmd({ action: 'warTake', war: w.id, outcome: pick }));
       }
       return;
@@ -830,6 +832,15 @@ export function createGeneralBrain(game, { clan }) {
   }
   // any clan's town that is not a capital, not at war, not under truce and not freshly sacked: the nearer, the
   // bigger and the less fortified (as its buildings show), the better
+  // Z6 (2026-11-20): a rival castle this clan may besiege now (4 of 6 zones, one of them the castle's own or next to
+  // it): the nearest to the launch town, whoever holds it. It never singles out the player. A siege comes before any
+  // town: the campaign is won by castles.
+  function pickCastle(from, A) {
+    const Z = F().campaignZones, War = F().war; if (!Z?.siege) return null;
+    return Object.values(state.frontier.settlements).filter(s => s.castle && s.owner != null && s.owner !== clan && !state.clans?.[s.owner]?.out && s.grid && Number.isFinite(s.x)
+      && Z.siege(clan, Z.zoneOfTown(s)).ok && canPack(from, A, s) && !War.warOn(s.id) && !War.cooldownDays(s.id))
+      .sort((a, b) => dist(a, from) - dist(b, from) || (a.id < b.id ? -1 : 1))[0] || null;
+  }
   function pickTown(from, A) {
     const War = F().war, hist = state.frontier.wars?.history || [], data = F().data, tierWorth = W().surrender?.worth?.tier || [0, 300, 900, 2000];
     const skip = ((A.sackedSkipDays ?? 6) + (W().cooldownDays ?? 0)) * gen().dayTicks;
@@ -847,8 +858,10 @@ export function createGeneralBrain(game, { clan }) {
     const War = F().war, [inner, outer] = War.band(t), r = (inner + outer) / 2, a0 = Math.atan2(h.z - t.z, h.x - t.x);
     const idx = workersIndex(), RES = F().data.workers?.resources || {}, ring = ringRadius(t, F().data), reach = A?.resourceRange ?? 350;
     let best = null;
-    for (let k = 0; k < 32; k++) {
-      const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 16, p = { x: Math.round(t.x + Math.cos(a) * r), z: Math.round(t.z + Math.sin(a) * r) };
+    // a castle's band runs round its walls (Z6): the points of its outline, the nearest to the hero first
+    const ringPts = t.castle && War.bandOutline ? War.bandOutline(t, r).map(q => ({ x: Math.round(q.x), z: Math.round(q.z) })).sort((p, q) => dist(p, h) - dist(q, h) || p.x - q.x || p.z - q.z) : null;
+    for (let k = 0; k < (ringPts ? ringPts.length : 32); k++) {
+      const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 16, p = ringPts ? ringPts[k] : { x: Math.round(t.x + Math.cos(a) * r), z: Math.round(t.z + Math.sin(a) * r) };
       if (!War.check({ type: 'hero', owner: clan, place: 'world', x: p.x, z: p.z }, t.id, p).ok) continue;
       const near = idx?.spotsNear ? idx.spotsNear(p.x, p.z, reach).filter(sp => dist(sp, t) > ring) : null;
       const lack = near ? ['timber', 'stone'].filter(res => !near.some(sp => RES[sp.kind] === res)).length : 0;
@@ -872,7 +885,7 @@ export function createGeneralBrain(game, { clan }) {
       }
       if ((state.tick ?? 0) % Math.max(1, Math.round((A.planSeconds ?? 60) * 20)) !== 0) return;
       if (F().rivalCampaign && !F().rivalCampaign.mayWar(clan)) return;   // Z2: its campaign strategy holds it back (Expander with land left, Fortress short of ryo)
-      const from = launchTown(A), target = from && pickTown(from, A);
+      const from = launchTown(A), target = from && (pickCastle(from, A) || pickTown(from, A));
       if (!target) return;
       p = mem.plan = { from: from.id, town: target.id, stage: 'pack', at: state.tick };
     }
@@ -898,11 +911,27 @@ export function createGeneralBrain(game, { clan }) {
     if (dist(h, p) <= (W().placeRange ?? 60) * 0.8) out.push(cmd({ action: 'plantBanner', town: t.id, x: p.x, z: p.z }));
   }
 
+  // ---- Z6d: a bot claims an empty town --------------------------------------------------------------------------
+  // at peace, with no war planned: the nearest empty town it knows whose zone it has room in. The hero walks to its
+  // hall and channels (sim/frontier/empty_towns.js); a town someone else is claiming is left alone.
+  function claim(out, cmd, h) {
+    const ET = F().emptyTowns, Z = F().campaignZones;
+    if (!ET || !Z || mem.plan || h.place !== 'world' || h.dead || h.downed || F().war.warsOf(clan).length) return;
+    if (h.claimTown) { goal = { x: h.x, z: h.z, near: 5, why: 'claim' }; return; }   // he stands still until it is his
+    const t = ET.list().filter(s => Number.isFinite(s.x) && !s.empty.ruined && (F().rivalCampaign?.knows(clan, s) ?? true) && !Z.full(clan, Z.zoneOfTown(s))
+      && !Object.values(state.entities).some(e => e.claimTown?.town === s.id && e.id !== h.id && !e.dead))
+      .sort((a, b) => dist(a, h) - dist(b, h) || (a.id < b.id ? -1 : 1))[0];
+    if (!t) return;
+    const p = F().warEnd.hallPoint({ town: t.id }, 'town');
+    goal = { x: p.x + p.r + 2, z: p.z, near: 3, why: 'claim' };
+    if (ET.check(h, t.id).ok) out.push(cmd({ action: 'claimTown', town: t.id }));
+  }
+
   // ---- the hero walks (a bot's only): WASD steps along an island route, every tick -------------------------------
   let stuck = 0;
   const dodge = { x: 0, z: 0, check: 0, until: 0, side: 1, n: 0 };
   function walk(out, h) {
-    if (!goal || !isBot() || h.place !== 'world' || h.dead || h.downed || h.hallChannel) { path = null; return; }
+    if (!goal || !isBot() || h.place !== 'world' || h.dead || h.downed || h.hallChannel || h.claimTown) { path = null; return; }
     if (Math.hypot(goal.x - h.x, goal.z - h.z) <= goal.near) { if (path) out.push({ id: h.id, type: 'move', right: 0, down: 0 }); path = null; return; }
     const nav = game.areas?.nav; if (!nav) return;
     // a new route when there is none, the goal moved, or he has not got anywhere for 10 s (never on a timer: a fresh
@@ -942,6 +971,7 @@ export function createGeneralBrain(game, { clan }) {
       const slow = Math.max(every, Math.round((gen.rules().buildSeconds ?? 30) * 20 / every) * every);
       if ((state.tick ?? 0) % slow === 0)
         for (const s of Object.values(state.frontier?.settlements || {}).sort((a, b) => a.id < b.id ? -1 : 1)) if (s.owner === clan) { prepare(out, cmd, s); walls(out, cmd, s); }
+      if (!goal) claim(out, cmd, h);   // Z6d: an empty town in reach comes before a new war
       if (!goal) launch(out, cmd, h);
     } else {
       // 8d-5: a player's general builds the war buildings of his strategy on his own only inside the military zone the

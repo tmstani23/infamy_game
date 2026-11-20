@@ -42,14 +42,14 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
   const artUrl = type => { const n = artName(type), kind = catalog?.items?.[n]?.kind || 'buildings'; return `art/${kind}/${n}.png`; };
   let open = null, bid = null, tab = 'military', page = 0, tpage = 0, sig = '', why = '', confirm = false;
   const counts = {};
-  const mine = s => !!s && s.owner === hero()?.owner && !s.capital;
+  const mine = s => !!s && s.owner === hero()?.owner && (!s.capital || (!!s.castle && !!warOn(s.id)));   // Z6: your castle while it is besieged
   // the town's buildings with a menu here: military ones, and the stable while a war is on the town
   const hasMenu = (s, b) => !!b && (F.buildings?.[b.type]?.military || (b.type === 'stable' && !!warOn(s.id)));
   function show(townId, buildingId = null) {
     const s = town(townId); if (!mine(s)) return false;
     const b = buildingId ? s.buildings?.find(x => x.id === buildingId) : null;
     if (buildingId && !hasMenu(s, b)) return false;
-    open = townId; bid = b ? b.id : null; tab = warOn(townId) ? 'chest' : 'military'; page = tpage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true;
+    open = townId; bid = b ? b.id : null; tab = warOn(townId) && !s.castle ? 'chest' : 'military'; page = tpage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true;
   }
   function close() { open = null; bid = null; root.hidden = true; }
   const chips = (cost, have) => Object.entries(cost || {}).filter(([, v]) => v).map(([r, v]) => `<span class="chip ${r}${(have?.[r] ?? Infinity) < v ? ' short' : ''}" title="${esc(`${v} ${r}`)}"><i></i>${v}</span>`).join('');
@@ -73,9 +73,9 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
     sig = next;
     const typing = root.contains(document.activeElement) && document.activeElement.tagName === 'INPUT' ? { n: document.activeElement.dataset.n, a: document.activeElement.selectionStart, b: document.activeElement.selectionEnd } : null;
     const musterBox = v?.muster > 0 ? `<div class="muster"><b>Mustering</b><span>Training opens in ${mmss(v.muster)}${bld ? '' : '. You can fill the war chest now.'}</span></div>` : '';
-    const coins = (extra = true) => (defending ? coin('red', v?.chest ?? 0, 'War chest', 'Ryo for the troops this town trains in this war. Filled from the town coffers (War chest tab). What is left goes back to the coffers when the war ends.')
+    const coins = (extra = true) => (defending ? (s.castle ? coin('red', v?.chest ?? 0, 'Clan treasury', 'A besieged castle trains its troops straight from the Clan treasury, from the first minute.') : coin('red', v?.chest ?? 0, 'War chest', 'Ryo for the troops this town trains in this war. Filled from the town coffers (War chest tab). What is left goes back to the coffers when the war ends.'))
         + coin('', `${(v?.troops || 0) + (v?.queued || 0)}/${v?.cap || 0}`, 'Troops', 'Troops out and in training, of the troop cap. Your hero crew in the war circle count too. Supply tents raise it.') : '')
-      + (extra ? coin('', Math.floor(s.stock?.ryo || 0), 'Coffers', `${s.name} coffers: the town's own ryo`) + (defending ? coin(v?.muster > 0 ? 'warn' : '', v?.muster > 0 ? mmss(v.muster) : 'Open', 'Muster', 'Training opens this long after the war was declared') : '')
+      + (extra ? (s.castle ? '' : coin('', Math.floor(s.stock?.ryo || 0), 'Coffers', `${s.name} coffers: the town's own ryo`)) + (defending && !s.castle ? coin(v?.muster > 0 ? 'warn' : '', v?.muster > 0 ? mmss(v.muster) : 'Open', 'Muster', 'Training opens this long after the war was declared') : '')
         + coin('', STRATEGY_NAMES[strat] || strat, 'General', 'How your general fights while your hero is away from a war. Change it on the General tab.') : '');
     const stats = key => {
       const e = U[key] || {}, t = typeof e.type === 'string' ? e.type : e.type?.[faction] || Object.values(e.type || {})[0], u = units?.types?.[t] || {};
@@ -147,7 +147,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
         <div class="small">${p.paid ? 'building' : 'waiting'}</div><button data-cancel="${esc(p.id)}" title="${esc(p.progress ? 'Cancel: work has started, nothing comes back' : 'Cancel: everything paid comes back')}">Cancel</button></div>`).join('') + (sites.length > 2 ? `<div class="small" style="margin-top:4px">and ${sites.length - 2} more</div>` : '')
         : '<div class="small" style="padding:8px 0">Nothing being built. Pick a building above, then click a spot in town.</div>'}`;
     }
-    const tabs = [['military', 'Military'], ...(defending ? [['chest', 'War chest']] : []), ['hall', 'Hall'], ['general', 'General']];
+    const tabs = [['military', 'Military'], ...(defending && !s.castle ? [['chest', 'War chest']] : []), ['hall', 'Hall'], ['general', 'General']];
     const art = bld ? `<div class="art"><img class="hall" src="${esc(artUrl(bld.type))}" alt=""></div>` : `<div class="art"><img class="hall" src="${esc(artUrl('town_hall'))}" alt="">${w ? `<img class="flag" src="${esc(artUrl('war_banner'))}" alt="">` : ''}</div>`;
     const st = stOf(bld || hall);
     root.innerHTML = `<div class="win" role="dialog" aria-label="Town war"><header><div><div class="eyebrow">${esc(/ clan$/i.test(clan?.name || '') ? clan.name : `${clan?.name || 'Your'} clan`)}, ${bld ? esc(s.name) : 'town hall'}</div><h2>${esc(bld ? title : w ? title : `${s.name} military`)}</h2></div><button data-close="1">Esc</button></header>

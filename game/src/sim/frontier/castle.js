@@ -109,6 +109,7 @@ export function stampCastle(s, bp, data, { rot = 0, kind = null, newId = null, r
   // a castle is its clan's capital on the island (big picture plan 2026-11-19): every rule that skips the capital
   // (economy, governor, zoning, upkeep, town counts, founding limits, war targets) skips it; its ryo is the clan treasury
   s.capital = true; delete s.founded;
+  s.warHall = true;   // every war building at its best: the stable trains cavalry without the town hall war upgrade (Z6)
   s.tier = bp.tier || 3;
   return s;
 }

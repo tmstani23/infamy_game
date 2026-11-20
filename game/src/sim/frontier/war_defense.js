@@ -11,6 +11,7 @@
 // When the war ends the chest and the ryo of every queued troop go back to the town coffers, before any outcome
 // (settle), so a sack takes its share of it and a capture hands it over with the town.
 import { cellToWorld } from './town_grid.js';
+import { debitRyo, creditRyo } from '../treasury.js';
 
 export function createWarDefense({ state, data, war, world }) {
   const W = data.war || {}, T = () => W.town || {}, BD = () => W.buildings || {}, UD = () => W.units || {};
@@ -20,7 +21,17 @@ export function createWarDefense({ state, data, war, world }) {
   const round = n => Math.round(n * 100) / 100;
   const def = w => (w.defense ||= { chest: 0, put: 0 });
   const musterEnd = w => (w.started ?? 0) + Math.round((T().musterSeconds ?? 0) * 20);
-  const musterLeft = w => Math.max(0, musterEnd(w) - (state.tick ?? 0));
+  // Z6 (2026-11-20): a besieged castle trains from minute one (no muster) and pays from the Clan treasury: its war
+  // chest IS the treasury (a castle's ryo is the clan's), so nothing is put in and nothing goes back at the end
+  const isCastle = w => !!town(w?.town)?.castle;
+  const clanOf = w => state.clans?.[w.defender] || null;
+  const musterLeft = w => isCastle(w) ? 0 : Math.max(0, musterEnd(w) - (state.tick ?? 0));
+  const chestOf = w => isCastle(w) ? Math.max(0, clanOf(w)?.ryo ?? 0) : def(w).chest;
+  function spend(w, n) {   // n > 0 out of the chest, n < 0 back into it
+    if (!isCastle(w)) { def(w).chest = round(def(w).chest - n); return; }
+    const c = clanOf(w); if (!c) return;
+    if (n > 0) debitRyo(state, c, n, 'castle defence', { war: w.id }); else if (n < 0) creditRyo(state, c, -n, 'castle defence', { war: w.id });
+  }
   const ticksOf = (clan, unit) => Math.max(1, Math.round(war.ticksOf(clan, unit) / Math.max(0.01, T().trainSpeed ?? 1)));
   const centre = (s, b) => { const pts = (b.cells?.length ? b.cells : [b.cell]).map(i => cellToWorld(s, i)); return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length]; };
   // the town's buildings that train in this war: built military ones, and the stable once the town hall war upgrade is
@@ -39,6 +50,7 @@ export function createWarDefense({ state, data, war, world }) {
     const w = war.byId(c.war), s = w && town(w.town);
     if (!mine(e, w) || !s) return { ok: false, reason: 'Not a war on your town' };
     if (s.owner !== w.defender) return { ok: false, reason: 'Not your town' };
+    if (s.castle) return { ok: false, reason: 'A castle pays from the Clan treasury' };
     const n = c.amount;
     if (!Number.isSafeInteger(n) || n < 1) return { ok: false, reason: 'amount must be a positive whole number' };
     if ((s.stock?.ryo ?? 0) < n) return { ok: false, reason: `The town coffers have only ${Math.floor(s.stock?.ryo ?? 0)} ryo` };
@@ -59,8 +71,8 @@ export function createWarDefense({ state, data, war, world }) {
     if ((b.queue?.length || 0) + n > (W.queueMax ?? 20)) return `At most ${W.queueMax ?? 20} waiting at one building`;
     const room = troopCap(w, s) - troopsOf(w) - queuedOf(w, s);
     if (n > room) return room > 0 ? `Troop cap: room for ${room} more` : `Troop cap reached (${troopCap(w, s)}): build supply tents for more`;
-    const cost = war.ryoOf(w.defender, unit) * n, chest = def(w).chest;
-    if (chest < cost) return `Needs ${cost} ryo from the war chest (it has ${Math.floor(chest)})`;
+    const cost = war.ryoOf(w.defender, unit) * n, chest = chestOf(w);
+    if (chest < cost) return `Needs ${cost} ryo from the ${s.castle ? 'Clan treasury' : 'war chest'} (it has ${Math.floor(chest)})`;
     return null;
   }
   function townTrain(e, c) {
@@ -69,8 +81,8 @@ export function createWarDefense({ state, data, war, world }) {
     const b = (s.buildings || []).find(x => x.id === c.building);
     const why = trainWhy(w, s, b, c.unit, c.count);
     if (why) return { ok: false, reason: why };
-    const each = war.ryoOf(w.defender, c.unit), d = def(w);
-    d.chest = round(d.chest - each * c.count);
+    const each = war.ryoOf(w.defender, c.unit);
+    spend(w, each * c.count);
     b.queue ||= [];
     for (let i = 0; i < c.count; i++) b.queue.push({ unit: c.unit, left: ticksOf(w.defender, c.unit), paid: each, war: w.id });
     return { ok: true };
@@ -81,7 +93,7 @@ export function createWarDefense({ state, data, war, world }) {
     const b = (s.buildings || []).find(x => x.id === c.building), q = b?.queue?.pop();
     if (!q) return { ok: false, reason: 'Nothing waiting there' };
     if (!b.queue.length) delete b.queue;
-    def(w).chest = round(def(w).chest + (q.paid ?? 0));
+    spend(w, -(q.paid ?? 0));
     return { ok: true };
   }
 
@@ -111,6 +123,12 @@ export function createWarDefense({ state, data, war, world }) {
   // the end of a war: chest and queued ryo back to the town coffers (once)
   function settle(w) {
     const s = town(w.town);
+    if (s?.castle) {   // queued troops' ryo back to the treasury; there is no separate chest
+      let back = 0;
+      for (const b of s.buildings || []) if (b.queue?.length) { back += b.queue.reduce((n, q) => n + (q.paid || 0), 0); delete b.queue; }
+      back = Math.floor(back); if (back > 0) spend(w, -back);
+      return back;
+    }
     let back = w.defense?.chest || 0;
     for (const b of s?.buildings || []) if (b.queue?.length) { back += b.queue.reduce((n, q) => n + (q.paid || 0), 0); delete b.queue; }
     if (w.defense) w.defense.chest = 0;
@@ -125,7 +143,7 @@ export function createWarDefense({ state, data, war, world }) {
     const w = war.byId(warId), s = w && town(w.town);
     if (!w || !s) return null;
     const list = (s.buildings || []).filter(b => trains(s, b, w.defender)).map(b => ({ id: b.id, type: b.type, units: war.trainsAt(b.type, w.defender).map(u => ({ unit: u, ryo: war.ryoOf(w.defender, u), seconds: ticksOf(w.defender, u) / 20 })), queue: (b.queue || []).map(q => ({ unit: q.unit, left: q.left })) }));
-    return { chest: Math.floor(w.defense?.chest || 0), put: Math.floor(w.defense?.put || 0), coffers: Math.floor(s.stock?.ryo || 0), muster: Math.ceil(musterLeft(w) / 20), troops: troopsOf(w), queued: queuedOf(w, s), cap: troopCap(w, s), buildings: list };
+    return { chest: Math.floor(chestOf(w)), treasury: !!s.castle, put: Math.floor(w.defense?.put || 0), coffers: Math.floor(s.stock?.ryo || 0), muster: Math.ceil(musterLeft(w) / 20), troops: troopsOf(w), queued: queuedOf(w, s), cap: troopCap(w, s), buildings: list };
   }
 
   function command(e, c) {

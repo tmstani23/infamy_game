@@ -69,7 +69,8 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: callou
       if (n.kind === 'warEnded') {
         const clanName = id => game.state.clans[id]?.name || 'A rival clan', town = n.townName || 'the town', defWins = n.result === 'campFell' || n.result === 'attackerSurrendered', party = n.attacker === me || n.defender === me,
           won = n.result === 'ransomed' ? n.by === me : defWins ? n.defender === me : n.attacker === me, lost = n.result === 'ransomed' ? party && n.by !== me : defWins ? n.attacker === me : n.defender === me;
-        const text = n.result === 'captured' ? (won ? `${town} is yours! War chest returned: ${n.chest} ryo` : lost ? `${town} was captured by ${clanName(n.attacker)}` : `${clanName(n.attacker)} captured ${town}`)
+        const text = n.result === 'fell' ? (won ? `${town} has fallen: ${clanName(n.defender)} is out` : lost ? `${town} has fallen to ${clanName(n.attacker)}` : `${clanName(n.attacker)} took ${town}: ${clanName(n.defender)} is out`)   // Z6: a castle
+          : n.result === 'captured' ? (won ? `${town} is yours! War chest returned: ${n.chest} ryo` : lost ? `${town} was captured by ${clanName(n.attacker)}` : `${clanName(n.attacker)} captured ${town}`)
           : n.result === 'sacked' ? (won ? `${town} sacked: ${n.ryo || 0} ryo taken` : lost ? `${town} was sacked: ${n.ryo || 0} ryo lost` : `${clanName(n.attacker)} sacked ${town}`)
           : n.result === 'burned' ? (won ? `${town} burned to the ground` : lost ? `${town} was burned to the ground by ${clanName(n.attacker)}` : `${clanName(n.attacker)} burned ${town} to the ground`)
           : n.result === 'ransomed' ? (n.by === me ? `Ransom taken: the war on ${town} is over` : (n.attacker === me || n.defender === me) ? `Ransom paid: the war on ${town} is over` : `The war on ${town} ended with a ransom`)
@@ -77,6 +78,8 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: callou
           : n.result === 'campFell' ? (won ? `Their war camp fell! ${town} is safe${n.chest || n.stock ? ` and ${[n.chest ? `${n.chest} ryo of their war chest` : '', n.stock?.timber ? `${n.stock.timber} timber` : '', n.stock?.stone ? `${n.stock.stone} stone` : ''].filter(Boolean).join(', ')} ${n.chest || (n.stock?.timber && n.stock?.stone) ? 'are' : 'is'} yours` : ''}` : lost ? `Your war camp fell: the war on ${town} is lost` : `${clanName(n.defender)} broke the siege of ${town}`) : '';
         if (text) callout(text, won ? 'win' : lost ? 'loss' : 'news', 8000);
       }
+      if (n.kind === 'townClaimed') callout(n.clan === me ? `${game.state.frontier?.settlements?.[n.town]?.name || 'The town'} is yours` : `${game.state.clans[n.clan]?.name || 'A rival clan'} claimed ${game.state.frontier?.settlements?.[n.town]?.name || 'an empty town'}`, n.clan === me ? 'win' : 'news', 6000);   // Z6d
+      if (n.kind === 'townDecayed') callout(`${n.name || 'An empty town'} has crumbled to nothing`, 'news', 5000);
       if (n.kind === 'worldCampCleared' && n.clan === me) callout(`Bandit camp no. ${parseInt(String(n.camp).replace(/\D+/g,''),10)||n.camp} cleared · +${n.ryo} ryo${n.first ? ' · first clear' : ''}`, 'win');
       if (n.kind === 'renown' && n.clan === me && n.amount > 0) callout(`${n.reason || 'Renown earned'} · +${n.amount} Renown`, 'win');
       if (n.kind === 'leaderBounty' && n.clan === me) callout(`${n.reason} · +${n.amount} ryo`, 'win');

@@ -230,7 +230,7 @@ export function createWarTerms({ state, data, war, world, morale, warEnd, genera
     if (t.state === 'outcome') return { ok: false, reason: 'You have already left' };
     refuse(w, 'left'); return { ok: true, reason: '' };
   }
-  const RESULT = { capture: 'captured', sack: 'sacked', burn: 'burned' };
+  const RESULT = { capture: 'captured', sack: 'sacked', burn: 'burned', fall: 'fell' };
   function outcome(e, c) {
     const w = war.byId(c.war), t = w?.terms;
     if (!t || t.state !== 'outcome') return { ok: false, reason: 'Nothing to choose in this war' };
@@ -270,7 +270,7 @@ export function createWarTerms({ state, data, war, world, morale, warEnd, genera
     }
   }
   function botOutcome(w) {
-    const list = warEnd.outcomeList(w), pick = list.find(o => o.id === 'capture' && o.ok) || list.find(o => o.id === 'sack');
+    const list = warEnd.outcomeList(w), pick = list.find(o => o.id === 'capture' && o.ok) || list.find(o => o.id === 'sack') || list[0];   // a castle: fall
     return outcome(unitOf(w.attacker), { war: w.id, outcome: pick.id });
   }
 

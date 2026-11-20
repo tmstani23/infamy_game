@@ -12,6 +12,7 @@
 //   queue: [{ group, track, paid: { ryo, timber, stone } }] } }
 // createWarArmory({ state, data, war, world }) -> { command, tick, view, applyTo, groupOf }
 import { addCampStock } from './camp_stock.js';
+import { debitRyo, creditRyo } from '../treasury.js';
 export const ARMORY_GROUPS = ['melee', 'ranged', 'mounted', 'siege'];
 export const ARMORY_TRACKS = ['weapons', 'armor'];
 
@@ -32,8 +33,10 @@ export function createWarArmory({ state, data, war, world }) {
     const s = town(w.town);
     return s && s.owner === w.defender ? (s.buildings || []).find(b => b.type === 'armory' && b.stage === 'built') || null : null;
   }
-  const chestOf = (w, side) => side === 'attacker' ? w.camp?.chest || 0 : w.defense?.chest || 0;
-  const stockOf = (w, side) => side === 'attacker' ? w.camp?.stock || {} : town(w.town)?.stock || {};
+  // Z6: a besieged castle pays ryo from the Clan treasury and needs no timber or stone (it keeps no stores)
+  const castle = (w, side) => side !== 'attacker' && !!town(w.town)?.castle;
+  const chestOf = (w, side) => side === 'attacker' ? w.camp?.chest || 0 : castle(w, side) ? Math.max(0, state.clans?.[w.defender]?.ryo || 0) : w.defense?.chest || 0;
+  const stockOf = (w, side) => side === 'attacker' ? w.camp?.stock || {} : castle(w, side) ? { timber: Infinity, stone: Infinity } : town(w.town)?.stock || {};
   const costOf = lvl => (A().cost || [])[Math.min(lvl, (A().cost || []).length - 1)] || {};
   function why(w, side, group, track) {
     if (!w || !side) return 'Not your war';
@@ -45,7 +48,7 @@ export function createWarArmory({ state, data, war, world }) {
     const lvl = level(w, side, group, track) + pending(w, side, group, track);
     if (lvl >= maxLevel()) return level(w, side, group, track) >= maxLevel() ? 'Fully upgraded' : 'Already queued to the top level';
     const c = costOf(lvl), stock = stockOf(w, side);
-    if ((c.ryo || 0) > chestOf(w, side)) return `Needs ${c.ryo} ryo from the war chest (it has ${Math.floor(chestOf(w, side))})`;
+    if ((c.ryo || 0) > chestOf(w, side)) return `Needs ${c.ryo} ryo from the ${castle(w, side) ? 'Clan treasury' : 'war chest'} (it has ${Math.floor(chestOf(w, side))})`;
     for (const r0 of ['timber', 'stone']) if ((c[r0] || 0) > (stock[r0] || 0)) return `Needs ${c[r0]} ${r0} (has ${Math.floor(stock[r0] || 0)})`;
     return '';
   }
@@ -56,11 +59,13 @@ export function createWarArmory({ state, data, war, world }) {
     if (side === 'attacker') {
       w.camp.chest = Math.round(((w.camp.chest || 0) - (cost.ryo || 0)) * 100) / 100;
       for (const r of ['timber', 'stone']) if (cost[r]) addCampStock(w.camp, r, -cost[r]);
+    } else if (castle(w, side)) {
+      if (cost.ryo) debitRyo(state, state.clans[w.defender], cost.ryo, 'castle armory', { war: w.id });
     } else {
-      w.defense.chest = Math.round(((w.defense.chest || 0) - (cost.ryo || 0)) * 100) / 100;
+      (w.defense ||= { chest: 0, put: 0 }).chest = Math.round(((w.defense.chest || 0) - (cost.ryo || 0)) * 100) / 100;
       for (const r of ['timber', 'stone']) if (cost[r]) world.change(w.town, r, -cost[r], 'armory');
     }
-    const r = rec(w, side), paid = { ryo: cost.ryo || 0, timber: cost.timber || 0, stone: cost.stone || 0 };
+    const r = rec(w, side), paid = castle(w, side) ? { ryo: cost.ryo || 0, timber: 0, stone: 0 } : { ryo: cost.ryo || 0, timber: cost.timber || 0, stone: cost.stone || 0 };
     if (r.work) r.queue.push({ group: c.group, track: c.track, paid });
     else r.work = { group: c.group, track: c.track, left: Math.round((A().seconds ?? 60) * 20) };
     return { ok: true };
@@ -81,6 +86,8 @@ export function createWarArmory({ state, data, war, world }) {
     if (side === 'attacker') {
       w.camp.chest = Math.round(((w.camp.chest || 0) + (paid.ryo || 0)) * 100) / 100;
       for (const r of ['timber', 'stone']) if (paid[r]) addCampStock(w.camp, r, paid[r]);
+    } else if (castle(w, side)) {
+      if (paid.ryo && state.clans?.[w.defender]) creditRyo(state, state.clans[w.defender], paid.ryo, 'castle armory', { war: w.id });
     } else {
       (w.defense ||= {}).chest = Math.round(((w.defense.chest || 0) + (paid.ryo || 0)) * 100) / 100;
       for (const r of ['timber', 'stone']) if (paid[r] && town(w.town)) world.change(w.town, r, paid[r], 'armory');

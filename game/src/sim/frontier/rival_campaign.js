@@ -24,7 +24,7 @@ export function createRivalCampaign({ state, data, worldData, zones, founding, w
   const paths = new Map();   // clan -> { pts, cum } for the party on the way (worked out again after a load)
   const fr = () => state.frontier;
   const on = () => !!zones && !!fr() && modeRules(state).founding;
-  const bots = () => Object.values(state.clans || {}).filter(c => c.bot).sort((a, b) => (a.id < b.id ? -1 : 1));
+  const bots = () => Object.values(state.clans || {}).filter(c => c.bot && !c.out).sort((a, b) => (a.id < b.id ? -1 : 1));
   const day = () => state.clock?.day ?? (1 + Math.floor((state.tick || 0) / dayTicks));
   const say = (clan, text) => { if (clan) clan.notice = { tick: state.tick, text }; };
   const rng = salt => { let r = Math.abs((seed() | 0) ^ [...salt].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) | 0, 17)) % 2147483646 + 1; return () => (r = (r * 16807) % 2147483647) / 2147483647; };

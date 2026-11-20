@@ -18,6 +18,7 @@ import { createStationClock } from './station_clock.js';
 import { createGame, TICK_RATE } from './sim/game.js';
 import { setupMatch } from './sim/setup_match.js';
 import { loadSave, heroOf, decode } from './sim/save.js';
+import { createCampaignEnd } from './campaign_end.js';   // Z6: the victory and defeat screens
 import { chooseMatch } from './start_screen.js';
 import { createView } from './render/view.js';
 import { onKey, onAction, onKeyFirst, keybinds, moveCommand, panAxes, edgeAxes, setGameplayInput, setSprint, sprintOn } from './input.js';
@@ -722,6 +723,7 @@ async function start() {
   });
   const clock = {alpha:()=>simClient.alpha(),diagnostics:()=>simClient.diagnostics()};
   if(DEV)window.infamy.mapPerformance=()=>({...presentation.diagnostics(),...gameMap.diagnostics(),clock:clock.diagnostics(),worldResources:{...view.renderer.info.memory}});
+  const campaignEnd = createCampaignEnd({ game, view, hero: () => game.state.entities[heroId], root: document.body.appendChild(document.createElement('div')) });   // Z6
   const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults, townAlert: n => townAlertHook(n), warAlert: () => sound.bell() });
   const topBar = createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, onClan: id => standingsPanel.open(id) });
   let last = performance.now() / 1000, labelTick = -Infinity, lostCops = false;
@@ -906,6 +908,7 @@ async function start() {
     selectionDock.update();
     warLantern.update();warBanner.update();
     { const away=game.state.entities[heroId]?.place==='world'?'none':'';if(lanternButton.style.display!==away){lanternButton.style.display=away;$('rallybtn').style.display=away;} }   // Tim 2026-11-12: no Rally or War Lantern on the island
+    campaignEnd.update();   // Z6: the victory or defeat screen once state.campaignEnd is set
     warCamp.update();townWar.update();warBar.update();warOutcome.update();warTerms.update();utilityMenu.update();   // the camp menu and utility menu redraw every frame (the comment above once swallowed this call)
     hudLayout.update();
   });

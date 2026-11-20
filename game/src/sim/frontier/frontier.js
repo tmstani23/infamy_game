@@ -31,6 +31,7 @@ import { createWarMorale } from './war_morale.js';
 import { createWarEnd } from './war_end.js';
 import { createWarTerms } from './war_terms.js';
 import { createWarOutcomes } from './war_outcomes.js';
+import { createEmptyTowns } from './empty_towns.js';
 import { createWarGeneral } from './war_general.js';
 
 export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {}, capitalYard = null, civilians = null, dayTicks = 12000 }) {
@@ -83,7 +84,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   rail.setShipping(shipments.arrive, shipments.load, shipments.tearDown, shipments.trainGone, shipments.campCut);
   shipRef.clerk = shipments.clerk;
   modules.push({ name: 'shipments', shipments, econTick: () => shipments.econTick(), command: (e, c) => shipments.command(e, c) });
-  const war = createWar({ state, data, world: live, worldData, resourceIndex: workers.index, dayTicks });   // F6 checkpoint 1: war records, planting the banner declares war
+  const war = createWar({ state, data, world: live, worldData, resourceIndex: workers.index, dayTicks, zones: campaignZones });   // F6 checkpoint 1: war records, planting the banner declares war
   modules.push({ name: 'war', war, econTick: () => war.econTick(), command: (e, c) => war.command(e, c) });
   zones.setFrozen(s => !!war.warOn(s.id));   // 7c: zone cells do not grow or grow back while a war is on the town
   const structures = createStructures({ state, data, world: live, war, garrison, workers });   // F6 checkpoint 6: structure health, attacks, ruins
@@ -92,6 +93,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const warEnd = createWarEnd({ state, data, war, world: live, morale: warMorale, garrison });   // F6 checkpoint 8a-3: the hall channel and the end of a war
   const warOutcomes = createWarOutcomes({ state, data, war, world: live, rail, garrison });
   warEnd.setOutcomes(warOutcomes);   // 8a-4: capture, sack, burn
+  const emptyTowns = campaignZones ? createEmptyTowns({ state, data, world: live, zones: campaignZones, hallPoint: (w, side) => warEnd.hallPoint(w, side), dayTicks }) : null;   // Z6d: a fallen clan's towns, claimed or left to decay
+  if (emptyTowns) modules.push({ name: 'emptyTowns', emptyTowns, command: (e, c) => emptyTowns.command(e, c) });
   modules.push({ name: 'warEnd', warEnd, command: (e, c) => warEnd.command(e, c) });
   const warGeneral = createWarGeneral({ state, data, war, dayTicks }); war.setGeneral(warGeneral);   // F6 checkpoint 8d: the bot general (strategy, who runs a side, the keep line)
   modules.push({ name: 'warGeneral', warGeneral, command: (e, c) => warGeneral.command(e, c) });
@@ -149,6 +152,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     warMorale.tick();              // F6 8a: morale drops as counted buildings fall
     warEnd.tick();                 // F6 8a: hall channels, the end of a war, routed troops
     warTerms.tick();               // F6 8c: surrender, offers, answers and the bots' part in them
+    emptyTowns?.tick();            // Z6d: claims on empty towns, and unclaimed ones decay
     rivalCampaign?.tick();         // Z2: rival settlers on their way to a new town
     arrivals.tick();               // B7: cosmetic newcomers walking in, level-up effects
     townsfolk.tick();              // townsfolk wander the town by day, go in at night or when enemies come
@@ -166,5 +170,5 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   }
 
   function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);rivalCampaign?.attach(services);war.attach(services);structures.attach(services);warEnd.attach(services);warTerms.attach(services);warOutcomes.attach(services);}
-  return { get world() { return ensure(); }, tick, command, modules, data, founding, campaignZones, rivalCampaign, garrison, infirmary, stable, rail, shipments, war, structures, warMorale, warEnd, warTerms, warGeneral, attach };
+  return { get world() { return ensure(); }, tick, command, modules, data, founding, campaignZones, rivalCampaign, warOutcomes, emptyTowns, clanOut: (clan, by) => warOutcomes.clanOut(clan, by), garrison, infirmary, stable, rail, shipments, war, structures, warMorale, warEnd, warTerms, warGeneral, attach };
 }

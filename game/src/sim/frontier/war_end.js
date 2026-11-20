@@ -52,6 +52,8 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
   const townsOf = clan => Object.values(f()?.settlements || {}).filter(s => s.owner === clan && !s.capital);
   // which outcomes the attacker may pick, each { id, ok, why }
   function outcomeList(w) {
+    // Z6 (2026-11-20): a castle has one outcome: it falls and its clan is out (no capture or sack choice)
+    if (town(w.town)?.castle) return [{ id: 'fall', ok: true, why: '' }];
     // Z2 (Tim 2026-11-19): every town can be captured or burned. The rule of 2026-11-09 (a clan's last town can only be
     // sacked) went with the big picture plan: a clan lives on in its home and founds again (rival_campaign.js).
     return ['capture', 'sack', 'burn'].map(id => ({ id, ok: true, why: '' }));
@@ -70,7 +72,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     }
     if (!atHall(hero, w, side)) return { ok: false, reason: 'Walk up to the ruined hall' };
     if (side === 'town') {
-      const o = outcomeList(w).find(x => x.id === outcome);
+      const o = outcomeList(w).find(x => x.id === (town(w.town)?.castle ? 'fall' : outcome));
       if (!o) return { ok: false, reason: 'Pick capture, sack or burn' };
       if (!o.ok) return { ok: false, reason: o.why };
     }
@@ -78,7 +80,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
   }
   function start(hero, w, side, outcome) {
     const r = check(hero, w, side, outcome); if (!r.ok) return r;
-    w.channel = { side, by: hero.id, outcome: side === 'town' ? outcome : null, start: state.tick ?? 0, hp: hero.hp, x: hero.x, z: hero.z };
+    w.channel = { side, by: hero.id, outcome: side === 'town' ? (town(w.town)?.castle ? 'fall' : outcome) : null, start: state.tick ?? 0, hp: hero.hp, x: hero.x, z: hero.z };
     hero.hallChannel = w.id;
     delete hero.order; delete hero.attackTarget; delete hero.swing; delete hero.execute; delete hero.lootTarget;
     const p = hallPoint(w, side);
@@ -124,7 +126,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
       delete e.attackTarget; delete e.swing; delete e.garrison; delete e.holdHouse;
     }
   }
-  // result: 'captured' | 'sacked' | 'burned' | 'campFell' | 'attackerSurrendered' (8c: as a fallen camp) |
+  // result: 'captured' | 'sacked' | 'burned' | 'fell' (a castle, Z6: its clan is out) | 'campFell' | 'attackerSurrendered' (8c: as a fallen camp) |
   // 'ransomed' (8c: terms accepted, the town is kept) | anything else (called off): the chest goes home
   // opts.days: the town's cooldown in game days when it is not the usual war.cooldownDays
   function finish(w, result, by = null, opts = {}) {
@@ -144,10 +146,10 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
       }
       w.sentHome = sendHome(result === 'campFell' ? undefined : { why: 'surrender' });
     } else {
-      if (['captured', 'sacked', 'burned'].includes(result)) note = outcomes?.[result]?.(w, by) || null;
+      if (['captured', 'sacked', 'burned', 'fell'].includes(result)) note = outcomes?.[result]?.(w, by) || null;   // fell: a castle (Z6)
       if (chest > 0 && attacker) creditRyo(state, attacker, chest, 'war chest returned');
       w.returned = chest;
-      if (['captured', 'sacked', 'burned'].includes(result) || (result === 'ransomed' && w.terms?.by === 'defender')) w.materialsBack = materialsBack(w);
+      if (['captured', 'sacked', 'burned', 'fell'].includes(result) || (result === 'ransomed' && w.terms?.by === 'defender')) w.materialsBack = materialsBack(w);
       if (result === 'ransomed') w.sentHome = sendHome({ why: 'ransomed' });   // 8c: the attacker's hero and crew go home, the town is kept
     }
     if (w.camp) w.camp.chest = 0;
@@ -156,6 +158,8 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     news({ kind: 'warEnded', war: w.id, town: w.town, townName: s?.name || note?.townName || '', result, attacker: w.attacker, defender: w.defender, by, x: cx, z: cz, ...(note || {}), chest, ...(w.spoilsStock ? { stock: w.spoilsStock } : {}),
       ...(w.terms ? { surrender: w.terms.by, ...(w.ransom ? { ransom: w.ransom.amount } : {}) } : {}) });
     war.end(w.id, result, opts.days ?? null);
+    // Z6: a fallen castle takes its clan out: its other wars end too (the towns it fought over are empty now)
+    if (result === 'fell') for (const o of war.active()) if (o.attacker === w.defender || o.defender === w.defender) finish(o, 'clanOut');
     return true;
   }
 
@@ -171,7 +175,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
         ch.start = now; news({ kind: 'hallChannelReset', war: w.id, side: ch.side, by: ch.by, clan: u.owner });
       }
       ch.hp = u.hp;
-      if (now - ch.start >= need()) finish(w, ch.side === 'camp' ? 'campFell' : ({ capture: 'captured', sack: 'sacked', burn: 'burned' })[ch.outcome] || 'sacked', u.owner);
+      if (now - ch.start >= need()) finish(w, ch.side === 'camp' ? 'campFell' : ({ capture: 'captured', sack: 'sacked', burn: 'burned', fall: 'fell' })[ch.outcome] || 'sacked', u.owner);
     }
     // a hero whose war is gone is free again; routed troops leave the map when their time is up
     if (now % 5 === 0) for (const e of Object.values(state.entities || {})) {
