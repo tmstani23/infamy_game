@@ -17,7 +17,7 @@ import { worldTerrainCache, worldToCanvas, gridLabel, isDiscovered, drawSpotMark
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
 import {workerLocation,workerDetails} from './worker_details.js';
-import { majorBuildings, drawBuildingBadge, CITY_NAMES } from './minimap_icons.js';
+import { majorBuildings, drawBuildingBadge, CITY_NAMES, edgeArrow, drawGuideArrow } from './minimap_icons.js';
 
 const MARK = { pawnshop: 'Q', bathhouse: 'A', sake_brewery: 'K', manor: 'R', customs_house: 'U', warehouse: 'W', teahouse: 'T', shop: 'S', tenements: 'N', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
 const S = Math.SQRT1_2;
@@ -178,6 +178,29 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     castleImgs.set(s.id, { cv, use: g.use, color });
     return cv;
   }
+  // every spot that should guide you: the goal ping (game.officeHint, set by main.js), the surveyor's site picks of the
+  // Found card and your world map pins (island only), each pulsing in the box and an arrow on the edge outside it
+  let goalSites = [], goalSitesAt = 0;
+  function guideTargets(island) {
+    const out = [];
+    if (game.officeHint) out.push([game.officeHint.x, game.officeHint.z]);
+    if (!island) return out;
+    const t = performance.now();
+    if (t - goalSitesAt > 500) { goalSitesAt = t; goalSites = game.goals?.current?.(clan)?.sites || []; }
+    for (const s of goalSites) out.push([s.x, s.z]);
+    for (const p of game.state.world?.pins?.[clan] || []) out.push([p.x, p.z]);
+    return out;
+  }
+  function drawGuides(list, project, ps) {
+    const q = (performance.now() / 1000) % 1.5 / 1.5, arrows = [];
+    for (const [x, z] of list) {
+      const [u, v] = project(x, z), ar = edgeArrow(u, v, size, 11 * ps);
+      if (ar) { arrows.push(ar); continue; }
+      ctx.beginPath(); ctx.arc(u, v, (4 + q * 12) * ps, 0, Math.PI * 2); ctx.strokeStyle = `rgba(255,205,80,${(1 - q) * 0.95})`; ctx.lineWidth = 1.8; ctx.stroke();
+      ctx.beginPath(); ctx.arc(u, v, 3.2 * ps, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,205,80,.95)'; ctx.fill();
+    }
+    for (const ar of arrows) drawGuideArrow(ctx, ar, ps);
+  }
   function paintIsland(state) {
     const me = game.state.entities[heroId], ic = islandCentre();
     if (!islandImg) islandImg = worldTerrainCache(world);
@@ -263,12 +286,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       ctx.beginPath();ctx.arc(u,v,2.5,0,Math.PI*2);ctx.fillStyle='#60ddd0';ctx.fill();ctx.stroke();
       islandHits.push([u,v,6,'worker',w]);
     }
-    // goal ping on the island (Tim 2026-11-06): same gold pulse as in the city (game.officeHint, set by main.js)
-    if (game.officeHint) {
-      const [u, v] = at(game.officeHint.x, game.officeHint.z), q = (performance.now() / 1000) % 1.5 / 1.5;
-      ctx.beginPath(); ctx.arc(u, v, 4 + q * 12, 0, Math.PI * 2); ctx.strokeStyle = `rgba(255,205,80,${(1 - q) * 0.95})`; ctx.lineWidth = 1.8; ctx.stroke();
-      ctx.beginPath(); ctx.arc(u, v, 3.2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,205,80,.95)'; ctx.fill();
-    }
+    // goal pings and pins (Tim 2026-11-06 / 2026-11-20): gold pulse when in the box, a gold edge arrow when not
+    drawGuides(guideTargets(true), at, 1);
     // what the camera sees (island coordinates)
     const corners = [[0, 0], [innerWidth, 0], [innerWidth, innerHeight], [0, innerHeight]].map(([x, y]) => view.screenToGround(x, y));
     if (corners.every(Boolean)) {
@@ -412,13 +431,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
         }
       }
     }
-    // telegraph office: a pulsing gold ring while you can buy a founding permit (set by main.js)
-    if (game.officeHint) {
-      const [u, v] = toMap(game.officeHint.x, game.officeHint.z), q = (nowMs / 1000) % 1.5 / 1.5;
-      ctx.beginPath(); ctx.arc(u, v, (4 + q * 12) * Math.sqrt(zoom), 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(255,205,80,${(1 - q) * 0.95})`; ctx.lineWidth = 1.8; ctx.stroke();
-      ctx.beginPath(); ctx.arc(u, v, 3.2 * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,205,80,.95)'; ctx.fill();
-    }
+    // telegraph office and other goal spots: gold pulse, or an edge arrow when off the box
+    drawGuides(guideTargets(false), toMap, Math.sqrt(zoom));
     // units on the street that you can see (yours on top)
     const list = Object.values(state.entities).filter(e => e.place === 'street' && !e.dead)
       .sort((a, b) => (a.owner === clan) - (b.owner === clan) || (a.id === heroId) - (b.id === heroId));

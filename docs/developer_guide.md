@@ -243,6 +243,7 @@ Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/
   - spaceOut: still workers (no trip) ease apart to workers.restSpacing (0.8) onto free nav, and their departure becomes the new spot.
 - worker_panel.js: workerTask falls back to the cargo kind (CARRY_KIND) while carrying. workerPanelHTML takes a filter option.
 - minimap.js:
+  - Guide arrows (2026-11-20, `minimap.js`, `minimap_icons.js`, test `tools/test_minimap_arrows.mjs`): world map pins, the surveyor's site picks on the Found card and the current goal ping each show as a gold arrow on the minimap edge when outside the box, and as the pulsing ring once inside. The arrows follow the turned minimap. The island minimap shows all three, the city minimap only the goal ping.
   - Camp workers are drawn for the attacker's own war camps.
   - Own war troops get a white stroke.
   - Enemy workers in sight are red dots.

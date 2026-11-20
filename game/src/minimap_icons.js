@@ -73,3 +73,19 @@ export function drawBuildingBadge(ctx, u, v, letter, color, size = 8, military =
   ctx.fillStyle = '#fff4dc'; ctx.fillText(letter, u, v + 0.5);
   ctx.restore();
 }
+
+// Guide arrows (Tim 2026-11-20): a gold arrow on the minimap edge for each pin or goal spot outside the box.
+// edgeArrow takes the target's minimap pixel and returns where the arrow sits on the inset edge and which way it points
+// (null while the target is inside the box, where the regular pulse shows instead).
+export function edgeArrow(u, v, size, inset = 10) {
+  const c = size / 2, dx = u - c, dy = v - c, lim = c - inset, m = Math.max(Math.abs(dx), Math.abs(dy));
+  if (m <= lim) return null;
+  const t = lim / m;
+  return { u: c + dx * t, v: c + dy * t, a: Math.atan2(dy, dx) };
+}
+export function drawGuideArrow(ctx, ar, s = 1) {
+  ctx.save(); ctx.translate(ar.u, ar.v); ctx.rotate(ar.a); ctx.scale(s, s);
+  ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, 5.5); ctx.lineTo(-2, 0); ctx.lineTo(-5, -5.5); ctx.closePath();
+  ctx.fillStyle = 'rgba(255,205,80,.97)'; ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(40,24,0,.9)'; ctx.stroke();
+  ctx.restore();
+}

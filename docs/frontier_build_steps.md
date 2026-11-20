@@ -471,7 +471,7 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `pre_frontier_yakuza`, `dev_frontier` and `campaign_test_yakuza` saves done via `game/tools/make_dev_save.mjs`; `test_params.js` stays until Tim sees the presets)
 - [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (Tim, deferred to the end)
 - [x] **W1** World data: [x] W1.1 choices · [x] W1.2 · [x] W1.3 generate · [x] W1.4 steer · [-] W1.5 tool (skipped, not needed). Open: `world_names.json` review (names are drafts)
-- [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed)
+- [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed; replaced 2026-11-20 by minimap guide arrows, see W2)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
 - [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
 - [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [x] P3 edges and water (Tim accepted 2026-11-03) · [x] P4 coast cliffs and dry range (built 2026-11-03; Tim playtest passed 2026-11-03) · [x] P5 current biome art/import and clustering (accepted; later art backlog retained) · [ ] later: chunk and ground-paint speed-up
@@ -1038,9 +1038,10 @@ Do: the World tab draws `world_map.js` with fog from the snapshot; click a site 
 (or "Not scouted"); click a town to open its panel (after F4). Defaults (proposed 2026-11-02, Tim can change):
 M opens straight to World when the hero is outside the city; right-click on the map drops a
 personal pin with a short note (saved in `state.world.pins[clan]`, max 50); shift-right-click sets a
-waypoint that shows as an arrow on the minimap edge until reached. Add any new clicks or keys to the
+waypoint that shows as an arrow on the minimap edge until reached (skipped; replaced by guide arrows below). Add any new clicks or keys to the
 Controls panel. No test switch: the `dev_frontier` save (F0.5) has the whole map revealed.
 Check (pass/fail): syntax copies pass; `test_world_map.mjs` still passes.
+Guide arrows (2026-11-20, `minimap.js`, `minimap_icons.js`, test `tools/test_minimap_arrows.mjs`): world map pins, the surveyor's site picks on the Found card and the current goal ping each show as a gold arrow on the minimap edge when outside the box, and as the pulsing ring once inside. The arrows follow the turned minimap. The island minimap shows all three, the city minimap only the goal ping. World map: town sites show only once discovered (cell revealed or reported by the surveyor); the surveyor's gold suggestion rings show regardless.
 In game (Tim): M → World shows the island; in the `dev_frontier` save, everything is visible.
 Done note: "W2.4 World tab in (controls.md line needed)."
 As built (2026-11-02): the Controls rows live in `game/index.html`, not `main.js` as the card says. "M opens World outside city" is coded but cannot trigger until W3. City units count as standing at the capital point. The `dev_frontier` full-reveal save waits for F0.5. Discovery numbers are placeholders in `world.json` `rules.discovery`. Known failing test: `test_crew` line 97 (already failing before).
