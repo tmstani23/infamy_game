@@ -5,6 +5,7 @@
 import { townSlot } from './sim/frontier/town_layout.js';
 import { cellOffset, zoneVariant } from './sim/frontier/town_grid.js';
 import { stationParts } from './sim/frontier/station_layout.js';
+import { tierArt, campTier } from './sim/frontier/art_blocks.js';
 // grid towns (L3.1) give cells as grid indices; a town not migrated yet still holds spiral slots
 const slotOf = (s, c, cells) => {
   if (!s.grid) return townSlot(c);
@@ -210,7 +211,7 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
     s.buildings.forEach((b, i) => {
       if (b.type === 'rail_section') return;   // 8e-6: drawn red on the track (render/rail_track.js), not as a building
       // a camp palisade or gate piece faces along its line (checkpoint 6-6)
-      const lineArt = s.camp && townArt._campLine?.[b.type], art = lineArt ? lineArt[Math.abs(Math.cos(b.rot || 0)) >= Math.abs(Math.sin(b.rot || 0)) ? 'x' : 'z'] : townArt[b.type], [ox, oz] = spotOf(s, b, i);
+      const lineArt = s.camp && townArt._campLine?.[b.type], art = lineArt ? lineArt[Math.abs(Math.cos(b.rot || 0)) >= Math.abs(Math.sin(b.rot || 0)) ? 'x' : 'z'] : tierArt(townArt, b.type, s.camp ? campTier(s) : s.tier), [ox, oz] = spotOf(s, b, i);
       // a ruin (war checkpoint 6): the burned ruin art; a broken camp palisade or gate piece shows dark rubble
       if (b.stage === 'ruined') {
         const R = townArt._ruin || {}, own = R.byType?.[b.type], alongX = Math.abs(Math.cos(b.rot || 0)) >= Math.abs(Math.sin(b.rot || 0));
@@ -257,7 +258,7 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
       out.push({ key: `${s.id}:breach:${br.cell}`, art: own || R.rubble || 'house_construction_1', x: s.x + bx, z: s.z + bz, ...(own ? { flip: alongX } : { tint: R.tint || '#4a403a' }), noLights: true, maxFootprint: s.grid.cell * (own ? R.breachFootprint || 1 : 0.6) });
     }
     s.projects.forEach((p, i) => {
-      const art = townArt[p.type], [ox, oz] = spotOf(s, p, s.buildings.length + i);
+      const art = tierArt(townArt, p.type, s.tier), [ox, oz] = spotOf(s, p, s.buildings.length + i);
       const x = s.x + ox, z = s.z + oz;
       // placed buildings go through the same build phases as zone houses (Tim 2026-11-05): site, then frame, then the building
       if (p.paid && p.progress > 0 && art) { const half = p.progress * 2 >= p.need, phases = townArt._buildPhases || ['house_construction_1', 'house_construction_2'];

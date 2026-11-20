@@ -106,7 +106,8 @@
   },
   "townArt": {
     "_note": "E5 placeholders, Tim to tune: which existing building cutout (data/art.json) draws each frontier building type until town art exists",
-    "town_hall": "manor",
+    "_byTier": { "_note": "Tim 2026-11-20: art by town hall tier (tier 1 first; past the end the last one), for town buildings and the war camp stockade (camp hall tier). townArt.<type> stays the tier 1 look for menus. The manor stays the capital building.", "town_hall": ["town_hall_1", "town_hall_2", "town_hall_3"], "stockade": ["stockade_1", "stockade_2", "stockade_3"] },
+    "town_hall": "town_hall_1",
     "house": "townhouse",
     "farm": "haystack",
     "lumber_camp": "sawmill",
@@ -114,7 +115,7 @@
     "quarry": "hills_old_quarry_workings",
     "workshop": "smithy",
     "storehouse": "granary",
-    "stockade": "fort",
+    "stockade": "stockade_1",
     "infirmary": "infirmary",
     "stable": "stable",
     "station": "coach_house",

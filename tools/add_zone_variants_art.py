@@ -95,12 +95,13 @@ def anchor(im):
             'bottomX': int(round(xs[ys >= bottom - 2].mean())), 'bottomY': int(bottom), 'glows': glows(im)}
 
 
-def main():
+def main(sheets=None):
+    """sheets: like SHEETS (default); a name of None skips that piece (tools/add_tier_art.py)"""
     made = []
-    for src, (cols, rows, names) in SHEETS.items():
+    for src, (cols, rows, names) in (sheets or SHEETS).items():
         sheet = Image.open(os.path.join(ENV, src)).convert('RGBA')
         for (name, width, entry), (bbox, mask) in zip(names, pieces(sheet, cols * rows)):
-            made.append((name, entry, cut(sheet, bbox, mask, width)))
+            if name: made.append((name, entry, cut(sheet, bbox, mask, width)))
     path = os.path.join(OUT, 'cutouts.json')
     text = open(path).read().rstrip()
     meta = json.loads(text)

@@ -27,6 +27,7 @@
 import { cellToWorld, setUse, zoneStructureAt, townCellBoxes, campBuildingBoxes, ringRadius } from './town_grid.js';
 import { addCampStock } from './camp_stock.js';
 import { stockadeHp } from './garrison.js';
+import { campTier } from './art_blocks.js';
 
 export function createStructures({ state, data, world, war, garrison = null, workers = null }) {
   const R = () => data.war?.structures || null;
@@ -97,7 +98,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       if (b.stage !== 'built' || !Number.isFinite(b.x)) continue;
       const max = campMax(b, c); if (!max) continue;
       const line = b.type === 'palisade' || b.type === 'gate';
-      list.push({ key: `c|${w.id}|${b.id}`, kind: line ? b.type === 'gate' ? 'gate' : 'wall' : 'building', type: b.type, war: w.id, owner: w.attacker, b, x: b.x, z: b.z, r: data.war?.buildings?.[b.type]?.radius ?? 8, boxes: b.type === 'rail_section' ? b.hitBoxes || [] : campBuildingBoxes(b, data), max, camp: true });
+      list.push({ key: `c|${w.id}|${b.id}`, kind: line ? b.type === 'gate' ? 'gate' : 'wall' : 'building', type: b.type, war: w.id, owner: w.attacker, b, x: b.x, z: b.z, r: data.war?.buildings?.[b.type]?.radius ?? 8, boxes: b.type === 'rail_section' ? b.hitBoxes || [] : campBuildingBoxes(b, data, campTier(c)), max, camp: true });
     }
     campCache.set(c, { sig, list });
     return list;

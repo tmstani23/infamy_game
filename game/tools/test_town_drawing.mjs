@@ -84,7 +84,8 @@ const cornerProps = townCellsToProps(corner, art).filter(p => p.cell === 6 && p.
 assert.ok(cornerProps.some(p => p.flip) && cornerProps.some(p => !p.flip), 'wall corners join both directions');
 if (art._walls.w.post) assert.ok(townCellsToProps(corner, art).some(p => p.cell === 6 && p.art === art._walls.w.post), 'a corner post stands where two runs meet');
 const worldProps = townProps([town], art, frontier.townLights);
-assert.ok(worldProps.some(p => p.art === 'manor' && p.x === 100 && p.z === 100));
+assert.ok(worldProps.some(p => p.art === art._byTier.town_hall[0] && p.x === 100 && p.z === 100));   // tier 1 hall (Tim 2026-11-20)
+{ const t3 = { ...town, tier: 3 }; assert.ok(townProps([t3], art, frontier.townLights).some(p => p.art === art._byTier.town_hall[2]), 'a tier 3 town draws the tier 3 hall'); }
 assert.ok(worldProps.some(p => p.cell === 0 && p.x === 78 && p.z === 78), 'local grid instructions are translated once');
 const buildingTown = structuredClone(town);
 buildingTown.projects = [{ id: 'build', type: 'quarry', cell: 6, cells: [6, 7, 11, 12], phase: 'clearing', paid: false, progress: 0 }];

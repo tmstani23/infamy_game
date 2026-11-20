@@ -33,6 +33,9 @@ def art_names(fr):
         if isinstance(v, str) and v not in names: names.append(v)
     for t, v in ta.items():
         if not t.startswith('_'): add(v)
+    for vs in ta.get('_byTier', {}).values():   # art by town hall tier (Tim 2026-11-20)
+        if isinstance(vs, list):
+            for v in vs: add(v)
     for z in ta.get('_zones', {}).values():
         if isinstance(z, dict):
             for v in z.get('stages', []): add(v)

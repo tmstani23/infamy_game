@@ -12,7 +12,7 @@ import { terrainAt, buildable } from '../world_data.js';
 import { townSlot } from './town_layout.js';
 import {wallSegments} from './wall_segments.js';
 import { tierOf } from './tiers.js';
-import { artBoxes, townArtData } from './art_blocks.js';
+import { artBoxes, townArtData, tierArt, campTier } from './art_blocks.js';
 import { stationParts } from './station_layout.js';
 
 const OVERGROWN = new Set(['f', 'b']);   // forest and bamboo start overgrown; open ground starts cleared
@@ -81,12 +81,12 @@ export function townBlockersVersion(frontier,data) {
   for(const w of camps)campBoxesOf(w.camp,data);
   return blockerVersion;
 }
-const builtKey=s=>s.buildings.map(b=>b.stage==='built'?b.id ?? (b.cells || [b.cell]).join('.'):'').join(',');
+const builtKey=s=>(s.tier || 1)+':'+s.buildings.map(b=>b.stage==='built'?b.id ?? (b.cells || [b.cell]).join('.'):'').join(',');
 // War camps (collision checkpoint 5b-2): a built camp building blocks the ground its art stands on; building
 // sites stay open, so builders and troops are never walled in. Kept per camp until its built buildings change.
 const campCache=new WeakMap();
 const campsOf=frontier=>Object.values(frontier?.wars?.list || {}).filter(w=>w.camp && Number.isFinite(w.camp.x));
-const campKey=camp=>(camp.buildings || []).map(b=>b.stage==='built' && Number.isFinite(b.x)?`${b.id}@${b.x},${b.z}`:'').join(';');
+const campKey=camp=>campTier(camp)+':'+(camp.buildings || []).map(b=>b.stage==='built' && Number.isFinite(b.x)?`${b.id}@${b.x},${b.z}`:'').join(';');
 function campBoxesOf(camp,data) {
   let e=campCache.get(camp);
   if(e && e.data===data) {
@@ -99,7 +99,7 @@ function campBoxesOf(camp,data) {
     if(b.type==='gate')continue;   // a gate stops only the other side of the war (sim/frontier/structures.js gateBlockers)
     if(b.type==='palisade'){boxes.push(lineBox(b,data));continue;}
     const fit=art?._placedFootprint?.[b.type];
-    for(const o of artBoxes(data,art?.[b.type],fit?11*fit:0) || [])boxes.push({minX:b.x+o.minX,maxX:b.x+o.maxX,minZ:b.z+o.minZ,maxZ:b.z+o.maxZ});
+    for(const o of artBoxes(data,tierArt(art,b.type,campTier(camp)),fit?11*fit:0) || [])boxes.push({minX:b.x+o.minX,maxX:b.x+o.maxX,minZ:b.z+o.minZ,maxZ:b.z+o.maxZ});
   }
   blockerVersion++;
   campCache.set(camp,{data,key:campKey(camp),epoch:blockerEpoch,boxes});
@@ -114,11 +114,11 @@ function lineBox(b,data) {
   const hx=c*half+s*thick,hz=s*half+c*thick;
   return {minX:b.x-hx,maxX:b.x+hx,minZ:b.z-hz,maxZ:b.z+hz};
 }
-export function campBuildingBoxes(b,data) {
+export function campBuildingBoxes(b,data,tier=1) {
   data=townArtData(data);
   if(LINE_TYPES.has(b.type))return [lineBox(b,data)];
   const art=data?.townArt,fit=art?._placedFootprint?.[b.type];
-  return (artBoxes(data,art?.[b.type],fit?11*fit:0) || []).map(o=>({minX:b.x+o.minX,maxX:b.x+o.maxX,minZ:b.z+o.minZ,maxZ:b.z+o.maxZ}));
+  return (artBoxes(data,tierArt(art,b.type,tier),fit?11*fit:0) || []).map(o=>({minX:b.x+o.minX,maxX:b.x+o.maxX,minZ:b.z+o.minZ,maxZ:b.z+o.maxZ}));
 }
 // what blocks in the war camps, as a string (worker path cache key, like townBlockSignature)
 export function campBlockSignature(frontier){return campsOf(frontier).map(w=>`${w.id}:${campKey(w.camp)}`).join('|');}
@@ -173,7 +173,7 @@ function cellBoxesOf(s,data) {
       const P=art._stationParts,along=parts.rot%2===0,mf=g.cell*(P.fit ?? 1.6);
       const a=artAt(P.shed,s.x+parts.shed[0],s.z+parts.shed[1],mf,along),h=artAt(P.hall,s.x+parts.hall[0],s.z+parts.hall[1],mf,!along);
       done=a && h;
-    } else done=artAt(art?.[b.type],cx,cz,max,false);
+    } else done=artAt(tierArt(art,b.type,s.tier),cx,cz,max,false);
     if(done)byArt.add(b);
   }
   for(let i=0;i<g.n*g.n;i++) {

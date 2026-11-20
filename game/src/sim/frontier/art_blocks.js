@@ -43,3 +43,11 @@ export function artBoxes(data, name, maxFootprint = 0, flip = false) {
   reg.memo.set(key, out);
   return out;
 }
+
+// Art that changes with the town hall tier (frontier.json townArt._byTier, Tim 2026-11-20): the list's entry for the
+// tier (the last one past its end), else townArt[type]. A war camp counts its camp hall's tier (campTier).
+export function tierArt(townArt, type, tier) {
+  const list = townArt?._byTier?.[type];
+  return list?.length ? list[Math.min(list.length, Math.max(1, tier || 1)) - 1] : townArt?.[type];
+}
+export const campTier = c => c?.buildings?.find(b => b.type === 'camp_hall')?.tier || 1;
