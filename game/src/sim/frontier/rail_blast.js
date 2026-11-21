@@ -4,7 +4,8 @@
 // (half a day) while a repair crew hammers at the gap, and the line can't be blasted (or robbed) again until
 // robbery.cooldownDays after the blast. The repair crew can't be attacked by anyone (e.untouchable).
 // A train running into the gap stops robbery.stopGap short of it and stands robbery.stopSeconds (3 minutes; R2: its
-// guards are out), then backs up to the last station it passed and is held there like on any closed line.
+// guards are out), then backs up to the last station it passed and is held there like on any closed line. A train
+// standing at a station when the line blows still sets out once and stops at the gap (Tim 2026-11-21).
 // State on the link: l.charge = { d, by, at } while the fuse burns; l.blast = { d, by, at, until, safeUntil, crew }
 // (until: the line opens again; safeUntil: end of the cooldown). On a train: t.stopped = { at, until, d } at the gap,
 // t.backing while it backs off.
@@ -123,6 +124,7 @@ export function createRailBlast({ state, data, rec, pointAt, say, placeName, day
     if (t.dir * (stopAt - t.d) > v / 20) return false;   // not there yet
     if (t.dir * (stopAt - t.d) > 0) t.d = stopAt;
     t.stopped = { at: now(), until: now() + Math.round((B().stopSeconds ?? 180) * 20), d: t.d };
+    l.blast.sortie = true;   // its one run to the gap this blast (Tim 2026-11-21); after it backs home it is held
     t.v = 0;
     hooks.stop?.(t, l);   // guards out (rail_robbery.js)
     say(l.owner, `A train stopped at the blown track on ${lineName(l)}`);

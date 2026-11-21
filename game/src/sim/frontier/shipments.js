@@ -88,8 +88,11 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     return n;
   }
   // the node list from a to b over open lines (breadth first), or null
-  function route(owner, a, b) {
-    const links = Object.values(state.frontier.rail?.links || {}).filter(l => l.owner === owner && l.done && !l.closed);
+  // sortie: a line closed only by a blast whose train has not made its one run to the gap yet counts as open, so that
+  // train loads as usual (Tim 2026-11-21: it sets out, stops at the gap, and the cargo stays aboard until the repair)
+  function route(owner, a, b, sortie = false) {
+    const open = l => !l.closed || (sortie && l.cutBy === 'blast' && l.blast && !l.blast.sortie);
+    const links = Object.values(state.frontier.rail?.links || {}).filter(l => l.owner === owner && l.done && open(l));
     const prev = { [a]: null }, todo = [a];
     while (todo.length) {
       const at = todo.shift();
@@ -98,7 +101,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     }
     return null;
   }
-  const hopFrom = (owner, at, to) => route(owner, at, to)?.[1] ?? null;
+  const hopFrom = (owner, at, to, sortie = false) => route(owner, at, to, sortie)?.[1] ?? null;
 
   // reserve `amount` of an order's resource at source town `from` (S3 clerk calls this). Never below keep.
   function accept(orderId, from, amount) {
@@ -149,10 +152,10 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     t.freight ||= [];
     // everything that could ride this train: yard cargo here, then each order's reserved stock here
     const waiting = [];
-    for (const c of rec().yards[at] || []) { const o = rec().orders[c.order]; if (o && hopFrom(t.owner, at, o.to) === far) waiting.push({ c, from: 'yard' }); }
+    for (const c of rec().yards[at] || []) { const o = rec().orders[c.order]; if (o && hopFrom(t.owner, at, o.to, true) === far) waiting.push({ c, from: 'yard' }); }
     for (const o of Object.values(rec().orders)) {
       if (o.state !== 'open' || o.owner !== t.owner) continue;
-      for (const x of o.sources) if (x.from === at && x.amount > 0 && hopFrom(t.owner, at, o.to) === far) waiting.push({ o, x, resource: o.resource, from: 'town' });
+      for (const x of o.sources) if (x.from === at && x.amount > 0 && hopFrom(t.owner, at, o.to, true) === far) waiting.push({ o, x, resource: o.resource, from: 'town' });
     }
     let room = wagons(t) * wagonLoad() - onBoard(t), ryoRoom = Math.max(0, (S().ryoPerTrain ?? 2000) - ryoOnBoard(t));
     const take = (w, max) => {

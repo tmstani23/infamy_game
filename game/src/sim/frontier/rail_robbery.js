@@ -26,10 +26,15 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
   const chests = () => rec().chests ||= {};
   const fmt = loot => Object.entries(loot).filter(([, n]) => n >= 1).map(([r, n]) => `${Math.round(n)} ${r}`).join(', ') || 'nothing';
 
-  // the freight wagon: the first goods car of the consist (engine and tender ahead of it), gap apart along the line
+  // the freight wagon: the last goods car (beside the guard van), placed where render/rail_track.js draws it: the
+  // engine's middle stands NOSE ahead of t.d, each car its art length plus a coupling behind the one before
+  // (Tim 2026-11-21: the old spot, gap x cars, landed behind the guard van)
+  const CAR_LEN = { engine: 6.4, tender: 4.3, carriage: 6.3, goods: 4.2, wagon: 4.2, guard: 5.4 }, COUPLING = 0.35, NOSE = 6.5;
   function wagonAt(t, l) {
-    const consist = t.consist || T().consist || [], i = Math.max(0, consist.indexOf('goods'));
-    const d = Math.max(0, Math.min(l.length, t.d - t.dir * (2 + i) * (T().gap ?? 7)));
+    const kinds = ['engine', 'tender', ...(t.consist?.length ? t.consist : T().consist || [])].filter(k => CAR_LEN[k]);
+    const i = Math.max(kinds.lastIndexOf('goods'), kinds.lastIndexOf('wagon'), 0);
+    let off = 0; for (let k = 1; k <= i; k++) off += CAR_LEN[kinds[k - 1]] / 2 + COUPLING + CAR_LEN[kinds[k]] / 2;
+    const d = Math.max(0, Math.min(l.length, t.d + t.dir * (NOSE - off)));
     return pointAt(l, d);
   }
 
@@ -45,7 +50,7 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
       const f = factionOf(t.owner), type = typeof u.type === 'string' ? u.type : u.type?.[f] || Object.values(u.type || {})[0];
       const side = k % 2 ? 1 : -1, along = (Math.floor(k / 2) - 1) * 3;
       const x = w.x + nx * side * 4 + ax * along, z = w.z + nz * side * 4 + az * along;
-      const id = rt.spawn(type, u.model?.[f] || type, x, z, { owner: t.owner, place: 'world', area: 'world', trainGuard: t.id, warUnit: unit, home: [x, z], order: { kind: 'station', x, z } });
+      const id = rt.spawn(type, u.model?.[f] || type, x, z, { owner: t.owner, place: 'world', area: 'world', trainGuard: t.id, warUnit: unit, home: [x, z], aggro: B().guardAggro ?? 14, leash: B().guardLeash ?? 24, order: { kind: 'station', x, z, arrived: true } });   // aggro/leash: they go for anyone they see near the train (sim/combat.js)
       const e = state.entities[id];
       if (!e) return;
       refs.war?.()?.armory?.applyGuard?.(e);

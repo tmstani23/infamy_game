@@ -136,6 +136,8 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
   function stopLoop(id) { const l = loops.get(id); if (!l) return; const t = ctx.currentTime; l.g.gain.setTargetAtTime(0, t, 0.08); l.src.stop(t + 0.5); loops.delete(id); }
   function movementLoops(state, me) {
     if (!ctx) return;
+    // a Gatling whose crew went down or was taken away mid-burst sends no stop: end its loop here (Tim 2026-11-21)
+    for (const [id, gl] of [...gatlings]) { const e = state.entities[id]; if (!e || e.dead || e.downed || !e.gat) { const t = ctx.currentTime; gl.g.gain.setTargetAtTime(0, t, 0.05); for (const p of gl.parts) try { p.stop(t + 0.3); } catch {} gatlings.delete(id); } }
     const want = [];
     for (const e of Object.values(state.entities)) {
       if (e.dead || e.aboard) continue;

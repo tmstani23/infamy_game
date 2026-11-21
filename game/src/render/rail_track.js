@@ -215,7 +215,7 @@ export function createRailTrack({ scene, carSprite = null, hide = null, snow = n
       s.d += (predicted - s.d) * Math.min(1, dt * 8);
       // cars trail behind the engine, toward where it came from
       if (s.sprites) {
-        const moving = (t.wait ?? 0) <= 0, L = l.length * kk, head = s.d * kk + t.dir * NOSE;
+        const moving = (t.wait ?? 0) <= 0 && !t.stopped, L = l.length * kk, head = s.d * kk + t.dir * NOSE;   // (stopped at a blown track: wheels still, Tim 2026-11-21)
         let eng = null, tail = null;
         for (const c of s.cars) {
           if (!c.sprite) continue;
@@ -239,11 +239,11 @@ export function createRailTrack({ scene, carSprite = null, hide = null, snow = n
         }
         // steam from the chimney, and while it stands in a station a flashing badge and a bar running down to departure
         if (moving) s.waitFull = 0; else s.waitFull = Math.max(s.waitFull || 0, (t.wait ?? 0) / 20);
-        const whistle = moving && s.wasMoving === false;
+        const whistle = moving && s.wasMoving === false, brake = !!t.stopped && s.wasMoving === true;   // halting at a blown track: a blast of steam
         s.wasMoving = moving;
         s.fx ||= createTrainFx(scene);
         s.focus = eng;   // the drawn engine: the camera rides along with it (render/view.js)
-        s.fx.step(dt, eng, { mode: moving ? 'run' : 'idle', speed: t.v ?? t.speed ?? 36, whistle,
+        s.fx.step(dt, eng, { mode: moving ? 'run' : 'idle', speed: t.v ?? t.speed ?? 36, whistle, brake,
           wait: moving ? null : { left: Math.max(0, (t.wait ?? 0) / 20 - (clock - s.snapAt)), full: s.waitFull } });
         s.fx.lamps(eng, tail, night);
         continue;

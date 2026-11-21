@@ -81,4 +81,11 @@ assert.ok(!l.blast, 'cooldown over');
 assert.ok(run(4000, () => train().wait <= 0 && train().d > 20 && train().d < 400), 'train running');
 { const tr = train(), ahead = tr.d + tr.dir * 60; if (ahead > 10 && ahead < L - 10) { Object.assign(hero, { x: ax + ahead, z: az }); hero.order = { kind: 'stop' };
   assert.ok(run(400, () => hero.dead || hero.downed), 'hit by the train'); } }
+// Tim 2026-11-21: blown while the train stands at a station, it still sets out once, stops at the gap, backs home and is held
+S.tick = (l.blast?.safeUntil ?? S.tick) + 1; run(2);
+assert.ok(run(8000, () => train().d <= 0 && train().wait > 2), 'train standing at tA');
+{ const tr = train(), mid = L / 2; Object.assign(hero, { x: ax + mid, z: az, dead: false, downed: false, hp: hero.maxHp }); hero.order = { kind: 'stop' }; blast();
+  Object.assign(hero, { x: ax + mid, z: az + 30 });
+  assert.ok(run(4000, () => !!tr.stopped), 'it sets out and stops at the gap'); assert.ok(l.blast.sortie, 'its one run is used');
+  assert.ok(run(6000, () => !tr.stopped && tr.d <= 0), 'backs home'); run(400); assert.equal(tr.d, 0, 'held at home until the repair'); }
 console.log('test_train_blast: ok');

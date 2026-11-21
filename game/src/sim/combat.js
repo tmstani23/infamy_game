@@ -171,7 +171,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     const attacker = u => {
       const by = u.hitBy && state.tick - u.hitBy.tick < secs(RETALIATE_SECONDS) && state.entities[u.hitBy.id];
       // (speed pass 5b-5: the cheap checks first; the same answer)
-      return by && u.hitBy.tick > (o.recalledAt ?? -1) && (!cop(by) || by.wave) && Math.hypot(by.x - ax, by.z - az) < LEASH && hostile(e, by) && sees(e,by) ? by : null;
+      return by && u.hitBy.tick > (o.recalledAt ?? -1) && (!cop(by) || by.wave) && Math.hypot(by.x - ax, by.z - az) < (e.leash ?? LEASH) && hostile(e, by) && sees(e,by) ? by : null;
     };
     // Standing duties must answer a shot from outside their acquisition radius,
     // still within their normal leash and sector/visibility restrictions.
@@ -204,8 +204,10 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     }
     const f = fight[e.id];
     const old = f && state.entities[f.target];
-    if (hostile(e, old) && (!cop(old) || old.wave) && Math.hypot(old.x - ax, old.z - az) < LEASH) return old;
-    const near = nearestEnemy(e, e.x, e.z, AGGRO);
+    // e.aggro / e.leash: a unit's own, wider ranges (train guards, sim/frontier/rail_robbery.js); a train guard drops a
+    // target that went into hiding and takes the next one it can see (Tim 2026-11-21)
+    if (hostile(e, old) && (!cop(old) || old.wave) && Math.hypot(old.x - ax, old.z - az) < (e.leash ?? LEASH) && (!e.trainGuard || sees(e, old))) return old;
+    const near = nearestEnemy(e, e.x, e.z, e.aggro ?? AGGRO);
     if (islandReady && !e.guard && near) {
       const foe = near.owner || near.workerOwner;
       return Object.values(state.frontier?.wars?.list || {}).some(w => (w.attacker === e.owner && w.defender === foe) || (w.defender === e.owner && w.attacker === foe)) ? near : null;

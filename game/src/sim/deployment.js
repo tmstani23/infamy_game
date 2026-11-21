@@ -42,7 +42,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   const D = state.deployment, sectorIds = D.sectors.map(s => s.id);
   const localNavs = new Map();
   const crew = e => !!e && !!state.clans?.[e.owner] && e.type !== 'hero' && e.type !== 'civilian' && e.type !== 'settler' && !e.captain
-    && !e.guard && !e.cop && !e.wild && !e.warTroop;
+    && !e.guard && !e.cop && !e.wild && !e.warTroop && !e.trainGuard;   // (train guards are not city crew: bound to 'home' they could not fight, Tim 2026-11-21)
   const active = e => crew(e) && !e.dead && !e.jailed;
   const validGroup = id => id === 'home' || id === 'hero' || sectorIds.includes(id);
   function addClan(clan) {

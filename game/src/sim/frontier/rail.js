@@ -370,7 +370,9 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       if (t.call && (state.tick ?? 0) >= t.call.until) allAboard(t);   // the boarding call ran out
       // a closed line (its camp's supply line cut, or a town station in ruins): the train stays at the station it is
       // at, or runs on to the next one and stays there (Tim 2026-11-17)
-      if (l.closed && (t.d <= 0 || t.d >= l.length)) t.wait = Math.max(t.wait, 2);
+      // Tim 2026-11-21: a line blown by a charge still lets its train set out once (it stops at the gap, guards out, then
+      // backs up to its station and is held there until the repair), so the blast need not be timed
+      if (l.closed && (t.d <= 0 || t.d >= l.length) && !(l.cutBy === 'blast' && l.blast && !l.blast.sortie)) t.wait = Math.max(t.wait, 2);
       if (!l.closed && t.held) { delete t.held; arriveHook?.(t, l, t.d <= 0 ? l.from : l.to); }   // open again: it unloads and loads where it stood
       if (blast.gate(t, l, v)) continue;   // standing at a blown track (train robbery R1)
       if (t.wait > 0) { t.wait--; if (!t.wait) departHook?.(t, l, t.d <= 0 ? l.from : l.to); }   // last chance to load before it leaves
@@ -666,7 +668,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
   // a charge on the track; a robbery in progress shows its count down
   function prompt(e) {
     if (!e || e.place !== 'world') return null;
-    if (e.robbing) return { text: `Robbing the freight wagon: ${Math.max(0, Math.ceil((e.robbing.until - (state.tick ?? 0)) / 20))} s. Stay at the wagon.` };
+    if (e.robbing) return null;   // the ROBBING channel bar shows instead (Tim 2026-11-21)
     if (e.chest) return robbery.cashPoint(e) ? { mode: 'cashChest', text: 'Space  Cash in the stolen chest' } : null;
     if (typeof robbery.robCheck(e) !== 'string') return { mode: 'rob', text: 'Space  Rob the freight wagon' };
     if (typeof blast.layCheck(e) !== 'string') return { mode: 'blast', text: 'Space  Set a charge on the line' };

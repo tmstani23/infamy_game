@@ -38,6 +38,7 @@ for (let i = 0; i < 20 * 60 * 14 && !cashed; i++) {
   const t = train();
   if (t && !t.stopped && !robbed) t.freight = [{ order: 'o1', resource: 'ryo', amount: 400 }, { order: 'o2', resource: 'timber', amount: 200 }];
   Object.assign(hero, { hp: 1e6, downed: false, dead: false });
+  if (t?.stopped) for (const e of Object.values(S.entities)) if (e.trainGuard === t.id) e.dead = true;   // the guards fight for real now (Tim 2026-11-21); this lone test hero has no escort to beat them
   g.step(brain.tick());
   if (F.rail.links.r1.blast?.by === rival) blown = true;
   if (hero.chest && !robbed) { robbed = true; loot = { ...hero.chest.loot }; }

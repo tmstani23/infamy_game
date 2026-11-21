@@ -3,6 +3,7 @@
 //   fx.step(dt, engine, { mode: 'idle' | 'run' | null, speed, whistle, wait })
 //     engine: { x, z, fx, fz } its middle on the ground and the way it faces (unit), or null while it is out of sight
 //     mode: idle = standing in a station (slow soft wisps), run = moving (puffs, more the faster it goes)
+//     brake: true on the frame it halts at a blown track: a blast of steam from the cylinders and the chimney
 //     whistle: true on the frame it whistles (pulling out): a thin, fast plume straight up for a moment
 //     wait: { left, full } seconds while it stands in a station: a flashing badge and a bar that runs down
 //   fx.lamps(head, tail, night): night lamps (Tim 2026-11-07): a warm headlamp on the engine's front and a red tail lamp
@@ -17,6 +18,9 @@ const CHIMNEY = { fwd: 2.3, up: 3.55 };   // the chimney top from the engine's m
 const STEAM = {
   idle:    { every: 0.5, life: 3.8, rise: 1.0, size: [0.45, 2.8], alpha: 0.34, spread: 0.18, sway: 0.4 },
   run:     { every: 0.13, life: 2.1, rise: 2.6, size: [0.8, 3.4], alpha: 0.5, spread: 0.35, sway: 0.15 },
+  // an emergency stop at a blown track (Tim 2026-11-21): a hard blast of steam out of both cylinders, low by the front
+  // wheels, and a thick burst from the chimney, fading over a couple of seconds
+  brake:   { every: 0.03, life: 1.9, rise: 0.5, size: [0.5, 3.6], alpha: 0.6, spread: 0.25, sway: 0.25, seconds: 2.2, out: 3.4 },
   whistle: { every: 0.025, life: 0.85, rise: 12, size: [0.3, 0.85], alpha: 0.9, spread: 0.05, sway: 0, seconds: 1.6 },
 };
 const POOL = 110;
@@ -97,10 +101,28 @@ export function createTrainFx(scene) {
     p.age = 0; p.life = k.life * (0.85 + Math.random() * 0.3); p.k = k; p.phase = Math.random() * 6.3;
     p.mesh.visible = true;
   }
-  function step(dt, e, { mode = null, speed = 0, whistle = false, wait = null } = {}) {
+  // the cylinders: low on both sides at the engine's front; the jet shoots out sideways and a little forward
+  function emitBrake(e, k01) {
+    const k = STEAM.brake, p = puffs[next]; next = (next + 1) % POOL;
+    const side = Math.random() < 0.5 ? 1 : -1, chimney = Math.random() < 0.3;
+    const j = () => (Math.random() - 0.5) * 2 * k.spread;
+    if (chimney) { p.mesh.position.set(e.x + e.fx * CHIMNEY.fwd + j(), CHIMNEY.up, e.z + e.fz * CHIMNEY.fwd + j()); p.vx = j(); p.vz = j(); p.vy = 5 * k01; }
+    else {
+      p.mesh.position.set(e.x + e.fx * 2.4 - e.fz * side * 1.0 + j(), 0.7 + Math.random() * 0.3, e.z + e.fz * 2.4 + e.fx * side * 1.0 + j());
+      const out = k.out * k01 * (0.7 + Math.random() * 0.6);
+      p.vx = -e.fz * side * out + e.fx * out * 0.35; p.vz = e.fx * side * out + e.fz * out * 0.35; p.vy = k.rise * (0.6 + Math.random());
+    }
+    p.age = 0; p.life = k.life * (0.8 + Math.random() * 0.4); p.k = k; p.phase = Math.random() * 6.3;
+    p.mesh.visible = true;
+  }
+  let brakeLeft = 0, brakeTimer = 0;
+  function step(dt, e, { mode = null, speed = 0, whistle = false, wait = null, brake = false } = {}) {
     clock += dt;
     if (whistle) whistleLeft = STEAM.whistle.seconds;
     whistleLeft = Math.max(0, whistleLeft - dt);
+    if (brake) brakeLeft = STEAM.brake.seconds;
+    brakeLeft = Math.max(0, brakeLeft - dt);
+    if (e && brakeLeft > 0) { brakeTimer += dt; while (brakeTimer >= STEAM.brake.every) { brakeTimer -= STEAM.brake.every; emitBrake(e, 0.35 + 0.65 * brakeLeft / STEAM.brake.seconds); } }
     if (e) {
       const go = (kind, every) => { timers[kind] += dt; while (timers[kind] >= every) { timers[kind] -= every; emit(kind, e, speed); } };
       if (mode === 'idle') go('idle', STEAM.idle.every);

@@ -14,7 +14,7 @@ const DEFAULTS = { darkRange: 2, litRange: 5, indoorRange: 2, runFactor: 2, reve
   snuffPerNight: 3, snuffSeconds: 1, snuffReach: 7, snuffArea: 2.5, every: 1 };
 
 export const indoorLightId = (room,index) => `room:${room}:${index}`;
-export function createStealth({ state, scenery, rooms = [], rules = {}, say = () => {}, lineOfSight = () => true, observerKnown = () => false, warRules = () => null, detectOf = () => 0, towers = () => [], inWarCircle = () => false, islandCover = () => false, islandLit = () => false }) {
+export function createStealth({ state, scenery, rooms = [], rules = {}, say = () => {}, lineOfSight = () => true, observerKnown = () => false, warRules = () => null, detectOf = () => 0, towers = () => [], inWarCircle = () => false, islandCover = () => false, islandLit = () => false, lanterns = () => [] }) {
   const R = { ...DEFAULTS, ...rules };
   // the lanterns the sim knows about: lit props (lantern posts, stone lanterns, braziers...)
   const lights = scenery.filter(s => !s.indoor && s.prop !== undefined && s.item?.lights?.length).map(s => ({ prop: s.prop, x: s.x, z: s.z,place:'street',radius:R.lightRadius }));
@@ -96,6 +96,7 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
   }
 
   function tick() {
+    let lanternList = null;   // train guard lanterns, fetched once a tick when a ninja is out on the island
     // a snuff in progress: done after snuffSeconds; walking on doesn't cancel it (Tim 2026-10-21:
     // the puff went off while moving and the lantern stayed lit), only being knocked down
     for (const e of Object.values(state.entities)) {
@@ -136,6 +137,8 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
       if (veiled(e)) { e.hidden = true; e.stealthStatus.mode = 'veil'; e.stealthStatus.concealment = 1; suspicion.delete(e.id); continue; }
       // inside its own clan's Smoke Bomb: hidden unless attacking, but that doesn't count as hidden time
       if (state.smokes?.some(s => s.clan === e.owner && s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r)) { e.hidden = !exposed(e); e.stealthStatus.mode = 'smoke'; e.stealthStatus.concealment = e.hidden ? 1 : 0; suspicion.delete(e.id); if (!e.hidden) e.hiddenAt = null; continue; }
+      // a stopped train's guard lantern shows anyone hidden near its freight wagon (game.js trainLanterns)
+      if (e.place === 'world' && !veiled(e)) { const L = lanternList ||= lanterns(); if (L.some(l => l.owner !== e.owner && (l.x - e.x) ** 2 + (l.z - e.z) ** 2 <= l.range * l.range)) { e.revealUntil = state.tick + 10; e.hiddenAt = null; } }
       if ((e.revealUntil ?? -1) > state.tick) { e.hidden = false; continue; }
       const r = range(e), r2 = r * r;
       const memory = suspicion.get(e.id) || new Map(), active = new Set(); let maximum = 0;

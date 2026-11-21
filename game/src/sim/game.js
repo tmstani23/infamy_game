@@ -270,9 +270,15 @@ export function createGame(options) {
     for (const s of Object.values(state.frontier?.settlements || {})) if (Number.isFinite(s.x) && !s.capital && Math.hypot(x - s.x, z - s.z) <= (rings[(s.tier || 1) - 1]?.ring ?? 150)) return true;
     for (const w of Object.values(state.frontier?.wars?.list || {})) for (const b of w.camp?.buildings || []) if (Math.hypot(x - b.x, z - b.z) <= L) return true;
     for (const c of options.world?.camps || []) if (Math.hypot(x - c.x, z - c.z) <= L) return true;
+    // the guard's red lantern on a stopped train's freight wagon lights wagonLight round it (Tim 2026-11-21, render/stolen_chest.js)
+    const WL = FST.wagonLight ?? 5;
+    for (const t of Object.values(state.frontier?.rail?.trains || {})) if (t.stopped && t.wagonSpot && Math.hypot(x - t.wagonSpot.x, z - t.wagonSpot.z) <= WL) return true;
     return false;
   };
-  const stealth = createStealth({ islandCover, islandLit, inWarCircle: (x, z) => !!frontier?.war?.warsAt?.(x, z)?.length, warRules: e => units?.types?.[e?.type]?.kunoichi || null, detectOf: e => units?.types?.[e?.type]?.detect || 0, towers: () => frontier?.structures?.watchers?.() || [], state, scenery, rooms, rules: units?.rules?.stealth,
+  // the guard's lantern of a stopped train shows every hidden enemy within wagonReveal of the freight wagon to the train's
+  // owner, whichever way the guards face, like a watchtower (Tim 2026-11-21; placeholder number)
+  const trainLanterns = () => Object.values(state.frontier?.rail?.trains || {}).filter(t => t.stopped && t.wagonSpot).map(t => ({ owner: t.owner, x: t.wagonSpot.x, z: t.wagonSpot.z, range: FST.wagonReveal ?? 8 }));
+  const stealth = createStealth({ islandCover, islandLit, inWarCircle: (x, z) => !!frontier?.war?.warsAt?.(x, z)?.length, warRules: e => units?.types?.[e?.type]?.kunoichi || null, detectOf: e => units?.types?.[e?.type]?.detect || 0, towers: () => [...(frontier?.structures?.watchers?.() || []), ...trainLanterns()], lanterns: () => trainLanterns(), state, scenery, rooms, rules: units?.rules?.stealth,
     observerKnown: (e, u) => vision.canSee(e.owner, u),
     lineOfSight: (a, b) => clearSight(a, b, a.place === 'street' ? opaqueStreet : [...roomBlockers, ...interiorDoors.filter(d => d.place === a.place && !state.interiorDoors[d.id]).map(d => d.blocker)]),
     say: (clan, text) => { clan.notice = { tick: state.tick, text }; } });

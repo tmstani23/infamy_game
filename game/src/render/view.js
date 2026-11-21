@@ -335,7 +335,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
   function updateLights(time) {
     const wild = ((heroPlace === 'world' && !cityView) || worldView) && heroPos ? [...(worldGround?.lights() || []), Object.assign(wildGlow, { pos: wildGlow.pos.set(heroPos.x, 1.2 + groundY(heroPos.x, heroPos.z), heroPos.z) })] : [];
-    const trainLamps = [...(railTrack?.lights() || []), ...(cityStation?.lights() || [])];   // train oil lamps (render/train_fx.js)
+    const trainLamps = [...(railTrack?.lights() || []), ...(cityStation?.lights() || []), ...(stolenChests?.lights() || [])];   // + the robbery guard's lantern (render/stolen_chest.js)   // train oil lamps (render/train_fx.js)
     const near = [...lights, ...wild, ...trainLamps].filter(l => !l.off)
       .map(l => ({ l, d: (l.pos.x - camTarget.x) ** 2 + (l.pos.z - camTarget.z) ** 2 }))
       .sort((a, b) => a.d - b.d).slice(0, MAX_LIGHTS);
@@ -544,8 +544,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     mark('ground');
     railTrack?.update(state.frontier, (heroPlace === 'world' && !cityView) || worldView, dt, shared.uNight.value);
     if (railBlastFx) syncRailBlast(state, (heroPlace === 'world' && !cityView) || worldView, dt);
+    // a hero robbing a freight wagon: loot hops out of the wagon into his hands (Tim 2026-11-21)
+    chestCashFx.steal(((heroPlace === 'world' && !cityView) || worldView) ? Object.values(state.entities).filter(e => e.robbing?.until > state.tick && e.place === 'world' && !e.dead && !e.downed && sprites.get(e.id)?.thing.mesh.visible).map(e => { const t = state.frontier?.rail?.trains?.[e.robbing.train], p = sprites.get(e.id).pos; return t?.wagonSpot ? { id: e.id, from: t.wagonSpot, to: { x: p.x, y: p.y, z: p.z } } : null; }).filter(Boolean) : [], dt);
     chestCashFx.update(dt);   // cashing a stolen chest: the loot flies into the hall
-    stolenChests?.update((heroPlace === 'world' && !cityView) || worldView, state.frontier?.rail?.chests, Object.values(state.entities).filter(e => e.chest && e.place === 'world' && !e.dead && sprites.get(e.id)).map(e => { const p = sprites.get(e.id).pos; return { id: e.id, x: p.x, y: p.y, z: p.z }; }), dt, Object.values(state.frontier?.rail?.trains || {}).filter(t => t.stopped && t.wagonSpot && !state.frontier.rail.links?.[t.link]?.blast?.robbed).map(t => ({ id: t.id, x: t.wagonSpot.x, z: t.wagonSpot.z, fast: !!t.robbing })));   // train robbery: the stolen chest carried and dropped
+    stolenChests?.update((heroPlace === 'world' && !cityView) || worldView, state.frontier?.rail?.chests, Object.values(state.entities).filter(e => e.chest && e.place === 'world' && !e.dead && sprites.get(e.id)).map(e => { const p = sprites.get(e.id).pos; return { id: e.id, x: p.x, y: p.y, z: p.z }; }), dt, Object.values(state.frontier?.rail?.trains || {}).filter(t => t.stopped && t.wagonSpot).map(t => ({ id: t.id, x: t.wagonSpot.x, z: t.wagonSpot.z, fast: !!t.robbing, robbed: !!state.frontier.rail.links?.[t.link]?.blast?.robbed })));   // train robbery: the stolen chest carried and dropped, the guard's lantern on a stopped train
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
     cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);

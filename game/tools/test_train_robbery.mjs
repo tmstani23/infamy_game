@@ -44,6 +44,16 @@ const want = B.guards[faction].map(u => frontier.war.units[u]).map(u => typeof u
 assert.deepEqual(guards().map(e => e.type).sort(), want, `${faction} guard mix`);
 assert.ok(guards().every(e => e.owner === rival), 'guards are the owner\'s');
 
+// the guards go for a robber they can see, hidden or not at the wagon (lantern), and chase (Tim 2026-11-21: they were
+// bound to the city as 'home' crew and never fought)
+{ const w0 = g.frontier.rail.robbery.wagonAt(t, l), hp0 = hero.hp;
+  Object.assign(hero, { x: w0.x + 3, z: w0.z, hp: 1e6, maxHp: 1e6 }); hero.order = { kind: 'stop' };
+  run(80);
+  assert.ok(!hero.hidden, 'the lantern shows a robber at the wagon');
+  assert.ok(hero.hp < 1e6, 'the guards attack a robber at the wagon');
+  assert.ok(guards().every(e => !e.deployment || g.deployment.canActAt(e, hero.x, hero.z, 'world')), 'guards are not bound to a city sector');
+  for (const e of guards()) { Object.assign(e, { x: w0.x + 300, z: w0.z + 300 }); e.order = { kind: 'station', x: e.x, z: e.z, arrived: true }; delete e.gat; }   // parked far off: the rest of this test is about the hold itself
+  Object.assign(hero, { x: w0.x + 30, z: w0.z, hp: hp0, maxHp: Math.max(hero.maxHp === 1e6 ? hp0 : hero.maxHp, hp0) }); delete hero.hitAt; delete hero.hitBy; run(1); }
 // rob: off the wagon refused; at it the hold runs holdSeconds; half of everything aboard into the chest
 cmd('rob'); assert.match(notice(), /freight wagon/i, 'must stand at the wagon');
 const w = g.frontier.rail.robbery.wagonAt(t, l);
@@ -51,7 +61,7 @@ Object.assign(hero, { x: w.x + 1, z: w.z }); hero.order = { kind: 'stop' };
 assert.equal(g.frontier.rail.prompt(hero)?.mode, 'rob', 'Space robs at the wagon');
 cmd('rob'); assert.ok(hero.robbing, 'hold started');
 assert.ok(t.robbing && t.wagonSpot, 'wagon marked to flash');
-assert.match(g.frontier.rail.prompt(hero)?.text || '', /Robbing the freight wagon: \d+ s/, 'hold count down shown');
+assert.equal(g.frontier.rail.prompt(hero), null, 'no Space prompt while the ROBBING bar runs (Tim 2026-11-21)');
 assert.match(S.clans[rival].notice?.text || '', /being robbed/i, 'owner told');
 // stepping off breaks it
 Object.assign(hero, { x: w.x + 20, z: w.z }); run(1); assert.ok(!hero.robbing && /broken/i.test(notice()), 'stepping off breaks it');
