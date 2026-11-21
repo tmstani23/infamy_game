@@ -45,6 +45,12 @@ export function townCellTip(s, cell, data, clans = null) {
       if(st>0 && st<def.stages.length)lines.push(goods>0?`Next level needs goods (${goods} per economy tick)${s.goodsShort || !(s.stock.goods>0)?' · missing':''}`:'Next level: road and healthy zone');
       if(st>=def.stages.length)lines.push('Largest house');
     }
+    if(def.output) {   // Tim 2026-11-21: say what the zone makes, per second and per hour (one economy tick is cadenceTicks / 20 s)
+      const sec=(data.cadenceTicks || 20)/20, n=v=>Number(v.toPrecision(3)), rate=v=>`${n(v/sec)}/s, ${n(v*3600/sec)}/hr`;
+      const made=Object.entries(def.output).map(([r,v])=>`${r} ${rate(v)}`).join(' + '), now=zone?.output || 0;
+      lines.push(`Output: ${made} per plot level at full workers${def.trait?' (soil changes it)':''}`);
+      lines.push(now>0?`Making now: ${Object.keys(def.output).join('/')} ${rate(now)} (whole ${kind} zone)`:'Making nothing now');
+    }
     if(def.inputs)for(const [r,amount] of Object.entries(def.inputs))lines.push(`Input: ${amount} ${r} per goods produced${(s.stock[r] || 0)<=0?' · missing':''}`);
     if(g.ground[cell]==='o')lines.push('Needs ground clearing before growth');
     if(Number(g.stage[cell])<def.stages.length)lines.push(`Growth: ${s.zoneGrow?.[cell] || 0} / ${def.growTicks} healthy economy ticks`);
@@ -55,6 +61,12 @@ export function townCellTip(s, cell, data, clans = null) {
     lines.push(createZones({ data }).linkedRoads(s)[cell]
       ? `\u0001Linked to the town hall: zones within ${reach} cells can grow`
       : `\u0002Not linked to the town hall: zones near it get no road access. Join it to the hall with more road or gate cells.`);
+  }
+  const bt=b?.stage==='built'&&!entry?data.buildings?.[b.type]:null;   // a placed farmhouse or workshop (camps gather by hand: no passive output)
+  if(bt&&['farm','workshop'].includes(b.type)) {
+    const sec=(data.cadenceTicks || 20)/20, n=v=>Number(v.toPrecision(3)), rate=v=>`${n(v/sec)}/s, ${n(v*3600/sec)}/hr`;
+    if(bt.output)lines.push(`Output: ${Object.entries(bt.output).map(([r,v])=>`${r} ${rate(v)}`).join(' + ')} per worker, ${bt.jobs} jobs`);
+    if(bt.recipe)lines.push(`Output: ${Object.entries(bt.recipe.out).map(([r,v])=>`${r} ${rate(v/bt.recipe.everyTicks)}`).join(' + ')} with a full crew of ${bt.jobs}`,`Uses: ${Object.entries(bt.recipe.in).map(([r,v])=>`${r} ${rate(v/bt.recipe.everyTicks)}`).join(' + ')}`);
   }
   const details=BUILD_DETAILS[b?.type || p?.type];if(details)lines.push(...details);
   return { title: townName(b?.type || p?.type || kind || ({ r: 'road', w: 'wall', g: 'gate' }[g.use[cell]])), lines, hall: b?.type === 'town_hall' && b.stage === 'built', stable: b?.type === 'stable' && b.stage === 'built' && s.owner != null, camp: b && b.stage === 'built' && (data.workers?.gatherBuildings || []).includes(b.type) && data.workers?.carts ? b : null };
