@@ -7,6 +7,7 @@
 // The player types the percentage (Governor tab, command setFund); 0 = no military building. A player's new town
 // starts at the value of his last one (frontier.fundPctLast), else fund.startPct. A bot town's percentage comes
 // from its clan's hidden war strategy (fund.byStrategy). s.fund = { pct, timber, stone, ryo, cap, next, set? }.
+import { storageCap } from './storage.js';
 export const FUND_RES = ['timber', 'stone', 'ryo'];
 const rules = data => data.war?.general?.fund || {};
 const EPS = 1e-9;
@@ -66,11 +67,14 @@ export function fundRefund(s, cost, world) {
 }
 
 // everything in the fund back to the town (war chest first for ryo when w is given): returns what moved
-export function fundEmpty(s, world, toChest = null) {
+// data given: only what the town's store has room for moves, the rest waits in the fund (2026-11-21: stock handed
+// back to a full store was lost as overflow)
+const roomFor = (s, data, r, v) => { if (!data) return v; const cap = storageCap(s, data, r); return Number.isFinite(cap) ? Math.max(0, Math.min(v, Math.floor(cap - (s.stock[r] || 0)))) : v; };
+export function fundEmpty(s, world, toChest = null, data = null) {
   const f = s.fund; if (!f) return null;
   const out = {};
   for (const r of FUND_RES) {
-    const v = Math.floor(f[r] || 0); if (v <= 0) continue;
+    const all = Math.floor(f[r] || 0), v = r === 'ryo' && toChest ? all : roomFor(s, data, r, all); if (v <= 0) continue;
     f[r] -= v; out[r] = v;
     if (r === 'ryo' && toChest) toChest(v); else world.change(s.id, r, v, 'fund');
   }
@@ -87,8 +91,8 @@ export function setFundPct(s, data, state, pct) {
 
 // The general's look (war_general_brain.js prepare): cap = what is left of his list at this tier plus his plot road;
 // a fund above its cap gives the rest back to the town. next = what he is saving for.
-export function setFundCap(s, world, cap, next) {
+export function setFundCap(s, world, cap, next, data = null) {
   const f = s.fund; if (!f) return;
   f.cap = { timber: 0, stone: 0, ryo: 0, ...cap }; f.next = next || '';
-  for (const r of FUND_RES) { const over = Math.floor((f[r] || 0) - f.cap[r]); if (over > 0) { f[r] -= over; world.change(s.id, r, over, 'fund'); } }
+  for (const r of FUND_RES) { const over = roomFor(s, data, r, Math.floor((f[r] || 0) - f.cap[r])); if (over > 0) { f[r] -= over; world.change(s.id, r, over, 'fund'); } }
 }

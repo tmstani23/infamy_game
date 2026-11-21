@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fundOf, fundPct, takeShare, fundHas, fundPay, fundEmpty, setFundPct, setFundCap } from '../src/sim/frontier/fund.js';
 const data = JSON.parse(readFileSync(new URL('../data/frontier.json', import.meta.url)));
-const R = data.war.general.fund;
+import { storageCap } from '../src/sim/frontier/storage.js';
+const R = data.war.general.fund, storageCapOf = s => storageCap(s, data, 'timber');
 const town = (owner = 'p', extra = {}) => ({ id: 't', owner, grid: { n: 3 }, founded: 0, autoBuild: true, stock: { timber: 0, stone: 0, ryo: 0, food: 0 }, ...extra });
 const state = { clans: { p: {}, b: { bot: true, warStrategy: 'rush' } }, frontier: {} };
 const world = s => ({ change: (id, r, v) => { s.stock[r] += v; }, fundIn: (id, r, v) => { s.stock[r] += v; } });
@@ -40,6 +41,12 @@ const world = s => ({ change: (id, r, v) => { s.stock[r] += v; }, fundIn: (id, r
   s.fund.timber = 7; let chest = 0;
   assert.deepEqual(fundEmpty(s, world(s), v => { chest += v; }), { timber: 7, ryo: 4 });
   assert.equal(chest, 4); assert.equal(s.stock.timber, 22); assert.equal(s.fund.ryo + s.fund.timber, 0);
+}
+{ // a full store: what is handed back waits in the fund until there is room (nothing is lost as overflow)
+  const s = town(); fundOf(s, data, state); Object.assign(s.fund, { timber: 50, cap: { timber: 50, stone: 0, ryo: 0 } });
+  const cap = storageCapOf(s); s.stock.timber = cap - 20;
+  setFundCap(s, world(s), {}, '', data); assert.equal(s.stock.timber, cap); assert.equal(s.fund.timber, 30, 'the rest waits');
+  s.stock.timber = 0; setFundCap(s, world(s), {}, '', data); assert.equal(s.fund.timber, 0); assert.equal(s.stock.timber, 30);
 }
 { // a rival's share comes from its hidden strategy, whatever its town's box says
   const s = town('b', { autoBuild: false }); fundOf(s, data, state).pct = 0;

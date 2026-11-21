@@ -266,6 +266,8 @@ export function createGeneralBrain(game, { clan }) {
       if ((def.needs || []).some(nd => /^tier(\d+)$/.test(nd) && Number(nd.slice(4)) > tier)) continue;   // not at this tier
       const why = militaryWhy(s, type, data, state);
       if (why && /at most/.test(why)) continue;
+      // a player's town builds only inside its military quarter: he does not save for what has no room there
+      if (!why && !militaryNeeds(s, type, data).length && !state.clans[s.owner]?.bot && spotFor(s, type, true) == null) continue;
       add(buildingCost(data, type, s)); next ||= type.replace(/_/g, ' ');
     }
     const road = (s.milPlot?.road || []).filter(i => s.grid.use[i] === '.').length;
@@ -281,7 +283,7 @@ export function createGeneralBrain(game, { clan }) {
       // the fund goes back to the town (design review 2026-11-21: 0 means no military building, and no stock is locked up)
       const idle = !(fundPct(s, data, state) > 0) || (!state.clans[s.owner]?.bot && !s.grid.zone.includes(data.zones?.military?.char));
       const fc = idle ? { cap: {}, next: '' } : fundCap(s, list, data);
-      setFundCap(s, F().world, fc.cap, fc.next);
+      setFundCap(s, F().world, fc.cap, fc.next, data);
       if (idle) return;
     }
     if (fund) zoneOnly = false;   // the fund decides what he may spend; the quarter decides where (spotFor keeps to it in player towns)

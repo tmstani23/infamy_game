@@ -1039,7 +1039,7 @@ Safety fund (sim/frontier/fund.js, data/frontier.json war.general.fund, placehol
 - The percentage is a typed box with minus and plus on the Governor tab (command setFund); 0 means no military building. It starts at war.general.fund.startPct; a player's new town copies his last value. Rivals use war.general.fund.byStrategy (Rush 20, Raider 14, Siege 8).
 - Cap = what is left of his list at this tier plus the pending quarter road; above the cap the share stays with the town. One readout line shows what is in the fund and what he is saving for.
 - When the town is attacked, the fund pours into the war chest (ryo) and stock (timber, stone).
-- A player's town with initiative Off sets nothing more aside (what is in the fund stays and still pours on attack). A share of 0, or a player's auto town with no military quarter, hands the fund back to the town and builds nothing. Stock handed back into a full store is lost like other overflow.
+- A player's town with initiative Off sets nothing more aside (what is in the fund stays and still pours on attack). A share of 0, or a player's auto town with no military quarter, hands the fund back to the town and builds nothing. Stock handed back waits in the fund while the store is full (2026-11-21). A player's town saves only for list buildings that fit its military quarter.
 - Old saves: towns start at 10 percent with no plot.
 
 Goal cards (sim/campaign_goals.js), first town only, after Give him his orders; a save already past Open a Market skips them:

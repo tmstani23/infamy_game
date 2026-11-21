@@ -280,7 +280,7 @@ function scene(seed = 47, tune = null) {
   // a share of 0: he builds nothing and what was in the fund goes back to the town (design review 2026-11-21)
   { const u = scene(), s = u.S.frontier.settlements.tP;
     assert.equal(u.cmd({ action: 'zone', town: 'tP', kind: 'military', rect: rectOf(s) }).ok, true);
-    fill(s); s.fund.pct = 0; s.autoBuild = true; s.stock.stone = 100; const before = s.stock.stone; u.run(1300);
+    fill(s); Object.assign(s.fund, { pct: 0, timber: 300, stone: 300, ryo: 300 }); s.autoBuild = true; s.stock.stone = 100; s.stock.timber = 100; const before = s.stock.stone; u.run(1300);
     assert.ok(![...s.projects, ...s.buildings].some(x => isMil(x.type)), 'fund share 0: no military building');
     assert.ok(s.fund.timber + s.fund.stone + s.fund.ryo < 1 && s.stock.stone > before, 'the fund went back to the town'); }
   // no zone painted: on auto the general reserves his own quarter, builds his first building inside it from the fund
@@ -290,7 +290,7 @@ function scene(seed = 47, tune = null) {
     assert.ok(mil.length >= 1 && mil.every(x => (x.cells || [x.cell]).some(c => plot.includes(c))), 'and builds inside it');
     assert.ok([...s.grid.zone].every((c, k) => c !== 'm' || plot.includes(k)), 'one block only'); }
   // the player erased the quarter: it is not painted again, nothing is built and the fund is handed back
-  { const u = scene(), s = u.S.frontier.settlements.tP; fill(s); s.milPlot = { tier: 1, cells: [1], road: [], erased: true }; s.autoBuild = true; u.run(1300);
+  { const u = scene(), s = u.S.frontier.settlements.tP; fill(s); Object.assign(s.fund, { timber: 300, stone: 300, ryo: 300 }); Object.assign(s.stock, { timber: 100, stone: 100 }); s.milPlot = { tier: 1, cells: [1], road: [], erased: true }; s.autoBuild = true; u.run(1300);
     assert.ok(!s.grid.zone.includes('m') && ![...s.projects, ...s.buildings].some(x => isMil(x.type)), 'erased: no quarter, no building');
     assert.ok(s.fund.timber + s.fund.stone + s.fund.ryo < 1, 'no military quarter: nothing stays locked in the fund'); }
   // no zone: the player's general builds nothing, even with the initiative On
@@ -553,7 +553,9 @@ function scene(seed = 47, tune = null) {
   for (k = 0; k < 20 && !orders().some(o => o.to === node && o.resource === 'timber'); k++) t.run(20);
   assert.ok(orders().some(o => o.to === node && o.resource === 'timber' && o.state === 'open'), 'timber ordered into the camp (the open ryo orders take no wagon room)');
   t.run(200);
-  assert.ok(g.frontier.shipments.openIncoming(node, 'timber') + g.frontier.shipments.openIncoming(node, 'stone') <= 360, 'its orders stay within what the line queues');
+  // what the line queues: queueTrips trainloads (goods wagons x wagonLoad), read from data (was a fixed 360 from when a wagon held 60)
+  const RW = t.o.frontier.railways, lineQueue = (RW.ship.queueTrips ?? 3) * Math.max(1, (RW.train.consist || []).filter(k => k === 'goods').length) * (RW.ship.wagonLoad ?? 60);
+  assert.ok(g.frontier.shipments.openIncoming(node, 'timber') + g.frontier.shipments.openIncoming(node, 'stone') <= lineQueue, 'its orders stay within what the line queues');
   // the player's away general (hero outside the circle) refills the defending chest from the treasury by train, above the keep line only
   S.clans.player.ryo = 900; g.frontier.world.syncCapital(); w.defense ||= { chest: 0, put: 0 }; w.defense.chest = 0; tP.stock.ryo = 0;
   t.run(200);
