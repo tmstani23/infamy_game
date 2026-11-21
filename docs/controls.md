@@ -41,7 +41,7 @@ Keys shown in the tables below are defaults; Settings > Controls changes them, a
 | M map → World tab, click empty ground or the Capital (test build only) | Confirm instant travel there (needs the dev frontier flag and campaign; to be replaced by real travel). |
 | Right-click a bandit's body | Walk over and loot its ryo (WASD cancels) |
 | Space by a raider's War Lantern | Knock it down (5 s channel; moving or a hit cancels). Raid warm-up is 45 s |
-| Space beside a railway line, at a stopped train's freight wagon, or at your town hall or war camp with a stolen chest | Set a rail charge (not within 24 units of a station); rob the wagon (hold 30 s); cash the chest |
+| Space beside a railway line, at a stopped train's freight wagon, or at your town hall or war camp with a stolen chest | Set a rail charge (not within 24 units of a station); rob the wagon (hold 30 s); cash the chest Robbing is Space only (no right-click). The world prompt shows the Use key as a gold keycap that flashes gold each time a Use action comes up, then glows slowly while it stays available. |
 | Double-click the red raid alarm | Camera to the raided business |
 | Click the red lantern bar | A rival is knocking down your War Lantern (5 s): target him (any hit stops his channel) |
 | Hideouts | Your inn and the rival's izakaya (H on the minimap) are locked to other clans ("<clan> hideout: no way in"); police can still go in |

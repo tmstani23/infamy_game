@@ -45,6 +45,15 @@ function paint(kind) {
     g.fillStyle = '#c99a55'; g.lineWidth = 1;
     g.beginPath(); g.moveTo(3, 9); g.lineTo(19, 9); g.lineTo(16.5, 16.5); g.lineTo(5.5, 16.5); g.closePath(); g.fill(); g.stroke();
     g.strokeStyle = '#8a6430'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(4.2, 12); g.lineTo(17.8, 12); g.moveTo(5, 14.5); g.lineTo(17, 14.5); g.stroke();
+  } else if (kind === 'coin') {
+    // a gold koban (oval ryo coin) with its stamped lines and a bright rim (Tim 2026-11-21: ryo flies as little coins)
+    g.fillStyle = '#d9a92e'; g.strokeStyle = ink; g.lineWidth = 1;
+    g.beginPath(); g.ellipse(11, 9, 6, 7.5, 0, 0, Math.PI * 2); g.fill(); g.stroke();
+    g.fillStyle = '#f4d46a'; g.beginPath(); g.ellipse(10, 8, 4.2, 5.6, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#a87a1c'; g.lineWidth = 0.7; g.beginPath();
+    for (const y of [5, 7.5, 10, 12.5]) { g.moveTo(8, y); g.lineTo(14, y); }
+    g.stroke();
+    g.fillStyle = '#fff6d0'; g.beginPath(); g.ellipse(8.2, 5.2, 1.2, 1.8, -0.4, 0, Math.PI * 2); g.fill();
   } else {
     // a tied rice sack (any other food or goods)
     g.fillStyle = '#e2d3a8'; g.strokeStyle = ink; g.lineWidth = 1;

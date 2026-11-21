@@ -24,6 +24,7 @@ import { createWeather } from './weather.js';
 import { createRailTrack, createCityStation } from './rail_track.js';
 import { createRailBlastFx } from './rail_blast_fx.js';
 import { createStolenChests } from './stolen_chest.js';
+import { createChestCashFx } from './chest_cash_fx.js';
 import { islandBiome } from '../sim/island_art.js';
 import { pointAt } from '../sim/frontier/rail_route.js';
 import { createFerryShips, seaSpot } from './ferry_ships.js';
@@ -542,6 +543,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     mark('ground');
     railTrack?.update(state.frontier, (heroPlace === 'world' && !cityView) || worldView, dt, shared.uNight.value);
     if (railBlastFx) syncRailBlast(state, (heroPlace === 'world' && !cityView) || worldView, dt);
+    chestCashFx.update(dt);   // cashing a stolen chest: the loot flies into the hall
     stolenChests?.update((heroPlace === 'world' && !cityView) || worldView, state.frontier?.rail?.chests, Object.values(state.entities).filter(e => e.chest && e.place === 'world' && !e.dead && sprites.get(e.id)).map(e => { const p = sprites.get(e.id).pos; return { id: e.id, x: p.x, y: p.y, z: p.z }; }), dt, Object.values(state.frontier?.rail?.trains || {}).filter(t => t.stopped && t.wagonSpot && !state.frontier.rail.links?.[t.link]?.blast?.robbed).map(t => ({ id: t.id, x: t.wagonSpot.x, z: t.wagonSpot.z, fast: !!t.robbing })));   // train robbery: the stolen chest carried and dropped
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
@@ -589,6 +591,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (c.kind === 'boarded') { const s = sprites.get(c.a); if (s) s.flash = 0.7; hitFx.note(c.x, c.z, `${c.n} aboard`); }   // crew popped in (sim/omnibus.js)
       // the shakedown dynamite: a small blast of the same kind (Tim 2026-11-20); shakedownfx.js keeps its flash and ring
       if (c.kind === 'dynamiteBlast' && (c.place || 'street') === heroPlace) railBlastFx.blast(c.x, c.z, 0, { scale: 0.38, shake: false });
+      if (c.kind === 'chestCashed' && heroPlace === 'world') chestCashFx.cash(c);   // Tim 2026-11-21: the stolen loot flies into the hall
       if (c.kind === 'railBlast' && railBlastFx) { railBlastFx.blast(c.x, c.z, c.heading || 0); railShakeK = Math.max(0, 1 - Math.hypot(c.x - camTarget.x, c.z - camTarget.z) / 45); }   // train robbery: the charge goes off
       if (c.kind === 'cannonFire') { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
       if (c.kind === 'assassinate') { shakeT = 0.26; shakeAmp = 0.2; freezeT = Math.max(freezeT, 0.1); }   // the vicious flash hits hard
@@ -597,6 +600,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
   let shakeT = 0, shakeAmp = 0, freezeT = 0;
   // train robbery (sim/frontier/rail_blast.js): the burning charge on a line and the blown gap while it is repaired
+  const chestCashFx = createChestCashFx({ scene });
   const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null;   // fx id -> 'charge' | 'crater'
   let railShakeK = 0;
   function syncRailBlast(state, show, dt) {

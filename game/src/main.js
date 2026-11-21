@@ -894,8 +894,11 @@ async function start() {
       const lamp = !door && !travel && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
       const allAboard = stationMenu.callPrompt() || warOutcome.prompt() || game.ferry?.prompt(game.state.entities[heroId])?.text || game.frontier?.rail?.prompt?.(game.state.entities[heroId])?.text;   // (or the ruined hall of a war: take it)
       // the world prompts name the Use key: whatever it is bound to now (Tim 2026-11-12)
-      const usePrompt = t => typeof t === 'string' && t.startsWith('Space  ') ? keybinds.badge('use') + t.slice(5) : t;
-      $('prompt').textContent = usePrompt(allAboard ? allAboard : knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? (door.menu === 'rail_station' && stationMenu.trainPrompt()) || `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`
+      // Tim 2026-11-20: the key is a gold keycap and the prompt flashes gold when a Use action comes up (index.html #prompt.act)
+      const setPrompt = t => { t = t || ''; const el = $('prompt'), use = t.startsWith('Space  '), key = use ? keybinds.badge('use') : '', sig = key + '|' + t; if (el.dataset.sig === sig) return; el.dataset.sig = sig; el.textContent = '';
+        if (use) { const k = document.createElement('kbd'); k.className = 'usekey'; k.textContent = key; el.append(k); }
+        el.append(use ? t.slice(7) : t); el.classList.remove('act'); if (use) { void el.offsetWidth; el.classList.add('act'); } };   // a new Use action flashes again
+      setPrompt(allAboard ? allAboard : knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? (door.menu === 'rail_station' && stationMenu.trainPrompt()) || `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`
         : innerDoor ? `Space  ${game.state.interiorDoors[innerDoor.id] ? 'Close' : 'Open'} sliding door`
         : stablePrompt ? 'Space  Stable: buy horses, rickshaws, omnibuses'
         : travel ? (stationMenu.riding() ? 'Space  Skip to the station' : stationMenu.trainPrompt() || 'Space  Station: trains and track')

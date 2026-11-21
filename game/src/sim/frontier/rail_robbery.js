@@ -84,7 +84,7 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
     const p = robCheck(e);
     if (typeof p === 'string') return say(e.owner, p);
     const { t, l } = p;
-    e.robbing = { train: t.id, until: now() + Math.round((B().holdSeconds ?? 30) * 20) };
+    e.robbing = { train: t.id, start: now(), until: now() + Math.round((B().holdSeconds ?? 30) * 20) };
     const w = wagonAt(t, l); t.robbing = { by: e.id, x: w.x, z: w.z };   // the wagon flashes while the hold runs (Tim 2026-11-20)
     say(t.owner, `Your train on ${lineName(l)} is being robbed!`);
     return say(e.owner, 'Robbing the freight wagon. Hold on!');
@@ -93,7 +93,9 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
     const t = rec().trains[e.robbing.train], l = t && rec().links[t.link];
     const w = t && l && wagonAt(t, l);
     const broken = !t?.stopped || e.dead || e.downed || e.place !== 'world' || !w || Math.hypot(w.x - e.x, w.z - e.z) > (B().wagonReach ?? 5);
-    if (broken) { delete e.robbing; if (t?.robbing?.by === e.id) delete t.robbing; return say(e.owner, 'The robbery was broken off'); }
+    // Tim 2026-11-21: any damage breaks the hold, like a bandage (the guards are not a gate, they interrupt)
+    const hurt = (e.hitAt ?? -1) >= (e.robbing.start ?? Infinity);
+    if (broken || hurt) { delete e.robbing; if (t?.robbing?.by === e.id) delete t.robbing; return say(e.owner, hurt ? 'Hit! The robbery was broken off' : 'The robbery was broken off'); }
     if (now() < e.robbing.until) return;
     delete e.robbing; delete t.robbing;
     const loot = refs.shipments?.()?.rob?.(t, B().share ?? 0.5, e.owner, true) || {};
@@ -146,6 +148,9 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
       else if (p.war) addCampStock(p.war.camp, r, n);
       else if (world?.change) world.change(p.town.id, r, n, 'stolen chest');
     }
+    // Tim 2026-11-21: the loot flies from the hero into the town hall (or the camp banner) as little icons, ryo as coins
+    const to = p.war ? { x: p.war.x, z: p.war.z } : { x: p.town.x, z: p.town.z };
+    (state.casts ||= []).push({ kind: 'chestCashed', x: e.x, z: e.z, tx: to.x, tz: to.z, loot: { ...loot }, place: 'world', by: e.owner });
     delete e.chest;
     return say(e.owner, `Stolen chest cashed in at ${p.war ? 'the war camp' : p.town.name}: ${fmt(loot)}`);
   }

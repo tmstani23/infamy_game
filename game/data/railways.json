@@ -107,7 +107,7 @@
     "chestDays": 2,
     "bots": { "_note": "placeholder, Tim 2026-11-20 (train robbery R5, sim/war_general_brain.js): days = game days between a bot's robberies by its war strategy, [least, most], in a war and in peace (Raider about once a day or two in war; the others rarely). In a war it robs only that war's enemy inside the war circle (camp supply lines first) with escort war troops (escortMin or it waits); in peace it needs peaceCrew crew at the hero's side. reach = how far the hero walks to a line; waitSeconds beside the line for a loaded train (minLoad cargo); the hero starts the hold when holdGuards or fewer guards stand; maxSeconds for the whole try; retryDays before trying again after giving up. Any general sends up to defenders war troops within defendReach to its own train stopped at a blown track inside its war circle. A bot hero picks up a dropped chest within grabReach.",
       "days": { "raider": { "war": [1, 2], "peace": [6, 10] }, "default": { "war": [5, 8], "peace": [14, 20] } },
-      "reach": 1500, "escort": 8, "escortMin": 4, "peaceCrew": 3, "waitSeconds": 240, "minLoad": 20, "holdGuards": 1, "maxSeconds": 720, "retryDays": 0.25, "defenders": 6, "defendReach": 500, "grabReach": 250 },
+      "reach": 1500, "escort": 8, "escortMin": 4, "peaceCrew": 3, "waitSeconds": 240, "minLoad": 20, "holdGuards": 0, "maxSeconds": 720, "retryDays": 0.25, "defenders": 6, "defendReach": 500, "grabReach": 250 },
     "guards": {
       "yakuza": ["rifleman", "rifleman", "irezumi", "irezumi", "dog_handler", "dog_handler"],
       "kuroda": ["spearman", "spearman", "teppo", "teppo", "gatling", "gatling"],

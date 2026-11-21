@@ -1,5 +1,5 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/pre_frontier_yakuza.json, castle_test.json, war_test_yakuza.json, war_defend_yakuza.json
+//   node game/tools/make_dev_save.mjs            -> saves/pre_frontier_yakuza.json, castle_test.json, war_test_yakuza.json, war_defend_yakuza.json, rail_rob_shinobi.json
 //   node game/tools/make_dev_save.mjs war_test_yakuza   -> only the saves named
 // Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 5).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
@@ -42,7 +42,12 @@ const SAVES = {
   // Railway and upgrade test (Tim 2026-11-20, back from 2026-11-07): the Kuroda hero by the station of his town Tetsumichi,
   // laid out as before but at town hall tier 1 (Camp) with a ton of stock, coffers, clan ryo and people, so both hall
   // upgrades (and the tier art of the hall and stockade) can be tried at once.
-  rail_test_kuroda: { clan: 'kuroda', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 50000, renown: 300, crew: 11, railTown: true, railTier: 1, richTown: true },
+  // (rail_test_kuroda, Tim 2026-11-20, the tier 1 rich town for the hall upgrades, was here: railTown with railTier 1 and richTown)
+  // Train robbery test (Tim 2026-11-21, replaces rail_test_kuroda): the Shinobi hero and his crew beside the middle of
+  // a short line (the nearest town sites, 1000 to 1200 apart) between two Kuroda Villages, Kurohama and Kuromine, in peace. Standing orders
+  // both ways (timber, stone, food, goods and coffers ryo) keep its train loaded, so it can be blown and robbed. A small
+  // Shinobi Village, Kagemura, a little off the line, is where the stolen chest is cashed. His horse waits beside him.
+  rail_rob_shinobi: { clan: 'shinobi', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, robTest: true },
 };
 
 // A grown tier-2 town for the railway test: founded with the real command, then roads, buildings and zones are
@@ -345,6 +350,68 @@ function warTest(game, heroId) {
   for (let i = 0; i < 20; i++) game.step([]);
 }
 
+// The train robbery test: two Kuroda Villages a short line apart with stations, the line laid the real way and
+// standing orders on it both ways; a small Shinobi Village off the line; the hero, crew and horse beside the line.
+function robTest(game, heroId) {
+  const S = game.state, hero = S.entities[heroId], wd = options.world, W = game.frontier.world;
+  const rival = Object.keys(S.clans).find(id => id !== hero.owner && S.clans[id].faction === 'kuroda');
+  if (!rival) throw new Error('rail_rob_shinobi: no Kuroda clan');
+  const rh = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === rival);
+  const [gx, gz] = game.gate.island, dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  const towns = Object.values(S.frontier.settlements).filter(t => Number.isFinite(t.x));
+  const clear = (s, r) => towns.every(t => dist(t, s) >= r) && Math.hypot(s.x - gx, s.z - gz) > 900;
+  const free = wd.sites.filter(s => clear(s, 900));
+  let best = null;
+  for (const a of free) for (const b of free) {
+    const d = dist(a, b);
+    if (a === b || d > 1200) continue;   // island sites stand 1000+ apart, so the nearest pairs
+    const mid = { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
+    const c = wd.sites.filter(s => s !== a && s !== b && clear(s, 700) && dist(s, a) >= 900 && dist(s, b) >= 900).sort((p, q) => dist(p, mid) - dist(q, mid))[0];
+    if (!c) continue;
+    const score = d + dist(c, mid);
+    if (!best || score < best.score) best = { a, b, c, score };
+  }
+  if (!best) throw new Error('rail_rob_shinobi: no sites for the two Kuroda towns and the player town');
+  const make = (id, name, owner, site, stock) => {
+    W.addTown({ id, name, region: null, owner, x: site.x, z: site.z, site: site.id ?? null, traits: { soil: 1, water: 1, defense: 1, nodes: {} }, pop: 25, stock, buildings: [{ type: 'town_hall', stage: 'built', cell: 0 }] });
+    game.step([]);   // the hub gives the town its grid
+    const t = S.frontier.settlements[id];
+    t.tier = 2; t.founded = (S.tick ?? 0) - 12000;   // a day old: bots war only from towns 3+ days old
+    return t;
+  };
+  const A = make('rob_test_a', 'Kurohama', rival, best.a, { food: 300, timber: 2500, stone: 2500, goods: 100, ryo: 12000 });
+  const B = make('rob_test_b', 'Kuromine', rival, best.b, { food: 2500, timber: 300, stone: 300, goods: 600, ryo: 3000 });
+  for (const [t, o] of [[A, B], [B, A]]) {
+    if (!placeBuilt(game, t, 'station', o)) throw new Error('rail_rob_shinobi: no room for the station in ' + t.name);
+    for (const kind of ['storehouse', 'storehouse']) placeBuilt(game, t, kind);
+  }
+  const line = layLine(game, rh, A.id, B.id);
+  // standing orders both ways (the queue cap allows about three trainloads into each town), and coffers ryo A to B
+  const order = (to, from, resource, amount) => game.step([{ id: rh.id, type: 'frontier', action: 'ship', mode: 'order', town: to.id, resource, amount, pin: from.id }]);
+  order(B, A, 'timber', 360); order(B, A, 'stone', 360); order(A, B, 'food', 480); order(A, B, 'goods', 240);
+  game.step([{ id: rh.id, type: 'frontier', action: 'ship', mode: 'ryo', from: A.id, to: B.id, into: 'coffers', amount: 8000 }]);
+  const open = Object.values(S.frontier.shipping?.orders || {}).filter(o => o.state === 'open' && o.owner === rival);
+  if (open.length < 3) throw new Error('rail_rob_shinobi: orders refused: ' + (S.clans[rival].notice?.text || ''));
+  // the player's small Village to cash the chest in
+  const K = make('rob_test_home', 'Kagemura', hero.owner, best.c, { food: 600, timber: 400, stone: 300, goods: 100, ryo: 500 });
+  for (const kind of ['storehouse']) placeBuilt(game, K, kind);
+  // the hero and crew 8 off the middle of the line, on the Kagemura side, the horse beside him
+  const pts = line.points, run = pts.map((p, i) => i ? Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0).map((d, i, a) => (a[i] = d + (i ? a[i - 1] : 0)));
+  const i0 = Math.min(pts.length - 2, Math.max(0, run.findIndex(d => d >= run.at(-1) / 2))), [mx, mz] = pts[i0], [qx, qz] = pts[Math.min(pts.length - 1, i0 + 1)], m = { x: mx, z: mz };
+  const len = Math.hypot(qx - mx, qz - mz) || 1, tx = (qx - mx) / len, tz = (qz - mz) / len, nx = -tz, nz = tx, side = (K.x - mx) * nx + (K.z - mz) * nz >= 0 ? 1 : -1;
+  const at = (k, o = 0) => ({ x: mx + nx * side * k + tx * o, z: mz + nz * side * k + tz * o });   // open ground: the line was routed clear of rock and water
+  Object.assign(hero, { place: 'world', area: 'world', ...at(8) }); delete hero.aboard; delete hero.order;
+  let k = 0;
+  for (const u of Object.values(S.entities)) if (u.owner === hero.owner && u.order?.kind === 'follow' && u.order.target === hero.id) {
+    Object.assign(u, { place: 'world', area: 'world', ...at(10 + Math.floor(k / 3) * 1.4, (k % 3 - 1) * 1.4) }); delete u.aboard; k++;
+  }
+  const hp = at(9, 3);
+  (S.frontier.bornHorses ||= []).push({ owner: hero.owner, kind: 'black_beauty', x: hp.x, z: hp.z, stable: 'capital', town: 'capital' });
+  game.areas.update(Object.values(S.entities));
+  for (let i = 0; i < 20; i++) game.step([]);
+  console.log(`rail_rob_shinobi: line ${Math.round(line.length)} long, ${open.length} orders, Kagemura ${Math.round(dist(K, m))} from the line middle`);
+}
+
 // Shares out the free businesses (the kinds that give crew room) between the clans that may hold them (the
 // Shinobi clan holds none; its crew room comes from Renown). Biggest first, snake order, so the shares stay even.
 function shareCity(game) {
@@ -368,7 +435,7 @@ function readyClans(game, spec) {
 
 export function build(name, spec) {
   // the rail save needs the island's resource spots (as main.js loads them) so workers have work and camps sit by them
-  const spots = spec.railTown || spec.warDefend ? { resourceSpots: data('data/world_spots.json'), resourceSpotRules: data('data/resource_spots.json') } : {};
+  const spots = spec.railTown || spec.warDefend || spec.robTest ? { resourceSpots: data('data/world_spots.json'), resourceSpotRules: data('data/resource_spots.json') } : {};
   const game = createGame(spec.realGame ? { ...options, ...spots, frontier: { ...options.frontier, fixtureTowns: false } } : options);   // E6b: real games have no fixture towns
   const m = setupMatch(game, { clan: spec.clan, difficulty: spec.difficulty, mode: spec.mode, home: spec.home, bots: data('data/bots.json'),   // home 'pick': chosen with the surveyor (Tim 2026-11-20)
     spawns: options.district.spawns, test: { playerRyo: spec.playerRyo } });
@@ -380,6 +447,7 @@ export function build(name, spec) {
   if (spec.railTown) railTown(game, m.heroId, spec);
   if (spec.warTest) warTest(game, m.heroId);
   if (spec.warDefend) warDefend(game, m.heroId);
+  if (spec.robTest) robTest(game, m.heroId);
   if (spec.castleTest) { const h = game.state.entities[m.heroId], p = game.castles?.approach('player'); if (!h || !p) throw new Error('castle_test: no castle');
     // Z4f (Tim 2026-11-19): the rail hub is the castle; a town with a station and a finished line to it, to see and ride
     { const t = Object.values(game.state.frontier.settlements).find(x => x.owner === h.owner && x.founded !== undefined); if (t) layLine(game, h, t.id, 'capital'); }

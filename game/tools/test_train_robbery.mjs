@@ -55,6 +55,9 @@ assert.match(g.frontier.rail.prompt(hero)?.text || '', /Robbing the freight wago
 assert.match(S.clans[rival].notice?.text || '', /being robbed/i, 'owner told');
 // stepping off breaks it
 Object.assign(hero, { x: w.x + 20, z: w.z }); run(1); assert.ok(!hero.robbing && /broken/i.test(notice()), 'stepping off breaks it');
+// any damage breaks it (Tim 2026-11-21)
+Object.assign(hero, { x: w.x + 1, z: w.z }); cmd('rob'); assert.ok(hero.robbing, 'hold started again');
+run(1); hero.hitAt = S.tick; run(1); assert.ok(!hero.robbing && /hit/i.test(notice()), 'a hit breaks it');
 Object.assign(hero, { x: w.x + 1, z: w.z }); cmd('rob');
 for (let i = 0; i < B.holdSeconds * 20 + 2; i++) { Object.assign(hero, { x: w.x + 1, z: w.z, hp: 1e6, downed: false }); g.step([]); }
 assert.ok(hero.chest, 'chest carried');
@@ -85,6 +88,7 @@ cmd('cashChest'); assert.match(notice(), /town halls/i, 'needs a hall');
 const P = F.settlements.tP, ryo0 = S.clans.player.ryo, tim0 = P.stock.timber || 0;
 Object.assign(hero, { x: P.x + 3, z: P.z + 3 }); cmd('cashChest');
 assert.ok(!hero.chest, 'chest cashed');
+{ const c = (S.casts || []).find(x => x.kind === 'chestCashed'); assert.ok(c && c.tx === P.x && c.tz === P.z && c.loot.ryo > 0, 'the loot flies into the hall (cast)'); }
 assert.equal(Math.round(S.clans.player.ryo - ryo0), 200, 'ryo to the treasury');
 assert.equal(Math.round((P.stock.timber || 0) - tim0), 100, 'timber into the town');
 console.log('test_train_robbery: ok');
