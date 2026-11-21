@@ -31,7 +31,8 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
   const canHide = e => ninja(e) && !e.dead && !e.downed && !e.jailed;
   const suspicion = new Map();
   // who can spot a hidden unit: any armed unit not on its side (other clans, police, house guards, bandits)
-  const spotter = (u, e) => u.owner !== e.owner && u.type !== 'civilian' && !u.dead && !u.downed && !u.jailed && u.place === e.place;
+  // horses, vehicles and animals never spot a ninja (Tim 2026-11-21: loose horses showed a suspicion meter)
+  const spotter = (u, e) => u.owner !== e.owner && u.type !== 'civilian' && u.type !== 'horse' && !u.vehicle && !u.animal && !u.dead && !u.downed && !u.jailed && u.place === e.place;
   // Frontier stealth (Tim 2026-11-09, built 2026-11-15; numbers in rules.stealth.frontier, placeholders): out on the island
   // a ninja is seen from dayRange by day; at night from darkRange, or litRange near any light (a town inside its ring, a war
   // camp, a bandit camp: islandLit); trees, bamboo and marsh (islandCover) shorten it by coverFactor. Riding reveals him.

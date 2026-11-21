@@ -15,6 +15,8 @@ Related docs: `territory.md` (one season score for all clans; the ninja village 
 
 ## 2. Contract board
 
+The contract bar is hidden while the hero is out on the frontier (city work only, 2026-11-21).
+
 - The village board posts 3-5 jobs each dawn: jobs from the town and jobs other clans post (bots included), such as sabotage a payout, steal from a stash, scout, knock out a boss.
 - Each job pays ryo + Renown. A failed job pays nothing.
 - The target clan gets a warning.
@@ -122,6 +124,7 @@ Still proposals: removing Secure Extraction and folding contract assistance into
 ### Agreed stealth and interaction behavior
 
 - Stealth spotting generally indoors/outdoors by armed observers (guards, police, bandits, clan units) requires their forward view cone, actual simulated facing and line of sight. Walls/opaque cover block it. Walking has smaller detection and a short suspicion buildup, shown over the guard, rather than instant detection.
+- Spotters exclude horses, vehicles and animals (2026-11-21). A loose horse rings in its owner's colour, not red.
 - Close range (2026-10-29): within `rules.stealth.closeRange` 1.2 enemies sense a ninja regardless of facing; LOS, rooms, smoke and veil still apply. The badge tooltip says "too close".
 - Patrol starting positions/timing must offer at least one usable entrance opening, with timing the player can observe instead of guards parked over entry. Movement should be predictable without sudden random direction shifts.
 - Quiet objective completion should use faster/short interactions. No exact timers are approved. Plant-and-leave sabotage instead of hold remains a separate redesign proposal.

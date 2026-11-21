@@ -72,7 +72,8 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     const t = locked ? `<b>HQ on fire</b><span>Contracts unavailable, reopen in ${locked} s</span>`
       : job ? `<b>${job.label}</b><span>${progress(job)}, ${reward(job)}</span>${job.kind === 'boss' ? `<small>${huntStatus}</small><button data-ambush-contract type="button">${hunting ? 'Cancel boss hunt' : 'Order sectors to hunt this boss'}</button>` : ''}`
       : waiting ? `<b>Contract board</b><span>Next contract in ${waiting} s, any time of day</span>` : '';
-    tracker.hidden = !job && !locked && !waiting;
+    // city work only: no contract bar while the hero is out on the frontier (Tim 2026-11-21)
+    tracker.hidden = h?.place === 'world' || (!job && !locked && !waiting);
     if (t !== shownT) { tracker.innerHTML = t; shownT = t; }
     const counter = job?.counter;
     if (localCounter) localCounter.hidden = !counter || view.commandPlace(game.state, heroId) !== counter.place;

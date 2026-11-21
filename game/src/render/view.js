@@ -234,6 +234,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     if (e.worker) return me && e.workerOwner === me.owner ? 'worker' : 'enemy';   // workers stand out from townsfolk and crew (Tim 2026-11-12)
     if (e.type === 'civilian' || (e.guide && !e.owner)) return 'townsfolk';   // the old surveyor and other clanless guides read as townsfolk (Tim 2026-11-20)
     if (me && e.owner === me.owner) return 'crew';
+    if (e.type === 'horse' && !e.owner) return me && e.horseOwner === me.owner ? 'crew' : e.horseOwner ? 'enemy' : 'townsfolk';   // a loose horse takes its owner's side, not red (Tim 2026-11-21)
     if (e.owner === 'bandits') return e.angry && Object.keys(e.angry).length ? 'enemy' : 'bandit';
     // police: blue, red while after your clan
     if (e.owner === 'police') return e.angry?.[me?.owner] !== undefined ? 'enemy' : 'police';
