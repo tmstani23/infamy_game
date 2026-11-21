@@ -1024,5 +1024,5 @@ are outside the first hero gear slice.
 - Military plot (auto towns): at Camp the general reserves a small block (about a barracks and a supply tent) before the governor zones, facing the nearest rival, else the station, else the capital-line edge, never blocking a resource camp. He lays and extends his own road to it from the hall, always connected, and the governor treats that road as the main street. He extends the block at Village and Town. A zone the player paints wins; he never erases anything and never repaints cells the player erased.
 - Governor: always keeps at least two free lanes out from the hall; places buildings with logic (market near the hall, storehouse by the station or camps, farms on the edge, and so on), and roads follow the buildings.
 - Rivals use the same rules; their fund percentage depends on their hidden strategy (higher for Rush, lower for Siege).
-- The hall war upgrade in player towns stays the player's decision; the readout notes when the general is waiting on it.
+- Hall war upgrade: in player towns too, the general does it himself, paid from the fund, when his list reaches buildings that need it.
 - Old saves start at 10% with no plot, and show "No room for a military quarter" if the town is full.
