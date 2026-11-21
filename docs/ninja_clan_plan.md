@@ -15,7 +15,7 @@ Related docs: `territory.md` (one season score for all clans; the ninja village 
 
 ## 2. Contract board
 
-The contract bar is hidden while the hero is out on the frontier (city work only, 2026-11-21).
+Contract bar hidden while the hero is on the frontier; it returns in the city. Lieutenant Jobs and Steal orders keep running contracts meanwhile (2026-11-21).
 
 - The village board posts 3-5 jobs each dawn: jobs from the town and jobs other clans post (bots included), such as sabotage a payout, steal from a stash, scout, knock out a boss.
 - Each job pays ryo + Renown. A failed job pays nothing.
