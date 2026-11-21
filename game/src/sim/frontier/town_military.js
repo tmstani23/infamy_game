@@ -3,7 +3,7 @@
 // any time, from town stock, through the normal placement and construction. Both sides share one set of limits:
 // max, needs and clan come from war.buildings[type]. needs 'upgrade' = the town hall war upgrade (s.warHall), bought
 // at the hall for war.hallUpgrade.cost from town stock (ryo from the coffers), then built by the town builders: war.town.upgradeWork
-// builder work (s.warUpgrade = { left, total } while it runs; other projects wait meanwhile), at any tier. No town hall tier limits.
+// builder work (s.warUpgrade = { left, total } while it runs; other projects wait meanwhile), at any tier. Limits may grow with the town hall tier (tierMax, Tim 2026-11-21).
 // Plain functions of the town and the data, so the sim and the build bar (on the snapshot) give the same answers.
 
 const nice = t => (t || '').replace(/_/g, ' ');
@@ -12,6 +12,12 @@ const costText = cost => Object.entries(cost || {}).filter(([, v]) => v).map(([r
 export const isMilitary = (type, data) => !!data?.buildings?.[type]?.military;
 export const militaryTypes = data => Object.keys(data?.buildings || {}).filter(k => data.buildings[k]?.military);
 export const warHallDone = s => !!s?.warHall;
+// how many of a military type a town (kind 'town', s.tier 1-3) or a war camp (kind 'camp', camp hall tier 1-2) may have:
+// war.buildings[type].maxByTier[kind][tier - 1] (past the end: the last), else .max (Tim 2026-11-21: supply tents unlock per tier, no early rush)
+export function tierMax(def, kind, tier) {
+  const list = def?.maxByTier?.[kind];
+  return Array.isArray(list) && list.length ? list[Math.min(Math.max(1, tier || 1), list.length) - 1] : def?.max;
+}
 
 // the faction of a town's owner ('yakuza' | 'kuroda' | 'shinobi'), or null when unknown
 const factionOf = (s, state) => state?.clans?.[s?.owner]?.faction ?? null;
@@ -45,7 +51,8 @@ export function militaryWhy(s, type, data, state) {
   if (def.clan && f && def.clan !== f) return `Your clan does not build the ${nice(type)}`;
   const need = militaryNeeds(s, type, data);
   if (need.length) return `Needs ${need.join(' and ')}`;
-  if (def.max && militaryCount(s, type) >= def.max) return `A town has at most ${def.max} ${nice(type)}`;
+  const max = tierMax(def, 'town', s?.tier);
+  if (max && militaryCount(s, type) >= max) return def.maxByTier?.town && max < (def.max ?? Infinity) ? `At this town hall tier a town has at most ${max} ${nice(type)}` : `A town has at most ${max} ${nice(type)}`;
   return null;
 }
 

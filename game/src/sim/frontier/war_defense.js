@@ -37,8 +37,9 @@ export function createWarDefense({ state, data, war, world }) {
   // the town's buildings that train in this war: built military ones, and the stable once the town hall war upgrade is
   // done (cavalry need the upgrade, as at a camp)
   const trains = (s, b, clan) => b.stage === 'built' && war.trainsAt(b.type, clan).length > 0 && (data.buildings?.[b.type]?.military || (b.type === 'stable' && !!s.warHall));
-  const troopsOf = w => Object.values(state.entities || {}).filter(e => e.warTroop === w.id && e.owner === w.defender && !e.dead).length + (war.crewIn?.(w, w.defender) || 0);   // hero crew in the circle count too
-  const queuedOf = (w, s) => (s?.buildings || []).reduce((n, b) => n + (b.queue?.length || 0), 0);
+  const slotsOf = u => Math.max(1, UD()[u]?.slots ?? 1);   // troop places a unit takes (Tim 2026-11-21)
+  const troopsOf = w => Object.values(state.entities || {}).filter(e => e.warTroop === w.id && e.owner === w.defender && !e.dead).reduce((n, e) => n + slotsOf(e.warUnit), 0) + (war.crewIn?.(w, w.defender) || 0);   // hero crew in the circle count too
+  const queuedOf = (w, s) => (s?.buildings || []).reduce((n, b) => n + (b.queue || []).reduce((m, q) => m + slotsOf(q.unit), 0), 0);
   function troopCap(w, s) {
     const C = W.troopCap || {}, tents = (s?.buildings || []).filter(b => b.stage === 'built').reduce((n, b) => n + (data.buildings?.[b.type]?.military ? BD()[b.type]?.cap || 0 : 0), 0);
     return Math.min(C.max ?? Infinity, (C.base ?? 0) + tents);
@@ -69,8 +70,8 @@ export function createWarDefense({ state, data, war, world }) {
     if (left > 0) return `Mustering: training opens in ${Math.ceil(left / 20)} s`;
     if (!Number.isSafeInteger(n) || n < 1) return 'count must be a positive integer';
     if ((b.queue?.length || 0) + n > (W.queueMax ?? 20)) return `At most ${W.queueMax ?? 20} waiting at one building`;
-    const room = troopCap(w, s) - troopsOf(w) - queuedOf(w, s);
-    if (n > room) return room > 0 ? `Troop cap: room for ${room} more` : `Troop cap reached (${troopCap(w, s)}): build supply tents for more`;
+    const room = troopCap(w, s) - troopsOf(w) - queuedOf(w, s), need = n * slotsOf(unit);
+    if (need > room) return room > 0 ? (need === n ? `Troop cap: room for ${room} more` : `Troop cap: ${need} places needed, ${room} free`) : `Troop cap reached (${troopCap(w, s)}): build supply tents for more`;
     const cost = war.ryoOf(w.defender, unit) * n, chest = chestOf(w);
     if (chest < cost) return `Needs ${cost} ryo from the ${s.castle ? 'Clan treasury' : 'war chest'} (it has ${Math.floor(chest)})`;
     return null;

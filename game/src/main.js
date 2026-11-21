@@ -938,6 +938,7 @@ async function start() {
       if (place !== gatePlace) { if (gatePlace && (place === 'world' || gatePlace === 'world')) { const f = $('gatefade'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); } gatePlace = place; } }
     presentation.measure('world',()=>view.render(withWorkerPresentations(fog.seen(game.state),frontier,{...view.audioFocus(game.state,heroId),owner:game.state.entities[heroId]?.owner}), prev, clock.alpha(), dt, now, heroId));
     crewInput.drawMarkers($('lock'));
+    abilityRows?.aimPreview(mouse);   // Unload's cone (Tim 2026-11-21)
     unitFrames.updateHover(mouse, document.elementFromPoint(mouse.x, mouse.y) === $('view'));
     frontierBuildUI?.update();
     { hoverLamp = lampAt(); const el = $('snuffhint'), h = game.state.entities[heroId];

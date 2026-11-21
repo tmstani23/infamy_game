@@ -2,7 +2,7 @@
 // units, shown only while the selection has any. Keys are Shift + the main bar keys, slot for slot:
 //   Torch         Shift + right-click an enemy building, wall, gate or house in your war (or click the button, then
 //                 left-click it): every selected melee unit runs over and sets it alight.
-//   the specials  Shift + Q, E, R, F left to right (Charm, Aimed Shot, Taunt, Loose the dogs, Slowing arrow; at most four in a selection get a key). One press, one caster:
+//   the specials  Shift + Q, E, R, F left to right (Charm, Aimed Shot, Taunt, Loose the dogs, Unload, Slowing arrow; at most four in a selection get a key). One press, one caster:
 //                 the ready unit nearest the spot. A targeted one waits for a left-click on the target (right-click or
 //                 Escape cancels the aim); an instant one fires at once.
 // A button shows ready / total; with none ready it is grey and counts down the shortest cooldown in the group.
@@ -31,7 +31,7 @@ export const ABOUT = {
   taunt: 'The ready enforcer nearest the pointer taunts the enemies around him so they turn on him. Enemies already taunted are skipped.',
   firebomb: 'Then left-click an enemy building or the ground near enemies, within his throw. The nearest ready fire-bomb thrower winds up; a ring on the ground shows where the bomb will land. It hits every enemy in the ring hard and sets a wooden building on fire; stone takes less and does not burn. A stagger, stun or knockdown breaks the wind-up. Long cooldown. His normal attack is a weak knife.',
   hamstring: 'Then left-click near an enemy. The nearest ready archer shoots a slowing arrow at the enemy closest to the click.',
-  gatling: 'Then left-click the ground. The nearest Gatling crew sets up where it stands and holds its aim at that spot, firing at every enemy in its cone. Without it the gun turns to the nearest enemy on its own once set up. Any move order packs it up and frees the aim.',
+  gatling: 'A cone shows where the nearest ready Gatling crew will fire; left-click to fire there. The gun stops, spins up and empties itself into the cone for a few seconds at extra damage, hitting every enemy in it. Any move order ends it. On auto it unloads into a packed group.',
   dogs: 'Then left-click near an enemy. The nearest ready dog handler looses his dogs at the enemy closest to the click: they bite for heavy damage and knock it down for a moment. On auto he sends them at ranged or fleeing enemies.',
 };
 // the specials' keys, left to right: Shift + the main bar's ability keys
@@ -136,8 +136,31 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
     updateMarks();
   }
   setInterval(update, 100);
+  // Unload (Tim 2026-11-21): while it waits for its click, a cone on the ground from the ready Gatling crew nearest the
+  // pointer toward the pointer, as far as the gun reaches (call each frame with the mouse's page place)
+  const NS = 'http://www.w3.org/2000/svg';
+  const coneSvg = document.createElementNS(NS, 'svg'); coneSvg.setAttribute('class', 'unloadcone');
+  coneSvg.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:4';
+  const conePath = document.createElementNS(NS, 'path'); conePath.setAttribute('fill', 'rgba(255,214,150,0.18)'); conePath.setAttribute('stroke', 'rgba(255,224,170,0.75)'); conePath.setAttribute('stroke-width', '1.5'); conePath.setAttribute('stroke-dasharray', '6 4');
+  coneSvg.appendChild(conePath); document.body.appendChild(coneSvg); coneSvg.style.display = 'none';
+  function aimPreview(mouse) {
+    let gun = null;
+    const p = crewInput.targetArmed() === 'gatling' && mouse ? view.screenToGround(mouse.x, mouse.y) : null;
+    if (p) { const now = game.state.tick ?? 0; let bd = Infinity;
+      for (const id of picked().units) { const e = game.state.entities[id], R = units?.types?.[e?.type]?.gatling;
+        if (!R || e.dead || e.downed || (e.gatReadyAt ?? 0) > now) continue;
+        const d = Math.hypot(e.x - p.x, e.z - p.z); if (d < bd) { bd = d; gun = e; } } }
+    if (!gun) { coneSvg.style.display = 'none'; return; }
+    const R = units.types[gun.type].gatling, ang = Math.atan2(p.z - gun.z, p.x - gun.x), half = (R.coneDeg ?? 30) * Math.PI / 360;
+    const pt = (r, a) => { const q = view.unitToScreen(gun.x + Math.cos(a) * r, gun.z + Math.sin(a) * r, 0.05); return `${q.x.toFixed(1)},${q.y.toFixed(1)}`; };
+    const outer = [], inner = [];
+    for (let k = 0; k <= 8; k++) { const a = ang - half + 2 * half * k / 8; outer.push(pt(R.range, a)); inner.unshift(pt(R.minRange ?? 0, a)); }
+    conePath.setAttribute('d', `M${inner[inner.length - 1]} L${outer.join(' L')} L${inner.join(' L')} Z`);
+    coneSvg.style.display = '';
+  }
   return {
     update,
+    aimPreview,
     // Shift + Q, E, R, F: the i-th special shown; p = the pointer's place on the ground
     key(i, p = null) { const x = shown.filter(s => s.a.special)[i]; if (!x) return false; arm(x.a, p); return true; },
     // Shift + right-click on the ground: Torch, when the selection can

@@ -99,7 +99,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
         const lockWhy = bld.type === 'stable' && !s.warHall ? 'Cavalry need the town hall war upgrade (Hall tab)' : '';
         const cards = ulist.slice(tpage * UPP, tpage * UPP + UPP).map(({ unit, ryo, seconds }) => {
           const S = stats(unit), pic = face(S.model);
-          const tip = `${S.name}. Health ${S.hp}, damage a second ${S.dps.toFixed(1)}, range ${S.range}, speed ${S.speed}. ${ryo} ryo from the war chest, ${Math.round(seconds)} s to train.${S.abil.length ? ' ' + S.abil.join(' ') : ''}`;
+          const tip = `${S.name}. Health ${S.hp}, damage a second ${S.dps.toFixed(1)}, range ${S.range}, speed ${S.speed}. ${ryo} ryo from the war chest, ${Math.round(seconds)} s to train.${(U[unit]?.slots ?? 1) > 1 ? ` Takes ${U[unit].slots} troop places.` : ''}${S.abil.length ? ' ' + S.abil.join(' ') : ''}`;
           return `<div class="ucard" title="${esc(tip)}"><div class="uhead"><div class="ustill${pic.includes('/stills/') ? ' concept' : ''}"${pic ? ` style="background-image:url('${esc(pic)}')"` : ''}></div><div class="ustats"><div class="un">${esc(S.name)}</div>
             <div class="sr"><span>Health</span><b>${S.hp}</b></div><div class="sr"><span>Damage a sec</span><b>${S.dps.toFixed(S.dps < 10 ? 1 : 0)}</b></div><div class="sr"><span>Range</span><b>${S.range}</b></div><div class="sr"><span>Speed</span><b>${S.speed}</b></div></div></div>
             <div class="cost" style="justify-content:flex-start;margin-top:6px"><span class="chip ryo${v.chest < ryo ? ' short' : ''}"><i></i>${ryo}</span><span class="small">${Math.round(seconds)} s each</span></div>

@@ -12,7 +12,7 @@
 // createGeneralBrain(game, { clan }) -> { tick(): commands, saveState, loadState, view }
 import { ringRadius, cellOffset } from './frontier/town_grid.js';
 import { SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
-import { isMilitary, militaryCount, militaryNeeds, militaryWhy, warHallDone } from './frontier/town_military.js';
+import { isMilitary, militaryCount, militaryNeeds, militaryWhy, warHallDone, tierMax } from './frontier/town_military.js';
 import { buildingCost } from './frontier/tiers.js';
 
 const DET = SCREEN_RIGHT.x * SCREEN_DOWN.z - SCREEN_DOWN.x * SCREEN_RIGHT.z;
@@ -51,7 +51,7 @@ export function createGeneralBrain(game, { clan }) {
   // ryo to train more (memory `capped`, set by the training step).
   const TENT = 'supply_tents';
   function buildTail(list, more = true) {
-    const G = gen().rules(), most = W().buildings?.[TENT]?.max ?? 6, n = list.filter(t => t === TENT).length;
+    const G = gen().rules(), most = W().buildings?.[TENT]?.max ?? 12, n = list.filter(t => t === TENT).length;
     return [...Array(Math.max(0, most - n)).fill(TENT), ...(more ? G.buildOn || [] : [])];
   }
   function trainPlan(mix, shops, have, chest, room, ahead) {
@@ -61,10 +61,10 @@ export function createGeneralBrain(game, { clan }) {
       if (!picks.length) break;
       // (the shortest it can pay for: a unit the chest cannot buy holds nobody back)
       const held = byKey(mix, have), lowest = Math.min(...Object.keys(mix).filter(k => mix[k] > 0 && shops.some(b => b.units.some(u => u.ryo <= chest && mixKey(mix, u.unit) === k))).map(k => (held[k] || 0) / mix[k]));
-      const { b, p } = picks[0];
-      if (p.need > lowest + slack) break;
+      const { b, p } = picks[0], places = Math.max(1, W().units?.[p.u.unit]?.slots ?? 1);   // a gun takes more troop places (Tim 2026-11-21)
+      if (p.need > lowest + slack || places > room) break;
       out.push({ building: b.id, unit: p.u.unit });
-      have[p.u.unit] = (have[p.u.unit] || 0) + 1; b.queued++; room--; chest -= p.u.ryo;
+      have[p.u.unit] = (have[p.u.unit] || 0) + 1; b.queued++; room -= places; chest -= p.u.ryo;
     }
     return out;
   }
@@ -410,7 +410,7 @@ export function createGeneralBrain(game, { clan }) {
     if (SU?.build?.length) { const at = Math.max(...['barracks', 'lumber_camp', 'quarry'].map(t => own.indexOf(t))); own.splice(at + 1, 0, ...SU.build); }   // after its first barracks, lumber camp and quarry: troops and gathering first, then the siege answer
     // Tim 2026-11-17: at its troop cap with ryo to train more, the next supply tents come first; after its own list
     // the camp goes on with the tail (buildTail). Neither holds a push back (m.left counts its own list only).
-    const tentNow = m.capped && camp.buildings.filter(b => b.type === TENT && b.stage !== 'ruined').length < (list.find(x => x.type === TENT)?.max ?? 6) && !camp.buildings.some(b => b.type === TENT && b.stage === 'site');
+    const tentNow = m.capped && camp.buildings.filter(b => b.type === TENT && b.stage !== 'ruined').length < (list.find(x => x.type === TENT)?.max ?? 4) && !camp.buildings.some(b => b.type === TENT && b.stage === 'site');
     const head = [...(tentNow ? [TENT] : []), ...(m.fort ? FT.build || [] : [])];
     const plan = [...head, ...own, ...buildTail(own)];
     // what is left of the plan (8d-10): the army does not push in full before it is all built (campArmy), and

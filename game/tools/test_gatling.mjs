@@ -21,31 +21,40 @@ assert.equal(specialOf(units, { type: 'gatling_crew' }), 'gatling');
 assert.deepEqual(frontier.war.units.gatling.at, ['foundry']); assert.equal(frontier.war.units.gatling.clan, 'kuroda');
 const run = (n, fn) => { for (let i = 0; i < n; i++) { g.step(); if (fn?.()) return i + 1; } return n; };
 const gun = mine('gatling_crew', 'gatling', 0, 0, { holdFire: false });
-// ---- no fire before it is set up -----------------------------------------------------------------------
+// ---- reworked Tim 2026-11-21: a spin up, then a burst, then a spin up again ------------------------------
 const a = foe('thug', 'thug', 7, 0), b = foe('thug', 'thug', 7, 1.2), side = foe('thug', 'thug', 0, 8), close = foe('thug', 'thug', 1.5, 0);
 const hp = () => [a, b, side, close].map(e => e.hp), hp0 = hp();
-run(R.setupTicks - 5);
-assert.equal(gun.gat?.state, 'setting'); assert.deepEqual(hp(), hp0, 'no shot while setting up');
-// ---- set up: the cone hits every enemy in it, not the one at its side, not the one too close -----------------
+for (const e of [a, b, side, close]) e.hp = e.maxHp = 100000;
+const H0 = hp();
+gun.autoCast = false;
+run(R.spinTicks - 3);
+assert.equal(gun.gat?.state, 'spin'); assert.deepEqual(hp(), H0, 'no shot while spinning up');
+// ---- firing: the cone hits every enemy in it, not the one at its side, not the one too close -----------------
 { let shots = 0; run(40, () => { shots += st.casts.filter(c => c.kind === 'gatlingShot' && c.a === gun.id).length; return false; });
-  assert.equal(gun.gat.state, 'set'); assert.ok(shots > 5, `it fires (${shots} shot casts)`);
-  assert.ok(a.hp < hp0[0] && b.hp < hp0[1], 'both enemies in the cone are hit');
-  assert.equal(side.hp, hp0[2], 'the enemy out of the cone is not'); assert.equal(close.hp, hp0[3], 'nor the one inside the minimum range');
-  assert.equal((hp0[0] - a.hp) % R.damage, 0); assert.equal(gun.anim, 'attack'); }
-// ---- Hold aim: the facing stays on the chosen spot --------------------------------------------------------
+  assert.equal(gun.gat.state, 'fire'); assert.ok(shots > 5, `it fires (${shots} shot casts)`);
+  assert.ok(a.hp < H0[0] && b.hp < H0[1], 'both enemies in the cone are hit');
+  assert.equal(side.hp, H0[2], 'the enemy out of the cone is not'); assert.equal(close.hp, H0[3], 'nor the one inside the minimum range');
+  assert.equal((H0[0] - a.hp) % R.damage, 0); assert.equal(gun.anim, 'attack'); }
+// ---- after burstTicks it stops and spins up again ------------------------------------------------------------
+{ let stopped = false; run(R.burstTicks, () => (stopped ||= st.casts.some(c => c.kind === 'gatlingStop' && c.a === gun.id)));
+  assert.ok(stopped, 'the burst ends'); run(2); assert.equal(gun.gat?.state, 'spin', 'and it spins up again');
+  run(R.spinTicks + 2); assert.equal(gun.gat?.state, 'fire'); }
+// ---- Unload: faces the clicked spot, extra damage, then a cooldown ---------------------------------------------
 { const s0 = side.hp; cast('gatling', [gun.id], { x: side.x, z: side.z });
-  run(5); assert.ok(gun.gat.aim, 'the aim is held'); const a0 = a.hp;
+  run(R.spinTicks + 4); assert.ok(gun.gat.unload, 'it unloads'); const a0 = a.hp;
   run(40);
   assert.ok(side.hp < s0, 'the enemy at the chosen spot is hit'); assert.equal(a.hp, a0, 'the others are out of the cone now');
-  assert.deepEqual(specialView({ state: st, units }, 'gatling', [gun.id]).ready, 1, 'no cooldown'); }
-// ---- a move order packs it up first, and it does not fire on the move ---------------------------------------
-{ let stop = false; const x0 = gun.x;
+  assert.equal((s0 - side.hp) % Math.round(R.damage * R.unload.damageMul), 0, 'at Unload damage');
+assert.equal(specialView({ state: st, units }, 'gatling', [gun.id]).ready, 0, 'on cooldown'); }
+// ---- a move order stops it at once, and it does not fire on the move -------------------------------------------
+{ const x0 = gun.x;
   g.step([{ id: hero.id, type: 'order', kind: 'move', units: [gun.id], x: gun.x - 6, z: gun.z }]);
-  stop ||= st.casts.some(c => c.kind === 'gatlingStop' && c.a === gun.id);
-  run(R.packTicks - 3, () => { stop ||= st.casts.some(c => c.kind === 'gatlingStop' && c.a === gun.id); return false; });
-  assert.ok(stop, 'the firing stops'); assert.equal(gun.gat?.state, 'packing'); assert.ok(Math.abs(gun.x - x0) < 0.2, 'it has not moved while packing');
+  assert.ok(st.casts.some(c => c.kind === 'gatlingStop' && c.a === gun.id), 'the firing stops');
   const h1 = hp(); run(30);
-  assert.equal(gun.gat, undefined, 'packed'); assert.ok(Math.hypot(gun.x - x0, 0) > 0.3, 'now it moves'); assert.deepEqual(hp(), h1, 'no shots on the move'); }
+  assert.equal(gun.gat, undefined, 'no setup state'); assert.ok(Math.abs(gun.x - x0) > 0.3, 'it moves at once'); assert.deepEqual(hp(), h1, 'no shots on the move'); }
+// ---- on auto it unloads into a packed group ---------------------------------------------------------------------
+{ const g2 = mine('gatling_crew', 'gatling', 0, 0, { holdFire: false }); const t = foe('thug', 'thug', 7, -1.2); t.hp = t.maxHp = 100000;
+  run(R.spinTicks + 4); assert.ok(g2.gat?.unload, 'auto Unload with 3 in the cone'); g.step([{ id: hero.id, type: 'order', kind: 'move', units: [g2.id], x: gun.x, z: gun.z - 30 }]); }
 // ---- it never fights hand to hand ------------------------------------------------------------------------------
 { g.step([{ id: hero.id, type: 'order', kind: 'attack', units: [gun.id], target: a.id }]); run(10); assert.notEqual(gun.order?.kind, 'attack'); assert.equal(gun.swing, undefined); }
 console.log('test_gatling: ok');

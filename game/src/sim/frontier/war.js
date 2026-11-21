@@ -23,6 +23,7 @@ import { debitRyo, creditRyo } from '../treasury.js';
 import { createWarDefense } from './war_defense.js';
 import { createWarArmory } from './war_armory.js';
 import { castleBox } from './castle.js';
+import { tierMax } from './town_military.js';
 
 export function createWar({ state, data, world = null, worldData = null, resourceIndex = null, dayTicks = 12000, zones = null }) {
   const W = data.war || null;
@@ -316,6 +317,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   const radiusOf = type => BD()[type]?.radius ?? 8;
   const hallOf = camp => camp?.buildings?.find(b => b.type === 'camp_hall') || null;
   const upgraded = camp => (hallOf(camp)?.tier || 1) >= 2;
+  const campMax = (camp, type) => tierMax(BD()[type], 'camp', hallOf(camp)?.tier || 1);
   const builtCount = (camp, type) => camp.buildings.filter(b => b.type === type && b.stage === 'built').length;
   const nice = t => (t || '').replace(/_/g, ' ');
   // what a building type still needs before it can be placed: [] when nothing
@@ -349,8 +351,9 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!Number.isFinite(x) || !Number.isFinite(z)) return 'Choose a spot';
     const need = missing(camp, type);
     if (need.length) return `Needs ${need.join(' and ')}`;
-    if (def.max && camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length + (opts.more || 0) >= def.max)   // Tim 2026-11-17: a ruin is only a look until erased; it takes no building slot
-    return `A camp has at most ${def.max} ${nice(type)}`;
+    const max = campMax(camp, type);   // Tim 2026-11-21: supply tents unlock with the camp hall upgrade
+    if (max && camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length + (opts.more || 0) >= max)   // Tim 2026-11-17: a ruin is only a look until erased; it takes no building slot
+    return max < (BD()[type]?.max ?? Infinity) ? `A camp has at most ${max} ${nice(type)} before the camp hall upgrade` : `A camp has at most ${max} ${nice(type)}`;
     const t = town(war.town), r = radiusOf(type), p = { x, z };
     if (!t) return 'No such town';
     if (dist(p, t) + r > W.circleRadius) return 'Stay inside the war circle';
@@ -490,8 +493,9 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     // (checkpoint 7: a building with clan: '<faction>' is only for that clan: the kennel, the hidden dojo)
     return Object.entries(BD()).filter(([type, d]) => type !== 'camp_hall' && d && typeof d === 'object' && d.cost && (!d.clan || d.clan === factionOf(war.attacker))).map(([type, d]) => {
       const need = missing(camp, type), count = camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length;
-      const reason = need.length ? `Needs ${need.join(' and ')}` : d.max && count >= d.max ? `A camp has at most ${d.max} ${nice(type)}` : canPay(camp, d.cost);
-      return { type, cost: d.cost, need, ok: !reason, reason: reason || '', count, max: d.max || null };
+      const max = campMax(camp, type);
+      const reason = need.length ? `Needs ${need.join(' and ')}` : max && count >= max ? (max < (d.max ?? Infinity) ? `A camp has at most ${max} ${nice(type)} before the camp hall upgrade` : `A camp has at most ${max} ${nice(type)}`) : canPay(camp, d.cost);
+      return { type, cost: d.cost, need, ok: !reason, reason: reason || '', count, max: max || null };
     });
   }
   function owns(e, war) { return !!war && !!e && e.owner === war.attacker; }
@@ -613,8 +617,10 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // the side's hero crew standing in the war circle count toward the troop cap too (F6 phase 4; not the hero, workers or settlers)
   const crewIn = (war, clan) => { const t = town(war.town), R = W?.circleRadius ?? 900; if (!t) return 0;
     return Object.values(state.entities || {}).filter(e => e.owner === clan && e.place === 'world' && !e.dead && !e.warTroop && !e.worker && e.type !== 'hero' && e.type !== 'settler' && e.type !== 'civilian' && !e.guard && !e.captain && !e.guide && Math.hypot(e.x - t.x, e.z - t.z) <= R).length; };
-  const troopsOf = war => Object.values(state.entities || {}).filter(e => e.warTroop === war.id && e.owner === war.attacker && !e.dead).length + crewIn(war, war.attacker);
-  const queuedOf = war => war.camp.buildings.reduce((n, b) => n + (b.queue?.length || 0), 0);
+  // troop places a unit takes (war.units[unit].slots, default 1; Tim 2026-11-21: Gatling 2, cannons 3, like RTS supply)
+  const slotsOf = unit => Math.max(1, UD()[unit]?.slots ?? 1);
+  const troopsOf = war => Object.values(state.entities || {}).filter(e => e.warTroop === war.id && e.owner === war.attacker && !e.dead).reduce((n, e) => n + slotsOf(e.warUnit), 0) + crewIn(war, war.attacker);
+  const queuedOf = war => war.camp.buildings.reduce((n, b) => n + (b.queue || []).reduce((m, q) => m + slotsOf(q.unit), 0), 0);
   function troopCap(war) {
     const T = W?.troopCap || {}, tents = war.camp.buildings.filter(b => b.stage === 'built').reduce((n, b) => n + (BD()[b.type]?.cap || 0), 0);
     return Math.min(T.max ?? Infinity, (T.base ?? 0) + tents);
@@ -634,8 +640,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     const n = c.count;
     if (!Number.isSafeInteger(n) || n < 1) return { ok: false, reason: 'count must be a positive integer' };
     if ((b.queue?.length || 0) + n > (W.queueMax ?? 20)) return { ok: false, reason: `At most ${W.queueMax ?? 20} waiting at one building` };
-    const left = troopCap(war) - troopsOf(war) - queuedOf(war);
-    if (n > left) return { ok: false, reason: left > 0 ? `Troop cap: room for ${left} more` : `Troop cap reached (${troopCap(war)}): build supply tents for more` };
+    const left = troopCap(war) - troopsOf(war) - queuedOf(war), need = n * slotsOf(c.unit);
+    if (need > left) return { ok: false, reason: left > 0 ? (need === n ? `Troop cap: room for ${left} more` : `Troop cap: ${need} places needed, ${left} free`) : `Troop cap reached (${troopCap(war)}): build supply tents for more` };
     const each = ryoOf(war.attacker, c.unit), cost = each * n;
     if ((war.camp.chest || 0) < cost) return { ok: false, reason: `Needs ${cost} ryo from the war chest (it has ${Math.floor(war.camp.chest || 0)})` };
     war.camp.chest = Math.round((war.camp.chest - cost) * 100) / 100;
@@ -796,7 +802,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     return false;
   }
 
-  const api = { isResourceCamp, check, plant, end, command, econTick, band, bandOutline, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campEraseCheck, campRebuildCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, setGeneral: g => { generalOn = () => !!g?.enabled(); }, generalOn: () => generalOn(), get data() { return W; },
+  const api = { slotsOf, campMax, isResourceCamp, check, plant, end, command, econTick, band, bandOutline, packView, potAt, warsAt, warOn, byId, warsOf, active, cooldownDays, campCheck, campLineCheck, campEraseCheck, campRebuildCheck, campBuildList, upgraded, troopView, trainsAt, crewIn, ryoOf, ticksOf, spawnTroop, tick, attach, setGarrison: g => { garrisonHook = g; }, setGeneral: g => { generalOn = () => !!g?.enabled(); }, generalOn: () => generalOn(), get data() { return W; },
     get defense() { return defense; }, get armory() { return armory; }, settleDefense: w => defense.settle(w) };
   defense = createWarDefense({ state, data, war: api, world });   // 8b-2: the defending town's war chest and training
   armory = createWarArmory({ state, data, war: api, world });   // 8e-9: armory upgrades

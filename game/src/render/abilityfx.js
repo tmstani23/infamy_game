@@ -777,17 +777,18 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         if (!x && visible) {
           const aim = e.rifle?.aim, tauntStart = e.taunt?.startedAt ?? e.taunt?.castUntil - 15;
           if (aim?.until > state.tick) x = { start:aim.at, len:aim.until-aim.at, aiming:true };
+          else if (e.gat?.state === 'spin' && e.gat.start != null && e.gat.until > state.tick) x = { start: e.gat.start, len: Math.max(1, e.gat.until - e.gat.start), spinning: true, unload: !!e.gat.unload };   // Gatling spin up (Tim 2026-11-21)
           else if (tauntStart <= state.tick && state.tick < tauntStart + 40) x = { start:tauntStart, len:40, taunting:true };
         }
         if (!x || x.start === null || !p || !overlay) continue;
         busy.add(e.id);
         let el = bars.get(e.id);
         const hall = x.hall, hallKind = hall ? (hall.side === 'camp' ? 'camp' : hall.outcome || 'burn') : null;
-        const mode=hall?`hall ${hallKind}`:x.torching?'torching':x.scrubbing?'scrubbing':x.charming?'charming':x.aiming?'aiming':x.taunting?'taunting':x.arrest?'arrest':'execute';
+        const mode=hall?`hall ${hallKind}`:x.torching?'torching':x.scrubbing?'scrubbing':x.charming?'charming':x.aiming?'aiming':x.spinning?(x.unload?'aiming unloading':'aiming spinning'):x.taunting?'taunting':x.arrest?'arrest':'execute';
         if (el && el.channelMode !== mode) { removeBar(el); el = null; }
         if (!el) {
           el = document.createElement('div'); el.className = `channel ${mode}`; el.channelMode=mode;
-          const label = hall ? HALL_LABEL[hallKind] || 'TAKING HALL' : x.torching ? 'TORCHING' : x.scrubbing?'REMOVING MARK':x.charming?'CHARMING':x.aiming?'AIMING':x.taunting?'TAUNT':x.arrest ? 'ARRESTING' : 'EXECUTING';
+          const label = hall ? HALL_LABEL[hallKind] || 'TAKING HALL' : x.torching ? 'TORCHING' : x.scrubbing?'REMOVING MARK':x.charming?'CHARMING':x.aiming?'AIMING':x.spinning?(x.unload?'UNLOADING':'SPINNING UP'):x.taunting?'TAUNT':x.arrest ? 'ARRESTING' : 'EXECUTING';
           el.innerHTML = `<i></i><span>${label}</span>` + (hall ? `<b></b><em class="sparks">${SPARKS}</em>` : ''); overlay.appendChild(el); bars.set(e.id, el);
           if (hall) { el.heroSparks = document.createElement('div'); el.heroSparks.className = `hall-sparks ${hallKind}`; el.heroSparks.innerHTML = SPARKS; overlay.appendChild(el.heroSparks); }
         }
