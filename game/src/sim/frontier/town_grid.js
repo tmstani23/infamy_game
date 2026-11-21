@@ -55,6 +55,13 @@ export function hallRoadCell(s, i) {
   const [x, z] = cellOffset(s, i);
   return Math.max(Math.abs(x), Math.abs(z)) <= s.grid.cell * s.roadReserve && (x !== 0 || z !== 0);
 }
+// With a ring of 2 or more (new towns, Tim 2026-11-21) the cells next to the hall are under its enlarged art
+// (art.json town_hall_* scale): no road or gate there, so the clear road ring starts one cell out.
+export function hallArtCell(s, i) {
+  if (!s.grid || !(s.roadReserve >= 2)) return false;
+  const [x, z] = cellOffset(s, i);
+  return Math.max(Math.abs(x), Math.abs(z)) <= s.grid.cell * (s.roadReserve - 1) && (x !== 0 || z !== 0);
+}
 
 export function zoneStructureAt(s,i,data,stage=Number(s.grid.stage[i])) {
   if(stage<1 || s.grid.ground[i]!=='c')return false;

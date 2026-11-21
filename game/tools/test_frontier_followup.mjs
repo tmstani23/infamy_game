@@ -61,7 +61,7 @@ state.entities.h.place='world';run(2);
 const before=JSON.stringify(s);assert.match(command({action:'train',count:s.pop}).reason,/townsperson|afford/);assert.equal(JSON.stringify(s),before,'reserved population is not spent');
 const restored=JSON.parse(JSON.stringify(state));delete restored.frontier.settlements.t.roadReserve;
 createFrontier({state:restored,data,spotData:spots});
-assert.equal(restored.frontier.settlements.t.roadReserve,1,'old saves receive the additive reservation');
+assert.equal(restored.frontier.settlements.t.roadReserve,data.townGrid.hallRoadReserve,'old saves receive the additive reservation');
 assert.equal(restored.frontier.settlements.t.grid.zone,s.grid.zone,'migration keeps existing zones');
 const lights=townProps([s],data.townArt,data.townLights).filter(p=>p.key.includes('auto-light'));
 assert.ok(lights.length>=4);assert.equal(new Set(lights.map(p=>p.key)).size,lights.length);

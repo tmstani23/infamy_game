@@ -8,6 +8,8 @@ import {makeSave,loadSave} from '../src/sim/save.js';
 import {createAreas} from '../src/sim/areas.js';
 const read=f=>JSON.parse(readFileSync(new URL('../'+f,import.meta.url)));
 const base=read('data/frontier.json');
+// the spots here sit 10 to 20 units from the hall; keep it the old one-cell size (the hall art grew to fill its inner ring, Tim 2026-11-21)
+base.townArt._placedFootprint.town_hall=1;
 function fixture({saved=null,changes={},spots=null,stages=null}={}) {
   const data=structuredClone(base);delete data.storage;data.settlements={};data.roads={};data.rates.food=0;data.rates.growthTicks=1e9;data.rates.maxBuilders=1;data.mood.reviewTicks=1e9;
   Object.assign(data.workers,{trainTicks:2,speed:20,harvestTicks:0,load:3,clearTicks:5},changes);

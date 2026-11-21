@@ -107,7 +107,7 @@ assert.ok(town.traits.soil >= 1 && town.traits.soil <= 3 && town.traits.water >=
 assert.deepEqual(town.buildings.map(b => b.type), ['town_hall']); assert.equal(town.housing, 6);
 assert.deepEqual(town.projects, [], 'founding leaves the next construction choice to the player');
 assert.equal((town.workerTraining?.length || 0) + (town.workers?.length || 0), frontier.founding.startWorkers, 'economy pass 2: new towns start with free workers');
-assert.ok(town.grid && town.roadReserve === 1, 'new town reserves a one-cell road ring');
+assert.ok(town.grid && town.roadReserve === 2, 'new town reserves a road ring one cell out from the hall (Tim 2026-11-21)');
 assert.ok(town.stock.ryo >= frontier.workers.cost, 'starter stock can train the first worker');
 assert.equal(town.buildings[0].cell, (town.grid.n * town.grid.n - 1) / 2, 'town hall takes the centre cell');
 assert.notDeepEqual(townSlot(0), townSlot(1)); assert.equal(new Set([...Array(40).keys()].map(i => townSlot(i).join())).size, 40, 'slots are all different');

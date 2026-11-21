@@ -60,7 +60,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     for(let dz=-search;dz<=search;dz++)for(let dx=-search;dx<=search;dx++) {
       const p=[origin[0]+dx*s.grid.cell,origin[1]+dz*s.grid.cell];
       const i=worldToCell(s,...p);
-      if(i<0 || s.grid.ground[i]==='x' || s.grid.zone[i]!=='.' || townBlocked(...p))continue;
+      if(i<0 || s.grid.ground[i]==='x' || s.grid.zone[i]!=='.' || planBlocked(...p))continue;   // padded like routes: a bigger town hall (Tim 2026-11-21) left the point free but the walker stuck on its corner
       const occupied=!building && s.workers.some(other=>other!==w && other.departure && distance(other.departure,p)<1);
       candidates.push({p,d:dx*dx+dz*dz,occupied});
     }
