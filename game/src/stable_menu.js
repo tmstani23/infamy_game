@@ -83,14 +83,16 @@ export function createStableMenu({ panel, game, heroId, send, data, openCavalry 
     if (capital() ? !st || hero()?.place !== 'street' : !b || !st) return close();
     const jobs = b?.stableJobs || [], j = jobs[0];
     const name = k => C().kinds?.[k]?.name || k;
-    // the queue in order, runs of the same kind counted: "5x Calico, 1x Rickshaw" (Tim 2026-11-07)
-    const runs = list => list.reduce((r, x) => { const last = r.at(-1); if (last?.k === x.kind) last.n++; else r.push({ k: x.kind, n: 1 }); return r; }, []).map(r => `${r.n}x ${name(r.k)}`);
+    // the queue in order, runs of the same kind counted: "Calico x5, Rickshaw" (Tim 2026-11-07)
+    const runs = list => list.reduce((r, x) => { const last = r.at(-1); if (last?.k === x.kind) last.n++; else r.push({ k: x.kind, n: 1 }); return r; }, []).map(r => `${name(r.k)}${r.n > 1 ? ` x${r.n}` : ''}`);
     const myClan = game.state.clans?.[me];
     const list = listVehicles(game, heroId);
     let body = `<div class="ms-tabs"><button class="ms-tab${view === 'buy' ? ' on' : ''}" data-stable-view="buy">Buy</button><button class="ms-tab${view === 'yours' ? ' on' : ''}" data-stable-view="yours">Yours (${list.length})</button>${!capital() && openCavalry && Object.values(game.state.frontier?.wars?.list || {}).some(w => w.town === townId && w.defender === me) ? '<button class="ms-tab" data-stable-war="1" title="Train war cavalry for the defence of this town (needs the town hall war upgrade)">Cavalry</button>' : ''}</div>`;
     if (view === 'buy') {
       if (!capital()) body += msSec('Making', j ? `Queue ${jobs.length} of ${C().queue ?? 10}` : 'Nothing being made', j ? runs(jobs).join(', ') : '')
-        + (j ? msRow({ name: `${esc(name(j.kind))}, ${Math.ceil(j.left / 20)} s`, sub: msProg(1 - j.left / j.total), right: msBtn({ label: 'Cancel last', data: 'data-cancel="1"', hover: 'Cancel the last job in the queue (refunded)' }) }) : '');
+        + (j ? msRow({ name: `${esc(name(j.kind))}, ${Math.ceil(j.left / 20)} s`, sub: msProg(1 - j.left / j.total), right: msBtn({ label: 'Cancel last', data: 'data-cancel="1"', hover: 'Cancel the last job in the queue (refunded)' }) }) : '')
+        // what waits behind the one being made, in order, same kinds grouped (Tim 2026-11-21, like the hire menu's Up next)
+        + (jobs.length > 1 ? msSec('Up next', `${jobs.length - 1} queued`) + `<div class="ms-chips">${runs(jobs.slice(1)).map(r => `<span class="ms-qchip" style="padding:2px 8px"><b>${esc(r)}</b></span>`).join('')}</div>` : '');
       const opts = options(), pages = Math.max(1, Math.ceil(opts.length / PER)); bpage = Math.max(0, Math.min(bpage, pages - 1));
       let k = 0;
       const rows = opts.map(o => {
