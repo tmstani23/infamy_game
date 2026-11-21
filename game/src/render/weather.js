@@ -2,7 +2,7 @@
 // rules. src/weather_pick.js picks the weather; numbers in data/weather.json.
 // - Fog: a few soft banks lying on the ground, drifting with the wind and wrapping round the view, so a
 //   bank leaving one side of the screen comes back in upwind. Drawn just above the ground decals and
-//   under every sprite, with a faint veil of their thickest wisps over the sprites so units stand inside it.
+//   under every sprite, with a thin even veil over the sprites so buildings, trees and units fade into it.
 //   At night they turn moonlit, catch lantern light, and thick fog carries a few pale ghost lights.
 // - Rain and snow: GPU points in a box round the camera; all motion is in the vertex shader.
 import * as THREE from 'three';
@@ -61,8 +61,11 @@ void main() {
   vec2 c2 = c + (warp - 0.5) * 2.2 - vec2(t * 0.09, 0.0);                    // curls stream through the bank
   float dens = wFbm(c2 * 1.3);
   float th = mix(0.6, 0.33, clamp(uAmount, 0.0, 1.0));
-  float a = uVeil > 0.0 ? smoothstep(th + 0.08, th + 0.4, dens) * uVeil : smoothstep(th, th + 0.3, dens);
-  a *= env * uOpacity * (1.0 + 0.25 * uNight);
+  // a wide ramp and a base haze spread the fog evenly instead of in thick swirls (Tim 2026-11-21);
+  // the veil over the sprites carries most of it, so buildings and trees fade with the ground
+  float soft = smoothstep(th - 0.25, th + 0.45, dens);
+  float a = uVeil > 0.0 ? (0.45 + 0.55 * soft) * uVeil : soft * 0.35;
+  a *= env * uOpacity * (1.0 + 0.1 * uNight);
   if (a < 0.004) discard;
   // light on the tops of the curls, shade in the folds
   float shade = smoothstep(0.3, 0.78, wFbm(c2 * 2.6 + 3.0));
@@ -76,8 +79,8 @@ void main() {
     float k = clamp(1.0 - length(uLightPos[i].xz - vWorld.xz) / (uLightPos[i].w * 1.3), 0.0, 1.0);
     lamp += uLightCol[i].rgb * (k * k * uLightCol[i].a);
   }
-  vec3 col = mix(day, moon + lamp * 0.85, uNight);
-  gl_FragColor = vec4(col, min(a, 0.92));
+  vec3 col = mix(day, moon + lamp * 0.35, uNight);   // a soft lantern tint, not orange swirls
+  gl_FragColor = vec4(col, min(a, 0.6));
 }`;
 
 const GHOST_FRAG = /* glsl */`

@@ -14,12 +14,12 @@
     "snowstorm": { "fog": 0.8,  "rain": 0,    "snow": 1.6, "wind": 2.2 }
   },
   "biomes": {
-    "forest": { "tint": "mist",  "day": { "clear": 32, "mist": 24, "fog": 14, "drizzle": 12, "rain": 18 }, "night": { "clear": 70, "mist": 9, "fog": 9, "drizzle": 5, "rain": 7 } },
-    "snow":   { "tint": "frost", "day": { "clear": 20, "mist": 12, "flurries": 18, "snow": 32, "snowstorm": 12, "fog": 6 }, "night": { "clear": 50, "flurries": 20, "mist": 6, "snow": 15, "snowstorm": 4, "fog": 5 } },
-    "dry":    { "tint": "dust",  "day": { "clear": 56, "haze": 34, "drizzle": 10 }, "night": { "clear": 70, "haze": 14, "mist": 11, "drizzle": 5 } }
+    "forest": { "tint": "mist",  "day": { "clear": 66, "mist": 12, "fog": 7, "drizzle": 6, "rain": 9 }, "night": { "clear": 83, "mist": 5, "fog": 5, "drizzle": 3, "rain": 4 } },
+    "snow":   { "tint": "frost", "day": { "clear": 60, "mist": 6, "flurries": 9, "snow": 16, "snowstorm": 6, "fog": 3 }, "night": { "clear": 74, "flurries": 10, "mist": 3, "snow": 8, "snowstorm": 2, "fog": 3 } },
+    "dry":    { "tint": "dust",  "day": { "clear": 78, "haze": 17, "drizzle": 5 }, "night": { "clear": 84, "haze": 7, "mist": 6, "drizzle": 3 } }
   },
   "wind": { "min": 0.8, "max": 2.0 },
-  "fog": { "banks": 13, "length": [36, 66], "width": [20, 34], "opacity": 0.62, "veil": 0.2, "ghostLights": 3 },
+  "fog": { "banks": 12, "length": [50, 84], "width": [32, 48], "opacity": 0.5, "veil": 0.75, "ghostLights": 3 },
   "rain": { "drops": 480, "splashes": 100, "fall": 17 },
   "snow": { "flakes": 1100, "fall": 2.6 }
 }
