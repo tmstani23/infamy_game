@@ -198,7 +198,7 @@
     "buildings": {
       "camp_hall": { "radius": 12 },
       "barracks": { "cost": { "timber": 150, "stone": 60 }, "buildTicks": 1200, "radius": 10, "max": 3 },
-      "supply_tents": { "cost": { "timber": 80 }, "buildTicks": 600, "radius": 8, "max": 12, "maxByTier": { "_note": "Tim 2026-11-21: tents unlock per tier (no early rush): camp before / after the camp hall upgrade, town by town hall tier", "camp": [4, 12], "town": [4, 8, 12] }, "cap": 8 },
+      "supply_tents": { "cost": { "timber": 80 }, "buildTicks": 600, "radius": 8, "max": 12, "maxByTier": { "_note": "Tim 2026-11-21: tents unlock with the war upgrade (no early rush): camp before / after the camp hall upgrade, town before / after the town hall war upgrade", "camp": [4, 12], "town": [4, 12] }, "cap": 8 },
       "lumber_camp": { "cost": { "timber": 60 }, "buildTicks": 600, "radius": 8, "max": 3 },
       "quarry": { "cost": { "timber": 60 }, "buildTicks": 600, "radius": 8, "max": 3 },
       "watchtower": { "cost": { "timber": 80, "stone": 40 }, "buildTicks": 800, "radius": 5, "max": 8 },

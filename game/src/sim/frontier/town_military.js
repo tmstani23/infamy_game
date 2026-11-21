@@ -12,8 +12,9 @@ const costText = cost => Object.entries(cost || {}).filter(([, v]) => v).map(([r
 export const isMilitary = (type, data) => !!data?.buildings?.[type]?.military;
 export const militaryTypes = data => Object.keys(data?.buildings || {}).filter(k => data.buildings[k]?.military);
 export const warHallDone = s => !!s?.warHall;
-// how many of a military type a town (kind 'town', s.tier 1-3) or a war camp (kind 'camp', camp hall tier 1-2) may have:
+// how many of a military type a town (kind 'town', tier = townMilitaryTier: 1, 2 after the town hall war upgrade) or a war camp (kind 'camp', camp hall tier 1-2) may have:
 // war.buildings[type].maxByTier[kind][tier - 1] (past the end: the last), else .max (Tim 2026-11-21: supply tents unlock per tier, no early rush)
+export const townMilitaryTier = s => warHallDone(s) ? 2 : 1;   // Tim 2026-11-21: the war upgrade, like the camp hall upgrade
 export function tierMax(def, kind, tier) {
   const list = def?.maxByTier?.[kind];
   return Array.isArray(list) && list.length ? list[Math.min(Math.max(1, tier || 1), list.length) - 1] : def?.max;
@@ -51,8 +52,8 @@ export function militaryWhy(s, type, data, state) {
   if (def.clan && f && def.clan !== f) return `Your clan does not build the ${nice(type)}`;
   const need = militaryNeeds(s, type, data);
   if (need.length) return `Needs ${need.join(' and ')}`;
-  const max = tierMax(def, 'town', s?.tier);
-  if (max && militaryCount(s, type) >= max) return def.maxByTier?.town && max < (def.max ?? Infinity) ? `At this town hall tier a town has at most ${max} ${nice(type)}` : `A town has at most ${max} ${nice(type)}`;
+  const max = tierMax(def, 'town', townMilitaryTier(s));
+  if (max && militaryCount(s, type) >= max) return def.maxByTier?.town && max < (def.max ?? Infinity) ? `A town has at most ${max} ${nice(type)} before the town hall war upgrade` : `A town has at most ${max} ${nice(type)}`;
   return null;
 }
 
