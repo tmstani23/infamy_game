@@ -71,7 +71,7 @@ export function createCommands({ state, data, world, economy, construction, gove
       const station = c.action === 'remove' && Array.isArray(c.cells) && t.buildings.find(b => b.type === 'station' && (b.cells || [b.cell]).some(i => c.cells.includes(i)));
       const lines = station && hooks.rail ? hooks.rail.linesAt(t.owner, t.id).length : 0;
       if (lines && !c.confirmLines) return reject(e, c, `Track runs from this station: erase it again to tear up its ${lines === 1 ? 'railway line' : `${lines} railway lines`}`);
-      const r = c.action === 'place' ? placement.place(t, { ...c, by }) : c.action === 'zone' ? zones.zone(t, { kind: c.kind, rect: c.rect, cells: c.cells, by }) : placement.remove(t, c);
+      const r = c.action === 'place' ? placement.place(t, { ...c, by }) : c.action === 'zone' ? zones.zone(t, { kind: c.kind, rect: c.rect, cells: c.cells, by }) : placement.remove(t, { ...c, by });
       if (lines && r.ok && !t.buildings.includes(station)) hooks.rail.tearUp(t.owner, t.id);
       const fr = f();
       fr.receiptSeq = (fr.receiptSeq || 0) + 1;
@@ -103,6 +103,7 @@ export function createCommands({ state, data, world, economy, construction, gove
       case 'setAutoBuild':
         if (typeof c.on !== 'boolean') return reject(e, c, 'on must be true or false');
         s.autoBuild = c.on;
+        if (c.on) s.initiativeOnce = true;   // goal step "Give him his orders" stays done after Off (Tim 2026-11-21)
         return receipt(e, c, true);
       case 'approveSuggestion':
         if (!Number.isInteger(c.index) || !s.suggestions?.[c.index]) return reject(e, c, 'no such suggestion');

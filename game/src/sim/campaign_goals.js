@@ -200,9 +200,11 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
     const clan = state.clans?.[id], m = clan?.milestones || {};
     if (!m.metGovernor) return { key: 'governor', title: 'Meet your governor', step: S0 + MAIN_STEPS.indexOf('governor'), steps, rows: [
       pin(row('crew', 'Talk to your governor', 0, 1, 'Walk up to your town hall (gold) and press Space')), holdRow(id)] };
-    if (!town.focusSet || !(town.autoBuild || town.approvedOnce)) return { key: 'govorders', title: 'Give him his orders', step: S0 + MAIN_STEPS.indexOf('govorders'), steps, rows: [
+    // once given, his orders stay given (Tim 2026-11-21): Initiative turned Off later, or anything he built on his own (older saves), counts
+    const ordered = town.autoBuild || town.approvedOnce || town.initiativeOnce || town.grid?.by?.includes('g');
+    if (!town.focusSet || !ordered) return { key: 'govorders', title: 'Give him his orders', step: S0 + MAIN_STEPS.indexOf('govorders'), steps, rows: [
       pin(row('town', 'Pick a focus', town.focusSet ? 1 : 0, 1, panel + 'open the Governor tab and pick a Focus (gold): Grow, Produce, Trade or Fortify')),
-      pin(row('office', 'Initiative On or a suggestion approved', town.autoBuild || town.approvedOnce ? 1 : 0, 1, panel + 'set Governor takes initiative to On (gold), or press Approve on one of his suggestions')), holdRow(id)] };
+      pin(row('office', 'Initiative On or a suggestion approved', ordered ? 1 : 0, 1, panel + 'set Governor takes initiative to On (gold), or press Approve on one of his suggestions')), holdRow(id)] };
     if (data.buildings?.storehouse && !has('storehouse')) return { key: 'storehouse', title: 'Build a storehouse', step: S0 + MAIN_STEPS.indexOf('storehouse'), steps, rows: [pin(row('town', 'Storehouse', 0, 1,
       tool('Storehouse', 'click a spot by a road: it holds the stock you need for the upgrade'))), holdRow(id)] };
     const camps = [['lumber_camp', 'Lumber camp', 'near trees'], ['quarry', 'Quarry', 'near rocks']].filter(([t]) => data.buildings?.[t]);

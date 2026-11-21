@@ -154,7 +154,8 @@ export function createPlacement({ state, data, world, construction, resourceInde
   }
 
   // Preview and execution share a de-duplicated plan. Eraser returns 100% of paid costs.
-  function remove(s, { cells, dryRun = false }) {
+  // Cells the player erases stay marked as touched (by 'p', Tim 2026-11-21) so the governor never zones them again.
+  function remove(s, { cells, dryRun = false, by = '.' }) {
     if (!s?.grid) return bad('no grid');
     const g = s.grid, { n } = g;
     if (!Array.isArray(cells) || !cells.length || !cells.every(i => Number.isInteger(i) && i >= 0 && i < n * n)) return bad('outside grid', cells || []);
@@ -182,7 +183,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
         if(p.proj)construction.cancel(p.proj.id,{refund:false});
         if(p.building)s.buildings.splice(s.buildings.indexOf(p.building),1);
       }
-      for(const i of covered) {setUse(s,i,'.');g.zone=put(g.zone,i,'.');g.stage=put(g.stage,i,'0');g.by=put(g.by,i,'.');if(s.lineCosts)delete s.lineCosts[i];}
+      for(const i of covered) {setUse(s,i,'.');g.zone=put(g.zone,i,'.');g.stage=put(g.stage,i,'0');g.by=put(g.by,i,by==='p'?'p':'.');if(s.lineCosts)delete s.lineCosts[i];}
       for(const [r,n] of Object.entries(refund))world.change(s.id,r,n,'refund');
       world.recount?.(s.id);
     }
