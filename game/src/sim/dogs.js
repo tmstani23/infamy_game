@@ -16,12 +16,12 @@ export function createDogs({ state, units, vision, spawn, hit, hostile = () => f
   const rulesOf = e => units.types[e?.type]?.dogs || null;
   const ranged = t => { const u = units.types[t.type]; return !!(u?.projectile || u?.rifle || t.type === 'shinobi_geisha'); };
   const fleeing = t => !!t.fleeing || t.order?.kind === 'flee' || t.order?.kind === 'retreat';
-  const valid = (e, t, R) => alive(t) && !t.jailed && t.owner !== e.owner && t.type !== 'civilian' && !t.animal && !t.cop && t.place === e.place && !t.garrison && !t.aboard
-    && hostile(e, t) && allowed(e, t) && vision.canSee(e.owner, t) && dist(e, t) <= R.range;
+  const valid = (e, t, R, req) => alive(t) && !t.jailed && t.owner !== e.owner && t.type !== 'civilian' && !t.animal && !t.cop && t.place === e.place && !t.garrison && !t.aboard
+    && hostile(e, t) && allowed(e, t) && vision.canSee(e.owner, t) && dist(e, t) <= (req ? R.castRange ?? R.range : R.range);   // asked for: castRange (Tim 2026-11-20)
   function target(e, R, req) {
     let best = null, bd = Infinity;
     for (const t of Object.values(state.entities)) {
-      if (!valid(e, t, R)) continue;
+      if (!valid(e, t, R, req)) continue;
       if (!req && !ranged(t) && !fleeing(t)) continue;
       const d = req && Number.isFinite(req.x) ? Math.hypot(t.x - req.x, t.z - req.z) : dist(e, t);
       if (d < bd || (d === bd && best && t.id < best.id)) { bd = d; best = t; }

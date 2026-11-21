@@ -19,7 +19,7 @@ const dogsOut = () => Object.values(st.entities).filter(e => e.pack);
 const cast = (ability, ids, extra = {}) => g.step([{ id: hero.id, type: 'special', ability, units: ids, ...extra }]);
 
 assert.equal(specialOf(units, { type: 'dog_handler' }), 'dogs');
-assert.ok(D.count >= 2 && D.count <= 3 && D.cooldownTicks >= 600 && D.cooldownTicks <= 900 && D.detect > 0, 'dog data');
+assert.ok(D.count >= 2 && D.count <= 3 && D.cooldownTicks >= 200 && D.cooldownTicks <= 900 && D.detect > 0 && D.castRange >= D.range, 'dog data (Tim 2026-11-20: 15 s, long cast range)');
 assert.equal(frontier.war.buildings.kennel.clan, 'yakuza'); assert.deepEqual(frontier.war.units.dog_handler.at, ['kennel']);
 
 // ---- auto: only ranged or fleeing enemies; a melee enemy is left alone -------------------------------
