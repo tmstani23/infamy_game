@@ -134,4 +134,7 @@ Ticks about 20-25% faster in a 100-a-side battle, same fight results.
 - `sim/separation.js`: number keys per square instead of text keys; the neighbour list is reused unless the unit moved to another square.
 - `sim/large_fights.js`: the pair search is shortened; groups and their order are unchanged.
 - `sim/frontier/town_grid.js`: each camp keeps the box round all of its blocker boxes, so `tryMove` skips far camps.
-- Still left: unit pushing checks, target search, and the tick-0 burst of about 400 path searches.
+- `sim/game.js`: the push pass memoizes nearby blockers per unit and skips the search when there are none.
+- `sim/game.js`: `loadState` refreshes the per-tick unit indexes.
+- The tick-0 burst of about 400 path searches is left as is: 400 simultaneous orders do not happen in play.
+- Still left: target search.

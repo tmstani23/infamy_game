@@ -678,7 +678,15 @@ export function createGame(options) {
     const all = Object.values(state.entities).filter(e => e.type !== 'hero' && !e.dead && !e.downed && !e.pack);
     separateUnits(all.filter(e => e.place === 'street'),e=>statsOf(e).radius,tryMove);
     const island = all.filter(e => e.place === 'world' && looseOnIsland(e));
-    if (island.length > 1) separateUnits(island,e=>statsOf(e).radius*(e.mounted&&!e.cavalry?2.5:1),tryMove,e=>statsOf(e).weight||(e.mounted?units?.rules?.riderWeight??4:1));   // war cavalry carry their own radius (units.json)
+    // (lag 2026-11-21) nothing solid changes while units ease apart, so each unit asks once for the blockers round it;
+    // where there are none, its small pushes skip the search (the same moves: a smaller box inside an empty one is empty)
+    const clear = new Map(), NONE = [], M = 2;
+    const clearFor = e => near => (x0, z0, x1, z1) => {
+      let c = clear.get(e.id);
+      if (!c) clear.set(e.id, c = { minX: e.x - M, minZ: e.z - M, maxX: e.x + M, maxZ: e.z + M, empty: near(e.x - M, e.z - M, e.x + M, e.z + M).length === 0 });
+      return c.empty && x0 >= c.minX && z0 >= c.minZ && x1 <= c.maxX && z1 <= c.maxZ ? NONE : near(x0, z0, x1, z1);
+    };
+    if (island.length > 1) separateUnits(island,e=>statsOf(e).radius*(e.mounted&&!e.cavalry?2.5:1),(e,r,dx,dz)=>tryMove(e,r,dx,dz,clearFor(e)),e=>statsOf(e).weight||(e.mounted?units?.rules?.riderWeight??4:1));   // war cavalry carry their own radius (units.json)
   }
 
   // Spawn a unit just outside a building's door, on a spot that is free of walls and
@@ -1422,11 +1430,12 @@ export function createGame(options) {
   }
 
   // Move along one axis, stopping flush against the first thing in the way
-  function tryMove(e, r, dx, dz) {
+  function tryMove(e, r, dx, dz, wrapNear = null) {
     if (stunned(e, state.tick)) return;
     r *= roomBodyScales[e.place] || 1;
     if(e.place==='world'&&areas){const gates=frontier?.structures?.gateBlockers(e);   // war checkpoint 6: an enemy gate is solid for the other side of its war
-      const [x,z]=slideWorld(e.x,e.z,r,dx,dz,gates?(...b)=>[...areas.blockersNear(...b),...gates(...b)]:areas.blockersNear,options.worldChunks?.islandArt?.cornerSlip??.6);if(deployment.canOccupy(e,x,z)){e.x=x;e.z=z;}return;}
+      const near=gates?(...b)=>[...areas.blockersNear(...b),...gates(...b)]:areas.blockersNear;
+      const [x,z]=slideWorld(e.x,e.z,r,dx,dz,wrapNear?wrapNear(near):near,options.worldChunks?.islandArt?.cornerSlip??.6);if(deployment.canOccupy(e,x,z)){e.x=x;e.z=z;}return;}
     let x = e.x + dx, z = e.z + dz;
     const near = e.place === 'world' && areas ? areas.blockersNear : blockersNear;
     for (const b of near(Math.min(e.x, x) - r, Math.min(e.z, z) - r, Math.max(e.x, x) + r, Math.max(e.z, z) + r)) {
@@ -1456,6 +1465,7 @@ export function createGame(options) {
   }
   function loadState(d) {
     if (!d) return;
+    rosterChanged(state);   // the per-tick unit indexes (sim/util.js) list the loaded units, even when the tick number matches
     nextId = d.nextId;
     for (const [o, v] of [[intents, d.intents], [fight, d.fight], [paths, d.paths]]) { for (const k of Object.keys(o)) delete o[k]; Object.assign(o, v); }
     restoreLargeFights(state, d.largeFights);
