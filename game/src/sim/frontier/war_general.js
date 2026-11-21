@@ -62,6 +62,7 @@ export function createWarGeneral({ state, data, war, dayTicks = 12000, seed = ()
     if (!STRATEGIES.includes(c.strategy)) return { ok: false, reason: 'Pick Rush, Siege or Raider' };
     if (clan.bot && STRATEGIES.includes(clan.warStrategy)) return { ok: false, reason: 'A rival keeps its strategy' };
     clan.warStrategy = c.strategy;
+    clan.strategyPicked = true;   // the Pick his strategy goal (campaign_goals.js): choosing, or confirming the chosen one
     return { ok: true, reason: '' };
   }
   function setKeep(e, c) {

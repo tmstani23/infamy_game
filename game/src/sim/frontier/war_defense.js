@@ -13,6 +13,8 @@
 import { cellToWorld } from './town_grid.js';
 import { debitRyo, creditRyo } from '../treasury.js';
 
+import { fundEmpty } from './fund.js';
+
 export function createWarDefense({ state, data, war, world }) {
   const W = data.war || {}, T = () => W.town || {}, BD = () => W.buildings || {}, UD = () => W.units || {};
   const f = () => state.frontier;
@@ -103,6 +105,8 @@ export function createWarDefense({ state, data, war, world }) {
     for (const w of war.active()) {
       const s = town(w.town);
       if (!s?.grid || s.owner !== w.defender) continue;
+      // the safety fund pours in when the town is attacked: ryo into the war chest, timber and stone into its stock (fund.js)
+      if (s.fund && (s.fund.ryo >= 1 || s.fund.timber >= 1 || s.fund.stone >= 1)) fundEmpty(s, world, v => { const d = def(w); d.chest = round(d.chest + v); d.put = round(d.put + v); });
       const camp = w.camp?.buildings?.find(b => b.type === 'camp_hall') || w.camp || w;
       for (const b of s.buildings || []) {
         const q = b.queue?.[0];

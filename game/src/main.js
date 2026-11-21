@@ -356,7 +356,7 @@ async function start() {
   // between checks; the panel calls this after every redraw too, and the build bar (#buildmini) counts as well
   let townStepFn = null, workerPicked = false;
   function applyTownFlash() {
-    const roots = ['#townpanel', '#towninspect', '#buildmini'];
+    const roots = ['#townpanel', '#towninspect', '#buildmini', '#townwar'];   // #townwar: the General tab goal (Tim 2026-11-21)
     // '@timber' (Tim 2026-11-06): the nearest timber Look button on the Workers pane Spots tab (else the Spots tab flashes)
     const pick = sel => sel[0] === '@' ? [...document.querySelectorAll('#townpanel [data-act="build-worker-spot"]')].find(el => el.dataset.kind === sel.slice(1) && el.offsetParent !== null)
       : [...document.querySelectorAll(roots.map(r => `${r} ${sel}`).join(', '))].find(el => el.offsetParent !== null);
@@ -420,7 +420,7 @@ async function start() {
     for (const btn of $('landoffice').querySelectorAll('[data-pick]')) btn.classList.toggle('goal-flash',
       !btn.disabled && ((btn.dataset.pick === '0' && !!goal?.key?.startsWith('permit') && L.permitStatus(c.id).ok) || (btn.dataset.pick === '1' && !!goal?.key?.startsWith('settlers'))));
     // Town setup goals (Tim 2026-11-06): flash the next button in the town panel, or the Town icon while it is shut
-    const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm', 'Work cells': 'work', Storehouse: 'storehouse', 'Lumber camp': 'lumber_camp', Quarry: 'quarry', People: 'housing', Infirmary: 'infirmary' };
+    const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm', 'Work cells': 'work', Storehouse: 'storehouse', 'Lumber camp': 'lumber_camp', Quarry: 'quarry', People: 'housing', Infirmary: 'infirmary', 'Military zone painted': 'military' };
     game.goalKey = goal?.key;
     const workerSteps = kind => {
       const q = s => document.querySelector(`#townpanel ${s}`);
@@ -441,7 +441,12 @@ async function start() {
       workers: () => workerSteps('timber'), village: () => ['[data-upgrade]'],
       rail: goal.rows[0].done ? null : () => ['[data-act="build-tool"][data-id="station"]', '[data-act="build-toggle"]', '[data-build]'],
       shipping: goal.rows[0].done ? null : () => ['[data-act="ship"][data-id^="order:"]', '[data-act="tab"][data-id="ship"]'],
-      market: () => goal.rows[0].done ? ['[data-act="keepinput"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'] }[goal.key];
+      market: () => goal.rows[0].done ? ['[data-act="keepinput"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'],
+      // the general's goals (Tim 2026-11-21): the fund box, the General tab of the town war window, a barracks when he is not on auto
+      fund: () => ['[data-act="fundinput"]', '[data-act="tab"][data-id="governor"]'],
+      strategy: () => ['[data-strategy]', '[data-tab="general"]', '[data-act="townwar"]'],
+      quarter: goal.rows[0].label === 'Military zone painted' ? toolSteps : null,   // else the gold mark on the ground
+      barracks: goal.auto ? null : () => ['[data-build="barracks"]', '[data-tab="military"]', '[data-act="townwar"]'] }[goal.key];
     townStepFn = step || null;
     const target = applyTownFlash();
     // war goals (goals pass, Tim 2026-11-19): the War banner on the action bar flashes while packing, and at a rival town

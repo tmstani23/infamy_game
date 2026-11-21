@@ -36,7 +36,7 @@ function game(heroAt) {
 
 // drawing: dirt -> construction site -> built
 {
-  const { g, w } = game([3000, 3000]);
+  const { g, w } = game([2960, 3000]);   // beside the hall, clear of the stockade plot (the tier hall art pushes a hero out of its middle)
   const t = w.settlement('tw'), snap = () => drawableTowns(structuredClone(g.state.frontier), 'player');
   // queue a stockade through the command path and watch it go from dirt to frame to building
   const hero = Object.values(g.state.entities).find(e => e.type === 'hero');

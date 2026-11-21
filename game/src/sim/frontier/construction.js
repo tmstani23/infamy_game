@@ -26,6 +26,7 @@ export function createConstruction({ state, data, world,resourceIndex }) {
   }
 
   // Adds an unauthorized, unpaid project. Returns its id, or null for an unknown town or building.
+  // opts.skip: a Set of cells a self-placed building keeps off (the governor's street lanes, streets.js)
   function queue(sid, type, cell = null, opts = {}) {
     const s = world.settlement(sid), t = data.buildings[type];
     if (!s || !t) return null;
@@ -38,7 +39,7 @@ export function createConstruction({ state, data, world,resourceIndex }) {
       if(shapeOf(t))opts={...opts,rot:opts.rot ?? 0};
       const allowed=a=>{
         const cells=cover(a);
-        return cells && cells.every(i=>s.grid.use[i]==='.' && s.grid.zone[i]==='.' && s.grid.ground[i]!=='x' && !hallRoadCell(s,i) && !s.railCells?.[i])
+        return cells && cells.every(i=>s.grid.use[i]==='.' && s.grid.zone[i]==='.' && s.grid.ground[i]!=='x' && !hallRoadCell(s,i) && !s.railCells?.[i] && !opts.skip?.has(i))
           && !coversResources(s,cells,resourceIndex,data.founding?.unitClearance) && !buildingSafety(s,cells,state,data.founding?.unitClearance) ? cells:null;
       };
       if(cell===null) {

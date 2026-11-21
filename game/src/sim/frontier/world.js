@@ -9,6 +9,7 @@ import { debitRyo, creditRyo } from '../treasury.js';
 import { ensureWorkers } from './workers.js';
 import { storageCap } from './storage.js';
 import { noteFlow } from './flow.js';
+import { takeShare } from './fund.js';
 const LEDGER_MAX = 500;
 const EPS = 1e-6;
 const plain = o => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith('_')));
@@ -109,6 +110,7 @@ export function createFrontierWorld({ state, data }) {
       const room = Math.max(0, storageCap(s, data, resource) - s.stock[resource]);
       if (delta > room) { (s.overflow ||= {})[resource] = (s.overflow[resource] || 0) + delta - room; delta = room; }
       if (delta <= 0) return s.stock[resource];
+      delta -= takeShare(s, data, state, resource, delta, reason);   // the safety fund's share of an income (fund.js)
     }
     s.stock[resource] = Math.max(0, s.stock[resource] + delta);
     noteFlow(s, resource, delta, reason);   // Usage page per-minute flows
@@ -176,6 +178,15 @@ export function createFrontierWorld({ state, data }) {
   }
 
   // The only pop writer. People arrive or leave, never die; logged in the display ledger as 'pop'.
+  // the safety fund pays a build or upgrade (fund.js fundPay): straight into the stock past the storage cap, as it is spent at once
+  function fundIn(sid, resource, v) {
+    const s = settlement(sid);
+    if (!s || !(resource in s.stock) || !(v > 0)) return;
+    s.stock[resource] += v;
+    noteFlow(s, resource, v, 'fund');
+    ledgerAdd({ settlement: s.id, resource, delta: v, reason: 'fund' });
+  }
+
   function changePop(sid, delta, reason) {
     const s = settlement(sid);
     if (!s) throw new Error(`[frontier] changePop: unknown ${nameOf(sid)}`);
@@ -223,5 +234,5 @@ export function createFrontierWorld({ state, data }) {
     try { return checkInvariants(); } catch (err) { console.error(err.message); return false; }
   }
 
-  return { frontier: f, newId, addTown, payFounding, settlement, ledgerAdd, change, changePop, setOwner, removeTown, setRoadState, townOrder, setTownOrder, assignStartOwners, syncCapital, recount, checkInvariants, logInvariants };
+  return { frontier: f, newId, addTown, payFounding, settlement, ledgerAdd, change, fundIn, changePop, setOwner, removeTown, setRoadState, townOrder, setTownOrder, assignStartOwners, syncCapital, recount, checkInvariants, logInvariants };
 }

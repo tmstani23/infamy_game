@@ -127,6 +127,15 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     }
     x += `<div class="gst"><span class="gstl"${tip(SHORT.initiative[st.autoBuild ? 'on' : 'off'] + (st.tips.initiative ? '\n' + st.tips.initiative : ''))}>Initiative</span>`
       + seg('auto', [['off', 'Asks first', !st.autoBuild, STEER.initiative.off], ['on', 'Builds himself', st.autoBuild, STEER.initiative.on]]) + '</div>';
+    // Safety fund (Tim 2026-11-21, sim/frontier/fund.js): a typed share of timber, stone and ryo income for the general
+    const f = s.fund;
+    if (f && !s.capital && !s.camp) {
+      const pct = Math.round(f.pct ?? 10), have = ['timber', 'stone', 'ryo'].map(r => `${Math.floor(f[r] || 0)} ${r}`).join(', ');
+      x += `<div class="gst" data-goal="fundbox"><span class="gstl"${tip('Safety fund: this share of the town\'s timber, stone and ryo income is set aside for the general. He builds his military quarter, its road and the hall war upgrade only from it, with Initiative On. 0 = he builds nothing. When his list at this tier is paid for, the rest stays with the town. If the town is attacked, the fund goes into the war chest.')}>Safety fund</span>`
+        + `<span class="gkeep"><button data-act="fund" data-id="-5"${tip('5 less')}>-</button><input class="keepin fundin" type="number" min="0" max="100" step="1" value="${pct}" data-act="fundinput"${tip('Type the share, 0 to 100, then Enter')}><small>%</small><button data-act="fund" data-id="5"${tip('5 more')}>+</button></span></div>`;
+      const line = s.report?.military || (f.next ? `${have}. Saving for ${f.next}` : `${have}`);
+      x += `<div class="focuscap"${tip('What is in the fund now, and what the general saves it for next')}>${esc(line)}</div>`;
+    }
     return x;
   }
   const railLinked = s => Object.values(game.state.frontier?.rail?.links || {}).some(l => l.done && !l.closed && (l.from === s.id || l.to === s.id));
@@ -233,7 +242,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     // Tim 2026-11-08: a close button on the panel itself (O and Esc still work)
     h = CLOSE + tabsH + '<div class="pbody">' + h + (failure && Date.now() - failure.at < 5000 ? `<div class="why">${esc(failure.text)}</div>` : '') + '</div>';
     const key = h + tab;
-    if (['keepinput', 'shipinput'].includes(document.activeElement?.dataset?.act) && root.contains(document.activeElement)) return;   // typing a keep level
+    if (['keepinput', 'shipinput', 'fundinput'].includes(document.activeElement?.dataset?.act) && root.contains(document.activeElement)) return;   // typing a keep level
     const pk = `${mode}|${tab}|${rosterOpen}|${usageResource}`; if (pk !== pageKey) { pageKey = pk; pageState.page = 0; }
     if (key !== lastHtml) { root.innerHTML = h; lastHtml = key; paginate(); afterRender(); }
   }
@@ -259,6 +268,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
   root.addEventListener('change', e => {
     if (e.target.dataset?.act === 'keepinput') { const s = pick(), v = Math.round(Number(e.target.value)); if (s && Number.isFinite(v) && v >= 0) cmd({ action: 'setMarketKeep', settlement: s.id, keep: v }); lastHtml = ''; render(); return; }
+    if (e.target.dataset?.act === 'fundinput') { const s = pick(), v = Math.round(Number(e.target.value)); if (s && Number.isFinite(v)) cmd({ action: 'setFund', settlement: s.id, pct: Math.max(0, Math.min(100, v)) }); lastHtml = ''; render(); return; }
     if (e.target.dataset?.act === 'shipinput') { shipTab.input(e.target.dataset, e.target.value, pick()); lastHtml = ''; render(); return; }
     const s=pick();if(s && buildUI?.change?.(e.target.dataset,e.target.value,s)) {lastHtml='';render();}
   });
@@ -298,6 +308,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       case 'townwar': onTownWar?.(sid); break;   // war 8b
       case 'stable': cmd(id.startsWith('choose:') ? { action: 'stable', mode: 'choose', town: sid, horse: id.slice(7) } : id === 'cancel' || id === 'omnibus' ? { action: 'stable', mode: id, town: sid } : { action: 'stable', mode: 'horse', kind: id, town: sid }); break;
       case 'keep': cmd({ action: 'setMarketKeep', settlement: sid, keep: Number(id) }); break;   // economy pass 2 D
+      case 'fund': if (s?.fund) cmd({ action: 'setFund', settlement: sid, pct: Math.max(0, Math.min(100, Math.round((s.fund.pct ?? 10) + Number(id)))) }); break;   // safety fund -/+
     }
     lastHtml = ''; render(); b.blur?.();
   });

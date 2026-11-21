@@ -1,5 +1,6 @@
 import { modeRules } from './modes/index.js';
 import { SHOP } from './gear_catalog.js';
+import { cellToWorld } from './frontier/town_grid.js';
 // Campaign goals (quest log, Tim 2026-11-06). current() is read-only: it works out the clan's current goal
 // from the state for the Goal card (src/goal_card.js). record(news) (campaign only, once a tick) keeps the
 // milestones the starter goals need on clan.milestones: loot, gear and lanterns bought, raids, contracts, starters done.
@@ -14,7 +15,7 @@ import { SHOP } from './gear_catalog.js';
 // current(id) -> null | { key, title, step, steps, rows: [{ icon, label, have, need, done, how, where }] }
 // where (Tim 2026-11-06): { x, z, place } of the spot an unfinished row points to (the Goal ping on the minimap
 // and the gold blink in the street), or null; read-only, from the state the clan can see.
-export const MAIN_STEPS = ['permit', 'settlers', 'surveyor', 'lieutenant', 'orders', 'leave', 'mount', 'castleOut', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'warpack', 'war'];   // after the clan's starter goals
+export const MAIN_STEPS = ['permit', 'settlers', 'surveyor', 'lieutenant', 'orders', 'leave', 'mount', 'castleOut', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'fund', 'strategy', 'quarter', 'barracks', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'warpack', 'war'];   // after the clan's starter goals
 const ORDINAL = ['', '2nd ', '3rd ', '4th '];
 
 export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null, zones = null, harbourAt = () => null, hasCastle = () => false, castleApproach = () => null }) {
@@ -112,6 +113,11 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
       // war goals (goals pass): a full pack (it is spent when the banner goes in), and a war of your own declared
       if (!m.packed && packDone(clan)) m.packed = 1;
       if (!m.warDeclared && Object.values(state.frontier.wars?.list || {}).some(w => w.attacker === clan.id)) m.warDeclared = 1;
+      // the military quarter goal (Tim 2026-11-21): done once the hero has walked up to it
+      if (!m.sawQuarter && goalOf(clan.id)?.key === 'quarter') {
+        const q = quarterOf(firstTown(clan.id)), h = heroOf(clan.id);
+        if (q && h?.place === 'world' && Math.hypot(h.x - q.x, h.z - q.z) <= (G.quarterLook ?? 60)) m.sawQuarter = 1;
+      }
       // a loaded save that already meets the permit (or later) skips the starters
       if (m.starters < n && (clan.permit || townsOf(clan.id) || landOffice?.permitStatus(clan.id).rows.every(r => r.ok))) m.starters = n;
       while (m.starters < n && starterGoal(clan.id, clan, m.starters).rows.every(r => r.done)) m.starters++;
@@ -165,6 +171,14 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
   }
 
   // --- first-town setup (Tim 2026-11-06): lay out, workers, Village, Market; the capital-hold row rides along ---
+  // the middle of the town's military quarter (the general's plot, else Military zone cells), as a goal mark, or null
+  function quarterOf(town) {
+    const MZ = data.zones?.military?.char, g = town?.grid; if (!g || !MZ) return null;
+    const cells = town.milPlot?.cells?.length ? town.milPlot.cells.filter(i => g.zone[i] === MZ) : [...g.zone].map((c, i) => c === MZ ? i : -1).filter(i => i >= 0);
+    if (!cells.length) return null;
+    const pts = cells.map(i => cellToWorld(town, i));
+    return { x: pts.reduce((a, p) => a + p[0], 0) / pts.length, z: pts.reduce((a, p) => a + p[1], 0) / pts.length, place: 'world' };
+  }
   const count = (str, re) => (str?.match(re) || []).length;
   function holdRow(id) {
     const need = G.holdBusinesses ?? 6, have = landOffice.businessesHeld(id);
@@ -205,6 +219,23 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
     if (!town.focusSet || !ordered) return { key: 'govorders', title: 'Give him his orders', step: S0 + MAIN_STEPS.indexOf('govorders'), steps, rows: [
       pin(row('town', 'Pick a focus', town.focusSet ? 1 : 0, 1, panel + 'open the Governor tab and pick a Focus (gold): Grow, Produce, Trade or Fortify')),
       pin(row('office', 'Initiative On or a suggestion approved', ordered ? 1 : 0, 1, panel + 'set Governor takes initiative to On (gold), or press Approve on one of his suggestions')), holdRow(id)] };
+    // the general (Tim 2026-11-21, town_plan_spec.md section 5), first town only; a save already past the Market goal skips them
+    const marketDone = (town.buildings || []).some(b => b.type === 'market' && b.stage === 'built') && town.marketKeepSet;
+    if (data.war?.general?.fund && !marketDone) {
+      if (!town.fund?.set) return { key: 'fund', title: 'Fund your general', step: S0 + MAIN_STEPS.indexOf('fund'), steps, rows: [
+        pin(row('ryo', 'Safety fund share typed', 0, 1, panel + 'open the Governor tab and type a share in the Safety fund box (gold). That share of the town timber, stone and ryo income is saved for your general, who builds military buildings only from it. 0 means none')), holdRow(id)] };
+      if (!clan?.strategyPicked) return { key: 'strategy', title: 'Pick his strategy', step: S0 + MAIN_STEPS.indexOf('strategy'), steps, rows: [
+        pin(row('crew', 'Strategy chosen', 0, 1, panel + 'press Military (gold), open the General tab and pick Rush, Siege or Raider, or click the chosen one to keep it. It sets what he builds and how he fights while you are away')), holdRow(id)] };
+      const q = quarterOf(town), MZc = data.zones?.military?.char;
+      const seen = m.sawQuarter || town.milPlot?.player || town.milPlot?.erased || [...(town.grid?.zone || '')].some((c, i) => c === MZc && town.grid.by[i] === 'p');   // he painted his own
+      if (!seen) return { key: 'quarter', title: 'The military quarter', step: S0 + MAIN_STEPS.indexOf('quarter'), steps, rows: [q
+        ? { ...row('town', 'Military quarter looked at', 0, 1, 'Walk to the gold mark: your general keeps this block for military buildings and lays its road. You can erase it and paint your own Military zone'), at: q }
+        : pin(row('town', 'Military zone painted', 0, 1, tool('Military', 'paint a block by a road: your general builds there. With Governor initiative On he paints one himself'))), holdRow(id)] };
+      const milBuilt = (town.buildings || []).some(b => b.stage === 'built' && data.buildings?.[b.type]?.military);
+      if (!milBuilt) return { key: 'barracks', title: 'First barracks', step: S0 + MAIN_STEPS.indexOf('barracks'), steps, auto: !!town.autoBuild, rows: [
+        pin(row('crew', 'Military building standing', 0, 1, town.autoBuild ? `Your general builds it from the safety fund${town.fund?.next ? `, saving for ${town.fund.next}` : ''}. A bigger share gets it sooner`
+          : panel + 'press Military (gold) and place a barracks in the military zone, or set Governor initiative On and your general builds it from the fund')), holdRow(id)] };
+    }
     if (data.buildings?.storehouse && !has('storehouse')) return { key: 'storehouse', title: 'Build a storehouse', step: S0 + MAIN_STEPS.indexOf('storehouse'), steps, rows: [pin(row('town', 'Storehouse', 0, 1,
       tool('Storehouse', 'click a spot by a road: it holds the stock you need for the upgrade'))), holdRow(id)] };
     const camps = [['lumber_camp', 'Lumber camp', 'near trees'], ['quarry', 'Quarry', 'near rocks']].filter(([t]) => data.buildings?.[t]);

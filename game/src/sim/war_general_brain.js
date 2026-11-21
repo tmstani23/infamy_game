@@ -14,6 +14,7 @@ import { ringRadius, cellOffset } from './frontier/town_grid.js';
 import { SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
 import { isMilitary, militaryCount, militaryNeeds, militaryWhy, warHallDone, tierMax } from './frontier/town_military.js';
 import { buildingCost } from './frontier/tiers.js';
+import { fundOf, fundPct, fundHas, fundPay, setFundCap } from './frontier/fund.js';
 import { pointAt } from './frontier/rail_route.js';
 
 const DET = SCREEN_RIGHT.x * SCREEN_DOWN.z - SCREEN_DOWN.x * SCREEN_RIGHT.z;
@@ -250,13 +251,44 @@ export function createGeneralBrain(game, { clan }) {
   // the hall war upgrade and the strategy's list of military buildings, one at a time, while the town can spare
   // the cost and a reserve on top (it pays the normal building upkeep for them)
   // zoneOnly (a player's town, 8d-5): only inside the military zone he painted, and never the hall upgrade
+  // Safety fund (Tim 2026-11-21, frontier/fund.js): in peace the general pays only from the town's fund, in player and
+  // bot towns alike, and follows his list in player towns as in bot towns (the hall war upgrade too). At war the fund
+  // has gone into the chest and stock, and he builds from the town's stock as before.
+  function fundCap(s, list, data) {
+    const cap = { timber: 0, stone: 0, ryo: 0 }, add = c => { for (const [r, v] of Object.entries(c || {})) if (r in cap) cap[r] += v; };
+    const seen = {}, tier = s.tier || 1; let next = '';
+    for (const type of list) {
+      if (type === 'upgrade') { if (!warHallDone(s) && !s.warUpgrade) { add(data.war?.hallUpgrade?.cost); next ||= 'the town hall war upgrade'; } continue; }
+      seen[type] = (seen[type] || 0) + 1;
+      if (militaryCount(s, type) >= seen[type] || (s.projects || []).filter(p => p.type === type).length + militaryCount(s, type) >= seen[type]) continue;
+      const def = data.war?.buildings?.[type] || {};
+      if (def.clan && def.clan !== state.clans[clan]?.faction) continue;
+      if ((def.needs || []).some(nd => /^tier(\d+)$/.test(nd) && Number(nd.slice(4)) > tier)) continue;   // not at this tier
+      const why = militaryWhy(s, type, data, state);
+      if (why && /at most/.test(why)) continue;
+      add(buildingCost(data, type, s)); next ||= type.replace(/_/g, ' ');
+    }
+    const road = (s.milPlot?.road || []).filter(i => s.grid.use[i] === '.').length;
+    if (road) { add({ timber: road * (data.placeCosts?.road?.timber ?? 1) }); next ||= 'the road to his military quarter'; }
+    return { cap, next };
+  }
   function prepare(out, cmd, s, zoneOnly = false) {
     if (!s.grid || s.capital || s.founded === undefined || (s.buildings || []).some(b => b.type === 'town_hall' && b.stage === 'ruined')) return;
     const G = gen().rules(), data = F().data, list = strat().defend?.build || [], R = G.buildReserve || {};
-    const can = cost => Object.entries(cost || {}).every(([r, v]) => (s.stock?.[r] ?? 0) >= v + (R[r] ?? 0));
+    const wOn = F().war.warOn?.(s.id), fund = wOn ? null : fundOf(s, data, state);
+    if (fund) {
+      // nothing to save for: a share of 0, or a player's town with no military quarter (erased, or no room). What is in
+      // the fund goes back to the town (design review 2026-11-21: 0 means no military building, and no stock is locked up)
+      const idle = !(fundPct(s, data, state) > 0) || (!state.clans[s.owner]?.bot && !s.grid.zone.includes(data.zones?.military?.char));
+      const fc = idle ? { cap: {}, next: '' } : fundCap(s, list, data);
+      setFundCap(s, F().world, fc.cap, fc.next);
+      if (idle) return;
+    }
+    if (fund) zoneOnly = false;   // the fund decides what he may spend; the quarter decides where (spotFor keeps to it in player towns)
+    const can = cost => fund ? fundHas(fund, cost) : Object.entries(cost || {}).every(([r, v]) => (s.stock?.[r] ?? 0) >= v + (R[r] ?? 0));
+    const pay = cost => !fund || fundPay(s, cost, F().world);
     if ((s.projects || []).some(p => isMilitary(p.type, data) || p.type === 'stockade') || s.warUpgrade) return;
     // at its troop cap with ryo to train more (a war on the town): the next supply tents come before the list
-    const wOn = zoneOnly ? null : F().war.warOn?.(s.id);
     if (wOn && wOn.defender === clan && memory(wOn, 'defender').capped && !militaryWhy(s, TENT, data, state) && militaryNeeds(s, TENT, data).length === 0) {
       if (!can(buildingCost(data, TENT, s))) return;   // saving for it
       const cell = spotFor(s, TENT, zoneOnly);
@@ -270,7 +302,7 @@ export function createGeneralBrain(game, { clan }) {
       if (i >= ruinAt) return;
       if (type === 'upgrade') {   // the town hall war upgrade itself (cavalry at the stable need it)
         if (zoneOnly || warHallDone(s)) continue;
-        if (can(data.war?.hallUpgrade?.cost)) { out.push(cmd({ action: 'warUpgradeHall', settlement: s.id })); return; }
+        if (can(data.war?.hallUpgrade?.cost) && pay(data.war?.hallUpgrade?.cost)) { out.push(cmd({ action: 'warUpgradeHall', settlement: s.id })); return; }
         if (!wOn) return;   // at peace it saves for it
         continue;           // Tim 2026-11-17: at war (the coffers feed the chest) the rest of the list does not wait for it
       }
@@ -281,15 +313,15 @@ export function createGeneralBrain(game, { clan }) {
       const needs = militaryNeeds(s, type, data);
       if (needs.length) {
         if (zoneOnly) continue;
-        if ((def.needs || []).includes('upgrade') && !warHallDone(s) && can(data.war?.hallUpgrade?.cost)) out.push(cmd({ action: 'warUpgradeHall', settlement: s.id }));
+        if ((def.needs || []).includes('upgrade') && !warHallDone(s) && !s.warUpgrade && can(data.war?.hallUpgrade?.cost) && pay(data.war?.hallUpgrade?.cost)) { out.push(cmd({ action: 'warUpgradeHall', settlement: s.id })); return; }
         if ((def.needs || []).includes('upgrade') && !warHallDone(s) && !tail && !wOn) return;   // saving for the upgrade (the tail, and a town at war, go on without it)
         continue;   // waits on an earlier building of the list
       }
       if (militaryWhy(s, type, data, state)) continue;
       if (!can(buildingCost(data, type, s))) return;   // saving for it
-      const cell = spotFor(s, type, zoneOnly);
-      if (cell != null) out.push(cmd({ action: 'place', town: s.id, kind: type, cells: [cell] }));
+      const cell = spotFor(s, type, zoneOnly || (fund && !state.clans[s.owner]?.bot));   // a player's town: only in the military quarter
       if (cell == null) continue;   // no room for this one (in the zone, or at this tier): try the next of the list
+      if (pay(buildingCost(data, type, s))) out.push(cmd({ action: 'place', town: s.id, kind: type, cells: [cell] }));
       return;
     }
   }
@@ -366,8 +398,12 @@ export function createGeneralBrain(game, { clan }) {
       for (const [, i] of zc) if (P.check(s, { kind: type, cells: [i] }).ok) return i;
     }
     if (zoneOnly) return null;
+    // never right beside the railway station: its track needs a way out (2026-11-21, a ring of barracks boxed it in)
+    const near = new Set(), gap = G.stationGap ?? 2;
+    for (const b of s.buildings || []) if (b.type === 'station') for (const c0 of (b.cells?.length ? b.cells : [b.cell]).filter(Number.isInteger)) {
+      const c = c0 % n, r = (c0 - c) / n; for (let rr = r - gap; rr <= r + gap; rr++) for (let cc = c - gap; cc <= c + gap; cc++) if (rr >= 0 && cc >= 0 && rr < n && cc < n) near.add(rr * n + cc); }
     const cells = [];
-    for (let i = 0; i < n * n; i++) { const d = Math.hypot(i % n - mid, Math.floor(i / n) - mid); if (d >= least && d <= most) cells.push([d, i]); }
+    for (let i = 0; i < n * n; i++) { const d = Math.hypot(i % n - mid, Math.floor(i / n) - mid); if (d >= least && d <= most && !near.has(i)) cells.push([d, i]); }
     cells.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     for (const [, i] of cells) if (P.check(s, { kind: type, cells: [i] }).ok) return i;
     return null;
@@ -1125,7 +1161,7 @@ export function createGeneralBrain(game, { clan }) {
       // player painted, and only in towns whose governor has the initiative (autoBuild)
       const MZ = F().data.zones?.military?.char, slow = Math.max(every, Math.round((gen.rules().buildSeconds ?? 30) * 20 / every) * every);
       if (MZ && (state.tick ?? 0) % slow === 0)
-        for (const s of Object.values(state.frontier?.settlements || {}).sort((a, b) => a.id < b.id ? -1 : 1)) if (s.owner === clan && s.autoBuild && s.grid?.zone?.includes(MZ) && !F().war.warOn?.(s.id)) prepare(out, cmd, s, true);
+        for (const s of Object.values(state.frontier?.settlements || {}).sort((a, b) => a.id < b.id ? -1 : 1)) if (s.owner === clan && s.autoBuild && s.grid?.zone && !F().war.warOn?.(s.id)) prepare(out, cmd, s, true);   // with no military zone it only hands the fund back
     }
     walk(out, h);
     return out;

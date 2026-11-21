@@ -119,7 +119,8 @@ g.clans.settlersOf = settlers;
 g.state.frontier.settlements.__t = { owner: 'player', founded: true, name: 'Test' };
 clan.permit = false;
 goal = g.goals.current('player');
-assert.equal(goal.step, 27); assert.match(goal.title, /Influence/);
+assert.equal(goal.step, 31);   // 27 before the four general goals (2026-11-21)
+ assert.match(goal.title, /Influence/);
 assert.equal(goal.rows[0].label, 'Influence');
 delete g.state.frontier.settlements.__t;
 console.log('campaign goals ok');
@@ -205,6 +206,21 @@ console.log('campaign goals ok');
   T.focusSet = true;
   assert.deepEqual(cur().rows.map(r => r.done).slice(0, 2), [true, false]);
   T.autoBuild = true;
+  // the general's goals (Tim 2026-11-21): type a fund share, pick (or keep) a strategy, look at the quarter, his first building
+  assert.equal(cur().key, 'fund');
+  T.fund = { ...(T.fund || {}), set: true };
+  assert.equal(cur().key, 'strategy');
+  g.frontier.warGeneral.command(me, { action: 'warStrategy', strategy: g.frontier.warGeneral.strategyOf('player') });   // keeping the chosen one counts
+  assert.equal(cur().key, 'quarter');
+  assert.equal(cur().rows[0].label, 'Military zone painted', 'no plot yet: paint one');
+  const mz = i => { grid.zone = grid.zone.slice(0, i) + 'm' + grid.zone.slice(i + 1); grid.by = grid.by.slice(0, i) + 'g' + grid.by.slice(i + 1); };
+  mz(70); mz(71);
+  const q = cur().rows[0];
+  assert.equal(q.label, 'Military quarter looked at'); assert.equal(q.where.place, 'world', 'it points at the quarter');
+  Object.assign(me, { place: 'world', x: q.where.x, z: q.where.z });
+  g.state.tick = Math.ceil((g.state.tick + 1) / 10) * 10; g.goals.record([]);   // its milestone check, as each tick runs it
+  assert.equal(cur().key, 'barracks', 'walking up to it counts as looked at');
+  T.buildings.push({ type: 'barracks', stage: 'built' });
   assert.equal(cur().key, 'storehouse');
   T.buildings.push({ type: 'storehouse', stage: 'built' });
   assert.equal(cur().key, 'camps');

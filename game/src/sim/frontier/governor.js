@@ -14,6 +14,8 @@ import { placedRoom, upgradeCheck, startUpgrade, tierOf, nextTier, zoneCells, ce
 import { isFull, storageCap } from './storage.js';
 import { workerCount } from './people.js';
 import { inCore, centreCell, hallRoadCell, worldToCell, cellToWorld } from './town_grid.js';
+import { streets, laneCells, townAims } from './streets.js';
+import { createMilitaryPlot } from './military_plot.js';
 const EPS = 1e-9;
 const TAX_STEPS = ['low', 'normal', 'high'];
 // one-off or surplus flows that say nothing about the town's running goods balance
@@ -41,7 +43,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const zk = zoneKind(s, type);
     if (zk && zones.busy(s, zk)) return true;
     if (zk && s.autoBuild) {
-      let r = zones.autoZone(s, zk);
+      let r = zones.autoZone(s, zk, lane(s, zk));
       // Tim 2026-11-05: with initiative the governor lays a short road out from its network when zones run out of road access
       if (!r.ok && /road/.test(r.reason) && roadSpur(s, zk)) r = { ok: true };
       if (!r.ok) s.report.next = `${reason} (${r.reason})`;
@@ -53,35 +55,121 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return true;
   }
 
-  // A straight road spur (up to G.roadSpur cells) from a road linked to the hall, or from the hall itself, in the
-  // direction that opens the most free zonable cells without road access. Same place() as the player, by = 'g'.
+  // Organic streets (Tim 2026-11-21, streets.js): the paths his streets would take next, and the lane of
+  // cells he keeps free of his own zones so the hall is never boxed in.
+  const reachOf = kind => data.zones.kinds[kind]?.needs?.roadReach ?? 3;
+  function streetPaths(s, kind) {
+    if (!s.grid || !zones?.linkedRoads) return [];
+    const spots = workers?.index?.spotsNear ? workers.index.spotsNear(s.x, s.z, data.workers?.range ?? 300) : [];
+    return streets(s, data, { linked: zones.linkedRoads(s), aims: townAims(s, { towns: Object.values(f().settlements || {}), spots }), reach: reachOf(kind) });
+  }
+  // the lane also keeps the general's planned road to his military quarter free (military_plot.js)
+  // cells within G.stationGap of a railway station stay open for its track (rail_town.js routes round houses and workshops)
+  const stationSide = (s, set) => {
+    const n = s.grid.n, gap = G.stationGap ?? 2;
+    for (const b of s.buildings || []) if (b.type === 'station') for (const c0 of (b.cells?.length ? b.cells : [b.cell]).filter(Number.isInteger)) {
+      const c = c0 % n, r = (c0 - c) / n;
+      for (let rr = r - gap; rr <= r + gap; rr++) for (let cc = c - gap; cc <= c + gap; cc++) if (rr >= 0 && cc >= 0 && rr < n && cc < n) set.add(rr * n + cc);
+    }
+    return set;
+  };
+  const lane = (s, kind) => {
+    if (!s.grid) return null;
+    const set = new Set(laneCells(streetPaths(s, kind), s.grid, G.streetAhead ?? 6));
+    for (const i of plot.pendingRoad(s)) set.add(i);
+    return stationSide(s, set);
+  };
+  const plot = createMilitaryPlot({ state, data, world, zones, placement, resourceIndex: workers?.index || null, lane: s => s.grid ? stationSide(s, new Set(laneCells(streetPaths(s, 'housing'), s.grid, G.streetAhead ?? 6))) : null });
+
+  // Tim 2026-11-21: his first road is a ring round the town hall, on the outer row of its road-only reserve
+  // (town.roadReserve cells), so every street and the general's military road branch off it. Cells the player
+  // touched, and cells a road may not take (cliff, unbuildable), are left; it is laid as the town can pay.
+  const campsFirst = s => ['lumber_camp', 'quarry'].every(t => !data.buildings?.[t] || placedRoom(s, t, data) < 1
+    || s.buildings.some(b => b.type === t) || s.projects.some(p => p.type === t));
+
+  function hallRing(s) {
+    const pl = placement(), R = s.roadReserve || 0;
+    if ((s.stock.timber || 0) < (G.streetKeep ?? 40)) return;   // saving timber
+    if (!pl || !s.grid || !(R > 0)) return;
+    const g = s.grid, n = g.n, hall = centreCell(n), hc = hall % n, hr = (hall - hc) / n, cells = [];
+    for (let r = hr - R; r <= hr + R; r++) for (let c = hc - R; c <= hc + R; c++) {
+      if (Math.max(Math.abs(r - hr), Math.abs(c - hc)) !== R || r < 0 || c < 0 || r >= n || c >= n) continue;
+      const i = r * n + c;
+      if (g.use[i] === '.' && g.by[i] !== 'p' && pl.check(s, { kind: 'road', cells: [i] }).ok) cells.push(i);
+    }
+    if (!cells.length) return;
+    let run = cells;
+    while (run.length > 1 && !pl.check(s, { kind: 'road', cells: run }).ok) run = run.slice(0, Math.ceil(run.length / 2));
+    if (pl.check(s, { kind: 'road', cells: run }).ok) pl.place(s, { kind: 'road', cells: run, by: 'g' });
+  }
+
+  // Tim 2026-11-21: once the hall ring is down he sends straight streets out from it (the town's lanes, streets.js),
+  // a stretch of up to G.roadSpur cells per review, to the edge of the town ring, keeping G.streetKeep timber, so new
+  // zones have road and later roads join them easily.
+  function growStreets(s) {
+    const pl = placement(); if (!pl || !s.grid || !zones?.linkedRoads) return;
+    const g = s.grid, isRoad = i => g.use[i] === 'r' || g.use[i] === 'g', len = G.roadSpur ?? 6;
+    const R = s.roadReserve || 0, n = g.n, hall = centreCell(n), hc = hall % n, hr = (hall - hc) / n;
+    if (R > 0) for (let r = hr - R; r <= hr + R; r++) for (let c = hc - R; c <= hc + R; c++)   // the ring first
+      if (Math.max(Math.abs(r - hr), Math.abs(c - hc)) === R && g.use[r * n + c] === '.' && g.by[r * n + c] !== 'p' && pl.check(s, { kind: 'road', cells: [r * n + c] }).ok) return;
+    for (const p of streetPaths(s, 'housing')) {
+      if (p.bld) continue;
+      const at = p.findIndex(i => !isRoad(i)); if (at < 0) continue;
+      const cells = [];
+      for (let k = at; k < p.length && cells.length < len && !isRoad(p[k]) && inCore(s, p[k], data); k++) cells.push(p[k]);
+      if (!cells.length) continue;
+      const cost = cells.length * (data.placeCosts?.road?.timber ?? 1);
+      if ((s.stock.timber || 0) - cost < (G.streetKeep ?? 40)) return;   // saving timber
+      for (let m = cells.length; m >= 1; m--) if (pl.check(s, { kind: 'road', cells: cells.slice(0, m) }).ok) { if (pl.place(s, { kind: 'road', cells: cells.slice(0, m), by: 'g' }).ok) return; }
+    }
+  }
+
+  // Lay the next stretch of a street (up to G.roadSpur cells) when zones run out of road access: a stretch
+  // that reaches one of his buildings with no road, or else the one that opens the most free zonable cells
+  // (at least G.roadSpurMinCells). Falls back to a straight spur. Same place() as the player, by = 'g'.
   function roadSpur(s, kind) {
     const pl = placement(); if (!pl || !s.grid) return false;
-    const g = s.grid, n = g.n, reach = data.zones.kinds[kind]?.needs?.roadReach ?? 3, len = G.roadSpur ?? 6;
-    const linked = zones.linkedRoads(s), hall = centreCell(n);
-    const free = i => g.ground[i] === 'c' && g.use[i] === '.' && g.zone[i] === '.' && g.by[i] === '.' && !hallRoadCell(s, i) && inCore(s, i, data);
+    const g = s.grid, n = g.n, reach = reachOf(kind), len = G.roadSpur ?? 6;
+    const linked = zones.linkedRoads(s), hall = centreCell(n), isRoad = i => g.use[i] === 'r' || g.use[i] === 'g';
+    const free = i => g.ground[i] !== 'x' && g.use[i] === '.' && g.zone[i] === '.' && g.by[i] === '.' && !hallRoadCell(s, i) && inCore(s, i, data);
     const open = new Uint8Array(n * n);   // free cells that have no road access yet
     for (let i = 0; i < n * n; i++) if (free(i) && !zones.roadNear(s, i, reach)) open[i] = 1;
-    const seeds = [hall]; for (let i = 0; i < n * n; i++) if (linked[i]) seeds.push(i);
-    let best = null;
-    for (const seed of seeds) for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const cells = []; let c = seed % n, r = (seed - c) / n;
-      for (let k = 0; k < len; k++) {
-        c += dc; r += dr; const i = r * n + c;
-        if (c < 0 || r < 0 || c >= n || r >= n || g.use[i] !== '.' || g.zone[i] !== '.' || g.ground[i] !== 'c' || !inCore(s, i, data)) break;
-        cells.push(i);
-      }
-      if (cells.length < 2) continue;
+    const gainOf = cells => {
       const seen = new Set();
       for (const i of cells) { const ic = i % n, ir = (i - ic) / n;
         for (let rr = Math.max(0, ir - reach); rr <= Math.min(n - 1, ir + reach); rr++) for (let cc = Math.max(0, ic - reach); cc <= Math.min(n - 1, ic + reach); cc++) { const j = rr * n + cc; if (open[j] && !cells.includes(j)) seen.add(j); } }
-      if (seen.size >= (G.roadSpurMinCells ?? 6) && (!best || seen.size > best.gain || seen.size === best.gain && cells.length < best.cells.length)) best = { cells, gain: seen.size };
+      return seen.size;
+    };
+    const minGain = G.roadSpurMinCells ?? 6, tries = [];
+    for (const p of streetPaths(s, kind)) {
+      const at = p.findIndex(i => !isRoad(i)); if (at < 0) continue;
+      const cells = []; for (let k = at; k < p.length && cells.length < len && !isRoad(p[k]); k++) cells.push(p[k]);
+      const gain = gainOf(cells);
+      if (p.bld || gain >= minGain) tries.push({ cells, gain: p.bld ? Infinity : gain });
     }
-    if (!best) return false;
-    if (!pl.check(s, { kind: 'road', cells: best.cells }).ok) return false;
-    const r = pl.place(s, { kind: 'road', cells: best.cells, by: 'g' });
-    if (r.ok) s.report.next = 'Laying a road for new zones';
-    return !!r.ok;
+    // fallback: a straight spur from a linked road or the hall
+    if (!tries.length) {
+      const seeds = [hall]; for (let i = 0; i < n * n; i++) if (linked[i]) seeds.push(i);
+      for (const seed of seeds) for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const cells = []; let c = seed % n, r = (seed - c) / n;
+        for (let k = 0; k < len; k++) {
+          c += dc; r += dr; const i = r * n + c;
+          if (c < 0 || r < 0 || c >= n || r >= n || g.use[i] !== '.' || g.zone[i] !== '.' || g.ground[i] === 'x' || !inCore(s, i, data)) break;
+          cells.push(i);
+        }
+        if (cells.length < 2) continue;
+        const gain = gainOf(cells);
+        if (gain >= minGain) tries.push({ cells, gain });
+      }
+    }
+    tries.sort((a, b) => b.gain - a.gain || a.cells.length - b.cells.length);
+    for (const t of tries) for (let m = t.cells.length; m >= 1; m--) {   // shortened if the far end will not take a road
+      const cells = t.cells.slice(0, m);
+      if (!pl.check(s, { kind: 'road', cells }).ok) continue;
+      const r = pl.place(s, { kind: 'road', cells, by: 'g' });
+      if (r.ok) { s.report.next = 'Laying a road for new zones'; return true; }
+    }
+    return false;
   }
 
   // Self-running governor (Tim 2026-11-05): with initiative, a lumber camp / quarry beside the spot its workers use
@@ -100,7 +188,9 @@ export function createGovernor({ state, data, world, economy, construction, zone
       const dropXZ = b => { const pts = (b.cells?.length ? b.cells : [b.cell]).filter(i => i !== null && i !== undefined).map(i => cellToWorld(s, i)); return pts.length ? pts[0] : hall; };
       if (Math.hypot(sp.x - hall[0], sp.z - hall[1]) < (G.campDistance ?? 70) || drops.some(b => { const [x, z] = dropXZ(b); return Math.hypot(sp.x - x, sp.z - z) < (G.campDistance ?? 70); })) continue;
       const cost = data.buildings[type].cost;
-      if (!Object.entries(cost).every(([r, v]) => (s.stock[r] || 0) >= v)) continue;   // never blocks the other rules while saving
+      // never blocks the other rules while saving; the workshops leave its cost in stock meanwhile (2026-11-21 soak:
+      // a treeless start burned every log in the work zone and never had the lumber camp's 30 timber)
+      if (!Object.entries(cost).every(([r, v]) => (s.stock[r] || 0) >= v)) { s.gov.inputKeep ||= cost; continue; }
       const g = s.grid, n2 = g.n, c0 = worldToCell(s, sp.x, sp.z);
       if (c0 < 0) continue;
       const cc = c0 % n2, cr = (c0 - cc) / n2, cand = [];
@@ -230,6 +320,12 @@ export function createGovernor({ state, data, world, economy, construction, zone
       if (idle >= G.idleNeeded && !sick) return suggest(s, 'farm', 'Farm: food falling');
       s.report.next = sick ? 'Food falling: farms are short of upkeep or hands' : 'Food falling, need workers';
     }
+    // 1a. (2026-11-21 max-stage soak) food flat, so the town cannot grow: a farm too (a store at foodPlentyShare is fine)
+    if (s.growthBlock === 'food' && s.gov.falling === 0 && idle >= G.idleNeeded) {
+      const cap = storageCap(s, data, 'food'), farmZone = s.zones?.farm;
+      const plenty = isFull(s, data, 'food') || (Number.isFinite(cap) && s.stock.food >= cap * (G.foodPlentyShare ?? 0.5));
+      if (!plenty && !(farmZone && farmZone.cells > 0 && (farmZone.health ?? 1) < data.zones.healthyAt)) return suggest(s, 'farm', 'Farm: food not rising');
+    }
     // 1b goods target (2026-11-06 soak fix): at least goodsProfitPerMin, and while the next hall tier's goods cost is
     // not yet in stock, enough to save it up within upgradeGoalMinutes
     const goodsTarget = s => {
@@ -250,6 +346,13 @@ export function createGovernor({ state, data, world, economy, construction, zone
     }
     // 2. housing full and food not falling: a house
     if (residents(s) >= s.housing && s.gov.falling === 0) {
+      // (2026-11-21 max-stage soak) farms at their tier cap and food not rising: one more house only starves the town
+      const fk = zoneKind(s, 'farm'), fch = fk && data.zones.kinds[fk]?.char;
+      if (fch && zoneCells(s, fch) >= cellCap(s, fk, data) && !((s.gov.foodNet ?? 0) > 1) && !isFull(s, data, 'food')) {
+        s.suggestions = s.suggestions.filter(x => x.type !== 'house');
+        s.report.next = 'House: farms at the town hall tier limit (upgrade the hall for more farm cells)';
+        return true;
+      }
       // Economy pass 2 fix (Tim 2026-11-05): at the tier's housing cell cap the limit is the hall, not free land.
       const zk = zoneKind(s, 'house'), char = zk && data.zones.kinds[zk]?.char;
       if (char && zoneCells(s, char) >= cellCap(s, zk, data)) {
@@ -314,8 +417,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (s.projects.length || !s.suggestions.length) return;
     const sg = s.suggestions.shift();
     const zk = zoneKind(s, sg.type);
-    if (zk) { zones.autoZone(s, zk); return; }
-    const pid = (isCamp(sg.type) && siteCamp(s, sg.type)) || construction.queue(s.id, sg.type, null);
+    if (zk) { zones.autoZone(s, zk, lane(s, zk)); return; }
+    const pid = (isCamp(sg.type) && siteCamp(s, sg.type)) || construction.queue(s.id, sg.type, null, { skip: lane(s, 'housing') });
     if (!pid) return;
     construction.find(pid).project.byGov = true;
     tryAuthorize(s, pid);
@@ -343,9 +446,16 @@ export function createGovernor({ state, data, world, economy, construction, zone
     gov.falling = !plenty && nBuilt === gov.nBuilt && s.stock.food < gov.foodLast - EPS ? gov.falling + 1 : 0;
     gov.nBuilt = nBuilt;
     gov.foodLast = s.stock.food;
+    // food per minute, smoothed over reviews (worker deliveries come in lumps): the housing rule at the farm cap reads it
+    const foodNow = Object.entries(s.flow?.food || {}).filter(([why]) => !ONCE_FLOW.has(why)).reduce((n, [, v]) => n + v, 0);
+    gov.foodNet = Number.isFinite(gov.foodNet) ? gov.foodNet * 0.8 + foodNow * 0.2 : foodNow;
     if(gov.falling===0 && (plenty || (s.report.rate?.food || 0)>0))s.suggestions=s.suggestions.filter(x=>!(x.type==='farm' && x.reason==='Farm: food falling'));
     if (++gov.window >= G.budgetWindowReviews) { gov.window = 0; s.budget.spent = 0; }
     s.report.next = '';
+    gov.inputKeep = null;   // campRule sets it again while it saves for a camp
+    // roads wait for the lumber camp and quarry (each placed or sited), so the start timber goes to them first
+    if (s.autoBuild && campsFirst(s)) { hallRing(s); growStreets(s); }
+    if (s.autoBuild) plot.run(s);   // the general's military quarter has first pick of new ground (Tim 2026-11-21)
     maintain(s);
     trainWorker(s);
     const timber = timberCampRule(s);
@@ -380,8 +490,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const sg = s.suggestions[index];
     if (!sg) return false;
     const zk = zoneKind(s, sg.type);
-    if (zk) { if (!zones.autoZone(s, zk).ok) return false; s.suggestions.splice(index, 1); return true; }
-    const pid = (isCamp(sg.type) && siteCamp(s, sg.type)) || construction.queue(s.id, sg.type, null);
+    if (zk) { if (!zones.autoZone(s, zk, lane(s, zk)).ok) return false; s.suggestions.splice(index, 1); return true; }
+    const pid = (isCamp(sg.type) && siteCamp(s, sg.type)) || construction.queue(s.id, sg.type, null, { skip: lane(s, 'housing') });
     if (!pid) return false;
     construction.authorize(pid);
     s.suggestions.splice(index, 1);

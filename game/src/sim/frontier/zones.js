@@ -244,10 +244,11 @@ export function createZones({ state, data, world,resourceIndex }) {
         let scale = 1;
         // a full store makes no more (Tim 2026-11-05 governor soak: workshops burned timber/stone into a full goods store)
         if (k.inputs) for (const [r, v] of Object.entries(made)) if (v > 0) scale = Math.min(scale, Math.max(0, storageCap(s, data, r) - (s.stock[r] || 0)) / v);
-        for (const [r, per] of Object.entries(k.inputs || {})) { const need = per * total; if (need > 0) scale = Math.min(scale, Math.max(0, s.stock[r]) / need); }
+        const has = r => Math.max(0, s.stock[r] - (s.gov?.inputKeep?.[r] || 0));   // what the governor saves for a camp stays
+        for (const [r, per] of Object.entries(k.inputs || {})) { const need = per * total; if (need > 0) scale = Math.min(scale, has(r) / need); }
         if (scale < 1) wait(s, 'inputs');
         if (scale > 0) {
-          for (const [r, per] of Object.entries(k.inputs || {})) world.change(s.id, r, -Math.min(s.stock[r], per * total * scale), `${name} zone`);
+          for (const [r, per] of Object.entries(k.inputs || {})) world.change(s.id, r, -Math.min(has(r), per * total * scale), `${name} zone`);
           for (const [r, v] of Object.entries(made)) world.change(s.id, r, v * scale, `${name} zone`);
           z.output = total * scale;
         }
@@ -268,13 +269,14 @@ export function createZones({ state, data, world,resourceIndex }) {
   }
   // The governor's zoning: governorCells free cells nearest the hall, with a road in reach, never on a
   // cell anybody has touched (by must be '.'). Goes through zone() with by = 'g'.
-  function autoZone(s, kind) {
+  // skip: cells to leave free (the governor's street lanes, streets.js)
+  function autoZone(s, kind, skip = null) {
     if (!on(s)) return bad('no grid');
     const k = Z().kinds[kind], g = s.grid, { n } = g;
     if (!k) return bad('unknown zone kind');
     const cand = [];
     for (let i = 0; i < n * n; i++) {
-      if (g.zone[i] !== '.' || g.use[i] !== '.' || g.by[i] !== '.' || g.ground[i] === 'x' || (k.cliffMargin && nearCliff(s, i, data)) || hallRoadCell(s, i) || !inCore(s, i, data)) continue;
+      if (g.zone[i] !== '.' || g.use[i] !== '.' || g.by[i] !== '.' || g.ground[i] === 'x' || (k.cliffMargin && nearCliff(s, i, data)) || hallRoadCell(s, i) || !inCore(s, i, data) || skip?.has(i)) continue;
       if(coversResources(s,[i],resourceIndex,data.founding?.unitClearance))continue;
       const [ox, oz] = cellOffset(s, i);
       cand.push([ox * ox + oz * oz, i]);

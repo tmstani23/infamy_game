@@ -1018,16 +1018,32 @@ are outside the first hero gear slice.
 - The island minimap shows enemy, police and wild units only while they are in sight, and camps, passes and rival buildings only in revealed areas.
 - The garrison card works for any building with garrison data in `frontier.json`; today that is the stockade.
 
-## Safety fund and military plot — planned, not built (2026-11-21)
+## Governor streets, military quarter and safety fund (built 2026-11-21)
 
-- Safety fund: each town has one typed percentage box with plus/minus on the Governor tab, starting at 10 (0 = no military building). New towns copy the last town's value. It takes that share of timber, stone and ryo income. The general spends only from the fund, capped at the cost of his remaining list for the tier; anything over flows back to the town. If the town is attacked the fund pours into its war chest first. A readout line shows the contents and what he is saving for.
-- Military plot (auto towns): at Camp the general reserves a small block (about a barracks and a supply tent) before the governor zones, facing the nearest rival, else the station, else the capital-line edge, never blocking a resource camp. He lays and extends his own road to it from the hall, always connected, and the governor treats that road as the main street. He extends the block at Village and Town. A zone the player paints wins; he never erases anything and never repaints cells the player erased.
-- Governor: always keeps at least two free lanes out from the hall; places buildings with logic (market near the hall, storehouse by the station or camps, farms on the edge, and so on), and roads follow the buildings.
-- Rivals use the same rules; their fund percentage depends on their hidden strategy (higher for Rush, lower for Siege).
-- Hall war upgrade: in player auto towns the general works through his strategy's build list in order, like rivals; the hall war upgrade is an entry on that list, paid from the fund. Replaces the 2026-11-16 rule that the general never upgrades the hall in a player town.
-- Old saves start at 10% with no plot, and show "No room for a military quarter" if the town is full.
-- Goal cards (first town only, after the governor step; one short line each, detail in the hover; never repeated in later towns):
-  1. Fund your general: flashes the fund box; done when a value is typed (0 counts).
-  2. Pick his strategy: flashes the General tab; done when a strategy is chosen or confirmed.
-  3. The military quarter: points at the plot and its road; done once looked at. Hover: you can erase it and paint your own.
-  4. First barracks: done when his first building stands.
+Governor streets (sim/frontier/streets.js, governor.js):
+- The governor plans streets each review from where his buildings stand: up to governor.streetsToBuildings streets to his own buildings with no road, plus at least governor.streetsOut straight streets out from the hall, governor.streetGap degrees apart, toward rivals, rail, timber and stone. Turns cost governor.streetTurn, so streets run straight. No fixed template.
+- The next governor.streetAhead cells of each street stay free of his zones and self-placed buildings, so the hall is never boxed in. He never erases anything.
+- With initiative On (every bot town) he first paves the road ring round the hall (outer row of townGrid.hallRoadReserve), then lays streets out governor.roadSpur cells per review, keeping governor.streetKeep timber. Both wait until the town has its lumber camp and quarry placed.
+- Cells within governor.stationGap of a railway station stay free of his zones and of the general's fallback spots.
+- Max-stage fixes: on an auto town the market keeps the next hall tier's goods cost; food flat (growth blocked) gets a farm like food falling; no new house while farms are at the tier cap and food is not rising; while saving for a work camp, workshops leave its cost in stock. 10 of 12 test sites reach Town tier with the governor alone; 2 still starve at Camp tier (balance open).
+
+Military quarter (sim/frontier/military_plot.js):
+- In a town on initiative On (every bot town) the general reserves one compact block of Military zone at founding and at each new tier, before the governor zones anything. Size per tier: war.general.plot.byTier; it grows outward, away from the hall.
+- Spot: facing the nearest town of another clan; with none, the own railway station; else the own capital. Never on resource ground, rail, the hall road ring, near cliffs, within war.general.plot.campGap of a work camp, or on the governor's street lanes.
+- A Military zone the player paints wins (no plot is made). Cells the player erases are never repainted. Nothing is ever erased. With no room the Governor tab says "No room for a military quarter".
+- The general lays the road from the hall network to his block himself, paid from the safety fund.
+
+Safety fund (sim/frontier/fund.js, data/frontier.json war.general.fund, placeholders):
+- Each frontier town sets aside one percentage of its timber, stone and ryo income (reasons in war.general.fund.from). The general spends only from it: his quarter road, his defend.build list in order and the hall war upgrade.
+- Hall war upgrade: in player auto towns too, the general works through his strategy's build list in order, like rivals; the hall war upgrade is an entry on it, paid from the fund. Replaces the 2026-11-16 rule that he never upgrades the hall in a player town.
+- The percentage is a typed box with minus and plus on the Governor tab (command setFund); 0 means no military building. It starts at war.general.fund.startPct; a player's new town copies his last value. Rivals use war.general.fund.byStrategy (Rush 20, Raider 14, Siege 8).
+- Cap = what is left of his list at this tier plus the pending quarter road; above the cap the share stays with the town. One readout line shows what is in the fund and what he is saving for.
+- When the town is attacked, the fund pours into the war chest (ryo) and stock (timber, stone).
+- A player's town with initiative Off sets nothing more aside (what is in the fund stays and still pours on attack). A share of 0, or a player's auto town with no military quarter, hands the fund back to the town and builds nothing. Stock handed back into a full store is lost like other overflow.
+- Old saves: towns start at 10 percent with no plot.
+
+Goal cards (sim/campaign_goals.js), first town only, after Give him his orders; a save already past Open a Market skips them:
+1. Fund your general: done when a share is typed (0 counts); the fund box flashes.
+2. Pick his strategy: done on choosing Rush, Siege or Raider or clicking the chosen one (General tab of the town war window).
+3. The military quarter: a gold mark on the plot; done when the hero walks up to it, or when the player paints his own zone. With no plot it asks the player to paint one.
+4. First barracks: done when a military building stands.

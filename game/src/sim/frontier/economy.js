@@ -7,7 +7,7 @@
 // lazily by init(), so older saves without these fields still run.
 import { residents } from './people.js';
 import { isFull, storageCap, defaultKeep } from './storage.js';
-import { upgradeTick } from './tiers.js';
+import { upgradeTick, nextTier } from './tiers.js';
 import { warUpgradeTick, warUpgradeBuilding } from './town_military.js';
 import { noteArrival, noteTierUp } from './arrivals.js';
 import { foldFlow } from './flow.js';
@@ -244,7 +244,9 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   function market(s) {
     const mk = data.market;
     if (!mk || !s.buildings.some(b => b.type === 'market' && b.stage === 'built')) return;
-    const keep = s.marketKeep ?? defaultKeep(s, data, 'goods'), sell = Math.min(mk.perTick, (s.stock.goods || 0) - keep);
+    // a town on auto also holds back the goods of its next hall tier (2026-11-21 soak: else the market sells them and the hall never goes up)
+    const save = s.autoBuild ? (nextTier(s, data)?.upgrade?.cost?.goods || 0) : 0;
+    const keep = Math.max(s.marketKeep ?? defaultKeep(s, data, 'goods'), save), sell = Math.min(mk.perTick, (s.stock.goods || 0) - keep);
     if (sell <= EPS) return;
     world.change(s.id, 'goods', -sell, 'market');
     // C4: each Influence tier of the owner raises the export price; sales count as frontier trade

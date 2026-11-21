@@ -7,8 +7,9 @@
 // createCommands({ state, data, world, economy, construction, governor }) -> { command, clearOldReceipts }
 import { startUpgrade } from './tiers.js';
 import { militaryWhy, startWarUpgrade } from './town_military.js';
+import { setFundPct } from './fund.js';
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
-const ACTIONS = ['setPriority', 'buyCart', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall', 'warUpgradeHall', 'setMarketKeep', 'rebuild', 'cartOrder'];
+const ACTIONS = ['setPriority', 'buyCart', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall', 'warUpgradeHall', 'setMarketKeep', 'setFund', 'rebuild', 'cartOrder'];
 
 // hooks.rail (set by frontier.js once the railway exists): a station's lines, torn up when it is removed (Tim 2026-11-07)
 export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones, workers, hooks = {} }) {
@@ -114,6 +115,10 @@ export function createCommands({ state, data, world, economy, construction, gove
         if (!['low', 'normal', 'high', 'auto'].includes(c.level)) return reject(e, c, 'unknown tax level');
         economy.setTax(s.id, c.level);
         return receipt(e, c, true);
+      case 'setFund': {   // the safety fund share (Tim 2026-11-21, fund.js): a whole percent 0 to 100, typed on the Governor tab
+        const why = setFundPct(s, data, state, c.pct);
+        return why ? reject(e, c, why) : receipt(e, c, true);
+      }
       case 'setMarketKeep': {
         const max = data.market?.keepMax ?? 100000;
         if (!Number.isFinite(c.keep) || c.keep < 0 || c.keep > max) return reject(e, c, `keep must be 0 to ${max}`);

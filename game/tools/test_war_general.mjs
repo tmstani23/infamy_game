@@ -15,6 +15,8 @@ const options = () => ({ district: data('data/port_town.json'), catalog: data('d
   units: U, civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
   settings: data('data/settings.json'), world, worldChunks: data('data/world_chunks.json'), resourceSpots: data('data/world_spots.json'), resourceSpotRules: data('data/resource_spots.json'), frontier: frontierData() });
 
+// the general builds only from a town's safety fund (Tim 2026-11-21, fund.js); scene towns have no income, so a test fills it (his look trims it to his list)
+const fill = s => { s.fund = { pct: 10, timber: 6000, stone: 6000, ryo: 3000, cap: { timber: 6000, stone: 6000, ryo: 3000 }, next: '' }; };
 function scene(seed = 47, tune = null) {
   const o = options(); tune?.(o.frontier);
   const g = createGame(o);
@@ -26,6 +28,7 @@ function scene(seed = 47, tune = null) {
     stock: { food: 5000, ryo, timber: 6000, stone: 6000, goods: 500 }, buildings: [{ type: o.frontier.founding.townHall, stage: 'built', cell: 0 }] });
   const far = sites.find(s => Math.hypot(s.x - sites[0].x, s.z - sites[0].z) > 2200);
   addTown('tP', 'player', sites[0], 4000); addTown('tR', rivals[0], far, 3000);
+  fill(g.state.frontier.settlements.tR);   // the rival's general pays from it (no income here)
   Object.assign(hero, { place: 'world', x: sites[0].x + 60, z: sites[0].z });
   g.step([]);
   let bots = makeBots(g, m.rivals).filter(b => b.config?.general);
@@ -176,7 +179,8 @@ function scene(seed = 47, tune = null) {
   assert.equal(brainR.view().wars[w.id].defender.mode, 'hold', 'the camp guard is a match for it: still no sally');
   const guard = Object.values(S.entities).filter(e => e.warTroop === w.id && e.owner === 'player' && !e.dead);
   for (const e of guard.slice(1)) e.hp = 0, e.dead = true;   // one of the camp guard is left
-  t.run(120);
+  // (2026-11-21: waits for the sally instead of a fixed 120 ticks: the town layout now sets when its troops finish training)
+  for (let q = 0; q < 10 && brainR.view().wars[w.id].defender.mode !== 'sortie'; q++) t.run(60);
   assert.equal(brainR.view().wars[w.id].defender.mode, 'sortie', 'the stronger town sallies');
   assert.ok(free().some(e => (e.order?.kind === 'raze' && String(e.order.structure).startsWith(`c|${w.id}|`)) || (e.order?.kind === 'attackmove' && Math.hypot(e.order.x - w.x, e.order.z - w.z) < 200)), 'at the war camp (a building, or the workers mending by it)');
   // the attacker grows past it: the army comes home and rests
@@ -268,11 +272,27 @@ function scene(seed = 47, tune = null) {
   // the player's general builds there only with the governor's initiative On
   tP.autoBuild = false; t.run(1300);
   assert.ok(!tP.projects.some(p => isMil(p.type)) && !tP.buildings.some(b => isMil(b.type)), 'initiative Off: he builds nothing');
-  tP.autoBuild = true; t.run(1300);
+  fill(tP); tP.autoBuild = true; t.run(1300);
   const mine = [...tP.projects, ...tP.buildings].filter(x => isMil(x.type));
   assert.ok(mine.length >= 1, 'initiative On: a military building is started');
   for (const x of mine) assert.ok((x.cells || [x.cell]).some(i => cells.includes(i)), 'inside the zone');
   assert.ok(count(tP) < painted, 'the cells it covers stop being zone');
+  // a share of 0: he builds nothing and what was in the fund goes back to the town (design review 2026-11-21)
+  { const u = scene(), s = u.S.frontier.settlements.tP;
+    assert.equal(u.cmd({ action: 'zone', town: 'tP', kind: 'military', rect: rectOf(s) }).ok, true);
+    fill(s); s.fund.pct = 0; s.autoBuild = true; s.stock.stone = 100; const before = s.stock.stone; u.run(1300);
+    assert.ok(![...s.projects, ...s.buildings].some(x => isMil(x.type)), 'fund share 0: no military building');
+    assert.ok(s.fund.timber + s.fund.stone + s.fund.ryo < 1 && s.stock.stone > before, 'the fund went back to the town'); }
+  // no zone painted: on auto the general reserves his own quarter, builds his first building inside it from the fund
+  { const u = scene(), s = u.S.frontier.settlements.tP; fill(s); s.autoBuild = true; u.run(1300);
+    const plot = s.milPlot?.cells || [], mil = [...s.projects, ...s.buildings].filter(x => isMil(x.type));
+    assert.ok(plot.length >= 6 && !s.milPlot.player, 'the general reserved a military quarter');
+    assert.ok(mil.length >= 1 && mil.every(x => (x.cells || [x.cell]).some(c => plot.includes(c))), 'and builds inside it');
+    assert.ok([...s.grid.zone].every((c, k) => c !== 'm' || plot.includes(k)), 'one block only'); }
+  // the player erased the quarter: it is not painted again, nothing is built and the fund is handed back
+  { const u = scene(), s = u.S.frontier.settlements.tP; fill(s); s.milPlot = { tier: 1, cells: [1], road: [], erased: true }; s.autoBuild = true; u.run(1300);
+    assert.ok(!s.grid.zone.includes('m') && ![...s.projects, ...s.buildings].some(x => isMil(x.type)), 'erased: no quarter, no building');
+    assert.ok(s.fund.timber + s.fund.stone + s.fund.ryo < 1, 'no military quarter: nothing stays locked in the fund'); }
   // no zone: the player's general builds nothing, even with the initiative On
   { const u = scene(), s = u.S.frontier.settlements.tP; s.autoBuild = true; u.run(1300); assert.ok(!s.projects.some(p => isMil(p.type)), 'no zone, no building'); }
   // a rival fills its zone first
@@ -296,7 +316,7 @@ function scene(seed = 47, tune = null) {
   for (const k of ['siege', 'raider', 'rush']) {
     const t = scene(47, f => { f.war.general.buildSeconds = 5; }), tR = t.S.frontier.settlements.tR;
     t.S.clans[t.rivals[0]].warStrategy = k;
-    let n = 0; while (!tR.buildings.some(b => b.type === 'barracks' && b.stage === 'built') && n++ < 400) t.run(100);
+      let n = 0; while (!tR.buildings.some(b => b.type === 'barracks' && b.stage === 'built') && n++ < 400) t.run(100);
     assert.equal(count(tR, 'w'), 0, 'no wall before the first military building');   // the barracks was just finished
     t.run(1200);
     got[k] = [count(tR, 'w'), count(tR, 'g')];

@@ -95,7 +95,8 @@ const housingMax = K.housing.stages.length;
   econ(data.governor.reviewTicks * 30);
   assert.equal(snap(), before, 'player cells untouched');
   assert.ok(s.grid.by.includes('g'), 'the governor zoned something');
-  for (let i = 0; i < s.grid.by.length; i++) if (s.grid.by[i] === 'g') assert.notEqual(s.grid.zone[i], '.');
+  // (his own cells are zones, or since 2026-11-21 the roads he and the general lay: streets.js, military_plot.js)
+  for (let i = 0; i < s.grid.by.length; i++) if (s.grid.by[i] === 'g' && s.grid.use[i] !== 'r') assert.notEqual(s.grid.zone[i], '.');
 }
 
 // 4. a migrated old town keeps pop, food and goods within 5% over 100 economy ticks
