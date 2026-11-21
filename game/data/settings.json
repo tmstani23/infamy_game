@@ -80,7 +80,7 @@
   },
   "influence": {
     "_note": "C4 (Tim 2026-11-05), campaign only, placeholders to tune. Influence = Renown + perBusinessDay for each business held at every dawn + perGoodSold for each good a town Market sells. Every tier raises Market export prices by exportBonusPerTier and cuts import prices by importDiscountPerTier (imports take effect once F3 shipments exist); tiers with unlock 'permit' allow one more founded town (2nd and 3rd). Renown itself is unchanged.",
-    "perBusinessDay": 10, "perGoodSold": 0.05, "exportBonusPerTier": 0.1, "importDiscountPerTier": 0.05,
+    "perBusinessDay": 10, "perGoodSold": 0.05, "shinobiRenownRate": 0.5, "_shinobiRenownRate": "Tim 2026-11-20: a Shinobi clan's Renown counts at this rate toward Influence (contracts outran businesses); Renown itself unchanged", "exportBonusPerTier": 0.1, "importDiscountPerTier": 0.05,
     "tiers": [
       { "at": 400, "label": "Market prices +10%, imports -5%" },
       { "at": 700, "unlock": "permit", "label": "2nd town permit" },

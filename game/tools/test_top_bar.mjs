@@ -14,7 +14,7 @@ const fresh = mode => { const g = createGame(options()); setupMatch(g, { clan: '
 {
   const g = fresh('campaign'), S = g.state, rivals = Object.keys(S.clans).filter(id => id !== 'player' && g.territory.standings().some(r => r.clan === id));
   assert.ok(rivals.length >= 2, 'rival clans are in the standings');
-  S.clans[rivals[0]].renown = 120; S.clans[rivals[1]].renown = 300; S.clans.player.renown = 10;
+  S.clans[rivals[0]].renown = 120; S.clans[rivals[1]].renown = 700; S.clans.player.renown = 10;   // 700: still ahead if it is the Shinobi clan (Renown counts at half)
   (S.influence ||= {})[rivals[0]] = { days: 40, trade: 5, tier: 0 };
   const m = standingsModel(g, 'player');
   assert.equal(m.campaign, true);

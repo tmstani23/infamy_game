@@ -2,8 +2,10 @@ import { modeRules } from './sim/modes/index.js';
 // Top bar standings (Tim 2026-11-10): a clock block and one chip per clan, you first then by rank.
 // Campaign: Influence is the big number, Renown the small one. Classic: season points.
 // standingsModel reads the state only (no DOM, tested in tools/test_top_bar.mjs).
+// Renown as it counts toward Influence (a Shinobi clan's counts at a reduced rate, sim/influence/influence.js)
+const counted = (game, clan, renown) => Math.floor(game.influence?.renownPart?.(clan) ?? renown);
 const RENOWN_WHY = c => c.kind === 'ninja'
-  ? 'Renown comes from finished contracts. It counts toward Influence and season points, and unlocks more crew.'
+  ? 'Renown comes from finished contracts. Half of it counts toward Influence. It also counts toward season points and unlocks more crew.'
   : 'Renown comes from raids won, shakedowns, paid sweeps, cleared sectors and stopped Shinobi jobs. It counts toward Influence, season points and the founding permit.';
 export function standingsModel(game, owner, TICK_RATE = 20) {
   const S = game.state, s = S.season, t = game.territory;
@@ -20,7 +22,7 @@ export function standingsModel(game, owner, TICK_RATE = 20) {
       const st = game.influence?.status(r.clan) || { value: 0, tier: 0, next: null }, ir = S.influence?.[r.clan];
       return { clan: r.clan, me, name, color: c.color, label: 'Influence', big: st.value, tier: st.tier, renown,
         hover: [`${c.name || r.clan}: Influence ${st.value}, Tier ${st.tier}`,
-          `Renown ${renown} + businesses held ${Math.floor(ir?.days || 0)} + town trade ${Math.floor(ir?.trade || 0)}.`,
+          `Renown ${counted(game, r.clan, renown)} + businesses held ${Math.floor(ir?.days || 0)} + town trade ${Math.floor(ir?.trade || 0)}.`,
           st.next ? `Next tier at ${st.next.at}: ${st.next.label}` : 'All Influence tiers reached',
           'Influence is a clan\'s standing in the campaign. Each tier gives better Market prices or one more town permit.',
           RENOWN_WHY(c), 'Click for the full standings.'].join('\n') };
@@ -79,7 +81,7 @@ export function standingsDetail(game, owner, clan) {
   const prev = st.tier ? tiers[st.tier - 1]?.at || 0 : 0;
   return { ...base, coins: [{ v: st.value, label: 'Influence', red: true, tip: 'A clan\'s standing in the campaign: Renown plus businesses held each day plus town trade. It never goes down.' },
     { v: st.tier, label: 'Tier', tip: 'Each tier gives better Market prices or one more town permit.' }, { v: renown, label: 'Renown', tip: base.renownWhy }, { v: held, label: 'Businesses', tip: 'Businesses held now. Each adds Influence at every dawn.' }],
-    from: [{ name: 'Renown', sub: c.kind === 'ninja' ? 'Finished contracts' : 'Raids, shakedowns, sweeps and defence', right: `${renown}` },
+    from: [{ name: 'Renown', sub: c.kind === 'ninja' ? (game.influence?.renownRate?.(clan) === 0.5 ? 'Finished contracts, counted at half' : 'Finished contracts') : 'Raids, shakedowns, sweeps and defence', right: `${counted(game, clan, renown)}` },
       { name: 'Businesses held', sub: 'Added at every dawn for each business', right: `${Math.floor(ir?.days || 0)}` },
       { name: 'Town trade', sub: 'Goods sold at town Markets', right: `${Math.floor(ir?.trade || 0)}` }],
     next: st.next ? { at: st.next.at, label: st.next.label, frac: (st.value - prev) / Math.max(1, st.next.at - prev), left: st.next.at - st.value } : null,

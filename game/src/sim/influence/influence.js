@@ -9,10 +9,14 @@ export function createInfluence({ state, rules, businessesHeld = () => 0 }) {
   const R = rules || {};
   const on = () => !!R.tiers && modeRules(state).influence;
   const rec = id => ((state.influence ||= {})[id] ||= { days: 0, trade: 0, tier: 0 });
+  // Renown counted toward Influence: a Shinobi clan's contract Renown counts at shinobiRenownRate (Tim 2026-11-20: half,
+  // contracts outran businesses); its Renown itself (crew slots, season points) is unchanged.
+  const renownRate = id => state.clans?.[id]?.kind === 'ninja' ? (R.shinobiRenownRate ?? 1) : 1;
+  const renownPart = id => (state.clans?.[id]?.renown || 0) * renownRate(id);
   function value(id) {
     if (!on() || !state.clans?.[id]) return 0;
     const r = rec(id);
-    return Math.floor((state.clans[id].renown || 0) + r.days + r.trade);
+    return Math.floor(renownPart(id) + r.days + r.trade);
   }
   const tierOf = v => (R.tiers || []).filter(t => v >= t.at).length;
   const tier = id => on() ? tierOf(value(id)) : 0;
@@ -42,5 +46,5 @@ export function createInfluence({ state, rules, businessesHeld = () => 0 }) {
       }
     }
   }
-  return { value, tier, status, maxTowns, exportFactor, importFactor, sold, tick, tiers: () => (on() ? R.tiers : []).map(t => ({ at: t.at, label: t.label })) };
+  return { value, renownPart, renownRate, tier, status, maxTowns, exportFactor, importFactor, sold, tick, tiers: () => (on() ? R.tiers : []).map(t => ({ at: t.at, label: t.label })) };
 }

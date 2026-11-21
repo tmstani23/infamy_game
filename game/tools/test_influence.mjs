@@ -79,4 +79,23 @@ assert.equal(IN.maxTowns('player', 1), 1 + permitTiers.length, '2nd and 3rd town
   const g2 = createGame(options()); loadSave(g2, JSON.parse(JSON.stringify(makeSave(g, { bots: [] }))));
   assert.equal(g2.influence.value('player'), IN.value('player'));
 }
+// Shinobi Renown counts at shinobiRenownRate toward Influence, Renown itself unchanged (Tim 2026-11-20)
+{
+  const { g } = match('campaign'), ninja = Object.values(g.state.clans).find(c => c.kind === 'ninja');
+  assert.ok(ninja, 'the campaign has a Shinobi clan');
+  ninja.renown = 300; g.state.clans.player.renown = 300; g.state.influence = {};
+  assert.equal(I.shinobiRenownRate, 0.5);
+  assert.equal(g.influence.value(ninja.id), 150, 'half of Shinobi Renown counts');
+  assert.equal(g.influence.value('player'), 300, 'a business clan counts Renown in full');
+  assert.equal(ninja.renown, 300);
+}
+// the screen gets every clan's Influence record, not only its own
+{
+  const { createSnapshotEncoder } = await import('../src/sim_snapshot.js');
+  const { g } = match('campaign'); g.step([]);
+  const rival = Object.keys(g.state.clans).find(id => id !== 'player');
+  g.state.influence[rival] = { days: 40, trade: 5, tier: 0 };
+  const snap = JSON.stringify(createSnapshotEncoder(g, 'player').encode({}));
+  assert.ok(snap.includes('"days":40'), 'rival Influence record is in the snapshot');
+}
 console.log('test_influence: ok');

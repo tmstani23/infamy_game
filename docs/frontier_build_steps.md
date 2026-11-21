@@ -1896,6 +1896,8 @@ with the listed sources and unlocks fire once per threshold.
 Done note: "C4 Influence in (campaign mode)."
 **Built 2026-11-05 (campaign checkpoint 2):** C4 Influence in (campaign mode). Influence = Renown + 10 per business held at each dawn + 0.05 per good a town Market sells. Tiers at 400 / 700 / 1100 / 1600: each tier +10% Market export price and -5% import price (imports apply once F3 shipments exist); 700 unlocks the 2nd town permit, 1600 the 3rd. Each tier fires once (news + notice). Classic has no Influence. Bots stay at one town for now. All numbers are placeholders in `settings.json` `influence`. Influence shows in the Land Office window for now (no top-bar readout yet).
 
+**Rival Influence (2026-11-20):** a Shinobi clan's Renown counts at half toward Influence (`settings.json` `influence.shinobiRenownRate`; also applies to a Shinobi player). Renown itself, crew slots and season points are unchanged. Standings show every clan's full Influence.
+
 ### C5. City ops hit rival income  [SMALL]
 Needs: C4, F3
 Files: `game/src/sim/shakedown.js`, `game/src/sim/sweep.js`, `game/src/sim/contracts.js` (one hook
