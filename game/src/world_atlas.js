@@ -3,6 +3,7 @@
 import { createPaint } from './world_paint.js';
 import { terrainAt } from './sim/world_data.js';
 import { RICH_NAME } from './sim/resource_spots.js';
+import { mapTint } from './rail_map.js';
 
 export const ATLAS_LAYERS = [
   { id: 'routes', label: 'Routes', on: true },
@@ -19,9 +20,11 @@ export const ATLAS_DEV_LAYERS = [{ id: 'revealAll', label: 'Show everything (tes
 const circle = r => ({ circle: r });
 const line = (...points) => ({ points });
 const polygon = (...points) => ({ points, closed: true });
+// town marker (Tim 2026-11-21, mock town_marker_mock.png B): a little house badge, drawn in its owner's clan colour
+const TOWN_HOUSE = polygon([0,-7],[6,-1],[5,-1],[5,6],[-5,6],[-5,-1],[-6,-1]);
 export const ATLAS_MARKERS = {
   site: { label: 'Site', layer: 'sites', color: '#f3d67d', glyph: [circle(5)] },
-  town: { label: 'Town', layer: 'sites', color: '#fff1d3', glyph: [polygon([-6,-6],[6,-6],[6,6],[-6,6])], hollow: true },
+  town: { label: 'Town', layer: 'sites', color: '#fff1d3', glyph: [TOWN_HOUSE], hollow: true },
   camp: { label: 'Camp / ruin / cache', layer: 'camps', color: '#df8266', glyph: [polygon([0,-6],[6,5],[-6,5])] },
   resource: { label: 'Resource', layer: 'resources', color: '#b6dbc0', glyph: [polygon([0,-5],[5,0],[0,5],[-5,0])] },
   bridge: { label: 'Bridge', layer: 'crossings', color: '#f1e4bb', glyph: [line([-4,-5],[-4,5]),line([4,-5],[4,5]),line([-4,0],[4,0])], hollow: true },
@@ -49,6 +52,33 @@ export function drawAtlasGlyph(ctx, kind, x, y, hollow = false) {
     else { g.points.forEach(([a,b], i) => i ? ctx.lineTo(a,b) : ctx.moveTo(a,b)); if (g.closed) ctx.closePath(); }
     if (!s.hollow && !hollow) ctx.fill(); ctx.stroke();
   }
+  ctx.restore();
+}
+// Town badge on the World map (Tim 2026-11-21, mock town_marker_mock_v2.png): a round cream seal rimmed in the owner's
+// clan colour, holding a two-tier curved roof in that colour over dark walls and a lit door. Yours are bigger, glow in your
+// colour and carry a gold ring, so they stand out from rivals'.
+export function drawTownBadge(ctx, x, y, color = ATLAS_MARKERS.town.color, mine = false) {
+  const r = mine ? 15 : 11, u = r / 10, TAU = Math.PI * 2;
+  color = mapTint(color);   // toned to the map's palette
+  const disc = rad => { ctx.beginPath(); ctx.arc(0, 0, rad, 0, TAU); };
+  const roof = (y0, hw, h) => {   // eaves lift at the tips
+    ctx.beginPath();
+    for (let i = 0; i <= 20; i++) { const t = i / 20, lift = Math.abs(t - 0.5) ** 3 * 8 * 1.6 * u; ctx.lineTo(-hw + 2 * hw * t, y0 - lift); }
+    ctx.lineTo(hw * 0.45, y0 - h); ctx.lineTo(-hw * 0.45, y0 - h); ctx.closePath(); ctx.fill();
+  };
+  ctx.save(); ctx.translate(x, y);
+  if (mine) { ctx.globalAlpha = 0.6; ctx.shadowColor = color; ctx.shadowBlur = 9; ctx.fillStyle = color; disc(r + 2); ctx.fill(); ctx.globalAlpha = 1; }
+  ctx.shadowColor = 'rgba(15,28,30,.8)'; ctx.shadowBlur = 4; ctx.shadowOffsetY = 2;
+  ctx.fillStyle = color; disc(r); ctx.fill();
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  ctx.fillStyle = '#ecdcb4'; disc(r - 2.2 * u); ctx.fill();
+  if (mine) { ctx.strokeStyle = '#c9a253'; ctx.lineWidth = 1.5; disc(r + 1.3); ctx.stroke(); }
+  ctx.fillStyle = '#261a14'; ctx.fillRect(-4.2 * u, -0.5 * u, 8.4 * u, 5.7 * u);     // walls
+  ctx.fillStyle = '#dcae5c'; ctx.fillRect(-1 * u, 1.8 * u, 2 * u, 3.4 * u);           // lit door
+  ctx.fillStyle = color; roof(-0.2 * u, 7.2 * u, 3 * u);
+  ctx.fillStyle = '#261a14'; ctx.fillRect(-2.6 * u, -4.6 * u, 5.2 * u, 1.6 * u);
+  ctx.fillStyle = color; roof(-3.6 * u, 4.6 * u, 2.6 * u);
+  ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, 0.9 * u); ctx.beginPath(); ctx.moveTo(0, -6.2 * u); ctx.lineTo(0, -7.6 * u); ctx.stroke();
   ctx.restore();
 }
 const titleCase = s => String(s).replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());

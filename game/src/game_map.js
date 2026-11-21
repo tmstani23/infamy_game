@@ -274,7 +274,8 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
   function townsOnMap() {
     const f = game.state.frontier; if (!f) return [];
     const at = t => Number.isFinite(t.x) && Number.isFinite(t.z) ? { x: t.x, z: t.z } : siteXZ[t.site ?? ''] ? { x: siteXZ[t.site].x, z: siteXZ[t.site].z } : null;
-    return Object.values(f.settlements || {}).filter(t => !t.capital && at(t)).map(t => ({ ...t, ...at(t) }));
+    // owner colour on the marker (Tim 2026-11-21): yours ringed, a rival's in its clan colour
+    return Object.values(f.settlements || {}).filter(t => !t.capital && at(t)).map(t => ({ ...t, ...at(t), mine: t.owner === clan, color: game.state.clans?.[t.owner]?.color }));
   }
   const TRAIT = v => '<i class="tdot on"></i>'.repeat(v) + '<i class="tdot"></i>'.repeat(Math.max(0, 3 - v));   // drawn dots, no glyphs
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
