@@ -42,12 +42,14 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     // first the nearest by the cheap checks alone: it nearly always passes, and then nothing else is needed
     // Only the units in the ground squares round the point are looked at (sim/util.js spatialIndex).
     // (squared distances: Math.hypot was the dearest line of a big fight)
-    const all = where.all(), ks = where.near(x, z, range), count = ks ? ks.length : all.length;
+    // Units with no clan that are not a town's workers (riderless war horses, scenery) can never pass hostile(), so they
+    // drop out on the cheap checks too (lag 2026-11-21: a horse was the nearest unit in most searches of a big battle).
+    const all = where.all(), ks = where.nearOthers(x, z, range, e.owner), count = ks ? ks.length : all.length;
     const owner = e.owner, place = e.place, r2 = range * range;
     let first = null, fd = r2, fk = -1;
     for (let n = 0; n < count; n++) {
       const k = ks ? ks[n] : n, t = all[k];
-      if (t.owner === owner || t.dead || t.downed || t.place !== place) continue;
+      if (t.owner === owner || t.dead || t.downed || t.place !== place || (!t.owner && !t.worker)) continue;
       const dx = t.x - x, dz = t.z - z, d = dx * dx + dz * dz;
       if (d < fd || (d === fd && first && k < fk)) { fd = d; first = t; fk = k; }
     }
@@ -57,7 +59,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     const near = [];
     for (let n = 0; n < count; n++) {
       const k = ks ? ks[n] : n, t = all[k];
-      if (t === first || t.owner === owner || t.dead || t.downed || t.place !== place) continue;
+      if (t === first || t.owner === owner || t.dead || t.downed || t.place !== place || (!t.owner && !t.worker)) continue;
       const dx = t.x - x, dz = t.z - z, d = dx * dx + dz * dz;
       if (d < r2) near.push({ t, d, k });
     }
@@ -222,7 +224,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     const f = fight[e.id] ||= { cd: 0 };
     // never chase into another place (Tim 2026-10-28: ambush ninja kept running into a building's wall after a target who went inside)
     if (t.place !== e.place) { delete f.target; if (!e.swing) e.anim = 'idle'; return; }
-    f.target = t.id;
+    f.target = t.id; if (onAt === state.tick) putOn(e.id, t.id);
     if (e.swing) return;                                   // mid-swing: finish it (see swingStep)
     const d = Math.hypot(t.x - e.x, t.z - e.z);
     // a townsperson running away gets away during the wind-up: get right up close first
@@ -249,8 +251,19 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
   }
 
   // Where an attacker should stand round its target: spread out by how many are on it
+  // Who is on whom (lag 2026-11-21): engage is the only place a fight target is set, so the attackers of a target are the
+  // ones engage put on it this tick plus everyone with that target at the start of the tick (load included); each is
+  // checked live, so the list is the same as scanning every unit.
+  let onAt = -1; const onIndex = new Map();
+  const putOn = (id, tid) => { let s = onIndex.get(tid); if (!s) onIndex.set(tid, s = new Set()); s.add(id); };
+  function attackersOf(t) {
+    if (onAt !== state.tick) { onAt = state.tick; onIndex.clear(); for (const id in fight) { const ft = fight[id]?.target; if (ft != null) putOn(state.entities[id]?.id ?? id, ft); } }
+    const on = [];
+    for (const id of onIndex.get(t.id) || []) { const u = state.entities[id]; if (u && u.id === id && u.type !== 'hero' && !u.dead && fight[u.id]?.target === t.id) on.push(u.id); }
+    return on.sort();
+  }
   function surroundSpot(e, t) {
-    const on = Object.values(state.entities).filter(u => u.type !== 'hero' && !u.dead && fight[u.id]?.target === t.id).map(u => u.id).sort();
+    const on = attackersOf(t);
     const n = on.length, k = Math.max(0, on.indexOf(e.id));
     const r = reachOf(e, t) * 0.8, a = Math.atan2(e.z - t.z, e.x - t.x) + (n > 1 ? (k - (n - 1) / 2) * 0.9 : 0);
     const spot = [t.x + Math.cos(a) * r, t.z + Math.sin(a) * r];

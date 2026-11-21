@@ -5,12 +5,14 @@ export function separateUnits(crew,radiusOf,tryMove,weightOf=null){
   const weights=weightOf?crew.map(weightOf):null;
   const radii=crew.map(radiusOf),size=Math.max(1,...radii.map(r=>r*2.2));
   const buckets=new Map(),keys=[];
-  const key=e=>`${Math.floor(e.x/size)},${Math.floor(e.z/size)}`;
+  // number keys (lag 2026-11-21: the text keys were most of a big battle's push cost); one key per square while |z square| < 2^20
+  const cellKey=(x,z)=>x*2097152+z;
+  const key=e=>cellKey(Math.floor(e.x/size),Math.floor(e.z/size));
   const index=i=>{const k=key(crew[i]);if(keys[i]===k)return;buckets.get(keys[i])?.delete(i);if(!buckets.has(k))buckets.set(k,new Set());buckets.get(k).add(i);keys[i]=k;};
   crew.forEach((_,i)=>index(i));
   const nearby=(i,after)=>{
     const a=crew[i],x=Math.floor(a.x/size),z=Math.floor(a.z/size),out=[];
-    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)for(const j of buckets.get(`${x+dx},${z+dz}`)||[])if(j>after)out.push(j);
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const b=buckets.get(cellKey(x+dx,z+dz));if(b)for(const j of b)if(j>after)out.push(j);}
     return out.sort((a,b)=>a-b);
   };
   for(let i=0;i<crew.length;i++){
@@ -21,8 +23,10 @@ export function separateUnits(crew,radiusOf,tryMove,weightOf=null){
       const d=Math.hypot(dx,dz);if(d>=min)continue;
       const [ux,uz]=d>1e-4?[dx/d,dz/d]:[1,0],push=Math.min(.06,(min-d)/2);
       const wi=weights?.[i]||1,wj=weights?.[j]||1,even=wi===wj;
+      const ki=keys[i];
       for(const [n,sign,share]of [[i,-1,even?1:2*wj/(wi+wj)],[j,1,even?1:2*wi/(wi+wj)]]){tryMove(crew[n],radii[n],ux*push*sign*share,0);tryMove(crew[n],radii[n],0,uz*push*sign*share);index(n);}
-      candidates=nearby(i,j);at=0;
+      // the requery gives the rest of the list unless i moved to another square (j is behind it either way): lag 2026-11-21
+      if(keys[i]!==ki){candidates=nearby(i,j);at=0;}
     }
   }
 }

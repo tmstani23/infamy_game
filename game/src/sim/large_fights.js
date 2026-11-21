@@ -13,13 +13,32 @@ export function largeFights(state) {
     if (state.tick - (e.foughtAt ?? -Infinity) <= 60) active.add(e.id);
   }
   const pending = live.filter(e => active.has(e.id)), zones = [];
-  while (pending.length) {
-    const group = [pending.pop()];
+  // Groups: everyone within 14 of a member joins (squared: speed pass 5b-5). Each member takes the units still waiting
+  // that are near it, latest in the list first, and the next group starts from the latest still waiting. The squares
+  // (lag 2026-11-21) only shorten the search: the groups and their order are the same as checking every pair.
+  const CELL = 14, cells = new Map(), taken = new Uint8Array(pending.length), cellOf = (x, z) => Math.floor(x / CELL) * 65536 + Math.floor(z / CELL);
+  pending.forEach((e, n) => { const k = cellOf(e.x, e.z); const l = cells.get(k); if (l) l.push(n); else cells.set(k, [n]); });
+  let last = pending.length - 1;
+  const found = [];
+  while (true) {
+    while (last >= 0 && taken[last]) last--;
+    if (last < 0) break;
+    taken[last] = 1;
+    const group = [pending[last]];
     for (let i = 0; i < group.length; i++) {
-      for (let j = pending.length - 1; j >= 0; j--) {
-        const e = pending[j], p = group[i];
-        if (e.place === p.place && (e.x - p.x) ** 2 + (e.z - p.z) ** 2 <= 196) group.push(...pending.splice(j, 1));   // 14 apart (squared: speed pass 5b-5)
+      const p = group[i], cx = Math.floor(p.x / CELL), cz = Math.floor(p.z / CELL);
+      found.length = 0;
+      for (let a = cx - 1; a <= cx + 1; a++) for (let b = cz - 1; b <= cz + 1; b++) {
+        const l = cells.get(a * 65536 + b); if (!l) continue;
+        for (let q = 0; q < l.length; q++) {
+          const n = l[q];
+          if (taken[n]) { l[q--] = l[l.length - 1]; l.pop(); continue; }   // grouped already: out of its square for good
+          const e = pending[n];
+          if (e.place === p.place && (e.x - p.x) ** 2 + (e.z - p.z) ** 2 <= 196) found.push(n);
+        }
       }
+      found.sort((a, b) => b - a);
+      for (const n of found) { taken[n] = 1; group.push(pending[n]); }
     }
     const sides = {};
     for (const e of group) sides[e.owner] = (sides[e.owner] || 0) + 1;

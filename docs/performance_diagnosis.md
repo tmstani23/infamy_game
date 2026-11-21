@@ -124,3 +124,14 @@ Reference guidance: [MDN collision performance](https://developer.mozilla.org/en
 - Graphics memory per page with mip levels: 4 bytes a pixel as PNG, 1 byte compressed. The P readout shows "Sprite pages: N (full, half, compressed) about M MB, K unit types loaded".
 - Sizes: catalog_v1 914 pages 409 MB on disk; half PNGs 145 MB; half KTX2 98 MB.
 - Tests: tools/test_sprite_detail.mjs.
+
+## 100-a-side battles (2026-11-21)
+
+Ticks about 20-25% faster in a 100-a-side battle, same fight results.
+
+- `sim/combat.js`: units with no clan that are not town workers (riderless war horses, scenery) drop out of target searches on the cheap checks; the attackers of a target come from an index built by engage (`attackersOf`) instead of scanning every unit.
+- `sim/util.js`: the spatial squares are also split by owner (`nearOthers`), so a search for enemies skips its own side.
+- `sim/separation.js`: number keys per square instead of text keys; the neighbour list is reused unless the unit moved to another square.
+- `sim/large_fights.js`: the pair search is shortened; groups and their order are unchanged.
+- `sim/frontier/town_grid.js`: each camp keeps the box round all of its blocker boxes, so `tryMove` skips far camps.
+- Still left: unit pushing checks, target search, and the tick-0 burst of about 400 path searches.

@@ -248,10 +248,26 @@ function cellBoxesOf(s,data) {
 }
 // which cells block walking, as a string: changes only when something solid appears or goes (worker path cache key)
 export function townBlockSignature(s,data){data=townArtData(data);return s.grid && Number.isFinite(s.x)?[...cellBoxesOf(s,data).keys()].join(','):'';}
+// the box round all of a camp's boxes, kept with the box list (lag 2026-11-21: tryMove asks for blockers many times a tick)
+const campBounds=new WeakMap();
+function boundsOf(boxes) {
+  let r=campBounds.get(boxes);
+  if(!r){r={minX:Infinity,minZ:Infinity,maxX:-Infinity,maxZ:-Infinity};for(const b of boxes){r.minX=Math.min(r.minX,b.minX);r.minZ=Math.min(r.minZ,b.minZ);r.maxX=Math.max(r.maxX,b.maxX);r.maxZ=Math.max(r.maxZ,b.maxZ);}campBounds.set(boxes,r);}
+  return r;
+}
 export function townBlockersIn(frontier,x0,z0,x1,z1,data) {
   const out=[];data=townArtData(data);
-  for(const w of campsOf(frontier))for(const b of campBoxesOf(w.camp,data))if(b.maxX>=x0 && b.minX<=x1 && b.maxZ>=z0 && b.minZ<=z1)out.push(b);
-  for(const s of Object.values(frontier?.settlements || {})) {
+  // (the same camps and towns, in the same order, as campsOf and Object.values; for...in makes no lists)
+  const wars=frontier?.wars?.list;
+  if(wars)for(const id in wars) {
+    const w=wars[id];if(!(w.camp && Number.isFinite(w.camp.x)))continue;
+    const boxes=campBoxesOf(w.camp,data),r=boundsOf(boxes);
+    if(!(r.maxX>=x0 && r.minX<=x1 && r.maxZ>=z0 && r.minZ<=z1))continue;
+    for(const b of boxes)if(b.maxX>=x0 && b.minX<=x1 && b.maxZ>=z0 && b.minZ<=z1)out.push(b);
+  }
+  const towns=frontier?.settlements;
+  if(towns)for(const id in towns) {
+    const s=towns[id];
     const g=s.grid;if(!g || !Number.isFinite(s.x))continue;
     const mid=(g.n-1)/2,half=g.cell/2,thickness=data?.townGrid?.wallThickness || g.cell/20,pad=thickness/2;
     const col0=Math.max(0,Math.ceil((x0-s.x-half-pad)/g.cell+mid)),col1=Math.min(g.n-1,Math.floor((x1-s.x+half+pad)/g.cell+mid));
