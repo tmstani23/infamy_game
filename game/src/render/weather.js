@@ -38,7 +38,7 @@ void main() { vUv = uv - 0.5; vec4 w = modelMatrix * vec4(position, 1.0); vWorld
 
 const BANK_FRAG = /* glsl */`
 #define MAX_LIGHTS ${MAX_LIGHTS}
-uniform float uTime, uNight, uAmount, uFlow, uOpacity;
+uniform float uTime, uNight, uAmount, uFlowT, uOpacity;
 uniform vec2 uWindDir;
 uniform vec3 uLit, uShade;
 uniform vec4 uLightPos[MAX_LIGHTS], uLightCol[MAX_LIGHTS];
@@ -50,10 +50,10 @@ void main() {
   vec2 d = vWorld.xz - uCenter;
   vec2 c = vec2(dot(d, uWindDir), dot(d, vec2(-uWindDir.y, uWindDir.x)));   // along and across the wind
   c = c * vec2(0.065, 0.11) + uSeed;                                         // wisps stretched along the wind
-  float t = uTime * uFlow;
+  float t = uFlowT;   // flow clock built up on the CPU, so a change of speed never makes the curls jump
   // the bank is a slowly bending ribbon with a ragged edge, and always fades out before the quad ends
   vec2 e = vUv * 2.0;
-  e.y += 0.32 * sin(e.x * 2.6 + uSeed + uTime * 0.12 * uFlow);
+  e.y += 0.32 * sin(e.x * 2.6 + uSeed + uFlowT * 0.12);
   float edge = length(e * vec2(1.0, 1.1)) + (wFbm3(c * 0.9 + 3.7) - 0.5) * 0.6;
   float env = smoothstep(1.0, 0.25, edge) * smoothstep(1.0, 0.75, length(vUv * 2.0)) * uLife;
   if (env < 0.003) discard;                                                 // outside the bank: skip the noise
@@ -101,7 +101,7 @@ void main() {
 
 // rain, splashes and snow: points wrapped in a box (side uBox) round the camera; seeds in aSeed (0..1 x4)
 const FALL_VERT = /* glsl */`
-uniform float uTime, uBox, uHeight, uFall, uShow, uSize, uDpr, uSway;
+uniform float uTime, uFallT, uBox, uHeight, uFall, uShow, uSize, uDpr, uSway;
 uniform vec2 uCenter, uDrift;
 attribute vec4 aSeed;
 varying float vShow; varying float vSeed;
@@ -115,11 +115,11 @@ vec2 wrapView(vec2 s) {   // s: position along (uAxisU, uAxisV) in the world
 void main() {
   vSeed = aSeed.w;
   float span = uHeight / uFall;                                           // seconds to fall the whole height
-  float fall = fract(aSeed.y + uTime / span * (0.8 + 0.4 * aSeed.w));
+  float fall = fract(aSeed.y + uFallT * (0.8 + 0.4 * aSeed.w));            // uFallT: falls so far, built up on the CPU so a speed change never jumps
   vec2 move = uDrift * fall * span + vec2(sin(uTime * 0.9 + aSeed.w * 40.0), cos(uTime * 0.7 + aSeed.x * 30.0)) * uSway;
   vec2 p = wrapView(aSeed.xz * uBoxUV + vec2(dot(move, uAxisU), dot(move, uAxisV)));
   vec3 w = vec3(p.x, uHeight * (1.0 - fall), p.y);
-  vShow = step(aSeed.z, uShow) * smoothstep(0.0, 0.08, fall) * smoothstep(1.0, 0.9, fall);
+  vShow = step(fract(aSeed.x * 61.7 + aSeed.y * 13.3), uShow) * smoothstep(0.0, 0.08, fall) * smoothstep(1.0, 0.9, fall);
   gl_PointSize = vShow > 0.0 ? uSize * (0.7 + 0.6 * aSeed.w) * uDpr : 0.0;
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
 }`;
@@ -180,7 +180,7 @@ export function createWeather({ scene, camera, renderer, world, cfg }) {
   const rand = Math.random;
   const common = {   // one set shared by every fog material
     uTime: shared.uTime, uNight: shared.uNight, uLightPos: shared.uLightPos, uLightCol: shared.uLightCol, uLightCount: shared.uLightCount,
-    uAmount: { value: 0 }, uFlow: { value: 1 }, uOpacity: { value: cfg.fog.opacity }, uWindDir: { value: new THREE.Vector2(1, 0) },
+    uAmount: { value: 0 }, uFlowT: { value: 0 }, uOpacity: { value: cfg.fog.opacity }, uWindDir: { value: new THREE.Vector2(1, 0) },
     uLit: { value: new THREE.Color() }, uShade: { value: new THREE.Color() },
   };
   const plane = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
@@ -207,7 +207,7 @@ export function createWeather({ scene, camera, renderer, world, cfg }) {
 
   const seeds = n => { const a = new Float32Array(n * 4); for (let i = 0; i < a.length; i++) a[i] = rand(); const g = new THREE.BufferGeometry();
     g.setAttribute('aSeed', new THREE.BufferAttribute(a, 4)); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3)); return g; };
-  const fallUniforms = () => ({ uTime: shared.uTime, uBox: { value: 70 }, uHeight: { value: 14 }, uFall: { value: 20 }, uShow: { value: 0 }, uSize: { value: 20 },
+  const fallUniforms = () => ({ uTime: shared.uTime, uFallT: { value: 0 }, uBox: { value: 70 }, uHeight: { value: 14 }, uFall: { value: 20 }, uShow: { value: 0 }, uSize: { value: 20 },
     uDpr: { value: 1 }, uSway: { value: 0 }, uCenter: { value: new THREE.Vector2() }, uDrift: { value: new THREE.Vector2() },
     uAxisU: { value: new THREE.Vector2(CAM_RIGHT.x, CAM_RIGHT.z).normalize() }, uAxisV: { value: new THREE.Vector2(GROUND_FWD.x, GROUND_FWD.z) },
     uBoxUV: { value: new THREE.Vector2(70, 70) }, uOffV: { value: 0 },
@@ -249,9 +249,9 @@ export function createWeather({ scene, camera, renderer, world, cfg }) {
     const tint = TINTS[now.tint] || TINTS.mist;
     common.uLit.value.setRGB(...tint[0]); common.uShade.value.setRGB(...tint[1]);
     common.uAmount.value = Math.min(1, now.fog); common.uWindDir.value.copy(windDir);
-    common.uFlow.value = 1 + Math.max(0, now.snow - 1) * 3;   // a snowstorm whips the banks into spindrift
+    common.uFlowT.value += dt * (1 + Math.max(0, now.snow - 1) * 2);   // a snowstorm whips the banks into spindrift
     const fogOn = now.fog > 0.02;
-    const vx = windDir.x * now.wind.speed, vz = windDir.y * now.wind.speed;   // the kind's wind (snowstorm x2.2) is already in the speed
+    const vx = windDir.x * now.wind.speed, vz = windDir.y * now.wind.speed;   // the kind's wind (snowstorm x1.8) is already in the speed
     for (const b of banks) {
       b.under.visible = b.over.visible = fogOn;
       if (!fogOn) continue;
@@ -309,7 +309,7 @@ export function createWeather({ scene, camera, renderer, world, cfg }) {
       if (!p.visible) return;
       const un = p.material.uniforms;
       un.uBox.value = box; un.uBoxUV.value.set(2 * hw + 4 * k, ground ? 2 * hd + 4 * k : 2 * hd + H * cosE / SIN_E + 4 * k); un.uOffV.value = ground ? 0 : -H * cosE / SIN_E * 0.5;
-      un.uHeight.value = 14 * k; un.uFall.value = fall * k; un.uShow.value = show; un.uSize.value = size; un.uDpr.value = dpr;
+      un.uHeight.value = 14 * k; un.uFall.value = fall * k; un.uFallT.value += dt * fall / 14; un.uShow.value = show; un.uSize.value = size; un.uDpr.value = dpr;
       un.uSway.value = sway * k; un.uCenter.value.set(cam.x, cam.z); un.uDrift.value.set(vx * k, vz * k); un.uAlpha.value = alpha;
       un.uColor.value.setRGB(...day).lerp(new THREE.Color(...dark), night);
     };
