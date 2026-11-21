@@ -41,7 +41,8 @@ export function supplySectionAt(links, wars, x, z, r) {
   }
   return best;
 }
-export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds = 600, wars = null } = {}) {
+// me + clans (train robbery, Tim 2026-11-21): a rival's line (on ground you have discovered) glows in its clan's colour
+export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds = 600, wars = null, me = null, clans = null } = {}) {
   const list = Object.values(links || {}).filter(l => l.points?.length > 1 && l.dist?.length === l.points.length && l.length > 0);
   if (!list.length) return;
   ctx.save();
@@ -58,8 +59,9 @@ export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds
     }
     if (built > 0.5) {   // laid track: an amber glow with a dark rail line down the middle
       const laid = stretch(l, 0, built);
-      ctx.shadowColor = 'rgba(255,190,80,.95)'; ctx.shadowBlur = width * 3;
-      ctx.strokeStyle = 'rgba(255,196,96,.9)'; ctx.lineWidth = width * 1.6; stroke(ctx, laid, at);
+      const rival = me && l.owner !== me && clans?.[l.owner]?.color;
+      ctx.shadowColor = rival || 'rgba(255,190,80,.95)'; ctx.shadowBlur = width * 3;
+      ctx.strokeStyle = rival || 'rgba(255,196,96,.9)'; ctx.lineWidth = width * 1.6; stroke(ctx, laid, at);
       ctx.shadowBlur = 0;
       ctx.strokeStyle = 'rgba(52,34,20,.95)'; ctx.lineWidth = Math.max(1, width * 0.55); stroke(ctx, laid, at);
     }

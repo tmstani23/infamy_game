@@ -170,7 +170,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     }
     for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.deposit ? it.nodeKind || it.featureKind : it.featureKind,!!it.deposit); else if (it.kind === 'resource') drawSpotMarker(ctx,p.px,p.py,it.featureKind,true); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id)); }
     // your railway lines (Tim 2026-11-07): laid track glows, the rest of the route dashed, progress at the railhead
-    if (st.rail && layers.rail) drawRailLines(ctx, st.rail.links, (x, z) => { const p = worldToCanvas(x, z, view); return [p.px, p.py]; }, { width: 3, seconds: st.rail.seconds, wars: st.rail.wars });
+    if (st.rail && layers.rail) drawRailLines(ctx, st.rail.links, (x, z) => { const p = worldToCanvas(x, z, view); return [p.px, p.py]; }, { width: 3, seconds: st.rail.seconds, wars: st.rail.wars, me: st.rail.me, clans: st.rail.clans });
     // Rail ledger (Tim 2026-11-08): the selected shipment's train glows
     const tr = st.rail?.highlight && st.rail.trains?.[st.rail.highlight], tl = tr && st.rail.links?.[tr.link];
     if (tl?.points?.length > 1) { const q = pointAt(tl, tr.d), p = worldToCanvas(q.x, q.z, view), r = 9 + 3 * Math.sin(performance.now() / 180);

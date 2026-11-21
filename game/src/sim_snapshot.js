@@ -96,8 +96,13 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
     siteClaims: f.siteClaims || {},   // E1: claimed sites are shut in everyone's Choose site menu
     // train plan: this clan's railway links (track drawn up to `built`)
     // 8e-6: a defender also sees the enemy camp spur of a war on its town (its supply line to cut), and its train
-    rail: (() => { const seen = l => l.owner === clan || (l.camp && f.wars?.list?.[l.camp]?.defender === clan), links = Object.fromEntries(Object.entries(f.rail?.links || {}).filter(([, l]) => seen(l)));
-      return { links, trains: Object.fromEntries(Object.entries(f.rail?.trains || {}).filter(([, t]) => t.owner === clan || links[t.link])), tick: f.econTick }; })() };
+    // Train robbery (Tim 2026-11-21): a rival's finished line is seen once any stretch of it lies on discovered ground, with
+    // its trains (their cargo stays hidden: no freight) and the dropped stolen chests on discovered ground (no loot list)
+    rail: (() => { const onGround = l => l.done && (l.points || []).some((p, i, a) => (i % 6 === 0 || i === a.length - 1) && discovery?.isDiscovered?.(clan, p[0], p[1]));
+      const seen = l => l.owner === clan || (l.camp && f.wars?.list?.[l.camp]?.defender === clan) || onGround(l), links = Object.fromEntries(Object.entries(f.rail?.links || {}).filter(([, l]) => seen(l)));
+      const trains = Object.fromEntries(Object.entries(f.rail?.trains || {}).filter(([, t]) => t.owner === clan || links[t.link]).map(([id, t]) => [id, t.owner === clan ? t : { ...t, freight: [] }]));
+      const chests = Object.fromEntries(Object.entries(f.rail?.chests || {}).filter(([, c]) => c.by === clan || discovery?.isDiscovered?.(clan, c.x, c.z)).map(([id, c]) => [id, c.by === clan ? c : { id: c.id, x: c.x, z: c.z, at: c.at, from: c.from }]));
+      return { links, trains, chests, tick: f.econTick }; })() };
 }
 
 export function createSnapshotEncoder(game, clan = 'player') {

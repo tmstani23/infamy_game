@@ -34,13 +34,13 @@
   button:hover { background: #2c3139; }
   #prompt { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); padding: 6px 14px;
     background: rgba(10,12,16,.72); border: 1px solid rgba(233,194,122,.35); border-radius: 6px; color: #e9c27a; letter-spacing: .04em; }
-  /* the Use prompt (Tim 2026-11-20): a gold keycap for the key, a gold flash when an action comes up, then a slow glow */
-  #prompt.act { padding: 7px 16px 7px 9px; border-color: rgba(240,200,110,.8); color: #f3dfae; animation: promptFlash .7s ease-out 1, promptGlow 1.6s ease-in-out .7s infinite; }
-  #prompt .usekey { display: inline-block; min-width: 52px; margin-right: 11px; padding: 3px 12px 4px; text-align: center; font: bold 13px Georgia, serif; letter-spacing: .12em; text-transform: uppercase;
-    color: #2a1c0a; text-shadow: 0 1px 0 rgba(255,240,200,.6); background: linear-gradient(#f6dc9a, #d9a94e 55%, #b07f2c); border: 1px solid #6b4a16; border-radius: 5px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.65), inset 0 -2px 0 rgba(90,55,10,.55), 0 2px 0 #4a3210, 0 3px 6px rgba(0,0,0,.6); }
-  @keyframes promptFlash { 0% { box-shadow: 0 0 0 0 rgba(255,214,120,.95), inset 0 0 20px rgba(255,214,120,.85); background: rgba(120,90,30,.9); } 100% { box-shadow: 0 0 24px 12px rgba(255,214,120,0), inset 0 0 0 rgba(255,214,120,0); background: rgba(10,12,16,.72); } }
-  @keyframes promptGlow { 0%, 100% { box-shadow: 0 0 6px rgba(233,194,122,.25); } 50% { box-shadow: 0 0 15px rgba(255,214,120,.6); } }
+  /* the Use prompt (Tim 2026-11-20): a gold keycap for the key and a soft gold flash when an action comes up (2026-11-21: smaller
+     and quieter, no lasting glow) */
+  #prompt.act { padding: 4px 12px 4px 6px; font-size: 13px; border-color: rgba(240,200,110,.6); color: #f3dfae; box-shadow: 0 0 8px rgba(233,194,122,.18); animation: promptFlash .6s ease-out 1; }
+  #prompt .usekey { display: inline-block; min-width: 36px; margin-right: 8px; padding: 1px 7px 2px; text-align: center; font: bold 10px Georgia, serif; letter-spacing: .1em; text-transform: uppercase;
+    color: #2a1c0a; text-shadow: 0 1px 0 rgba(255,240,200,.6); background: linear-gradient(#f6dc9a, #d9a94e 55%, #b07f2c); border: 1px solid #6b4a16; border-radius: 4px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 0 rgba(90,55,10,.5), 0 1px 0 #4a3210, 0 2px 4px rgba(0,0,0,.5); }
+  @keyframes promptFlash { 0% { box-shadow: 0 0 0 0 rgba(255,214,120,.55), inset 0 0 8px rgba(255,214,120,.35); } 100% { box-shadow: 0 0 10px 4px rgba(255,214,120,0), inset 0 0 0 rgba(255,214,120,0); } }
   #money { color: #e9c27a; white-space: nowrap; display: inline-block; }
   /* Tim 2026-11-06: windows opened at a shop, merchant or dialogue stack above the HUD panels (Goal card 12, town windows 33-34, Controls 30); tooltips (100) and the Character page (60) stay above */
   #hire, #clinic, #police, #contracts, #landoffice, #lttalk, #svtalk, #sitemenu, #stationmenu, #stablemenu { z-index: 36; }
