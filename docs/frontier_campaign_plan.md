@@ -1026,3 +1026,8 @@ are outside the first hero gear slice.
 - Rivals use the same rules; their fund percentage depends on their hidden strategy (higher for Rush, lower for Siege).
 - Hall war upgrade: in player auto towns the general works through his strategy's build list in order, like rivals; the hall war upgrade is an entry on that list, paid from the fund. Replaces the 2026-11-16 rule that the general never upgrades the hall in a player town.
 - Old saves start at 10% with no plot, and show "No room for a military quarter" if the town is full.
+- Goal cards (first town only, after the governor step; one short line each, detail in the hover; never repeated in later towns):
+  1. Fund your general: flashes the fund box; done when a value is typed (0 counts).
+  2. Pick his strategy: flashes the General tab; done when a strategy is chosen or confirmed.
+  3. The military quarter: points at the plot and its road; done once looked at. Hover: you can erase it and paint your own.
+  4. First barracks: done when his first building stands.
