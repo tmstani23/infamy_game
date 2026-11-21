@@ -24,6 +24,7 @@
     },
     "clearance": { "_note": "spots stay this far from roads, passes, fords, sites, camps, the capital and nodes",
       "road": 40, "pass": 90, "ford": 70, "site": 110, "camp": 90, "capital": 400, "node": 70, "spot": 50 },
+    "siteFloor": { "_note": "Tim 2026-11-21: every town site has at least one ordinary spot (not a deposit) of timber, of stone and of food (fish where there is shore, else forage) within radius (= workers.range); a missing one is added between band[0] and band[1] from the site, on ground reached without crossing water", "radius": 600, "band": [380, 560], "tries": 400 },
     "coverage": { "_note": "fill pass: buildable land with no timber/stone within `radius` gets one more spot, except terrains listed in skip",
       "radius": 600, "timber": { "skip": ["d", "n"] }, "stone": { "skip": [] } }
   },

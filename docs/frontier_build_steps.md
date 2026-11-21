@@ -269,6 +269,8 @@ Check (pass/fail): two runs give byte-identical output; no spot sits on an `x` c
 within 2 cells of water; every node has exactly one deposit spot; `spotYield` is never 0;
 `tools/seed_world.mjs --check` still passes (world.json untouched).
 In game (Tim): read the coverage report and OK the numbers.
+- Site floor (Tim 2026-11-21): every town site has at least one ordinary spot (not a rich deposit) of timber, of stone and of food (fish where there is shore, else forage) within 600 (workers.range). A missing one is added 380 to 560 out, on ground reached without crossing water, so poor sites stay poor but never lack a resource type (`spots.siteFloor` in resource_spots.json, pass 3b of tools/seed_resource_spots.mjs). Added: S12, S13, S21, S28, S36, S39, S45, S56 forage; S13, S22, S52, S59 timber; S39 stone.
+
 Done note: "L3.4 resource spots data in (coverage report attached)."
 
 #### L3.5. Workers (records and trip math)  [SMALL] — [x] done 2026-11-04

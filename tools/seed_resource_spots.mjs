@@ -159,6 +159,33 @@ for (const kind of ['timber', 'stone']) {
   }
 }
 
+// 3b. site floor (Tim 2026-11-21): every town site has at least one ORDINARY spot (not a deposit) of timber, of stone
+// and of food (fish where there is shore in reach, else forage) within siteFloor.radius, so no town is ever without a
+// way to gather a resource. A missing one is added far out (siteFloor.band from the site), on ground a worker can walk
+// to in a straight line without crossing water. Runs last, so every earlier spot keeps its id and place.
+const floorAdded = [];
+{
+  const F = S.siteFloor || {}, FR = F.radius ?? 600, [b0, b1] = F.band || [380, 560];
+  const FOOD = { fish: 1, forage: 1 }, has = (site, kinds) => spots.some(s => !s.deposit && kinds[s.kind] && Math.hypot(s.x - site.x, s.z - site.z) <= FR);
+  const dry = (site, x, z) => { const n = Math.ceil(Math.hypot(x - site.x, z - site.z) / CELL); for (let k = 0; k <= n; k++) { const c = code(site.x + (x - site.x) * k / n, site.z + (z - site.z) * k / n); if (c === 'w' || c === 'r') return false; } return true; };
+  const put = (site, kind) => {
+    const rand = rng(`floor|${site.id}|${kind}`);
+    for (let t = 0; t < (F.tries ?? 400); t++) {
+      const a = rand() * Math.PI * 2, d = b0 + rand() * (b1 - b0), x = r1(site.x + Math.cos(a) * d), z = r1(site.z + Math.sin(a) * d);
+      if (x < 0 || z < 0 || x >= W || z >= H || (kind !== 'fish' && !dry(site, x, z))) continue;
+      if (!tryPlace(kind, x, z, rand)) continue;
+      const sp = spots[spots.length - 1];
+      if (Math.hypot(sp.x - site.x, sp.z - site.z) <= FR - sp.r && (kind !== 'fish' || dry(site, sp.x - (sp.x - site.x) * 0.06, sp.z - (sp.z - site.z) * 0.06))) { floorAdded.push(`${site.id} ${kind} ${sp.id} at ${Math.round(Math.hypot(sp.x - site.x, sp.z - site.z))}`); return true; }
+      spots.pop(); placed.pop(); seq--;   // slid out of reach (fish pulled to the shore): not this one
+    }
+    return false;
+  };
+  for (const site of (world.sites || []).slice().sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    for (const kind of ['timber', 'stone']) if (!has(site, { [kind]: 1 }) && !put(site, kind)) floorAdded.push(`${site.id} ${kind} FAILED`);
+    if (!has(site, FOOD) && !put(site, 'fish') && !put(site, 'forage')) floorAdded.push(`${site.id} food FAILED`);
+  }
+}
+
 // 4. output (sorted, one spot per line)
 spots.sort((a, b) => (a.id < b.id ? -1 : 1));
 const byChunk = {};
@@ -189,6 +216,7 @@ for (const [b, r] of Object.entries(rows).sort()) lines.push(`  ${b.padEnd(7)} c
 const all = Object.values(rows).reduce((a, r) => ({ n: a.n + r.n, t: a.t + r.t, s: a.s + r.s, both: a.both + r.both }), { n: 0, t: 0, s: 0, both: 0 });
 lines.push(`  ${'ALL'.padEnd(7)} cells ${String(all.n).padStart(6)}  timber ${pct(all.t, all.n).padStart(6)}  stone ${pct(all.s, all.n).padStart(6)}  both ${pct(all.both, all.n).padStart(6)}`);
 const pieces = spots.reduce((a, s) => a + s.pieces.length, 0);
+lines.push(`site floor: ${floorAdded.length ? floorAdded.join('; ') : 'nothing to add'}`);
 lines.push(`pieces: ${pieces} total; file ${(out.length / 1024).toFixed(0)} KB`);
 
 if (check) {
