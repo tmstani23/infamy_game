@@ -413,16 +413,22 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
   // order keeps o.lost and stays open, so its town (or the clerk) re-sends the shortfall; bought cargo stolen is
   // ryo lost. Returns the loot { resource: amount } for the robbers. The robbery itself (charge on the freight
   // wagon, hold ~30 s, caps) is rail step 6 and calls this.
-  function rob(t, share, by = null) {
+  // perLoad (train robbery, Tim 2026-11-20 "50% of all"): share of every load aboard, so each order loses the same share
+  function rob(t, share, by = null, perLoad = false) {
     const freight = (t?.freight || []).filter(c => c.amount > 0);
+    if (perLoad) { const k = Math.max(0, Math.min(1, share)); return takeLoot(t, freight, new Map(freight.map(c => [c, c.amount * k])), by); }
     let left = Math.min(freight.reduce((a, c) => a + c.amount, 0), Math.ceil(freight.reduce((a, c) => a + c.amount, 0) * Math.max(0, Math.min(1, share))));
-    const loot = {}, take = new Map();
+    const take = new Map();
     let open = [...freight];
     while (left > 1e-9 && open.length) {
       const each = left / open.length;
       for (const c of open) { const n = Math.min(c.amount - (take.get(c) || 0), each); take.set(c, (take.get(c) || 0) + n); left -= n; }
       open = open.filter(c => c.amount - (take.get(c) || 0) > 1e-9);
     }
+    return takeLoot(t, freight, take, by);
+  }
+  function takeLoot(t, freight, take, by) {
+    const loot = {};
     for (const [c, n0] of take) {
       const n = Math.round(n0 * 100) / 100;
       if (n <= 0) continue;

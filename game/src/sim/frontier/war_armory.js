@@ -134,5 +134,15 @@ export function createWarArmory({ state, data, war, world }) {
     if (c.action !== 'armoryUp') return null;
     return buy(e, c);
   }
-  return { command, tick, view, applyTo, groupOf, why: (warId, owner, group, track) => { const w = war.byId(warId); return why(w, sideOf(w, owner), group, track); } };
+  // train robbery R2 (Tim 2026-11-20): a train guard gets the best upgrades its clan has for its group in any war on now
+  function applyGuard(e) {
+    const group = groupOf(e?.warUnit);
+    if (!group) return;
+    let wp = 0, ar = 0;
+    for (const w of war.active()) { const side = sideOf(w, e.owner); if (!side) continue; wp = Math.max(wp, level(w, side, group, 'weapons')); ar = Math.max(ar, level(w, side, group, 'armor')); }
+    if (!wp && !ar) return;
+    const step = A().step ?? 0.05;
+    e.warUp = { damage: Math.round((1 + step * wp) * 1000) / 1000, taken: Math.round(Math.max(0.1, 1 - step * ar) * 1000) / 1000 };
+  }
+  return { command, tick, view, applyTo, applyGuard, groupOf, why: (warId, owner, group, track) => { const w = war.byId(warId); return why(w, sideOf(w, owner), group, track); } };
 }

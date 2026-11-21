@@ -77,7 +77,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const stable = createStable({ state, data, world: live, capitalYard });   // capitalYard: the island side of the city gate (the capital stable)   // Tim 2026-11-06: horses and omnibuses, made by hand
   modules.push({ name: 'garrison', command: (e, c) => garrison.command(e, c) });
   modules.push({ name: 'stable', command: (e, c) => stable.command(e, c) });
-  const rail = createRail({ state, data, world: live, worldData, stable });   // train plan: railway links between stations
+  const rail = createRail({ state, data, world: live, worldData, stable, dayTicks });   // train plan: railway links between stations
   commandHooks.rail = rail;
   modules.push({ name: 'rail', rail, econTick: () => rail.econTick(), command: (e, c) => rail.command(e, c) });
   const shipments = createShipments({ state, data, world: live, dayTicks });   // rail shipments S1: orders, keep amounts, reserved stock
@@ -86,6 +86,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   modules.push({ name: 'shipments', shipments, econTick: () => shipments.econTick(), command: (e, c) => shipments.command(e, c) });
   const war = createWar({ state, data, world: live, worldData, resourceIndex: workers.index, dayTicks, zones: campaignZones });   // F6 checkpoint 1: war records, planting the banner declares war
   modules.push({ name: 'war', war, econTick: () => war.econTick(), command: (e, c) => war.command(e, c) });
+  rail.setRobbery({ war: () => war, shipments: () => shipments, world: () => live });   // train robbery: guards' armory, the loot, cashing chests
   zones.setFrozen(s => !!war.warOn(s.id));   // 7c: zone cells do not grow or grow back while a war is on the town
   const structures = createStructures({ state, data, world: live, war, garrison, workers });   // F6 checkpoint 6: structure health, attacks, ruins
   modules.push({ name: 'hallShelter', command: (e, c) => structures.shelterCommand(e, c) });   // Tim 2026-11-19: workers into the town hall by hand

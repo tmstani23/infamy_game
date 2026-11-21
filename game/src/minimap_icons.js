@@ -89,3 +89,27 @@ export function drawGuideArrow(ctx, ar, s = 1) {
   ctx.fillStyle = 'rgba(255,205,80,.97)'; ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(40,24,0,.9)'; ctx.stroke();
   ctx.restore();
 }
+
+// train robbery (Tim 2026-11-20): where your hero last went down, and your own dropped stolen chest (sim/frontier/rail_robbery.js)
+export function robberyMarks(state, clan) {
+  const out = [], d = state?.clans?.[clan]?.lastDown;
+  if (d) out.push({ kind: 'down', x: d.x, z: d.z, name: 'Where your hero last went down' });
+  for (const c of Object.values(state?.frontier?.rail?.chests || {})) if (c.by === clan) out.push({ kind: 'chest', x: c.x, z: c.z, name: 'Your dropped stolen chest' });
+  return out;
+}
+export function drawRobberyMark(ctx, m, u, v, s = 1) {
+  ctx.save(); ctx.lineJoin = 'round';
+  if (m.kind === 'down') {   // a red cross with a dark edge
+    const r = 5 * s;
+    ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(20,10,6,.9)'; ctx.lineWidth = 5 * s;
+    ctx.beginPath(); ctx.moveTo(u - r, v - r); ctx.lineTo(u + r, v + r); ctx.moveTo(u + r, v - r); ctx.lineTo(u - r, v + r); ctx.stroke();
+    ctx.strokeStyle = '#d8402c'; ctx.lineWidth = 2.6 * s; ctx.stroke();
+  } else {   // a small brown chest with a gold edge and lid line
+    const w = 11 * s, h = 8 * s;
+    ctx.fillStyle = '#6a4626'; ctx.strokeStyle = 'rgba(20,10,6,.9)'; ctx.lineWidth = 3 * s;
+    ctx.strokeRect(u - w / 2, v - h / 2, w, h); ctx.fillRect(u - w / 2, v - h / 2, w, h);
+    ctx.strokeStyle = '#f0c85a'; ctx.lineWidth = 1.4 * s; ctx.strokeRect(u - w / 2, v - h / 2, w, h);
+    ctx.beginPath(); ctx.moveTo(u - w / 2, v - h / 6); ctx.lineTo(u + w / 2, v - h / 6); ctx.stroke();
+  }
+  ctx.restore();
+}

@@ -335,7 +335,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
   }
 
   function hit(a, t, damage, crit = false, kind = null) {
-    if(t.shopkeeper||t.animal||charmProtected(a,t,state))return;   // town dogs can't be hit either (sim/civilians.js)
+    if(t.shopkeeper||t.animal||t.untouchable||charmProtected(a,t,state))return;   // town dogs can't be hit either (sim/civilians.js); nor a rail repair crew (train robbery R1)
     if ((t.garrison || t.aboard) && shelter(t, damage, a)) return;   // inside a stockade, an omnibus or a rickshaw: it takes the hit (Tim 2026-11-06; vehicles fixed 2026-11-09)
     // Assassinate's explicit current-health rule stays exact inside a formation.
     { const amb = stealth.ambush?.(a, t); if (amb) damage = Math.round(damage * amb); }   // a kunoichi's first hit from hiding (war checkpoint 7-5)

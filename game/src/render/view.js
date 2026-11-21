@@ -22,6 +22,10 @@ import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createWeather } from './weather.js';
 import { createRailTrack, createCityStation } from './rail_track.js';
+import { createRailBlastFx } from './rail_blast_fx.js';
+import { createStolenChests } from './stolen_chest.js';
+import { islandBiome } from '../sim/island_art.js';
+import { pointAt } from '../sim/frontier/rail_route.js';
 import { createFerryShips, seaSpot } from './ferry_ships.js';
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
@@ -115,7 +119,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // the island around the camera while the hero is out there (render/world_ground.js, frontier W3.4)
   const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street'), railZ: (district.buildings || []).find(b => b.railStation)?.z ?? null, resourceSpots, spotConfig }) : null;
   // train plan: railway track on the island; each train car is a sprite (train_* art, Tim 2026-11-07), only its body and shadow
-  const railTrack = worldGround ? createRailTrack({ scene, hide: (() => { const c = cityOnIsland(world, district.bounds); return (x, z) => x > c.minX && x < c.maxX + 0.6 && z > c.minZ && z < c.maxZ; })(), carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
+  const railTrack = worldGround ? createRailTrack({ scene, snow: (x, z) => islandBiome(world, x, z) === 'snow', hide: (() => { const c = cityOnIsland(world, district.bounds); return (x, z) => x > c.minX && x < c.maxX + 0.6 && z > c.minZ && z < c.maxZ; })(), carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // frontier weather, purely visual (render/weather.js, Tim 2026-11-20): fog banks, rain, snow
   const weather = worldGround ? createWeather({ scene, camera, renderer, world, cfg: weatherCfg }) : null;
   // the capital's railway station (Tim 2026-11-07): an engine with its nose out and a track off the east edge, in the city
@@ -537,6 +541,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     worldGround?.update(camTarget.x, camTarget.z, (heroPlace === 'world' && !cityView) || worldView, dt, state.frontier, state.world?.discovered?.[state.entities[followId]?.owner], Math.max(1, 0.35 / zoomNow));
     mark('ground');
     railTrack?.update(state.frontier, (heroPlace === 'world' && !cityView) || worldView, dt, shared.uNight.value);
+    if (railBlastFx) syncRailBlast(state, (heroPlace === 'world' && !cityView) || worldView, dt);
+    stolenChests?.update((heroPlace === 'world' && !cityView) || worldView, state.frontier?.rail?.chests, Object.values(state.entities).filter(e => e.chest && e.place === 'world' && !e.dead && sprites.get(e.id)).map(e => { const p = sprites.get(e.id).pos; return { id: e.id, x: p.x, y: p.y, z: p.z }; }), dt, Object.values(state.frontier?.rail?.trains || {}).filter(t => t.stopped && t.wagonSpot && !state.frontier.rail.links?.[t.link]?.blast?.robbed).map(t => ({ id: t.id, x: t.wagonSpot.x, z: t.wagonSpot.z, fast: !!t.robbing })));   // train robbery: the stolen chest carried and dropped
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
     cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);
@@ -581,12 +587,36 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // crew sent onto the boss's horse (sim/mounts.js): she shies sideways, a red ring, and a cross with the reason
       if (c.kind === 'refuseMount') { const s = sprites.get(c.a); if (s) { s.lean = 1; s.leanX = 1; s.leanZ = -0.4; } hitFx.refuse(c.x, c.z, c.text || "The boss's horse"); }
       if (c.kind === 'boarded') { const s = sprites.get(c.a); if (s) s.flash = 0.7; hitFx.note(c.x, c.z, `${c.n} aboard`); }   // crew popped in (sim/omnibus.js)
+      // the shakedown dynamite: a small blast of the same kind (Tim 2026-11-20); shakedownfx.js keeps its flash and ring
+      if (c.kind === 'dynamiteBlast' && (c.place || 'street') === heroPlace) railBlastFx.blast(c.x, c.z, 0, { scale: 0.38, shake: false });
+      if (c.kind === 'railBlast' && railBlastFx) { railBlastFx.blast(c.x, c.z, c.heading || 0); railShakeK = Math.max(0, 1 - Math.hypot(c.x - camTarget.x, c.z - camTarget.z) / 45); }   // train robbery: the charge goes off
       if (c.kind === 'cannonFire') { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
       if (c.kind === 'assassinate') { shakeT = 0.26; shakeAmp = 0.2; freezeT = Math.max(freezeT, 0.1); }   // the vicious flash hits hard
       if (c.kind === 'shadowstep' && c.crit) { shakeT = 0.24; shakeAmp = 0.18; freezeT = Math.max(freezeT, 0.08); }   // a tiny pause so it lands hard (Shadow Step crit slash)
     }
   }
   let shakeT = 0, shakeAmp = 0, freezeT = 0;
+  // train robbery (sim/frontier/rail_blast.js): the burning charge on a line and the blown gap while it is repaired
+  const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null;   // fx id -> 'charge' | 'crater'
+  let railShakeK = 0;
+  function syncRailBlast(state, show, dt) {
+    const want = new Map(), tick = state.tick ?? 0;
+    for (const l of show ? Object.values(state.frontier?.rail?.links || {}) : []) {
+      if (!l.points?.length) continue;
+      if (l.charge) want.set(`charge:${l.id}:${l.charge.at}`, { kind: 'charge', l, c: l.charge });
+      if (l.blast && l.closed) want.set(`crater:${l.id}:${l.blast.at}`, { kind: 'crater', l, c: l.blast });
+    }
+    for (const [id, kind] of railShown) if (!want.has(id)) { if (kind === 'charge') railBlastFx.cancel(id); else railBlastFx.clearCrater(id); railShown.delete(id); }
+    for (const [id, w] of want) {
+      if (railShown.has(id)) continue;
+      const p = pointAt(w.l, w.c.d);
+      if (w.kind === 'charge') railBlastFx.charge(id, p.x + Math.cos(p.heading) * .7, p.z - Math.sin(p.heading) * .7, p.heading, Math.max(.1, (w.c.fuse ?? 8) - (tick - w.c.at) / 20));   // beside the rail
+      else railBlastFx.crater(id, p.x, p.z, p.heading);
+      railShown.set(id, w.kind);
+    }
+    railBlastFx.update(dt);
+    if (video.shake && railShakeK > 0) { const s = railBlastFx.shake(); camera.position.addScaledVector(CAM_RIGHT, s.x * railShakeK).addScaledVector(CAM_UP, s.y * railShakeK); }
+  }
   // health gained since the last tick: real heals sparkle at once, regeneration
   // sparkles each time it adds up to 4% of a unit's health
   let healTick = -1;

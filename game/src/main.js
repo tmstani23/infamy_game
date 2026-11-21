@@ -193,6 +193,8 @@ async function start() {
   onAction('use', () => {
     if (stationMenu.calling()) { stationMenu.boardCall(); return; }   // All aboard called: Space boards now (Tim 2026-11-08)
     if (warOutcome.use()) return;   // at a ruined hall of your war: take it (war 8a-3)
+    // train robbery (sim/frontier/rail.js prompt): cash the stolen chest, rob a stopped train, or set a charge on the line
+    { const rp = game.frontier?.rail?.prompt?.(game.state.entities[heroId]); if (rp?.mode) { pending.push({ id: heroId, type: 'frontier', action: 'rail', mode: rp.mode }); return; } }
     // the ship between the city harbour pier and your castle dock (Tim 2026-11-19): board here, or skip the crossing
     { const sp = game.ferry?.prompt(game.state.entities[heroId]); if (sp) { pending.push({ id: heroId, type: 'frontier', action: 'ferry', mode: sp.riding ? 'skip' : 'board' }); return; } }
     if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
@@ -890,7 +892,7 @@ async function start() {
       const stablePrompt = !door && !innerDoor && !knockable && stableMenu.at() && !stableMenu.isOpen();
       const travel = !door && !innerDoor && !knockable && !stablePrompt && stationMenu.at() && !stationMenu.isOpen();
       const lamp = !door && !travel && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
-      const allAboard = stationMenu.callPrompt() || warOutcome.prompt() || game.ferry?.prompt(game.state.entities[heroId])?.text;   // (or the ruined hall of a war: take it)
+      const allAboard = stationMenu.callPrompt() || warOutcome.prompt() || game.ferry?.prompt(game.state.entities[heroId])?.text || game.frontier?.rail?.prompt?.(game.state.entities[heroId])?.text;   // (or the ruined hall of a war: take it)
       // the world prompts name the Use key: whatever it is bound to now (Tim 2026-11-12)
       const usePrompt = t => typeof t === 'string' && t.startsWith('Space  ') ? keybinds.badge('use') + t.slice(5) : t;
       $('prompt').textContent = usePrompt(allAboard ? allAboard : knockable ? 'Space  Knock down the War Lantern' : shut && !shut.ok ? shut.why : door ? (door.menu === 'rail_station' && stationMenu.trainPrompt()) || `Space  ${door.gate && siteMenu.wanted() ? 'The island gate: walk out or ride' : door.label}`

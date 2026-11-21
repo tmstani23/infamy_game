@@ -88,5 +88,30 @@
     "skipSeconds": 5,
     "reach": 18,
     "gateReach": 6
+  },
+  "robbery": {
+    "_note": "Train robbery (Tim 2026-11-20, plan war_build/train_robbery/plan.md). R1 blasting: a hero standing within reach of any open line (anyone's, war or not) sets a charge; it blows after fuseSeconds. The line is closed closeDays (game days) while an untouchable repair crew (crew.size, model, anim; real units only within crew.spawnRadius of someone) hammers at the gap, and can't be blown or robbed again for cooldownDays from the blast. Not within 2 x stopGap of a station. A train running into the gap stops stopGap short of it, stands stopSeconds, then backs up to the last station it passed.",
+    "reach": 6,
+    "fuseSeconds": 8,
+    "closeDays": 0.5,
+    "cooldownDays": 2.5,
+    "stopGap": 12,
+    "stopSeconds": 180,
+    "crew": { "size": 3, "model": "rail_worker", "anim": "hammer", "spawnRadius": 300, "delaySeconds": 60 },
+    "_robbery": "R2-R3 (Tim 2026-11-20): guards[faction] = the war roster units (frontier.json war.units) that get out of a train stopped at a blown track, round its freight wagon; the fallen are missing until it next reaches a station. A hero within wagonReach of the freight wagon of someone else's stopped train holds holdSeconds (placeholder) to take share of everything aboard, once per blast, into a stolen chest. Knocked out, the hero drops it; any hero picks it up within pickReach; cash it within cashReach of an own town hall or war camp banner. A dropped chest is gone after chestDays (placeholder).",
+    "share": 0.5,
+    "holdSeconds": 30,
+    "wagonReach": 5,
+    "pickReach": 2.5,
+    "cashReach": 20,
+    "chestDays": 2,
+    "bots": { "_note": "placeholder, Tim 2026-11-20 (train robbery R5, sim/war_general_brain.js): days = game days between a bot's robberies by its war strategy, [least, most], in a war and in peace (Raider about once a day or two in war; the others rarely). In a war it robs only that war's enemy inside the war circle (camp supply lines first) with escort war troops (escortMin or it waits); in peace it needs peaceCrew crew at the hero's side. reach = how far the hero walks to a line; waitSeconds beside the line for a loaded train (minLoad cargo); the hero starts the hold when holdGuards or fewer guards stand; maxSeconds for the whole try; retryDays before trying again after giving up. Any general sends up to defenders war troops within defendReach to its own train stopped at a blown track inside its war circle. A bot hero picks up a dropped chest within grabReach.",
+      "days": { "raider": { "war": [1, 2], "peace": [6, 10] }, "default": { "war": [5, 8], "peace": [14, 20] } },
+      "reach": 1500, "escort": 8, "escortMin": 4, "peaceCrew": 3, "waitSeconds": 240, "minLoad": 20, "holdGuards": 1, "maxSeconds": 720, "retryDays": 0.25, "defenders": 6, "defendReach": 500, "grabReach": 250 },
+    "guards": {
+      "yakuza": ["rifleman", "rifleman", "irezumi", "irezumi", "dog_handler", "dog_handler"],
+      "kuroda": ["spearman", "spearman", "teppo", "teppo", "gatling", "gatling"],
+      "shinobi": ["rifleman", "rifleman", "geisha", "geisha", "kunoichi", "kunoichi"]
+    }
   }
 }

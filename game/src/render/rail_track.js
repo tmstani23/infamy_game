@@ -130,8 +130,11 @@ function carPose(sp, dx, dz) {
   sp.row = row; sp.heading = a; sp.roll = Math.max(-MAX_ROLL, Math.min(MAX_ROLL, r));
 }
 
-export function createRailTrack({ scene, carSprite = null, hide = null }) {   // hide(x, z): behind the city wall, where cars are not drawn (Tim 2026-11-10)
-  let track = null, bridge = null;
+// the painted blown-up stretch (Tim's art 2026-11-20, art/ground/rail_track_blown.png and _snow): 1024 x 1536, rails
+// 220 px apart, drawn over the gap while the line is repaired (sim/frontier/rail_blast.js)
+const BLOWN_W = 1024 / 220 * GAUGE, BLOWN_L = BLOWN_W * 1536 / 1024;
+export function createRailTrack({ scene, carSprite = null, hide = null, snow = null }) {   // snow(x, z): the snow biome, for the blown track art   // hide(x, z): behind the city wall, where cars are not drawn (Tim 2026-11-10)
+  let track = null, bridge = null; const blown = [null, null];
   const shown = new Map();   // link id -> { key, meshes: [{ mesh, d0, n }] }
   const mats = () => { track ||= groundMaterial(stripTexture('art/ground/rail_track.png')); bridge ||= groundMaterial(stripTexture('art/ground/rail_bridge.png')); };
   function build(l0) {
@@ -140,8 +143,9 @@ export function createRailTrack({ scene, carSprite = null, hide = null }) {   //
     const parts = [];
     // ballast track everywhere except over the bridges (spans widened a little onto the banks)
     const spans = (l.bridges || []).map(([b0, b1]) => [Math.max(0, b0 - 3), Math.min(l.length, b1 + 3)]).sort((a, b) => a[0] - b[0]);
+    const GAP = BLOWN_L - 0.4, holes = l0.gap == null ? spans : [...spans, [l0.gap * l.k - GAP / 2, l0.gap * l.k + GAP / 2]].sort((a, b) => a[0] - b[0]);   // no track across a blown gap
     let from = 0;
-    for (const [a, b] of [...spans, [l.length, l.length]]) {
+    for (const [a, b] of [...holes, [l.length, l.length]]) {
       if (a - from > 0.5) { const t = ribbon(l, from, a, TRACK_W, 0.03), tm = new THREE.Mesh(t.geo, track); tm.renderOrder = -0.4; tm.frustumCulled = false; parts.push({ mesh: tm, d0: from, n: t.n }); }
       from = Math.max(from, b);
     }
@@ -149,6 +153,15 @@ export function createRailTrack({ scene, carSprite = null, hide = null }) {   //
       const r = ribbon(l, a, b, BRIDGE_W, 0.032), m = new THREE.Mesh(r.geo, bridge);
       m.renderOrder = -0.41; m.frustumCulled = false;
       parts.push({ mesh: m, d0: a, n: r.n });
+    }
+    if (l0.gap != null) {   // the blown stretch: one painted piece along the line, top to bottom of the picture
+      const g0 = Math.max(0, l0.gap * l.k - BLOWN_L / 2), g1 = Math.min(l.length, g0 + BLOWN_L), mid = pointAt(l, (g0 + g1) / 2);
+      const r = ribbon(l, g0, g1, BLOWN_W, 0.031), uv = r.geo.attributes.uv;
+      for (let i = 0; i < uv.count; i++) uv.setY(i, (Math.min(g1, g0 + (i >> 1) * STEP) - g0) / (g1 - g0));
+      const isSnow = !!snow?.(mid.x, mid.z);
+      blown[isSnow ? 1 : 0] ||= groundMaterial(Object.assign(stripTexture(isSnow ? 'art/ground/rail_track_blown_snow.png' : 'art/ground/rail_track_blown.png'), { wrapT: THREE.ClampToEdgeWrapping }));
+      const m = new THREE.Mesh(r.geo, blown[isSnow ? 1 : 0]); m.renderOrder = -0.39; m.frustumCulled = false;
+      parts.push({ mesh: m, d0: g0, n: r.n, whole: true });
     }
     for (const p of parts) scene.add(p.mesh);
     return parts;
@@ -270,12 +283,13 @@ export function createRailTrack({ scene, carSprite = null, hide = null }) {   //
     for (const id of [...shown.keys()]) if (!links[id]) drop(id);
     for (const l of Object.values(links)) {
       if (!l.points?.length || !(l.length > 0)) continue;
-      const key = `${l.length}:${l.points.length}`;
+      const gap = l.blast && l.closed ? l.blast.d : null;   // a blown gap (sim/frontier/rail_blast.js) while the repair runs
+      const key = `${l.length}:${l.points.length}:${gap ?? ''}`;
       let s = shown.get(l.id);
       if (s && s.key !== key) { drop(l.id); s = null; }
-      if (!s) shown.set(l.id, s = { key, meshes: build({ ...l, r: smoothed(l) }) });
+      if (!s) shown.set(l.id, s = { key, meshes: build({ ...l, r: smoothed(l), gap }) });
       for (const p of s.meshes) {   // only what has been laid so far
-        const quads = Math.max(0, Math.min(p.n, Math.floor((l.built * smoothed(l).k - p.d0) / STEP)));
+        const quads = p.whole ? p.n : Math.max(0, Math.min(p.n, Math.floor((l.built * smoothed(l).k - p.d0) / STEP)));
         p.mesh.geometry.setDrawRange(0, quads * 6);
         p.mesh.visible = quads > 0;
       }

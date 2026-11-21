@@ -277,6 +277,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if(c.kind==='bullet')play('rifle_shot_1',.5*v,1.05);   // war army rifleman (units.json army_rifleman): the Teppo shot, a little lighter
         if(c.kind==='hamstringHit')play('ability_buff_1',.3*v,1.2);
         if(c.kind==='dynamiteBlast')play(pickCustom('dynamite_1'),.85*v);
+        if(c.kind==='railBlast'){play(pickCustom('dynamite_1'),v,.8);play(pickCustom('dynamite_1'),.9*v,.55);}   // the rail charge (train robbery): the dynamite clip, lower, with a deep second layer
         if(c.kind==='dogsLoose')play(pickCustom('horse_whistle_1'),.45*v,1.2);   // he whistles them off
         if(c.kind==='dogsBite')variant('club_thud_1',.5*v,1.15);   // the dog handler's pack lands (sim/dogs.js); stand-in until a bark and bite clip is supplied
         if(c.kind==='firebombBurst')play(pickCustom('dynamite_1'),.3*v,1.5);   // fire-bomb thrower (war checkpoint 7-2): a smaller, sharper burst

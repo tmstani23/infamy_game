@@ -14,6 +14,7 @@ import { ringRadius, cellOffset } from './frontier/town_grid.js';
 import { SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
 import { isMilitary, militaryCount, militaryNeeds, militaryWhy, warHallDone, tierMax } from './frontier/town_military.js';
 import { buildingCost } from './frontier/tiers.js';
+import { pointAt } from './frontier/rail_route.js';
 
 const DET = SCREEN_RIGHT.x * SCREEN_DOWN.z - SCREEN_DOWN.x * SCREEN_RIGHT.z;
 const intent = (dx, dz) => ({ right: (dx * SCREEN_DOWN.z - dz * SCREEN_DOWN.x) / DET, down: (SCREEN_RIGHT.x * dz - SCREEN_RIGHT.z * dx) / DET });
@@ -22,13 +23,15 @@ export function createGeneralBrain(game, { clan }) {
   const state = game.state, F = () => game.frontier, GEN = () => F()?.warGeneral, gen = GEN;
   const W = () => F().data.war || {};
   GEN()?.enable?.();   // from now on the stand-in defender and stand-in douse are off (war.js, structures.js)
-  let mem = { wars: {}, plan: null, walls: {} };   // saved
+  let mem = { wars: {}, plan: null, walls: {}, rob: null, guard: {} };   // saved (rob, robLast, robMode, guard: train robbery R5)
   let goal = null, path = null;         // where the hero is walking (worked out again at each review)
   const memory = (w, side) => ((mem.wars[w.id] ||= {})[side] ||= {});
   const isBot = () => !!state.clans[clan]?.bot;
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const strat = () => gen().rules().strategies?.[gen().strategyOf(clan)] || {};
-  const troops = w => Object.values(state.entities).filter(e => e.warTroop === w.id && e.owner === clan && !e.dead && e.type !== 'horse');
+  // troops away with the hero on a train robbery, or sent to an own stopped train, are not the army's to order (R5)
+  const detached = () => { const a = mem.rob?.escort || [], g = mem.guard ? Object.values(mem.guard).flat() : []; return a.length || g.length ? new Set([...a, ...g]) : null; };
+  const troops = w => { const off = detached(); return Object.values(state.entities).filter(e => e.warTroop === w.id && e.owner === clan && !e.dead && e.type !== 'horse' && !(off && off.has(e.id))); };
   const hero = () => Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero');
   const town = id => state.frontier?.settlements?.[id] || null;
   // a side's workers out in the open (worker units carry workerOwner and their site in town: a town id or a war id)
@@ -927,6 +930,148 @@ export function createGeneralBrain(game, { clan }) {
     if (ET.check(h, t.id).ok) out.push(cmd({ action: 'claimTown', town: t.id }));
   }
 
+  // ---- train robbery R5 (Tim 2026-11-20): a bot robs trains, any general defends its own -------------------------
+  // Numbers: data.railways.robbery.bots. A bot's hero walks to an enemy line, waits beside it for a loaded train on
+  // its way, sets the charge ahead of it, and when the train stands at the gap holds on the freight wagon; the chest
+  // goes to its nearest town hall or war camp. In a war it robs only that war's enemy inside the war circle (camp
+  // supply lines first) and takes an escort of its war troops along (they cannot leave the circle); in peace it goes
+  // with the crew at its side, and only if it has bots.peaceCrew of them. Raider generals rob often, the others
+  // rarely (bots.days). It also picks up a dropped chest near it. mem.rob = { link, d, x, z, war, stage, at, escort }.
+  const RB = () => F().data.railways?.robbery || {}, RBB = () => RB().bots || {};
+  const railRec = () => state.frontier?.rail || {};
+  const hash01 = (...parts) => { let x = 2166136261; for (const ch of parts.join('|')) x = Math.imul(x ^ ch.charCodeAt(0), 16777619); return (x >>> 0) / 4294967296; };
+  const myWars = () => F().war.warsOf(clan).filter(w => !w.terms && w.state !== 'over');
+  const enemyOf = w => w.attacker === clan ? w.defender : w.attacker;
+  const trainOn = l => Object.values(railRec().trains || {}).find(t => t.link === l.id) || null;
+  const loadOf = t => (t?.freight || []).reduce((n, c) => n + (c.amount > 0 ? c.amount : 0), 0);
+  const leadNeed = () => (F().data.railways?.train?.speed ?? 36) * ((RB().fuseSeconds ?? 8) + 1) + (RB().stopGap ?? 12) + 8;
+  function robGap() {
+    const mode = myWars().length ? 'war' : 'peace', D = RBB().days?.[gen().strategyOf(clan)] || RBB().days?.default || { war: [5, 8], peace: [14, 20] };
+    if (mem.robMode !== mode || !Number.isFinite(mem.robLast)) { mem.robMode = mode; mem.robLast = state.tick ?? 0; }   // the clock starts again when war or peace begins
+    const [a, b] = D[mode] || [5, 8];
+    return Math.round((a + (b - a) * hash01('rob', state.campaignSeed ?? 1, clan, mem.robLast)) * gen().dayTicks);
+  }
+  const robEnd = (retry = false) => { mem.rob = null; mem.robLast = (state.tick ?? 0) - (retry ? Math.max(0, robGap() - Math.round((RBB().retryDays ?? 0.25) * gen().dayTicks)) : 0); };
+  // the best spot to wait on link l: where a train from one end still has the lead a fuse needs, inside the war
+  // circle in a war, nearest the hero
+  function robSpot(l, h, w) {
+    const end = (RB().stopGap ?? 12) * 2 + 6, need = leadNeed() + 10, t = w && town(w.town), R = (W().circleRadius ?? 900) - 40;
+    let best = null;
+    for (let d = end; d <= l.length - end; d += 20) {
+      if (d < need && l.length - d < need) continue;
+      const p = pointAt(l, d);
+      if (t && Math.hypot(p.x - t.x, p.z - t.z) > R) continue;
+      const far = Math.hypot(p.x - h.x, p.z - h.z);
+      if (!best || far < best.far) best = { d, p, far };
+    }
+    if (!best) return null;
+    const { p } = best, ax = Math.cos(p.heading), az = -Math.sin(p.heading), side = (h.x - p.x) * ax + (h.z - p.z) * az < 0 ? -1 : 1;
+    return { d: best.d, far: best.far, x: Math.round((p.x + ax * side * 3.5) * 10) / 10, z: Math.round((p.z + az * side * 3.5) * 10) / 10, rx: Math.round(p.x + ax * side * 14), rz: Math.round(p.z + az * side * 14) };
+  }
+  function robPick(h) {
+    const blast = F().rail?.blast; if (!blast) return null;
+    const wars = myWars(), links = Object.values(railRec().links || {}).filter(l => l.done && l.points?.length && l.owner && l.owner !== clan && !l.charge && !l.closed && !blast.safe(l) && trainOn(l) && trainOn(l).owner !== clan);
+    const out = [];
+    for (const l of links) {
+      const w = wars.find(w => enemyOf(w) === l.owner) || null;
+      if (wars.length ? !w : false) continue;   // in a war: only that war's enemy
+      if (!w) {
+        const ends = [l.from, l.to].map(town).filter(Boolean);
+        if (F().rivalCampaign && !ends.some(s => F().rivalCampaign.knows(clan, s))) continue;
+      }
+      const s = robSpot(l, h, w);
+      if (!s || s.far > (RBB().reach ?? 1500)) continue;
+      out.push({ l, w, s, rank: w && l.camp === w.id ? 0 : 1 });
+    }
+    return out.sort((a, b) => a.rank - b.rank || a.s.far - b.s.far || (a.l.id < b.l.id ? -1 : 1))[0] || null;
+  }
+  const rawTroops = w => Object.values(state.entities).filter(e => e.warTroop === w.id && e.owner === clan && !e.dead && !e.downed && e.type !== 'horse' && !e.garrison && !e.order?.garrisonKey && e.place === 'world');
+  const partyOf = h => Object.values(state.entities).filter(u => u.owner === clan && u.id !== h.id && u.type !== 'hero' && u.type !== 'settler' && !u.dead && !u.downed && !u.guard && !u.warTroop && !u.captain && !u.worker && u.place === 'world' && Math.hypot(u.x - h.x, u.z - h.z) <= 60);
+  const sendTo = (out, order, ids, kind, x, z, r = 12) => { const go = ids.filter(id => { const e = state.entities[id]; return e && !e.dead && (e.order?.kind !== kind || Math.hypot((e.order.x ?? 1e9) - x, (e.order.z ?? 1e9) - z) > r); }); if (go.length) out.push(order({ kind, units: go, x: Math.round(x), z: Math.round(z) })); };
+  const cashGoal = h => {
+    const pts = [];
+    for (const s of Object.values(state.frontier?.settlements || {})) if (s.owner === clan && !s.ruined && !s.empty && Number.isFinite(s.x)) { const p = F().warEnd.hallPoint({ town: s.id }, 'town'); if (p) pts.push({ x: p.x + p.r + 2, z: p.z, near: 3 }); }
+    for (const w of F().war.warsOf(clan)) if (w.attacker === clan && w.camp && w.state === 'active' && Number.isFinite(w.x)) pts.push({ x: w.x + 5, z: w.z, near: 5 });
+    return pts.sort((a, b) => dist(a, h) - dist(b, h))[0] || null;
+  };
+  // every tick while it waits by the line: the moment a loaded train is on its way with the lead a fuse needs
+  function robLay(out, cmd, h) {
+    const m = mem.rob, l = m && railRec().links?.[m.link];
+    if (!l || m.stage !== 'lurk' || m.laid || l.charge || l.blast || h.dead || h.downed) return;
+    const t = trainOn(l);
+    if (!t || t.owner === clan || t.stopped || t.backing || t.wait > 0 || (m.d - t.d) * t.dir < leadNeed() || loadOf(t) < (RBB().minLoad ?? 20)) return;
+    if (typeof F().rail.blast.layCheck(h) === 'string') return;
+    out.push(cmd({ action: 'rail', mode: 'blast' })); m.laid = state.tick ?? 0;
+  }
+  function rob(out, cmd, order, h) {
+    const rail = F().rail, now = state.tick ?? 0;
+    if (!rail?.blast || !rail.robbery || h.place !== 'world' || h.dead || h.downed || h.claimTown || h.hallChannel) { if (mem.rob && (h.dead || h.downed)) robEnd(); return; }
+    if (goal?.why === 'take') return;   // a hall to take comes first
+    if (h.chest) {   // home with the loot
+      if (mem.rob) { mem.rob.stage = 'home'; mem.rob.escort = []; }
+      const g = cashGoal(h); if (g) goal = { ...g, why: 'chest' };
+      if (rail.prompt(h)?.mode === 'cashChest') { out.push(cmd({ action: 'rail', mode: 'cashChest' })); robEnd(); }
+      return;
+    }
+    if (mem.rob?.stage === 'home') robEnd();   // the chest is gone (cashed, or lost)
+    let m = mem.rob;
+    if (!m) {
+      const c = Object.values(rail.robbery.chests()).map(c => ({ c, d: dist(c, h) })).filter(o => o.d <= (RBB().grabReach ?? 250)).sort((a, b) => a.d - b.d || (a.c.id < b.c.id ? -1 : 1))[0];
+      if (c) { goal = { x: c.c.x, z: c.c.z, near: 1, why: 'chest' }; return; }   // a dropped chest near by
+      if (mem.plan || now - (mem.robLast ?? now) < robGap()) return;
+      const pk = robPick(h);
+      if (!pk) return robEnd(true);
+      let escort = [];
+      if (pk.w) { escort = rawTroops(pk.w).sort((a, b) => Math.hypot(a.x - pk.s.x, a.z - pk.s.z) - Math.hypot(b.x - pk.s.x, b.z - pk.s.z) || (a.id < b.id ? -1 : 1)).slice(0, RBB().escort ?? 8).map(e => e.id); if (escort.length < (RBB().escortMin ?? 4)) return robEnd(true); }
+      else if (partyOf(h).length < (RBB().peaceCrew ?? 3)) return robEnd(true);
+      m = mem.rob = { link: pk.l.id, d: pk.s.d, x: pk.s.x, z: pk.s.z, rx: pk.s.rx, rz: pk.s.rz, war: pk.w?.id || null, stage: 'go', at: now, escort };
+    }
+    const l = railRec().links?.[m.link], t = l && trainOn(l);
+    if (!l?.done || !t || now - m.at > (RBB().maxSeconds ?? 720) * 20 || (m.war && !F().war.byId(m.war))) return robEnd();
+    m.escort = (m.escort || []).filter(id => { const e = state.entities[id]; return e && !e.dead && !e.downed; });
+    const here = { x: m.x, z: m.z, near: 1.5, why: 'rob' };   // beside the rail: in reach to set the charge, clear of the engine
+    if (m.stage === 'go') {
+      goal = here; sendTo(out, order, m.escort, 'station', m.rx, m.rz);
+      if (dist(h, m) <= 2) { m.stage = 'lurk'; m.lurkAt = now; }
+      return;
+    }
+    if (m.stage === 'lurk') {
+      goal = here; sendTo(out, order, m.escort, 'station', m.rx, m.rz);
+      if (t.stopped && l.blast && !l.blast.robbed) { m.stage = 'fight'; return; }
+      if (l.blast && (!m.laid || now - m.laid > ((RB().fuseSeconds ?? 8) + 40) * 20)) return robEnd();   // blown, and no train came to the gap
+      if (!m.laid && now - m.lurkAt > (RBB().waitSeconds ?? 240) * 20) return robEnd(true);
+      return;
+    }
+    // the train stands at the gap: the escort takes on the guards, then the hero holds on the wagon
+    if (!t.stopped || !l.blast || l.blast.robbed) return robEnd();
+    const w = rail.robbery.wagonAt(t, l), guards = Object.values(state.entities).filter(e => e.trainGuard === t.id && !e.dead && !e.downed).length;
+    const left = (t.stopped.until - now) / 20;
+    sendTo(out, order, m.escort, 'attackmove', w.x, w.z, 20);
+    if (h.robbing || guards <= (RBB().holdGuards ?? 1) || !m.escort.length || left < (RB().holdSeconds ?? 30) + 15) {
+      goal = { x: w.x, z: w.z, near: 2, why: 'rob' };
+      if (!h.robbing && rail.prompt(h)?.mode === 'rob') out.push(cmd({ action: 'rail', mode: 'rob' }));
+    } else goal = here;
+  }
+  // any general (a player's too, while he is away): troops of a war it runs go to its own train stopped at a blown
+  // track inside that war's circle, until the train leaves or is robbed. mem.guard = { train id: [troop ids] }.
+  function guardTrains(out, order) {
+    const rail = F().rail; if (!rail?.robbery) return;
+    const g = mem.guard ||= {};
+    for (const id of Object.keys(g)) { const t = railRec().trains?.[id], l = t && railRec().links?.[t.link]; if (!t?.stopped || l?.blast?.robbed) delete g[id]; }
+    for (const { war: w } of gen().sides(clan)) {
+      if (w.terms) continue;
+      const tw = town(w.town); if (!tw) continue;
+      for (const t of Object.values(railRec().trains || {})) {
+        const l = railRec().links?.[t.link];
+        if (!t.stopped || t.owner !== clan || !l || l.blast?.robbed) continue;
+        const p = rail.robbery.wagonAt(t, l);
+        if (Math.hypot(p.x - tw.x, p.z - tw.z) > (W().circleRadius ?? 900) - 20) continue;
+        if (!g[t.id]) { const busy = new Set([...(mem.rob?.escort || []), ...Object.values(g).flat()]); g[t.id] = rawTroops(w).filter(e => !busy.has(e.id) && Math.hypot(e.x - p.x, e.z - p.z) <= (RBB().defendReach ?? 500)).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z) || (a.id < b.id ? -1 : 1)).slice(0, RBB().defenders ?? 6).map(e => e.id); }
+        sendTo(out, order, g[t.id], 'attackmove', p.x, p.z, 20);
+      }
+    }
+  }
+
   // ---- the hero walks (a bot's only): WASD steps along an island route, every tick -------------------------------
   let stuck = 0;
   const dodge = { x: 0, z: 0, check: 0, until: 0, side: 1, n: 0 };
@@ -956,8 +1101,8 @@ export function createGeneralBrain(game, { clan }) {
     const gen = GEN(), h = hero();
     if (!gen || !h) return [];
     const every = Math.max(1, Math.round((gen.rules().reviewSeconds ?? 5) * 20)), out = [];
-    if ((state.tick ?? 0) % every !== 0) { walk(out, h); return out; }
     const cmd = c => ({ id: h.id, type: 'frontier', by: 'general', ...c });
+    if ((state.tick ?? 0) % every !== 0) { if (mem.rob?.stage === 'lurk' && isBot()) robLay(out, cmd, h); walk(out, h); return out; }
     const order = c => ({ id: h.id, type: 'order', by: 'general', place: 'world', ...c });
     goal = null;
     for (const id of Object.keys(mem.wars)) if (!F().war.byId(id)) delete mem.wars[id];
@@ -966,7 +1111,9 @@ export function createGeneralBrain(game, { clan }) {
       if (w.terms) continue;   // a ceasefire: the general stands its side down
       (side === 'defender' ? defend : attack)(out, cmd, order, w);
     }
+    guardTrains(out, order);   // R5: troops to an own train stopped at a blown track
     if (isBot()) {
+      rob(out, cmd, order, h);   // R5: a train robbery under way, a chest to carry home, or a new one when it is due
       // in peace and war alike a bot's towns build up their defences (less often), and it looks for a war of its own
       const slow = Math.max(every, Math.round((gen.rules().buildSeconds ?? 30) * 20 / every) * every);
       if ((state.tick ?? 0) % slow === 0)
@@ -983,6 +1130,6 @@ export function createGeneralBrain(game, { clan }) {
     walk(out, h);
     return out;
   }
-  return { tick, saveState: () => JSON.parse(JSON.stringify(mem)), loadState: d => { if (d && typeof d === 'object') mem = { wars: d.wars || {}, plan: d.plan || null, walls: d.walls || {} }; }, view: () => ({ ...mem, goal }) };
+  return { tick, saveState: () => JSON.parse(JSON.stringify(mem)), loadState: d => { if (d && typeof d === 'object') mem = { wars: d.wars || {}, plan: d.plan || null, walls: d.walls || {}, rob: d.rob || null, guard: d.guard || {}, robLast: d.robLast, robMode: d.robMode }; }, view: () => ({ ...mem, goal }) };
 
 }

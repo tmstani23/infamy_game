@@ -2,6 +2,7 @@
 // Shared terrain caching below also serves the minimap; atlas visibility never changes its fog.
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
 import { drawRailLines, supplySectionAt } from './rail_map.js';
+import { drawRobberyMark } from './minimap_icons.js';
 import { pointAt } from './sim/frontier/rail_route.js';
 import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, atlasItems, drawAtlasGlyph, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
@@ -201,6 +202,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
         ctx.strokeText('!', p.px, p.py - r - 10); ctx.fillStyle = '#f0c85a'; ctx.fillText('!', p.px, p.py - r - 10); ctx.restore(); }
       dirty = true; }
     if (layers.zones && st.zones) drawZoneLabels(ctx, st.zones, zproj);   // zone chips and the castles you know
+    for (const m of st.robbery || []) { const p = worldToCanvas(m.x, m.z, view); drawRobberyMark(ctx, m, p.px, p.py, 1.5); }   // train robbery: last down spot, dropped chest
     if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
     // the surveyor's tour stop (Tim 2026-11-06 20:45): a gold ring the size of the area a town draws its nodes from
     if (st.highlight) { const h=st.highlight, p=worldToCanvas(h.x,h.z,view); ctx.save(); ctx.strokeStyle='rgba(240,200,90,.95)'; ctx.lineWidth=2.5; ctx.setLineDash([6,4]);

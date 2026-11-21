@@ -49,6 +49,7 @@ export function createFerry({ state, rules, world = null, pier, seaGate, castles
   }
   // Use at the pier or the dock: call All aboard (the zone lies at the ship); Use again during the call: aboard at once
   function call(e) {
+    if (e.chest) return say(e.owner, 'No stolen chest on the ship: ride or run it home');   // train robbery (Tim 2026-11-20)
     if (e.shipCall) return allAboard(e);
     const here = at(e);
     if (!here) return say(e.owner, riding(e) ? 'Already at sea' : 'The ship lies at the city harbour pier and at your castle dock');

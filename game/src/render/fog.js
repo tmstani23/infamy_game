@@ -39,7 +39,9 @@ export function createFog({ vision, clan, on = true }) {
   }
 
   // Hits and casts on units this clan can see (no damage numbers out in the fog)
-  const seenEvents = (list, state, key) => on ? list.filter(h => vision.canSee(clan, state.entities[h[key]]) || vision.canSee(clan, state.entities[h.a])) : list;
+  // a rail blast (sim/frontier/rail_blast.js) is a spot, not a unit: seen when the clan has eyes on it, or set it
+  const spot = h => h.kind === 'railBlast' && vision.canSee(clan, { id: `railBlast:${h.link}`, owner: h.by, place: 'world', x: h.x, z: h.z });
+  const seenEvents = (list, state, key) => on ? list.filter(h => vision.canSee(clan, state.entities[h[key]]) || vision.canSee(clan, state.entities[h.a]) || spot(h)) : list;
 
   return { update, seen, seenEvents, isOn: () => on };
 }
