@@ -288,10 +288,13 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const grid = (data.townGrid?.radius ?? 600) - 2 * (s.grid?.cell || 11);
     const trees = workers.index.spotsNear(s.x, s.z, grid + reach).filter(p => R.resources[p.kind] === 'timber')
       .map(p => ({ p, d: Math.hypot(p.x - s.x, p.z - s.z) })).sort((a, b) => a.d - b.d || (a.p.id < b.p.id ? -1 : 1));
-    if (!trees.length || trees[0].d <= R.range) return false;
+    // (2026-11-21 camp-tier soak) trees in worker reach but away from the hall get the lumber camp first too: a town
+    // whose workers took to stone spent its start timber on a quarry and never had a log again
+    if (!trees.length || trees[0].d <= (G.campDistance ?? 70)) return false;
     if (placedRoom(s, 'lumber_camp', data) < 1) return false;
     if (s.projects.some(p => !p.replaces)) return 'save';
-    if (!Object.entries(data.buildings.lumber_camp.cost).every(([r, v]) => (s.stock[r] || 0) >= v)) { s.report.next = 'Saving for a lumber camp: no trees within reach of the town'; return 'save'; }
+    const cost = data.buildings.lumber_camp.cost;
+    if (!Object.entries(cost).every(([r, v]) => (s.stock[r] || 0) >= v)) { s.gov.inputKeep ||= cost; s.report.next = trees[0].d <= R.range ? 'Saving for a lumber camp by the nearest trees' : 'Saving for a lumber camp: no trees within reach of the town'; return 'save'; }
     for (const { p, d } of trees) {
       const k = Math.min(1, grid / d), tx = s.x + (p.x - s.x) * k, tz = s.z + (p.z - s.z) * k;
       if (Math.hypot(p.x - tx, p.z - tz) > reach) continue;
@@ -336,7 +339,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     // comes within reach): more work cells while there is room, idle people and no input shortage
     if (zones?.on(s) && !zones.busy(s, 'work')) {
       const k = data.zones.kinds.work, net = Object.entries(s.flow?.goods || {}).filter(([why]) => !ONCE_FLOW.has(why)).reduce((n, [, v]) => n + v, 0);
-      const room = k && zoneCells(s, k.char) + (k.governorCells || 1) <= cellCap(s, 'work', data);
+      const room = k && zoneCells(s, k.char) < cellCap(s, 'work', data);
       // workshops burn timber and stone: only add them while those are stocked and still rising,
       // or already sitting at half their cap or more (a full store shows no rise but has plenty to burn)
       const rising = r => Object.values(s.flow?.[r] || {}).reduce((n, v) => n + v, 0) > 0

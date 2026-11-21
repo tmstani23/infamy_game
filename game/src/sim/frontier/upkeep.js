@@ -3,6 +3,7 @@
 // returns how much of each bill was paid, so zones can turn short upkeep into lower health.
 // All numbers: data/frontier.json "upkeep". Towns without it pay nothing.
 import { workerCount } from './people.js';
+import { nextTier, cellCap, zoneCells } from './tiers.js';
 
 export function payUpkeep(s, data, world) {
   const U = data.upkeep, out = { zone: {}, goods: 1 };
@@ -31,7 +32,11 @@ export function payUpkeep(s, data, world) {
   // pay each resource in one go; every bill on it gets the same paid share
   const need = {}, frac = {};
   for (const b of bills) need[b.r] = (need[b.r] || 0) + b.need;
-  for (const [r, n] of Object.entries(need)) frac[r] = n > 0 ? Math.min(Math.max(0, s.stock[r] ?? 0), n) / n : 1;
+  // (2026-11-21 camp-tier soak) an auto town with its housing at the tier cap waits only on the hall: house
+  // levels leave the goods saved for the next hall tier, so the upgrade can be saved up
+  const keep = { goods: 0 }, hk = kinds.housing ? 'housing' : null;
+  if (s.autoBuild && hk && zoneCells(s, kinds[hk].char) >= cellCap(s, hk, data)) keep.goods = nextTier(s, data)?.upgrade?.cost?.goods || 0;
+  for (const [r, n] of Object.entries(need)) frac[r] = n > 0 ? Math.min(Math.max(0, (s.stock[r] ?? 0) - (keep[r] || 0)), n) / n : 1;
   // each bill pays its share under its own reason ('upkeep:zone:farm', 'upkeep:wages', ...) for the Usage page
   for (const b of bills) { const pay = b.need * frac[b.r]; if (pay > 0) world.change(s.id, b.r, -Math.min(pay, s.stock[b.r]), `upkeep:${b.who}`); }
   s.upkeepBill = need;   // per economy tick, for the town panel

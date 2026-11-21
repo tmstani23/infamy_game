@@ -130,7 +130,10 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     s.growthProgress += speed;
     if (s.growthProgress >= rates.growthTicks) {
       s.growthProgress = 0;
-      const surplus = s.stock.food > s.growthFood0 + EPS || isFull(s, data, 'food');   // B2: a full store counts as surplus
+      // (2026-11-21 max-stage soak) and a small store in hand: rates.growthFoodMinutes of eating, so lumpy deliveries
+      // never grow a town past what its farms feed (it starved and its housing was abandoned for good)
+      const reserve = (rates.growthFoodMinutes ?? 1) * rates.food * residents(s) * 1200 / (data.cadenceTicks || 20);
+      const surplus = (s.stock.food > s.growthFood0 + EPS && s.stock.food >= reserve) || isFull(s, data, 'food');   // B2: a full store counts as surplus
       s.growthFood0 = s.stock.food;
       if (residents(s) >= s.housing) s.growthBlock = 'housing';
       else if (!surplus) s.growthBlock = 'food';

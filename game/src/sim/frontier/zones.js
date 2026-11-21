@@ -282,9 +282,11 @@ export function createZones({ state, data, world,resourceIndex }) {
       cand.push([ox * ox + oz * oz, i]);
     }
     cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-    const picked = [];
+    // (2026-11-21) never more than the tier cap leaves, so the last odd cell still gets zoned
+    const want = Math.min(k.governorCells || 1, cellCap(s, kind, data) - zoneCells(s, k.char)), picked = [];
+    if (want < 1) return bad('town hall tier limit');
     for (const [, i] of cand) {
-      if (picked.length >= k.governorCells) break;
+      if (picked.length >= want) break;
       if (roadNear(s, i, k.needs?.roadReach)) picked.push(i);
     }
     if (!picked.length) return bad('needs a road to zone');
