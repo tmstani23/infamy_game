@@ -239,7 +239,8 @@ export function createPaint(world, cfg) {
         if (tot > 0) { for (let mi = 0; mi < NM; mi++) w[mi] *= 1 - fd; set.forEach((m, k) => { w[M[m.id]] += fd * wt[k] / tot; }); }
       }
     }
-    const [tr, vg] = trailAt(segs, x, z);
+    // with road strips (src/road_strips.js) the roads are meshes, not painted into the ground
+    const [tr, vg] = T.strips ? [0, 0] : trailAt(segs, x, z);
     if (tr > 0 || vg > 0) {
       const kv = vg * (1 - tr) * T.verged;
       for (let mi = 0; mi < NM; mi++) w[mi] *= 1 - tr - kv;

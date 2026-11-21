@@ -68,9 +68,9 @@ edges.
   by up to about ±10%.
 
 **5. Lines on the land.**
-- Trails along corridors: noisy width (2.2 to 3.8 units), a ragged edge decided by the texture
-  height, and a worn verge of pebbly soil about 2.5 units wide. The dirt_trail tile is used on open
-  ground, mixed half and half with trail_roots in forest.
+- Roads (2026-11-21): built-in roads are drawn as strip meshes (src/road_strips.js) from the road strip atlas
+  (art/ground/island/road_strips.png), 6 types picked by biome and blended where biomes meet, faded over water.
+  Settings in data/world_paint.json trail.strips; art rebuilt with tools/build_road_strips.py.
 - Rivers get muddy_bank along their sides. Lakes get the narrow bank pieces (lake_edge_1 to 8),
   with code-drawn water.
 

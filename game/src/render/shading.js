@@ -979,3 +979,44 @@ export function roomFloorMaterial(map, { origin, size, pattern = 'tatami', tint 
     depthWrite: false,
   });
 }
+
+// Built-in island roads (src/road_strips.js, Tim 2026-11-21): a ribbon textured from the six-road strip atlas, the
+// road type blended per vertex (wA = plains, hills, forest; wB = marsh, dry, snow), lit and fogged like the ground.
+export function roadStripMaterial(map, tone) {
+  return new THREE.ShaderMaterial({
+    uniforms: { ...shared, uMap: { value: map }, uToneA: { value: new THREE.Vector3(...tone.slice(0, 3)) }, uToneB: { value: new THREE.Vector3(...tone.slice(3, 6)) } },
+    vertexShader: /* glsl */`
+      attribute vec3 wA, wB;
+      attribute float fade;
+      varying vec3 vWorld, vA, vB;
+      varying vec2 vUv;
+      varying float vFade;
+      void main() {
+        vec4 w = modelMatrix * vec4(position, 1.0);
+        vWorld = w.xyz; vUv = uv; vA = wA; vB = wB; vFade = fade;
+        gl_Position = projectionMatrix * viewMatrix * w;
+      }`,
+    fragmentShader: /* glsl */`
+${LIGHTING}
+      uniform sampler2D uMap;
+      uniform vec3 uToneA, uToneB;
+      varying vec3 vWorld, vA, vB;
+      varying vec2 vUv;
+      varying float vFade;
+      vec4 strip(float k) {   // premultiplied; u kept inside its column so neighbours never bleed in
+        vec4 t = texture2D(uMap, vec2((k + 0.5 + (vUv.x - 0.5) * 0.98) / 6.0, vUv.y));
+        return vec4(t.rgb * t.a, t.a);
+      }
+      void main() {
+        float w[6] = float[6](vA.x, vA.y, vA.z, vB.x, vB.y, vB.z), tone[6] = float[6](uToneA.x, uToneA.y, uToneA.z, uToneB.x, uToneB.y, uToneB.z);
+        vec4 acc = vec4(0.0); float tot = 0.0;
+        for (int k = 0; k < 6; k++) if (w[k] > 0.02) { vec4 c = strip(float(k)); acc += vec4(c.rgb * tone[k], c.a) * w[k]; tot += w[k]; }
+        acc /= max(tot, 0.0001);
+        float a = acc.a * vFade;
+        if (a < 0.004) discard;
+        vec3 g = grade(acc.rgb / max(acc.a, 0.0001), vWorld, false, vec3(0.0));
+        gl_FragColor = vec4(fogged(g, vWorld.xz), a);
+      }`,
+    transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  });
+}

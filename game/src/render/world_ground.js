@@ -25,7 +25,8 @@ import { makeSpotIndex } from '../sim/resource_spots.js';
 import { spotPiecesToProps, visibleSpots, coveredBySpot } from '../resource_spot_props.js';
 import { isDiscovered } from '../world_map.js';
 import { createSpotGlow } from './spot_glow.js';
-import { terraceMaterial } from './shading.js';
+import { terraceMaterial, roadStripMaterial } from './shading.js';
+import { roadLines, buildStrip, linesNear } from '../road_strips.js';
 import { createHeightField, setHeightField, terrainPieces, groundY, nearCastle } from '../castle_height.js';
 
 // world prop kind -> art in data/art.json and a size factor (placeholders until the forest and
@@ -85,6 +86,45 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   const cityFog = CW ? new THREE.Mesh(new THREE.PlaneGeometry(city.maxX - city.minX + CW.out * 2, city.maxZ - city.minZ + CW.out * 2),
     new THREE.MeshBasicMaterial({ color: 0x06080c, transparent: true, opacity: CW.fog ?? 0.94, depthTest: false, depthWrite: false })) : null;
   if (cityFog) { cityFog.rotation.x = -Math.PI / 2; cityFog.position.set((city.minX + city.maxX) / 2, 0.04, (city.minZ + city.maxZ) / 2); cityFog.renderOrder = -0.3; cityFog.visible = false; scene.add(cityFog); }
+  // built-in roads as textured strips (src/road_strips.js, Tim 2026-11-21): built per road when the camera comes near
+  const RS = cfg.paint?.enabled ? cfg.paint.trail?.strips : null, roadMeshes = new Map();
+  const roads = RS ? roadLines(world, cfg.paint.paths?.list) : [];
+  let roadMat = null, roadAt = null;
+  if (RS) loadTex(RS.art).then(t => { t.wrapS = THREE.ClampToEdgeWrapping; t.wrapT = THREE.RepeatWrapping; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); roadMat = roadStripMaterial(t, RS.tone); }).catch(e => console.error('Road strips:', e));
+  function roadMesh(line) {
+    const r = buildStrip(line, createPaint(world, cfg.paint), RS), p = new Float32Array(r.n * 6), wA = new Float32Array(r.n * 6), wB = new Float32Array(r.n * 6), f = new Float32Array(r.n * 2), idx = [];
+    for (let i = 0; i < r.n; i++) {
+      for (let s = 0; s < 2; s++) {
+        const x = r.pos[i * 4 + s * 2], z = r.pos[i * 4 + s * 2 + 1], v = i * 2 + s;
+        p.set([x, groundY(x, z) + RS.lift, z], v * 3);
+        wA.set(r.types.subarray(i * 6, i * 6 + 3), v * 3); wB.set(r.types.subarray(i * 6 + 3, i * 6 + 6), v * 3); f[v] = r.fade[i];
+      }
+      if (i) idx.push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i - 1, 2 * i + 1, 2 * i);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(p, 3)); g.setAttribute('uv', new THREE.BufferAttribute(r.uv, 2));
+    g.setAttribute('wA', new THREE.BufferAttribute(wA, 3)); g.setAttribute('wB', new THREE.BufferAttribute(wB, 3)); g.setAttribute('fade', new THREE.BufferAttribute(f, 1));
+    g.setIndex(idx); g.computeBoundingSphere();
+    const mesh = new THREE.Mesh(g, roadMat);
+    mesh.renderOrder = -0.9;   // over the island ground (-1), under town dirt patches and fields (-0.45 .. -0.4)
+    return mesh;
+  }
+  function updateRoads(x, z, show) {
+    if (!roadMat) return;
+    if (!show) { for (const m of roadMeshes.values()) m.visible = false; roadAt = null; return; }
+    if (roadAt && Math.hypot(x - roadAt[0], z - roadAt[1]) < 40) return;
+    roadAt = [x, z];
+    const want = new Set(linesNear(roads, x, z, RS.drawRadius).map(l => l.id));
+    for (const [id, m] of roadMeshes) if (!want.has(id) && !linesNear([roads.find(l => l.id === id)], x, z, RS.drawRadius * 2).length) { scene.remove(m); m.geometry.dispose(); roadMeshes.delete(id); }
+    let built = 0;
+    for (const l of roads) {
+      if (!want.has(l.id)) continue;
+      let m = roadMeshes.get(l.id);
+      if (!m && built++ < 2) { m = roadMesh(l); roadMeshes.set(l.id, m); scene.add(m); }   // at most two new roads a frame
+      if (m) m.visible = true;
+      else roadAt = null;   // more to build next frame
+    }
+  }
   const segs = [];
   for (const c of world.corridors || []) for (let k = 1; k < c.points.length; k++) segs.push([c.points[k - 1], c.points[k]]);
 
@@ -282,11 +322,13 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (revision !== spotRevision && nowMs - spotAppliedAt >= 500) { spotRevision = revision; propAt = null; spotAppliedAt = nowMs; }
     glow?.update(glowItems, active, viewScale);
     if (!active) {
+      updateRoads(x, z, false);
       if (shown) { for (const k of [...sprites.keys()]) removeThing(k); for (const c of loaded.values()) { c.mesh.visible = false; if (c.coastMesh) c.coastMesh.visible = false; } for (const m of terrain) m.visible = false; list = []; shown = false; last = null; propAt = null; if (cityFog) cityFog.visible = false; }
       return;
     }
     if (!shown) { for (const c of loaded.values()) { c.mesh.visible = true; if (c.coastMesh) c.coastMesh.visible = true; } for (const m of terrain) m.visible = !!m.material.uniforms.uMap.value; shown = true; if (cityFog) cityFog.visible = true; }
     frame++;
+    updateRoads(x, z, true);
     const vx = last && dt > 0 ? (x - last[0]) / dt : 0, vz = last && dt > 0 ? (z - last[1]) / dt : 0;
     last = [x, z];
     const wanted = chunksToDraw(x, z, vx, vz, { chunk: S, drawRadius: cfg.drawRadius ?? 1, cols, rows });

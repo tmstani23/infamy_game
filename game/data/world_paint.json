@@ -121,9 +121,22 @@
   "verge": 2.5,
   "ragged": 1.2,
   "verged": 0.7,
-  "clearNone": 3,
-  "clearFull": 9,
-  "rootsInForest": 0.5
+  "clearNone": 5,
+  "clearFull": 10,
+  "rootsInForest": 0.5,
+   "strips": {
+    "_note": "built-in roads drawn as textured strips (src/road_strips.js, Tim 2026-11-21); art built by tools/build_road_strips.py from assets/environment/travelroads1.png. width/repeat in units; step/smooth = line split + Chaikin passes; types = biome -> strip column (0 plains, 1 hills, 2 forest, 3 marsh, 4 dry, 5 snow); tone = colour multiplier per strip; waterFade = water amount where the road starts/ends fading; drawRadius = how far from the camera strips are built",
+    "art": "art/ground/island/road_strips.png",
+    "width": 8.1,
+    "repeat": 22.2,
+    "step": 40,
+    "smooth": 4,
+    "lift": 0.012,
+    "types": {"plain": 0, "bank": 0, "hills": 1, "forest": 2, "top_forest": 2, "jungle": 3, "marsh": 3, "dry": 4, "top_dry": 4, "snow": 5, "top_snow": 5, "snowedge": 5},
+    "tone": [0.82, 0.9, 0.9, 0.9, 0.88, 0.95],
+    "waterFade": [0.3, 0.55],
+    "drawRadius": 500
+   }
  },
  "groves": {
   "_note": "layer 7: grove noise scale (units) and threshold",
