@@ -87,7 +87,7 @@ const VARIANTS = { brute: 'mutant' };
 const SCALE = { brute: 1.12 };
 const ITEMS = {
   mercenary: { file: 'rifle', mode: 'both', length: 1.25, grip: 0.25 },
-  ninja_leader: { file: 'ninjato', mode: 'right', length: 1.05, grip: 0.17, idleBack: { drop: -45, hand: 'left' } },   // 40% bigger (Tim 2026-10-20)
+  ninja_leader: { file: 'ninjato', mode: 'right', length: 1.05, grip: 0.17, idleBack: { drop: -45, hand: 'left', idle: { forward: true } } },   // 40% bigger (Tim 2026-10-20); idle: blade out forward 45° up, not back by his head (Tim 2026-11-21)
   // Two-handed swords: flip points the blade away from the left hand (left hand near the pommel)
   // hang: when the hands part (idles, walks) the sword hangs from the right hand along the leg
   // idleBack: one-hand blade in the palm, in idles and walks pointing back behind at drop degrees below level, negative = tip up; hand 'left' = the other hand (ninja, Tim 2026-10-20: left hand, 45° up)

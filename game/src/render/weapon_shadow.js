@@ -27,6 +27,7 @@ export function createWeaponShadow(spriteUniforms) {
       history=history.filter(h=>clock-h.time<.22);
       let count=0;
       function ribbon(blade,{bend=0,offset=0,width=.02,fade=.6,shrink=1,drift=0,steps=18}){
+        width*=1.3;   // soft edge falloff needs a slightly wider ribbon (Tim 2026-11-21)
         const dx=(blade.tip.x-blade.base.x)*shrink,dy=(blade.tip.y-blade.base.y)*shrink;
         const len=Math.hypot(dx,dy);if(len<.008)return;
         const nx=-dy/len,ny=dx/len;
@@ -48,7 +49,7 @@ export function createWeaponShadow(spriteUniforms) {
       // the hero. Their tapered ends curl and breathe without a flashing halo.
       for(let i=0;i<2;i++){
         const side=i?1:-1;
-        ribbon(axis,{bend:side*(.1+.05*Math.sin(clock*1.1+i*3)),offset:side*.05,width:.012,
+        ribbon(axis,{bend:side*(.035+.02*Math.sin(clock*1.1+i*3)),offset:side*.015,width:.012,   // hug the blade, no arcs round his head (Tim 2026-11-21)
           fade:.66+.1*Math.sin(clock*1.4+i*2),drift:side});   // idle as noticeable as the attack cut (Tim 2026-10-30)
       }
       // Shed wisps: idle a slow trickle drifting outward and down; running a steadier stream trailing

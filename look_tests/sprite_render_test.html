@@ -489,6 +489,7 @@ let itemRunBack = null;  // per-item run pose {drop (deg tip below horizontal), 
 let runPose = false;     // true while a run clip is being drawn
 let itemIdleBack = null; // one-hand blades (ninja, Tim 2026-10-20): in idles and walks held in the palm (hand: 'left' = the other hand), tip back behind at drop degrees below level (negative = up)
 let idlePose = false;    // true while an idle or walk clip is being drawn
+let idleOnly = false;    // true while an idle clip (not a walk) is drawn: idleBack.idle overrides apply (ninja leader, Tim 2026-11-21)
 let itemSpear = false, shield = null, longShieldTexture = null;
 let spearClip = '', spearPhase = 0;
    // swords hang when the hands part; rifles stay between the hands
@@ -580,8 +581,9 @@ function updateItem() {
       item.position.set(0, itemPalmY, 0);
       root.updateMatrixWorld(true);
       palmOf(bone, _a);
-      const yaw = root.rotation.y, d = THREE.MathUtils.degToRad(itemIdleBack.drop);
-      const facing = itemIdleBack.forward ? 1 : -1;
+      const ib = idleOnly && itemIdleBack.idle ? { ...itemIdleBack, ...itemIdleBack.idle } : itemIdleBack;
+      const yaw = root.rotation.y, d = THREE.MathUtils.degToRad(ib.drop);
+      const facing = ib.forward ? 1 : -1;
       _c.set(facing * Math.sin(yaw) * Math.cos(d), -Math.sin(d), facing * Math.cos(yaw) * Math.cos(d));
       item.lookAt(_b.copy(_a).add(_c));
       return;
@@ -917,6 +919,7 @@ function renderSheet(i, withGlow = false, opts = {}) {
   spearClip = entry.poseAs || entry.name;   // a blended clip poses held items like its attack clip
   runPose = /run/i.test(entry.name);
   idlePose = /idle|walk|pointing/i.test(entry.name);
+  idleOnly = /idle/i.test(entry.name);
   const clip = $('inplace').checked ? stripRootMotion(entry.clip) : entry.clip;
   const frames = Math.max(1, Math.min(Number($('maxf').value), Math.round(clip.duration * fps)));
 

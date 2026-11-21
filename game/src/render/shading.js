@@ -290,8 +290,10 @@ export function weaponLightningMaterial(spriteUniforms) {
   });
 }
 
-// Shadow blade ribbons: dark centre, narrow violet rim and soft irregular wisps.
-// Shares the character's opacity and depth; this material never reveals a unit.
+// Shadow blade ribbons: a dark translucent centre with a soft glowing violet edge and a slow pulse
+// (Tim 2026-11-21: he likes the dark look, but the old hard violet outline read as a flat texture).
+// Premultiplied blend: the centre darkens what is behind it, the rim adds light. Scaled by the
+// character's opacity, so it never shows more than the body does.
 export function weaponShadowMaterial(spriteUniforms) {
   return new THREE.ShaderMaterial({
     uniforms:{uFrame:spriteUniforms.uFrame,uDepthAt:spriteUniforms.uDepthAt,uOpacity:spriteUniforms.uOpacity,uTime:{value:0}},
@@ -305,15 +307,18 @@ export function weaponShadowMaterial(spriteUniforms) {
       void main(){
         float side=abs(2.0*(vUv.x-uFrame.x)/uFrame.z-1.0);
         float fade=(vUv.y-uFrame.y)/uFrame.w;
-        float grain=sin(vWorld.x*48.0+vWorld.y*36.0-uTime*3.0)*0.09
-          +sin(vWorld.x*93.0-vWorld.y*65.0+uTime*5.0)*0.035;
-        float edge=side+grain;
-        float rim=exp(-pow((edge-0.72)/0.13,2.0));
-        float alpha=(1.0-smoothstep(0.75,1.0,edge))*fade*uOpacity;
-        vec3 color=mix(vec3(0.008,0.004,0.018),vec3(0.43,0.16,0.68),rim);
-        gl_FragColor=vec4(color,alpha);
+        float grain=sin(vWorld.x*48.0+vWorld.y*36.0-uTime*3.0)*0.07
+          +sin(vWorld.x*93.0-vWorld.y*65.0+uTime*5.0)*0.03;
+        float edge=max(0.0,side+grain);
+        float k=fade*uOpacity*(1.0-smoothstep(0.75,1.0,edge));
+        float dark=exp(-edge*edge*5.0)*0.8*k;
+        float pulse=0.8+0.2*sin(uTime*2.3+vWorld.x*2.0+vWorld.z*1.5);
+        float rim=exp(-pow((edge-0.55)/0.22,2.0));
+        vec3 glow=vec3(0.45,0.14,0.85)*rim*1.1*pulse*k;
+        gl_FragColor=vec4(vec3(0.01,0.004,0.02)*dark+glow,dark);
       }`,
-    transparent:true,depthTest:true,depthWrite:false,blending:THREE.NormalBlending,
+    transparent:true,depthTest:true,depthWrite:false,
+    blending:THREE.CustomBlending,blendSrc:THREE.OneFactor,blendDst:THREE.OneMinusSrcAlphaFactor,
   });
 }
 
