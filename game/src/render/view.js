@@ -659,6 +659,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const v = new THREE.Vector3();
   let heroPos = null, farCam = false, jumpFrom = null, heroPlace = null, lastRide = null;
   let previousCameraHero = null;
+  // followed crew (double-click a name or group header): their point steps once per 50 ms tick, so the camera
+  // eases between the last two ticks like the drawn sprites do; without this the crew shook on screen
+  let watchPrev = null, watchCur = null, watchTick = -1;
   const cameraPoint = new THREE.Vector3();
   // Also runs with map presentation active: update only camera math, never the scene or GPU.
   function updateCamera(state, followId, dt, position = null) {
@@ -683,8 +686,15 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     watchedPlace = w?.place ?? null; watchedId = w?.id ?? null;
     if (w) roomView = indoorPlace(w.place) && w.place !== h.place ? w.place : null;   // followed crew went in or came out: the view goes with them
     else if (roomView && (h.place !== heroPlace || h.place === roomView)) roomView = null;
-    if (w) { farCam = true; jumpFrom = null; (freeCam ||= new THREE.Vector3()).set(w.x, cameraPoint.y, w.z); }
+    if (w) {
+      if (state.tick !== watchTick) { watchPrev = watchCur; watchTick = state.tick; }
+      watchCur = { x: w.x, z: w.z, place: w.place };
+      const from = watchPrev && watchPrev.place === w.place && Math.hypot(watchPrev.x - w.x, watchPrev.z - w.z) < 6 ? watchPrev : watchCur;
+      const wx = from.x + (w.x - from.x) * frameAlpha, wz = from.z + (w.z - from.z) * frameAlpha;
+      farCam = true; jumpFrom = null; (freeCam ||= new THREE.Vector3()).set(wx, cameraPoint.y, wz);
+    }
     else if (farCam && !roomView && (h.place !== heroPlace || (jumpFrom && jumpFrom.distanceTo(cameraPoint) > 0.3))) { farCam = false; freeCam = null; }
+    if (!w) watchPrev = watchCur = null;
     heroPlace = h.place;
     if (!camReady || camTarget.distanceTo(cameraPoint) > (farCam || freeCam ? Infinity : 20)) { camTarget.copy(cameraPoint); camReady = true; freeCam = null; }
     camTarget.lerp(freeCam || cameraPoint, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
