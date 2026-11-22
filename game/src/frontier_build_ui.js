@@ -23,6 +23,7 @@ import { shapeOf, stationParts } from './sim/frontier/station_layout.js';
 import { sharedKeybinds } from './keybinds.js';
 import { isMilitary, militaryFor, militaryNeeds, militaryCount, tierMax, townMilitaryTier } from './sim/frontier/town_military.js';
 import { openMenu, placeBeside, unplace } from './card_beside.js';
+import { tiredCamps } from './tired_camps.js';
 const keybinds = sharedKeybinds();   // rebindable keys (Tim 2026-11-12): Turn a station, Workers hold
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -750,7 +751,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   }
   function html(s, mini = false, extra = '') {
     if (town !== s.id) { close(); town = s.id; }
-    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage,filter:workerFilter,stockade:!!data.buildings?.stockade?.garrison && !!s.buildings?.some(b=>b.type==='stockade' && b.stage==='built')})}</div>`;
+    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{tired:tiredCamps(game.state.frontier,s.owner).filter(c=>c.town===s.id),overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage,filter:workerFilter,stockade:!!data.buildings?.stockade?.garrison && !!s.buildings?.some(b=>b.type==='stockade' && b.stage==='built')})}</div>`;
     // Tim 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
     const capOf = id => {
       // 8b-1: a military building shows used / the war limit, greyed with what it still needs
@@ -861,6 +862,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (ds.act === 'build-worker-log-page')workerLogPage=Number(ds.id);
       if (ds.act === 'build-worker-spot-page')workerSpotPage=Number(ds.id);
       if (ds.act === 'build-worker-spot') {const spot=spotIndex.get(ds.id);if(spot)view.jumpTo?.(spot.x,spot.z);}
+      // camps over their max (Tim 2026-11-22): Move extras as on the camp card; Go to puts the camera on the camp
+      if (ds.act === 'build-worker-campextras')command({action:'campExtras',town:s.id,building:ds.id});
+      if (ds.act === 'build-worker-campgo') {const c=tiredCamps(game.state.frontier,s.owner).find(c=>c.town===s.id && c.id===ds.id);if(c)view.jumpTo?.(c.x,c.z);}
       return true;
     },
     change(ds,value,s) {

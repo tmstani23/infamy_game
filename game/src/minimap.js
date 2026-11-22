@@ -17,6 +17,7 @@ import { worldTerrainCache, worldToCanvas, gridLabel, isDiscovered, drawSpotMark
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
 import {workerLocation,workerDetails} from './worker_details.js';
+import { tiredCamps, drawTiredCamp } from './tired_camps.js';
 import { majorBuildings, drawBuildingBadge, CITY_NAMES, edgeArrow, drawGuideArrow, robberyMarks, drawRobberyMark } from './minimap_icons.js';
 
 const MARK = { pawnshop: 'Q', bathhouse: 'A', sake_brewery: 'K', manor: 'R', customs_house: 'U', warehouse: 'W', teahouse: 'T', shop: 'S', tenements: 'N', gambling_den: 'D', clinic: 'C', police_box: 'P', police_hq: 'P', moneylender: 'M', hideout: 'H', dojo: 'J' };
@@ -296,6 +297,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     }
     // train robbery: your last down spot and your dropped chest, always shown (hover names them)
     for (const m of robberyMarks(game.state, clan)) { const [u, v] = at(m.x, m.z); if (u < 0 || v < 0 || u > size || v > size) continue; drawRobberyMark(ctx, m, u, v); islandHits.push([u, v, 8, 'building', { name: m.name }]); }
+    // your work camps over their max (Tim 2026-11-22): a numbered red diamond with a pulsing glow, as in the Workers view
+    { const t = performance.now(); for (const c of tiredCamps(game.state.frontier, clan)) { const [u, v] = at(c.x, c.z); if (u < 0 || v < 0 || u > size || v > size) continue; drawTiredCamp(ctx, u, v, c.num, t); islandHits.push([u, v, 9, 'building', { name: `${c.name}, ${c.townName}: ${c.extra} too many workers (${c.n} working, max ${c.max})` }]); } }
     // goal pings and pins (Tim 2026-11-06 / 2026-11-20): gold pulse when in the box, a gold edge arrow when not
     drawGuides(guideTargets(true), at, 1);
     // what the camera sees (island coordinates)

@@ -47,8 +47,8 @@ const HELP='Click a worker to select it, double-click a worker or group to follo
 // camp (7c-4, a war camp's pane): task coins timber, stone, building and repair; spots = the camp's resource spots
 // (every one in its reach, rich or not), paged with spotPage. A town shows a Repair coin only while someone repairs.
 // filter (Tim 2026-11-12): a job coin shows only those workers until another coin or All is clicked; one filter at a time
-export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page=0,known=()=>true,tab='roster',logPage=0,stockade=false,camp=false,spots=null,spotPage=0,spotState=()=>null,filter=null}) {
-  const all=s.workers || [],idle=all.filter(w=>workerIdle(w,index)),workers=tab==='idle'?idle:filter?all.filter(w=>workerTask(w,index)===filter):all,groups=data.workers.groups || 4,rows=data.workers.panelRows || 6;
+export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page=0,known=()=>true,tab='roster',logPage=0,stockade=false,camp=false,spots=null,spotPage=0,spotState=()=>null,filter=null,tired=[]}) {
+  const all=s.workers || [],idle=all.filter(w=>workerIdle(w,index)),workers=tab==='idle'?idle:filter?all.filter(w=>workerTask(w,index)===filter):all,groups=data.workers.groups || 4,rows0=data.workers.panelRows || 6;
   const button=(act,id,label,on=false,extra='')=>`<button data-act="build-worker-${act}" data-id="${esc(id)}" aria-pressed="${on}" class="${on?'on':''}"${extra}>${esc(label)}</button>`;
   const pager=(act,at,pages,prev='Prev',next='Next')=>pages>1?`<div class="wpager"><span>Page ${at+1} of ${pages}</span><span>${button(act,Math.max(0,at-1),prev,false,at?'':' disabled')}${button(act,Math.min(pages-1,at+1),next,false,at<pages-1?'':' disabled')}</span></div>`:'';
   // job coins: click selects every worker on that job (Ctrl or Shift adds them), like the old Jobs buttons
@@ -62,6 +62,13 @@ export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page
   const T=(id,label,tip='')=>`<button role="tab" data-act="build-worker-tab" data-id="${id}" aria-selected="${tab===id || (id==='roster' && tab==='idle')}" class="${tab===id || (id==='roster' && tab==='idle')?'on':''}"${tip?` title="${esc(tip)}"`:''}>${label}</button>`;
   const tabs=`<div class="wtabs" role="tablist" aria-label="Worker views">${T('roster',`Workers ${all.length}`,HELP)}${T('groups','Groups')}${T('spots','Spots')}${T('log','Log')}</div>`;
   const head=`<div class="workerroster">${coins}${tabs}`;
+  // Camps over their max (Tim 2026-11-22), on the Workers tab only: at most 2 rows (the rest counted in the header);
+  // it takes one row of worker cards' room so the panel keeps its size
+  const over=!camp && (tab==='roster' || tab==='idle') ? tired : [],rows=over.length ? Math.max(2,rows0-2) : rows0;
+  const tiredBox=over.length ? `<div class="wtired"><div class="wtired-h"><svg viewBox="0 0 15 14" width="13" height="12" aria-hidden="true"><path d="M7.5 1 14 13H1Z" fill="#e8c48a"/><path d="M7 5h1v4H7zM7 10h1v1.4H7z" fill="#2a0c08"/></svg>Camps over their max${over.length>2?`<small>${over.length-2} more on the map</small>`:''}</div>`
+    +over.slice(0,2).map(c=>`<div class="wtired-r" title="${esc(`${c.name}: ${c.n} workers on its spots, which keep ${c.max} busy, so ${c.extra} add little`)}"><i class="wdia"><b>${c.num}</b></i><span><b>${esc(c.name)}</b><small>${c.n} working, max ${c.max}</small></span><em>+${c.extra}</em>`
+      +`<button class="wmv" data-act="build-worker-campextras" data-id="${esc(c.id)}" title="${esc(`The ${c.extra} extras go back to the governor: a spot beside a camp with room, or they wait in the town hall. With Initiative off they stand idle.`)}">Move extras</button>`
+      +`<button data-act="build-worker-campgo" data-id="${esc(c.id)}" title="Camera to this camp">Go to</button></div>`).join('')+'</div>' : '';
   const options=value=>Array.from({length:groups+1},(_,g)=>`<option value="${g}" ${g===value?'selected':''}>${g?'Group '+g:'No group'}</option>`).join('');
   if(tab==='log') {
     const entries=[...(s.workerLog || [])].reverse(),pages=Math.max(1,Math.ceil(entries.length/rows));logPage=Math.max(0,Math.min(logPage,pages-1));
@@ -108,6 +115,6 @@ export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page
       +(d.harvesting?`<div class="wprog"><i style="width:${Math.round(Math.max(0,Math.min(1,d.progress))*100)}%"></i></div><small class="harvestline">${d.left}s left, ${d.gathered.toFixed(1)} / ${w.trip.load}</small>`:'<div class="wprog off"><i></i></div><small class="harvestline" style="visibility:hidden">-</small>')
       +`<select class="wgrp" data-act="build-worker-assign" data-id="${esc(w.id)}" aria-label="Group for ${esc(w.id)}" title="Put this worker in a group">${options(w.group || 0)}</select>`
       +'</div></div>';}).join('');
-  return head+(cards?`<div class="wcards">${cards}</div>`:`<div class="hint">${tab==='idle'?'Nobody is idle.':camp?'No workers yet. Hire some on the left.':'No workers yet. Train one at the town hall.'}</div>`)
+  return head+tiredBox+(cards?`<div class="wcards">${cards}</div>`:`<div class="hint">${tab==='idle'?'Nobody is idle.':camp?'No workers yet. Hire some on the left.':'No workers yet. Train one at the town hall.'}</div>`)
     +pager('page',page,pages)+selectionBar()+'</div>';
 }

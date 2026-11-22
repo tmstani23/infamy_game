@@ -57,8 +57,10 @@ console.log('test_frontier_fix_phase: usage/debits/demand, compact snapshots, re
   const game={state,scenery:[],vision:{grid:()=>({w:2,h:2,minX:0,minZ:0,visible:new Uint8Array(4),explored:new Uint8Array(4)})}},c=canvas();let camera;
   const map=createMinimap({canvas:c,game,district:{ground:[],bounds:{minX:0,minZ:0,maxX:2,maxZ:2}},view:{screenToGround:()=>null,lookAt:(x,z)=>camera=[x,z]},fog:{isOn:()=>false,seen:s=>s},heroId:'h',clan:'p',selected:()=>[],send(){},world});
   const emit=(name,e)=>{for(const f of c.handlers[name] || [])f(e);};
-  map.draw();emit('mousedown',{button:0,clientX:150,clientY:100,preventDefault(){},stopPropagation(){}});assert.deepEqual(camera,[3225,3000],'island click converts pixels to world camera position');
-  map.zoomBy(.5);emit('mousemove',{clientX:100+700/9,clientY:100});assert.match(elements[0].innerHTML,/Worker remote.*Carrying 3 timber/s);
-  emit('mousedown',{button:2,clientX:100,clientY:100,preventDefault(){},stopPropagation(){}});assert.deepEqual(camera,[3225,3000],'right click does not move camera');
+  map.draw();emit('mousedown',{button:0,clientX:150,clientY:100,preventDefault(){},stopPropagation(){}});// the island minimap is turned like the camera (2026-11-19): screen right is +x and -z, so 50 px right = 225 units along that diagonal
+  const near=(a,b)=>a.every((v,i)=>Math.abs(v-b[i])<0.01),R2=225/Math.SQRT2,clicked=[3000+R2,3000-R2];
+  assert.ok(near(camera,clicked),`island click converts pixels to world camera position (${camera})`);
+  map.zoomBy(.5);emit('mousemove',{clientX:100+700/9/Math.SQRT2,clientY:100+700/9/Math.SQRT2});   // the worker 700 east: down-right on the turned mapassert.match(elements[0].innerHTML,/Worker remote.*Carrying 3 timber/s);
+  emit('mousedown',{button:2,clientX:100,clientY:100,preventDefault(){},stopPropagation(){}});assert.ok(near(camera,clicked),'right click does not move camera');
   console.log('test_frontier_fix_phase: island minimap input and remote worker hover passed');
 }

@@ -42,3 +42,17 @@ for (let i = 0; i < 40; i++) run(1);
 assert.equal(s.tiredCamps, undefined, 'no longer tired');
 assert.ok(!W.campExtras(s, 'nope').ok, 'unknown camp rejected');
 console.log('test_camp_extras: ok', JSON.stringify({ max, moved: r.moved, left: on() }));
+
+// the Workers view lists them (Tim 2026-11-22): a box over the cards, one card row fewer, Move extras / Go to per camp
+{ const { workerPanelHTML } = await import('../src/worker_panel.js');
+  const { tiredCamps } = await import('../src/tired_camps.js');
+  s.tiredCamps = [{ id: 'fc', type: 'food_camp', extra: 14, n: 20, max: 6 }];
+  const list = tiredCamps(state.frontier, 'player'); assert.equal(list[0].num, 1); assert.equal(list[0].name, 'Food camp'); assert.ok(Number.isFinite(list[0].x));
+  const opts = { selected: [], index: W.index, data, tab: 'roster' }, cards = h => (h.match(/class="wcard/g) || []).length;
+  const withBox = workerPanelHTML(s, { ...opts, tired: list }), without = workerPanelHTML(s, { ...opts, tired: [] });
+  assert.match(withBox, /Camps over their max/); assert.match(withBox, /data-act="build-worker-campextras" data-id="fc"/); assert.match(withBox, /data-act="build-worker-campgo" data-id="fc"/);
+  assert.match(withBox, /20 working, max 6/); assert.match(withBox, /\+14/);
+  assert.equal(cards(withBox), cards(without) - 2, 'one row of cards fewer so the panel keeps its size');
+  assert.doesNotMatch(workerPanelHTML(s, { ...opts, tab: 'groups', tired: list }), /Camps over their max/, 'Workers tab only');
+  delete s.tiredCamps; }
+console.log('test_camp_extras: workers view ok');
