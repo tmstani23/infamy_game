@@ -244,21 +244,31 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   }
 
   // Economy pass 2 D (Tim 2026-11-05): a built market sells goods above the keep level for ryo.
+  // Tim 2026-11-22 (fix list 15): timber and stone too (market.resources: slower, low price; rail to the capital pays
+  // better), each above its own keep, which is the same number as its rail keep (s.keep[res]). Never stock reserved
+  // for a rail order, and timber and stone not while a war is on the town (as the governor's overflow sales).
   function market(s) {
     const mk = data.market;
     if (!mk || !s.buildings.some(b => b.type === 'market' && b.stage === 'built')) return;
-    // a town on auto also holds back the goods of its next hall tier (2026-11-21 soak: else the market sells them and the hall never goes up)
-    const save = s.autoBuild ? (nextTier(s, data)?.upgrade?.cost?.goods || 0) : 0;
-    const keep = Math.max(s.marketKeep ?? defaultKeep(s, data, 'goods'), save), sell = Math.min(mk.perTick, (s.stock.goods || 0) - keep);
-    if (sell <= EPS) return;
-    world.change(s.id, 'goods', -sell, 'market');
-    // C4: each Influence tier of the owner raises the export price; sales count as frontier trade
-    world.change(s.id, 'ryo', sell * mk.price * (s.owner && trade.exportFactor ? trade.exportFactor(s.owner) : 1), 'market');
-    if (s.owner) trade.sold?.(s.owner, sell);
+    const atWar = Object.values(f().wars?.list || {}).some(w => w.town === s.id);
+    const sellAt = { goods: { price: mk.price, perTick: mk.perTick }, ...(atWar ? {} : mk.resources || {}) };
+    for (const [res, m] of Object.entries(sellAt)) {
+      // a town on auto also holds back what its next hall tier costs (2026-11-21 soak: else the market sells it and the hall never goes up)
+      const save = s.autoBuild ? (nextTier(s, data)?.upgrade?.cost?.[res] || 0) : 0;
+      const keep = Math.max((res === 'goods' ? s.marketKeep : s.keep?.[res]) ?? defaultKeep(s, data, res), save) + (s.reserved?.[res] || 0);
+      const sell = Math.min(m.perTick ?? 0, (s.stock[res] || 0) - keep);
+      if (!(sell > EPS)) continue;
+      world.change(s.id, res, -sell, 'market');
+      // C4: each Influence tier of the owner raises the export price; goods sales count as frontier trade
+      world.change(s.id, 'ryo', sell * (m.price ?? 0) * (s.owner && trade.exportFactor ? trade.exportFactor(s.owner) : 1), 'market');
+      if (s.owner && res === 'goods') trade.sold?.(s.owner, sell);
+    }
   }
-  function setMarketKeep(sid, keep) {
+  // resource: goods (default) = s.marketKeep; timber, stone = s.keep[res], the rail keep (one level, Tim 2026-11-22)
+  function setMarketKeep(sid, keep, resource = 'goods') {
     const s = world.settlement(sid); init(s);
-    s.marketKeep = keep; return true;
+    if (resource === 'goods') s.marketKeep = keep; else (s.keep ||= {})[resource] = keep;
+    return true;
   }
 
   // called by the frontier hub each economy tick

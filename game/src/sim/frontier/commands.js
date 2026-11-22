@@ -120,10 +120,11 @@ export function createCommands({ state, data, world, economy, construction, gove
         return why ? reject(e, c, why) : receipt(e, c, true);
       }
       case 'setMarketKeep': {
-        const max = data.market?.keepMax ?? 100000;
+        const max = data.market?.keepMax ?? 100000, res = c.resource ?? 'goods';
+        if (!['goods', ...Object.keys(data.market?.resources || {})].includes(res)) return reject(e, c, 'the market does not keep that');
         if (!Number.isFinite(c.keep) || c.keep < 0 || c.keep > max) return reject(e, c, `keep must be 0 to ${max}`);
-        economy.setMarketKeep(s.id, Math.round(c.keep));
-        s.marketKeepSet = true;   // the Open a Market goal's second row (campaign_goals.js)
+        economy.setMarketKeep(s.id, Math.round(c.keep), res);
+        if (res === 'goods') s.marketKeepSet = true;   // the Open a Market goal's second row (campaign_goals.js)
         return receipt(e, c, true);
       }
       case 'authorize':

@@ -50,6 +50,24 @@ function town(stock, pop = 8) {
   const g = s.stock.goods; econ(3); assert.ok(s.stock.goods < g, 'sells down toward the new keep');
 }
 
+// fix list 15 (Tim 2026-11-22): the market sells timber and stone too, slowly, above each one's keep (= the rail keep),
+// never reserved stock, and not while a war is on the town
+{
+  const { s, send, econ, state } = town({ food: 500, timber: 600, stone: 600, goods: 0, ryo: 0 });
+  s.buildings.push({ type: 'market', stage: 'built', cell: 1 });
+  assert.equal(send({ action: 'setMarketKeep', settlement: 't', keep: 500, resource: 'timber' }).ok, true); assert.equal(s.keep.timber, 500);
+  assert.equal(send({ action: 'setMarketKeep', settlement: 't', keep: 100, resource: 'food' }).ok, false, 'the market keeps no food');
+  s.keep.stone = 550; s.reserved = { stone: 60 };
+  econ(10);
+  const M = data.market.resources;
+  assert.ok(Math.abs(s.stock.timber - (600 - 10 * M.timber.perTick)) < 1e-6, `timber sells slowly: ${s.stock.timber}`);
+  assert.equal(s.stock.stone, 600, 'reserved stone counts on top of the keep');
+  const paid = state.frontier.ledger.filter(l => l.reason === 'market' && l.resource === 'ryo').reduce((n, l) => n + l.delta, 0);
+  assert.ok(Math.abs(paid - 10 * M.timber.perTick * M.timber.price) < 1e-6, `paid at the low market price: ${paid}`);
+  state.entities ||= {}; (state.frontier.wars ||= { list: {}, cooldown: {} }).list.w1 = { id: 'w1', town: 't', attacker: 'q', defender: 'p' };
+  const t0 = s.stock.timber; econ(3); assert.equal(s.stock.timber, t0, 'no timber sales while a war is on the town');
+}
+
 // idle townsfolk pay half tax
 {
   const state = { tick: 0 }, world = createFrontierWorld({ state, data }), eco = createEconomy({ state, data, world });
