@@ -207,7 +207,7 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
   }
  }
  // Live move (Tim 2026-11-04, extended 2026-11-15 to every window-category panel): windows can be dragged by their title bar outside Edit layout. Move only; resizing stays in Edit layout.
- const MOVABLE=new Set(['hire','clinic','police','contracts','townpanel','townsoverview','gamesettings','characterpage','hqstash','blacksmithshop','controls']);
+ const MOVABLE=new Set(['hire','clinic','police','contracts','townpanel','townsoverview','gamesettings','characterpage','hqstash','blacksmithshop','controls','towninspect','structcard']);   // towninspect, structcard: building cards drag by their top (Tim 2026-11-22)
  let live=null;
  addEventListener('mousedown',e=>{
   if(editing||e.button!==0||!e.target?.closest)return;

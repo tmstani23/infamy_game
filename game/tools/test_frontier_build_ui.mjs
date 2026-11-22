@@ -152,4 +152,17 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   ui.click({act:'build-tool',id:'quarry'},s);ui.click({act:'build-tool',id:'quarry'},s);assert.deepEqual(jumps[2],where(at(6,6)),'and round again');
   assert.equal(jumps.length,3,'each double-click moves once');
   s.buildings=keep; }
+// Tim 2026-11-22 camp card: workers on the spots beside the camp and about how many they keep busy, Tired when over;
+// every row is always there so the card does not resize as carts run
+{ const keep=s.buildings,keepW=s.workers.map(w=>({...w})),cam={id:'lc1',type:'lumber_camp',cell:at(2,0),stage:'built',store:{},carts:[]};
+  s.buildings=[...keep,cam];s.workers[0].spot='tree';
+  emit('keydown',0,0,{code:'Escape'});ui.close();downUp(at(2,0));ui.update();
+  const card=elements.find(e=>e.id==='towninspect'),h1=card.innerHTML;
+  assert.match(h1,/<b[^>]*>1<\/b> of about \d+/,'camp card counts the workers on its spots');
+  assert.match(h1,/Empty slot/);assert.match(h1,/known after one trip/);
+  const rows=h=>(h.match(/<div/g)||[]).length;
+  cam.store={timber:data.workers.carts.cap};cam.carts=[{at:'out',t:200,load:{timber:90}}];cam.cartTicks=400;ui.update();
+  const h2=card.innerHTML;assert.notEqual(h2,h1);assert.match(h2,/Full: workers walk to town/);assert.match(h2,/Carts keep up with about/);
+  cam.store={timber:20};cam.carts=[{at:'back',t:30,load:{}}];ui.update();assert.equal(rows(card.innerHTML),rows(h2),'same rows as carts run and storage fills');cam.store={timber:data.workers.carts.cap};cam.carts=[{at:'out',t:200,load:{timber:90}}];ui.update();assert.equal(rows(card.innerHTML),rows(h1),'same rows whatever the carts do');
+  s.buildings=keep;s.workers=keepW;emit('keydown',0,0,{code:'Escape'}); }
 console.log('test_frontier_build_ui: ok');

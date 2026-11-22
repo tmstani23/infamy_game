@@ -22,14 +22,16 @@ export function besidePos(menu, card, view, gap = 10, pad = 8) {
 
 const KEYS = ['left', 'top', 'right', 'bottom', 'transform'];
 // put the card beside the menu; its own place (Edit layout) is kept and comes back with unplace
+// Tim 2026-11-22: a card the player dragged (hud_layout pins it) stays where he put it
 export function placeBeside(card, menu) {
-  if (!card || !menu) return;
+  if (!card || !menu || card.dataset?.layoutPinned === 'true') return;
   if (card.dataset.besideSaved == null) card.dataset.besideSaved = JSON.stringify(Object.fromEntries(KEYS.map(k => [k, card.style[k] || ''])));
   const r = menu.getBoundingClientRect(), p = besidePos(r, { w: card.offsetWidth || 320, h: card.offsetHeight || 200 }, { w: innerWidth, h: innerHeight });
   Object.assign(card.style, { left: `${p.left}px`, top: `${p.top}px`, right: 'auto', bottom: 'auto', transform: 'none' });
 }
 export function unplace(card) {
   if (!card || card.dataset.besideSaved == null) return;
+  if (card.dataset.layoutPinned === 'true') { delete card.dataset.besideSaved; return; }
   try { Object.assign(card.style, JSON.parse(card.dataset.besideSaved)); } catch { for (const k of KEYS) card.style[k] = ''; }
   delete card.dataset.besideSaved;
 }

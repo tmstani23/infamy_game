@@ -120,9 +120,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (!n || !spotRules?.stages) return '';
     const { speed, best, over } = overwork(spot, game.state.frontier?.spots?.[spot.id], spotRules.stages, n, data.workers?.overwork, tripSecondsAt(spot));
     const cap = best ?? n, pct = Math.min(100, Math.round(100 * Math.min(n, cap) / Math.max(n, cap))), col = over ? '#d9a25a' : '#7fc27a';
-    return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>Workers ${n}${best != null ? ` / about ${best} best` : ''}</span><span>${speed}% full</span></div>`
+    return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>Workers ${n}${best != null ? ` of about ${best}` : ''}</span><span>${speed}% full</span></div>`
       + `<div style="height:8px;border-radius:4px;background:${over ? 'rgba(217,162,90,.35)' : 'rgba(0,0,0,.45)'};overflow:hidden;margin:3px 0"><div style="height:100%;width:${pct}%;background:#7fc27a"></div></div>`
-      + `<div style="font-size:12px;color:${col}">${over ? `Overworked: ${n - best} extra worker${n - best > 1 ? 's' : ''} add little` : 'Room for more workers'}</div>`
+      + `<div style="font-size:12px;color:${col}">${over ? `Tired: ${n - best} extra worker${n - best > 1 ? 's' : ''} add little` : 'Room for more workers'}</div>`
       + spotDetails(spot, n) + `</div>`;
   }
   // The actual numbers behind the workers row (Tim 2026-11-06 22:25), folded away under Details.
@@ -145,7 +145,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + row('Worked piece back to full', `about ${regrowSec}s${q ? ` (${Math.round(q * 100)}% chance per stage each second)` : ''}`)
       + row('Each trip works out', '1 piece')
       + row('Workers here', `${n}`)
-      + row('Overworked when', q ? 'more workers than it keeps busy at your trip length' : `more than ${Math.round(aim * 100)}% of its value is worked out`)
+      + row('Tired when', q ? 'more workers than it keeps busy at your trip length' : `more than ${Math.round(aim * 100)}% of its value is worked out`)
       + `</details>`;
   }
   // average full-speed trip (walk out + back, at full harvest) of the workers on a spot, in seconds; null if none
@@ -163,24 +163,56 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     for (const w of s.workers || []) if (w.spot && !out.has(w.spot)) { const p = spotIndex.get(w.spot); if (p && overwork(p, game.state.frontier?.spots?.[p.id], spotRules.stages, count[w.spot], data.workers?.overwork, tripSecondsAt(p)).over) out.add(w.spot); }
     return out;
   }
+  // Workers on the spots beside a work camp (Tim 2026-11-22): spots of its kind within workers.campReach of it, the workers
+  // of your towns on them, and about how many those spots keep busy at full speed (overwork best, summed). Over that = Tired.
+  function campWork(b, s) {
+    const W = data.workers || {}, takes = W.campTakes?.[b.type];
+    if (!takes || !spotRules?.stages || !s?.grid || !Number.isInteger(b.cell)) return null;
+    const [x, z] = cellToWorld(s, b.cell), r = W.campReach ?? 0, count = {};
+    for (const t of towns()) for (const w of t.workers || []) if (w.spot) count[w.spot] = (count[w.spot] || 0) + 1;
+    let n = 0, cap = 0, extra = 0, spots = 0;
+    for (const p of spotIndex.spotsNear(x, z, r)) {
+      if (!takes.includes(W.resources?.[p.kind]) || !known(p.x, p.z)) continue;
+      const k = count[p.id] || 0, o = overwork(p, game.state.frontier?.spots?.[p.id], spotRules.stages, k, W.overwork, tripSecondsAt(p)), best = o.best ?? k;
+      spots++; n += k; cap += best; extra += Math.max(0, k - best);
+    }
+    return { n, cap, extra, spots, res: takes.join(' and '), reach: r };
+  }
+  const campHead = t => `<div style="font:600 10px/12px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#b9a77e;margin:10px 0 3px">${t}</div>`;
+  function campWorkHTML(b, s) {
+    const c = campWork(b, s); if (!c) return '';
+    const most = Math.max(1, c.n, Math.ceil(c.cap * 1.5)), fill = Math.round(100 * Math.min(c.n, c.cap) / most), over = Math.round(100 * c.extra / most), mark = Math.round(100 * c.cap / most), tired = c.extra > 0;
+    const tip = `Workers on the ${c.res} spots within ${c.reach} of this camp (${c.spots} spot${c.spots === 1 ? '' : 's'}), and about how many those spots keep busy at full speed. More than that and the spots get tired: extra workers add little.`;
+    const note = !c.spots ? `No ${c.res} spots within reach of this camp` : tired ? `Tired: ${c.extra} more than the spots can use, move some` : c.n < c.cap ? `Room for ${c.cap - c.n} more worker${c.cap - c.n > 1 ? 's' : ''}` : 'Full: every spot busy';
+    return `<div title="${esc(tip)}">${campHead('Workers')}<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#b9b3a6">On spots beside this camp</span><span><b style="color:${tired ? '#e3b06a' : '#eadfc6'}">${c.n}</b> of about ${c.cap}</span></div>`
+      + `<div style="position:relative;height:8px;border-radius:4px;background:rgba(0,0,0,.45);overflow:hidden;margin:3px 0"><div style="position:absolute;left:0;top:0;bottom:0;width:${fill}%;background:#7fc27a"></div>`
+      + (over ? `<div style="position:absolute;left:${fill}%;top:0;bottom:0;width:${over}%;background:repeating-linear-gradient(135deg,#e3b06a 0 4px,#9a6a2e 4px 8px)"></div>` : '')
+      + (c.cap ? `<div style="position:absolute;left:calc(${mark}% - 1px);top:0;bottom:0;width:2px;background:#f2e6c9"></div>` : '') + `</div>`
+      + `<div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${tired || !c.spots ? '#d9a25a' : '#7fc27a'}">${note}</div></div>`;
+  }
   // Camp card (Tim 2026-11-06 21:20: a bar and chips, not a wall of text): storage used / cap, each cart, worker limit, Buy cart.
+  // Tim 2026-11-22: the card kept resizing (the full note, cart chips and the carts line came and went or wrapped as carts
+  // ran), so every row is always there, one line each.
   function campCardHTML(b, s) {
     const C = data.workers.carts, used = Object.values(b.store || {}).reduce((a, v) => a + v, 0), pct = Math.min(100, Math.round(100 * used / C.cap));
     const col = pct >= 100 ? '#d9694a' : pct >= 75 ? '#d9a25a' : '#7fc27a', carts = b.carts || [];
-    const res = Object.entries(b.store || {}).filter(([, v]) => v > 0).map(([r, v]) => `${Math.round(v)} ${esc(r)}`).join(', ') || 'empty';
-    const where = { camp: 'At camp', out: 'To town', back: 'Returning', parked: 'Parked in town', wrecked: 'Destroyed, new cart in' }, secs = t => `${Math.ceil((t || 0) / 20)}s`;
+    const res = Object.entries(b.store || {}).filter(([, v]) => v > 0).map(([r, v]) => `${Math.round(v)} ${esc(r)}`).join(', ') || 'Nothing stored yet';
+    const where = { camp: 'at camp', out: 'to town', back: 'returning', parked: 'parked in town', wrecked: 'destroyed, new cart in' }, secs = t => `${Math.ceil((t || 0) / 20)}s`;
+    const one = 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
     const chip = c => { const load = Object.values(c.load || {}).reduce((a, v) => a + v, 0);
-      return `<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 6px;margin:2px 0;border-radius:4px;background:rgba(255,255,255,.06)"><span>Cart, ${where[c.at] || c.at}${c.t ? `, ${secs(c.t)}` : ''}</span><span>${c.at === 'out' ? `${Math.round(load)} / ${C.maxLoad}` : `max ${C.maxLoad}`}</span></div>`; };
+      return `<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 6px;margin:2px 0;border:1px solid transparent;border-radius:4px;background:rgba(255,255,255,.06)"><span style="${one}">Cart ${where[c.at] || c.at}${c.t ? `, ${secs(c.t)} left` : ''}</span><span style="flex:none">${c.at === 'out' ? `${Math.round(load)} of ${C.maxLoad} ${esc(Object.keys(c.load || {})[0] || '')}` : `holds ${C.maxLoad}`}</span></div>`; };
+    const empty = `<div style="padding:2px 6px;margin:2px 0;border-radius:4px;border:1px dashed rgba(255,255,255,.22);color:#a8a294;${one}">Empty slot</div>`;
     const perMin = b.cartTicks ? carts.length * C.maxLoad * 1200 / (2 * b.cartTicks) : null, keep = perMin && C.workerPerMin ? Math.floor(perMin / C.workerPerMin) : null;
     const cost = Object.entries(C.extraCost).map(([r, v]) => `${v} ${r}`).join(', ');
-    return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>Camp storage</span><span>${Math.round(used)} / ${C.cap}, ${Math.max(0, Math.round(C.cap - used))} free</span></div>`
+    return `<div>${campHead('Camp storage')}<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#b9b3a6">Held here</span><span>${Math.round(used)} of ${C.cap}</span></div>`
       + `<div style="height:8px;border-radius:4px;background:rgba(0,0,0,.45);overflow:hidden;margin:3px 0"><div style="height:100%;width:${pct}%;background:${col}"></div></div>`
-      + `<div style="font-size:12px;opacity:.8">${res}${pct >= 100 ? ', <span style="color:#d9a25a">full: workers walk to town</span>' : ''}</div>`
-      + `<div style="font-size:12px;margin-top:6px">Ox carts ${carts.length} / ${C.max}, take ${Math.round(C.share * 100)}% each visit</div>${carts.map(chip).join('')}`
-      + (keep != null ? `<div style="font-size:12px;opacity:.8">Carts keep up with about ${keep} workers${b.cartTicks ? `, round trip ${secs(2 * b.cartTicks)}` : ''}</div>` : '')
+      + `<div style="font-size:12px;color:#b9b3a6;${one}">${pct >= 100 ? '<span style="color:#d9a25a">Full: workers walk to town</span>, ' : ''}${res}</div>`
+      + campHead('Ox carts') + `<div style="font-size:12px;color:#b9b3a6">${carts.length} of ${C.max}, each haul takes ${Math.round(C.share * 100)}% of storage, up to ${C.maxLoad}</div>${carts.map(chip).join('')}${empty.repeat(Math.max(0, C.max - carts.length))}`
+      + `<div style="font-size:12px;color:#b9b3a6;${one}">${keep != null ? `Carts keep up with about ${keep} workers${b.cartTicks ? `, round trip ${secs(2 * b.cartTicks)}` : ''}` : 'Carts keep up with: known after one trip'}</div>`
       + (carts.length < C.max ? `<button data-buy-cart="${esc(b.id)}" data-cart-town="${esc(s.id)}" title="One more ox cart for this camp">Buy cart (${esc(cost)})</button>` : '')
       + `</div>`;
   }
+
   // Reach anchors for rich deposits: own town halls (workers.range) and their built work camps (workers.campReach).
   function reachAnchors(kind = null) {
     const W = data.workers || {}, out = [];
@@ -306,7 +338,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   // card look (menu restyle, Tim 2026-11-11): a header with art, eyebrow and title, label / value rows, plain text
   const tiHead = (eyebrow, title, art = '') => `<div class="ti-head">${art ? `<img class="ti-art" src="${art}" alt="" onerror="this.remove()">` : ''}<div class="ti-name"><div class="ti-eye">${esc(eyebrow)}</div><b class="ti-title">${esc(title)}</b></div><button data-close class="ti-x" aria-label="Close inspection" title="Close (Esc)">Close</button></div>`;
   const tiRow = l => {
-    const good = l[0] === '\u0001', warn = l[0] === '\u0002', t = String(l).replace(/^[\u0001\u0002]/, '').replace(/ · /g, ', ').replace(/…/g, '...'), m = /^([A-Z][A-Za-z ]{1,26}): (.+)$/.exec(t);
+    const good = l[0] === '\u0001', warn = l[0] === '\u0002', t = String(l).replace(/^[\u0001\u0002]/, '').replace(/ · /g, ', ').replace(/…/g, '...'), m = /^([A-Z][A-Za-z ]{1,26}): (.{1,40})$/.exec(t);   // a long sentence after the colon reads as text (Tim 2026-11-22)
     return `<div class="ti-row${good ? ' good' : warn ? ' warn' : ''}">${m ? `<span>${esc(m[1])}</span><b>${esc(m[2])}</b>` : `<span class="ti-txt">${esc(t)}</span>`}</div>`;
   };
   function showInspection() {
@@ -366,7 +398,10 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
         + `<div class="ti-acts"><button class="ti-go" data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker <small>${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</small></button></div><div data-worker-training></div>` + hallUpgradeButton(trainTown);
     }
     const html = tiHead(inspect.spot ? 'Resource spot' : info.hall ? `${trainTown.name}, town hall` : trainTown?.name || 'Your town', info.title, art)
-      + `<div class="ti-rows">${lines.map(tiRow).join('')}</div>`
+      + (info.camp && info.camp.id ? campWorkHTML(info.camp, trainTown) : '')
+      + (info.camp && info.camp.id ? (() => { const keepRow = l => /^[A-Z][A-Za-z ]{1,26}: .{1,40}$/.test(l) && !/^Zone state: not zoned/.test(l), note = lines.filter(l => !keepRow(l) && !/^Zone state: not zoned/.test(l));
+          return `<div class="ti-rows">${lines.filter(keepRow).map(tiRow).join('')}</div>` + (note.length ? `<details style="font-size:12px;margin-top:4px;color:#b9b3a6"><summary style="cursor:pointer">About this camp</summary>${note.map(l => `<div style="margin-top:3px">${esc(l)}</div>`).join('')}</details>` : ''); })()
+        : `<div class="ti-rows">${lines.map(tiRow).join('')}</div>`)
       + (info.work || '')
       + (info.camp && info.camp.id ? campCardHTML(info.camp, trainTown) : '')
       + (info.camp && !info.camp.id ? `<button data-camp="${esc(info.camp.town)}" data-camp-type="${esc(info.camp.type)}" title="Open this town's build tools with a work camp selected. Workers reach spots within ${data.workers?.campReach ?? 0} of a built work camp of the same kind.">Place camp here</button>` : '')

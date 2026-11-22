@@ -92,6 +92,9 @@ Building sizes (2026-11-21):
 - Work camp buttons: work camps share one tier cap, so a camp button shows its own kind: built / the most it could have now (its own plus the free work camp slots), e.g. Lumber 1/1 when every slot is used. Each finder jump says "Lumber camp 1 of 2".
 - Governor camp spacing (governor.js): a governor work camp never goes within half a camp reach of another of its kind (built, site or planned); a spot any camp of that kind already reaches is not fresh ground; rich-deposit camps count planned camps; only the first camp of a kind may fall back to the nearest free town cell.
 - Worker spot choice (workers.js assignIdle and rebalance): a governor-placed worker takes the free spot nearest a drop-off that takes its resource (hall, storehouse, or a work camp of that kind), not the one nearest the hall.
+- Work camp card (lumber camp, quarry, food camp), 2026-11-22: a Workers section at the top shows the workers on the camp's spots (spots of its kind within campReach) as "N of about M", where M is how many those spots keep busy at full speed. A bar has a tick at M; past it the bar is striped amber and the card says "Tired: N more than the spots can use, move some". The spot card says "Workers N of about M" and "Tired: N extra workers add little"; the roster chip and spot list say Tired.
+- The camp card always shows the same rows (one row per cart slot, empty ones say Empty slot; one-line storage and cart notes), so it no longer resizes as carts run. The camp's long notes fold under "About this camp".
+- Town building cards and the Building pane can be dragged by their top strip, like windows. A card you dragged stays where you put it, also when it opens beside a building menu (Reset layout puts it back).
 
 ## Frontier buildings (2026-11-06)
 

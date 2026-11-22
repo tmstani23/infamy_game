@@ -80,7 +80,7 @@ export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page
     const per=rows,list=[...spots].sort((a,b)=>Math.hypot(a.x-s.x,a.z-s.z)-Math.hypot(b.x-s.x,b.z-s.z)),pages=Math.max(1,Math.ceil(list.length/per));spotPage=Math.max(0,Math.min(spotPage,pages-1));
     return head+`<div class="wsec" title="Every timber and stone spot your camp workers can reach in the war circle, rich or not. Click Look to move the camera there; select workers and right-click its pieces to send them."><span>Resources near the camp</span><b>${list.length} spots</b></div><div class="wspots">`
       +(list.slice(spotPage*per,(spotPage+1)*per).map(p=>{const n=all.filter(w=>w.spot===p.id).length,over=overworked.has(p.id),st=spotState(p);
-        return `<div class="wspot${over?' tired':''}" title="${esc(p.id)}">${resIcon(p.kind)}<span><b>${cap1(p.kind)}${st?.rich?' (rich)':''}</b><small>${Math.round(Math.hypot(p.x-s.x,p.z-s.z))} away, ${st?.yieldText?st.yieldText+', ':''}${n} working${over?', too many':''}</small></span>${button('spot',p.id,'Look',false,` data-kind="${esc(p.kind)}"`)}</div>`;}).join('') || '<div class="hint">No timber or stone in reach of the camp.</div>')
+        return `<div class="wspot${over?' tired':''}" title="${esc(p.id)}">${resIcon(p.kind)}<span><b>${cap1(p.kind)}${st?.rich?' (rich)':''}</b><small>${Math.round(Math.hypot(p.x-s.x,p.z-s.z))} away, ${st?.yieldText?st.yieldText+', ':''}${n} working${over?', tired':''}</small></span>${button('spot',p.id,'Look',false,` data-kind="${esc(p.kind)}"`)}</div>`;}).join('') || '<div class="hint">No timber or stone in reach of the camp.</div>')
       +'</div>'+pager('spot-page',spotPage,pages)+'</div>';
   }
   if(tab==='spots') {
@@ -88,7 +88,7 @@ export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page
     const list=JOB_ORDER.flatMap(kind=>spots.filter(p=>p.kind===kind).sort((a,b)=>Math.hypot(a.x-s.x,a.z-s.z)-Math.hypot(b.x-s.x,b.z-s.z)).slice(0,2));
     return head+'<div class="wsec" title="Click Look to move the camera there; right-click its pieces to assign selected workers."><span>Nearby discovered spots</span><b>two closest of each</b></div><div class="wspots">'
       +(list.map(p=>{const n=all.filter(w=>w.spot===p.id).length,over=overworked.has(p.id);
-        return `<div class="wspot${over?' tired':''}" title="${esc(p.id)}">${resIcon(p.kind)}<span><b>${cap1(p.kind)}</b><small>${Math.round(Math.hypot(p.x-s.x,p.z-s.z))} away, ${n} working${over?', too many':''}</small></span>${button('spot',p.id,'Look',false,` data-kind="${esc(p.kind)}"`)}</div>`;}).join('') || '<div class="hint">No discovered spots nearby.</div>')+'</div></div>';
+        return `<div class="wspot${over?' tired':''}" title="${esc(p.id)}">${resIcon(p.kind)}<span><b>${cap1(p.kind)}</b><small>${Math.round(Math.hypot(p.x-s.x,p.z-s.z))} away, ${n} working${over?', tired':''}</small></span>${button('spot',p.id,'Look',false,` data-kind="${esc(p.kind)}"`)}</div>`;}).join('') || '<div class="hint">No discovered spots nearby.</div>')+'</div></div>';
   }
   function selectionBar(){
     const here=all.filter(w=>selected.includes(w.id)),carry=here.some(w=>w.carrying>0);
