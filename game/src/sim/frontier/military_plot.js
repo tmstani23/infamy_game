@@ -7,7 +7,7 @@
 //   capital (the side the capital line comes from). Never on resource ground, railway, the hall's road ring,
 //   near a cliff, beside a work camp, or on the governor's street lanes; never on a cell anybody touched.
 // - A Military zone the player painted wins (no plot is made); cells the player erased are never repainted;
-//   nothing is ever erased. With no room: report.military = 'No room for a military quarter'.
+//   nothing is ever erased. With no room: report.military = 'No room for a military quarter: <cause>...', and it tries again every retryReviews reviews.
 // - Road: from the hall (or a hall-linked road) to the block, only cells joined to the network, by = 'g'.
 // Size per tier and the weights: data war.general.plot. s.milPlot = { tier, cells, road, player?, erased? }.
 import { centreCell, cellOffset, cellToWorld, inCore, hallRoadCell, nearCliff } from './town_grid.js';
@@ -51,6 +51,28 @@ export function createMilitaryPlot({ state, data, world, zones, placement = () =
     }
     return out;
   }
+  // why no block fits (Tim 2026-11-22: the panel says the cause): the main thing on the ground round the hall
+  let lastWhy = '';
+  function whyNoRoom(s, W, H, ok, skip, camps) {
+    const g = s.grid, n = g.n, hall = centreCell(n), hc = hall % n, hr = (hall - hc) / n, minD = P().minDistance ?? 3;
+    const t = { used: 0, res: 0, camp: 0, cliff: 0, rail: 0, lane: 0 };
+    let free = 0;
+    for (let i = 0; i < n * n; i++) {
+      if (!inCore(s, i, data)) continue;
+      const c = i % n, r = (i - c) / n; if (Math.hypot(c - hc, r - hr) < minD) continue;
+      if (ok[i]) free++;
+      else if (g.use[i] !== '.' || g.zone[i] !== '.' || g.by[i] !== '.' || hallRoadCell(s, i)) t.used++;
+      else if (s.railCells?.[i]) t.rail++;
+      else if (g.ground[i] === 'x' || nearCliff(s, i, data)) t.cliff++;
+      else if (camps.has(i)) t.camp++;
+      else if (skip?.has(i)) t.lane++;
+      else t.res++;
+    }
+    if (free >= W * H * 2) return `the free ground is in small pieces, no ${W} by ${H} block fits`;
+    const top = Object.entries(t).sort((a, b) => b[1] - a[1])[0][0];
+    return { used: 'zones, roads and buildings fill the ground', res: 'trees, stone and other resources cover the free ground', camp: 'the ground round your work camps is kept clear', cliff: 'cliffs and water take the free ground', rail: 'the railway takes the free ground', lane: "the governor's street lanes take the free ground" }[top];
+  }
+  const noRoom = () => `No room for a military quarter: ${lastWhy || 'no free block'}. Paint a Military zone to pick a spot`;
   const rectCells = (n, c0, r0, w, h) => { const out = []; for (let r = r0; r < r0 + h; r++) for (let c = c0; c < c0 + w; c++) out.push(r * n + c); return out; };
 
   // the best block of w x h (either way round) for this town; keep = cells it must contain (a block being extended)
@@ -76,12 +98,14 @@ export function createMilitaryPlot({ state, data, world, zones, placement = () =
         cands.push({ cells, score: keep.length ? -dist + off * turn * 0.25 : dist + off * turn });
       }
     }
+    if (!cands.length) { lastWhy = whyNoRoom(s, w, h, ok, skip, camps); return null; }
     cands.sort((a, b) => a.score - b.score || a.cells[0] - b.cells[0]);
     const linked = zones.linkedRoads(s);
     for (const c of cands.slice(0, P().tries ?? 40)) {
       const road = roadTo(s, c.cells, linked);
       if (road) return { cells: c.cells, road };
     }
+    lastWhy = 'no road can reach a free block';
     return null;
   }
   // road cells still to lay from the network to the block ([] when a linked road already touches it), or null
@@ -120,22 +144,24 @@ export function createMilitaryPlot({ state, data, world, zones, placement = () =
     const g = s.grid, n = g.n, ch = MZ();
     const mine = [], theirs = [];
     for (let i = 0; i < n * n; i++) if (g.zone[i] === ch) (g.by[i] === 'p' ? theirs : mine).push(i);
-    if (theirs.length && !s.milPlot?.cells?.length) { s.milPlot = { player: true }; return; }   // he painted his own: it wins
+    if (theirs.length && !s.milPlot?.cells?.length) { s.milPlot = { player: true }; delete s.report.military; return; }   // he painted his own: it wins
     const mp = s.milPlot;
-    if (mp?.player || mp?.erased) return;
+    if (mp?.player || mp?.erased) { if (mp.player) delete s.report.military; return; }
     if (mp?.cells?.length && !mine.length) { mp.erased = true; return; }   // he erased the whole block: never painted again
     const tier = s.tier || 1;
-    if (mp && mp.tier >= tier) { layRoad(s); return; }
+    // a town with no room tries again every few reviews (the player may clear ground)
+    // (a message without its cause, from an older save, is looked at again at once)
+    if (mp && mp.tier >= tier && (mp.cells?.length || (String(s.report?.military || '').includes(':') && (mp.retry = (mp.retry || 0) + 1) % (P().retryReviews ?? 12)))) { layRoad(s); return; }
     const [w, h] = size(s), keep = mp?.cells?.length ? mine : [];
     const got = pick(s, w, h, keep);
     if (!got) {
       s.milPlot = { ...(mp || { cells: [], road: [] }), tier };
-      if (!mp?.cells?.length) s.report.military = 'No room for a military quarter';
+      if (!mp?.cells?.length) s.report.military = noRoom();
       return;
     }
     const fresh = got.cells.filter(i => !keep.includes(i));
     const r = fresh.length ? zones.zone(s, { kind: 'military', cells: fresh, by: 'g' }) : { ok: true };
-    if (!r.ok) { s.milPlot = { ...(mp || { cells: [], road: [] }), tier }; if (!mp?.cells?.length) s.report.military = 'No room for a military quarter'; return; }
+    if (!r.ok) { lastWhy = String(r.reason || 'the zone could not be painted').replace(/\.$/, '').replace(/^./, c => c.toLowerCase()); s.milPlot = { ...(mp || { cells: [], road: [] }), tier }; if (!mp?.cells?.length) s.report.military = noRoom(); return; }
     delete s.report.military;
     s.milPlot = { tier, cells: got.cells, road: got.road };
     layRoad(s);

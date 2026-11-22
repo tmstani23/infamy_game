@@ -320,9 +320,11 @@ export function createGeneralBrain(game, { clan }) {
         continue;   // waits on an earlier building of the list
       }
       if (militaryWhy(s, type, data, state)) continue;
-      if (!can(buildingCost(data, type, s))) return;   // saving for it
-      const cell = spotFor(s, type, zoneOnly || (fund && !state.clans[s.owner]?.bot));   // a player's town: only in the military quarter
+      // a player's town: only in the military quarter. No room there: it is skipped before saving for it, as fundCap
+      // does (2026-11-22: he saved for a rifle range that could not fit while the fund said "Saving for watchtower")
+      const cell = spotFor(s, type, zoneOnly || (fund && !state.clans[s.owner]?.bot));
       if (cell == null) continue;   // no room for this one (in the zone, or at this tier): try the next of the list
+      if (!can(buildingCost(data, type, s))) return;   // saving for it
       if (pay(buildingCost(data, type, s))) out.push(cmd({ action: 'place', town: s.id, kind: type, cells: [cell] }));
       return;
     }

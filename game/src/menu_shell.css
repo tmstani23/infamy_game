@@ -599,3 +599,29 @@ body .uf .pic { background-color: #1d1a16; }
 #townpanel .workerroster .wspots { gap: 4px; }
 #townpanel .workerroster .wspot { padding: 4px 8px; }
 #townpanel .workerroster .wspot button { flex: none; width: auto; padding: 3px 12px; }
+/* Tim 2026-11-22: Build bar and Military side by side above the town panel; Military is war red with gold trim in every clan */
+#townpanel .bigrow { display: flex; gap: 8px; align-items: stretch; }
+#townpanel .bigrow button { text-transform: uppercase; letter-spacing: .12em; font: 600 13px/16px system-ui, sans-serif; text-shadow: 0 1px 0 rgba(0, 0, 0, .55); }
+#townpanel .bigrow button.buildbig { flex: 1 1 0; width: auto; box-shadow: 0 0 12px color-mix(in srgb, var(--ms-accent) 33%, transparent), inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 -2px 0 rgba(0, 0, 0, .25); }
+#townpanel button.warbig { flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 3px 12px; color: #ffe9dc; background: linear-gradient(#ab3a30, #8a2721 45%, #4e1414); border: 2px solid #c3924a; border-radius: 4px; box-shadow: 0 0 12px rgba(214, 160, 80, .35), 0 0 4px rgba(180, 50, 40, .5), inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 -2px 0 rgba(0, 0, 0, .25); cursor: pointer; }
+#townpanel button.warbig:hover { background: linear-gradient(#c0463a, #9c2e26 45%, #5e1818); border-color: #dcb067; box-shadow: 0 0 16px rgba(224, 176, 96, .45), inset 0 1px 0 rgba(255, 255, 255, .16), inset 0 -2px 0 rgba(0, 0, 0, .25); }
+#townpanel button.warbig .warico { width: 20px; height: 20px; flex: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .8)); }
+/* Tim 2026-11-22: the safety fund card in the Governor tab */
+#townpanel .fundcard { margin: 12px 0 10px; padding: 10px 12px; border: 1px solid #5b4a30; border-left: 3px solid #c3924a; border-radius: 6px; background: linear-gradient(90deg, rgba(150, 110, 50, .2), rgba(20, 24, 28, .6) 75%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05); }
+#townpanel .fchead { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+#townpanel .fceye { display: block; color: #e6c47a; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; cursor: help; }
+#townpanel .fcsub { display: block; margin-top: 2px; color: #b9ada0; font-size: 12px; }
+#townpanel .fcres { display: flex; gap: 8px; margin-top: 9px; }
+#townpanel .fclab { margin-top: 9px; color: #9b9c98; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; } #townpanel .fclab + .fcres { margin-top: 4px; }
+#townpanel .fcres div { flex: 1; padding: 5px 0 4px; text-align: center; background: #16120f; border: 1px solid #3c3b36; border-radius: 4px; }
+#townpanel .fcres b { display: block; font-size: 17px; line-height: 20px; color: #f3e3bd; }
+#townpanel .fcres small { color: #9b9c98; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+#townpanel .keepcard .fcres div { padding: 6px 4px 4px; } #townpanel .keepcard .gkeep { gap: 3px; } #townpanel .keepcard .gkeep button { padding: 0 6px; }
+#townpanel .keepcard .gkeep input.keepin { width: 56px; text-align: center; font-size: 15px; font-weight: 600; } #townpanel .keepcard .fcres small { display: block; margin-top: 3px; }
+#townpanel .gst .fcnow { flex: 1; text-align: right; font-size: 12px; color: #d8c9a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#townpanel .fcstat { margin-top: 8px; font-size: 12px; color: #d8c9a8; }
+#townpanel .fcstat.bad { padding: 6px 10px; color: #f1c6bb; background: #120807; border: 1px solid #b8433a; border-left: 4px solid #ff6b5a; box-shadow: 0 0 10px rgba(224, 87, 74, .25); border-radius: 4px; }
+#townpanel .fcstat.bad b { display: flex; align-items: center; gap: 7px; color: #ffb0a0; font-weight: 600; }
+#townpanel .fcstat.bad b::before { content: '!'; flex: none; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: #e0574a; color: #1a0806; font: 800 11px/1 system-ui, sans-serif; }
+#townpanel .fcstat.bad span { padding-left: 23px; }
+#townpanel .fcstat.bad span { display: block; margin-top: 2px; }

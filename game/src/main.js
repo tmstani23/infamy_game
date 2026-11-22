@@ -708,7 +708,7 @@ async function start() {
         .sort((a,b) => Math.hypot(a.x-h.x,a.z-h.z)-Math.hypot(b.x-h.x,b.z-h.z))[0]?.id || null;
     };
     townPanel = createFrontierPanel({ afterRender: () => applyTownFlash(), root: $('townpanel'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c), buildUI: frontierBuildUI, miniRoot: $('buildmini'), focus:(x,z)=>view.jumpTo(x,z),
-      nearbyTown: () => nearTown(), onStable: id => stableMenu.openFor(id), onTownWar: id => townWar.show(id) });
+      nearbyTown: () => nearTown(), onStable: id => stableMenu.openFor(id), onTownWar: (id, tab) => townWar.show(id, null, tab) });
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
     onAction('townPanel', () => townPanel.toggle());
     // the Vehicles panel (Tim 2026-11-07): Shift+Y or its icon

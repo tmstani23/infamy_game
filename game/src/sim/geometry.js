@@ -34,6 +34,7 @@ export function artItem(catalog, name) {
     cord: a.cord ?? null,              // [x, y] art pixel where a hanging cord starts                // the art's lowest pixel is the front corner of a long box (alcoves, shelves)
     artAnchor: a.artAnchor,
     anchor: a.anchor,                  // [x, y] art pixel on the footprint centre, mirrored with the art (artAnchor is not)
+    shear: a.shear || 0,               // the painting is turned by this slant when drawn (placePiece; 2026-11-22: it was never passed on, so no "shear" in art.json had any effect)
     file: a.file ?? `art/${kind}/${name}.png`,
   };
 }

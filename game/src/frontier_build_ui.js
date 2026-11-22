@@ -684,7 +684,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     }
     if (drag && !drag.build) { ctx.strokeStyle='#ffe08b'; ctx.strokeRect(drag.x,drag.y,mouse?.x-drag.x || 0,mouse?.y-drag.y || 0); }
   }
-  function html(s, mini = false) {
+  function html(s, mini = false, extra = '') {
     if (town !== s.id) { close(); town = s.id; }
     if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage,filter:workerFilter,stockade:!!data.buildings?.stockade?.garrison && !!s.buildings?.some(b=>b.type==='stockade' && b.stage==='built')})}</div>`;
     // Tim 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
@@ -714,7 +714,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + group('Zones', ['housing', 'farm', 'work', ...(data.zones.military ? ['military'] : [])]) + group('Camps', camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others) + (military.length ? group('Military', military) : '')
       + `</div><div class="hint" data-tip="Drag, release, review requirements, then Confirm or Cancel. Right click or Esc cancels.\nZone previews match their buttons; amber border = short, red border = abandoned.\nDark red cells = a building or site stands there (or the town hall), nothing can be built on them.">Drag on the map, then Confirm. Right click cancels.</div>`;
     // Tim 2026-11-16: training and the first steps moved into the Workers section of the town panel (workersHtml)
-    return `<div class="townbuild"><button data-act="build-toggle" class="buildbig" data-tip="Open the build bar: roads, walls, zones, camps and buildings. Other menus hide while you build.">Build bar</button>`
+    return `<div class="townbuild"><div class="bigrow"><button data-act="build-toggle" class="buildbig" data-tip="Open the build bar: roads, walls, zones, camps and buildings. Other menus hide while you build.">Build bar</button>${extra}</div>`
       + (selected.length ? `<div>${selected.length} selected, right-click a spot to harvest</div>` : '') + '</div>';
   }
   // The town panel's Workers section (Tim 2026-11-16 mock): worker art, count of the tier cap, the training queue,

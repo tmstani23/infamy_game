@@ -38,6 +38,8 @@ const FOCUS_ICON = {
 };
 const cap1 = t => t ? t[0].toUpperCase() + t.slice(1) : '';
 const CLOSE = '<button type="button" data-act="panel-close" class="pclose" aria-label="Close" title="Close (O or Esc)">Esc</button>';
+const USAGE_STATE = { 'Producing': 'working', 'Active recipe': 'working', 'Waiting for inputs/workers': 'waiting', 'Waiting for workers': 'waiting', 'Waiting for materials': 'waiting', 'Awaiting approval': 'needs approval' };
+const rateS = v => v >= 0.1 ? v.toFixed(1) : v > 0 ? v.toFixed(2) : '0';
 const STEER = {
   focus: {
     grow: 'Grow: people work farms first; the governor adds farms and houses so the town gets bigger.',
@@ -69,9 +71,43 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   const usageTip=(s,r)=>{
     if(!data)return '';
     const u=resourceUsage(s,r,data);
-    return `Stock ${u.stock.toFixed(2)}, actual consumption ${u.consumption.toFixed(3)}/s, full production needs ${u.demand.toFixed(3)}/s, estimated gathering ${u.gathering.toFixed(3)}/s, net production ${u.net.toFixed(3)}/s\n${u.entries.map(e=>`${e.name}: ${e.once?e.once+' once':e.rate.toFixed(3)+'/s'}, ${e.state}`).join('\n')}\nClick for Stock to Usage.`;
+    // Tim 2026-11-22 (fix list 13-15, item 14): one line per kind ("31 farm plots, 1.0/s, all working"), not one per plot
+    const groups=new Map();
+    for(const e of u.entries){
+      const kind=e.name.replace(/\s+\d+$/,''),key=kind+(e.once?':once':''),g=groups.get(key)||{kind,n:0,rate:0,once:0,states:{}};
+      g.n++;g.rate+=e.rate;g.once+=e.once||0;const st=USAGE_STATE[e.state]||e.state.toLowerCase();g.states[st]=(g.states[st]||0)+1;groups.set(key,g);
+    }
+    const lines=[...groups.values()].sort((a,b)=>b.rate-a.rate||b.once-a.once).map(g=>{
+      const name=g.n>1?`${g.n} ${g.kind.toLowerCase()}s`:cap1(g.kind),st=Object.entries(g.states);
+      const how=st.length===1?(g.n>1?`all ${st[0][0]}`:st[0][0]):st.sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${v} ${k}`).join(', ');
+      return `${name}: ${g.once?Math.round(g.once)+' once':rateS(g.rate)+'/s'}, ${how}`;
+    });
+    const shown=lines.slice(0,8),more=lines.length-shown.length;
+    return `Using ${rateS(u.consumption)}/s (${rateS(u.demand)}/s at full work), gathering ${rateS(u.gathering)}/s, net ${u.net<0?'-':''}${rateS(Math.abs(u.net))}/s`
+      +(shown.length?'\n'+shown.join('\n'):'')+(more>0?`\nand ${more} more`:'')+'\nClick for the Usage page.';
   };
   const cmd = c => send({ id: heroId, type: 'frontier', ...c });
+  // Typed keep and fund boxes (Tim 2026-11-22): Enter always sends, even the number already shown (the browser fires no
+  // 'change' then), and the box holds the typed number until the sim has it, so it does not flash the old value.
+  const pending = {};
+  const shown = (s, act, res, now) => {
+    const k = `${s.id}:${act}:${res}`, p = pending[k];
+    if (p && p.v !== now && Date.now() < p.until) return p.v;
+    delete pending[k]; return now;
+  };
+  function keepCmd(s, res, v) {
+    pending[`${s.id}:keepinput:${res}`] = { v, until: Date.now() + 3000 };
+    cmd({ action: 'setMarketKeep', settlement: s.id, keep: v, ...(res === 'goods' ? {} : { resource: res }) });
+  }
+  function sendTyped(el) {
+    const act = el?.dataset?.act; if (act !== 'keepinput' && act !== 'fundinput') return false;
+    const s = pick(), v = Math.round(Number(el.value));
+    if (s && el.value !== '' && Number.isFinite(v)) {
+      if (act === 'keepinput' && v >= 0) keepCmd(s, el.dataset.id || 'goods', Math.min(v, data?.market?.keepMax ?? 100000));
+      if (act === 'fundinput') { const pct = Math.max(0, Math.min(100, v)); pending[`${s.id}:fundinput:`] = { v: pct, until: Date.now() + 3000 }; cmd({ action: 'setFund', settlement: s.id, pct }); }
+    }
+    lastHtml = ''; render(); return true;
+  }
   const shipTab = createShipmentsTab({ game, data, cmd, usage: resourceUsage });
   const towns = () => ownTowns(game.state.frontier, clan);
   function pick() {
@@ -119,23 +155,32 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     let x = '<div class="lab">Steer</div>';
     x += `<div class="gst"><span class="gstl"${tip(SHORT.tax[taxNow] + (st.taxLocked ? '' : `, now ${st.tax}`) + (st.tips.tax ? '\n' + st.tips.tax : ''))}>Taxes<span class="gchip">${esc(cap1(st.tax))}</span></span>`
       + seg('tax', [...['low', 'normal', 'high'].map(p => [p, cap1(p), st.taxLocked && st.tax === p, STEER.tax[p]]), ['auto', 'Auto', !st.taxLocked, STEER.tax.auto]]) + '</div>';
-    // Economy pass 2 D, Tim 2026-11-09: one goods keep for the market and rail shipments, shown with a market or a rail line
+    // Economy pass 2 D, Tim 2026-11-09: one keep for the market and rail shipments, shown with a market or a rail line.
+    // Tim 2026-11-22 (fix list 15): goods, timber and stone each have a box, on their own card like the safety fund.
     const hasMarket = s.buildings?.some(x => x.type === 'market' && x.stage === 'built');
+    let keepCard = '';
     if (data?.market && (hasMarket || railLinked(s))) {
-      const keep = s.marketKeep ?? defaultKeep(s, data, 'goods');
-      x += `<div class="gst"><span class="gstl"${tip(`${hasMarket ? `The market sells goods above this level for ${data.market.price} ryo each, up to ${data.market.perTick} goods per second. ` : ''}Trains ship goods only above it too (Shipments tab).`)}>Goods keep</span><span class="gkeep"><input class="keepin" type="number" min="0" max="${data.market.keepMax ?? 100000}" step="10" value="${keep}" data-act="keepinput"${tip('Type how many goods to keep, then Enter')}><small>goods</small></span></div>`;
+      const mk = data.market, sold = { goods: { price: mk.price, perTick: mk.perTick }, ...(mk.resources || {}) };
+      const boxes = Object.entries(sold).map(([r, m]) => {
+        const keep = shown(s, 'keepinput', r, r === 'goods' ? s.marketKeep ?? defaultKeep(s, data, 'goods') : s.keep?.[r] ?? defaultKeep(s, data, r));
+        const how = `${hasMarket ? `The market sells ${r} above this for ${m.price} ryo each, up to ${m.perTick} a second${r === 'goods' ? '' : ' (trains to the capital pay more)'}. ` : ''}Trains ship ${r} out only above it too. If it falls below half of this, the governor orders more by rail${r === 'goods' ? ' from your own towns' : ''}.`;
+        return `<div${tip(how)}><span class="gkeep"><button data-act="keepstep" data-id="${r}:-100"${tip('100 less')}>-</button><input class="keepin" type="number" min="0" max="${mk.keepMax ?? 100000}" step="10" value="${keep}" data-act="keepinput" data-id="${r}"${tip(`Type how many ${r} to keep, then Enter`)}><button data-act="keepstep" data-id="${r}:100"${tip('100 more')}>+</button></span><small>${cap1(r)}</small></div>`;
+      }).join('');
+      keepCard = `<div class="fundcard keepcard" data-goal="keepbox"><div class="fchead"><div><span class="fceye"${tip('How much of each the town always keeps. The market sells only what is above it, and trains ship out only what is above it.')}>Keep in town</span><span class="fcsub">${hasMarket ? 'The market sells everything above these' : 'Trains ship out only what is above these'}</span></div></div><div class="fcres">${boxes}</div></div>`;
     }
     x += `<div class="gst"><span class="gstl"${tip(SHORT.initiative[st.autoBuild ? 'on' : 'off'] + (st.tips.initiative ? '\n' + st.tips.initiative : ''))}>Initiative</span>`
       + seg('auto', [['off', 'Asks first', !st.autoBuild, STEER.initiative.off], ['on', 'Builds himself', st.autoBuild, STEER.initiative.on]]) + '</div>';
-    // Safety fund (Tim 2026-11-21, sim/frontier/fund.js): a typed share of timber, stone and ryo income for the general
+    // Safety fund (Tim 2026-11-21, sim/frontier/fund.js): a typed share of timber, stone and ryo income for the general.
+    // Tim 2026-11-22: the safety fund itself is set on the Military window's General tab (war_general_tab.js); here a
+    // one-line row says what he saves for and opens it, with the red reason when he has no room
     const f = s.fund;
     if (f && !s.capital && !s.camp) {
-      const pct = Math.round(f.pct ?? 10), have = ['timber', 'stone', 'ryo'].map(r => `${Math.floor(f[r] || 0)} ${r}`).join(', ');
-      x += `<div class="gst" data-goal="fundbox"><span class="gstl"${tip('Safety fund: this share of the town\'s timber, stone and ryo income is set aside for the general. He builds his military quarter, its road and the hall war upgrade only from it, with Initiative On. 0 = he builds nothing. When his list at this tier is paid for, the rest stays with the town. If the town is attacked, the fund goes into the war chest.')}>Safety fund</span>`
-        + `<span class="gkeep"><button data-act="fund" data-id="-5"${tip('5 less')}>-</button><input class="keepin fundin" type="number" min="0" max="100" step="1" value="${pct}" data-act="fundinput"${tip('Type the share, 0 to 100, then Enter')}><small>%</small><button data-act="fund" data-id="5"${tip('5 more')}>+</button></span></div>`;
-      const line = s.report?.military || (f.next ? `${have}. Saving for ${f.next}` : `${have}`);
-      x += `<div class="focuscap"${tip('What is in the fund now, and what the general saves it for next')}>${esc(line)}</div>`;
-    }
+      const pct = Math.round(f.pct ?? 10), warn = s.report?.military;
+      const [lead, ...why] = String(warn || '').split(': '), bad = warn ? `<div class="fcstat bad"><b>${esc(lead)}</b>${why.length ? why.join(': ').split('. ').map(l => `<span>${esc(cap1(l))}</span>`).join('') : ''}</div>` : '';
+      const now = !st.autoBuild ? 'Initiative off: he builds nothing' : !pct ? 'Set to 0: he builds nothing' : f.next ? `Saving for ${f.next}` : 'Nothing to save for right now';
+      const open = onTownWar && data?.war?.town ? `<button data-act="townwar-general"${tip('Set the safety fund on the General tab of the Military window')}>Set</button>` : '';
+      x = `<div class="gst" data-goal="fundbox"><span class="gstl"${tip('Safety fund: a share of this town\'s timber, stone and ryo income set aside for your general. He builds his military quarter and buildings only from it. Set it on the Military window\'s General tab.')}>Safety fund<span class="gchip">${pct}%</span></span><span class="fcnow">${esc(now)}</span>${open}</div>${bad}` + keepCard + x;
+    } else x = keepCard + x;
     return x;
   }
   const railLinked = s => Object.values(game.state.frontier?.rail?.links || {}).some(l => l.done && !l.closed && (l.from === s.id || l.to === s.id));
@@ -194,7 +239,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
             : next ? `<button data-act="upgrade"${tip(`Upgrade to ${next.name}: ${cost}.\nUnlocks ${what(next)}.${chk.ok ? '' : '\nNot yet: ' + chk.reason}`)}${chk.ok ? '' : ' class="no"'}>Upgrade to ${esc(next.name)}</button>` : '<span class="dim">Highest tier</span>') + '</div>';
       }
       // war 8b: the town's military buildings, war chest and hall war upgrade live in the town war window
-      if (onTownWar && data?.war?.town) h += `<div class="row"><span${tip('Military buildings go inside the town ring and are built by town builders. Some need the town hall war upgrade. Troops train only while a war is on this town, paid from its war chest.')}>War upgrade: <b>${s.warHall ? 'Done' : s.warUpgrade ? (s.builders ? `Building, about ${warUpgradeSeconds(s, data)} s` : 'Waiting for builders') : 'Not bought'}</b></span><button data-act="townwar"${tip('Open the town war window: military buildings, war chest and the hall war upgrade')}>Military</button></div>`;
+      if (onTownWar && data?.war?.town) h += `<div class="row"><span${tip('Military buildings go inside the town ring and are built by town builders. Some need the town hall war upgrade. Troops train only while a war is on this town, paid from its war chest.')}>War upgrade: <b>${s.warHall ? 'Done' : s.warUpgrade ? (s.builders ? `Building, about ${warUpgradeSeconds(s, data)} s` : 'Waiting for builders') : 'Not bought'}</b></span></div>`;
       const people = peopleRows(s, prevStock[s.id]?.prev, data);
       h += '<div class="lab">Stock <button data-act="usage" data-id="timber">Usage</button></div><div class="stock">' + rows.stock.map(r => `<div${tip((r.tip || '')+'\n'+usageTip(s,r.key))}><button data-act="usage" data-id="${r.key}">${esc(r.label)}</button><b${r.full ? ' class="full"' : ''}>${r.value}</b>${r.cap != null ? `<span class="dim cap">/ ${r.cap}${r.full ? ' full' : ''}</span>` : ''}${arrow[r.arrow]}</div>`).join('')
         // Tim 2026-11-16: townspeople are a stock too; the hover says what they do and how the town grows
@@ -236,7 +281,9 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (mode === 'town') {
       tabsH = '<div class="ptabs">' + TABS.filter(([id]) => id !== 'stable' || hasStable).map(([id, label]) => `<button data-act="tab" data-id="${id}" class="${!rosterOpen && tab === id ? 'on' : ''}${id === 'ship' && !railLinked(s) ? ' dimtab' : ''}"${id === 'ship' && !railLinked(s) ? ' title="Needs a rail line"' : id === 'governor' && rows.suggestions.length ? ` title="${rows.suggestions.length} suggestion(s) waiting for your Approve"` : ''}>${label}${id === 'governor' && rows.suggestions.length ? ` <span class="badge">${rows.suggestions.length}</span>` : ''}</button>`).join('')
         + `<button data-act="build-workers" class="${rosterOpen ? 'on' : ''}">Workers (${s.workers?.length || 0})</button></div>`;
-      const build = (tab === 'town' || rosterOpen) ? buildUI?.html(s) || '' : '';
+      // Tim 2026-11-22: the Military window opens from a big button beside the Build bar
+      const warBtn = onTownWar && data?.war?.town ? `<button data-act="townwar" class="warbig"${tip('Military: build barracks and other war buildings, fill the war chest, buy the hall war upgrade and pick how your general fights.')}><svg class="warico" viewBox="0 0 20 20" aria-hidden="true"><g stroke-linecap="round" fill="none"><path d="M4.5 15.5 L16.5 2.5" stroke="#f3e3bd" stroke-width="2.2"/><path d="M15.5 15.5 L3.5 2.5" stroke="#f3e3bd" stroke-width="2.2"/><path d="M2.5 17.5 L5.5 14.5" stroke="#e6c47a" stroke-width="3"/><path d="M17.5 17.5 L14.5 14.5" stroke="#e6c47a" stroke-width="3"/><path d="M3.5 12.5 L7 15.8" stroke="#e6c47a" stroke-width="2.2"/><path d="M16.5 12.5 L13 15.8" stroke="#e6c47a" stroke-width="2.2"/></g></svg>Military</button>` : '';
+      const build = (tab === 'town' || rosterOpen) ? buildUI?.html(s, false, warBtn) || '' : '';
       h = rosterOpen ? build : build + h;
     }
     // Tim 2026-11-08: a close button on the panel itself (O and Esc still work)
@@ -265,10 +312,9 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const b=btnOf(e),s=pick();
     if(b && s && buildUI?.doubleClick?.(b.dataset,s)){lastHtml='';render();}
   });
-  root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
+  root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') { sendTyped(e.target); e.target.blur(); } } });
   root.addEventListener('change', e => {
-    if (e.target.dataset?.act === 'keepinput') { const s = pick(), v = Math.round(Number(e.target.value)); if (s && Number.isFinite(v) && v >= 0) cmd({ action: 'setMarketKeep', settlement: s.id, keep: v }); lastHtml = ''; render(); return; }
-    if (e.target.dataset?.act === 'fundinput') { const s = pick(), v = Math.round(Number(e.target.value)); if (s && Number.isFinite(v)) cmd({ action: 'setFund', settlement: s.id, pct: Math.max(0, Math.min(100, v)) }); lastHtml = ''; render(); return; }
+    if (sendTyped(e.target)) return;
     if (e.target.dataset?.act === 'shipinput') { shipTab.input(e.target.dataset, e.target.value, pick()); lastHtml = ''; render(); return; }
     const s=pick();if(s && buildUI?.change?.(e.target.dataset,e.target.value,s)) {lastHtml='';render();}
   });
@@ -306,9 +352,14 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       case 'garrison-out': cmd({ action: 'garrison', mode: 'leave', town: sid }); break;
       case 'openstable': onStable?.(sid); break;
       case 'townwar': onTownWar?.(sid); break;   // war 8b
+      case 'townwar-general': onTownWar?.(sid, 'general'); break;   // the safety fund row (Tim 2026-11-22)
       case 'stable': cmd(id.startsWith('choose:') ? { action: 'stable', mode: 'choose', town: sid, horse: id.slice(7) } : id === 'cancel' || id === 'omnibus' ? { action: 'stable', mode: id, town: sid } : { action: 'stable', mode: 'horse', kind: id, town: sid }); break;
       case 'keep': cmd({ action: 'setMarketKeep', settlement: sid, keep: Number(id) }); break;   // economy pass 2 D
-      case 'fund': if (s?.fund) cmd({ action: 'setFund', settlement: sid, pct: Math.max(0, Math.min(100, Math.round((s.fund.pct ?? 10) + Number(id)))) }); break;   // safety fund -/+
+      case 'keepstep': if (s) {   // Keep in town card -/+ (Tim 2026-11-22)
+        const [r, d] = id.split(':'), now = shown(s, 'keepinput', r, r === 'goods' ? s.marketKeep ?? defaultKeep(s, data, 'goods') : s.keep?.[r] ?? defaultKeep(s, data, r));
+        keepCmd(s, r, Math.max(0, Math.min(data?.market?.keepMax ?? 100000, now + Number(d))));
+      } break;
+      case 'fund': if (s?.fund) { const pct = Math.max(0, Math.min(100, shown(s, 'fundinput', '', Math.round(s.fund.pct ?? 10)) + Number(id))); pending[`${sid}:fundinput:`] = { v: pct, until: Date.now() + 3000 }; cmd({ action: 'setFund', settlement: sid, pct }); } break;   // safety fund -/+
     }
     lastHtml = ''; render(); b.blur?.();
   });

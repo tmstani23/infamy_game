@@ -65,6 +65,25 @@ panel.close(); assert.equal(root.hidden, true);
   click('usage','timber');assert.match(root.innerHTML,/, Usage</);assert.match(root.innerHTML,/12 timber/);click('usage','housing');assert.match(root.innerHTML,/beds used/);click('usage','timber');
   click('usage-focus','project:invoice');assert.deepEqual(focus,[3000,3000]);
   click('usage-back');assert.match(root.innerHTML,/data-act="usage"/);
+  // fix list 14 (Tim 2026-11-22): the stock hover is one short line per kind, numbers rounded
+  assert.match(root.innerHTML,/Storehouse: 12 once, waiting/);assert.match(root.innerHTML,/Click for the Usage page/);assert.doesNotMatch(root.innerHTML,/\d\.\d{3}\/s/);
+}
+// fix list 15 (Tim 2026-11-22): Keep in town card with goods, timber and stone; Enter always sends, even the shown number
+{
+  const t=fr.world.addTown({id:'keeps',name:'Keeps',owner:'player',x:3500,z:3000,pop:5,stock:{food:50,timber:20},buildings:[{type:'town_hall'},{type:'market',stage:'built'}]});
+  const root=mkEl(),sent=[];
+  const p=createFrontierPanel({root,game:{state,frontier:fr},heroId:'h1',send:c=>sent.push(c)});p.open(t.id);
+  handlers.click({target:{closest:()=>({dataset:{act:'tab',id:'governor'}})}});
+  assert.match(root.innerHTML,/Keep in town/);
+  for(const r of ['goods','timber','stone'])assert.match(root.innerHTML,new RegExp(`data-act="keepinput" data-id="${r}"`));
+  const el={value:'2000',dataset:{act:'keepinput',id:'goods'},closest:()=>true,blur(){}};
+  handlers.keydown({target:el,code:'Enter',stopPropagation(){}});
+  assert.deepEqual(sent.at(-1),{id:'h1',type:'frontier',action:'setMarketKeep',settlement:'keeps',keep:2000});
+  assert.match(root.innerHTML,/value="2000" data-act="keepinput" data-id="goods"/,'shows the typed number until the sim has it');
+  el.dataset.id='timber';el.value='700';handlers.keydown({target:el,code:'Enter',stopPropagation(){}});
+  assert.equal(sent.at(-1).resource,'timber');assert.equal(sent.at(-1).keep,700);
+  handlers.click({target:{closest:()=>({dataset:{act:'keepstep',id:'timber:100'}})}});
+  assert.equal(sent.at(-1).keep,800,'+ steps from the typed number');
 }
 console.log('test_frontier_panel: ok');
 process.exit(0);
