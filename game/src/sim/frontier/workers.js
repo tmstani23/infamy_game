@@ -235,6 +235,12 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     }
     return result();
   }
+  // Tim 2026-11-22: a governor's worker takes the spot nearest a drop-off that takes its resource (the hall, or a work
+  // camp of that kind), not the one nearest the hall: a timber hand works beside the lumber camp, not past the town
+  function dropDist(s) {
+    const at={},pos=b=>Number.isFinite(b.x) ? [b.x,b.z] : Number.isInteger(b.cell) && s.grid ? cellToWorld(s,b.cell) : [s.x,s.z];
+    return p=>{const res=R.resources[p.kind];at[res] ||= dropoffs(s,res).map(pos);const L=at[res].length ? at[res] : [[s.x,s.z]];return Math.min(...L.map(q=>distance(q,[p.x,p.z])));};
+  }
   function assignIdle(s) {
     if(!on(s) || !has(s))return;
     if(s.camp && !s.workers.some(w=>!w.spot && !w.project && !w.order && w.by!=='p'))return;   // camps check every second: skip the spot search when nobody is idle
@@ -243,7 +249,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     // Tim 2026-11-06: the governor never puts more workers on a spot than it keeps busy (supportsWorkers) and moves
     // its own extras off an overworked one; the player's own picks stay put.
     const count={};for(const t of sites())for(const w of t.workers || [])if(w.spot)count[w.spot]=(count[w.spot] || 0)+1;
-    const room=p=>{const n=spotRules?.stages ? supportsWorkers(p,spotRules.stages) : null;return n==null || (count[p.id] || 0)<n;};
+    const room=p=>{const n=spotRules?.stages ? supportsWorkers(p,spotRules.stages) : null;return n==null || (count[p.id] || 0)<n;},dd=dropDist(s);
     for(const w of s.workers) {
       // B2: governor-placed workers on a full resource are moved; the player's own picks stay put.
       const sp=w.spot && index.get(w.spot),cap=sp && spotRules?.stages ? supportsWorkers(sp,spotRules.stages) : null;
@@ -251,7 +257,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       const stuck=extra || w.by==='g' && w.spot && !w.carrying && !w.trip && w.status==='Store full';
       if((w.spot && !stuck) || w.project || w.order || w.by==='p' || w.fresh)continue;
       if(extra) {count[w.spot]--;w.spot=null;}
-      const spot=resources.map(r=>spots.filter(p=>R.resources[p.kind]===r && room(p)).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id))[0]).find(Boolean);
+      const spot=resources.map(r=>spots.filter(p=>R.resources[p.kind]===r && room(p)).sort((a,b)=>dd(a)-dd(b) || compare(a.id,b.id))[0]).find(Boolean);
       if(spot) {assign(s,[w.id],spot.id,'g');count[spot.id]=(count[spot.id] || 0)+1;}
     }
   }
@@ -271,7 +277,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       .sort((a,b)=>count(b)-count(a) || compare(a,b))[0];
     if(!donor)return;
     const w=mine.filter(w=>res(w)===donor).sort((a,b)=>(a.carrying || 0)-(b.carrying || 0) || compare(a.id,b.id))[0];if(!w)return;
-    const spots=reachSpots(s).filter(p=>R.resources[p.kind]===low).sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id));
+    const dd=dropDist(s),spots=reachSpots(s).filter(p=>R.resources[p.kind]===low).sort((a,b)=>dd(a)-dd(b) || compare(a.id,b.id));
     if(spots[0])assign(s,[w.id],spots[0].id,'g');
   }
   // Lag fix (Tim 2026-11-08): working out new routes is the costly part, so only one worker sets out on a

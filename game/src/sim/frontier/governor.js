@@ -214,7 +214,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const R = data.workers, reach = R.campReach || 0;
     if (!reach || !(s.workers || []).some(w => w.by !== 'p' && !w.spot && !w.project && !w.order)) return false;
     // a camp only reaches its own resource (workers.campTakes, Tim 2026-11-07)
-    const camps = s.buildings.filter(b => (R.gatherBuildings || []).includes(b.type) && b.stage === 'built' && Number.isInteger(b.cell)).map(b => [...cellToWorld(s, b.cell), b.type]);
+    const camps = [...s.buildings.filter(b => b.stage !== 'ruined'), ...s.projects].filter(b => (R.gatherBuildings || []).includes(b.type) && Number.isInteger(b.cell)).map(b => [...cellToWorld(s, b.cell), b.type]);   // planned ones too (Tim 2026-11-22)
     // the work camp that takes a spot kind's resource (lumber camp, quarry, food camp)
     const campFor = kind => (R.gatherBuildings || []).find(t => data.buildings?.[t] && R.campTakes?.[t]?.includes(R.resources[kind]));
     const fits = (type, kind) => !R.campTakes?.[type] || R.campTakes[type].includes(R.resources[kind]);
@@ -242,8 +242,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const R = data.workers, res = R.campTakes?.[type]?.[0];
     if (!res || !workers?.index?.spotsNear || !placement() || !(R.gatherBuildings || []).includes(type)) return null;
     const reach = R.campReach || 0, grid = (data.townGrid?.radius ?? 600) - 2 * (s.grid?.cell || 11);
-    const mine = [...s.buildings.filter(b => b.stage === 'built'), ...s.projects].filter(b => b.type === type && Number.isInteger(b.cell)).map(b => cellToWorld(s, b.cell));
-    const spots = workers.index.spotsNear(s.x, s.z, grid + reach).filter(p => R.resources[p.kind] === res && !mine.some(([x, z]) => Math.hypot(p.x - x, p.z - z) <= reach * 0.5))
+    const mine = sameCamps(s, type);
+    const spots = workers.index.spotsNear(s.x, s.z, grid + reach).filter(p => R.resources[p.kind] === res && !mine.some(([x, z]) => Math.hypot(p.x - x, p.z - z) <= reach))
       .map(p => ({ p, d: Math.hypot(p.x - s.x, p.z - s.z) })).sort((a, b) => a.d - b.d || (a.p.id < b.p.id ? -1 : 1));
     for (const { p, d } of spots.slice(0, G.campSiteTries ?? 4)) {
       const k = Math.min(1, grid / d), tx = s.x + (p.x - s.x) * k, tz = s.z + (p.z - s.z) * k;
@@ -254,7 +254,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
       for (let r = cr - 4; r <= cr + 4; r++) for (let c = cc - 4; c <= cc + 4; c++) if (r >= 0 && c >= 0 && r < n2 && c < n2) cand.push([(r - cr) ** 2 + (c - cc) ** 2, r * n2 + c]);
       cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
       for (const [, i] of cand) {
-        if (!placement().check(s, { kind: type, cells: [i] }).ok) continue;
+        if (crowds(s, type, i) || !placement().check(s, { kind: type, cells: [i] }).ok) continue;
         const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
         if (r.ok && r.project) return r.project;
       }
@@ -262,6 +262,12 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return null;
   }
   const isCamp = type => (data.workers?.gatherBuildings || []).includes(type);
+  // Tim 2026-11-22: never two work camps of one kind by the same resource. Where the town's camps of a type stand or
+  // are planned (built, sites and projects), and whether a cell is too close to one (inside half a camp's reach)
+  const sameCamps = (s, type) => [...s.buildings.filter(b => b.stage !== 'ruined'), ...s.projects].filter(b => b.type === type && Number.isInteger(b.cell)).map(b => cellToWorld(s, b.cell));
+  const crowds = (s, type, i) => { const [x, z] = cellToWorld(s, i), r = (data.workers?.campReach || 0) * 0.5; return sameCamps(s, type).some(([cx, cz]) => Math.hypot(x - cx, z - cz) < r); };
+  // a governor camp goes beside fresh ground (siteCamp); only the first of its kind may fall back to the nearest free cell
+  const campPid = (s, type) => siteCamp(s, type) || (sameCamps(s, type).length ? null : construction.queue(s.id, type, null, { skip: lane(s, 'housing') }));
 
   // a camp on the free grid cell nearest a point, authorized at once
   function placeNear(s, type, tx, tz, text) {
@@ -271,7 +277,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     for (let r = cr - 4; r <= cr + 4; r++) for (let c = cc - 4; c <= cc + 4; c++) if (r >= 0 && c >= 0 && r < n2 && c < n2) cand.push([(r - cr) ** 2 + (c - cc) ** 2, r * n2 + c]);
     cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     for (const [, i] of cand) {
-      if (!placement().check(s, { kind: type, cells: [i] }).ok) continue;
+      if (crowds(s, type, i) || !placement().check(s, { kind: type, cells: [i] }).ok) continue;
       const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
       if (r.ok && r.project) { construction.authorize(r.project); s.report.next = text; return true; }
     }
@@ -475,7 +481,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const sg = s.suggestions.shift();
     const zk = zoneKind(s, sg.type);
     if (zk) { zones.autoZone(s, zk, lane(s, zk)); return; }
-    const pid = (isCamp(sg.type) && siteCamp(s, sg.type)) || construction.queue(s.id, sg.type, null, { skip: lane(s, 'housing') });
+    const pid = isCamp(sg.type) ? campPid(s, sg.type) : construction.queue(s.id, sg.type, null, { skip: lane(s, 'housing') });
     if (!pid) return;
     construction.find(pid).project.byGov = true;
     tryAuthorize(s, pid);
@@ -548,7 +554,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (!sg) return false;
     const zk = zoneKind(s, sg.type);
     if (zk) { if (!zones.autoZone(s, zk, lane(s, zk)).ok) return false; s.suggestions.splice(index, 1); return true; }
-    const pid = (isCamp(sg.type) && siteCamp(s, sg.type)) || construction.queue(s.id, sg.type, null, { skip: lane(s, 'housing') });
+    const pid = isCamp(sg.type) ? campPid(s, sg.type) : construction.queue(s.id, sg.type, null, { skip: lane(s, 'housing') });
     if (!pid) return false;
     construction.authorize(pid);
     s.suggestions.splice(index, 1);

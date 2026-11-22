@@ -1,7 +1,7 @@
 // L3.8: local tools and selection. Rules are queried in sim modules; changes are commands only.
 import { createPlacement } from './sim/frontier/placement.js';
 import { createZones } from './sim/frontier/zones.js';
-import { cellToWorld, worldToCell, ringRadius } from './sim/frontier/town_grid.js';
+import { cellToWorld, worldToCell, ringRadius, hallArtCell } from './sim/frontier/town_grid.js';
 import { bodyDistance } from './crew_input.js';
 import { townCellTip, townName, siteBuilders } from './frontier_tips.js';
 import { spotInfo } from './resource_spot_props.js';
@@ -81,7 +81,19 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   let workerPage = 0;
   let workerTab='roster',workerLogPage=0,workerSpotPage=0,workerFilter=null;   // workerFilter: the job coin showing only its workers (Tim 2026-11-12)
   let workersOpen = false;
-  let rosterClick=null;
+  let rosterClick=null,toolClick=null;const builtTurn={};   // builtTurn: town|kind -> the last one shown (showBuilt)
+  // Tim 2026-11-22 building finder: the next built building of this kind in this town (only this town), camera on it and its card open
+  function showBuilt(s,kind) {
+    const list=(s.buildings || []).filter(b=>b.type===kind && b.stage==='built');
+    if(!list.length)return false;
+    const k=s.id+'|'+kind,i=((builtTurn[k] ?? -1)+1)%list.length,b=list[i];builtTurn[k]=i;
+    const cells=b.cells?.length ? b.cells : [b.cell],pts=Number.isFinite(b.x) ? [[b.x,b.z]] : cells.filter(Number.isFinite).map(c=>cellToWorld(s,c));
+    if(!pts.length)return false;
+    view.jumpTo?.(pts.reduce((a,p)=>a+p[0],0)/pts.length,pts.reduce((a,p)=>a+p[1],0)/pts.length);
+    say(`${townName(kind)} ${i+1} of ${list.length}`);
+    if(s.grid && Number.isFinite(cells[0])){inspect={town:s.id,cell:cells[0]};showInspection();}
+    return true;
+  }
   let lastPreview = '', preview = null, seen = 0, messageUntil = 0;
   const overlay = document.createElement('canvas'), hint = document.createElement('div'), card = document.createElement('div');
   const review = document.createElement('div'); review.id = 'townbuildreview'; review.hidden = true;
@@ -565,6 +577,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       const visible = visibleCells(s), definitions = Object.fromEntries(Object.entries(data.zones.kinds).map(([kind,k]) => [k.char,kind]));
       for (const i of visible) {
         if (s.grid.ground[i] !== 'x') polygon(ctx,s,i,'rgba(235,225,200,.025)');
+        // Tim 2026-11-22: cells under a placed building (or a site) and the cells under the town hall's art are dark red: nothing can be built there
+        if (s.grid.use[i] === 'B' || hallArtCell(s,i)) { polygon(ctx,s,i,'rgba(150,30,25,.38)','#b8382e'); continue; }
         const entry = definitions[s.grid.zone[i]];
         if (!entry && data.zones.military && s.grid.zone[i] === data.zones.military.char) { const mc = data.buildUI?.zoneColors?.military || '#e0584a'; polygon(ctx,s,i,mc + '40',mc); }   // 8d-5: the military zone, red
         if (!entry) continue;
@@ -682,8 +696,10 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       const used = placedCount(s, id, data), next = (data.tiers?.list || []).find(t => (t.placed?.[g] ?? 0) > 0);
       return { max, used, locked: max === 0, unlock: next?.name || '' }; };
     const button = (id, label) => {
-      const color = data.buildUI?.zoneColors?.[id],text=buildTooltip(id,s,data,resourceRequirements), cap = capOf(id);
-      const tag = !cap ? '' : cap.locked ? `<small>${esc(cap.unlock)}</small>` : `<small>${cap.used}/${cap.max}</small>`;
+      const color = data.buildUI?.zoneColors?.[id],built=(s.buildings || []).filter(b=>b.type===id && b.stage==='built').length,text=buildTooltip(id,s,data,resourceRequirements)+(built?`\nDouble-click: show your ${built === 1 ? 'one' : built} in this town in turn`:''), cap = capOf(id);
+      // Tim 2026-11-22: work camps share one cap, so a camp button shows its own kind: built / the most it could have now (its own plus the free work camp slots), e.g. Lumber 1/1 when all slots are used
+      const own = cap && !cap.locked && placedGroup(id, data) !== id ? (s.buildings || []).filter(b => b.type === id).length : null;
+      const tag = !cap ? '' : cap.locked ? `<small>${esc(cap.unlock)}</small>` : own != null ? `<small>${own}/${own + Math.max(0, cap.max - cap.used)}</small>` : `<small>${cap.used}/${cap.max}</small>`;
       const cls = [tool === id ? 'on' : '', cap?.locked ? 'locked' : '', cap && !cap.locked && cap.used >= cap.max ? 'full' : '', id === 'eraser' ? 'eraser' : ''].filter(Boolean).join(' ');
       return `<button data-act="build-tool" data-id="${esc(id)}" data-tip="${esc(text)}" ${color && !cap?.locked ? `style="border-color:${color};color:${color}"` : ''} class="${cls}" aria-pressed="${tool === id}">${esc(label)}${tag}</button>`;
     };
@@ -696,7 +712,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (mini) return `<div class="bmhead"><b>Build · ${esc(s.name)}</b><button data-act="build-toggle" class="bmexit" data-tip="Leave build mode and go back to the town panel (Esc).">Exit build</button></div>`
       + `<div class="buildtools">` + group('Lay out', ['road', 'wall', 'gate'], `<span class="gap"></span>${button('eraser', townName('eraser'))}`)
       + group('Zones', ['housing', 'farm', 'work', ...(data.zones.military ? ['military'] : [])]) + group('Camps', camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others) + (military.length ? group('Military', military) : '')
-      + `</div><div class="hint" data-tip="Drag, release, review requirements, then Confirm or Cancel. Right click or Esc cancels.\nZone previews match their buttons; amber border = short, red border = abandoned.">Drag on the map, then Confirm. Right click cancels.</div>`;
+      + `</div><div class="hint" data-tip="Drag, release, review requirements, then Confirm or Cancel. Right click or Esc cancels.\nZone previews match their buttons; amber border = short, red border = abandoned.\nDark red cells = a building or site stands there (or the town hall), nothing can be built on them.">Drag on the map, then Confirm. Right click cancels.</div>`;
     // Tim 2026-11-16: training and the first steps moved into the Workers section of the town panel (workersHtml)
     return `<div class="townbuild"><button data-act="build-toggle" class="buildbig" data-tip="Open the build bar: roads, walls, zones, camps and buildings. Other menus hide while you build.">Build bar</button>`
       + (selected.length ? `<div>${selected.length} selected, right-click a spot to harvest</div>` : '') + '</div>';
@@ -757,7 +773,13 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
         if(twice){focusWorkers(ds.act==='build-worker-select'?[ds.id]:(s.workers || []).filter(w=>w.group===Number(ds.id)).map(w=>w.id));return true;}
       }
       if (ds.act === 'build-toggle') { if (opened) close(); else { town = s.id; opened = true; } }
-      if (ds.act === 'build-tool') { cancel(); tool = ds.id; }
+      if (ds.act === 'build-tool') {
+        // Tim 2026-11-22: a double-click on a build button shows this town's built ones of that kind in turn (camera + card)
+        const key='tool:'+s.id+':'+ds.id,now=Date.now(),twice=toolClick?.key===key && now-toolClick.at<(data.buildUI?.doubleClickMs || 400);
+        toolClick={key,at:now};
+        if(twice && (s.buildings || []).some(b=>b.type===ds.id && b.stage==='built')){cancel();tool=null;toolClick=null;showBuilt(s,ds.id);return true;}
+        cancel(); tool = ds.id;
+      }
       if (ds.act === 'build-train') requestTraining(s.id);
       if (ds.act === 'build-workers') {cancel();opened=false;workersOpen=!workersOpen;}
       if (ds.act === 'build-worker-select')select(selected.includes(ds.id)?selected.filter(id=>id!==ds.id):[...selected,ds.id]);

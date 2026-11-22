@@ -14,6 +14,7 @@ ${id} .strat .s b{display:block;font-size:14px;color:#f3e3bd}${id} .strat .s spa
 ${id} .strat .s.on{border-color:#e07b6c;background:linear-gradient(#5e1c18,#2a1513);box-shadow:0 0 12px #c9473d55}${id} .strat .s.on span{color:#f0cfc6}
 ${id} .strat .s i{display:inline-block;margin-top:6px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#d8b56c}
 ${id} .keep{display:flex;align-items:center;gap:8px;margin-top:10px}
+${id} .keep>span:first-child:not([style]){flex:none;white-space:nowrap}
 ${id} .keep input{width:54px;background:#0a0c0e;border:1px solid #61543e;border-radius:4px;color:#f6e6bf;font:600 15px system-ui;text-align:right;padding:4px 6px}
 ${id} .gnote{font-size:11px;color:#9aa3a6;margin-top:6px}`;
 // roles a mix may name (war.general.roles): what the clan trains at its clan hall, kennel or hidden dojo, foundry, stable

@@ -142,4 +142,14 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   s.workers=keepW;s.grid.zone=keepZ;
   assert.doesNotMatch(ui.html(s),/Train worker/,'training moved out of the build block');
 }
+// Tim 2026-11-22 building finder: a double-click on a build button takes the camera to each built one of that kind in turn
+{ const jumps=[];view.jumpTo=(x,z)=>jumps.push([Math.round(x),Math.round(z)]);
+  const keep=s.buildings;s.buildings=[...keep,{type:'quarry',cell:at(6,6),stage:'built'},{type:'quarry',cell:at(-6,6),stage:'site'},{type:'quarry',cell:at(-6,-6),stage:'built'}];
+  const where=c=>cellToWorld(s,c).map(Math.round);
+  ui.click({act:'build-tool',id:'quarry'},s);assert.equal(jumps.length,0,'one click picks the tool');
+  ui.click({act:'build-tool',id:'quarry'},s);assert.deepEqual(jumps[0],where(at(6,6)),'a double-click goes to the first built quarry');
+  ui.click({act:'build-tool',id:'quarry'},s);ui.click({act:'build-tool',id:'quarry'},s);assert.deepEqual(jumps[1],where(at(-6,-6)),'then the next built one (sites skipped)');
+  ui.click({act:'build-tool',id:'quarry'},s);ui.click({act:'build-tool',id:'quarry'},s);assert.deepEqual(jumps[2],where(at(6,6)),'and round again');
+  assert.equal(jumps.length,3,'each double-click moves once');
+  s.buildings=keep; }
 console.log('test_frontier_build_ui: ok');
