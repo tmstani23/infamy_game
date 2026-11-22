@@ -14,9 +14,9 @@ Cutting and catalog entries as in tools/add_zone_variants_art.py. Then run tools
 import add_zone_variants_art as z
 
 SHEETS = {
-    'upgrade_buildings_cut.png': (3, 2, [(None, 0, {}), (None, 0, {}), ('town_hall_1', 500, {'glows': True}),
-                                         ('stockade_1', 520, {'glows': True}), ('stockade_2', 520, {'glows': True}),
-                                         ('stockade_3', 520, {'glows': True})]),
+    # town_hall_1 and the stockades now come from single large paintings: tools/add_tier_singles.py (2026-11-22)
+    'upgrade_buildings_cut.png': (3, 2, [(None, 0, {}), (None, 0, {}), (None, 0, {}),
+                                         (None, 0, {}), (None, 0, {}), (None, 0, {})]),
     'townhouses1.png': (2, 1, [('town_hall_2', 500, {'glows': True}), (None, 0, {})]),
     'townhall3.png': (1, 1, [('town_hall_3', 500, {'glows': True})]),
 }

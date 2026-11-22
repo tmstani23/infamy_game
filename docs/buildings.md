@@ -84,6 +84,7 @@ Housing zone cells show their growth in stages: a zoned cell shows `house_constr
 Building sizes (2026-11-21):
 - Infirmary and market art is capped at 1.85 tiles, the same as houses; the storehouse at 1.6 (Tim 2026-11-22: slightly too big) (`_placedFootprint`).
 - The town hall stays on the centre cell; its art is about 1.75 tiles on its long side (per-tier scale in `art.json`: 2.15 / 2.5 / 2.25; Tim 2026-11-22: 2.7 tiles was too big, then 2 still too big), and the tier 1 art is sheared by 0.06.
+- Hall and stockade art (2026-11-22): town_hall_1-3 and stockade_1-3 have sharper HD images (game/art/buildings/*_hd.png) for close zoom, fitted by tools/add_hall_hd.py and tools/add_tier_singles.py; tier 2 and 3 halls are recut.
 - New towns reserve a road ring 2 cells out (`townGrid.hallRoadReserve` 2); the inner ring (`hallArtCell` in town_grid.js) takes no roads or gates. Towns founded earlier keep a ring of 1.
 - The stockade tiers fill their 2x2 at about 1.85 tiles.
 - Worker drop-off and waiting points keep the same buildingPad from buildings as routes do.
