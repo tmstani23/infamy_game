@@ -243,9 +243,12 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     w.spot = k.spot ?? null; w.dropoff = k.dropoff ?? null; if (k.by === undefined) delete w.by; else w.by = k.by;
     if (w.order?.kind === 'hold' || w.order?.kind === 'move') { delete w.order; if (w.trip?.kind === 'move') { w.trip = null; w.elapsed = 0; w.phase = 0; } }
     delete w.nextOrder; delete w.shelter;
+    // called out of a wait for a spot (the hall badge, Back to work): the governor leaves him alone for waitGraceTicks
+    // (with Initiative off nobody sends him back in, so the wait just ends)
+    if (k.wait) { if (s.autoBuild) w.waitFree = (state.tick ?? 0) + (data.workers?.waitGraceTicks ?? 1200); else { delete w.wait; delete w.waitTry; } }
   }
   function shelterRelease(s, onlyAuto = false) {
-    for (const w of s.workers || []) if (w.shelter && !(onlyAuto && w.shelter.manual)) releaseOne(s, w);
+    for (const w of s.workers || []) if (w.shelter && !(onlyAuto && (w.shelter.manual || w.shelter.wait))) releaseOne(s, w);
     if (!sheltered(s)) delete flagOf(s).shelter;
   }
   function shelterOut(st) {
@@ -312,7 +315,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
           if (k.job || k.garrison) continue;   // sent to repair or douse (7c-4): they work on under attack; in a stockade
           const at = workers.position?.(k) || k.departure || [s.x, s.z], job = spotAt(k.shelter ? k.shelter.spot : k.spot) || k.shelter?.from, pt = k.shelter?.pt || [s.x, s.z];
           const threat = foes.length && (close(at[0], at[1]) || (job && close(job[0], job[1])) || (k.shelter && close(pt[0], pt[1])));
-          if (k.shelter) { if (threat) k.shelter.calm = now; else if (!k.shelter.manual && now - (k.shelter.calm ?? now) >= (S.calmTicks ?? 300)) releaseOne(s, k); }
+          if (k.shelter) { if (threat) k.shelter.calm = now; else if (!k.shelter.manual && !k.shelter.wait && now - (k.shelter.calm ?? now) >= (S.calmTicks ?? 300)) releaseOne(s, k); }
           else if (threat) shelterIn(s, k);
         }
         if (!sheltered(s)) { delete flag.shelter; continue; }
@@ -735,7 +738,16 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     if (u?.garrison?.hall) delete u.garrison;
     delete w.shelter;
   }
-  workers?.attachJobs?.({ target: workTarget, why: workWhy, work: workOn, leave: workLeave, cap: siteCap });
+  // Tim 2026-11-22: a governor's worker with no spot beside a camp waits in the town hall while it has room (the
+  // work camps stay free for war shelter). shelter.wait marks him: he stays in peace, and comes out when the
+  // governor finds him a place or the player calls the hall out. false = no room (he waits outside).
+  function waitIn(s, w) {
+    const hall = hallOf(s);
+    if (!hall || s.camp || inside(s, hall) >= roomOf(s, hall) || !shelterIn(s, w, false, true)) return false;
+    w.shelter.wait = true;
+    return true;
+  }
+  workers?.attachJobs?.({ target: workTarget, why: workWhy, work: workOn, leave: workLeave, cap: siteCap, waitIn });
   // Stand-in until the bot general (8d): a bot clan's workers douse their own burning structures by themselves,
   // repair.botDousers at a time (the player's never do: his are manual)
   function botDouse() {

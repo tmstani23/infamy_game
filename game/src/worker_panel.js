@@ -3,6 +3,7 @@ import {workerDetails} from './worker_details.js';
 import {msConcept} from './menu_shell.js';
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function workerStatus(w,index) {
+  if(w.wait)return w.shelter?.in?'Waiting in the hall for a spot beside a camp':'Waiting for a spot beside a camp';   // Tim 2026-11-22: the governor keeps his workers by their camps
   if(w.status)return w.status;
   if(w.garrison)return 'Garrisoned in stockade';
   if(w.shelter)return w.shelter.in?'Sheltering':'Running for cover';   // Tim 2026-11-19; 2026-11-21 the hall or a work camp

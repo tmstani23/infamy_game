@@ -170,9 +170,9 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   emit('keydown',0,0,{code:'Escape'});ui.close();downUp(C);ui.update();
   const card=elements.find(e=>e.id==='towninspect'),h=card.innerHTML;
   assert.match(h,/Workers inside/);assert.match(h,/Sent in by you/);assert.match(h,/data-shelter-mode="leave"/);
-  assert.doesNotMatch(h,/data-shelter-mode="enter"/,'Send the others in only in a war');
+  assert.doesNotMatch(h,/data-shelter-mode="enter"/,'nobody left outside to send in');
   card.listeners.click({target:{closest:()=>({dataset:{shelter:'t',shelterMode:'leave'},hasAttribute:()=>false})}});
   assert.deepEqual(sent.at(-1),{id:'h',type:'frontier',action:'hallShelter',town:'t',mode:'leave'});
-  s.workers=keepW;ui.update();assert.doesNotMatch(card.innerHTML,/Workers inside/,'no box with nobody inside and no war');
+  s.workers=keepW;ui.update();if(keepW?.length) {assert.match(card.innerHTML,/Workers inside/,'the box shows in peace too (Tim 2026-11-22)');assert.match(card.innerHTML,/data-shelter-mode="enter"/,'Send workers in without a war');} else assert.doesNotMatch(card.innerHTML,/Workers inside/,'no box in a town with no workers');
   emit('keydown',0,0,{code:'Escape'}); }
 console.log('test_frontier_build_ui: ok');

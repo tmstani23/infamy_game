@@ -191,12 +191,12 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + `<div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${tired || !c.spots ? '#d9a25a' : '#7fc27a'}">${note}</div></div>`;
   }
   // Workers in shelter, on the town hall card (Tim 2026-11-22): how many of the hall's room, why (hiding from an attack,
-  // sent in by hand, waiting for room at their camp, in a work camp), Back to work, and in a war Send the others in.
+  // sent in by hand, waiting for room at their camp, in a work camp), Back to work, and Send the others in (in peace too, Tim 2026-11-22).
   // The small pill over the hall (town_hover.js) points here.
   const PILL_ICON = '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><circle cx="7" cy="4" r="2.7" fill="#f2e6c9"/><path d="M1.6 13.5c.4-3.6 2.5-5.4 5.4-5.4s5 1.8 5.4 5.4Z" fill="#f2e6c9"/></svg>';
   function hallShelterHTML(s) {
     const ws = s.workers || [], inside = ws.filter(w => w.shelter), war = Object.values(game.state.frontier?.wars?.list || {}).some(w => w.town === s.id);
-    if (!inside.length && !war) return '';
+    if (!ws.length) return '';   // Tim 2026-11-22: the section shows in peace too, so workers can be called into the hall any time
     const hall = s.buildings?.find(b => b.type === 'town_hall' && b.stage === 'built'), SH = data.war?.structures?.shelter || {}, t = SH.capacityByTier;
     const cap = t?.length ? t[Math.min(t.length, Math.max(1, s.tier || 1)) - 1] : SH.capacity, inHall = inside.filter(w => !w.shelter.b || w.shelter.b === hall?.id).length;
     const why = { attack: 0, hand: 0, wait: 0, camp: 0 };
@@ -206,11 +206,11 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       .filter(([k]) => why[k]).map(([k, label, col, tip], i) => `<div title="${esc(tip)}" style="display:flex;justify-content:space-between;padding:2px 0;${i ? 'border-top:1px solid #25272a;' : ''}"><span style="color:#9b9c98"><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${col};margin-right:6px"></i>${label}</span><b style="color:#f2e6c9">${why[k]}</b></div>`).join('');
     const out = ws.length - inside.length, pct = cap ? Math.min(100, Math.round(100 * inHall / cap)) : 0;
     const back = inside.length ? `<button data-shelter="${esc(s.id)}" data-shelter-mode="leave" title="Every worker in shelter goes back to the job they had" style="background:linear-gradient(#35603b,#1f3a24);border-color:#7fc27a;color:#e8f5e4">Back to work <small style="color:#cfe6cb">all ${inside.length} inside</small></button>` : '';
-    const send = war && out > 0 ? `<button data-shelter="${esc(s.id)}" data-shelter-mode="enter" title="Every worker runs to the town hall and waits inside, safe, until Back to work${cap ? ` (room for ${cap})` : ''}">Send the other ${out} in</button>` : '';
+    const send = out > 0 ? `<button data-shelter="${esc(s.id)}" data-shelter-mode="enter" title="Every worker runs to the town hall and waits inside, safe, until Back to work${cap ? ` (room for ${cap})` : ''}">${inside.length ? `Send the other ${out} in` : `Send all ${out} workers in`}</button>` : '';
     return `<div style="margin-top:10px;padding:8px 9px;border:1px solid #6a5636;border-radius:7px;background:rgba(242,199,92,.05)">`
       + `<div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;align-items:center;gap:5px;white-space:nowrap;font:600 10px/12px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#b9a77e">${PILL_ICON}Workers inside</span><span><b style="color:#f2e6c9;font-size:13px">${inHall}</b>${cap ? ` <span style="color:#9b9c98">/ ${cap} room</span>` : ''}</span></div>`
       + (cap ? `<div style="height:7px;border-radius:4px;background:rgba(0,0,0,.5);overflow:hidden;margin:5px 0 6px"><div style="height:100%;width:${pct}%;background:#e9c27a"></div></div>` : '')
-      + (rows || '<div style="color:#9b9c98">Nobody in shelter. Your town is at war.</div>')
+      + (rows || `<div style="color:#9b9c98">Nobody in shelter.${war ? ' Your town is at war.' : ''}</div>`)
       + (back || send ? `<div class="ti-acts" style="margin-top:7px">${back}${send}</div>` : '') + `</div>`
       + `<div style="border-top:1px solid #3c3b36;margin-top:10px"></div>`;
   }

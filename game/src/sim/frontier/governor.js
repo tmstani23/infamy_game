@@ -212,7 +212,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
   function richCampRule(s) {
     if (!workers?.index || !placement() || s.projects.some(p => !p.replaces)) return false;
     const R = data.workers, reach = R.campReach || 0;
-    if (!reach || !(s.workers || []).some(w => w.by !== 'p' && !w.spot && !w.project && !w.order)) return false;
+    if (!reach || !(s.workers || []).some(w => w.by !== 'p' && (w.wait || (!w.spot && !w.project && !w.order)))) return false;
     // a camp only reaches its own resource (workers.campTakes, Tim 2026-11-07)
     const camps = [...s.buildings.filter(b => b.stage !== 'ruined'), ...s.projects].filter(b => (R.gatherBuildings || []).includes(b.type) && Number.isInteger(b.cell)).map(b => [...cellToWorld(s, b.cell), b.type]);   // planned ones too (Tim 2026-11-22)
     // the work camp that takes a spot kind's resource (lumber camp, quarry, food camp)
@@ -270,18 +270,63 @@ export function createGovernor({ state, data, world, economy, construction, zone
   const campPid = (s, type) => siteCamp(s, type) || (sameCamps(s, type).length ? null : construction.queue(s.id, type, null, { skip: lane(s, 'housing') }));
 
   // a camp on the free grid cell nearest a point, authorized at once
-  function placeNear(s, type, tx, tz, text) {
+  function placeNear(s, type, tx, tz, text, fits = null) {
     const g = s.grid, n2 = g.n, c0 = worldToCell(s, tx, tz);
     if (c0 < 0) return false;
     const cc = c0 % n2, cr = (c0 - cc) / n2, cand = [];
     for (let r = cr - 4; r <= cr + 4; r++) for (let c = cc - 4; c <= cc + 4; c++) if (r >= 0 && c >= 0 && r < n2 && c < n2) cand.push([(r - cr) ** 2 + (c - cc) ** 2, r * n2 + c]);
     cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     for (const [, i] of cand) {
-      if (crowds(s, type, i) || !placement().check(s, { kind: type, cells: [i] }).ok) continue;
+      if (crowds(s, type, i) || (fits && !fits(i)) || !placement().check(s, { kind: type, cells: [i] }).ok) continue;
       const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
       if (r.ok && r.project) { construction.authorize(r.project); s.report.next = text; return true; }
     }
     return false;
+  }
+
+  // Tim 2026-11-22: his workers keep to the spots beside their camps (workers.campSide), so the extra ones wait in
+  // the hall. While one waits he builds another camp beside a spot that has none: the scarcest resource first, a
+  // rich deposit before an ordinary spot, then the nearest. The camp must end up serving that spot (within
+  // workers.campNear, or as its nearest spot when the grid ends short of it). Within the tier camp limit; when he
+  // cannot, s.report.spare says why. Ask first (Initiative off) only reports it.
+  function moreCampRule(s, busy = false) {
+    delete s.report.spare; s.gov.campsDone = false;
+    const R = data.workers, near = R.campNear || 0, reach = R.campReach || 0;
+    if (!near || !workers?.campSide || !workers.index?.spotsNear || !placement()) return false;
+    const side = workers.campSide(s) || {}, grid = (data.townGrid?.radius ?? 600) - 2 * (s.grid?.cell || 11);
+    // his workers waiting in the hall, and the ones still working away from the camps (they keep going meanwhile)
+    const far = w => { const p = w.spot && workers.index.get(w.spot), set = p && side[R.resources[p.kind]]; return !!set && !set.has(p.id); };
+    const n = (s.workers || []).filter(w => w.by !== 'p' && (w.wait || far(w))).length;
+    if (!n) return false;
+    const say = why => { s.report.spare = `${n} worker${n > 1 ? 's have' : ' has'} no spot beside a camp: ${why}`; return false; };
+    const kinds = [['lumber_camp', 'timber'], ['quarry', 'stone'], ['food_camp', 'food']].filter(([t, r]) => data.buildings?.[t] && side[r] && !isFull(s, data, r))
+      .sort((a, b) => (s.stock[a[1]] || 0) - (s.stock[b[1]] || 0));
+    if (!kinds.length) return say('the stores are full');
+    // no more camps can be built: workers.assignIdle then lets a waiting worker take a far spot of what the town is short of
+    if (!kinds.some(([t]) => placedRoom(s, t, data) >= 1)) { s.gov.campsDone = true; return say('no camp slot is free at this hall tier'); }
+    if (!s.autoBuild) return say('build another work camp beside a free spot');
+    if (busy || s.projects.some(p => !p.replaces)) return say('he builds another camp after the current project');
+    // no ground found last time: look again only every few reviews (the search checks many cells)
+    if (s.gov.campRetry > 0) { s.gov.campRetry--; s.gov.campsDone = true; return say('no free ground beside another spot'); }
+    let short = null;
+    for (const [type, res] of kinds) {
+      if (placedRoom(s, type, data) < 1) continue;
+      const cost = data.buildings[type].cost;
+      const spots = workers.index.spotsNear(s.x, s.z, grid + reach).filter(p => R.resources[p.kind] === res && !side[res].has(p.id))
+        .map(p => ({ p, d: Math.hypot(p.x - s.x, p.z - s.z) })).sort((a, b) => (b.p.deposit ? 1 : 0) - (a.p.deposit ? 1 : 0) || a.d - b.d || (a.p.id < b.p.id ? -1 : 1));
+      if (!spots.length) continue;
+      if (!Object.entries(cost).every(([r, v]) => (s.stock[r] || 0) >= v)) { short ||= type; s.gov.inputKeep ||= cost; continue; }
+      const same = workers.index.spotsNear(s.x, s.z, grid + 2 * reach).filter(p => R.resources[p.kind] === res);
+      for (const { p, d } of spots.slice(0, G.campSiteTries ?? 4)) {
+        const k = Math.min(1, grid / d), tx = s.x + (p.x - s.x) * k, tz = s.z + (p.z - s.z) * k;
+        if (Math.hypot(p.x - tx, p.z - tz) > reach) continue;
+        // the camp will serve this spot: beside it, or nothing nearer and none beside
+        const fits = i => { const [x, z] = cellToWorld(s, i), dp = Math.hypot(p.x - x, p.z - z); return dp <= near || (dp <= reach && !same.some(q => q !== p && Math.hypot(q.x - x, q.z - z) < Math.max(near, dp))); };
+        if (placeNear(s, type, tx, tz, `Building a ${type.replace('_', ' ')} by ${p.deposit ? 'a rich deposit' : `more ${res}`}: workers need a spot beside a camp`, fits)) return true;
+      }
+    }
+    if (!short) { s.gov.campsDone = true; s.gov.campRetry = G.campRetryReviews ?? 12; }
+    return say(short ? `saving for a ${short.replace('_', ' ')}` : 'no free ground beside another spot');
   }
 
   // Tim 2026-11-11: no trees in worker reach (4 of the 60 sites) and the town can never earn timber: a bot town spent
@@ -352,7 +397,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const per = {}; for (const t of Object.values(f().settlements || {})) for (const w of t.workers || []) if (w.spot) per[w.spot] = (per[w.spot] || 0) + 1;
     const room = p => { const n = spotRules?.stages ? supportsWorkers(p, spotRules.stages) : null; return n == null || (per[p.id] || 0) < n; };
     const drop = p => Math.min(Math.hypot(p.x - s.x, p.z - s.z), ...camps.map(([x, z]) => Math.hypot(p.x - x, p.z - z)));
-    const spot = [...near.values()].filter(p => R.resources[p.kind] === 'food' && room(p)).sort((a, b) => drop(a) - drop(b) || (a.id < b.id ? -1 : 1))[0];
+    const side = workers.campSide?.(s)?.food;   // held to the food camps once there is one (Tim 2026-11-22)
+    const spot = [...near.values()].filter(p => R.resources[p.kind] === 'food' && (!side || side.has(p.id)) && room(p)).sort((a, b) => drop(a) - drop(b) || (a.id < b.id ? -1 : 1))[0];
     if (!spot || !workers.assign(s, [donor.id], spot.id, 'g')?.ok) return false;
     return true;
   }
@@ -362,7 +408,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
   function trainWorker(s) {
     if (!s.autoBuild || !workers?.train || s.workerTraining?.length) return;
     const R = data.workers, idle = s.report.idle || 0;
-    if (idle < 1 || (s.workers || []).some(w => !w.spot && !w.project && !w.order)) return;
+    if (idle < 1 || (s.workers || []).some(w => w.wait || (!w.spot && !w.project && !w.order))) return;   // nor while one waits for a spot (Tim 2026-11-22)
     if ((s.stock.ryo || 0) < R.cost + (G.trainRyoKeep ?? 20) || (s.stock.goods || 0) < (R.goodsCost || 0) + (G.trainGoodsKeep ?? 10)) return;
     workers.train(s, 1);
   }
@@ -522,11 +568,13 @@ export function createGovernor({ state, data, world, economy, construction, zone
     maintain(s);
     trainWorker(s);
     const timber = timberCampRule(s), food = timber ? false : foodCampRule(s);
-    if (timber === 'save' || food === 'save' || (!timber && !food && !campRule(s) && !richCampRule(s))) rules(s);
+    const more = moreCampRule(s, !!(timber || food));
+    if (timber === 'save' || food === 'save' || (!timber && !food && !more && !campRule(s) && !richCampRule(s))) rules(s);
     promote(s);
     moodKeeper(s);
     const p = s.projects.find(x => x.authorized) || s.projects[0];
     s.report.doing = p ? `${p.replaces ? 'Rebuilding' : 'Building'} ${p.type.replace('_', ' ')}${p.paid ? ` (${p.progress}/${p.need})` : p.authorized ? ' (waiting for materials)' : ' (waiting for OK)'}` : 'Keeping the town running';
+    if (!s.report.next && s.report.spare) s.report.next = s.report.spare;
     if (!s.report.next && s.suggestions.length) s.report.next = s.suggestions[0].reason;
     upgradeHint(s);
     if (s.autoBuild) ship.clerk?.(s);   // rail shipments S3: the rail clerk works only while the governor is on auto (Tim 2026-11-09)

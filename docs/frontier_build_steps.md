@@ -3133,3 +3133,14 @@ approach on water, so they also run when nobody is watching. Because the
 - Governor: with Initiative On he starts any project waiting for an OK. With no player budget he may start one project dearer than initiativeBudget at the start of a fresh window.
 - Settings: two columns, 880px wide, Pause music button, listed in the layout-mode windows.
 Tests: `tools/test_shipments.mjs`, `test_shipments_clerk.mjs`, `test_shipments_tab.mjs`, `test_shipments_trains.mjs`, `test_rail_ledger.mjs`.
+
+## Governor workers keep to their camps (2026-11-22)
+
+- Once a town has a built work camp of a kind (lumber camp: timber, quarry: stone, food camp: food), governor workers take that resource only at spots beside such a camp: within `workers.campNear` (150) of it, or the camp's one nearest spot inside `campReach` when none is that close. A kind with no built camp is not held; war camps are not held.
+- A governor worker already working away from the camps keeps going. The governor moves him to a camp spot of the same resource only once one has room, at most `workers.campMovesPerReview` (2) per review. The player's own picks are never moved, and the player may send a worker to any spot in reach.
+- The governor puts a worker on a spot only if the spot still keeps all its workers busy with him there. A worker handing in his load before a spot he was already given is not given it again.
+- Rebalance and the Grow focus food hands use the same camp-side spots, only ones with room.
+- Waiting: a governor worker with no camp-side spot waits inside the town hall (`worker.wait`, `shelter.wait`); when the hall is full he waits outside and tries again every `workers.waitRetryTicks` (1200). The governor trains no worker while one waits. Roster: "Waiting in the hall for a spot beside a camp". Waiting workers stay in during peace and are not let out when a war ends; one waiting may still mend for the general.
+- Town hall card: the Workers inside section shows in peace too, with "Send all N workers in" / "Send the other N in" and Back to work (command `hallShelter`). After Back to work the governor leaves them alone for `workers.waitGraceTicks` (1200); a job or order by hand ends the wait and makes the worker the player's.
+- Another camp: while a worker waits, the governor (Initiative on, bots too) builds another camp beside a spot with none: scarcest resource first, a rich deposit before an ordinary spot, then nearest the hall; within the tier camp limit, one project at a time. Otherwise the status line says why (no camp slot at this hall tier, saving for a quarry, no free ground, stores full, after the current project).
+- Placeholders, Tim to tune. Code: `sim/frontier/workers.js`, `governor.js`, `structures.js`, `worker_panel.js`, `frontier_build_ui.js`. Test: `game/tools/test_camp_side.mjs`.

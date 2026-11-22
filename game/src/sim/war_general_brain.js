@@ -132,7 +132,7 @@ export function createGeneralBrain(game, { clan }) {
     const hurt = S.list().filter(st => mine(st) && (st.military || st.type === 'town_hall' || st.type === 'camp_hall' || W().morale?.weights?.[st.type]) && S.hpOf(st) > 0 && S.hpOf(st) < st.max * (G.mendBelow ?? 0.8))
       .sort((a, b) => S.hpOf(a) / a.max - S.hpOf(b) / b.max || (a.key < b.key ? -1 : 1)).map(st => st.key);
     let busy = site.workers.filter(x => x.job).length;
-    const free = site.workers.filter(x => !x.job && !x.project && !x.garrison && !x.shelter).map(x => x.id);
+    const free = site.workers.filter(x => !x.job && !x.project && !x.garrison && (!x.shelter || x.shelter.wait)).map(x => x.id);   // one waiting in the hall for a spot may mend (Tim 2026-11-22)
     for (const key of [...fires, ...hurt.filter(k => !fires.includes(k))]) {
       const on = site.workers.filter(x => x.job?.key === key).length, n = Math.min(each - on, most - busy, free.length);
       if (n <= 0) continue;
