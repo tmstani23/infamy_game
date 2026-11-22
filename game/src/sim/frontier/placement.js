@@ -113,7 +113,19 @@ export function createPlacement({ state, data, world, construction, resourceInde
     }
     // B3: everything but roads and work camps stays inside the town hall tier's ring
     const needsRing = kind !== 'road' && !data.tiers?.camps?.includes(kind);
-    if (needsRing && cover.some(i => !inCore(s, i, data))) return bad('outside the town ring', cover);
+    if (needsRing && cover.some(i => !inCore(s, i, data))) {
+      // Tim 2026-11-21: a watchtower may stand outside the ring beside one of the town's own built work camps
+      // (tiers.outsideRing: within near world units of it, perCamp towers each), to guard the workers out there
+      const O = data.tiers?.outsideRing?.[kind], gb = data.tiers?.camps || [];
+      const camps = O ? (s.buildings || []).filter(b => b.stage === 'built' && gb.includes(b.type)) : [];
+      const at = i => cellOffset(s, i), pt = b => at(b.cells?.length ? b.cells[0] : b.cell);
+      const beside = b => cover.every(i => { const [ax, az] = at(i), [bx, bz] = pt(b); return Math.hypot(ax - bx, az - bz) <= (O.near ?? 55); });
+      const outside = t => (t.cells?.length ? t.cells : [t.cell]).some(i => !inCore(s, i, data));
+      const towers = (s.buildings || []).filter(b => b.type === kind && outside(b)).length + (s.projects || []).filter(p => p.type === kind && Number.isFinite(p.cell) && !inCore(s, p.cell, data)).length;
+      const free = camps.filter(beside);
+      if (!free.length) return bad(O ? `outside the town ring (a ${kind.replace(/_/g, ' ')} may stand beside one of your work camps)` : 'outside the town ring', cover);
+      if (towers >= camps.length * (O.perCamp ?? 1)) return bad(`one ${kind.replace(/_/g, ' ')} per work camp outside the ring`, cover);
+    }
     if (!LINES[kind] && placedRoom(s, kind, data) < 1) return bad('town hall tier limit', cover);
     const mil = !LINES[kind] && militaryWhy(s, kind, data, state);   // 8b-1: military buildings share the war camp's limits and needs
     if (mil) return bad(mil, cover);

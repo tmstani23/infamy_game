@@ -160,11 +160,20 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     let room = wagons(t) * wagonLoad() - onBoard(t), ryoRoom = Math.max(0, (S().ryoPerTrain ?? 2000) - ryoOnBoard(t));
     const take = (w, max) => {
       const res0 = w.from === 'yard' ? w.c.resource : w.resource, isRyo = res0 === 'ryo';
-      const have = w.from === 'yard' ? w.c.amount : w.x.amount, n = Math.min(have, isRyo ? Infinity : max, isRyo ? ryoRoom : room);
+      const have = w.from === 'yard' ? w.c.amount : w.x.amount;
+      let n = Math.min(have, isRyo ? Infinity : max, isRyo ? ryoRoom : room);
+      // reserved stock may have been spent (builds, war pack): load what is there, drop the rest of that reservation
+      const srcStock = w.from === 'yard' || isRyo || at === 'capital' ? Infinity : isCampNode(at) ? (campDest(at)?.stock?.[w.resource] || 0) : (town(at)?.stock?.[w.resource] || 0);
+      if (n > srcStock) {
+        n = Math.max(0, srcStock);
+        const s = isCampNode(at) ? campDest(at) : town(at), gone = w.x.amount - n;
+        if (s) (s.reserved ||= {})[w.resource] = Math.max(0, reservedOf(s, w.resource) - gone);
+        w.x.amount = n;
+      }
       if (n <= 0) return 0;
       if (w.from === 'yard') w.c.amount -= n;
       else if (isRyo || at === 'capital') w.x.amount -= n;   // ryo was paid when ordered; bought cargo is made at the station
-      else if (isCampNode(at)) { const d = campDest(at); if (!d) return 0; addCampStock(d.w.camp, w.resource, -Math.min(n, d.stock[w.resource] || 0)); w.x.amount -= n; d.reserved[w.resource] = Math.max(0, reservedOf(d, w.resource) - n); }   // a camp's sale leaves its stores
+      else if (isCampNode(at)) { const d = campDest(at); if (!d) return 0; addCampStock(d.w.camp, w.resource, -n); w.x.amount -= n; d.reserved[w.resource] = Math.max(0, reservedOf(d, w.resource) - n); }   // a camp's sale leaves its stores
       else { world.change(at, w.resource, -n, 'ship'); w.x.amount -= n; const s = town(at); s.reserved[w.resource] = Math.max(0, reservedOf(s, w.resource) - n); }
       const id = w.from === 'yard' ? w.c.order : w.o.id, res = w.from === 'yard' ? w.c.resource : w.resource, mine = t.freight.find(c => c.order === id);
       if (mine) mine.amount += n; else t.freight.push({ order: id, resource: res, amount: n });

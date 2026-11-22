@@ -768,7 +768,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (ds.act === 'build-worker-return')orderSelected('return');
       if (ds.act === 'build-worker-drop')requestDrop();
       // Tim 2026-11-11: sending workers into the stockade moved here from the Governor tab
-      if (ds.act === 'build-worker-hall')for(const t of workSites()){if(t.camp)continue;const ids=selectedLive().filter(p=>p.s.id===t.id && !p.w.garrison).map(p=>p.w.id);if(ids.length)command({action:'hallShelter',mode:'enter',town:t.id,workers:ids});}   // Tim 2026-11-19
+      if (ds.act === 'build-worker-hall')for(const t of workSites()){const ids=selectedLive().filter(p=>p.s.id===t.id && !p.w.garrison).map(p=>p.w.id);if(ids.length)command({action:'hallShelter',mode:'enter',town:t.id,workers:ids});}   // Tim 2026-11-19
       if (ds.act === 'build-worker-stockade')for(const t of workSites()){const units=selectedLive().filter(p=>p.s.id===t.id && p.w.entity!=null && !p.w.garrison).map(p=>p.w.entity);if(units.length)command({action:'garrison',mode:'enter',town:t.id,units});}
       if (ds.act === 'build-worker-page')workerPage=Number(ds.id);
       if (ds.act === 'build-worker-tab') {workerFilter=null;workerTab=ds.id==='idle' && workerTab==='idle'?'roster':['log','idle','groups','spots'].includes(ds.id)?ds.id:'roster';workerLogPage=0;workerPage=0;}

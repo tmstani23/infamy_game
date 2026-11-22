@@ -561,9 +561,12 @@ export function createGeneralBrain(game, { clan }) {
     if (have === want && !crowd) return;
     const to = have === want ? of(crowd) : have < want ? 'timber' : 'stone', from = have === want ? of(crowd) : have < want ? 'stone' : 'timber', hall = campHall(w), R = F().war.data?.circleRadius ?? 900, ring = ringRadius(t, F().data);
     const on = {}; for (const x of site.workers) if (x.spot) on[x.spot] = (on[x.spot] || 0) + 1;
-    const spot = idx.spotsNear(t.x, t.z, R).filter(p => RES[p.kind] === to && dist(p, t) > ring && dist(p, hall) <= (GA.far ?? 450) && (on[p.id] || 0) < (GA.perSpot ?? 3)).sort((a, b) => dist(a, hall) - dist(b, hall) || (a.id < b.id ? -1 : 1))[0];
+    let spot = idx.spotsNear(t.x, t.z, R).filter(p => RES[p.kind] === to && dist(p, t) > ring && dist(p, hall) <= (GA.far ?? 450) && (on[p.id] || 0) < (GA.perSpot ?? 3)).sort((a, b) => dist(a, hall) - dist(b, hall) || (a.id < b.id ? -1 : 1))[0];
+    // safety net (Tim 2026-11-21): none near the camp hall, so the nearest one its workers may use (in the war circle
+    // outside the ring, else the nearest beyond the circle, sim/frontier/workers.js farFor)
+    if (!spot) spot = (F().modules.find(x => x.name === 'workers')?.workers?.reachSpots?.(site) || []).filter(p => RES[p.kind] === to && (on[p.id] || 0) < (GA.perSpot ?? 3)).sort((a, b) => dist(a, hall) - dist(b, hall) || (a.id < b.id ? -1 : 1))[0];
     const hand = have === want ? crowd : hands.filter(x => of(x) === from && !x.carrying).sort((a, b) => a.id < b.id ? -1 : 1)[0] || hands.filter(x => of(x) === from).sort((a, b) => a.id < b.id ? -1 : 1)[0];
-    if (spot && hand) out.push(cmd({ action: 'assign', town: w.id, workers: [hand.id], spot: spot.id }));
+    if (spot && hand) out.push(cmd({ action: 'assign', town: w.id, workers: [hand.id], spot: spot.id, by: 'g' }));   // by 'g' (the general's pick): the camp may still call them off to build (workers.js campBuild skips 'p')
   }
   function campTrain(out, cmd, w, A) {
     const War = F().war, camp = w.camp, tv = War.troopView(w.id); if (!tv) return;
@@ -895,18 +898,21 @@ export function createGeneralBrain(game, { clan }) {
   }
   // a banner spot in the band round the target: one with trees and stone in reach of the camp (attack.resourceRange,
   // outside the town's ring) before one without, then the side the hero comes from first
-  function bannerSpot(t, h, A) {
+  function bannerSpot(t, h, A, skip = []) {
     const War = F().war, [inner, outer] = War.band(t), r = (inner + outer) / 2, a0 = Math.atan2(h.z - t.z, h.x - t.x);
-    const idx = workersIndex(), RES = F().data.workers?.resources || {}, ring = ringRadius(t, F().data), reach = A?.resourceRange ?? 350;
+    const idx = workersIndex(), RES = F().data.workers?.resources || {}, ring = ringRadius(t, F().data), reach = A?.resourceRange ?? 350, circle = F().war.data?.circleRadius ?? 900;
     let best = null;
     // a castle's band runs round its walls (Z6): the points of its outline, the nearest to the hero first
     const ringPts = t.castle && War.bandOutline ? War.bandOutline(t, r).map(q => ({ x: Math.round(q.x), z: Math.round(q.z) })).sort((p, q) => dist(p, h) - dist(q, h) || p.x - q.x || p.z - q.z) : null;
     for (let k = 0; k < (ringPts ? ringPts.length : 32); k++) {
       const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 16, p = ringPts ? ringPts[k] : { x: Math.round(t.x + Math.cos(a) * r), z: Math.round(t.z + Math.sin(a) * r) };
-      if (!War.check({ type: 'hero', owner: clan, place: 'world', x: p.x, z: p.z }, t.id, p).ok) continue;
-      const near = idx?.spotsNear ? idx.spotsNear(p.x, p.z, reach).filter(sp => dist(sp, t) > ring) : null;
-      const lack = near ? ['timber', 'stone'].filter(res => !near.some(sp => RES[sp.kind] === res)).length : 0;
-      if (!best || lack < best.lack) best = { ...p, lack };
+      if (skip.some(q => dist(q, p) < 80) || !War.check({ type: 'hero', owner: clan, place: 'world', x: p.x, z: p.z }, t.id, p).ok) continue;
+      // 2026-11-21: only spots camp workers may use count (trees past the war circle were counted, so a camp stood
+      // with no timber at all); with no spot that has both in reach, the one with the shortest walk to the nearest of each
+      const usable = idx?.spotsNear ? idx.spotsNear(p.x, p.z, 2 * circle).filter(sp => dist(sp, t) > ring && dist(sp, t) <= circle) : null;
+      const walk = res => { const d = (usable || []).filter(sp => RES[sp.kind] === res).reduce((m, sp) => Math.min(m, dist(sp, p)), Infinity); return Number.isFinite(d) ? d : 4 * circle; };
+      const lack = usable ? ['timber', 'stone'].filter(res => walk(res) > reach).length : 0, cost = usable ? walk('timber') + walk('stone') : 0;
+      if (!best || lack < best.lack || (lack === best.lack && cost < best.cost)) best = { ...p, lack, cost };
       if (!lack) break;
     }
     return best ? { x: best.x, z: best.z } : null;
@@ -947,7 +953,14 @@ export function createGeneralBrain(game, { clan }) {
       out.push(cmd({ action: 'warPack', ryo: want.ryo || 0, timber: want.timber || 0, stone: want.stone || 0 }));
       return;
     }
-    if (!Number.isFinite(p.x) || !War.check({ type: 'hero', owner: clan, place: 'world', x: p.x, z: p.z }, t.id, p).ok) { const s = bannerSpot(t, h, A); if (!s) return drop(); p.x = s.x; p.z = s.z; }
+    // 2026-11-21: a spot he makes no headway toward for marchGiveUp seconds (a way the route cannot find) is given up
+    // for the next best one
+    if (Number.isFinite(p.x) && p.go) {
+      const d = dist(h, p);
+      if (d < p.go.d - 15) p.go = { d, tick: state.tick };
+      else if (state.tick - p.go.tick > (A.marchGiveUp ?? 90) * 20) { (p.skip ||= []).push({ x: p.x, z: p.z }); p.x = NaN; }
+    }
+    if (!Number.isFinite(p.x) || !War.check({ type: 'hero', owner: clan, place: 'world', x: p.x, z: p.z }, t.id, p).ok) { const s = bannerSpot(t, h, A, p.skip || []); if (!s) return drop(); p.x = s.x; p.z = s.z; p.go = { d: dist(h, s), tick: state.tick }; }
     goal = { x: p.x, z: p.z, near: Math.max(4, (W().placeRange ?? 60) * 0.4), why: 'banner' };
     if (dist(h, p) <= (W().placeRange ?? 60) * 0.8) out.push(cmd({ action: 'plantBanner', town: t.id, x: p.x, z: p.z }));
   }

@@ -234,6 +234,44 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   assert.equal(hall.stage, 'ruined', 'the governor does not rebuild a ruin while the war is on'); assert.ok(!enemy.projects.some(p => p.replaces === hall.id));
   delete g.state.entities[r2.id]; hall.stage = 'built'; }
 
+// ---- cover in a work camp and in a war camp (Tim 2026-11-21) ---------------------------------------------------------
+{ const wk = g.frontier.modules.find(m => m.name === 'workers').workers, SH = S.shelter;
+  for (let i = 0; i < SH.calmTicks + 60; i++) g.step([]);
+  // a worker out by his town's lumber camp runs into the lumber camp, not the far hall
+  const free = [...enemy.grid.use].map((c, i) => c === '.' ? i : -1).filter(i => i >= 0).map(i => ({ i, p: cellToWorld(enemy, i) })).sort((a, b) => Math.hypot(b.p[0] - enemy.x, b.p[1] - enemy.z) - Math.hypot(a.p[0] - enemy.x, a.p[1] - enemy.z))[0];
+  const lc = { id: 'lc1', type: 'lumber_camp', cell: free.i, stage: 'built' }; enemy.buildings.push(lc);
+  const [lx, lz] = free.p;
+  enemy.workers = [{ id: 'lw0', spot: null, dropoff: null, phase: 0, carrying: 0, entity: null, elapsed: 0, trip: null, departure: [lx + 6, lz + 4], order: { kind: 'hold' } }];
+  const raid = g.state.entities[war.spawnTroop(rec, 'grunt', lx + 20, lz + 20)]; raid.holdFire = true;
+  for (let i = 0; i < 45; i++) { g.step([]); Object.assign(raid, { x: lx + 20, z: lz + 20 }); }
+  const k0 = enemy.workers[0];
+  assert.ok(k0.shelter && k0.shelter.b === 'lc1', `he heads for the lumber camp beside him (${k0.shelter?.b})`);
+  for (let i = 0; i < 600 && !k0.shelter?.in; i++) { g.step([]); Object.assign(raid, { x: lx + 20, z: lz + 20 }); }
+  assert.ok(k0.shelter?.in, 'he gets inside the lumber camp');
+  lc.stage = 'ruined'; for (let i = 0; i < 25; i++) { g.step([]); Object.assign(raid, { x: lx + 20, z: lz + 20 }); }
+  assert.ok(!k0.shelter || k0.shelter.b !== 'lc1', 'the lumber camp burned: he is out of it');
+  delete g.state.entities[raid.id]; enemy.buildings = enemy.buildings.filter(b => b !== lc); enemy.workers = [];
+  for (let i = 0; i < SH.calmTicks + 60; i++) g.step([]);
+  // a war camp's worker runs into the camp hall when the defender comes near; recalled by hand there too
+  const cw = rec.camp.workers; cw.length = 0;
+  cw.push({ id: 'cw0', spot: null, dropoff: null, phase: 0, carrying: 2, cargoResource: 'timber', entity: null, elapsed: 0, trip: null, departure: [campHall.x + 30, campHall.z + 10], order: { kind: 'hold' } });
+  const stock0 = rec.camp.stock?.timber || 0;
+  const id = g.spawn('swordsman', 'swordsman', campHall.x + 45, campHall.z + 20, { owner: rival, place: 'world', area: 'world', order: { kind: 'stop' } }), foe = g.state.entities[typeof id === 'object' ? id.id : id];
+  foe.holdFire = true;
+  for (let i = 0; i < 45; i++) { g.step([]); Object.assign(foe, { x: campHall.x + 45, z: campHall.z + 20 }); }
+  assert.ok(cw[0].shelter && cw[0].shelter.b === campHall.id, `the camp worker heads for the camp hall (${JSON.stringify(cw[0].shelter)})`);
+  for (let i = 0; i < 600 && !cw[0].shelter?.in; i++) { g.step([]); Object.assign(foe, { x: campHall.x + 45, z: campHall.z + 20 }); }
+  assert.ok(cw[0].shelter?.in && (rec.camp.stock?.timber || 0) >= stock0 + 1.9, 'inside, his load in the camp stores');
+  delete g.state.entities[foe.id];
+  for (let i = 0; i < SH.calmTicks + 60; i++) g.step([]);
+  assert.ok(!cw[0].shelter, 'calm again: back to work');
+  const rx = () => g.state.frontier.receipts.at(-1);
+  g.step([{ id: hero.id, type: 'frontier', action: 'hallShelter', town: rec.id, mode: 'enter' }]);
+  assert.ok(rx().ok && cw[0].shelter?.manual && cw[0].shelter.b === campHall.id, 'recalled to the camp hall by hand');
+  g.step([{ id: hero.id, type: 'frontier', action: 'hallShelter', town: rec.id, mode: 'leave' }]);
+  assert.ok(rx().ok && !cw[0].shelter, 'sent back');
+  cw.length = 0; }
+
 // ---- watchtower fire: arrows at the nearest enemy of the war in range; a ruined tower is silent ---------
 { const T = S.tower, tw = { id: 'tw', type: 'watchtower', stage: 'built', x: campHall.x - 40, z: campHall.z + 40 }; rec.camp.buildings.push(tw);
   const spawn = (owner, dx) => { const id = g.spawn('swordsman', 'swordsman', tw.x + dx, tw.z, { owner, place: 'world', area: 'world', order: { kind: 'stop' } }); return g.state.entities[typeof id === 'object' ? id.id : id]; };

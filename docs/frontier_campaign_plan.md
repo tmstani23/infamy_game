@@ -1052,3 +1052,14 @@ Goal cards (sim/campaign_goals.js), first town only, after Give him his orders; 
 3. The military quarter: a gold mark on the plot; done when the hero walks up to it, or when the player paints his own zone. With no plot it asks the player to paint one.
 4. First barracks: done when a military building stands.
 - "Build a food camp" comes right before "Build a storehouse", at Camp tier only: a gold mark on the nearest fish or forage spot within workers.range of the hall, the Food camp build tool flashes; done when a food camp is placed. With no such spot the card is skipped (2026-11-22).
+
+## War and rival fixes (2026-11-22)
+
+- War camp spot (bot general): only trees and stone its workers may use count (outside the town ring, inside the war circle); with no spot that has both in reach it takes the one with the shortest walk to the nearest of each. A spot it makes no headway toward for attack.marchGiveUp (90 s, code default) is given up for the next best.
+- Camp gathering safety net: besides the war circle, camp workers may use the war.camp.farSpots (3) nearest spots of each resource to the camp, within war.camp.farReach (1500); never inside the town's ring. The general sends gatherers there when no spot is near the camp hall.
+- Worker cover: a worker with an enemy near him runs to the nearest shelter of his side with room: the town hall / camp hall, or a built work camp (lumber camp, quarry, food camp; war.structures.shelter.workCampRoom 6 each). Towns watch as far as their workers go (workers.range + campReach). War camps shelter too (campHallRoom 40); the threat for a camp is the defender. Recall by hand (badge over the hall or camp hall, worker panel To hall) sends them to the hall; Back to work sends them back. A shelter knocked down lets its workers out.
+- Watchtowers outside the ring: only beside one of the town's own built work camps (tiers.outsideRing watchtower near 55, perCamp 1). Work camps stay within the worker range, so never near a rival town.
+- Rush defend list has the town hall war upgrade (after the clan hall), so a Rush town can go past 4 supply tents (42 troops) to the full troop cap.
+- Rival strategies (Tim 2026-11-21: all are expanders at least): every strategy founds every 3 days up to 8 towns (enough for 4 zones); Expander, Fortress and Warlord differ only in how they go to war (noWarWhileLand, warRyo, weakest). Replaces the 2026-11-19 placeholders (Fortress 6 days / 5 towns, Warlord 2 towns).
+- Shipments: a train loads only what a source still holds. If reserved stock was spent before the train came (a build or the war pack spend it without checking reservations), it loads what is left and drops the rest of that reservation; the order stays open and is filled again later.
+- Camp builders (bot general): the general's own gatherer moves are its picks (assign by 'g'), not hand orders, so the camp still calls those workers off to build its sites.

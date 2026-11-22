@@ -85,4 +85,11 @@ assert.equal(rf.state, 'open', 'order stays open');
 sh.coverManual();
 assert.ok(rf.sources.reduce((a, x) => a + x.amount, 0) >= 10, 'shortfall re-sent from the source');
 assert.ok(run(30000, () => rt.state === 'done' && rf.state === 'done'), 'delivered in the end');
+// reserved stock spent before the train came (a build, the war pack): load what is left, no crash
+cmd({ mode: 'order', town: 'tC', resource: 'stone', amount: 15, pin: 'tA' });
+const o4 = Object.values(F.shipping.orders).at(-1);
+st('tA').stone = 4;   // spent
+assert.ok(run(6000, () => o4.got > 0 || sh.inFlight(o4.id) > 0), 'the stone that was left still rides');
+assert.ok(st('tA').stone >= 0, 'no negative stock');
+assert.ok(sh.reservedOf(F.settlements.tA, 'stone') <= 15, 'the spent part of the reservation is dropped');
 console.log('test_shipments_trains: ok');

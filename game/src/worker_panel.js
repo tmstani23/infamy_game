@@ -5,7 +5,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 export function workerStatus(w,index) {
   if(w.status)return w.status;
   if(w.garrison)return 'Garrisoned in stockade';
-  if(w.shelter)return w.shelter.in?'Sheltering in the town hall':'Running to the town hall';   // Tim 2026-11-19
+  if(w.shelter)return w.shelter.in?'Sheltering':'Running for cover';   // Tim 2026-11-19; 2026-11-21 the hall or a work camp
   if(w.nextOrder)return w.nextOrder.kind==='hold'?'Returning load, then holding':'Returning load before move';
   if(w.order?.kind==='hold')return 'Standing';
   if(w.order?.kind==='move')return 'Moving';

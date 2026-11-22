@@ -58,7 +58,7 @@ export function createCommands({ state, data, world, economy, construction, gove
       if(s.camp && c.action==='buyCart')return reject(e,c,'a war camp has no carts');
       if(s.owner==null || s.owner!==e.owner)return reject(e,c,'not your settlement');
       if(!workers)return reject(e,c,'workers unavailable');
-      const r=c.action==='cartOrder' ? workers.cartOrder(s,c.mode,c.building):c.action==='buyCart' ? workers.buyCampCart(s,c.building):c.action==='train' ? (s.camp ? workers.trainCamp(s,c.count) : workers.train(s,c.count)):c.action==='workerOrder' ? workers.workerOrder(s,c.workers,c.kind,c):workers.assign(s,c.workers,c.spot);
+      const r=c.action==='cartOrder' ? workers.cartOrder(s,c.mode,c.building):c.action==='buyCart' ? workers.buyCampCart(s,c.building):c.action==='train' ? (s.camp ? workers.trainCamp(s,c.count) : workers.train(s,c.count)):c.action==='workerOrder' ? workers.workerOrder(s,c.workers,c.kind,c):workers.assign(s,c.workers,c.spot,c.by==='g'?'g':'p');
       return r.ok ? receipt(e,c,true):reject(e,c,r.reason);
     }
     if (c.action === 'place' || c.action === 'remove' || c.action === 'zone') {   // L3.2/L3.3: build bar actions, named by `town`

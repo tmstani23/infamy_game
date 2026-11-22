@@ -105,9 +105,9 @@ const kinds = Object.keys(zonesFile.rivals.strategies);
   // the home zone is full now: the next one goes to a zone touching home
   const next = world.sites.find(s => s.id === L.botSite(id));
   assert.ok(next && Z.touches(r.home, Z.zoneOfSite(next)), 'then a zone next to home');
-  // a Warlord stops founding at two towns
+  // Tim 2026-11-21: every strategy founds like an Expander (a Warlord used to stop at two towns)
   r.strategy = 'warlord';
-  assert.equal(R.mayFound(id), false, 'a Warlord founds two towns only');
+  assert.equal(R.mayFound(id), true, 'a Warlord goes on founding past two towns');
   assert.equal(R.mayWar(id), true);
   // a lost walk: the held founding cost comes back, the claim is dropped
   // (a site with no way to it on foot is skipped and another is tried the next day)

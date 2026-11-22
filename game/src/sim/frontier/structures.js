@@ -222,9 +222,20 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // one sent in by hand (the 'hallShelter' command, the badge over the hall or the worker panel) stays until Back to
   // work. The hall holds shelter.capacityByTier by town hall tier. Everyone comes out at once when the hall falls; the
   // automatic ones when the war ends.
-  const hallOf = s => (s.buildings || []).find(b => b.type === 'town_hall' && b.stage === 'built') || null;
-  const shelterRoom = s => { const S = R()?.shelter || {}, t = S.capacityByTier; return (t?.length ? t[Math.min(t.length, Math.max(1, s.tier || 1)) - 1] : S.capacity) ?? Infinity; };
+  // 2026-11-21 (Tim): war camps shelter too (camp hall), and a worker caught out runs to the nearest shelter of his
+  // side: the hall, or one of its built work camps (lumber camp, quarry, food camp: shelter.workCampRoom each). A recall
+  // by hand (the badge over the hall or camp hall, the worker panel) sends them to the hall. worker.shelter.b = the
+  // building's id, .pt = where it stands. A shelter that is knocked down lets its workers out.
+  const GB = () => data.workers?.gatherBuildings || ['lumber_camp', 'quarry', 'food_camp'];
+  const hallOf = s => (s.buildings || []).find(b => b.type === (s.camp ? 'camp_hall' : 'town_hall') && b.stage === 'built') || null;
+  const shelterRoom = s => { const S = R()?.shelter || {}; if (s.camp) return S.campHallRoom ?? Infinity; const t = S.capacityByTier; return (t?.length ? t[Math.min(t.length, Math.max(1, s.tier || 1)) - 1] : S.capacity) ?? Infinity; };
+  const roomOf = (s, b) => b.type === 'town_hall' || b.type === 'camp_hall' ? shelterRoom(s) : (R()?.shelter?.workCampRoom ?? 6);
+  const ptOf = (s, b) => { if (s.camp || !s.grid) return [b.x ?? s.x, b.z ?? s.z]; const pts = (b.cells?.length ? b.cells : [b.cell]).map(i => cellToWorld(s, i)); return [pts.reduce((n, p) => n + p[0], 0) / pts.length, pts.reduce((n, p) => n + p[1], 0) / pts.length]; };
+  const shelters = s => (s.buildings || []).filter(b => b.stage === 'built' && (b === hallOf(s) || GB().includes(b.type)));
   const sheltered = s => (s.workers || []).filter(w => w.shelter).length;
+  const inside = (s, b) => (s.workers || []).filter(w => w.shelter && (w.shelter.b ?? hallOf(s)?.id) === b.id).length;
+  const flagOf = s => (s.camp ? s.war.camp : s);   // where "someone is sheltering" is kept (a camp's site is a view of the war record)
+  const siteList = () => [...Object.values(f().settlements || {}).filter(s => !s.capital), ...Object.values(f().wars?.list || {}).map(w => workers?.siteOf?.(w.id)).filter(Boolean)];
   function releaseOne(s, w) {
     const k = w.shelter; if (!k) return;
     const u = state.entities?.[w.entity];
@@ -235,71 +246,85 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   }
   function shelterRelease(s, onlyAuto = false) {
     for (const w of s.workers || []) if (w.shelter && !(onlyAuto && w.shelter.manual)) releaseOne(s, w);
-    if (!sheltered(s)) delete s.shelter;
+    if (!sheltered(s)) delete flagOf(s).shelter;
   }
-  function shelterOut(st) { if (st?.type === 'town_hall' && st.s) shelterRelease(st.s); }
-  // send one worker to the hall; false when the hall is full or there is no way there right now
-  function shelterIn(s, k, manual = false) {
+  function shelterOut(st) {
+    const s = st?.s || (st?.camp && st.war ? workers?.siteOf?.(st.war) : null); if (!s) return;
+    if (st.type === 'town_hall' || st.type === 'camp_hall') return shelterRelease(s);
+    for (const w of s.workers || []) if (w.shelter?.b && w.shelter.b === st.b?.id) releaseOne(s, w);
+  }
+  // send one worker to a shelter (the nearest with room; toHall: the hall first); false when none has room or no way there
+  function shelterIn(s, k, manual = false, toHall = manual) {
     if (k.shelter) { if (manual) k.shelter.manual = true; return true; }
-    if (k.job || k.garrison || sheltered(s) >= shelterRoom(s)) return false;
-    const at = workers.position?.(k) || k.departure || null;   // where he was: with no job spot, the place he goes back to watching
-    const cell = s.grid?.cell || 11, keep = { spot: k.spot ?? null, dropoff: k.dropoff ?? null, by: k.by, calm: state.tick ?? 0, ...(at ? { from: [at[0], at[1]] } : {}), ...(manual ? { manual: true } : {}) };
-    const r = workers.workerOrder(s, [k.id], 'move', { x: s.x, z: s.z + cell });
+    if (k.job || k.garrison) return false;
+    const at = workers.position?.(k) || k.departure || null, here = at || [s.x, s.z], hall = hallOf(s);
+    const open = shelters(s).filter(b => inside(s, b) < roomOf(s, b)).map(b => ({ b, pt: ptOf(s, b) }))
+      .sort((p, q) => (toHall ? (q.b === hall) - (p.b === hall) : 0) || Math.hypot(p.pt[0] - here[0], p.pt[1] - here[1]) - Math.hypot(q.pt[0] - here[0], q.pt[1] - here[1]) || (String(p.b.id) < String(q.b.id) ? -1 : 1));
+    const pick = open[0]; if (!pick) return false;
+    const cell = s.grid?.cell || 11, isHall = pick.b === hall, to = isHall && !s.camp ? { x: s.x, z: s.z + cell } : { x: pick.pt[0], z: pick.pt[1] };
+    const keep = { spot: k.spot ?? null, dropoff: k.dropoff ?? null, by: k.by, calm: state.tick ?? 0, b: pick.b.id, pt: [to.x, to.z], ...(at ? { from: [at[0], at[1]] } : {}), ...(manual ? { manual: true } : {}) };
+    const r = workers.workerOrder(s, [k.id], 'move', to);
     if (!r.ok) return false;
-    k.shelter = keep; s.shelter ||= {};
+    k.shelter = keep; flagOf(s).shelter ||= {};
     return true;
   }
-  // a worker's load goes into the town stores as he goes in (Tim 2026-11-19: they stood in the hall holding it)
+  // a worker's load goes into the stores as he goes in (Tim 2026-11-19: they stood in the hall holding it)
   function handIn(s, k) {
     const res = k.cargoResource || k.trip?.resource, n = k.carrying || 0;
-    if (n > 0 && res) { world.change(s.id, res, n, 'gather'); s.workerIncome ||= {}; s.workerIncome[res] = (s.workerIncome[res] || 0) + n; }
+    if (n > 0 && res) { if (s.camp) addCampStock(s.war.camp, res, n); else world.change(s.id, res, n, 'gather'); s.workerIncome ||= {}; s.workerIncome[res] = (s.workerIncome[res] || 0) + n; }
     k.carrying = 0; delete k.cargoResource;
     const u = state.entities?.[k.entity]; if (u) u.carrying = 0;
   }
-  // { action: 'hallShelter', town, mode: 'enter' | 'leave', workers? } (Tim 2026-11-19): by hand, into the hall or back to work
+  // { action: 'hallShelter', town, mode: 'enter' | 'leave', workers? } (Tim 2026-11-19): by hand, into the hall or back to
+  // work; town = a town id, or a war id for that war's camp (2026-11-21)
   function shelterCommand(e, c) {
     if (c.action !== 'hallShelter') return false;
     const fr = state.frontier, done = (ok, reason = '') => { fr.receiptSeq = (fr.receiptSeq || 0) + 1; (fr.receipts ||= []).push({ seq: fr.receiptSeq, tick: state.tick ?? 0, clan: e.owner ?? null, action: c.action, ok, reason }); return true; };
-    const s = typeof c.town === 'string' ? world.settlement(c.town) : null;
-    if (!s || s.capital || !workers) return done(false, 'no such town');
-    if (s.owner !== e.owner) return done(false, 'not your town');
+    const s = typeof c.town !== 'string' || !workers ? null : fr.wars?.list?.[c.town] ? workers.siteOf?.(c.town) : world.settlement(c.town);
+    if (!s || s.capital) return done(false, 'no such town');
+    if (s.owner !== e.owner) return done(false, s.camp ? 'not your camp' : 'not your town');
     const ids = Array.isArray(c.workers) && c.workers.length ? new Set(c.workers) : null, list = (s.workers || []).filter(w => !ids || ids.has(w.id));
-    if (c.mode === 'leave') { for (const w of list) releaseOne(s, w); if (!sheltered(s)) delete s.shelter; return done(true); }
+    if (c.mode === 'leave') { for (const w of list) releaseOne(s, w); if (!sheltered(s)) delete flagOf(s).shelter; return done(true); }
     if (c.mode !== 'enter') return done(false, 'enter or leave');
-    if (!hallOf(s)) return done(false, 'the town hall is down');
-    let n = 0, full = false;
-    for (const w of list) { if (w.shelter) { w.shelter.manual = true; n++; continue; } if (sheltered(s) >= shelterRoom(s)) { full = true; break; } if (shelterIn(s, w, true)) n++; }
-    return done(n > 0, n ? '' : full ? 'the town hall is full' : 'nobody can go in');
+    if (!hallOf(s)) return done(false, s.camp ? 'the camp hall is down' : 'the town hall is down');
+    let n = 0;
+    for (const w of list) { if (w.shelter) { w.shelter.manual = true; n++; continue; } if (shelterIn(s, w, true)) n++; }
+    return done(n > 0, n ? '' : shelters(s).every(b => inside(s, b) >= roomOf(s, b)) ? (s.camp ? 'the camp is full' : 'the town hall is full') : 'nobody can go in');
   }
   function shelterTick() {
     const S = R()?.shelter, now = state.tick ?? 0;
     if (!S || !workers) return;
-    for (const s of Object.values(f().settlements || {})) {
-      if (!s.shelter && (now % 20 || !war.warOn(s.id))) continue;
-      const w = war.warOn(s.id), hall = hallOf(s);
-      if (!hall) { if (s.shelter) shelterRelease(s); continue; }
-      if (!w && s.shelter) shelterRelease(s, true);   // the war is over: the automatic ones go back to work
+    for (const s of siteList()) {
+      const flag = flagOf(s), w = s.camp ? (f().wars?.list?.[s.id] || null) : war.warOn(s.id);
+      if (!flag.shelter && (now % 20 || !w)) continue;
+      const hall = hallOf(s);
+      if (!hall) { if (flag.shelter) shelterRelease(s); continue; }
+      if (!w && flag.shelter) shelterRelease(s, true);   // the war is over: the automatic ones go back to work
+      // a shelter knocked down meanwhile lets its workers out
+      if (flag.shelter) { const up = new Set(shelters(s).map(b => b.id)); for (const k of s.workers || []) if (k.shelter && k.shelter.b != null && !up.has(k.shelter.b)) releaseOne(s, k); }
       if (now % 20 === 0 && w) {
-        const near = S.nearRange ?? 40, r = ringRadius(s, data) + near, r2 = r * r;
-        const foes = Object.values(state.entities).filter(e => e.owner === w.attacker && e.place === 'world' && !e.dead && !e.downed && !e.garrison && e.type !== 'civilian' && e.type !== 'horse' && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= r2);
+        const foe = s.camp ? w.defender : w.attacker;   // a town fears the attacker; a war camp the defender
+        const near = S.nearRange ?? 40, r = (s.camp ? (data.war?.camp?.farReach ?? 1500) : Math.max(ringRadius(s, data), (data.workers?.range ?? 600) + (data.workers?.campReach ?? 0))) + near, r2 = r * r;   // as far as its workers go
+        const foes = Object.values(state.entities).filter(e => e.owner === foe && e.place === 'world' && !e.dead && !e.downed && !e.garrison && !e.worker && e.type !== 'civilian' && e.type !== 'horse' && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= r2);
         const close = (x, z) => foes.some(e => (e.x - x) ** 2 + (e.z - z) ** 2 <= near * near);
         const spotAt = id => { const p = id && workers.index?.get?.(id); return p ? [p.x, p.z] : null; };
         for (const k of s.workers || []) {
           if (k.job || k.garrison) continue;   // sent to repair or douse (7c-4): they work on under attack; in a stockade
-          const at = workers.position?.(k) || k.departure || [s.x, s.z], job = spotAt(k.shelter ? k.shelter.spot : k.spot) || k.shelter?.from;
-          const threat = foes.length && (close(at[0], at[1]) || (job && close(job[0], job[1])) || (k.shelter && close(s.x, s.z)));
+          const at = workers.position?.(k) || k.departure || [s.x, s.z], job = spotAt(k.shelter ? k.shelter.spot : k.spot) || k.shelter?.from, pt = k.shelter?.pt || [s.x, s.z];
+          const threat = foes.length && (close(at[0], at[1]) || (job && close(job[0], job[1])) || (k.shelter && close(pt[0], pt[1])));
           if (k.shelter) { if (threat) k.shelter.calm = now; else if (!k.shelter.manual && now - (k.shelter.calm ?? now) >= (S.calmTicks ?? 300)) releaseOne(s, k); }
           else if (threat) shelterIn(s, k);
         }
-        if (!sheltered(s)) { delete s.shelter; continue; }
+        if (!sheltered(s)) { delete flag.shelter; continue; }
       }
-      if (!s.shelter || now % 10) continue;
-      const cell = s.grid?.cell || 11, nearHall = (S.enterRange ?? 1.6) * cell;
+      if (!flag.shelter || now % 10) continue;
+      const cell = s.grid?.cell || 11, nearIn = (S.enterRange ?? 1.6) * cell;
       for (const k of s.workers || []) {
         if (!k.shelter) continue;
-        const u = state.entities?.[k.entity], at = workers.position?.(k) || k.departure || [s.x, s.z];
-        if (!k.shelter.in && (k.order?.kind === 'hold' || Math.hypot(at[0] - s.x, at[1] - s.z) <= nearHall)) { k.shelter.in = true; handIn(s, k); }
-        if (k.shelter.in && u && !u.garrison) { u.garrison = { town: s.id, building: hall.id ?? 'hall', heal: 1, hall: true }; delete u.attackTarget; }
+        const u = state.entities?.[k.entity], at = workers.position?.(k) || k.departure || [s.x, s.z], pt = k.shelter.pt || [s.x, s.z];
+        const goal = k.shelter.b == null || k.shelter.b === hall.id ? (s.camp ? pt : [s.x, s.z]) : pt;
+        if (!k.shelter.in && (k.order?.kind === 'hold' || Math.hypot(at[0] - goal[0], at[1] - goal[1]) <= nearIn)) { k.shelter.in = true; handIn(s, k); }
+        if (k.shelter.in && u && !u.garrison) { u.garrison = { town: s.id, building: k.shelter.b ?? hall.id ?? 'hall', heal: 1, hall: true }; delete u.attackTarget; }
       }
     }
   }

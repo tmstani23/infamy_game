@@ -234,6 +234,18 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       el.title = n ? 'Every worker in the hall goes back to the job they had' : `Every worker runs to the town hall and waits inside, safe, until Back to work${cap ? ` (room for ${cap})` : ''}`;
       const u = view.unitToScreen(pl.x, pl.z, 3); el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
     }
+    // a war camp's hall (Tim 2026-11-21): recall the camp's workers into it, and send them back, like a town hall
+    if (onIsland()) for (const w of Object.values(game.state.frontier?.wars?.list || {})) {
+      if (w.attacker !== owner() || !w.camp?.workers?.length) continue;
+      const hall = (w.camp.buildings || []).find(x => x.type === 'camp_hall' && x.stage === 'built'); if (!hall || !Number.isFinite(hall.x)) continue;
+      const n = w.camp.workers.filter(k => k.shelter).length, bk = `${w.id}|camphall`; want.add(bk);
+      let el = badges.get(bk);
+      if (!el) { el = document.createElement('button'); el.className = 'garrisonbadge'; el.addEventListener('click', ev => { ev.stopPropagation(); send({ id: heroId, type: 'frontier', action: 'hallShelter', town: w.id, mode: el.dataset.mode }); }); badgeEl.appendChild(el); badges.set(bk, el); }
+      el.dataset.mode = n ? 'leave' : 'enter';
+      el.textContent = n ? `Workers in cover ${n} · Back to work` : 'Shelter workers';
+      el.title = n ? 'Every sheltering worker goes back to the job they had' : 'Every camp worker runs to the camp hall and waits inside, safe, until Back to work';
+      const u = view.unitToScreen(hall.x, hall.z, 3); el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
+    }
     for (const [id, el] of badges) if (!want.has(id)) { el.remove(); badges.delete(id); }
   }, 150);
   return { evacuateAll, menuAt };

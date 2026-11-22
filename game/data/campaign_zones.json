@@ -9,13 +9,13 @@
   "ship": { "_note": "the ship between the city harbour pier and your castle dock (sim/frontier/ferry.js); placeholders", "pier": [28, -44], "seconds": 20, "speed": 210, "minSeconds": 8, "_speedNote": "Tim 2026-11-20: the sail takes route length / speed (units a second; 300 was still too fast, 30% slower), at least minSeconds; seconds is only the fallback", "skipSeconds": 3, "reach": 7, "dockReach": 20, "zoneRadius": 20, "zoneInset": 9, "callSeconds": 10, "seats": 40,
     "berth": { "_note": "Z7 (Tim 2026-11-20): the ship drawn at the city pier and the castle docks, the coastal ship model a size larger until a passenger ship is made (render/ferry_ships.js). city [x, z, direction row 0-7] in city units; castle: out = units off the dock's end into the water, side = units along that end, turn = lying across the dock's line. Set by eye", "size": 1.725, "city": [19.5, -40, 1], "castle": { "out": 12.5, "side": 0, "turn": true } } },
   "rivals": {
-    "_note": "Z2 (Tim 2026-11-19), placeholders, Tim to tune. Each rival bot clan rolls a home zone (never playerHome) and one hidden strategy, saved with the game (sim/frontier/rival_campaign.js). After the boss's own first town, a rival founds a new town everyDays days after its last one while it has fewer than maxTowns founded towns, can pay, and a site is free under the zone cap: home zone first, then the zones touching it, then onward. Its settlers land at the home harbour and run to the site at trekSpeed (world units a second). noWarWhileLand: the bot general starts no war while the clan may still found. warRyo: no war with less than this in the clan treasury. weakest: the general picks the town with the fewest military buildings among those it knows.",
+    "_note": "Z2 (Tim 2026-11-19), placeholders, Tim to tune. Each rival bot clan rolls a home zone (never playerHome) and one hidden strategy, saved with the game (sim/frontier/rival_campaign.js). After the boss's own first town, a rival founds a new town everyDays days after its last one while it has fewer than maxTowns founded towns, can pay, and a site is free under the zone cap: home zone first, then the zones touching it, then onward. Its settlers land at the home harbour and run to the site at trekSpeed (world units a second). noWarWhileLand: the bot general starts no war while the clan may still found. warRyo: no war with less than this in the clan treasury. weakest: the general picks the town with the fewest military buildings among those it knows. Tim 2026-11-21: every strategy founds like an Expander (every 3 days, up to 8 towns, enough for 4 zones); they differ only in how they go to war.",
     "playerHome": "east_plains",
     "trekSpeed": 5.4,
     "strategies": {
       "expander": { "name": "Expander", "everyDays": 3, "maxTowns": 8, "noWarWhileLand": true },
-      "fortress": { "name": "Fortress", "everyDays": 6, "maxTowns": 5, "warRyo": 3000 },
-      "warlord": { "name": "Warlord", "everyDays": 3, "maxTowns": 2, "weakest": true }
+      "fortress": { "name": "Fortress", "everyDays": 3, "maxTowns": 8, "warRyo": 3000 },
+      "warlord": { "name": "Warlord", "everyDays": 3, "maxTowns": 8, "weakest": true }
     }
   },
   "zones": [

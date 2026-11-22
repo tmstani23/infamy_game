@@ -365,7 +365,7 @@ function scene(seed = 47, tune = null) {
   assert.ok(all.some(e => e.warUnit === 'grunt'), 'the barracks keeps training beside it');
   // dug in: after fortify.afterSeconds the camp puts up a watchtower (not on the Rush list) and a palisade line
   n = 0;
-  while (!(w.camp.buildings.some(b => b.type === 'watchtower') && w.camp.buildings.some(b => b.type === 'palisade')) && War.warOn('tP') && n++ < 40) t.run(200);
+  while (!(w.camp.buildings.some(b => b.type === 'watchtower') && w.camp.buildings.some(b => b.type === 'palisade')) && War.warOn('tP') && n++ < 40) { w.camp.stock.timber = Math.max(w.camp.stock.timber || 0, 300); t.run(200); }   // timber kept up: since 2026-11-22 the general's gatherers also build, so the camp spends its timber on supply tents first
   assert.equal(brain.view().wars[w.id].attacker.fort, true, 'the camp digs in when the fight draws out');
   assert.ok(w.camp.buildings.some(b => b.type === 'watchtower'), 'a watchtower'); assert.ok(w.camp.buildings.some(b => b.type === 'palisade'), 'and a palisade');
   console.log('ok pack by tier, specials, dug in');

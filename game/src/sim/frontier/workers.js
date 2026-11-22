@@ -153,13 +153,30 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   // Reach (Tim 2026-11-06, rich nodes): within R.range of the hall, or within R.campReach of a built work camp.
   const camps=s=>s.buildings.filter(b=>b.stage==='built' && (R.gatherBuildings || []).includes(b.type));
   // war camp reach (Tim 2026-11-10): anywhere inside the war circle, but outside the town's build ring (that ground is the town's)
+  // Safety net (Tim 2026-11-21: "they can walk to any nearest trees", never inside the town's ring): besides the war
+  // circle, a camp's workers may use the war.camp.farSpots nearest spots of each resource to the camp (within
+  // war.camp.farReach of it), wherever they are outside the ring
+  const farCache=new Map();
+  function farFor(s,t,res) {
+    const ring=ringRadius(t,data),key=`${s.id}|${Math.round(s.x)}|${Math.round(s.z)}|${ring}|${res}`;
+    if(farCache.has(key))return farCache.get(key);
+    const out=d=>d>ring;
+    const far=new Set(index.spotsNear(s.x,s.z,CW().farReach ?? 1500).filter(p=>R.resources[p.kind]===res && out(distance([t.x,t.z],[p.x,p.z])))
+      .sort((a,b)=>distance([s.x,s.z],[a.x,a.z])-distance([s.x,s.z],[b.x,b.z]) || compare(a.id,b.id)).slice(0,CW().farSpots ?? 3).map(p=>p.id));
+    farCache.set(key,far);
+    return far;
+  }
   const campReachOk=(s,spot)=>{
-    const t=state.frontier.settlements[s.townId];if(!t || !Number.isFinite(t.x) || !campRes().includes(R.resources[spot.kind]))return false;
-    const d=distance([t.x,t.z],[spot.x,spot.z]);return d<=data.war.circleRadius && d>ringRadius(t,data);
+    const t=state.frontier.settlements[s.townId],res=R.resources[spot.kind];if(!t || !Number.isFinite(t.x) || !campRes().includes(res))return false;
+    const d=distance([t.x,t.z],[spot.x,spot.z]);if(d<=ringRadius(t,data))return false;
+    return d<=data.war.circleRadius || !!farFor(s,t,res)?.has(spot.id);
   };
   const inReach=(s,spot)=>s.camp ? campReachOk(s,spot) : distance([s.x,s.z],[spot.x,spot.z])<=R.range || camps(s).some(b=>takes(b,R.resources[spot.kind]) && distance(point(s,b),[spot.x,spot.z])<=(R.campReach || 0));
   function reachSpots(s) {
-    if(s.camp){const t=state.frontier.settlements[s.townId];return t ? index.spotsNear(t.x,t.z,data.war.circleRadius).filter(p=>campReachOk(s,p)) : [];}
+    if(s.camp){const t=state.frontier.settlements[s.townId];if(!t)return [];
+      const out=index.spotsNear(t.x,t.z,data.war.circleRadius).filter(p=>campReachOk(s,p));
+      for(const res of campRes())for(const id of farFor(s,t,res) || []){const p=index.get(id);if(p)out.push(p);}
+      return out;}
     const out=new Map(index.spotsNear(s.x,s.z,R.range).map(p=>[p.id,p]));
     if(R.campReach)for(const b of camps(s))for(const p of index.spotsNear(...point(s,b),R.campReach))if(takes(b,R.resources[p.kind]))out.set(p.id,p);
     return [...out.values()];
@@ -766,5 +783,5 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(mode!=='recall' && mode!=='send')return result('unknown cart order');
     return orderCarts(s,data,mode,typeof building==='string' ? building : null) ? result() : result(mode==='recall' ? 'no carts on the road' : 'no parked carts');
   }
-  return {cartOrder,tick,econTick,buyCampCart,train,trainCamp,siteOf,assign,workerOrder,assignIdle,rebalance,has,position,index,attach,attachJobs};
+  return {cartOrder,tick,econTick,buyCampCart,train,trainCamp,siteOf,assign,workerOrder,assignIdle,rebalance,has,position,index,reachSpots,attach,attachJobs};
 }
