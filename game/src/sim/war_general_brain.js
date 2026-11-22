@@ -13,7 +13,7 @@
 import { ringRadius, cellOffset } from './frontier/town_grid.js';
 import { SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
 import { isMilitary, militaryCount, militaryNeeds, militaryWhy, warHallDone, tierMax } from './frontier/town_military.js';
-import { buildingCost } from './frontier/tiers.js';
+import { buildingCost, placedRoom } from './frontier/tiers.js';
 import { fundOf, fundPct, fundHas, fundPay, setFundCap } from './frontier/fund.js';
 import { pointAt } from './frontier/rail_route.js';
 
@@ -270,6 +270,7 @@ export function createGeneralBrain(game, { clan }) {
       if ((def.needs || []).some(nd => /^tier(\d+)$/.test(nd) && Number(nd.slice(4)) > tier)) continue;   // not at this tier
       const why = militaryWhy(s, type, data, state);
       if (why && /at most/.test(why)) continue;
+      if (!isMilitary(type, data) && placedRoom(s, type, data) < 1) continue;   // a town building at its hall tier limit (Tim 2026-11-22: Villages saved for a second stockade forever)
       if ((def.needs || []).some(nd => blocked.has(nd) && !militaryCount(s, nd))) { blocked.add(type); if (!waits.includes(type)) waits.push(type); continue; }
       // a player's town builds only inside its military quarter: he does not save for what has no room there
       if (!why && !militaryNeeds(s, type, data).length && !state.clans[s.owner]?.bot && spotFor(s, type, true) == null) { blocked.add(type); if (!noRoom.includes(type)) noRoom.push(type); continue; }

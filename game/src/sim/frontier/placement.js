@@ -100,7 +100,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
     if ((kind === 'road' || kind === 'gate') && cover.some(i => nearCliff(s, i, data))) return bad('too close to a cliff', cover);
     if(kind!=='road' && kind!=='gate' && coversResources(s,cover,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',cover);
     // 8d-5: the military zone takes military buildings only (the cells they cover stop being zone, see place)
-    const MZ = data.zones?.military?.char, milB = !LINES[kind] && !!data.buildings[kind]?.military;
+    const MZ = data.zones?.military?.char, milB = !LINES[kind] && !!(data.buildings[kind]?.military || data.buildings[kind]?.militaryZone);   // militaryZone: a town building allowed there too (the stockade, Tim 2026-11-22)
     if (MZ && !milB && cover.some(i => g.use[i] === '.' && g.zone[i] === MZ) && cover.every(i => g.use[i] === '.' && (g.zone[i] === '.' || g.zone[i] === MZ))) return bad('military zone: only military buildings go here', cover);
     if (cover.some(i => g.use[i] !== '.' || (g.zone[i] !== '.' && !(milB && g.zone[i] === MZ)))) return bad('occupied', cover);
     // war checkpoint 6: a breach stays open while the war is on; Tim 2026-11-17: a player may build it over during
