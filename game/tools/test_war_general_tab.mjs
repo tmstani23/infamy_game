@@ -43,11 +43,13 @@ assert.ok(!warBarHtml({ title: 't', mine: side, foe: side, war: 'w1' }).includes
 // the safety fund on the General tab (Tim 2026-11-22, moved from the Governor tab)
 const fv = { strategy: 'siege', rules: {}, camp: false, town: { name: 'Holdfast', ryo: 100, keep: 0.5 } };
 const fundOk = generalTab({ ...fv, fund: { pct: 10, timber: 153.4, stone: 20, ryo: 0, cap: { timber: 520, stone: 310, ryo: 0 }, next: 'watchtower', auto: true } });
-assert.ok(fundOk.includes('of 520') && fundOk.includes('none needed'), 'each tile says how much the list still needs');
+assert.ok(fundOk.includes('he needs 520') && fundOk.includes('for the war chest'), 'each tile says how much the list still needs');
 assert.ok(fundOk.includes('Safety fund') && fundOk.includes('data-fund="1"') && fundOk.includes('Saving for watchtower') && fundOk.includes('<b>153</b>'), 'fund row, box and status');
 const fundBad = generalTab({ ...fv, fund: { pct: 10, next: '', auto: true, warn: 'No room for a military quarter: rail 4. Paint a Military zone to pick a spot' } });
 assert.ok(fundBad.includes('fstat bad') && fundBad.includes('Rail 4') && fundBad.includes('Paint a Military zone'), 'the red reason');
 assert.ok(generalTab({ ...fv, fund: { pct: 10, auto: false } }).includes('Initiative is off'), 'initiative off');
+const fundFull = generalTab({ ...fv, fund: { pct: 10, next: '', auto: true, warn: 'No room for a rifle range: the military quarter is full. Paint more Military zone to fit it. Waiting behind it: clan hall' } });
+assert.ok(fundFull.includes('fstat bad') && fundFull.includes('No room for a rifle range') && fundFull.includes('Waiting behind it: clan hall'), 'a building that does not fit is named, with what waits behind it');
 assert.ok(!generalTab({ ...fv, camp: true, fund: { pct: 10 } }).includes('Safety fund'), 'not in a camp');
 assert.ok(!generalTab(fv).includes('Safety fund'), 'no fund, no row');
 

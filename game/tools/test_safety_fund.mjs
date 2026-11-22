@@ -16,17 +16,17 @@ const world = s => ({ change: (id, r, v) => { s.stock[r] += v; }, fundIn: (id, r
   assert.equal(fundOf(town(), data, state).pct, 25, 'the next town copies his last value');
   for (const no of [{ capital: true }, { camp: true }, { castle: true }]) assert.equal(fundOf(town('p', no), data, state), null, 'capital, castle and war camp have none');
 }
-{ // income is shared up to the cap; other gains, other resources and spending are not
+{ // Tim 2026-11-22: the share of an income is always set aside, whatever his list needs; other gains, other resources and spending are not
   const s = town(); fundOf(s, data, state); s.fund.pct = 10;
-  assert.equal(takeShare(s, data, state, 'timber', 100, 'gather'), 0, 'no cap yet (the general has not looked): nothing is taken');
+  assert.equal(takeShare(s, data, state, 'stone', 100, 'gather'), 10, 'before the general has looked, and with no stone on his list');
   setFundCap(s, world(s), { timber: 15, ryo: 50 }, 'barracks');
+  assert.equal(s.fund.stone, 10, 'the general\'s look hands nothing back'); s.fund.stone = 0;
   assert.equal(takeShare(s, data, state, 'timber', 100, 'gather'), 10);
-  assert.equal(takeShare(s, data, state, 'timber', 100, 'work zone'), 5, 'only up to the cap');
-  assert.equal(takeShare(s, data, state, 'timber', 100, 'gather'), 0, 'full: the share stays with the town');
+  assert.equal(takeShare(s, data, state, 'timber', 100, 'work zone'), 10, 'past what his list needs too');
+  s.fund.timber = 15;
   assert.equal(takeShare(s, data, state, 'ryo', 100, 'fund'), 0, 'money coming back from the fund is not income');
   assert.equal(takeShare(s, data, state, 'food', 100, 'gather'), 0);
   assert.equal(takeShare(s, data, state, 'ryo', -100, 'tax'), 0);
-  assert.equal(takeShare(s, data, state, 'stone', 100, 'gather'), 0, 'no stone on his list: none taken');
   // Initiative Off in a player's town: nothing more is set aside, the fund keeps what it has
   s.autoBuild = false; assert.equal(fundPct(s, data, state), 0); assert.equal(takeShare(s, data, state, 'ryo', 100, 'tax'), 0);
   s.autoBuild = true; assert.equal(takeShare(s, data, state, 'ryo', 100, 'tax'), 10);
@@ -35,18 +35,20 @@ const world = s => ({ change: (id, r, v) => { s.stock[r] += v; }, fundIn: (id, r
   assert.equal(fundHas(s.fund, { timber: 15, ryo: 10 }), true); assert.equal(fundHas(s.fund, { timber: 16 }), false);
   assert.equal(fundPay(s, { timber: 16 }, world(s)), false); assert.equal(s.stock.timber, 0);
   assert.equal(fundPay(s, { timber: 15 }, world(s)), true); assert.equal(s.stock.timber, 15); assert.equal(s.fund.timber, 0);
-  // a lower cap hands the rest back to the town
-  setFundCap(s, world(s), { ryo: 4 }, ''); assert.equal(s.fund.ryo, 4); assert.equal(s.stock.ryo, 6);
+  // a smaller list hands nothing back; a share of 0 hands it all back
+  setFundCap(s, world(s), { ryo: 4 }, ''); assert.equal(s.fund.ryo, 10); assert.equal(s.stock.ryo, 0);
+  s.fund.ryo = 4;
   // attacked: ryo into the war chest, the rest into the stock
   s.fund.timber = 7; let chest = 0;
   assert.deepEqual(fundEmpty(s, world(s), v => { chest += v; }), { timber: 7, ryo: 4 });
   assert.equal(chest, 4); assert.equal(s.stock.timber, 22); assert.equal(s.fund.ryo + s.fund.timber, 0);
 }
-{ // a full store: what is handed back waits in the fund until there is room (nothing is lost as overflow)
+{ // a share of 0 with a full store: what is handed back waits in the fund until there is room (nothing is lost as overflow)
   const s = town(); fundOf(s, data, state); Object.assign(s.fund, { timber: 50, cap: { timber: 50, stone: 0, ryo: 0 } });
   const cap = storageCapOf(s); s.stock.timber = cap - 20;
-  setFundCap(s, world(s), {}, '', data); assert.equal(s.stock.timber, cap); assert.equal(s.fund.timber, 30, 'the rest waits');
-  s.stock.timber = 0; setFundCap(s, world(s), {}, '', data); assert.equal(s.fund.timber, 0); assert.equal(s.stock.timber, 30);
+  setFundCap(s, world(s), {}, '', data); assert.equal(s.fund.timber, 50, 'kept while the share is above 0');
+  setFundCap(s, world(s), {}, '', data, true); assert.equal(s.stock.timber, cap); assert.equal(s.fund.timber, 30, 'the rest waits');
+  s.stock.timber = 0; setFundCap(s, world(s), {}, '', data, true); assert.equal(s.fund.timber, 0); assert.equal(s.stock.timber, 30);
 }
 { // a rival's share comes from its hidden strategy, whatever its town's box says
   const s = town('b', { autoBuild: false }); fundOf(s, data, state).pct = 0;

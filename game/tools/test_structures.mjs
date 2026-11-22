@@ -194,10 +194,10 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   for (let i = 0; i < 45; i++) { g.step([]); Object.assign(raider, { x: wx + 20, z: wz + 15 }); }
   assert.ok(enemy.shelter && enemy.workers.every(w => w.shelter), 'an attacker near them: the workers head for the hall');
   const kept = enemy.workers.map(w => w.shelter.spot); assert.ok(enemy.workers.every(w => w.spot === null), 'no gathering while sheltering');
-  const timber = enemy.stock.timber;
+  const inTown = () => enemy.stock.timber + (enemy.fund?.timber || 0), timber = inTown();   // the safety fund takes its share of a load (Tim 2026-11-22: always)
   for (let i = 0; i < 900 && !enemy.workers.every(w => w.shelter?.in); i++) { g.step([]); Object.assign(raider, { x: wx + 20, z: wz + 15 }); }
   assert.ok(enemy.workers.every(w => w.shelter.in), 'they reach the hall and go in');
-  assert.ok(enemy.workers.every(w => !w.carrying) && enemy.stock.timber >= timber + 2.4, 'the load is handed in as they go in');
+  assert.ok(enemy.workers.every(w => !w.carrying) && inTown() >= timber + 2.4, 'the load is handed in as they go in');
   for (const w of enemy.workers) { const u = g.state.entities[w.entity]; if (u) assert.ok(u.garrison?.hall, 'inside: cannot be attacked'); }
   assert.equal(g.frontier.garrison.members(enemy).length, 0, 'not counted as a stockade garrison');
   // the enemy leaves: they come out after calmTicks and go back to their jobs

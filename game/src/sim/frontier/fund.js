@@ -1,9 +1,11 @@
 // Safety fund (Tim 2026-11-21, war_build/town_plan/town_plan_spec.md section 4). Each frontier town sets aside one
 // percentage of its gains of timber, stone and ryo (the income reasons in data war.general.fund.from) into
 // s.fund. The town's general spends only from it: his military quarter road, his list of military buildings and
-// the hall war upgrade. The fund stops filling at its cap (what is left of his list at this tier, set by the
-// general each look, war_general_brain.js prepare); the rest of the share stays with the town. When the town is
-// attacked the fund pours into its war chest (ryo) and its stock (timber, stone): war_defense.js.
+// the hall war upgrade. Tim 2026-11-22: the share is always set aside, whatever he is saving for (no cap; before,
+// the fund stopped at the cost of the rest of his list, so ryo stayed at 0 once the hall war upgrade was done).
+// s.fund.cap is now only what the rest of his list at this tier needs (shown on the General tab). When the town is
+// attacked the fund pours into its war chest (ryo) and its stock (timber, stone): war_defense.js. A share of 0
+// hands the fund back to the town.
 // The player types the percentage (Governor tab, command setFund); 0 = no military building. A player's new town
 // starts at the value of his last one (frontier.fundPctLast), else fund.startPct. A bot town's percentage comes
 // from its clan's hidden war strategy (fund.byStrategy). s.fund = { pct, timber, stone, ryo, cap, next, set? }.
@@ -37,9 +39,7 @@ export function takeShare(s, data, state, resource, delta, reason) {
   if (!(delta > 0) || !FUND_RES.includes(resource) || !isGain(data, reason)) return 0;
   const f = fundOf(s, data, state); if (!f) return 0;
   const pct = fundPct(s, data, state); if (!(pct > 0)) return 0;
-  const room = (f.cap?.[resource] || 0) - (f[resource] || 0);
-  if (room <= EPS) return 0;   // full: the share stays with the town
-  const take = Math.min(delta * pct / 100, room);
+  const take = delta * pct / 100;   // always (Tim 2026-11-22): not held to what his list needs
   f[resource] = (f[resource] || 0) + take;
   return take;
 }
@@ -89,10 +89,11 @@ export function setFundPct(s, data, state, pct) {
   return '';
 }
 
-// The general's look (war_general_brain.js prepare): cap = what is left of his list at this tier plus his plot road;
-// a fund above its cap gives the rest back to the town. next = what he is saving for.
-export function setFundCap(s, world, cap, next, data = null) {
+// The general's look (war_general_brain.js prepare): cap = what is left of his list at this tier plus his plot road
+// (shown as what he still needs; the fund is not held to it). next = what he is saving for. back: the share is 0,
+// so everything in the fund goes back to the town (as far as its stores have room).
+export function setFundCap(s, world, cap, next, data = null, back = false) {
   const f = s.fund; if (!f) return;
   f.cap = { timber: 0, stone: 0, ryo: 0, ...cap }; f.next = next || '';
-  for (const r of FUND_RES) { const over = roomFor(s, data, r, Math.floor((f[r] || 0) - f.cap[r])); if (over > 0) { f[r] -= over; world.change(s.id, r, over, 'fund'); } }
+  if (back) for (const r of FUND_RES) { const over = roomFor(s, data, r, Math.floor(f[r] || 0)); if (over > 0) { f[r] -= over; world.change(s.id, r, over, 'fund'); } }
 }

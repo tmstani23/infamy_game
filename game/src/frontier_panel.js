@@ -175,9 +175,9 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     // one-line row says what he saves for and opens it, with the red reason when he has no room
     const f = s.fund;
     if (f && !s.capital && !s.camp) {
-      const pct = Math.round(f.pct ?? 10), warn = s.report?.military;
+      const pct = Math.round(f.pct ?? 10), warn = s.report?.military || f.warn;
       const [lead, ...why] = String(warn || '').split(': '), bad = warn ? `<div class="fcstat bad"><b>${esc(lead)}</b>${why.length ? why.join(': ').split('. ').map(l => `<span>${esc(cap1(l))}</span>`).join('') : ''}</div>` : '';
-      const now = !st.autoBuild ? 'Initiative off: he builds nothing' : !pct ? 'Set to 0: he builds nothing' : f.next ? `Saving for ${f.next}` : 'Nothing to save for right now';
+      const now = !st.autoBuild ? 'Initiative off: he builds nothing' : !pct ? 'Set to 0: he builds nothing' : f.next ? `Saving for ${f.next}` : 'His list is built: the fund keeps for an attack';
       const open = onTownWar && data?.war?.town ? `<button data-act="townwar-general"${tip('Set the safety fund on the General tab of the Military window')}>Set</button>` : '';
       x = `<div class="gst" data-goal="fundbox"><span class="gstl"${tip('Safety fund: a share of this town\'s timber, stone and ryo income set aside for your general. He builds his military quarter and buildings only from it. Set it on the Military window\'s General tab.')}>Safety fund<span class="gchip">${pct}%</span></span><span class="fcnow">${esc(now)}</span>${open}</div>${bad}` + keepCard + x;
     } else x = keepCard + x;

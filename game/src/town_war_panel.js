@@ -125,7 +125,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
       if (counts.fund != null && Number(counts.fund) === Math.round(s.fund?.pct ?? -1) && document.activeElement?.dataset?.n !== 'fund') delete counts.fund;   // the sim has the typed share
       body = generalTab({ strategy: strat, rules: GR, camp: false, town: { name: s.name, ryo: Math.floor(s.stock?.ryo || 0), keep: game.frontier?.warGeneral?.keepOf?.(s) ?? GR.keepShare ?? 0.5 }, typing: counts.keep,
         treasury: { ryo: clan?.ryo ?? 0, keep: clan?.treasuryKeep ?? W().supply?.treasuryKeep ?? 1000, room: game.frontier?.shipments?.autoRoom?.(clan) ?? 0, typing: counts.tkeep }, share: W().supply?.autoShare,
-        fund: s.fund && !s.capital && !s.camp ? { ...s.fund, pct: s.fund.pct ?? 10, warn: s.report?.military, auto: !!s.autoBuild, typing: counts.fund } : null });
+        fund: s.fund && !s.capital && !s.camp ? { ...s.fund, pct: s.fund.pct ?? 10, warn: s.report?.military || s.fund.warn, auto: !!s.autoBuild, typing: counts.fund } : null });
     } else if (tab === 'hall') {
       const H = W().hallUpgrade || {}, chk = warUpgradeCheck(s, F, game.state), unlocks = Object.entries(B).filter(([t, d]) => (d?.needs || []).includes('upgrade') && (!d.clan || d.clan === faction)).map(([t]) => t);
       const up = s.warUpgrade;

@@ -257,6 +257,10 @@ export function createGeneralBrain(game, { clan }) {
   function fundCap(s, list, data) {
     const cap = { timber: 0, stone: 0, ryo: 0 }, add = c => { for (const [r, v] of Object.entries(c || {})) if (r in cap) cap[r] += v; };
     const seen = {}, tier = s.tier || 1; let next = '';
+    // Tim 2026-11-22 ("saving for clan hall forever"): a building with no room in the quarter is not saved for, and
+    // neither is one that needs it (the clan hall behind a rifle range that does not fit). noRoom / waits name them
+    // for the red line on the General tab.
+    const blocked = new Set(), noRoom = [], waits = [], nice = x => x.replace(/_/g, ' ');
     for (const type of list) {
       if (type === 'upgrade') { if (!warHallDone(s) && !s.warUpgrade) { add(data.war?.hallUpgrade?.cost); next ||= 'the town hall war upgrade'; } continue; }
       seen[type] = (seen[type] || 0) + 1;
@@ -266,24 +270,28 @@ export function createGeneralBrain(game, { clan }) {
       if ((def.needs || []).some(nd => /^tier(\d+)$/.test(nd) && Number(nd.slice(4)) > tier)) continue;   // not at this tier
       const why = militaryWhy(s, type, data, state);
       if (why && /at most/.test(why)) continue;
+      if ((def.needs || []).some(nd => blocked.has(nd) && !militaryCount(s, nd))) { blocked.add(type); if (!waits.includes(type)) waits.push(type); continue; }
       // a player's town builds only inside its military quarter: he does not save for what has no room there
-      if (!why && !militaryNeeds(s, type, data).length && !state.clans[s.owner]?.bot && spotFor(s, type, true) == null) continue;
-      add(buildingCost(data, type, s)); next ||= type.replace(/_/g, ' ');
+      if (!why && !militaryNeeds(s, type, data).length && !state.clans[s.owner]?.bot && spotFor(s, type, true) == null) { blocked.add(type); if (!noRoom.includes(type)) noRoom.push(type); continue; }
+      add(buildingCost(data, type, s)); next ||= nice(type);
     }
     const road = (s.milPlot?.road || []).filter(i => s.grid.use[i] === '.').length;
     if (road) { add({ timber: road * (data.placeCosts?.road?.timber ?? 1) }); next ||= 'the road to his military quarter'; }
-    return { cap, next };
+    const warn = noRoom.length ? `No room for a ${nice(noRoom[0])}: the military quarter is full. Paint more Military zone to fit it${waits.length ? `. Waiting behind it: ${waits.map(nice).join(', ')}` : ''}` : '';
+    return { cap, next, warn };
   }
   function prepare(out, cmd, s, zoneOnly = false) {
     if (!s.grid || s.capital || s.founded === undefined || (s.buildings || []).some(b => b.type === 'town_hall' && b.stage === 'ruined')) return;
     const G = gen().rules(), data = F().data, list = strat().defend?.build || [], R = G.buildReserve || {};
     const wOn = F().war.warOn?.(s.id), fund = wOn ? null : fundOf(s, data, state);
     if (fund) {
-      // nothing to save for: a share of 0, or a player's town with no military quarter (erased, or no room). What is in
-      // the fund goes back to the town (design review 2026-11-21: 0 means no military building, and no stock is locked up)
-      const idle = !(fundPct(s, data, state) > 0) || (!state.clans[s.owner]?.bot && !s.grid.zone.includes(data.zones?.military?.char));
+      // nothing to build: a share of 0, or a player's town with no military quarter (erased, or no room). A share of 0
+      // hands what is in the fund back to the town (design review 2026-11-21: 0 means no military building, and no
+      // stock is locked up). Tim 2026-11-22: otherwise the fund keeps filling whatever he is saving for.
+      const off = !(fundPct(s, data, state) > 0), idle = off || (!state.clans[s.owner]?.bot && !s.grid.zone.includes(data.zones?.military?.char));
       const fc = idle ? { cap: {}, next: '' } : fundCap(s, list, data);
-      setFundCap(s, F().world, fc.cap, fc.next, data);
+      setFundCap(s, F().world, fc.cap, fc.next, data, off);
+      if (fc.warn) fund.warn = fc.warn; else delete fund.warn;
       if (idle) return;
     }
     if (fund) zoneOnly = false;   // the fund decides what he may spend; the quarter decides where (spotFor keeps to it in player towns)

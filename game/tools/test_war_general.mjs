@@ -289,10 +289,11 @@ function scene(seed = 47, tune = null) {
     assert.ok(plot.length >= 6 && !s.milPlot.player, 'the general reserved a military quarter');
     assert.ok(mil.length >= 1 && mil.every(x => (x.cells || [x.cell]).some(c => plot.includes(c))), 'and builds inside it');
     assert.ok([...s.grid.zone].every((c, k) => c !== 'm' || plot.includes(k)), 'one block only'); }
-  // the player erased the quarter: it is not painted again, nothing is built and the fund is handed back
+  // the player erased the quarter: it is not painted again and nothing is built. Tim 2026-11-22: the fund keeps what
+  // it has (the share is always set aside, whatever he is saving for; a share of 0 hands it back, above)
   { const u = scene(), s = u.S.frontier.settlements.tP; fill(s); Object.assign(s.fund, { timber: 300, stone: 300, ryo: 300 }); Object.assign(s.stock, { timber: 100, stone: 100 }); s.milPlot = { tier: 1, cells: [1], road: [], erased: true }; s.autoBuild = true; u.run(1300);
     assert.ok(!s.grid.zone.includes('m') && ![...s.projects, ...s.buildings].some(x => isMil(x.type)), 'erased: no quarter, no building');
-    assert.ok(s.fund.timber + s.fund.stone + s.fund.ryo < 1, 'no military quarter: nothing stays locked in the fund'); }
+    assert.ok(s.fund.timber >= 300 && s.fund.stone >= 300 && s.fund.ryo >= 300, 'no military quarter: the fund keeps for an attack'); }
   // no zone: the player's general builds nothing, even with the initiative On
   { const u = scene(), s = u.S.frontier.settlements.tP; s.autoBuild = true; u.run(1300); assert.ok(!s.projects.some(p => isMil(p.type)), 'no zone, no building'); }
   // a rival fills its zone first
