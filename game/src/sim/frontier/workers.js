@@ -702,6 +702,19 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
           [e.x,e.z]=at;e.dir=dirIndex(at[2],at[3]);e.anim='run';
         }
       }
+      // Tim 2026-11-22: a town over its hall tier's worker limit (an old save, after the Town limit went from 90 to
+      // 60) lets the extra ones go back to the townspeople: those in training first, then the governor's idle ones,
+      // the player's own picks and anyone carrying or on a job last
+      if(!s.camp && (state.tick || 0)%20===0) {
+        let over=s.workers.length+s.workerTraining.length-workerCap(s,data);
+        if(Number.isFinite(over) && over>0) {
+          while(over>0 && s.workerTraining.length) {s.workerTraining.pop();world.changePop(s.id,R.personCost,'train');over--;}
+          const rank=w=>(w.by==='p' ? 8 : 0)+(w.garrison || w.job || w.project ? 4 : 0)+(w.carrying>0 ? 2 : 0)+(w.spot ? 1 : 0);
+          const out=new Set([...s.workers].sort((a,b)=>rank(a)-rank(b) || compare(b.id,a.id)).slice(0,Math.max(0,over)));
+          for(const w of out) {const e=state.entities?.[w.entity];if(e)runtime?.remove(e.id);world.changePop(s.id,R.personCost,'train');}
+          if(out.size)s.workers=s.workers.filter(w=>!out.has(w));
+        }
+      }
       // A disappeared/knocked-out live unit is a casualty, never a fresh spawn. Sleeping
       // records have entity:null, so they cannot be attacked or accidentally lost.
       s.workers=s.workers.filter(w=>{
