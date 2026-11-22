@@ -190,6 +190,30 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + (c.cap ? `<div style="position:absolute;left:calc(${mark}% - 1px);top:0;bottom:0;width:2px;background:#f2e6c9"></div>` : '') + `</div>`
       + `<div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${tired || !c.spots ? '#d9a25a' : '#7fc27a'}">${note}</div></div>`;
   }
+  // Workers in shelter, on the town hall card (Tim 2026-11-22): how many of the hall's room, why (hiding from an attack,
+  // sent in by hand, waiting for room at their camp, in a work camp), Back to work, and in a war Send the others in.
+  // The small pill over the hall (town_hover.js) points here.
+  const PILL_ICON = '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><circle cx="7" cy="4" r="2.7" fill="#f2e6c9"/><path d="M1.6 13.5c.4-3.6 2.5-5.4 5.4-5.4s5 1.8 5.4 5.4Z" fill="#f2e6c9"/></svg>';
+  function hallShelterHTML(s) {
+    const ws = s.workers || [], inside = ws.filter(w => w.shelter), war = Object.values(game.state.frontier?.wars?.list || {}).some(w => w.town === s.id);
+    if (!inside.length && !war) return '';
+    const hall = s.buildings?.find(b => b.type === 'town_hall' && b.stage === 'built'), SH = data.war?.structures?.shelter || {}, t = SH.capacityByTier;
+    const cap = t?.length ? t[Math.min(t.length, Math.max(1, s.tier || 1)) - 1] : SH.capacity, inHall = inside.filter(w => !w.shelter.b || w.shelter.b === hall?.id).length;
+    const why = { attack: 0, hand: 0, wait: 0, camp: 0 };
+    for (const w of inside) why[w.shelter.b && hall && w.shelter.b !== hall.id ? 'camp' : w.shelter.wait || w.wait ? 'wait' : w.shelter.manual ? 'hand' : 'attack']++;
+    const rows = [['attack', 'Hiding from the attack', '#e0786c', 'They go back by themselves once no enemy is near'], ['hand', 'Sent in by you', '#e9c27a', 'They stay until Back to work'],
+      ['wait', 'Waiting for room at their camp', '#8fa6b8', 'Their camp spots are full; they wait here until one frees up'], ['camp', 'In a work camp', '#9b9c98', 'Caught out near a lumber camp, quarry or food camp; they shelter there']]
+      .filter(([k]) => why[k]).map(([k, label, col, tip], i) => `<div title="${esc(tip)}" style="display:flex;justify-content:space-between;padding:2px 0;${i ? 'border-top:1px solid #25272a;' : ''}"><span style="color:#9b9c98"><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${col};margin-right:6px"></i>${label}</span><b style="color:#f2e6c9">${why[k]}</b></div>`).join('');
+    const out = ws.length - inside.length, pct = cap ? Math.min(100, Math.round(100 * inHall / cap)) : 0;
+    const back = inside.length ? `<button data-shelter="${esc(s.id)}" data-shelter-mode="leave" title="Every worker in shelter goes back to the job they had" style="background:linear-gradient(#35603b,#1f3a24);border-color:#7fc27a;color:#e8f5e4">Back to work <small style="color:#cfe6cb">all ${inside.length} inside</small></button>` : '';
+    const send = war && out > 0 ? `<button data-shelter="${esc(s.id)}" data-shelter-mode="enter" title="Every worker runs to the town hall and waits inside, safe, until Back to work${cap ? ` (room for ${cap})` : ''}">Send the other ${out} in</button>` : '';
+    return `<div style="margin-top:10px;padding:8px 9px;border:1px solid #6a5636;border-radius:7px;background:rgba(242,199,92,.05)">`
+      + `<div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;align-items:center;gap:5px;white-space:nowrap;font:600 10px/12px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#b9a77e">${PILL_ICON}Workers inside</span><span><b style="color:#f2e6c9;font-size:13px">${inHall}</b>${cap ? ` <span style="color:#9b9c98">/ ${cap} room</span>` : ''}</span></div>`
+      + (cap ? `<div style="height:7px;border-radius:4px;background:rgba(0,0,0,.5);overflow:hidden;margin:5px 0 6px"><div style="height:100%;width:${pct}%;background:#e9c27a"></div></div>` : '')
+      + (rows || '<div style="color:#9b9c98">Nobody in shelter. Your town is at war.</div>')
+      + (back || send ? `<div class="ti-acts" style="margin-top:7px">${back}${send}</div>` : '') + `</div>`
+      + `<div style="border-top:1px solid #3c3b36;margin-top:10px"></div>`;
+  }
   // Camp card (Tim 2026-11-06 21:20: a bar and chips, not a wall of text): storage used / cap, each cart, worker limit, Buy cart.
   // Tim 2026-11-22: the card kept resizing (the full note, cart chips and the carts line came and went or wrapped as carts
   // ran), so every row is always there, one line each.
@@ -395,7 +419,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (info.hall) {   // the town hall: its tier, people and workers as coins, then Build, Train worker and Upgrade
       const t = tierOf(trainTown, data), nw = (trainTown.workers || []).length;
       hallH = `<div class="ti-coins"><div title="Town hall tier"><b>${esc(t.name)}</b><span>Tier ${trainTown.tier || 1}</span></div><div title="Townsfolk and beds"><b>${Math.floor(trainTown.pop || 0)} / ${Math.floor(trainTown.housing || 0)}</b><span>People</span></div><div title="Workers and the most this tier allows"><b>${nw} / ${t.workers}</b><span>Workers</span></div></div>`
-        + `<div class="ti-acts"><button class="ti-go" data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker <small>${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</small></button></div><div data-worker-training></div>` + hallUpgradeButton(trainTown);
+        + hallShelterHTML(trainTown) + `<div class="ti-acts"><button class="ti-go" data-build="${esc(trainTown.id)}" title="Open this town's construction and zoning tools. No cost or technology requirement.">Build</button><button data-train="${esc(trainTown.id)}" title="${esc(trainingTip(trainTown))}">Train worker <small>${data.workers.cost} ryo${data.workers.goodsCost ? `, ${data.workers.goodsCost} goods` : ''}, ${data.workers.personCost} person</small></button></div><div data-worker-training></div>` + hallUpgradeButton(trainTown);
     }
     const html = tiHead(inspect.spot ? 'Resource spot' : info.hall ? `${trainTown.name}, town hall` : trainTown?.name || 'Your town', info.title, art)
       + (info.camp && info.camp.id ? campWorkHTML(info.camp, trainTown) : '')
@@ -422,6 +446,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (b?.dataset.train) requestTraining(b.dataset.train);
     if (b?.dataset.upgrade) command({ action: 'upgradeHall', settlement: b.dataset.upgrade });
     if (b?.dataset.rebuild) { command({ action: 'rebuild', settlement: b.dataset.rebuildTown, building: b.dataset.rebuild }); return; }
+    if (b?.dataset.shelter) { command({ action: 'hallShelter', town: b.dataset.shelter, mode: b.dataset.shelterMode }); return; }
     if (b?.dataset.buyCart) { command({ action: 'buyCart', town: b.dataset.cartTown, building: b.dataset.buyCart }); return; }
     if (b?.dataset.camp) { town = b.dataset.camp; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = b.dataset.campType; return; }
     if (b?.dataset.stable) { onStable(b.dataset.stable); inspect = null; card.hidden = true; return; }

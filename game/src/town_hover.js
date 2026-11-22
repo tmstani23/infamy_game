@@ -3,6 +3,9 @@
 import { drawableTowns, drawableWarSites, townPlots, garrisonCount } from './town_props.js';
 import { pointAt } from './sim/frontier/rail_route.js';
 
+// the worker icon on the small hall pill (Tim 2026-11-22)
+const HALL_PILL_ICON = '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><circle cx="7" cy="4" r="2.7" fill="#f2e6c9"/><path d="M1.6 13.5c.4-3.6 2.5-5.4 5.4-5.4s5 1.8 5.4 5.4Z" fill="#f2e6c9"/></svg>';
+
 export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null, openGarrison = null, openCamp = null, openTownWar = null }) {
   let plots = [], sig = '', mouse = { x: -1, y: -1 };
   const owner = () => game.state.entities[heroId]?.owner;
@@ -218,20 +221,21 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       el.textContent = `Inside ${n}${cap ? ` / ${cap}` : ''} · Evacuate`; el.title = 'Everyone inside walks out (Shift+K)';
       el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
     }
-    // the town hall (Tim 2026-11-19): workers sheltering inside, Back to work; during a war on the town, Shelter workers
-    const SH = frontierData?.war?.structures?.shelter || {};
+    // the town hall (Tim 2026-11-19): workers sheltering inside. Tim 2026-11-22: a small worker icon and the number, not
+    // a big chip; it lets clicks through to the hall, whose card has the details, Back to work and (in a war) Send the
+    // others in. A red rim while any hide from an attack.
     if (onIsland()) for (const s of drawableTowns(game.state.frontier, owner()).filter(t => t.owner === owner() && !t.capital)) {
       const hall = (s.buildings || []).find(x => x.type === 'town_hall' && x.stage === 'built'); if (!hall || !s.workers?.length) continue;
-      const n = s.workers.filter(w => w.shelter).length, war = Object.values(game.state.frontier?.wars?.list || {}).some(w => w.town === s.id);
-      if (!n && !war) continue;
+      const inside = s.workers.filter(w => w.shelter), n = inside.length;
+      if (!n) continue;
       const pl = townPlots([s]).find(q => q.id === hall.id); if (!pl) continue;
       const bk = `${s.id}|hall`; want.add(bk);
       let el = badges.get(bk);
-      if (!el) { el = document.createElement('button'); el.className = 'garrisonbadge'; el.addEventListener('click', ev => { ev.stopPropagation(); send({ id: heroId, type: 'frontier', action: 'hallShelter', town: s.id, mode: el.dataset.mode }); }); badgeEl.appendChild(el); badges.set(bk, el); }
-      const t = SH.capacityByTier, cap = t?.length ? t[Math.min(t.length, Math.max(1, s.tier || 1)) - 1] : null;
-      el.dataset.mode = n ? 'leave' : 'enter';
-      el.textContent = n ? `Workers inside ${n}${cap ? ` / ${cap}` : ''} · Back to work` : 'Shelter workers';
-      el.title = n ? 'Every worker in the hall goes back to the job they had' : `Every worker runs to the town hall and waits inside, safe, until Back to work${cap ? ` (room for ${cap})` : ''}`;
+      if (!el) { el = document.createElement('div'); el.className = 'hallpill'; badgeEl.appendChild(el); badges.set(bk, el); }
+      const attack = inside.some(w => !w.shelter.manual && !w.shelter.wait && !w.wait), html = `${HALL_PILL_ICON}<span>${n}</span>`;
+      if (el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; }
+      el.classList.toggle('attack', attack);
+      el.title = `${n} worker${n > 1 ? 's' : ''} in shelter. Click the hall for details and Back to work`;
       const u = view.unitToScreen(pl.x, pl.z, 3); el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
     }
     // a war camp's hall (Tim 2026-11-21): recall the camp's workers into it, and send them back, like a town hall

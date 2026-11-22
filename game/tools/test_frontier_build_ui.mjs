@@ -165,4 +165,14 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   const h2=card.innerHTML;assert.notEqual(h2,h1);assert.match(h2,/Full: workers walk to town/);assert.match(h2,/Carts keep up with about/);
   cam.store={timber:20};cam.carts=[{at:'back',t:30,load:{}}];ui.update();assert.equal(rows(card.innerHTML),rows(h2),'same rows as carts run and storage fills');cam.store={timber:data.workers.carts.cap};cam.carts=[{at:'out',t:200,load:{timber:90}}];ui.update();assert.equal(rows(card.innerHTML),rows(h1),'same rows whatever the carts do');
   s.buildings=keep;s.workers=keepW;emit('keydown',0,0,{code:'Escape'}); }
+// Tim 2026-11-22 hall shelter: the hall card says how many are inside and why, Back to work sends hallShelter leave
+{ const keepW=s.workers.map(w=>({...w}));s.workers[0].shelter={manual:true};
+  emit('keydown',0,0,{code:'Escape'});ui.close();downUp(C);ui.update();
+  const card=elements.find(e=>e.id==='towninspect'),h=card.innerHTML;
+  assert.match(h,/Workers inside/);assert.match(h,/Sent in by you/);assert.match(h,/data-shelter-mode="leave"/);
+  assert.doesNotMatch(h,/data-shelter-mode="enter"/,'Send the others in only in a war');
+  card.listeners.click({target:{closest:()=>({dataset:{shelter:'t',shelterMode:'leave'},hasAttribute:()=>false})}});
+  assert.deepEqual(sent.at(-1),{id:'h',type:'frontier',action:'hallShelter',town:'t',mode:'leave'});
+  s.workers=keepW;ui.update();assert.doesNotMatch(card.innerHTML,/Workers inside/,'no box with nobody inside and no war');
+  emit('keydown',0,0,{code:'Escape'}); }
 console.log('test_frontier_build_ui: ok');
