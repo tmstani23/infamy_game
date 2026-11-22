@@ -72,6 +72,14 @@ export function zoneStructureAt(s,i,data,stage=Number(s.grid.stage[i])) {
 // perf (2026-11-07 profile: 18% of a frontier tick): each cell's boxes are built once per settlement and
 // reused until the grid strings or the set of built buildings change
 const blockerCache=new WeakMap();
+const sameBox=(a,b)=>a.minX===b.minX && a.maxX===b.maxX && a.minZ===b.minZ && a.maxZ===b.maxZ;
+const sameList=(a,b)=>a.length===b.length && a.every((x,i)=>sameBox(x,b[i]));
+function sameCells(a,b) {
+  if(a.size!==b.size)return false;
+  const ka=[...a.keys()],kb=[...b.keys()];
+  for(let i=0;i<ka.length;i++)if(ka[i]!==kb[i] || !sameList(a.get(ka[i]),b.get(kb[i])))return false;
+  return true;
+}
 let blockerEpoch=0;
 // frontier tick calls this once a tick: buildings finished since are re-checked (grid edits are seen at once)
 export function townBlockersTick(){blockerEpoch++;}
@@ -88,6 +96,12 @@ export function townBlockersVersion(frontier,data) {
   for(const w of camps)campBoxesOf(w.camp,data);
   return blockerVersion;
 }
+// the same number, checked now rather than once a tick (worker routes keep per-cell answers under it, so a grid
+// edit made earlier in this tick must already count, as it does for townBlockersIn)
+export function townBlockersNow(frontier,data) {
+  versionEpoch=-1;
+  return townBlockersVersion(frontier,data);
+}
 const builtKey=s=>(s.tier || 1)+':'+s.buildings.map(b=>b.stage==='built'?b.id ?? (b.cells || [b.cell]).join('.'):'').join(',');
 // War camps (collision checkpoint 5b-2): a built camp building blocks the ground its art stands on; building
 // sites stay open, so builders and troops are never walled in. Kept per camp until its built buildings change.
@@ -100,7 +114,7 @@ function campBoxesOf(camp,data) {
     if(e.epoch===blockerEpoch)return e.boxes;
     if(campKey(camp)===e.key){e.epoch=blockerEpoch;return e.boxes;}
   }
-  const art=data?.townArt,boxes=[];
+  const art=data?.townArt;let boxes=[];
   for(const b of camp.buildings || []) {
     if(b.stage!=='built' || !Number.isFinite(b.x))continue;
     if(b.type==='gate')continue;   // a gate stops only the other side of the war (sim/frontier/structures.js gateBlockers)
@@ -108,7 +122,8 @@ function campBoxesOf(camp,data) {
     const fit=art?._placedFootprint?.[b.type];
     for(const o of artBoxes(data,tierArt(art,b.type,campTier(camp)),fit?11*fit:0) || [])boxes.push({minX:b.x+o.minX,maxX:b.x+o.maxX,minZ:b.z+o.minZ,maxZ:b.z+o.maxZ});
   }
-  blockerVersion++;
+  // routes 2026-11-22: the same boxes again (a camp building started, not finished) keep the old list and version
+  if(e && e.data===data && sameList(e.boxes,boxes))boxes=e.boxes;else blockerVersion++;
   campCache.set(camp,{data,key:campKey(camp),epoch:blockerEpoch,boxes});
   return boxes;
 }
@@ -249,12 +264,52 @@ function cellBoxesOf(s,data) {
       if(low(1,0))add({minX:x+half-t,maxX:x+half,minZ:z-half,maxZ:z+half});
     }
   }
-  blockerVersion++;
-  per.set(dk,{ab:abandonedKey(s),use:g.use,slope:g.slope,stage:g.stage,zone:g.zone,ground:g.ground,key,x:s.x,z:s.z,n:s.buildings.length,epoch:blockerEpoch,cells});
-  return cells;
+  // routes 2026-11-22 (worker lag): a field growing rebuilt the boxes and moved the version, so every kept
+  // per-cell answer (areas.js dynMemo, worker route cells) was thrown away though nothing solid changed
+  const kept=e && sameCells(e.cells,cells) ? e.cells : cells;
+  if(kept===cells)blockerVersion++;
+  per.set(dk,{ab:abandonedKey(s),use:g.use,slope:g.slope,stage:g.stage,zone:g.zone,ground:g.ground,key,x:s.x,z:s.z,n:s.buildings.length,epoch:blockerEpoch,cells:kept});
+  return kept;
 }
 // which cells block walking, as a string: changes only when something solid appears or goes (worker path cache key)
 export function townBlockSignature(s,data){data=townArtData(data);return s.grid && Number.isFinite(s.x)?[...cellBoxesOf(s,data).keys()].join(','):'';}
+// Worker route lag (2026-11-22): which fine walk cells have a centre box (centre +- pad) that meets a town or camp
+// blocker. at(i,j) gives the same answer as townBlockersIn(...).length>0 at that cell centre ((i+0.5)*cell), from sets
+// worked out once per town (or camp) each time its boxes change, instead of once per cell per route.
+const partSets=new WeakMap(),cellLookups=new Map();let cellLookupsOf=null;
+function partOf(boxes,list,pad,cell) {   // boxes: the kept cell map or camp box list (the cache key); list: its boxes
+  let per=partSets.get(boxes);if(!per)partSets.set(boxes,per=new Map());
+  const id=pad+'|'+cell;let part=per.get(id);
+  if(part)return part;
+  const set=new Set();let I0=Infinity,I1=-Infinity,J0=Infinity,J1=-Infinity;
+  for(const b of list) {
+    const i0=Math.floor((b.minX-pad)/cell-0.5)-1,i1=Math.ceil((b.maxX+pad)/cell-0.5)+1;
+    const j0=Math.floor((b.minZ-pad)/cell-0.5)-1,j1=Math.ceil((b.maxZ+pad)/cell-0.5)+1;
+    for(let j=j0;j<=j1;j++) {
+      const z=(j+0.5)*cell;if(!(b.maxZ>=z-pad && b.minZ<=z+pad))continue;
+      for(let i=i0;i<=i1;i++) {
+        const x=(i+0.5)*cell;if(!(b.maxX>=x-pad && b.minX<=x+pad))continue;
+        set.add(i*1048576+j);if(i<I0)I0=i;if(i>I1)I1=i;if(j<J0)J0=j;if(j>J1)J1=j;
+      }
+    }
+  }
+  per.set(id,part={set,I0,I1,J0,J1});
+  return part;
+}
+export function townBlockedCells(frontier,data,pad,cell) {
+  data=townArtData(data);
+  const v=townBlockersNow(frontier,data);
+  if(cellLookupsOf!==frontier){cellLookups.clear();cellLookupsOf=frontier;}
+  const id=pad+'|'+cell,e=cellLookups.get(id);
+  if(e && e.v===v && e.data===data)return e.lookup;
+  const parts=[];
+  for(const w of campsOf(frontier)){const boxes=campBoxesOf(w.camp,data);if(boxes.length)parts.push(partOf(boxes,boxes,pad,cell));}
+  for(const s of Object.values(frontier?.settlements || {}))if(s.grid && Number.isFinite(s.x)){const cells=cellBoxesOf(s,data);if(cells.size)parts.push(partOf(cells,[...cells.values()].flat(),pad,cell));}
+  const n=parts.length;
+  const lookup={at(i,j){for(let k=0;k<n;k++){const p=parts[k];if(i>=p.I0 && i<=p.I1 && j>=p.J0 && j<=p.J1 && p.set.has(i*1048576+j))return true;}return false;}};
+  cellLookups.set(id,{v,data,lookup});
+  return lookup;
+}
 // the box round all of a camp's boxes, kept with the box list (lag 2026-11-21: tryMove asks for blockers many times a tick)
 const campBounds=new WeakMap();
 function boundsOf(boxes) {
@@ -287,6 +342,32 @@ export function townBlockersIn(frontier,x0,z0,x1,z1,data) {
     }
   }
   return out;
+}
+// townBlockersIn(...).length>0 without building the list: stops at the first box (worker lag 2026-11-22)
+export function townBlocksBox(frontier,x0,z0,x1,z1,data) {
+  data=townArtData(data);
+  const wars=frontier?.wars?.list;
+  if(wars)for(const id in wars) {
+    const w=wars[id];if(!(w.camp && Number.isFinite(w.camp.x)))continue;
+    const boxes=campBoxesOf(w.camp,data),r=boundsOf(boxes);
+    if(!(r.maxX>=x0 && r.minX<=x1 && r.maxZ>=z0 && r.minZ<=z1))continue;
+    for(const b of boxes)if(b.maxX>=x0 && b.minX<=x1 && b.maxZ>=z0 && b.minZ<=z1)return true;
+  }
+  const towns=frontier?.settlements;
+  if(towns)for(const id in towns) {
+    const s=towns[id];
+    const g=s.grid;if(!g || !Number.isFinite(s.x))continue;
+    const mid=(g.n-1)/2,half=g.cell/2,thickness=data?.townGrid?.wallThickness || g.cell/20,pad=thickness/2;
+    const col0=Math.max(0,Math.ceil((x0-s.x-half-pad)/g.cell+mid)),col1=Math.min(g.n-1,Math.floor((x1-s.x+half+pad)/g.cell+mid));
+    const row0=Math.max(0,Math.ceil((z0-s.z-half-pad)/g.cell+mid)),row1=Math.min(g.n-1,Math.floor((z1-s.z+half+pad)/g.cell+mid));
+    if(col0>col1 || row0>row1)continue;
+    const cells=cellBoxesOf(s,data);
+    for(let r=row0;r<=row1;r++)for(let c=col0;c<=col1;c++) {
+      const bs=cells.get(r*g.n+c);if(!bs)continue;
+      for(const b of bs)if(b.maxX>=x0 && b.minX<=x1 && b.maxZ>=z0 && b.minZ<=z1)return true;
+    }
+  }
+  return false;
 }
 
 const fill = (n, ch) => ch.repeat(n * n);

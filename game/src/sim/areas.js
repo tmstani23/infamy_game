@@ -29,7 +29,7 @@ function heap() {
   };
 }
 
-export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers = () => [], dynamicVersion = null, walkOver = null }) {
+export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers = () => [], dynamicVersion = null, dynamicCells = null, walkOver = null }) {
   const S = cfg.chunk, CELL = cfg.navCell, N = Math.round(S / CELL), PAD = cfg.navPad ?? 0.4;
   const TC = world.terrain.cell, K = Math.round(S / TC);
   const NX = world.terrain.rows[0].length, NZ = world.terrain.rows.length;
@@ -42,6 +42,9 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   let planning = null;                   // L3.6: temporary fine grids; planning never activates chunks
   let planningBlocked = null;           // worker-only town obstacles; never changes normal navigation
   let freeMemo = null;
+  // worker lag 2026-11-22: during a worker search, the town blockers as ready lookups of blocked cells (town_grid.js
+  // townBlockedCells) instead of asking the building boxes cell by cell
+  let blockSet = null, dynSet = null;
   let searchSteps = null;               // worker routes search fewer fine steps first (lag fix 2026-11-08)
   const dynMemo = new Map(); let dynVer = null;                  // perf 2026-11-07: one worker search asks each cell up to ~10 times; answer once
   let clock = 0, stats = { built: 0, buildMs: 0, worstMs: 0 };
@@ -110,9 +113,11 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
     return freeRaw(i, j);
   }
   function freeRaw(i, j) {
-    if (planningBlocked?.(...centre(i, j))) return false;
+    if (blockSet) { if (blockSet.at(i, j)) return false; }
+    else if (planningBlocked?.(...centre(i, j))) return false;
     const [x,z]=centre(i,j),pad=cfg.navPad || 0;
-    if (dynamicVersion) {   // perf 2026-11-07: each cell's town-blocker answer is kept until a town's blockers change
+    if (dynSet) { if (dynSet.at(i, j)) return false; }
+    else if (dynamicVersion) {   // perf 2026-11-07: each cell's town-blocker answer is kept until a town's blockers change
       const v = dynamicVersion();
       if (v !== dynVer || dynMemo.size > 400000) { dynVer = v; dynMemo.clear(); }
       const k = i * 1048576 + j; let b = dynMemo.get(k);
@@ -485,9 +490,12 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
 
   // Full fine path for a saved worker trip, identical whether its chunks are awake or asleep.
   // Temporary grids are discarded after the search; neither residency nor cache size changes.
-  function workerPath(ax, az, bx, bz, blocked = null) {
+  // blockedCells(cell) (optional): the same answer as blocked() at every cell centre, as a lookup with at(i, j)
+  function workerPath(ax, az, bx, bz, blocked = null, blockedCells = null) {
     planning = new Map();
     planningBlocked = blocked;
+    blockSet = blocked && blockedCells ? blockedCells(CELL) : null;
+    dynSet = blockedCells && dynamicCells ? dynamicCells(cfg.navPad || 0, CELL) : null;
     freeMemo = new Map();
     try {
       const start = nearestFreeCell(ax, az), end = nearestFreeCell(bx, bz);
@@ -519,13 +527,13 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
         }
       }
       return out;
-    } finally { planning = null; planningBlocked = null; freeMemo = null; searchSteps = null; }
+    } finally { planning = null; planningBlocked = null; freeMemo = null; blockSet = null; dynSet = null; searchSteps = null; }
   }
   const nav = { beginPath, findPath, workerPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFreeCell(x, z); return c && centre(...c); } };
   // War checkpoint 6 (gates stop only the enemy): the same walk grid with extra ground closed for one side.
   // blocked(x, z) -> true where that side may not walk. Normal navigation is untouched.
   function blockedNav(blocked) {
-    const wrap = fn => (...a) => { const pb = planningBlocked, fm = freeMemo; planningBlocked = blocked; freeMemo = null; try { return fn(...a); } finally { planningBlocked = pb; freeMemo = fm; } };
+    const wrap = fn => (...a) => { const pb = planningBlocked, fm = freeMemo, bs = blockSet, ds = dynSet; planningBlocked = blocked; freeMemo = null; blockSet = null; dynSet = null; try { return fn(...a); } finally { planningBlocked = pb; freeMemo = fm; blockSet = bs; dynSet = ds; } };
     return { findPath: wrap(findPath), clearLine: wrap(clearLine), free: wrap(nav.free), nearestFree: wrap(nav.nearestFree), workerPath: (ax, az, bx, bz) => workerPath(ax, az, bx, bz, blocked),
       beginPath: wrap((...a) => { const job = beginPath(...a); return { advance: wrap(b => job.advance(b)), get work() { return job.work; }, get steps() { return job.steps; }, get done() { return job.done; }, get path() { return job.path; } }; }) };
   }

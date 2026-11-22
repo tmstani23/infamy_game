@@ -3,7 +3,7 @@ import { modeRules } from '../modes/index.js';
 // Saved worker records, integer-tick trips, ground clearing and nearby civilian units.
 // Stock/population still have one writer (world.js); no camera, DOM or Math.random.
 import { makeSpotIndex, spotState, spotYield, regrowSpot, supportsWorkers } from '../resource_spots.js';
-import { cellToWorld, worldToCell, townBlockersIn, townBlockSignature, campBlockSignature, ringRadius } from './town_grid.js';
+import { cellToWorld, worldToCell, townBlocksBox, townBlockedCells, townBlockSignature, campBlockSignature, ringRadius } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
 import { isFull } from './storage.js';
 import { cartRules, isCamp, campFull, stepCarts, buyCart, cartPoint, orderCarts, wreckCart } from './camp_carts.js';
@@ -36,7 +36,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     }
     return revision;
   }
-  const townBlocked = (x,z) => townBlockersIn(state.frontier,x,z,x,z,data).length>0;
+  const townBlocked = (x,z) => townBlocksBox(state.frontier,x,z,x,z,data);
   function crossesBlocker(p) {
     for(let i=1;i<p.length;i++) {
       const [ax,az]=p[i-1],[bx,bz]=p[i],n=Math.max(1,Math.ceil(Math.hypot(bx-ax,bz-az)));
@@ -81,13 +81,16 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   // worker routes keep R.buildingPad further from town buildings than their hard blocking box (Tim 2026-11-10: they
   // cut through the corners of the art); the ends of a route may still sit closer (the planner starts from the nearest free cell)
-  const planBlocked = (x,z) => { const k=R.buildingPad || 0; return townBlockersIn(state.frontier,x-k,z-k,x+k,z+k,data).length>0; };
+  const planBlocked = (x,z) => { const k=R.buildingPad || 0; return townBlocksBox(state.frontier,x-k,z-k,x+k,z+k,data); };
+  const planCells=cell=>townBlockedCells(state.frontier,data,R.buildingPad || 0,cell),townCells=cell=>townBlockedCells(state.frontier,data,0,cell);
   function path(a,b) {
     if(!runtime)return [a,b];
     geometryRevision();
     const key=JSON.stringify([a,b]);
-    if(paths.has(key))return paths.get(key);
-    let p=runtime.areas.nav.workerPath(...a,...b,planBlocked) || runtime.areas.nav.workerPath(...a,...b,townBlocked);
+    // worker lag 2026-11-22: a route in use moves to the back of the line, so a full cache drops the route unused longest
+    if(paths.has(key)){const kept=paths.get(key);paths.delete(key);paths.set(key,kept);return kept;}
+    // worker lag 2026-11-22: the planner reads the same blockers as ready sets of blocked cells
+    let p=runtime.areas.nav.workerPath(...a,...b,planBlocked,planCells) || runtime.areas.nav.workerPath(...a,...b,townBlocked,townCells);
     if(p && distance(a,p[0])>1e-6 && runtime.areas.nav.clearLine(...a,...p[0]))p=[a,...p];
     paths.set(key,p);if(paths.size>R.pathCacheSize)paths.delete(paths.keys().next().value);
     return p;

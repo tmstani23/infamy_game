@@ -19,7 +19,7 @@ import { largeFightsMemory, restoreLargeFights } from './large_fights.js';
 import { createItemServices } from './item_services.js';
 import { createVision } from './vision.js';
 import { createAreas } from './areas.js';
-import { townBlockersIn, townBlockersVersion } from './frontier/town_grid.js';
+import { townBlockersIn, townBlockersVersion, townBlockedCells } from './frontier/town_grid.js';
 import { registerTownArt } from './frontier/art_blocks.js';
 import { cityOnIsland } from './chunk_gen.js';
 import { createTerritory } from './territory.js';
@@ -197,7 +197,7 @@ export function createGame(options) {
   }
   // the island as a walkable place, e.place === 'world' (sim/areas.js, frontier W3.2); the city sits on it
   // at world.capital + cityOffset, as a blocker whose way in is the gate (W3.5)
-  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds), dynamicBlockers: (...box) => townBlockersIn(state.frontier,...box,options.frontier), dynamicVersion: () => townBlockersVersion(state.frontier, options.frontier), walkOver: castleWalkOver() }) : null;
+  const areas = options.world && options.worldChunks ? createAreas({ world: options.world, cfg: options.worldChunks, seed: options.world.seed ?? 1, city: cityOnIsland(options.world, district.bounds), dynamicBlockers: (...box) => townBlockersIn(state.frontier,...box,options.frontier), dynamicVersion: () => townBlockersVersion(state.frontier, options.frontier), dynamicCells: (pad, cell) => townBlockedCells(state.frontier, options.frontier, pad, cell), walkOver: castleWalkOver() }) : null;
   // the city gate out to the island (frontier W3.5, district.islandGate): a pair of doors, open in a
   // campaign match only. The island side stands just outside the city's west wall on the island.
   // The island side is the gate's spot on the island, pushed out past the nearest edge of the city.

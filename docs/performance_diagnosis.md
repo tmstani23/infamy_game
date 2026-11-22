@@ -138,3 +138,9 @@ Ticks about 20-25% faster in a 100-a-side battle, same fight results.
 - `sim/game.js`: `loadState` refreshes the per-tick unit indexes.
 - The tick-0 burst of about 400 path searches is left as is: 400 simultaneous orders do not happen in play.
 - Still left: target search.
+
+
+## Worker routes (2026-11-22)
+
+- Worker routes read a per-town blocked-cell lookup (`sim/frontier/town_grid.js` `townBlockedCells`); the route cache holds 512 and keeps in-use routes (`frontier.json`). Route search time is about a third of before on wartest1camp.
+- Still open: the governor review every 100 steps (70 to 100 ms) and crewStep (about 5 ms a step).
