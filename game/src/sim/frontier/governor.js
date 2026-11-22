@@ -16,12 +16,13 @@ import { workerCount } from './people.js';
 import { inCore, centreCell, hallRoadCell, worldToCell, cellToWorld } from './town_grid.js';
 import { streets, laneCells, townAims } from './streets.js';
 import { createMilitaryPlot } from './military_plot.js';
+import { supportsWorkers } from '../resource_spots.js';
 const EPS = 1e-9;
 const TAX_STEPS = ['low', 'normal', 'high'];
 // one-off or surplus flows that say nothing about the town's running goods balance
 const ONCE_FLOW = new Set(['build', 'train', 'upgrade', 'refund', 'market', 'test']);
 
-export function createGovernor({ state, data, world, economy, construction, zones = null, workers = null, placement = () => null, ship = {} }) {
+export function createGovernor({ state, data, world, economy, construction, zones = null, workers = null, placement = () => null, ship = {}, spotRules = null }) {
   const G = data.governor, f = () => state.frontier;
 
   function init(s) {
@@ -182,7 +183,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
       const use = {};
       for (const w of s.workers || []) { const sp = w.spot && workers.index.get(w.spot); if (sp && R.resources[sp.kind] === res) use[w.spot] = (use[w.spot] || 0) + 1; }
       const [top, n] = Object.entries(use).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0] || [];
-      if (!top || n < 2) continue;
+      if (!top || n < (res === 'food' ? 1 : 2)) continue;   // a food camp as soon as one worker fishes or forages (2026-11-21)
       const sp = workers.index.get(top), drops = s.buildings.filter(b => b.stage === 'built' && R.dropoffs.includes(b.type));
       // far from every drop-off (a start quarry no longer blocks a lumber camp by being a second drop-off, 2026-11-06)
       const dropXZ = b => { const pts = (b.cells?.length ? b.cells : [b.cell]).filter(i => i !== null && i !== undefined).map(i => cellToWorld(s, i)); return pts.length ? pts[0] : hall; };
@@ -303,6 +304,53 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return false;
   }
 
+  // Grow focus (2026-11-21 fix list 3): food first. The food camp comes right after the lumber camp, before the
+  // quarry, toward the nearest fish or forage spot away from the hall, with or without workers there yet.
+  // true = placed; 'save' = wanted but not affordable yet (the quarry waits, the workshops leave its cost).
+  const growing = s => s.autoBuild && (s.priority || 'grow') === 'grow';
+  const hasType = (s, t) => s.buildings.some(b => b.type === t) || s.projects.some(p => p.type === t);
+  function foodCampRule(s) {
+    const R = data.workers, reach = R.campReach || 0;
+    if (!growing(s) || !data.buildings?.food_camp || !workers?.index?.spotsNear || !placement() || hasType(s, 'food_camp')) return false;
+    if (data.buildings.lumber_camp && !hasType(s, 'lumber_camp') && placedRoom(s, 'lumber_camp', data) >= 1) return false;   // timber first: nothing gets built without it
+    if (placedRoom(s, 'food_camp', data) < 1) return false;
+    const grid = (data.townGrid?.radius ?? 600) - 2 * (s.grid?.cell || 11);
+    const food = workers.index.spotsNear(s.x, s.z, grid + reach).filter(p => R.resources[p.kind] === 'food')
+      .map(p => Math.hypot(p.x - s.x, p.z - s.z)).sort((a, b) => a - b);
+    if (!food.length || food[0] <= (G.campDistance ?? 70)) return false;
+    if (s.projects.some(p => !p.replaces)) return 'save';
+    const cost = data.buildings.food_camp.cost;
+    if (!Object.entries(cost).every(([r, v]) => (s.stock[r] || 0) >= v)) { s.gov.inputKeep ||= cost; s.report.next = 'Saving for a food camp: food first while the town grows'; return 'save'; }
+    const pid = siteCamp(s, 'food_camp');
+    if (!pid) return false;
+    construction.find(pid).project.byGov = true;
+    construction.authorize(pid);
+    s.report.next = 'Building a food camp by the nearest fish or forage';
+    return true;
+  }
+  // Grow focus: while food holds growth back (or falls), one of his own workers per review goes from timber or
+  // stone to the nearest food spot with room (spots by a food camp first). true = moved (no rebalance this review).
+  function foodHands(s) {
+    if (!growing(s) || !workers?.assign || !workers?.index?.spotsNear || !(s.workers || []).length) return false;
+    if (!(s.growthBlock === 'food' || s.gov.falling > 0) || isFull(s, data, 'food')) return false;
+    const R = data.workers, kindOf = w => w.spot && R.resources[workers.index.get(w.spot)?.kind];
+    const mine = s.workers.filter(w => w.by !== 'p' && w.spot && !w.order && !w.project && !w.trip?.kind && !(w.carrying > 0));
+    const onFood = s.workers.filter(w => kindOf(w) === 'food').length;
+    if (onFood >= Math.floor(s.workers.length * (G.growFoodShare ?? 0.5))) return false;
+    const count = r => s.workers.filter(w => kindOf(w) === r).length;
+    const donor = mine.filter(w => kindOf(w) && kindOf(w) !== 'food').sort((a, b) => count(kindOf(b)) - count(kindOf(a)) || (a.id < b.id ? -1 : 1))[0];
+    if (!donor) return false;
+    const camps = s.buildings.filter(b => b.type === 'food_camp' && b.stage === 'built' && Number.isInteger(b.cell)).map(b => cellToWorld(s, b.cell));
+    const near = new Map(workers.index.spotsNear(s.x, s.z, R.range).map(p => [p.id, p]));
+    for (const [x, z] of camps) for (const p of workers.index.spotsNear(x, z, R.campReach || 0)) near.set(p.id, p);
+    const per = {}; for (const t of Object.values(f().settlements || {})) for (const w of t.workers || []) if (w.spot) per[w.spot] = (per[w.spot] || 0) + 1;
+    const room = p => { const n = spotRules?.stages ? supportsWorkers(p, spotRules.stages) : null; return n == null || (per[p.id] || 0) < n; };
+    const drop = p => Math.min(Math.hypot(p.x - s.x, p.z - s.z), ...camps.map(([x, z]) => Math.hypot(p.x - x, p.z - z)));
+    const spot = [...near.values()].filter(p => R.resources[p.kind] === 'food' && room(p)).sort((a, b) => drop(a) - drop(b) || (a.id < b.id ? -1 : 1))[0];
+    if (!spot || !workers.assign(s, [donor.id], spot.id, 'g')?.ok) return false;
+    return true;
+  }
+
   // Tim 2026-11-05: with initiative the governor trains a worker when every worker is busy, people are idle,
   // nobody is training and there is ryo and goods to spare (bots use the same rule).
   function trainWorker(s) {
@@ -328,6 +376,12 @@ export function createGovernor({ state, data, world, economy, construction, zone
       const cap = storageCap(s, data, 'food'), farmZone = s.zones?.farm;
       const plenty = isFull(s, data, 'food') || (Number.isFinite(cap) && s.stock.food >= cap * (G.foodPlentyShare ?? 0.5));
       if (!plenty && !(farmZone && farmZone.cells > 0 && (farmZone.health ?? 1) < data.zones.healthyAt)) return suggest(s, 'farm', 'Farm: food not rising');
+    }
+    // 1c. Grow focus (2026-11-21 fix list 3): farm cells up to the tier limit early, while food is not plenty
+    if (growing(s) && idle >= G.idleNeeded && zones?.on(s) && !zones.busy(s, 'farm')) {
+      const fk = zoneKind(s, 'farm'), fch = fk && data.zones.kinds[fk]?.char, cap = storageCap(s, data, 'food'), farmZone = s.zones?.farm;
+      const plenty = isFull(s, data, 'food') || (Number.isFinite(cap) && s.stock.food >= cap * (G.foodPlentyShare ?? 0.5));
+      if (fch && zoneCells(s, fch) < cellCap(s, fk, data) && !plenty && !(farmZone && farmZone.cells > 0 && (farmZone.health ?? 1) < data.zones.healthyAt)) return suggest(s, 'farm', 'Farm: grow the town');
     }
     // 1b goods target (2026-11-06 soak fix): at least goodsProfitPerMin, and while the next hall tier's goods cost is
     // not yet in stock, enough to save it up within upgradeGoalMinutes
@@ -440,7 +494,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     init(s);
     // a bot clan's towns run themselves: its governor always takes initiative (2026-11-06)
     if (s.owner && state.clans?.[s.owner]?.bot) s.autoBuild = true;
-    if (s.autoBuild) { workers?.assignIdle(s); workers?.rebalance?.(s); }
+    if (s.autoBuild) { workers?.assignIdle(s); if (!foodHands(s)) workers?.rebalance?.(s); }
     const gov = s.gov;
     // a building finished or came back since the last review: give it time before judging food again
     const nBuilt = s.buildings.filter(b => b.stage === 'built').length;
@@ -461,8 +515,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (s.autoBuild) plot.run(s);   // the general's military quarter has first pick of new ground (Tim 2026-11-21)
     maintain(s);
     trainWorker(s);
-    const timber = timberCampRule(s);
-    if (timber === 'save' || (!timber && !campRule(s) && !richCampRule(s))) rules(s);
+    const timber = timberCampRule(s), food = timber ? false : foodCampRule(s);
+    if (timber === 'save' || food === 'save' || (!timber && !food && !campRule(s) && !richCampRule(s))) rules(s);
     promote(s);
     moodKeeper(s);
     const p = s.projects.find(x => x.authorized) || s.projects[0];
@@ -478,11 +532,11 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (!data.tiers?.list || !upgradeCheck(s, data, state).ok) return;
     const t = tierOf(s, data), atLimit = (zones?.on(s) && Object.entries(t.cells || {}).some(([k, cap]) => zoneCells(s, data.zones.kinds[k]?.char) >= cap))
       || workerCount(s) >= t.workers || data.resources.some(r => isFull(s, data, r));
-    if (!atLimit) return;
+    if (!atLimit && !growing(s)) return;   // on Grow as soon as he can (2026-11-21 fix list 3)
     if (s.autoBuild && s.owner && s.owner !== 'player') {
       startUpgrade(s, data, world, state);
       s.report.next = 'Upgrading the town hall';
-    } else s.report.next = `Upgrade the town hall to ${nextTier(s, data).name}: the town is at its tier limits`;
+    } else s.report.next = `Upgrade the town hall to ${nextTier(s, data).name}: ${atLimit ? 'the town is at its tier limits' : 'the town can afford it and grows faster after'}`;
   }
 
   // The player's OK on a suggestion (also used by the F2.8 command): queue it and authorize it.

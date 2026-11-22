@@ -58,7 +58,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const economy = createEconomy({ state, data, world: live, zones, workers, trade });
   const construction = createConstruction({ state, data, world: live,resourceIndex:workers.index });
   const shipRef = {};   // filled once shipments exist (the rail clerk)
-  const governor = createGovernor({ state, data, world: live, economy, construction, zones, workers, placement: () => placement, ship: shipRef });
+  const governor = createGovernor({ state, data, world: live, economy, construction, zones, workers, placement: () => placement, ship: shipRef, spotRules });
   const modules = [{ name: 'workers', workers, econTick: () => workers.econTick() }, { name: 'economy', econTick: () => economy.run() }, { name: 'construction', econTick: () => construction.run() },
     { name: 'governor', econTick: () => governor.run() }, { name: 'alerts', econTick: () => alerts.econTick() }];
   const alerts = createAlerts({ state, data });

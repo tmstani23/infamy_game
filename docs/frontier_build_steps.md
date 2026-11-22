@@ -420,7 +420,7 @@ Not chosen yet: food spoilage, big stockpiles drawing raids, export carts (left 
 | | Tier 1 Camp | Tier 2 Village | Tier 3 Town |
 |---|---|---|---|
 | Build ring (units) | 150 | 300 | 600 |
-| Housing / farm / work cells | 24 / 16 / 4 | 60 / 40 / 12 | 120 / 80 / 30 |
+| Housing / farm / work cells | 24 / 16 / 6 | 60 / 40 / 12 | 120 / 80 / 30 |
 | Storage cap per resource | 1,000 | 3,000 | 8,000 |
 | Storehouses (+500 cap each) | 1 | 2 | 4 |
 | Work camps (lumber, quarry, fishing, farmstead) | 3 | 4 | 8 |
@@ -429,6 +429,7 @@ Not chosen yet: food spoilage, big stockpiles drawing raids, export carts (left 
 | Upgrade to this tier | at founding | pop 20; timber 300, stone 150, goods 40 | pop 60; timber 1,200, stone 800, goods 250 |
 
 Camp tier allows 3 work camps (Tim 2026-11-21; was 2), one each for timber, stone and food; Village 4 and Town 8 unchanged.
+Camp tier has 6 work cells (Tim 2026-11-22; was 4).
 
 Farmsteads count against the farm cell limit. Upkeep per economy tick (1 s), only for cells above a free 12 per town: housing 0.003 timber per level; farm 0.002 timber; work 0.003 timber + 0.002 stone; storehouse 0.01 timber; stockade 0.02 stone; wall or gate cell 0.002 stone; workers 0.01 food each plus 0.002 ryo. Unpaid upkeep lowers zone health (existing health and abandon rules); placed buildings stop until paid. Goods: 0.002 per housing cell at level 2, 0.004 at level 3; short on goods = no level-ups and mood factor 90; founding `startStock` gains 10 goods. Ballpark: a capped tier 2 town (~140 cells) needs about 20 timber and 12 goods per minute.
 

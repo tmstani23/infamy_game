@@ -15,10 +15,10 @@ import { cellToWorld } from './frontier/town_grid.js';
 // current(id) -> null | { key, title, step, steps, rows: [{ icon, label, have, need, done, how, where }] }
 // where (Tim 2026-11-06): { x, z, place } of the spot an unfinished row points to (the Goal ping on the minimap
 // and the gold blink in the street), or null; read-only, from the state the clan can see.
-export const MAIN_STEPS = ['permit', 'settlers', 'surveyor', 'lieutenant', 'orders', 'leave', 'mount', 'castleOut', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'fund', 'strategy', 'quarter', 'barracks', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'warpack', 'war'];   // after the clan's starter goals
+export const MAIN_STEPS = ['permit', 'settlers', 'surveyor', 'lieutenant', 'orders', 'leave', 'mount', 'castleOut', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'fund', 'strategy', 'quarter', 'barracks', 'foodcamp', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'warpack', 'war'];   // after the clan's starter goals
 const ORDINAL = ['', '2nd ', '3rd ', '4th '];
 
-export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null, zones = null, harbourAt = () => null, hasCastle = () => false, castleApproach = () => null }) {
+export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, foodSpotNear = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null, zones = null, harbourAt = () => null, hasCastle = () => false, castleApproach = () => null }) {
   // Z2 (Tim 2026-11-19): the war goals (news of rival towns, pack, declare) wait until a rival town stands in a zone
   // where this clan has a town, or in a zone touching one
   const rivalInReach = id => {
@@ -236,6 +236,11 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
         pin(row('crew', 'Military building standing', 0, 1, town.autoBuild ? `Your general builds it from the safety fund${town.fund?.next ? `, saving for ${town.fund.next}` : ''}. A bigger share gets it sooner`
           : panel + 'press Military (gold) and place a barracks in the military zone, or set Governor initiative On and your general builds it from the fund')), holdRow(id)] };
     }
+    // fix list 1 (2026-11-21): food before the storehouse; gold mark on the nearest fish or forage spot (none in reach: no card).
+    // Camp tier only, so a save already past the Village upgrade is not sent back
+    const food = data.buildings?.food_camp && !has('food_camp') && (town.tier || 1) < 2 && foodSpotNear(town.x, town.z, data.workers?.range ?? 600);
+    if (food) return { key: 'foodcamp', title: 'Build a food camp', step: S0 + MAIN_STEPS.indexOf('foodcamp'), steps, rows: [
+      { ...row('town', 'Food camp', 0, 1, tool('Food camp', 'place it near the fish or forage at the gold mark: steady food, so the town keeps growing')), at: { x: food.x, z: food.z, place: 'world' } }, holdRow(id)] };
     if (data.buildings?.storehouse && !has('storehouse')) return { key: 'storehouse', title: 'Build a storehouse', step: S0 + MAIN_STEPS.indexOf('storehouse'), steps, rows: [pin(row('town', 'Storehouse', 0, 1,
       tool('Storehouse', 'click a spot by a road: it holds the stock you need for the upgrade'))), holdRow(id)] };
     const camps = [['lumber_camp', 'Lumber camp', 'near trees'], ['quarry', 'Quarry', 'near rocks']].filter(([t]) => data.buildings?.[t]);

@@ -119,7 +119,7 @@ g.clans.settlersOf = settlers;
 g.state.frontier.settlements.__t = { owner: 'player', founded: true, name: 'Test' };
 clan.permit = false;
 goal = g.goals.current('player');
-assert.equal(goal.step, 31);   // 27 before the four general goals (2026-11-21)
+assert.equal(goal.step, 32);   // 27 before the four general goals and the food camp goal (2026-11-21)
  assert.match(goal.title, /Influence/);
 assert.equal(goal.rows[0].label, 'Influence');
 delete g.state.frontier.settlements.__t;
@@ -221,10 +221,18 @@ console.log('campaign goals ok');
   g.state.tick = Math.ceil((g.state.tick + 1) / 10) * 10; g.goals.record([]);   // its milestone check, as each tick runs it
   assert.equal(cur().key, 'barracks', 'walking up to it counts as looked at');
   T.buildings.push({ type: 'barracks', stage: 'built' });
+  // fix list 1 (2026-11-21): a food camp before the storehouse, marked on the nearest fish or forage spot in reach
+  const fs = spots.find(p => p.kind === 'fish' || p.kind === 'forage');
+  Object.assign(T, { x: fs.x + 100, z: fs.z });
+  assert.equal(cur().key, 'foodcamp');
+  const fm = cur().rows[0];
+  assert.equal(fm.label, 'Food camp'); assert.equal(fm.where.place, 'world');
+  assert.ok(Math.hypot(fm.where.x - T.x, fm.where.z - T.z) <= 100 + 1e-6, 'the mark is on the nearest food spot');
+  T.projects = [{ type: 'food_camp' }];
   assert.equal(cur().key, 'storehouse');
   T.buildings.push({ type: 'storehouse', stage: 'built' });
   assert.equal(cur().key, 'camps');
-  T.projects = [{ type: 'lumber_camp' }, { type: 'quarry' }];
+  T.projects.push({ type: 'lumber_camp' }, { type: 'quarry' });
   assert.equal(cur().key, 'infirmary');
   T.buildings.push({ type: 'infirmary', stage: 'built' });
   assert.equal(cur().key, 'people');

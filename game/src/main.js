@@ -420,7 +420,7 @@ async function start() {
     for (const btn of $('landoffice').querySelectorAll('[data-pick]')) btn.classList.toggle('goal-flash',
       !btn.disabled && ((btn.dataset.pick === '0' && !!goal?.key?.startsWith('permit') && L.permitStatus(c.id).ok) || (btn.dataset.pick === '1' && !!goal?.key?.startsWith('settlers'))));
     // Town setup goals (Tim 2026-11-06): flash the next button in the town panel, or the Town icon while it is shut
-    const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm', 'Work cells': 'work', Storehouse: 'storehouse', 'Lumber camp': 'lumber_camp', Quarry: 'quarry', People: 'housing', Infirmary: 'infirmary', 'Military zone painted': 'military' };
+    const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm', 'Work cells': 'work', Storehouse: 'storehouse', 'Lumber camp': 'lumber_camp', Quarry: 'quarry', 'Food camp': 'food_camp', People: 'housing', Infirmary: 'infirmary', 'Military zone painted': 'military' };
     game.goalKey = goal?.key;
     const workerSteps = kind => {
       const q = s => document.querySelector(`#townpanel ${s}`);
@@ -434,7 +434,7 @@ async function start() {
       document.addEventListener('click', e => { const b = e.target.closest?.('#townpanel [data-act="build-worker-spot"]');
         if (b && (game.goalKey === 'workers' || game.goalKey === 'stone')) callout(`Now right-click the ${b.dataset.kind === 'stone' ? 'rocks' : 'trees'} to send your selected worker there`, 'news', 9000); }, true); }
     const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"].buildbig', '[data-build]'];   // the Workers button only flashes in the worker steps (Tim 2026-11-20)
-    const step = goal && { layout: toolSteps, goods: toolSteps, storehouse: toolSteps, camps: toolSteps, people: toolSteps, infirmary: toolSteps,
+    const step = goal && { layout: toolSteps, goods: toolSteps, storehouse: toolSteps, foodcamp: toolSteps, camps: toolSteps, people: toolSteps, infirmary: toolSteps,
       govorders: () => goal.rows[0].done ? ['[data-act="auto"][data-id="on"]', '[data-act="approve"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="priority"][data-id="grow"]', '[data-act="tab"][data-id="governor"]'],
       // Tim 2026-11-20: one step at a time: Workers button, a worker card to select, the Spots tab, the node's Look button; then a callout says to right-click
       stone: () => workerSteps('stone'),
