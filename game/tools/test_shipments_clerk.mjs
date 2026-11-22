@@ -36,15 +36,15 @@ assert.equal(open().filter(o => o.auto).length, 0, 'no auto orders while the gov
 const K = railways.ship.keep, ryoB = B.stock.ryo;
 sh.clerk(B);
 const want = r => open().find(o => o.to === 'tB' && o.resource === r);
-for (const r of ['food', 'timber', 'stone', 'goods']) assert.ok(want(r), `auto order for ${r}`);
+for (const r of ['food', 'timber', 'stone']) assert.ok(want(r), `auto order for ${r}`);
+assert.ok(!want('goods'), 'no own town has goods: goods refills are never bought at the capital (Tim 2026-11-22)');
 assert.equal(want('food').amount, K.food, 'orders up to the keep amount');
 assert.deepEqual(want('food').sources.map(x => x.from), ['tA'], 'food from the surplus town');
 assert.deepEqual(want('stone').sources.map(x => x.from), ['capital'], 'no surplus stone anywhere: bought at the port');
 const price = railways.ship.buyPrice;
-assert.equal(B.stock.ryo, ryoB - want('stone').ryoPaid - want('goods').ryoPaid, 'paid for at once');
+assert.equal(B.stock.ryo, ryoB - want('stone').ryoPaid - (want('timber').ryoPaid || 0), 'paid for at once');
 assert.equal(want('stone').ryoPaid, K.stone * price.stone);
-assert.equal(want('goods').amount * price.goods, want('goods').ryoPaid, 'goods order shrinks to what the budget buys (it wanted up to the market hold-back)');
-assert.ok(want('stone').ryoPaid + want('goods').ryoPaid <= railways.ship.budget, 'within the auto-buy budget');
+assert.ok(want('stone').ryoPaid <= railways.ship.budget, 'within the auto-buy budget');
 
 // a second review adds nothing new (the need is covered)
 const n = Object.keys(F.shipping.orders).length;
@@ -53,6 +53,15 @@ assert.equal(Object.keys(F.shipping.orders).length, n, 'no duplicate orders');
 
 // everything arrives by train
 assert.ok(run(20000, () => !open().some(o => o.to === 'tB')), 'all delivered');
+
+// fix list 13 (Tim 2026-11-22): no refill until the stock falls below half the keep, then one order back up to the keep
+B.stock.food = K.food * 0.6;
+sh.clerk(B);
+assert.ok(!want('food'), 'above half the keep: no refill');
+B.stock.food = K.food * 0.4;
+sh.clerk(B);
+assert.equal(want('food')?.amount, K.food * 0.6, 'below half the keep: back up to the keep in one order');
+assert.ok(run(20000, () => !open().some(o => o.to === 'tB')), 'refill delivered');
 
 // manual order with a port budget, refund on cancel
 cmd({ mode: 'budget', town: 'tB', ryo: 0 });

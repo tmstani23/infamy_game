@@ -92,4 +92,17 @@ st('tA').stone = 4;   // spent
 assert.ok(run(6000, () => o4.got > 0 || sh.inFlight(o4.id) > 0), 'the stone that was left still rides');
 assert.ok(st('tA').stone >= 0, 'no negative stock');
 assert.ok(sh.reservedOf(F.settlements.tA, 'stone') <= 15, 'the spent part of the reservation is dropped');
+// fix list 17 (Tim 2026-11-22): your own order rides before an older auto order at the same station
+for (const o of Object.values(F.shipping.orders)) if (o.state === 'open') { sh.release(o); o.state = 'cancelled'; }
+st('tA').timber = 400; st('tB').timber = 0;
+cmd({ mode: 'order', town: 'tB', resource: 'timber', amount: 120, pin: 'tA' });
+const oAuto = Object.values(F.shipping.orders).at(-1); oAuto.auto = true;   // as the governor's clerk makes it, placed first
+g.step([]);
+cmd({ mode: 'order', town: 'tB', resource: 'timber', amount: 120, pin: 'tA' });
+const oMine = Object.values(F.shipping.orders).at(-1);
+assert.ok(oMine.created > oAuto.created && !oMine.auto, 'the manual order is the newer one');
+assert.ok(run(6000, () => (t1.freight || []).some(c => c.order === oMine.id || c.order === oAuto.id)), 'a train loads at tA');
+const on = id => (t1.freight.find(c => c.order === id) || {}).amount || 0;
+assert.ok(on(oMine.id) > 0, 'your order takes the train first (all the room left on it)');
+assert.equal(on(oAuto.id), 0, 'the auto order waits for the next train');
 console.log('test_shipments_trains: ok');

@@ -180,8 +180,17 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       if (isRyo) ryoRoom -= n; else room -= n;
       return n;
     };
-    for (const w of waiting) take(w, wagonLoad());           // one wagon-load per waiting order, in turn
-    for (const w of waiting) take(w, Infinity);              // then fill the spare room
+    // Tim 2026-11-22 (fix list 17): your own orders ride first: urgent ones, then your other orders, then auto orders
+    // (oldest first in each). Each group gets one wagon-load per order in turn, then the spare room, before the next.
+    const rank = o => !o ? 3 : o.auto ? 2 : o.urgent ? 0 : 1;
+    const orderOf = w => w.from === 'yard' ? rec().orders[w.c.order] : w.o;
+    const groups = [[], [], [], []];
+    for (const w of waiting) groups[rank(orderOf(w))].push(w);
+    for (const g of groups) {
+      g.sort((a, b) => (orderOf(a)?.created ?? 0) - (orderOf(b)?.created ?? 0));
+      for (const w of g) take(w, wagonLoad());           // one wagon-load per waiting order, in turn
+      for (const w of g) take(w, Infinity);              // then fill the spare room
+    }
     if (rec().yards[at]) rec().yards[at] = rec().yards[at].filter(c => c.amount > 0);
     for (const o of Object.values(rec().orders)) o.sources = o.sources.filter(x => x.amount > 0);
   }
@@ -478,6 +487,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     const cand = peers.filter(t => t && free(t, o.resource, o) > 0).map(t => [routeLen(s.owner, t.id, s.id), t]).filter(([d]) => d < Infinity).sort((a, b) => a[0] - b[0]);
     for (const [, t] of cand) { if (need() <= 0) return; accept(o.id, t.id, need()); }
     if (need() <= 0 || o.pin || (s.camp && !(o.ryo > 0))) return;   // a camp buys only with a ryo offer (Tim 2026-11-17)
+    if (o.auto && (S().noCapitalBuy || ['goods']).includes(o.resource)) return;   // Tim 2026-11-22: goods refills come from your own towns only
     const price = S().buyPrice?.[o.resource] ?? 5, left = o.auto ? (s.autoBuy === false ? 0 : budgetOf(s) - spentOf(s)) : (o.ryo || 0) - (o.ryoPaid || 0);
     const n = Math.min(need(), Math.floor(left / price));
     if (n > 0 && route(s.owner, 'capital', s.id)) accept(o.id, 'capital', n);
@@ -521,8 +531,14 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     for (const w of Object.values(state.frontier.wars?.list || {})) if (w.defender === owner && w.town === s.id) autoChest(owner, w);   // 8e-2
     if (!Object.values(state.frontier.rail?.links || {}).some(l => l.owner === owner && l.done && !l.closed && (l.from === s.id || l.to === s.id))) return;
     const min = S().minOrder ?? 10;
-    for (const res of RES()) {   // 1. auto orders for what the town lacks against its keep amount
-      const lack = Math.min(keepOf(s, res) - (s.stock[res] ?? 0) - openIncoming(s.id, res), storageCap(s, data, res) - (s.stock[res] ?? 0) - openIncoming(s.id, res));
+    // 1. auto orders for what the town lacks against its keep amount. Tim 2026-11-22 (fix list 13): only once the stock
+    // (with what is already on its way) falls below ship.refillBelow of the keep, then one order back up to the keep, so
+    // the market selling down to the keep never sets off small refills from far away
+    const below = S().refillBelow ?? 0.5;
+    for (const res of RES()) {
+      const have = (s.stock[res] ?? 0) + openIncoming(s.id, res), keep = keepOf(s, res);
+      if (have >= keep * below) continue;
+      const lack = Math.min(keep - have, storageCap(s, data, res) - have);
       if (lack >= min) place({ owner, quiet: true }, { town: s.id, resource: res, amount: lack, auto: true });
     }
     for (const o of orders().filter(o => o.state === 'open' && o.to === s.id && !o.auto && o.kind !== 'ryo')) cover(s, o);   // your own orders first
