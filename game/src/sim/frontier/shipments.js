@@ -23,6 +23,7 @@
 //   | { mode: 'cancel', order } | { mode: 'keep', town, resource, keep } | { mode: 'budget', town, ryo, [autoBuy] }
 // createShipments({ state, data, world }) -> { command, linked, keepOf, reservedOf, free, openIncoming, accept, release }
 import { storageCap, defaultKeep } from './storage.js';
+import { nextTier } from './tiers.js';
 import { debitRyo, creditRyo } from '../treasury.js';
 import { addCampStock } from './camp_stock.js';
 // 8e-1 (2026-11-16) ryo by train: an order of kind 'ryo' carries ryo from the Clan treasury (source 'capital') or a
@@ -550,34 +551,20 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       const short = o.amount - o.got - inFlight(o.id) - o.sources.reduce((a, x) => a + x.amount, 0);
       if (short > 0) { o.amount -= short; if (o.amount <= 1e-9) delete rec().orders[o.id]; }
     }
-    // 3. spare goods to the capital for ryo (only well above the keep amount, and the store is mostly full)
+    // 3. Tim 2026-11-22 (replaces the 2026-11-17 full-store rule): what is above the keep goes to the capital for ryo,
+    // goods, timber and stone (ship.sell.resources), one batch per resource at a time, only once at least sell.min is
+    // spare. The keep (plus reserved stock and the next hall tier cost) is what stays, war or not (Tim 2026-11-22: the
+    // keep can be raised for a war); food is never sold on its own.
     const sell = S().sell || {};
-    const cap = storageCap(s, data, 'goods');
-    if (sell.on !== false && Number.isFinite(cap) && s.autoBuy !== false && (s.stock.goods ?? 0) >= cap * (sell.aboveShare ?? 0.7)
-      && !orders().some(o => o.state === 'open' && o.kind === 'sell' && o.sellFrom === s.id) && route(owner, s.id, 'capital')) {
-      // never below the market's hold-back level (Tim 2026-11-09: the two keep levels agree)
-      const hold = keepOf(s, 'goods');
-      const n = Math.floor(Math.min((s.stock.goods ?? 0) - hold - reservedOf(s, 'goods'), sell.batch ?? 120));
-      if (n >= min) {
-        const id = `o${++rec().seq}`;
-        rec().orders[id] = { id, owner, to: 'capital', kind: 'sell', sellFrom: s.id, resource: 'goods', amount: n, got: 0, ryo: 0, pin: null, urgent: false, auto: true, state: 'open', sources: [], created: state.tick ?? 0 };
-        accept(id, s.id, n);
-      }
-    }
-    // 4. Tim 2026-11-17: timber and stone only when the store is full and more would go to waste: the top slice goes
-    // to the capital (ship.overflow: at = share of storage that triggers it, downTo = where it sells down to). Never
-    // while a war is on the town or it is filling a war camp's order; food is never sold on its own
-    const OV = S().overflow || {};
-    if (OV.on !== false && s.autoBuy !== false && route(owner, s.id, 'capital') && !Object.values(state.frontier.wars?.list || {}).some(w => w.town === s.id)
-      && !orders().some(o => o.state === 'open' && o.camp && o.kind !== 'sell' && o.sources.some(x => x.from === s.id))) {
-      for (const res of OV.resources || ['timber', 'stone']) {
-        const capR = storageCap(s, data, res);
-        if (!Number.isFinite(capR) || (s.stock[res] ?? 0) < capR * (OV.at ?? 1) - 1) continue;   // (within 1 of full)
+    if (sell.on !== false && s.autoBuy !== false && route(owner, s.id, 'capital')) {
+      const tierCost = nextTier(s, data)?.upgrade?.cost || {};
+      for (const res of sell.resources || ['goods', 'timber', 'stone']) {
         if (orders().some(o => o.state === 'open' && o.kind === 'sell' && o.sellFrom === s.id && o.resource === res)) continue;
-        const n = Math.floor(Math.min((s.stock[res] ?? 0) - capR * (OV.downTo ?? 0.9), (s.stock[res] ?? 0) - keepOf(s, res) - reservedOf(s, res)));
-        if (n < min) continue;
+        const hold = Math.max(keepOf(s, res), tierCost[res] || 0) + reservedOf(s, res);
+        const n = Math.floor(Math.min((s.stock[res] ?? 0) - hold, sell.batch ?? 240));
+        if (n < Math.max(min, sell.min ?? 60)) continue;
         const id = `o${++rec().seq}`;
-        rec().orders[id] = { id, owner, to: 'capital', kind: 'sell', sellFrom: s.id, resource: res, amount: n, got: 0, ryo: 0, pin: null, urgent: false, auto: true, overflow: true, state: 'open', sources: [], created: state.tick ?? 0 };
+        rec().orders[id] = { id, owner, to: 'capital', kind: 'sell', sellFrom: s.id, resource: res, amount: n, got: 0, ryo: 0, pin: null, urgent: false, auto: true, state: 'open', sources: [], created: state.tick ?? 0 };
         accept(id, s.id, n);
       }
     }

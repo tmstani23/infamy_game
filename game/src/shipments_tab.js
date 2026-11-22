@@ -165,7 +165,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
     let h = `<h1>${esc(s.name)}</h1>`;
     // Tim 2026-11-09: say clearly, and briefly, that auto ordering is the governor's job and only while he is on auto
     h += s.autoBuild
-      ? `<div class="shauto on"${tip('While the governor is on auto, his rail clerk orders what this town lacks (below its keep amounts), takes spare stock from your other towns first, buys the rest from the capital within the auto-buy budget, and sells spare goods.')}>Auto orders <b>on</b>, the governor keeps stock at your keep amounts</div>`
+      ? `<div class="shauto on"${tip('While the governor is on auto, his rail clerk orders what this town lacks (below its keep amounts), takes spare stock from your other towns first, buys the rest from the capital within the auto-buy budget, and sells goods, timber and stone above your keep amounts to the capital.')}>Auto orders <b>on</b>, the governor keeps stock at your keep amounts</div>`
       : `<div class="shauto"${tip('Turn the governor to auto (Governor tab, Initiative On) and his rail clerk orders what this town lacks by himself. Your own orders always ship.')}>Auto orders <b>off</b>, governor not on auto</div>`;
     if (!hasLine(s)) return h + '<div class="shcard off"><b>Needs a rail line</b><br><span class="dim">Lay a line from this town\'s railway station (Link to...).</span></div>';
     const open = mine(s), T = (id, label, t) => `<button data-act="ship" data-id="sub:${id}" class="${sub === id ? 'on' : ''}"${tip(t)}>${label}</button>`;

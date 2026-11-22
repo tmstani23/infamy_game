@@ -89,26 +89,28 @@ const ryoA = A.stock.ryo;
 assert.ok(run(20000, () => sale.state === 'done'), 'sale delivered to the capital');
 assert.ok(A.stock.ryo > ryoA, 'tA was paid');
 
-// Tim 2026-11-17: timber and stone are sold only when the store is full (ship.overflow), down to ship.overflow.downTo
-// of storage; not below that, never during a war on the town or while it fills a war camp's order; food never
-{ const cap = g.frontier.data.storage.caps[(A.tier || 1) - 1], OV = railways.ship.overflow, sells = r => open().filter(x => x.kind === 'sell' && x.sellFrom === 'tA' && x.resource === r);
+// Tim 2026-11-22: goods, timber and stone above the keep go to the capital, a batch at a time once at least sell.min
+// is spare; the keep stays, war or not; food never
+{ const SL = railways.ship.sell, sells = r => open().filter(x => x.kind === 'sell' && x.sellFrom === 'tA' && x.resource === r);
   for (const x of open()) { sh.release(x); x.state = 'cancelled'; }
-  A.stock.timber = cap - 50; A.stock.food = cap; A.reserved = {};
+  const K = 800;   // above the next hall tier cost, which is held back too
+  A.reserved = {}; A.marketKeep = K; A.keep = { ...(A.keep || {}), timber: K, stone: K, food: K };
+  A.stock.timber = K + SL.min - 1; A.stock.food = K + 500; A.stock.goods = K; A.stock.stone = K;
   sh.clerk(A);
-  assert.equal(sells('timber').length, 0, 'not full: no sale');
+  assert.equal(sells('timber').length, 0, 'less than sell.min above the keep: no sale yet');
   assert.equal(sells('food').length, 0, 'food is never sold on its own');
-  A.stock.timber = cap;
+  A.stock.timber = K + SL.batch + 50; A.stock.goods = K + SL.min;
   F.wars ||= { list: {}, cooldown: {}, history: [] }; F.wars.list.wq = { id: 'wq', town: 'tA', attacker: 'x', defender: 'player', state: 'active' };
   sh.clerk(A);
-  assert.equal(sells('timber').length, 0, 'not while a war is on the town');
   delete F.wars.list.wq;
-  sh.clerk(A);
-  const ov = sells('timber')[0];
-  assert.ok(ov && ov.overflow, 'full: the top slice is sold');
-  assert.equal(ov.amount, Math.floor(cap - cap * OV.downTo), 'down to ' + OV.downTo + ' of storage');
-  sh.clerk(A); assert.equal(sells('timber').length, 1, 'one sale open at a time');
+  const ts = sells('timber')[0];
+  assert.ok(ts && ts.auto, 'above the keep: sold, war or not');
+  assert.equal(ts.amount, SL.batch, 'one batch at a time');
+  assert.equal(sells('goods')[0]?.amount, SL.min, 'goods above the keep too');
+  assert.equal(A.stock.timber - sh.reservedOf(A, 'timber'), K + 50, 'the keep and the rest stay');
+  sh.clerk(A); assert.equal(sells('timber').length, 1, 'one sale open at a time per resource');
   for (const x of open()) { sh.release(x); x.state = 'cancelled'; }
-  A.stock.food = 300; A.stock.timber = 300; }
+  A.stock.food = 300; A.stock.timber = 300; A.keep = {}; delete A.marketKeep; }
 
 // with the governor on auto the review runs the clerk
 B.autoBuild = true;

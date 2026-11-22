@@ -246,12 +246,11 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   // Economy pass 2 D (Tim 2026-11-05): a built market sells goods above the keep level for ryo.
   // Tim 2026-11-22 (fix list 15): timber and stone too (market.resources: slower, low price; rail to the capital pays
   // better), each above its own keep, which is the same number as its rail keep (s.keep[res]). Never stock reserved
-  // for a rail order, and timber and stone not while a war is on the town (as the governor's overflow sales).
+  // for a rail order. The keep is what stays, war or not (Tim 2026-11-22).
   function market(s) {
     const mk = data.market;
     if (!mk || !s.buildings.some(b => b.type === 'market' && b.stage === 'built')) return;
-    const atWar = Object.values(f().wars?.list || {}).some(w => w.town === s.id);
-    const sellAt = { goods: { price: mk.price, perTick: mk.perTick }, ...(atWar ? {} : mk.resources || {}) };
+    const sellAt = { goods: { price: mk.price, perTick: mk.perTick }, ...(mk.resources || {}) };
     for (const [res, m] of Object.entries(sellAt)) {
       // a town on auto also holds back what its next hall tier costs (2026-11-21 soak: else the market sells it and the hall never goes up)
       const save = s.autoBuild ? (nextTier(s, data)?.upgrade?.cost?.[res] || 0) : 0;

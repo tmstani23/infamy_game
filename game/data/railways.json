@@ -52,7 +52,7 @@
     }
   },
   "ship": {
-    "_note": "Rail shipments (Tim 2026-11-08), placeholders, Tim to tune. keep = default stock a town never ships out (per resource; later: upkeep plus next build); minOrder = smallest order; queueTrips (Tim 2026-11-09) = your own undelivered orders into a town may add up to this many trainloads per line at the town (trainload = goods wagons x wagonLoad; 3 x 240 = 720 (Tim 2026-11-17: wagons carry double, 120 each), about 3 round trips, ~11 min on a capital line); maxAuto = open auto orders per town; budget = default auto-buy ryo per town at the port (a town may have this much tied up in open auto orders); buyPrice / sellPrice = ryo per unit at the port wholesale houses (buying costs more than selling pays); sell = spare goods go to the capital once the store is above aboveShare full, batch at a time; keepMax = highest keep a player can set.",
+    "_note": "Rail shipments (Tim 2026-11-08), placeholders, Tim to tune. keep = default stock a town never ships out (per resource; later: upkeep plus next build); minOrder = smallest order; queueTrips (Tim 2026-11-09) = your own undelivered orders into a town may add up to this many trainloads per line at the town (trainload = goods wagons x wagonLoad; 3 x 240 = 720 (Tim 2026-11-17: wagons carry double, 120 each), about 3 round trips, ~11 min on a capital line); maxAuto = open auto orders per town; budget = default auto-buy ryo per town at the port (a town may have this much tied up in open auto orders); buyPrice / sellPrice = ryo per unit at the port wholesale houses (buying costs more than selling pays); sell = what is above the keep goes to the capital (see sell._note); keepMax = highest keep a player can set.",
     "resources": ["food", "timber", "stone", "goods"],
     "keep": { "food": 40, "timber": 30, "stone": 10, "goods": 10 },
     "minOrder": 10,
@@ -62,8 +62,7 @@
     "budget": 150,
     "buyPrice": { "food": 3, "timber": 4, "stone": 5, "goods": 8 },
     "sellPrice": { "food": 2, "timber": 2, "stone": 3, "goods": 5 },
-    "sell": { "on": true, "aboveShare": 0.7, "batch": 240 },
-    "overflow": { "on": true, "resources": ["timber", "stone"], "at": 1, "downTo": 0.9, "_note": "placeholder (Tim 2026-11-17): the governor sells timber and stone only when the store is full (at = share of storage), down to downTo of storage, never while a war is on the town or it fills a war camp order; food is never sold on its own" },
+    "sell": { "on": true, "resources": ["goods", "timber", "stone"], "batch": 240, "min": 60, "_note": "placeholder (2026-11-22): with Initiative on, each governor review sends what is above the keep (and above the next hall tier cost) to the capital, at most batch per resource per open order, only once at least min is spare; the keep is what stays, war or not; food is never sold on its own" },
     "maxAuto": 4,
     "keepMax": 100000,
     "refillBelow": 0.5, "noCapitalBuy": ["goods"], "_refill": "placeholder (Tim 2026-11-22, fix list 13): the governor orders a refill only when a town's stock plus what is on its way falls below refillBelow of its keep, then orders back up to the keep in one go; auto refills of noCapitalBuy resources come from your own towns only, never bought at the capital",
