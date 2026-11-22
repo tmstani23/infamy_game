@@ -238,6 +238,18 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       el.title = `${n} worker${n > 1 ? 's' : ''} in shelter. Click the hall for details and Back to work`;
       const u = view.unitToScreen(pl.x, pl.z, 3); el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
     }
+    // a tired work camp (Tim 2026-11-22): more workers on its spots than they keep busy (workers.js s.tiredCamps). An
+    // amber pill that pulses over the camp, lets clicks through to it; its card has Move extras.
+    if (onIsland()) for (const s of drawableTowns(game.state.frontier, owner()).filter(t => t.owner === owner() && !t.capital)) for (const c of s.tiredCamps || []) {
+      const pl = townPlots([s]).find(q => q.id === c.id); if (!pl) continue;
+      const bk = `${s.id}|tired|${c.id}`; want.add(bk);
+      let el = badges.get(bk);
+      if (!el) { el = document.createElement('div'); el.className = 'hallpill camptired'; badgeEl.appendChild(el); badges.set(bk, el); }
+      const html = `<i><span>!</span></i>${HALL_PILL_ICON.replace(/#f2e6c9/g, '#f6e7cc')}<span>${c.extra} too many</span>`;
+      if (el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; }
+      el.title = `${c.n} workers on this camp's spots, which keep ${c.max} busy: ${c.extra} over the max. Click the camp, then Move extras`;
+      const u = view.unitToScreen(pl.x, pl.z, 3); el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
+    }
     // a war camp's hall (Tim 2026-11-21): recall the camp's workers into it, and send them back, like a town hall
     if (onIsland()) for (const w of Object.values(game.state.frontier?.wars?.list || {})) {
       if (w.attacker !== owner() || !w.camp?.workers?.length) continue;

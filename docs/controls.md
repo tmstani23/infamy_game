@@ -150,6 +150,8 @@ Edit layout toolbar: drag any empty space on it to move it; position is saved, R
 
 War bar default position: top 104 px, below the standings bar.
 
+- Work camp card: Move extras button (2026-11-22, shows when the camp is over its max) hands the extra workers back to the governor. Card button, no key.
+
 ## Camera and view
 
 | Key | What it does |

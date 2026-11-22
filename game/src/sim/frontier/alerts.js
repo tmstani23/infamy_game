@@ -29,6 +29,7 @@ export function townNeed(s, frontier, data, st = {}) {
   const full = (data.resources || []).filter(r => isFull(s, data, r));
   if (full.length) why.push({ key: 'full', text: `${full.join(', ')} full`, score: Math.min(full.length, 2) * w('full') });
   if ((s.suggestions || []).length) add('suggestion', 'governor suggestion');
+  if (s.tiredCamps?.length) add('campTired', 'work camp over its max');
   if (s.housing > 0 && residents(s) >= s.housing) add('housing', 'housing full');
   if (data.tiers?.list && upgradeCheck(s, data, { frontier }).ok) add('upgrade', 'can upgrade');
   why.sort((a, b) => b.score - a.score);
@@ -36,13 +37,14 @@ export function townNeed(s, frontier, data, st = {}) {
   const level = score >= (L.urgent ?? 50) ? 'urgent' : score >= (L.high ?? 25) ? 'high' : score >= (L.medium ?? 10) ? 'medium' : score > 0 ? 'low' : 'ok';
   return { score, level, why };
 }
-const DEFAULT_NEED = { attack: 50, destroyed: 30, blocked: 30, food: 25, moodVeryLow: 30, mood: 20, unsafe: 15, full: 5, suggestion: 5, housing: 5, upgrade: 5 };
+const DEFAULT_NEED = { attack: 50, destroyed: 30, blocked: 30, food: 25, moodVeryLow: 30, mood: 20, unsafe: 15, full: 5, suggestion: 5, housing: 5, upgrade: 5, campTired: 5 };
 
 export function createAlerts({ state, data }) {
   const A = data.alerts || {};
   const cooldown = A.cooldownEcon ?? 20;   // economy ticks per town and kind
   const urgentKinds = new Set(['attack', 'destroyed', 'blocked']);
-  const TEXT = { militaryUpkeep: 'cannot pay the upkeep of its military buildings (they keep working)', attack: 'is under attack!', destroyed: 'lost a building', blocked: 'road blocked', mood: 'mood has fallen below 40', food: 'is running out of food', finished: 'project finished', suggestion: 'governor has a suggestion', tier: 'town hall upgraded' };
+  const TEXT = { militaryUpkeep: 'cannot pay the upkeep of its military buildings (they keep working)', attack: 'is under attack!', destroyed: 'lost a building', blocked: 'road blocked', mood: 'mood has fallen below 40', food: 'is running out of food', finished: 'project finished', suggestion: 'governor has a suggestion', tier: 'town hall upgraded', campTired: 'has a work camp with too many workers' };
+  const TIP = { campTired: 'Its spots have more workers than they keep busy, so the extras add little. Click the camp (it pulses amber) and press Move extras.' };
   for (const r of data.resources || []) TEXT[`full_${r}`] = `${r} store is full`;   // B2 storage caps
 
   function econTick() {
@@ -51,11 +53,11 @@ export function createAlerts({ state, data }) {
     for (const s of Object.values(f.settlements)) {
       if (s.capital || !s.owner || !s.stock) continue;
       const st = (as[s.id] ||= { on: {}, at: {}, last: null });
-      const say = (event) => {
+      const say = (event, line = null) => {
         if (st.at[event] !== undefined && f.econTick - st.at[event] < cooldown) return;
         st.at[event] = f.econTick;
         const fullTip = event.startsWith('full_') ? 'Workers on it wait. Build a storehouse, upgrade the town hall, or spend it.' : null;
-        (state.news ||= []).push({ kind: 'town', event, clan: s.owner, settlement: s.id, name: s.name, text: `${s.name} ${TEXT[event]}`, tip:fullTip || s.report?.statusTips?.[event] || s.report?.moodWhy?.map(w=>w.tip).join('\n') || 'Open this town for current requirements and status.', urgent: urgentKinds.has(event) });
+        (state.news ||= []).push({ kind: 'town', event, clan: s.owner, settlement: s.id, name: s.name, text: line || `${s.name} ${TEXT[event]}`, tip:fullTip || TIP[event] || s.report?.statusTips?.[event] || s.report?.moodWhy?.map(w=>w.tip).join('\n') || 'Open this town for current requirements and status.', urgent: urgentKinds.has(event) });
       };
       const cond = (event, active) => { if (active && !st.on[event]) say(event); st.on[event] = active; };
       const road = Object.values(f.roads || {}).some(r => (r.from === s.id || r.to === s.id) && r.state === 'blocked');
@@ -64,6 +66,10 @@ export function createAlerts({ state, data }) {
       cond('food', (s.report?.waiting || []).includes('food'));
       cond('suggestion', (s.suggestions || []).length > 0);
       cond('militaryUpkeep', !!s.militaryShort);   // 8b-1: a warning only
+      // Tim 2026-11-22: a work camp with more workers on its spots than they keep busy (workers.js econTick: s.tiredCamps)
+      const tired = s.tiredCamps?.[0];
+      if (tired && !st.on.campTired) { const label = data.buildings?.[tired.type]?.name || tired.type.replace(/_/g, ' '); say('campTired', `${s.name} ${label.toLowerCase()}: ${tired.extra} worker${tired.extra > 1 ? 's' : ''} over the max`); }
+      st.on.campTired = !!tired;
       if (s.tierUpAt === f.econTick) say('tier');   // B3
       // Tim 2026-11-05: a repeating reminder while the hall upgrade is affordable (the player starts it)
       if (data.tiers?.list && upgradeCheck(s, data, state).ok) {

@@ -9,7 +9,7 @@ import { startUpgrade } from './tiers.js';
 import { militaryWhy, startWarUpgrade } from './town_military.js';
 import { setFundPct } from './fund.js';
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
-const ACTIONS = ['setPriority', 'buyCart', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall', 'warUpgradeHall', 'setMarketKeep', 'setFund', 'rebuild', 'cartOrder'];
+const ACTIONS = ['setPriority', 'buyCart', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall', 'warUpgradeHall', 'setMarketKeep', 'setFund', 'rebuild', 'cartOrder', 'campExtras'];
 
 // hooks.rail (set by frontier.js once the railway exists): a station's lines, torn up when it is removed (Tim 2026-11-07)
 export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones, workers, hooks = {} }) {
@@ -50,15 +50,16 @@ export function createCommands({ state, data, world, economy, construction, gove
       world.setTownOrder(e.owner, c.order);
       return receipt(e, c, true);
     }
-    if(c.action==='train' || c.action==='assign' || c.action==='workerOrder' || c.action==='buyCart' || c.action==='cartOrder') {
+    if(c.action==='train' || c.action==='assign' || c.action==='workerOrder' || c.action==='buyCart' || c.action==='cartOrder' || c.action==='campExtras') {
       let s=typeof c.town==='string' ? world.settlement(c.town):null;
       if(!s && typeof c.town==='string' && workers?.siteOf)s=workers.siteOf(c.town);   // a war camp (town = the war id)
       if(!s)return reject(e,c,'no such settlement');
       if(s.capital)return reject(e,c,'the capital has no frontier economy');
       if(s.camp && c.action==='buyCart')return reject(e,c,'a war camp has no carts');
+      if(s.camp && c.action==='campExtras')return reject(e,c,'a war camp has no work camps');
       if(s.owner==null || s.owner!==e.owner)return reject(e,c,'not your settlement');
       if(!workers)return reject(e,c,'workers unavailable');
-      const r=c.action==='cartOrder' ? workers.cartOrder(s,c.mode,c.building):c.action==='buyCart' ? workers.buyCampCart(s,c.building):c.action==='train' ? (s.camp ? workers.trainCamp(s,c.count) : workers.train(s,c.count)):c.action==='workerOrder' ? workers.workerOrder(s,c.workers,c.kind,c):workers.assign(s,c.workers,c.spot,c.by==='g'?'g':'p');
+      const r=c.action==='campExtras' ? workers.campExtras(s,c.building):c.action==='cartOrder' ? workers.cartOrder(s,c.mode,c.building):c.action==='buyCart' ? workers.buyCampCart(s,c.building):c.action==='train' ? (s.camp ? workers.trainCamp(s,c.count) : workers.train(s,c.count)):c.action==='workerOrder' ? workers.workerOrder(s,c.workers,c.kind,c):workers.assign(s,c.workers,c.spot,c.by==='g'?'g':'p');
       return r.ok ? receipt(e,c,true):reject(e,c,r.reason);
     }
     if (c.action === 'place' || c.action === 'remove' || c.action === 'zone') {   // L3.2/L3.3: build bar actions, named by `town`

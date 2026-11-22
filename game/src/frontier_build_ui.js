@@ -149,8 +149,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + `</details>`;
   }
   // average full-speed trip (walk out + back, at full harvest) of the workers on a spot, in seconds; null if none
-  function tripSecondsAt(spot) {
-    const ws = towns().flatMap(t => t.workers || []).filter(w => w.spot === spot.id && w.trip && !w.trip.kind);
+  // drop = only trips to that building (the camp card: one carrying on to a far hall while the camp is full is not a camp trip)
+  function tripSecondsAt(spot, drop = null) {
+    const ws = towns().flatMap(t => t.workers || []).filter(w => w.spot === spot.id && w.trip && !w.trip.kind && (!drop || w.dropoff === drop));
     if (!ws.length) return null;
     const full = data.workers.harvestTicks * spot.pieces.length / spotYield(spot, null, spotRules.stages);
     return ws.reduce((a, w) => a + (w.trip.out + w.trip.back + full) / 20, 0) / ws.length;
@@ -173,7 +174,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     let n = 0, cap = 0, extra = 0, spots = 0;
     for (const p of spotIndex.spotsNear(x, z, r)) {
       if (!takes.includes(W.resources?.[p.kind]) || !known(p.x, p.z)) continue;
-      const k = count[p.id] || 0, o = overwork(p, game.state.frontier?.spots?.[p.id], spotRules.stages, k, W.overwork, tripSecondsAt(p)), best = o.best ?? k;
+      const k = count[p.id] || 0, o = overwork(p, game.state.frontier?.spots?.[p.id], spotRules.stages, k, W.overwork, tripSecondsAt(p, b.id)), best = o.best ?? k;
       spots++; n += k; cap += best; extra += Math.max(0, k - best);
     }
     return { n, cap, extra, spots, res: takes.join(' and '), reach: r };
@@ -182,13 +183,15 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   function campWorkHTML(b, s) {
     const c = campWork(b, s); if (!c) return '';
     const most = Math.max(1, c.n, Math.ceil(c.cap * 1.5)), fill = Math.round(100 * Math.min(c.n, c.cap) / most), over = Math.round(100 * c.extra / most), mark = Math.round(100 * c.cap / most), tired = c.extra > 0;
-    const tip = `Workers on the ${c.res} spots within ${c.reach} of this camp (${c.spots} spot${c.spots === 1 ? '' : 's'}), and about how many those spots keep busy at full speed. More than that and the spots get tired: extra workers add little.`;
-    const note = !c.spots ? `No ${c.res} spots within reach of this camp` : tired ? `Tired: ${c.extra} more than the spots can use, move some` : c.n < c.cap ? `Room for ${c.cap - c.n} more worker${c.cap - c.n > 1 ? 's' : ''}` : 'Full: every spot busy';
-    return `<div title="${esc(tip)}">${campHead('Workers')}<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#b9b3a6">On spots beside this camp</span><span><b style="color:${tired ? '#e3b06a' : '#eadfc6'}">${c.n}</b> of about ${c.cap}</span></div>`
+    const tip = `Workers on the ${c.res} spots near this camp (${c.spots} spot${c.spots === 1 ? '' : 's'}). The max is how many those spots keep busy at full speed. Past it the spots get tired and extra workers add little.`;
+    const note = !c.spots ? `No ${c.res} spots within reach of this camp` : tired ? `${c.extra} over the max of ${c.cap}` : c.n < c.cap ? `Room for ${c.cap - c.n} more (max ${c.cap})` : `At the max of ${c.cap}`;
+    return `<div title="${esc(tip)}">${campHead('Workers')}<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#b9b3a6">Workers at this camp</span><span><b style="color:${tired ? '#e3b06a' : '#eadfc6'}">${c.n}</b></span></div>`
       + `<div style="position:relative;height:8px;border-radius:4px;background:rgba(0,0,0,.45);overflow:hidden;margin:3px 0"><div style="position:absolute;left:0;top:0;bottom:0;width:${fill}%;background:#7fc27a"></div>`
       + (over ? `<div style="position:absolute;left:${fill}%;top:0;bottom:0;width:${over}%;background:repeating-linear-gradient(135deg,#e3b06a 0 4px,#9a6a2e 4px 8px)"></div>` : '')
       + (c.cap ? `<div style="position:absolute;left:calc(${mark}% - 1px);top:0;bottom:0;width:2px;background:#f2e6c9"></div>` : '') + `</div>`
-      + `<div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${tired || !c.spots ? '#d9a25a' : '#7fc27a'}">${note}</div></div>`;
+      + `<div style="display:flex;align-items:center;gap:8px;min-height:22px"><div style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${tired || !c.spots ? '#d9a25a' : '#7fc27a'}">${note}</div>`
+      // Move extras (Tim 2026-11-22): hands the extra workers back to the governor (a camp spot with room, or a wait in the hall)
+      + (tired ? `<button data-camp-extras="${esc(b.id)}" data-cart-town="${esc(s.id)}" title="${esc(`Hand the ${c.extra} extra worker${c.extra > 1 ? 's' : ''} back to the governor. He puts them on a spot beside a camp with room, or they wait in the town hall until one opens. With Initiative off they stand idle.`)}" style="flex:none;font-size:11px;padding:2px 8px">Move extras</button>` : '') + `</div></div>`;
   }
   // Workers in shelter, on the town hall card (Tim 2026-11-22): how many of the hall's room, why (hiding from an attack,
   // sent in by hand, waiting for room at their camp, in a work camp), Back to work, and Send the others in (in peace too, Tim 2026-11-22).
@@ -448,6 +451,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (b?.dataset.rebuild) { command({ action: 'rebuild', settlement: b.dataset.rebuildTown, building: b.dataset.rebuild }); return; }
     if (b?.dataset.shelter) { command({ action: 'hallShelter', town: b.dataset.shelter, mode: b.dataset.shelterMode }); return; }
     if (b?.dataset.buyCart) { command({ action: 'buyCart', town: b.dataset.cartTown, building: b.dataset.buyCart }); return; }
+    if (b?.dataset.campExtras) { command({ action: 'campExtras', town: b.dataset.cartTown, building: b.dataset.campExtras }); return; }
     if (b?.dataset.camp) { town = b.dataset.camp; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = b.dataset.campType; return; }
     if (b?.dataset.stable) { onStable(b.dataset.stable); inspect = null; card.hidden = true; return; }
     if (b?.dataset.build) { town = b.dataset.build; opened = true; onBuild(town); inspect = null; card.hidden = true; }

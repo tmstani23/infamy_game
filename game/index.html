@@ -420,6 +420,11 @@
   .garrisonbadge:hover { background: #3a2a14; }
   .hallpill { position: fixed; transform: translate(-50%, -100%); pointer-events: none; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px 3px 6px; font: 600 13px/17px system-ui, sans-serif; color: #f2e6c9; background: rgba(12,14,18,.88); border: 1.5px solid #e0b45a; border-radius: 11px; box-shadow: 0 0 0 1px #000, 0 2px 8px #000c; white-space: nowrap; }
   .hallpill.attack { border-color: #e0786c; }
+  .hallpill.camptired { gap: 5px; padding: 3px 9px 3px 4px; color: #f6e7cc; font: 700 13px/16px "Palatino Linotype", "Book Antiqua", Georgia, serif; letter-spacing: .02em; background: linear-gradient(#3a1410, #1c0807); border: 1px solid #c9a46a; border-radius: 3px; box-shadow: inset 0 0 0 1px #000, inset 0 1px 0 rgba(255,220,170,.18), 0 2px 6px #000; animation: camptired 1.4s ease-in-out infinite; }
+  .hallpill.camptired > i { display: inline-grid; place-items: center; width: 16px; height: 16px; transform: rotate(45deg); background: #b8281c; border: 1px solid #e8c48a; font-style: normal; }
+  .hallpill.camptired > i > span { transform: rotate(-45deg); font: 900 11px/1 Georgia, serif; color: #fff2dc; }
+  .hallpill.camptired::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -5px; border: 5px solid transparent; border-bottom: 0; border-top: 6px solid #c9a46a; }
+  @keyframes camptired { 0%, 100% { box-shadow: inset 0 0 0 1px #000, inset 0 1px 0 rgba(255,220,170,.18), 0 2px 6px #000, 0 0 0 0 rgba(230,50,30,0); } 50% { box-shadow: inset 0 0 0 1px #000, inset 0 1px 0 rgba(255,220,170,.18), 0 2px 6px #000, 0 0 16px 6px rgba(230,50,30,.7); } }
   /* ability rows over the action bar (src/ability_rows.js, war checkpoint 7) */
   #bar .abilityrow { display: flex; gap: 6px; padding: 6px 8px; background: linear-gradient(#14171d, #0b0d11); border: 1px solid rgba(233,194,122,.28); border-radius: 10px; box-shadow: 0 6px 22px rgba(0,0,0,.55); }
   #bar .abilityrow[hidden] { display: none; }

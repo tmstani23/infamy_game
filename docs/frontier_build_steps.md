@@ -3144,3 +3144,12 @@ Tests: `tools/test_shipments.mjs`, `test_shipments_clerk.mjs`, `test_shipments_t
 - Town hall card: the Workers inside section shows in peace too, with "Send all N workers in" / "Send the other N in" and Back to work (command `hallShelter`). After Back to work the governor leaves them alone for `workers.waitGraceTicks` (1200); a job or order by hand ends the wait and makes the worker the player's.
 - Another camp: while a worker waits, the governor (Initiative on, bots too) builds another camp beside a spot with none: scarcest resource first, a rich deposit before an ordinary spot, then nearest the hall; within the tier camp limit, one project at a time. Otherwise the status line says why (no camp slot at this hall tier, saving for a quarry, no free ground, stores full, after the current project).
 - Placeholders, Tim to tune. Code: `sim/frontier/workers.js`, `governor.js`, `structures.js`, `worker_panel.js`, `frontier_build_ui.js`. Test: `game/tools/test_camp_side.mjs`.
+
+## Camp card Move extras and tired camps (2026-11-22)
+
+- Camp card Workers section: "Workers at this camp N" (workers on the camp's kind of spots within campReach). Under the bar: "X over the max of M", "Room for X more (max M)" or "At the max of M". The max counts only trips to this camp, so a worker carrying on to a far hall while the camp is full does not drag it down.
+- Move extras button (shows when over the max): hands the workers past each spot's max back to the governor (by 'g'), the governor's own first, then those with no load; one carrying hands his load in first (`w.offSpot`). The governor puts them on a camp spot with room or they wait in the town hall; with Initiative off they stand idle. Command frontier `campExtras {town, building}`, `workers.campExtras`.
+- Tired camp alert: once when a town's work camp goes over the max ("<Town> food camp: 14 workers over the max"), listed in the all-towns needs ("work camp over its max", weight 5). `workers` econTick sets `s.tiredCamps` [{id, type, extra, n, max}].
+- Map marker: a small painted plate over a tired camp (red diamond "!", worker icon, "14 too many") with a soft red glow that pulses; clicks pass through to the camp; hover gives the full sentence (`town_hover.js`, `.hallpill.camptired`).
+- The full-camp rule (2026-11-06) is unchanged: a full camp sends workers on to the hall or a storehouse.
+- Test: `game/tools/test_camp_extras.mjs`.

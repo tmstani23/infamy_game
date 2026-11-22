@@ -158,7 +158,11 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   s.buildings=[...keep,cam];s.workers[0].spot='tree';
   emit('keydown',0,0,{code:'Escape'});ui.close();downUp(at(2,0));ui.update();
   const card=elements.find(e=>e.id==='towninspect'),h1=card.innerHTML;
-  assert.match(h1,/<b[^>]*>1<\/b> of about \d+/,'camp card counts the workers on its spots');
+  assert.match(h1,/Workers at this camp<\/span><span><b[^>]*>1<\/b>/,'camp card counts the workers on its spots');
+  assert.match(h1,/Room for \d+ more \(max \d+\)/,'and says how many more fit');assert.doesNotMatch(h1,/data-camp-extras/,'no Move extras while under the max');
+  { const many=s.workers.slice(0,12),was=many.map(w=>w.spot);for(const w of many)w.spot='tree';ui.update();const h=card.innerHTML;
+    if(/over the max of/.test(h))assert.match(h,/data-camp-extras="lc1"/,'Move extras shows when over the max');
+    many.forEach((w,i)=>w.spot=was[i]);s.workers[0].spot='tree';ui.update(); }
   assert.match(h1,/Empty slot/);assert.match(h1,/known after one trip/);
   const rows=h=>(h.match(/<div/g)||[]).length;
   cam.store={timber:data.workers.carts.cap};cam.carts=[{at:'out',t:200,load:{timber:90}}];cam.cartTicks=400;ui.update();
