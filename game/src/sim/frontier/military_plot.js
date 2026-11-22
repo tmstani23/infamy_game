@@ -144,6 +144,7 @@ export function createMilitaryPlot({ state, data, world, zones, placement = () =
     const g = s.grid, n = g.n, ch = MZ();
     const mine = [], theirs = [];
     for (let i = 0; i < n * n; i++) if (g.zone[i] === ch) (g.by[i] === 'p' ? theirs : mine).push(i);
+    if (s.fund?.grow?.length && !s.milPlot?.erased) { if (s.fund.growWait > 0) s.fund.growWait--; else grow(s, s.fund.grow, s.milPlot); }   // a full quarter grows, his or the player's (2026-11-22); nothing without a quarter (grow)
     if (theirs.length && !s.milPlot?.cells?.length) { s.milPlot = { player: true }; delete s.report.military; return; }   // he painted his own: it wins
     const mp = s.milPlot;
     if (mp?.player || mp?.erased) { if (mp.player) delete s.report.military; return; }
@@ -165,6 +166,61 @@ export function createMilitaryPlot({ state, data, world, zones, placement = () =
     delete s.report.military;
     s.milPlot = { tier, cells: got.cells, road: got.road };
     layRoad(s);
+  }
+
+  // Tim 2026-11-22: a full quarter grows by itself, a quarter the player painted too (this replaces "his zone is
+  // never touched" of 2026-11-21). The general (war_general_brain fundCap) names in s.fund.grow the next buildings of
+  // his list from the first with no room (up to plot.ahead, 3). One strip is added for them: the buildings side by
+  // side, one building deep, with a one-cell road lane along one long side, so the quarter never walls ground off.
+  // Road first: the lane, and the way to it from the hall's road network, are laid (from the safety fund) before
+  // the strip is painted; short of timber he waits. Nearest the quarter first. Only free ground nobody touched
+  // (cells the player erased stay his). No strip fits: fewer buildings; none: the red line on the General tab stays.
+  function grow(s, types, mp) {
+    // no strip found: he looks again after plot.retryReviews reviews (s.fund.growWait; a rival builds near its hall meanwhile, war_general_brain prepare)
+    const fail = () => { s.fund.growWait = P().retryReviews ?? 12; delete s.fund.growAsk; };
+    const pl = placement(), g = s.grid, n = g.n, ch = MZ(); if (!pl) return fail();
+    const quarter = [];
+    for (let i = 0; i < n * n; i++) if (g.zone[i] === ch) quarter.push(i);
+    for (const b of s.buildings || []) if (data.buildings[b.type]?.military || data.buildings[b.type]?.militaryZone) for (const i of (b.cells?.length ? b.cells : [b.cell]).filter(Number.isInteger)) quarter.push(i);
+    if (!quarter.length) return fail();
+    const sizes = types.filter(t => data.buildings?.[t]).map(t => Math.max(1, data.buildings[t].size | 0)); if (!sizes.length) return fail();
+    const camps = campCells(s), linked = zones.linkedRoads(s), reach = P().growReach ?? 10;
+    const free = new Uint8Array(n * n), laneOk = new Uint8Array(n * n);
+    for (let i = 0; i < n * n; i++) { free[i] = okCell(s, i, null, camps) ? 1 : 0; laneOk[i] = free[i] || g.use[i] === 'r' ? 1 : 0; }
+    let qc0 = n, qc1 = -1, qr0 = n, qr1 = -1;
+    for (const i of quarter) { const c = i % n, r = (i - c) / n; qc0 = Math.min(qc0, c); qc1 = Math.max(qc1, c); qr0 = Math.min(qr0, r); qr1 = Math.max(qr1, r); }
+    const near = (c, r) => { let d = Infinity; for (const q of quarter) d = Math.min(d, Math.abs(q % n - c) + Math.abs((q - q % n) / n - r)); return d; };
+    for (let k = sizes.length; k >= 1; k--) {
+      const L = sizes.slice(0, k).reduce((a, b) => a + b, 0), D = Math.max(...sizes.slice(0, k)), cands = [];
+      // the strip is L long and D deep, its lane on either long side; both ways round
+      for (const [W, H, lanes] of [[L, D, [[0, -1, L, 1], [0, D, L, 1]]], [D, L, [[-1, 0, 1, L], [D, 0, 1, L]]]]) {
+        for (let r0 = Math.max(0, qr0 - reach - H); r0 + H <= Math.min(n, qr1 + reach + H + 1); r0++) for (let c0 = Math.max(0, qc0 - reach - W); c0 + W <= Math.min(n, qc1 + reach + W + 1); c0++) {
+          const cells = rectCells(n, c0, r0, W, H); if (!cells.every(i => free[i])) continue;
+          for (const [dc, dr, lw, lh] of lanes) {
+            const lc = c0 + dc, lr = r0 + dr; if (lc < 0 || lr < 0 || lc + lw > n || lr + lh > n) continue;
+            const lane = rectCells(n, lc, lr, lw, lh); if (!lane.every(i => laneOk[i])) continue;
+            cands.push({ cells, lane, d: near(c0 + (W - 1) / 2, r0 + (H - 1) / 2) });
+          }
+        }
+      }
+      cands.sort((a, b) => a.d - b.d || a.cells[0] - b.cells[0] || a.lane[0] - b.lane[0]);
+      for (const c of cands.slice(0, P().growTries ?? 12)) {
+        const block = new Set(c.cells), laneSet = new Set(c.lane);
+        let path = [];
+        if (!c.lane.some(i => linked[i])) { path = route(s, data, linked, j => laneSet.has(j), () => 0, block); if (!path) continue; }
+        const todo = [...new Set([...path, ...c.lane])].filter(i => g.use[i] !== 'r' && g.use[i] !== 'g');
+        if (todo.length && !pl.check(s, { kind: 'road', cells: todo }).ok) continue;
+        // road first, paid like his first road: he waits for the fund
+        const fund = fundOf(s, data, state), cost = { timber: todo.length * (data.placeCosts?.road?.timber ?? 1) };
+        if (todo.length && fund && !fundHas(fund, cost)) return;
+        if (todo.length) { if (fund) fundPay(s, cost, world); if (!pl.place(s, { kind: 'road', cells: todo, by: 'g' }).ok) return; }
+        if (!zones.zone(s, { kind: 'military', cells: c.cells, by: 'g' }).ok) return;
+        if (mp?.cells?.length) mp.cells = [...new Set([...mp.cells, ...c.cells])];
+        delete s.fund.grow; delete s.fund.growAsk; delete s.fund.warn;   // (the general's next look says what he saves for)
+        return;
+      }
+    }
+    fail();
   }
 
   // cells to keep free for the plot's road that is not laid yet (governor zoning skips them)

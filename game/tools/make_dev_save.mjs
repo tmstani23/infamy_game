@@ -1,5 +1,5 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/pre_frontier_yakuza.json, castle_test.json, war_test_yakuza.json, war_defend_yakuza.json, rail_rob_shinobi.json
+//   node game/tools/make_dev_save.mjs            -> saves/castle_test.json, war_test_yakuza.json, war_defend_yakuza.json, rail_rob_shinobi.json
 //   node game/tools/make_dev_save.mjs war_test_yakuza   -> only the saves named
 // Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 5).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
@@ -24,7 +24,7 @@ const SAVES = {
   // Pre-frontier test (Tim 2026-11-20, replaces dev_classic): a fresh campaign still in the capital, the hero with 8 crew,
   // 300 Renown, 3 businesses and 3000 ryo, so the founding permit can be bought at the Land Office at once. Nothing else is
   // done: the goal cards, surveyor home pick, castle, ship, settlers and first town all follow the real way.
-  pre_frontier_yakuza: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', home: 'pick', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 8 },
+  // (pre_frontier_yakuza, the fresh campaign before the permit, was here: dropped 2026-11-22)
   // Castle test (Tim 2026-11-19, zones build Z4, replaces dev_frontier): a fresh campaign game, the hero alone on the island
   // in front of the drawbridge of his grey block castle on the East Plains cape, to walk round it.
   castle_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 20, realGame: true, railTown: true, castleTest: true, castleTour: true },   // castleTour: test only (Tim 2026-11-19), take out after

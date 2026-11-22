@@ -260,7 +260,8 @@ export function createGeneralBrain(game, { clan }) {
     // Tim 2026-11-22 ("saving for clan hall forever"): a building with no room in the quarter is not saved for, and
     // neither is one that needs it (the clan hall behind a rifle range that does not fit). noRoom / waits name them
     // for the red line on the General tab.
-    const blocked = new Set(), noRoom = [], waits = [], nice = x => x.replace(/_/g, ' ');
+    const blocked = new Set(), noRoom = [], waits = [], pending = [], nice = x => x.replace(/_/g, ' ');
+    let botRoom = null;
     for (const type of list) {
       if (type === 'upgrade') { if (!warHallDone(s) && !s.warUpgrade) { add(data.war?.hallUpgrade?.cost); next ||= 'the town hall war upgrade'; } continue; }
       seen[type] = (seen[type] || 0) + 1;
@@ -271,14 +272,20 @@ export function createGeneralBrain(game, { clan }) {
       const why = militaryWhy(s, type, data, state);
       if (why && /at most/.test(why)) continue;
       if (!isMilitary(type, data) && placedRoom(s, type, data) < 1) continue;   // a town building at its hall tier limit (Tim 2026-11-22: Villages saved for a second stockade forever)
+      pending.push(type);
       if ((def.needs || []).some(nd => blocked.has(nd) && !militaryCount(s, nd))) { blocked.add(type); if (!waits.includes(type)) waits.push(type); continue; }
       // a player's town builds only inside its military quarter: he does not save for what has no room there
       if (!why && !militaryNeeds(s, type, data).length && !state.clans[s.owner]?.bot && spotFor(s, type, true) == null) { blocked.add(type); if (!noRoom.includes(type)) noRoom.push(type); continue; }
+      // a rival's town asks for a strip too, but saves on: with none it builds near its hall (prepare)
+      if (!why && !militaryNeeds(s, type, data).length && state.clans[s.owner]?.bot && !botRoom && spotFor(s, type, true) == null) botRoom = type;
       add(buildingCost(data, type, s)); next ||= nice(type);
     }
     const road = (s.milPlot?.road || []).filter(i => s.grid.use[i] === '.').length;
     if (road) { add({ timber: road * (data.placeCosts?.road?.timber ?? 1) }); next ||= 'the road to his military quarter'; }
-    const warn = noRoom.length ? `No room for a ${nice(noRoom[0])}: the military quarter is full. Paint more Military zone to fit it${waits.length ? `. Waiting behind it: ${waits.map(nice).join(', ')}` : ''}` : '';
+    // Tim 2026-11-22: the quarter grows by itself (military_plot.js grow, at the governor's next review): room for the
+    // first building that does not fit and the ones after it on his list (plot.ahead in all). The line shows meanwhile.
+    { const first = noRoom[0] || botRoom; if (s.fund) { if (first) s.fund.grow = pending.slice(pending.indexOf(first), pending.indexOf(first) + (data.war?.general?.plot?.ahead ?? 3)); else { delete s.fund.grow; delete s.fund.growAsk; } } }
+    const warn = noRoom.length ? `No room for a ${nice(noRoom[0])}: the military quarter is full. He adds to it when there is free ground and timber in the fund for its road; or paint more Military zone${waits.length ? `. Waiting behind it: ${waits.map(nice).join(', ')}` : ''}` : '';
     return { cap, next, warn };
   }
   function prepare(out, cmd, s, zoneOnly = false) {
@@ -331,6 +338,9 @@ export function createGeneralBrain(game, { clan }) {
       if (militaryWhy(s, type, data, state)) continue;
       // a player's town: only in the military quarter. No room there: it is skipped before saving for it, as fundCap
       // does (2026-11-22: he saved for a rifle range that could not fit while the fund said "Saving for watchtower")
+      // a rival's town with a full quarter (Tim 2026-11-22): it waits for its strip (military_plot.js grow, at the
+      // governor's review); with none to be had (growWait), or after general.plot.askLooks looks, it builds near its hall as before
+      if (fund && state.clans[s.owner]?.bot && s.autoBuild !== false && fund.grow?.length && !(fund.growWait > 0) && spotFor(s, type, true) == null && (fund.growAsk = (fund.growAsk || 0) + 1) <= (data.war?.general?.plot?.askLooks ?? 6)) return;
       const cell = spotFor(s, type, zoneOnly || (fund && !state.clans[s.owner]?.bot));
       if (cell == null) continue;   // no room for this one (in the zone, or at this tier): try the next of the list
       if (!can(buildingCost(data, type, s))) return;   // saving for it
@@ -408,7 +418,16 @@ export function createGeneralBrain(game, { clan }) {
     if (MZ && s.grid.zone.includes(MZ)) {
       const zc = []; for (let i = 0; i < n * n; i++) if (s.grid.zone[i] === MZ) zc.push([Math.hypot(i % n - mid, Math.floor(i / n) - mid), i]);
       zc.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-      for (const [, i] of zc) if (P.check(s, { kind: type, cells: [i] }).ok) return i;
+      // packed into the quarter's ends and corners (Tim 2026-11-22: a building in the middle of a strip left pieces
+      // too small for the next one): the spot with the fewest free zone cells beside it, then nearest the hall
+      let best = null, bestOpen = Infinity;
+      for (const [, i] of zc) {
+        const r = P.check(s, { kind: type, cells: [i] }); if (!r.ok) continue;
+        const cover = new Set(r.cells || [i]), seen = new Set();
+        for (const j of cover) { const c = j % n; for (const k of [c > 0 ? j - 1 : -1, c < n - 1 ? j + 1 : -1, j - n, j + n]) if (k >= 0 && k < n * n && !cover.has(k) && s.grid.zone[k] === MZ && s.grid.use[k] === '.') seen.add(k); }
+        if (seen.size < bestOpen) { bestOpen = seen.size; best = i; if (!bestOpen) break; }
+      }
+      if (best != null) return best;
     }
     if (zoneOnly) return null;
     // never right beside the railway station: its track needs a way out (2026-11-21, a ring of barracks boxed it in)

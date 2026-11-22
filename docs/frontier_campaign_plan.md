@@ -1039,8 +1039,15 @@ Governor streets (sim/frontier/streets.js, governor.js):
 Military quarter (sim/frontier/military_plot.js):
 - In a town on initiative On (every bot town) the general reserves one compact block of Military zone at founding and at each new tier, before the governor zones anything. Size per tier: war.general.plot.byTier; it grows outward, away from the hall.
 - Spot: facing the nearest town of another clan; with none, the own railway station; else the own capital. Never on resource ground, rail, the hall road ring, near cliffs, within war.general.plot.campGap of a work camp, or on the governor's street lanes.
-- A Military zone the player paints wins (no plot is made). Cells the player erases are never repainted. Nothing is ever erased. With no room the Governor tab says "No room for a military quarter".
+- A Military zone the player paints wins (no plot is made), though the general adds strips to it when full (2026-11-22, below). Cells the player erases are never repainted. Nothing is ever erased. With no room the Governor tab says "No room for a military quarter".
 - The general lays the road from the hall network to his block himself, paid from the safety fund.
+
+Quarter growth (2026-11-22, military_plot.js grow(), war.general.plot ahead 3, growReach 10, growTries 12, retryReviews 12, askLooks 6, placeholders):
+- A full quarter grows by itself. When the next building on the general's list has no room in the quarter, he adds one strip beside it at the governor's next review: room for that building and the next ones (plot.ahead, 3 in all), side by side and one building deep. This applies to any quarter, his or one the player painted; he still never erases and never paints cells the player erased.
+- Road first: each strip has a one-cell road lane along one long side. He lays the lane, and the road to it from the hall's road network (or the hall when the town has no road), from the safety fund before he paints the strip; short of timber he waits. A road cut later is not mended; the next strip routes a fresh one.
+- Only free untouched ground, nearest the quarter first (within growReach cells). No strip fits: fewer buildings; none at all: the General tab red line stays ("No room for a X: the military quarter is full. He adds to it when there is free ground and timber in the fund for its road; or paint more Military zone"). A failed look is tried again after retryReviews (12) reviews. A town whose quarter was erased entirely gets none.
+- Rival towns grow their quarter the same way. With no strip to be had (no free ground, or no quarter yet) a rival waits up to askLooks (6) looks, then builds near its hall as before. Not during a war on the town.
+- The general places buildings at the ends and corners of the quarter first (fewest free zone cells beside the footprint, then nearest the hall), so the middle is not cut into pieces too small for the next building.
 
 Safety fund (sim/frontier/fund.js, data/frontier.json war.general.fund, placeholders):
 - Each frontier town sets aside one percentage of its timber, stone and ryo income (reasons in war.general.fund.from). The general spends only from it: his quarter road, his defend.build list in order and the hall war upgrade.
