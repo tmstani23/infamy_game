@@ -18,7 +18,8 @@ import { militaryFor, militaryNeeds, militaryCount, warUpgradeCheck, warUpgradeS
 import { cellToWorld } from './sim/frontier/town_grid.js';
 import { tierArt } from './sim/frontier/art_blocks.js';
 import { chestSendHtml, chestSendSig, chestSendClick, CHEST_SEND_CSS } from './war_chest_send.js';   // 8e-3
-import { armoryHtml, armorySig, ARMORY_CSS } from './war_armory_menu.js';   // 8e-9
+import { armoryHtml, armorySig, ARMORY_CSS } from './war_armory_menu.js';
+import { logRowHtml, logPageHtml, logHover, logTurn, LOG_CSS } from './action_log_ui.js';   // 8e-9
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const nice = t => (t || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
@@ -32,7 +33,7 @@ const EXTRA = `
 const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 export function createTownWarPanel({ game, heroId, catalog, frontierData, units = null, send, blocked = () => false, onStart = () => {}, placeTool = () => false, openTerms = () => false }) {
-  const style = document.createElement('style'); style.textContent = WAR_PANEL_CSS.replaceAll('#warcamp', '#townwar') + EXTRA + SURRENDER_CSS('#townwar') + GENERAL_CSS('#townwar') + CHEST_SEND_CSS('#townwar') + ARMORY_CSS('#townwar'); document.head.append(style);
+  const style = document.createElement('style'); style.textContent = WAR_PANEL_CSS.replaceAll('#warcamp', '#townwar') + EXTRA + SURRENDER_CSS('#townwar') + GENERAL_CSS('#townwar') + CHEST_SEND_CSS('#townwar') + ARMORY_CSS('#townwar') + LOG_CSS('#townwar'); document.head.append(style);
   const root = document.createElement('div'); root.id = 'townwar'; root.hidden = true; document.body.append(root);
   const F = frontierData || {}, W = () => game.frontier?.war?.data || F.war || {};
   const war = () => game.frontier?.war;
@@ -42,7 +43,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
   // with a tier: the art of that town hall tier (the window's own picture; Tim 2026-11-22: a tier 3 town showed the tier 1 hall)
   const artName = (type, tier = 0) => (tier ? tierArt(F.townArt, type, tier) : F.townArt?.[type]) || type;
   const artUrl = (type, tier = 0) => { const n = artName(type, tier), kind = catalog?.items?.[n]?.kind || 'buildings'; return `art/${kind}/${n}.png`; };
-  let open = null, bid = null, tab = 'military', page = 0, tpage = 0, sig = '', why = '', confirm = false;
+  let open = null, bid = null, tab = 'military', page = 0, tpage = 0, sig = '', why = '', confirm = false, logOpen = false, lpage = 0;
   const counts = {};
   const mine = s => !!s && s.owner === hero()?.owner && (!s.capital || (!!s.castle && !!warOn(s.id)));   // Z6: your castle while it is besieged
   // the town's buildings with a menu here: military ones, and the stable while a war is on the town
@@ -51,7 +52,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
     const s = town(townId); if (!mine(s)) return false;
     const b = buildingId ? s.buildings?.find(x => x.id === buildingId) : null;
     if (buildingId && !hasMenu(s, b)) return false;
-    open = townId; bid = b ? b.id : null; tab = startTab && !b ? startTab : warOn(townId) && !s.castle ? 'chest' : 'military'; page = tpage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true;
+    open = townId; bid = b ? b.id : null; tab = startTab && !b ? startTab : warOn(townId) && !s.castle ? 'chest' : 'military'; page = tpage = 0; logOpen = false; lpage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true;
   }
   function close() { open = null; bid = null; root.hidden = true; }
   const chips = (cost, have) => Object.entries(cost || {}).filter(([, v]) => v).map(([r, v]) => `<span class="chip ${r}${(have?.[r] ?? Infinity) < v ? ' short' : ''}" title="${esc(`${v} ${r}`)}"><i></i>${v}</span>`).join('');
@@ -70,7 +71,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
     const sites = (s.projects || []).filter(p => F.buildings?.[p.type]?.military);
     const strat = game.frontier?.warGeneral?.strategyOf?.(me) || 'siege', GR = game.frontier?.warGeneral?.rules?.() || W().general || {};
     const next = JSON.stringify([open, bid, tab, page, tpage, why, confirm, !!w?.terms, v, strat, s.warKeep, Math.floor(s.stock?.ryo || 0), Math.floor(s.stock?.timber || 0), Math.floor(s.stock?.stone || 0), s.warHall, s.warUpgrade?.left, s.builders, Math.floor(clan?.ryo ?? 0), clan?.treasuryKeep,
-      s.buildings.map(b => [b.id, b.stage, b.queue?.length || 0, b.queue?.[0] ? Math.ceil(b.queue[0].left / 20) : 0]), sites.map(p => [p.id, Math.floor(100 * p.progress / Math.max(1, p.need)), p.paid]), hallSt ? Math.ceil(ST.hpOf(hallSt)) : 0, bld && stOf(bld) ? Math.ceil(ST.hpOf(stOf(bld))) : 0, w && defending ? chestSendSig(game, w, me) : '', w && defending ? armorySig(game, w, me) : '']);
+      s.buildings.map(b => [b.id, b.stage, b.queue?.length || 0, b.queue?.[0] ? Math.ceil(b.queue[0].left / 20) : 0]), sites.map(p => [p.id, Math.floor(100 * p.progress / Math.max(1, p.need)), p.paid]), hallSt ? Math.ceil(ST.hpOf(hallSt)) : 0, bld && stOf(bld) ? Math.ceil(ST.hpOf(stOf(bld))) : 0, w && defending ? chestSendSig(game, w, me) : '', w && defending ? armorySig(game, w, me) : '', logOpen, lpage, s.log?.general?.length || 0, s.log?.general?.[0]?.tick, Math.floor((game.state.tick || 0) / 1200)]);
     if (next === sig) return;
     sig = next;
     const typing = root.contains(document.activeElement) && document.activeElement.tagName === 'INPUT' ? { n: document.activeElement.dataset.n, a: document.activeElement.selectionStart, b: document.activeElement.selectionEnd } : null;
@@ -123,9 +124,10 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
         ${chestSendHtml({ game, war: w, owner: me, counts, data: game.frontier?.data || F })}${musterBox}${surrenderFoot({ side: 'defender', town: s.name, terms: !!w.terms, confirm })}`;
     } else if (tab === 'general') {
       if (counts.fund != null && Number(counts.fund) === Math.round(s.fund?.pct ?? -1) && document.activeElement?.dataset?.n !== 'fund') delete counts.fund;   // the sim has the typed share
-      body = generalTab({ strategy: strat, rules: GR, camp: false, town: { name: s.name, ryo: Math.floor(s.stock?.ryo || 0), keep: game.frontier?.warGeneral?.keepOf?.(s) ?? GR.keepShare ?? 0.5 }, typing: counts.keep,
+      if (logOpen) body = logPageHtml('General\'s log', s.log?.general, lpage, game.state.tick);
+      else body = generalTab({ strategy: strat, rules: GR, camp: false, town: { name: s.name, ryo: Math.floor(s.stock?.ryo || 0), keep: game.frontier?.warGeneral?.keepOf?.(s) ?? GR.keepShare ?? 0.5 }, typing: counts.keep,
         treasury: { ryo: clan?.ryo ?? 0, keep: clan?.treasuryKeep ?? W().supply?.treasuryKeep ?? 1000, room: game.frontier?.shipments?.autoRoom?.(clan) ?? 0, typing: counts.tkeep }, share: W().supply?.autoShare,
-        fund: s.fund && !s.capital && !s.camp ? { ...s.fund, pct: s.fund.pct ?? 10, warn: s.report?.military || s.fund.warn, auto: !!s.autoBuild, typing: counts.fund } : null });
+        fund: s.fund && !s.capital && !s.camp ? { ...s.fund, pct: s.fund.pct ?? 10, warn: s.report?.military || s.fund.warn, auto: !!s.autoBuild, typing: counts.fund } : null }) + logRowHtml('General\'s log', s.log?.general, game.state.tick, 'Nothing yet: he logs what he builds, saves for and does in a war here');
     } else if (tab === 'hall') {
       const H = W().hallUpgrade || {}, chk = warUpgradeCheck(s, F, game.state), unlocks = Object.entries(B).filter(([t, d]) => (d?.needs || []).includes('upgrade') && (!d.clan || d.clan === faction)).map(([t]) => t);
       const up = s.warUpgrade;
@@ -162,6 +164,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
       <main>${bld ? '' : `<div class="tabs">${tabs.map(([t, n]) => `<button class="tab${tab === t ? ' on' : ''}" data-tab="${t}">${n}</button>`).join('')}</div>`}${body}<div class="why">${esc(why)}</div></main></div></div>`;
     if (typing?.n) { const el = [...root.querySelectorAll('input')].find(x => x.dataset.n === typing.n); if (el) { el.focus(); try { el.setSelectionRange(typing.a, typing.b); } catch {} } }
   }
+  root.addEventListener('mouseover', e => logHover(root, e));
   root.addEventListener('input', e => { const k = e.target?.dataset?.n; if (k) counts[k] = e.target.value; });
   // the General tab's keep box: sent when the box is left or Enter is pressed
   root.addEventListener('change', e => { if (!e.target?.dataset?.tkeep || !open) return; const n = Math.floor(Number(e.target.value)); delete counts.tkeep; sig = ''; if (!Number.isSafeInteger(n) || n < 0) why = 'Type 0 or more'; else { why = ''; send({ id: heroId, type: 'frontier', action: 'ship', mode: 'treasuryKeep', ryo: n }); } fill(); });   // 8e-2
@@ -173,16 +176,18 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
   for (const ev of ['keyup', 'pointerdown', 'mousedown', 'wheel']) root.addEventListener(ev, e => e.stopPropagation());
   const count = (key, d = 1) => { const n = Math.floor(Number(counts[key] ?? d)); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
   root.addEventListener('click', e => {
-    const b = e.target.closest?.('[data-close],[data-tab],[data-page],[data-tpage],[data-build],[data-cancel],[data-armcancel],[data-train],[data-untrain],[data-upgrade],[data-put],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-fundstep]'); if (!b || !open) return;
+    const b = e.target.closest?.('[data-close],[data-tab],[data-page],[data-tpage],[data-build],[data-cancel],[data-armcancel],[data-train],[data-untrain],[data-upgrade],[data-put],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-fundstep],[data-logopen],[data-logback],[data-lpage]'); if (!b || !open) return;
     const d = b.dataset, s = town(open), w = warOn(open); why = ''; sig = '';
     if ((d.rsend || d.rcancel) && w) { why = chestSendClick(d, { war: w, heroId, counts, send }) || ''; fill(); return; }   // 8e-3
     if (d.armcancel != null && w) { send({ id: heroId, type: 'frontier', action: 'armoryCancel', war: w.id, index: Number(d.armcancel) }); fill(); return; }   // armory queue (Tim 2026-11-18)
     if (d.armup && w) { const [group, track] = d.armup.split(':'); send({ id: heroId, type: 'frontier', action: 'armoryUp', war: w.id, group, track }); fill(); return; }   // 8e-9
     if (d.fundstep) { if (s?.fund) sendFund(Number(counts.fund ?? s.fund.pct ?? 10) + Number(d.fundstep)); fill(); return; }
+    if (d.logopen || d.logback) { logOpen = !!d.logopen; lpage = 0; fill(); return; }
+    if (d.lpage) { lpage = logTurn(lpage, Number(d.lpage), town(open)?.log?.general); fill(); return; }
     if (d.close) return close();
     if (d.terms) { if (w) { close(); openTerms(w.id); } return; }
     if (d.surrender) { confirm = d.surrender === 'ask'; if (d.surrender === 'yes' && w) { send({ id: heroId, type: 'frontier', action: 'warSurrender', war: w.id }); close(); return; } }
-    else if (d.tab) { tab = d.tab; confirm = false; }
+    else if (d.tab) { tab = d.tab; confirm = false; logOpen = false; }
     else if (d.page) page = Math.max(0, page + Number(d.page));
     else if (d.tpage) tpage = Math.max(0, tpage + Number(d.tpage));
     else if (d.build) { const need = militaryNeeds(s, d.build, F); if (need.length) why = `Needs ${need.join(' and ')}`; else { const t = open; close(); if (!placeTool(t, d.build)) why = 'Open the build bar from the town panel'; return; } }

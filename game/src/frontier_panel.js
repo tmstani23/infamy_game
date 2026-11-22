@@ -13,6 +13,7 @@ import { workerCount } from './sim/frontier/people.js';
 import { createShipmentsTab } from './shipments_tab.js';
 import { msPaginate, msConcept } from './menu_shell.js';
 import { sharedKeybinds } from './keybinds.js';
+import { logRowHtml, logPageHtml, logHover, logTurn, LOG_CSS } from './action_log_ui.js';   // governor's log (Tim 2026-11-22)
 const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const tip = t => t ? ` data-tip="${esc(t)}"` : '';
@@ -61,6 +62,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   // Tim 2026-11-07: Steer merged into Governor (his talk, focus, taxes, market, stockade and initiative on one tab)
   const TABS = [['town', 'Overview'], ['governor', 'Governor'], ['stable', 'Stable'], ['ship', 'Shipments']];   // Shipments: rail shipments S4 (Tim 2026-11-09)
   let selected = null, mode = 'town', tab = 'town', prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
+  let govLog = false, glpage = 0;   // the governor's log: open view and its page
+  if (typeof document !== 'undefined' && document.head) { const st = document.createElement('style'); st.textContent = LOG_CSS('#townpanel'); document.head.append(st); }
   const tips = bindTips(root); if (miniRoot) bindTips(miniRoot);
   // pages instead of a scrollbar (menu restyle, Tim 2026-11-10): the body splits by height, per tab
   const pageState = { page: 0 }; let pageKey = '';
@@ -213,7 +216,9 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const hasStable = !!s.buildings?.some(x => x.type === 'stable' && x.stage === 'built');
     if (tab === 'stable' && !hasStable) tab = 'town';
     if (tab === 'projects') tab = 'governor';
-    if (mode === 'town' && tab === 'governor') {
+    if (mode === 'town' && tab === 'governor' && govLog) {
+      h += logPageHtml('Governor\'s log', s.log?.governor, glpage, game.state.tick);
+    } else if (mode === 'town' && tab === 'governor') {
       const say = governorSays(rows), face = msConcept('governer1');
       h += `<div class="govhead"><div class="govface"${face ? ` style="background-image:url('${face}')"` : ''}></div><div class="govmain"><div class="goveye">Governor</div><h1>${esc(rows.title)}</h1><div class="chat">"${esc(say.text)}"</div></div></div>`
         + '<div class="choices">' + say.choices.filter(c => c.id !== 'close').map(c => `<button data-act="talk" data-id="${c.id}">${esc(c.label)}</button>`).join('') + '</div>';
@@ -224,6 +229,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h += '<div class="lab">Focus</div><div class="gfocus">'
         + ['grow', 'produce', 'trade', 'fortify'].map(p => `<button data-act="priority" data-id="${p}" class="gcard${pri === p ? ' on' : ''}"${tip(STEER.focus[p])}>${FOCUS_ICON[p]}<b>${cap1(p)}</b></button>`).join('')
         + `</div><div class="focuscap">${esc(SHORT.focus[pri] || '')}</div>` + steerExtras(s, rows);
+      h += logRowHtml('Governor\'s log', s.log?.governor, game.state.tick, 'Nothing yet: he logs what he places, zones and trains here');
     } else if(mode==='usage' && data) {
       h = usagePage_(s, rows);
     } else {
@@ -308,6 +314,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const t = document.activeElement;
     if (t?.dataset?.act === 'shipinput' && t !== e.target && root.contains(t)) { shipTab.input(t.dataset, t.value, pick()); t.dataset.act = 'shipdone'; }
   });
+  root.addEventListener('mouseover', e => logHover(root, e));
   root.addEventListener('dblclick',e=>{
     const b=btnOf(e),s=pick();
     if(b && s && buildUI?.doubleClick?.(b.dataset,s)){lastHtml='';render();}
@@ -320,6 +327,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   });
   root.addEventListener('click', e => {
     const turn = e.target.closest?.('[data-ms-page]'); if (turn?.dataset?.msPage !== undefined) { pageState.page += Number(turn.dataset.msPage); paginate(); return; }
+    const lg = e.target.closest?.('[data-logopen],[data-logback],[data-lpage]');
+    if (lg?.dataset && (lg.dataset.logopen || lg.dataset.logback || lg.dataset.lpage)) { const d = lg.dataset; if (d.lpage) glpage = logTurn(glpage, Number(d.lpage), pick()?.log?.governor); else { govLog = !!d.logopen; glpage = 0; } lastHtml = ''; render(); return; }
     const b = btnOf(e); if (!b) return;
     if (b.dataset.act === 'panel-close') { close(); return; }
     const s = pick(), id = b.dataset.id, sid = s?.id;
@@ -332,7 +341,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       case 'usage-page':usagePage=Number(id);break;
       case 'usage-focus':{const p=data && flowFocus(s,id,usageResource,data);if(p)focus(p[0],p[1]);break;}
       case 'town': selected = id; mode = 'town'; break;
-      case 'tab': buildUI?.close(); tab = TABS.some(t => t[0] === id) ? id : 'town'; mode = 'town'; break;
+      case 'tab': buildUI?.close(); govLog = false; tab = TABS.some(t => t[0] === id) ? id : 'town'; mode = 'town'; break;
       case 'talk': if (id && s) { const c = id === 'close' ? null : talkCommand(id, reportRows(s)); if (c) cmd(c); tab = id === 'close' ? 'town' : 'governor'; } else tab = 'governor'; mode = 'town'; break;
       case 'authorize': cmd({ action: 'authorize', project: id }); break;
       case 'cancel': cmd({ action: 'cancel', project: id }); break;
@@ -369,7 +378,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     for (const r of game.state.frontier?.receipts || []) if (r.clan === clan && r.seq > seen) { seen = r.seq; if (!r.ok) failure = { text: `Not possible: ${r.reason}`, at: Date.now() }; }
   }
   setInterval(() => { watchReceipts(); render(); }, 1000);
-  function open(id) { if (id) selected = id; else if (nearbyTown) selected = nearbyTown(); mode = 'town'; tab = 'town'; root.hidden = false; lastHtml = ''; render(); onOpen(); }
+  function open(id) { if (id) selected = id; else if (nearbyTown) selected = nearbyTown(); mode = 'town'; tab = 'town'; govLog = false; root.hidden = false; lastHtml = ''; render(); onOpen(); }
   function close() { buildUI?.close(); showMini(false); if (!root.hidden) { root.hidden = true; tips.hide(); onClose(); } }
   return { open, close, toggle() { root.hidden ? open() : close(); }, isOpen: () => !root.hidden, talk(id) { open(id); tab = 'governor'; render(); }, render };
 }

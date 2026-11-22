@@ -61,7 +61,7 @@ export function createLieutenantRules({ state, rules = {}, units, clans, doors, 
   }
   function log(id, text) {
     const r = record(id);
-    r.log.push({ tick: state.tick, day: day(), text });
+    r.log.push({ tick: state.tick, day: day(), night: !!state.night, text });
     if (r.log.length > R.logEntries) r.log.splice(0, r.log.length - R.logEntries);
   }
   // running: the boss is away, or at home with "keep defending" on (defend only)

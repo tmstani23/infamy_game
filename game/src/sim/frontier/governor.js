@@ -22,7 +22,16 @@ const TAX_STEPS = ['low', 'normal', 'high'];
 // one-off or surplus flows that say nothing about the town's running goods balance
 const ONCE_FLOW = new Set(['build', 'train', 'upgrade', 'refund', 'market', 'test']);
 
+import { logAct, aName } from './action_log.js';
 export function createGovernor({ state, data, world, economy, construction, zones = null, workers = null, placement = () => null, ship = {}, spotRules = null }) {
+  // the governor's log (action_log.js): what he placed himself
+  const gPlace = (s, o) => {
+    const r = placement().place(s, o);
+    if (r?.ok) {
+      if (o.kind === 'road') logAct(state, data, s, 'governor', 'land', 'Laid streets', `${o.cells.length} road cells, paid from town stock. He lays streets to his own buildings and out toward towns, railways, timber and stone, and keeps lanes free.`);
+      else logAct(state, data, s, 'governor', 'build', `Placed ${aName(o.kind)}`, `${s.report?.doing ? `He was: ${s.report.doing}. ` : ''}Paid from town stock; town builders put it up.`); }
+    return r;
+  };
   const G = data.governor, f = () => state.frontier;
 
   function init(s) {
@@ -101,7 +110,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (!cells.length) return;
     let run = cells;
     while (run.length > 1 && !pl.check(s, { kind: 'road', cells: run }).ok) run = run.slice(0, Math.ceil(run.length / 2));
-    if (pl.check(s, { kind: 'road', cells: run }).ok) pl.place(s, { kind: 'road', cells: run, by: 'g' });
+    if (pl.check(s, { kind: 'road', cells: run }).ok) gPlace(s, { kind: 'road', cells: run, by: 'g' });
   }
 
   // Tim 2026-11-21: once the hall ring is down he sends straight streets out from it (the town's lanes, streets.js),
@@ -121,7 +130,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
       if (!cells.length) continue;
       const cost = cells.length * (data.placeCosts?.road?.timber ?? 1);
       if ((s.stock.timber || 0) - cost < (G.streetKeep ?? 40)) return;   // saving timber
-      for (let m = cells.length; m >= 1; m--) if (pl.check(s, { kind: 'road', cells: cells.slice(0, m) }).ok) { if (pl.place(s, { kind: 'road', cells: cells.slice(0, m), by: 'g' }).ok) return; }
+      for (let m = cells.length; m >= 1; m--) if (pl.check(s, { kind: 'road', cells: cells.slice(0, m) }).ok) { if (gPlace(s, { kind: 'road', cells: cells.slice(0, m), by: 'g' }).ok) return; }
     }
   }
 
@@ -167,7 +176,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     for (const t of tries) for (let m = t.cells.length; m >= 1; m--) {   // shortened if the far end will not take a road
       const cells = t.cells.slice(0, m);
       if (!pl.check(s, { kind: 'road', cells }).ok) continue;
-      const r = pl.place(s, { kind: 'road', cells, by: 'g' });
+      const r = gPlace(s, { kind: 'road', cells, by: 'g' });
       if (r.ok) { s.report.next = 'Laying a road for new zones'; return true; }
     }
     return false;
@@ -199,7 +208,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
       cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
       for (const [, i] of cand) {
         if (!placement().check(s, { kind: type, cells: [i] }).ok) continue;
-        const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
+        const r = gPlace(s, { kind: type, cells: [i], by: 'g' });
         if (r.ok && r.project) { construction.authorize(r.project); s.report.next = `Building a ${type.replace('_', ' ')} by the ${res}`; return true; }
       }
     }
@@ -255,7 +264,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
       cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
       for (const [, i] of cand) {
         if (crowds(s, type, i) || !placement().check(s, { kind: type, cells: [i] }).ok) continue;
-        const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
+        const r = gPlace(s, { kind: type, cells: [i], by: 'g' });
         if (r.ok && r.project) return r.project;
       }
     }
@@ -278,7 +287,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     cand.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     for (const [, i] of cand) {
       if (crowds(s, type, i) || (fits && !fits(i)) || !placement().check(s, { kind: type, cells: [i] }).ok) continue;
-      const r = placement().place(s, { kind: type, cells: [i], by: 'g' });
+      const r = gPlace(s, { kind: type, cells: [i], by: 'g' });
       if (r.ok && r.project) { construction.authorize(r.project); s.report.next = text; return true; }
     }
     return false;
@@ -411,6 +420,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (idle < 1 || (s.workers || []).some(w => w.wait || (!w.spot && !w.project && !w.order))) return;   // nor while one waits for a spot (Tim 2026-11-22)
     if ((s.stock.ryo || 0) < R.cost + (G.trainRyoKeep ?? 20) || (s.stock.goods || 0) < (R.goodsCost || 0) + (G.trainGoodsKeep ?? 10)) return;
     workers.train(s, 1);
+    logAct(state, data, s, 'governor', 'work', 'Started training a worker', `Paid ${R.cost} ryo${R.goodsCost ? ` and ${R.goodsCost} goods` : ''} from town stock.`);
   }
 
   // Rules 1 to 5: returns true when one fired (checked top to bottom, the first that fires wins).

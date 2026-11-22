@@ -21,6 +21,7 @@ import { storageCap } from './storage.js';
 
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
 
+import { logAct } from './action_log.js';
 export function createZones({ state, data, world,resourceIndex }) {
   const Z = () => data.zones;
   const kinds = () => Object.entries(Z().kinds).filter(([name]) => !name.startsWith('_'));
@@ -290,7 +291,9 @@ export function createZones({ state, data, world,resourceIndex }) {
       if (roadNear(s, i, k.needs?.roadReach)) picked.push(i);
     }
     if (!picked.length) return bad('needs a road to zone');
-    return zone(s, { kind, cells: picked, by: 'g' });
+    const r = zone(s, { kind, cells: picked, by: 'g' });
+    if (r?.ok) logAct(state, data, s, 'governor', 'land', `Zoned ${kind} cells`, `${picked.length} cells, beside a road. Zones fill up by themselves: houses, farms or workshops come as the town grows.`);
+    return r;
   }
 
   return { on, zone, migrate, slots, setWorkers, tick, autoZone, busy, roadNear, linkedRoads, setFrozen: fn => { frozen = fn; } };

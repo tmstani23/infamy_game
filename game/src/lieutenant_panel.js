@@ -1,5 +1,5 @@
 // "While I'm away" page in the Deployment window (frontier C3, Tim 2026-11-02/05). Campaign only.
-// Standing order toggles, a daily budget slider and the lieutenant's last 20 log lines. Sends only
+// Standing order toggles, a daily budget slider and the lieutenant's log (paged, like the general's: Tim 2026-11-22). Sends only
 // { type: 'lieutenant', orders | budget | defendAtHome }; the rules are in sim/lieutenant.js.
 const LABELS = { defend: 'Defend raids', retake: 'Buy back lost businesses', shakedown: 'Shakedowns', sweep: 'Sweeps', contracts: 'Ambush contracts', hire: 'Hire crew',
   buy: 'Buy free businesses (one a day)', jobs: 'Shinobi jobs: Scout, Sabotage or Thin out the bandits (one a day)', steal: 'Steal contracts (one a night)',
@@ -7,6 +7,9 @@ const LABELS = { defend: 'Defend raids', retake: 'Buy back lost businesses', sha
 // Tim 2026-11-06: Buy is for clans that own businesses; Jobs and Steal for the Shinobi
 const FOR_NINJA = { buy: false, jobs: true, steal: true, raid: false };
 import { lieutenantPortrait } from './lieutenant_portrait.js';
+import { logRowHtml, logPageHtml, logHover, logTurn, LOG_CSS } from './action_log_ui.js';
+// the log's tag for a line the sim wrote (sim/lieutenant.js keeps plain text)
+const kindOf = t => /fell/.test(t) ? 'bad' : /^(Raiding|Called a Rally|Set an ambush|Bought a War Lantern|Sent a Sweep|Shakedown)/.test(t) ? 'war' : /^(Hired|Let a|Bailed|Fetched|Crew)/.test(t) ? 'crew' : 'order';
 export function createLieutenantPanel({ root, game, heroId, send, cityWatch = null }) {
   const L = () => game.lieutenant, tabs = root.querySelector('.page-tabs'), work = root.querySelector('.workspace');
   if (!tabs || !work) return { update() {} };
@@ -16,13 +19,13 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
     // a typeable box and Set (Tim 2026-11-10: no sliders; Set also completes the goal step when the number is unchanged)
     + '<div class="away-budget-row">Budget <input class="away-budget" type="text" inputmode="numeric" maxlength="5" autocomplete="off" title="What your lieutenant may spend each day"> ryo a day <button type="button" class="away-budget-set" title="Set the daily budget">Set</button><span class="away-budget-tip">800 a day is a good start</span><span class="away-budget-value" hidden></span></div>'
     + '<label title="While your clan is in a war on the island your lieutenant holds what you have. He buys no new businesses and raids only to win back a business a rival took since the war began. Shakedowns, Sweeps, hiring, bail, the clinic and defence go on as usual."><input class="away-war" type="checkbox"> War Mode during a war</label><p class="away-war-status" hidden>War Mode is on. Your lieutenant is holding what you have.</p>'
-    + '<label><input class="away-home" type="checkbox"> Keep defending when I&#39;m back</label><h4>Log</h4><ol class="away-log"></ol>';
+    + '<label><input class="away-home" type="checkbox"> Keep defending when I&#39;m back</label><div class="away-logbox"></div>';
   tabs.appendChild(tab); work.appendChild(pane);
   const style = document.createElement('style');
-  style.textContent = '#deploymentpanel:not([data-page="away"]) .pane-away{display:none}#deploymentpanel .pane-away label{display:block;margin:4px 0}#deploymentpanel .away-budget-row{margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;border-radius:6px}#deploymentpanel .away-budget{width:64px;background:#07090b;border:1px solid #826f4c;border-radius:4px;padding:4px 6px;text-align:right;font:600 15px system-ui;color:#f3e3bd;box-shadow:inset 0 1px 3px rgba(0,0,0,.6)}#deploymentpanel .away-budget:focus{outline:none;border-color:#f0c85a}#deploymentpanel .away-budget-set{background:linear-gradient(#5a2a20,#2a1410);border:1px solid #c9a35c;border-radius:4px;color:#f3e3bd;font:600 13px system-ui;padding:4px 14px;cursor:pointer}#deploymentpanel .away-budget-set:hover{border-color:#f0c85a}#deploymentpanel .away-budget-tip{font-size:11px;color:#c9b88f}#deploymentpanel .away-log{max-height:160px;overflow-y:auto;font-size:11px;padding-left:18px}';
+  style.textContent = '#deploymentpanel:not([data-page="away"]) .pane-away{display:none}#deploymentpanel .pane-away label{display:block;margin:4px 0}#deploymentpanel .away-budget-row{margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;border-radius:6px}#deploymentpanel .away-budget{width:64px;background:#07090b;border:1px solid #826f4c;border-radius:4px;padding:4px 6px;text-align:right;font:600 15px system-ui;color:#f3e3bd;box-shadow:inset 0 1px 3px rgba(0,0,0,.6)}#deploymentpanel .away-budget:focus{outline:none;border-color:#f0c85a}#deploymentpanel .away-budget-set{background:linear-gradient(#5a2a20,#2a1410);border:1px solid #c9a35c;border-radius:4px;color:#f3e3bd;font:600 13px system-ui;padding:4px 14px;cursor:pointer}#deploymentpanel .away-budget-set:hover{border-color:#f0c85a}#deploymentpanel .away-budget-tip{font-size:11px;color:#c9b88f}#deploymentpanel .pane-away.logopen>:not(.away-logbox){display:none}' + LOG_CSS('#deploymentpanel .pane-away');
   document.head.appendChild(style);
   tab.addEventListener('click', () => {
-    root.dataset.page = 'away';
+    root.dataset.page = 'away'; logOpen = false;
     for (const b of tabs.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b === tab));
     shown = ''; update();
   });
@@ -44,7 +47,15 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
   home.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', defendAtHome: home.checked }));
   const watchBtn = pane.querySelector('.away-watch');
   watchBtn.addEventListener('click', () => { cityWatch?.start(); });
-  let shown = '';
+  let shown = '', logOpen = false, lpage = 0;
+  const logList = () => (game.state.lieutenants?.[owner()]?.log || []).slice().reverse().map(x => ({ tick: x.tick, day: x.day, night: x.night, k: kindOf(x.text), x: x.text }));
+  const logBox = pane.querySelector('.away-logbox');
+  pane.addEventListener('mouseover', e => logHover(pane, e));
+  logBox.addEventListener('click', e => {
+    const b = e.target.closest?.('[data-logopen],[data-logback],[data-lpage]'); if (!b) return;
+    if (b.dataset.lpage) lpage = logTurn(lpage, Number(b.dataset.lpage), logList()); else { logOpen = !!b.dataset.logopen; lpage = 0; }
+    shown = ''; update();
+  });
   function update() {
     const on = !!L() && game.state.match && game.lieutenant && (game.state.lieutenants || L().away);
     tab.hidden = !game.settings || !game.state.lieutenants && !L()?.away(owner());
@@ -53,7 +64,7 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
     if (root.dataset.page !== 'away' || root.hidden || !on) return;
     const r = game.state.lieutenants?.[owner()];
     if (!r) { pane.querySelector('.away-status').textContent = 'Your lieutenant takes over when you leave the city.'; return; }
-    const key = JSON.stringify([r.orders, r.budget, r.defendAtHome, r.warMode, !!L().warHold?.(owner()), r.spent, r.log.length, r.log.at(-1)?.tick, L().away(owner())]);
+    const key = JSON.stringify([r.orders, r.budget, r.defendAtHome, r.warMode, !!L().warHold?.(owner()), r.spent, r.log.length, r.log.at(-1)?.tick, L().away(owner()), logOpen, lpage, Math.floor(game.state.tick / 1200)]);
     if (key === shown) return; shown = key;
     const ninja = game.state.clans?.[owner()]?.kind === 'ninja';
     const pic = pane.querySelector('.lt-portrait'), src = lieutenantPortrait(game.state.clans?.[owner()]);
@@ -64,7 +75,8 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
     home.checked = !!r.defendAtHome;
     warBox.checked = r.warMode !== false; pane.querySelector('.away-war-status').hidden = !L().warHold?.(owner());
     pane.querySelector('.away-status').textContent = L().away(owner()) ? `You are away: the city captain holds the HQ. Spent today ${r.spent} of ${r.budget} ryo.` : 'You are in the city. Your lieutenant takes over when you leave.';
-    const ol = pane.querySelector('.away-log'); ol.replaceChildren(...r.log.slice().reverse().map(x => { const li = document.createElement('li'); li.textContent = `Day ${x.day}: ${x.text}`; return li; }));
+    pane.classList.toggle('logopen', logOpen);
+    logBox.innerHTML = logOpen ? logPageHtml('Lieutenant\'s log', logList(), lpage, game.state.tick) : logRowHtml('Lieutenant\'s log', logList(), game.state.tick, 'Nothing yet: he logs his raids, hires, bails and orders here');
   }
   return { update };
 }

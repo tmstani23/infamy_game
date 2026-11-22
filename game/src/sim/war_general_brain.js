@@ -15,6 +15,7 @@ import { SCREEN_RIGHT, SCREEN_DOWN } from './geometry.js';
 import { isMilitary, militaryCount, militaryNeeds, militaryWhy, warHallDone, tierMax } from './frontier/town_military.js';
 import { buildingCost, placedRoom } from './frontier/tiers.js';
 import { fundOf, fundPct, fundHas, fundPay, setFundCap } from './frontier/fund.js';
+import { logAct, aName } from './frontier/action_log.js';
 import { pointAt } from './frontier/rail_route.js';
 
 const DET = SCREEN_RIGHT.x * SCREEN_DOWN.z - SCREEN_DOWN.x * SCREEN_RIGHT.z;
@@ -179,6 +180,7 @@ export function createGeneralBrain(game, { clan }) {
       // (8d-9: the camp's stockade is left for last)
       const rank = c => c.type === 'camp_station' ? 0 : c.type === 'rail_section' ? 1 : isFort(c) ? 3 : 2;   // 8e-7: the supply line first
       const st = camp.map(c => ({ c, d: Math.hypot(c.x - t.x, c.z - t.z) })).sort((a, b) => rank(a.c) - rank(b.c) || a.d - b.d || (a.c.key < b.c.key ? -1 : 1))[0].c;
+      if (m.mode !== 'sortie') logAct(state, F().data, t, 'general', 'war', `Sallied out at the war camp with ${mine.length} troops`, sally ? 'His troops near the town were clearly the stronger.' : 'His army reached the size his strategy sallies at.');
       m.mode = 'sortie';
       const md = mendersBy(w.attacker, w.id, st);
       if (md) {
@@ -261,7 +263,7 @@ export function createGeneralBrain(game, { clan }) {
     // neither is one that needs it (the clan hall behind a rifle range that does not fit). noRoom / waits name them
     // for the red line on the General tab.
     const blocked = new Set(), noRoom = [], waits = [], pending = [], nice = x => x.replace(/_/g, ' ');
-    let botRoom = null;
+    let botRoom = null, upAdded = list.includes('upgrade');
     for (const type of list) {
       if (type === 'upgrade') { if (!warHallDone(s) && !s.warUpgrade) { add(data.war?.hallUpgrade?.cost); next ||= 'the town hall war upgrade'; } continue; }
       seen[type] = (seen[type] || 0) + 1;
@@ -273,6 +275,9 @@ export function createGeneralBrain(game, { clan }) {
       if (why && /at most/.test(why)) continue;
       if (!isMilitary(type, data) && placedRoom(s, type, data) < 1) continue;   // a town building at its hall tier limit (Tim 2026-11-22: Villages saved for a second stockade forever)
       pending.push(type);
+      // it needs the hall war upgrade and his list does not name it (Siege): he buys the upgrade first (prepare), so the
+      // fund's line and its need say so (2026-11-22: it said "Saving for foundry" while he saved for the upgrade)
+      if ((def.needs || []).includes('upgrade') && !warHallDone(s) && !s.warUpgrade && !upAdded) { upAdded = true; add(data.war?.hallUpgrade?.cost); next ||= 'the town hall war upgrade'; }
       if ((def.needs || []).some(nd => blocked.has(nd) && !militaryCount(s, nd))) { blocked.add(type); if (!waits.includes(type)) waits.push(type); continue; }
       // a player's town builds only inside its military quarter: he does not save for what has no room there
       if (!why && !militaryNeeds(s, type, data).length && !state.clans[s.owner]?.bot && spotFor(s, type, true) == null) { blocked.add(type); if (!noRoom.includes(type)) noRoom.push(type); continue; }
@@ -285,7 +290,7 @@ export function createGeneralBrain(game, { clan }) {
     // Tim 2026-11-22: the quarter grows by itself (military_plot.js grow, at the governor's next review): room for the
     // first building that does not fit and the ones after it on his list (plot.ahead in all). The line shows meanwhile.
     { const first = noRoom[0] || botRoom; if (s.fund) { if (first) s.fund.grow = pending.slice(pending.indexOf(first), pending.indexOf(first) + (data.war?.general?.plot?.ahead ?? 3)); else { delete s.fund.grow; delete s.fund.growAsk; } } }
-    const warn = noRoom.length ? `No room for a ${nice(noRoom[0])}: the military quarter is full. He adds to it when there is free ground and timber in the fund for its road; or paint more Military zone${waits.length ? `. Waiting behind it: ${waits.map(nice).join(', ')}` : ''}` : '';
+    const warn = noRoom.length ? `No room for ${aName(noRoom[0])}: the military quarter is full. He adds to it when there is free ground and timber in the fund for its road; or paint more Military zone${waits.length ? `. Waiting behind it: ${waits.map(nice).join(', ')}` : ''}` : '';
     return { cap, next, warn };
   }
   function prepare(out, cmd, s, zoneOnly = false) {
@@ -297,9 +302,13 @@ export function createGeneralBrain(game, { clan }) {
       // hands what is in the fund back to the town (design review 2026-11-21: 0 means no military building, and no
       // stock is locked up). Tim 2026-11-22: otherwise the fund keeps filling whatever he is saving for.
       const off = !(fundPct(s, data, state) > 0), idle = off || (!state.clans[s.owner]?.bot && !s.grid.zone.includes(data.zones?.military?.char));
-      const fc = idle ? { cap: {}, next: '' } : fundCap(s, list, data);
+      const fc = idle ? { cap: {}, next: '' } : fundCap(s, [...list, ...buildTail(list, false)], data);   // with the peace tail (supply tents up to their max, 2026-11-22: he asked for no quarter room for them)
+      const was = fund.next, wasWarn = fund.warn;
       setFundCap(s, F().world, fc.cap, fc.next, data, off);
       if (fc.warn) fund.warn = fc.warn; else delete fund.warn;
+      // his log (action_log.js): a new thing he saves for, or a new reason he is stuck
+      if (fc.next && fc.next !== was) logAct(state, data, s, 'general', 'save', `Started saving for ${/^the /.test(fc.next) ? fc.next : (/^[aeiou]/.test(fc.next) ? 'an ' : 'a ') + fc.next}`, `From the safety fund (${Math.round(fundPct(s, data, state))}% of the town's income). His list at this tier still needs ${['timber', 'stone', 'ryo'].map(r => Math.ceil(fc.cap?.[r] || 0) ? `${Math.ceil(fc.cap[r])} ${r}` : '').filter(Boolean).join(', ') || 'nothing more'}.`);
+      if (fc.warn && fc.warn !== wasWarn) { const [lead, ...why] = fc.warn.split(': '); logAct(state, data, s, 'general', 'bad', lead, why.join(': ')); }
       if (idle) return;
     }
     if (fund) zoneOnly = false;   // the fund decides what he may spend; the quarter decides where (spotFor keeps to it in player towns)
@@ -710,8 +719,9 @@ export function createGeneralBrain(game, { clan }) {
     const ready = m.left === 0 || early || state.tick - (w.started ?? w.at ?? state.tick) >= (A.buildWaitSeconds ?? G.attack?.buildWaitSeconds ?? 1200) * 20;
     const may = ready || (m.probes || 0) < (A.probes ?? G.attack?.probes ?? 1);
     const strong = m.mode === 'push' ? waveSize >= Math.max(1, Math.ceil((m.pushed || pushAt) * (A.fallBack ?? 0.35))) || (m.spent && waveSize > 0) : may && (count >= need || (early && count >= (A.pushLeast ?? 3)) || (m.spent && count >= (A.pushLeast ?? 3)));
-    if (strong && m.mode !== 'push') { comeOut(); m.pushed = count; m.wave = everyone; if (!ready) m.probes = (m.probes || 0) + 1; }
-    if (!strong && m.mode === 'push') m.beaten = (m.beaten || 0) + 1;   // a push given up: the camp digs in (campBuild)
+    if (strong && m.mode !== 'push') { comeOut(); m.pushed = count; m.wave = everyone; if (!ready) m.probes = (m.probes || 0) + 1;
+      logAct(state, F().data, w, 'general', 'war', `${ready ? 'Pushed' : 'Probed'} at ${t.name || 'the town'} with ${count} troops`, ready ? (m.early ? `He went early: ${m.early === 'bold' ? 'a bold general with his core troops up' : 'his army is clearly the stronger near the town'}.` : 'His camp list is built, or he has waited long enough.') : 'A probe before his camp list is built, to test the defence.'); }
+    if (!strong && m.mode === 'push') { m.beaten = (m.beaten || 0) + 1; logAct(state, F().data, w, 'general', 'bad', `Push beaten back at ${t.name || 'the town'}`, `He regroups and waits for more troops before the next push (beaten ${m.beaten} times).`); }   // a push given up: the camp digs in (campBuild)
     if (!strong) { m.mode = 'hold'; delete m.wave; gather(all); return; }
     if (m.wave) { m.wave = m.wave.filter(id => everyone.includes(id)); gather(all.filter(e => !m.wave.includes(e.id))); }
     m.mode = 'push';

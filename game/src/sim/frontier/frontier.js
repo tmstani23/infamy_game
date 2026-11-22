@@ -34,6 +34,7 @@ import { createWarOutcomes } from './war_outcomes.js';
 import { createEmptyTowns } from './empty_towns.js';
 import { createWarGeneral } from './war_general.js';
 
+import { logAct, generalLine } from './action_log.js';
 export function createFrontier({ state, data, world: worldData = null, spotData = null, spotRules = null, removeUnit = () => {}, capitalYard = null, civilians = null, dayTicks = 12000 }) {
   let world = createFrontierWorld({ state, data });
   const cadence = Math.max(1, data.cadenceTicks || 20);
@@ -166,8 +167,16 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   // [{ id, type: 'frontier', action, ... }] from a player, bot or governor (same path for all)
   function command(e, c) {
     ensure();
-    for (const m of modules) if (m.command?.(e, c, ctx)) return true;
+    const fr = state.frontier, seq = fr?.receiptSeq || 0;
+    for (const m of modules) if (m.command?.(e, c, ctx)) { if (c.by === 'general') logGeneral(c, seq); return true; }
     return false;
+  }
+  // the general's log (action_log.js): a command of his that went through
+  function logGeneral(c, seq) {
+    const r = (state.frontier?.receipts || []).find(x => x.seq > seq && x.action === c.action);
+    if (!r?.ok) return;
+    const w = c.war ? state.frontier.wars?.list?.[c.war] : null, s = !w ? state.frontier.settlements?.[c.town ?? c.settlement] : null;
+    const line = generalLine(c, s, w); if (line) logAct(state, data, w || s, 'general', ...line);
   }
 
   function attach(services) {runtime=services;Object.assign(trade,services.trade||{});workers.attach(services);arrivals.attach(services);townsfolk.attach(services);rail.attach(services);founding?.attach(services);rivalCampaign?.attach(services);war.attach(services);structures.attach(services);warEnd.attach(services);warTerms.attach(services);warOutcomes.attach(services);}

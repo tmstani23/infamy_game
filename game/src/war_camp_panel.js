@@ -91,7 +91,8 @@ import { listVehicles } from './vehicles_panel.js';
 import { sharedKeybinds } from './keybinds.js';
 import { drawBuildArea } from './camp_build_area.js';
 import { chestSendHtml, chestSendSig, chestSendClick, CHEST_SEND_CSS } from './war_chest_send.js';   // 8e-3
-import { armoryHtml, armorySig, ARMORY_CSS } from './war_armory_menu.js';   // 8e-9   // 7c-4: one merged build outline, darkened outside
+import { armoryHtml, armorySig, ARMORY_CSS } from './war_armory_menu.js';
+import { logRowHtml, logPageHtml, logHover, logTurn, LOG_CSS } from './action_log_ui.js';   // 8e-9   // 7c-4: one merged build outline, darkened outside
 // what a unit without a cast ability does well (train card hover); the cast abilities come from ability_rows.js
 export const TRAITS = {
   kunoichi: 'Hidden on the island until she attacks or is hit; her first hit is an ambush. Vanish on a move order while seen. Dog handlers, Teppo riflemen and watchtowers can spot her.',
@@ -125,7 +126,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       for (const r of rules || []) if (r.selectorText?.includes('#townpanel') && /\.(w[a-z]+|workerroster|hint|harvestline)\b/.test(r.selectorText)) out.push(r.cssText.replaceAll('#townpanel', '#warcamp .campworkers')); }
     const st = document.createElement('style'); st.textContent = out.join('\n') + '\n#warcamp .campworkers{margin-top:8px}'; document.head.appendChild(st);
   }
-  const style = document.createElement('style'); style.textContent = CSS + SURRENDER_CSS('#warcamp') + GENERAL_CSS('#warcamp') + CHEST_SEND_CSS('#warcamp') + ARMORY_CSS('#warcamp'); document.head.append(style);
+  const style = document.createElement('style'); style.textContent = CSS + SURRENDER_CSS('#warcamp') + GENERAL_CSS('#warcamp') + CHEST_SEND_CSS('#warcamp') + ARMORY_CSS('#warcamp') + LOG_CSS('#warcamp'); document.head.append(style);
   const war = () => game.frontier?.war;
   const W = () => war()?.data || frontierData?.war || {};
   // Tim 2026-11-13: camp workers in training show in the hall menu like the town's (a bar, the seconds left, how many more)
@@ -149,10 +150,11 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   }).join('');
 
   const root = document.createElement('div'); root.id = 'warcamp'; root.hidden = true; document.body.append(root);
-  let open = null, bid = null, tab = 'build', page = 0, tpage = 0, sig = '', why = '', confirm = false, stOrder = false, stSell = false;
+  root.addEventListener('mouseover', e => logHover(root, e));
+  let open = null, bid = null, tab = 'build', page = 0, tpage = 0, sig = '', why = '', confirm = false, stOrder = false, stSell = false, logOpen = false, lpage = 0;
   let stab = 'train', ypage = 0;   // a camp stable's own tabs: Train (cavalry) and Yours (your horses and vehicles, Tim 2026-11-14)
   const counts = {};   // typed train / hire counts by box, kept across refreshes
-  function show(id, buildingId = null) { if (!rec(id) || rec(id).attacker !== hero()?.owner) return false; const b = buildingId && rec(id).camp.buildings.find(x => x.id === buildingId); bid = b && b.type !== 'camp_hall' ? b.id : null; open = id; tab = 'build'; stab = 'train'; page = tpage = ypage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true; }
+  function show(id, buildingId = null) { if (!rec(id) || rec(id).attacker !== hero()?.owner) return false; const b = buildingId && rec(id).camp.buildings.find(x => x.id === buildingId); bid = b && b.type !== 'camp_hall' ? b.id : null; open = id; logOpen = false; lpage = 0; tab = 'build'; stab = 'train'; page = tpage = ypage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true; }
   function close() { open = null; bid = null; root.hidden = true; }
 
   function fill() {
@@ -172,7 +174,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const strat = game.frontier?.warGeneral?.strategyOf?.(w.attacker) || 'siege';
     const next = JSON.stringify([open, bid, tab, page, tpage, why, confirm, !!w.terms, strat, Math.floor(clan?.ryo ?? 0), clan?.treasuryKeep, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length, workerLeft(c),
       c.buildings.map(b => [b.id, b.stage, Math.floor(100 * (b.upgrade || b).progress / Math.max(1, (b.upgrade || b).need) || 0), b.queue?.length || 0, b.tier || 1, builders(b.id)]), list.map(x => x.ok), placing?.kind,
-      bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0, workersH, stab, ypage, mineV.map(v => [v.e.id, v.status, v.where]), chestSendSig(game, w, w.attacker), armorySig(game, w, w.attacker), stOrder, stSell, JSON.stringify(c.station || null), (() => { const l = game.state.frontier?.rail?.links?.[c.station?.link]; return l ? [Math.floor(100 * l.built / Math.max(1, l.length)), l.waiting, l.done, l.closed] : null; })(),
+      bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0, workersH, stab, ypage, mineV.map(v => [v.e.id, v.status, v.where]), chestSendSig(game, w, w.attacker), armorySig(game, w, w.attacker), stOrder, stSell, logOpen, lpage, w.log?.general?.length || 0, w.log?.general?.[0]?.tick, Math.floor((game.state.tick || 0) / 1200), JSON.stringify(c.station || null), (() => { const l = game.state.frontier?.rail?.links?.[c.station?.link]; return l ? [Math.floor(100 * l.built / Math.max(1, l.length)), l.waiting, l.done, l.closed] : null; })(),
       Object.values(game.state.frontier?.shipping?.orders || {}).filter(o => o.camp && o.war === w.id && o.state === 'open').map(o => [o.id, o.got])]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
     if (next === sig) return;
     sig = next;
@@ -297,8 +299,9 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     } else if (tab === 'workers') {
       body = workersH;
     } else if (tab === 'general') {
-      body = generalTab({ strategy: strat, rules: game.frontier?.warGeneral?.rules?.() || W().general || {}, camp: true,
-        treasury: { ryo: clan?.ryo ?? 0, keep: clan?.treasuryKeep ?? W().supply?.treasuryKeep ?? 1000, room: game.frontier?.shipments?.autoRoom?.(clan) ?? 0, typing: counts.tkeep }, share: W().supply?.autoShare });
+      body = logOpen ? logPageHtml('General\'s log', w.log?.general, lpage, game.state.tick) : generalTab({ strategy: strat, rules: game.frontier?.warGeneral?.rules?.() || W().general || {}, camp: true,
+        treasury: { ryo: clan?.ryo ?? 0, keep: clan?.treasuryKeep ?? W().supply?.treasuryKeep ?? 1000, room: game.frontier?.shipments?.autoRoom?.(clan) ?? 0, typing: counts.tkeep }, share: W().supply?.autoShare })
+        + logRowHtml('General\'s log', w.log?.general, game.state.tick, 'Nothing yet: he logs what he builds and his pushes while he runs this camp');
     } else if (tab === 'chest') {
       const linked = !!(c.station?.linked);
       body = `<div class="chestbox"><div class="chestcoin" title="Ryo for troops and camp workers. Every troop trained at a camp building and every camp worker hired is paid from here; camp buildings are paid in timber and stone. Only this war can spend it; what is left comes home when the war ends."><b>${Math.floor(c.chest || 0)}</b><span>ryo in the war chest</span></div>
@@ -338,17 +341,19 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   root.addEventListener('change', e => { if (!e.target?.dataset?.tkeep || !open) return; const n = Math.floor(Number(e.target.value)); delete counts.tkeep; sig = ''; if (!Number.isSafeInteger(n) || n < 0) why = 'Type 0 or more'; else { why = ''; send({ id: heroId, type: 'frontier', action: 'ship', mode: 'treasuryKeep', ryo: n }); } fill(); });   // 8e-2
   root.addEventListener('change', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.change?.(a.dataset, e.target.value, s)) { sig = ''; fill(); } });
   root.addEventListener('click', e => {
-    const b = e.target.closest?.('[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-erase],[data-cancel],[data-armcancel],[data-train],[data-untrain],[data-upgrade],[data-hire],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-campord],[data-campsell],[data-rebuild]'); if (!b || !open) return;
+    const b = e.target.closest?.('[data-logopen],[data-logback],[data-lpage],[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-erase],[data-cancel],[data-armcancel],[data-train],[data-untrain],[data-upgrade],[data-hire],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-campord],[data-campsell],[data-rebuild]'); if (!b || !open) return;
     const d = b.dataset; why = ''; sig = '';
     if (d.rsend || d.rcancel) { why = chestSendClick(d, { war: rec(open), heroId, counts, send }) || ''; fill(); return; }   // 8e-3
     if (d.armcancel != null && open) { send({ id: heroId, type: 'frontier', action: 'armoryCancel', war: open, index: Number(d.armcancel) }); fill(); return; }   // armory queue (Tim 2026-11-18)
     if (d.armup) { const [group, track] = d.armup.split(':'); send({ id: heroId, type: 'frontier', action: 'armoryUp', war: open, group, track }); fill(); return; }   // 8e-9
     if (d.campord) { if (d.campord === 'open') stOrder = !stOrder; else { const n = Math.floor(Number(counts[`co:${d.campord}`] ?? 200)) || 0, ryo = Math.max(0, Math.floor(Number(counts['co:ryo'] ?? 0)) || 0); const node = rec(open)?.camp?.station?.node; if (n && node) send({ id: heroId, type: 'frontier', action: 'ship', mode: 'order', town: node, resource: d.campord, amount: n, ...(ryo ? { ryo } : {}) }); else why = 'Type how much'; } fill(); return; }   // 8e-5
     if (d.campsell) { if (d.campsell === 'open') stSell = !stSell; else { const n = Math.floor(Number(counts[`cs:${d.campsell}`] ?? 100)) || 0; const node = rec(open)?.camp?.station?.node; if (n && node) send({ id: heroId, type: 'frontier', action: 'ship', mode: 'sell', town: node, resource: d.campsell, amount: n }); else why = 'Type how much'; } fill(); return; }   // Tim 2026-11-17
+    if (d.logopen || d.logback) { logOpen = !!d.logopen; lpage = 0; fill(); return; }
+    if (d.lpage) { lpage = logTurn(lpage, Number(d.lpage), rec(open)?.log?.general); fill(); return; }
     if (d.close) return close();
     if (d.terms) { const id = open; close(); openTerms(id); return; }
     if (d.surrender) { confirm = d.surrender === 'ask'; if (d.surrender === 'yes') { send({ id: heroId, type: 'frontier', action: 'warSurrender', war: open }); close(); return; } }
-    else if (d.tab) { tab = d.tab; confirm = false; }
+    else if (d.tab) { tab = d.tab; confirm = false; logOpen = false; }
     else if (d.stab) { stab = d.stab; ypage = 0; }
     else if (d.ypage) ypage = Math.max(0, ypage + Number(d.ypage));
     else if (d.takeout) send({ id: heroId, type: 'garage', action: 'takeout', unit: d.takeout, at: `war:${open}` });

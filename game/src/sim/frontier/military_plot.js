@@ -14,6 +14,8 @@ import { centreCell, cellOffset, cellToWorld, inCore, hallRoadCell, nearCliff } 
 import { coversResources } from './resource_clearance.js';
 import { route } from './streets.js';
 import { fundOf, fundHas, fundPay, fundRefund } from './fund.js';
+import { logAct } from './action_log.js';
+const nice = t => String(t || '').replace(/_/g, ' ');
 
 const hash = str => { let h = 2166136261; for (const ch of String(str)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return (h >>> 0) / 4294967296; };
 
@@ -164,6 +166,7 @@ export function createMilitaryPlot({ state, data, world, zones, placement = () =
     const r = fresh.length ? zones.zone(s, { kind: 'military', cells: fresh, by: 'g' }) : { ok: true };
     if (!r.ok) { lastWhy = String(r.reason || 'the zone could not be painted').replace(/\.$/, '').replace(/^./, c => c.toLowerCase()); s.milPlot = { ...(mp || { cells: [], road: [] }), tier }; if (!mp?.cells?.length) s.report.military = noRoom(); return; }
     delete s.report.military;
+    logAct(state, data, s, 'general', 'land', mp?.cells?.length ? `Grew the military quarter for tier ${tier}` : 'Marked out the military quarter', `${got.cells.length} cells facing the nearest rival town${got.road.length ? `, with ${got.road.length} road cells to lay to it` : ''}.`);
     s.milPlot = { tier, cells: got.cells, road: got.road };
     layRoad(s);
   }
@@ -216,6 +219,7 @@ export function createMilitaryPlot({ state, data, world, zones, placement = () =
         if (todo.length) { if (fund) fundPay(s, cost, world); if (!pl.place(s, { kind: 'road', cells: todo, by: 'g' }).ok) return; }
         if (!zones.zone(s, { kind: 'military', cells: c.cells, by: 'g' }).ok) return;
         if (mp?.cells?.length) mp.cells = [...new Set([...mp.cells, ...c.cells])];
+        logAct(state, data, s, 'general', 'land', `Grew the military quarter by ${c.cells.length} cells`, `${nice(types[0])} was next on his list and had no room. The new strip has room for ${types.slice(0, k).map(nice).join(', ')}${todo.length ? `, and he laid ${todo.length} road cells to it from the safety fund` : ''}.`);
         delete s.fund.grow; delete s.fund.growAsk; delete s.fund.warn;   // (the general's next look says what he saves for)
         return;
       }
