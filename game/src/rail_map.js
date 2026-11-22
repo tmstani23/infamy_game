@@ -2,7 +2,7 @@
 // line still being laid shows as a faint dashed route, and the railhead (the rail gang) gets a dot with
 // "42% · 6 min" beside it. Reads the frontier view only (state.frontier.rail.links, your own links).
 // drawRailLines(ctx, links, at, { width, label, seconds }) where at(x, z) -> [px, py] in canvas pixels.
-import { pointAt } from './sim/frontier/rail_route.js';
+import { pointAt, laidStretches } from './sim/frontier/rail_route.js';
 
 // the points of `line` from distance d0 to d1, ends included
 function stretch(line, d0, d1) {
@@ -60,7 +60,7 @@ export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds
     const built = l.done ? l.length : Math.max(0, Math.min(l.length, l.built || 0));
     if (built < l.length) {   // the route still to lay: faint, dashed
       // a dark casing under bright dashes, so it reads over any ground (Tim 2026-11-08: hard to see)
-      const rest = stretch(l, built, l.length), dw = Math.max(1.5, width * 0.8);
+      const parts = laidStretches(l), rest = stretch(l, parts.length > 1 ? 0 : built, l.length), dw = Math.max(1.5, width * 0.8);
       if (inked) {   // planned route: a faint wash in the owner's toned colour under sepia ink dashes
         ctx.globalAlpha = 0.3; ctx.strokeStyle = mapTint(clans?.[l.owner]?.color) || '#c49a5a'; ctx.lineWidth = width * 2.2; stroke(ctx, rest, at); ctx.globalAlpha = 1;
         ctx.setLineDash([width * 2, width * 1.6]); ctx.strokeStyle = 'rgba(52,36,24,.85)'; ctx.lineWidth = dw; stroke(ctx, rest, at); ctx.setLineDash([]);
@@ -71,23 +71,24 @@ export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds
       ctx.setLineDash([]);
       }
     }
-    if (built > 0.5) {   // laid track: an amber glow with a dark rail line down the middle
-      const laid = stretch(l, 0, built);
+    if (built > 0.5) {   // laid track: an amber glow with a dark rail line down the middle (each crew's stretch)
+      const laids = laidStretches(l).filter(([a, b]) => b - a > 0.5).map(([a, b]) => stretch(l, a, b));
       const rival = me && l.owner !== me && clans?.[l.owner]?.color;
       if (inked) {
-        ctx.globalAlpha = 0.55; ctx.strokeStyle = mapTint(clans?.[l.owner]?.color) || '#c49a5a'; ctx.lineWidth = width * 2.6; stroke(ctx, laid, at); ctx.globalAlpha = 1;
-        ctx.strokeStyle = '#2b1d14'; ctx.lineWidth = width * 1.15; stroke(ctx, laid, at);
-        ctx.setLineDash([width * 1.4, width * 1.4]); ctx.lineCap = 'butt'; ctx.strokeStyle = '#f5e5ba'; ctx.lineWidth = width * 0.5; stroke(ctx, laid, at);
+        ctx.globalAlpha = 0.55; ctx.strokeStyle = mapTint(clans?.[l.owner]?.color) || '#c49a5a'; ctx.lineWidth = width * 2.6; laids.forEach(x => stroke(ctx, x, at)); ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#2b1d14'; ctx.lineWidth = width * 1.15; laids.forEach(x => stroke(ctx, x, at));
+        ctx.setLineDash([width * 1.4, width * 1.4]); ctx.lineCap = 'butt'; ctx.strokeStyle = '#f5e5ba'; ctx.lineWidth = width * 0.5; laids.forEach(x => stroke(ctx, x, at));
         ctx.setLineDash([]); ctx.lineCap = 'round';
       } else {
       ctx.shadowColor = rival || 'rgba(255,190,80,.95)'; ctx.shadowBlur = width * 3;
-      ctx.strokeStyle = rival || 'rgba(255,196,96,.9)'; ctx.lineWidth = width * 1.6; stroke(ctx, laid, at);
+      ctx.strokeStyle = rival || 'rgba(255,196,96,.9)'; ctx.lineWidth = width * 1.6; laids.forEach(x => stroke(ctx, x, at));
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = 'rgba(52,34,20,.95)'; ctx.lineWidth = Math.max(1, width * 0.55); stroke(ctx, laid, at);
+      ctx.strokeStyle = 'rgba(52,34,20,.95)'; ctx.lineWidth = Math.max(1, width * 0.55); laids.forEach(x => stroke(ctx, x, at));
       }
     }
     if (!l.done) {   // the railhead: where the gang is, and how far along
-      const head = pointAt(l, built), [u, v] = at(head.x, head.z);
+      const heads = laidStretches(l).map(([, d]) => pointAt(l, d)), head = heads[0], [u, v] = at(head.x, head.z);
+      for (const h of heads.slice(1)) { const [hu, hv] = at(h.x, h.z); ctx.beginPath(); ctx.arc(hu, hv, width * 1.1, 0, Math.PI * 2); ctx.fillStyle = inked ? '#dcae5c' : '#ffd27a'; ctx.fill(); }
       ctx.shadowColor = inked ? 'transparent' : 'rgba(255,190,80,.95)'; ctx.shadowBlur = inked ? 0 : width * 3;
       ctx.beginPath(); ctx.arc(u, v, width * 1.4, 0, Math.PI * 2); ctx.fillStyle = inked ? '#dcae5c' : '#ffd27a'; ctx.fill();
       ctx.shadowBlur = 0; ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(40,24,10,.9)'; ctx.stroke();

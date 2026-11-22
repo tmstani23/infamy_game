@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
-import { pointAt } from '../src/sim/frontier/rail_route.js';
+import { pointAt, laidStretches } from '../src/sim/frontier/rail_route.js';
 
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const world = data('data/world.json'), frontier = data('data/frontier.json'), railways = data('data/railways.json');
@@ -66,7 +66,7 @@ assert.match(clan.notice?.text || '', /already being laid|already linked/i, 'one
 // --- progress: steady, paid by stretches from town stock, gang at the railhead when someone is near ------
 Object.assign(hero, { place: 'world' });
 const timber0 = town.stock.timber;
-const stepFor = s => { for (let t = 0; t < s * 20; t++) { const head = pointAt(l, l.built); Object.assign(hero, { x: head.x + 8, z: head.z + 8 }); g.step([]); } };
+const stepFor = s => { for (let t = 0; t < s * 20; t++) { const head = pointAt(l, laidStretches(l)[0][1]); Object.assign(hero, { x: head.x + 8, z: head.z + 8 }); g.step([]); } };   // beside the drawn railhead
 stepFor(SECONDS / 3);
 const share = l.built / l.length;
 assert.ok(share > 0.28 && share < 0.39, `a third of the way after a third of the time (${share.toFixed(2)})`);
@@ -74,9 +74,12 @@ assert.ok(town.stock.timber < timber0, 'timber paid');
 const per100 = railways.link.costPer100.timber, paid = timber0 - town.stock.timber;
 assert.ok(paid <= per100 * (l.built + railways.link.stretch) / 100 + 1, 'paid only as it goes');
 const gang = l.gang.map(id => S.entities[id]).filter(Boolean);
+// Tim 2026-11-22: the drawn railhead (link.shown) moves at the gang's walking pace, behind the true progress on a
+// line this quick; the gang works beside it
+assert.ok(l.shown > 0 && l.shown < l.built && l.shown <= railways.gang.speed * SECONDS / 3 + 1, `drawn at a walk (${Math.round(l.shown)} of ${Math.round(l.built)})`);
 assert.equal(gang.length, railways.gang.size, 'the gang is out');
-const head = pointAt(l, l.built);
-for (const e of gang) { assert.equal(e.model, railways.gang.model); assert.ok(Math.hypot(e.x - head.x, e.z - head.z) < l.length / SECONDS * (railways.gang.hammerSeconds + 2) + 25, 'near the railhead'); }
+const head = pointAt(l, laidStretches(l)[0][1]);
+for (const e of gang) { assert.equal(e.model, railways.gang.model); assert.ok(Math.hypot(e.x - head.x, e.z - head.z) < 25, 'beside the drawn railhead'); }
 
 // --- short of timber: the gang waits; restock and it carries on ----------------------------------------
 town.stock.timber = 0;
@@ -90,7 +93,7 @@ assert.equal(l.built, stuck, 'no track without timber');
 town.stock.timber = 400;
 
 // --- nobody near: the gang goes, the track still grows ----------------------------------------------------
-Object.assign(hero, { x: gx + 5, z: gz + 5 });
+Object.assign(hero, { place: 'street', x: g.gate.inside[0], z: g.gate.inside[1] });   // the drawn railhead is still near the town, so the hero leaves the island
 for (let t = 0; t < 40; t++) g.step([]);
 assert.equal(l.gang.length, 0, 'gang gone when nobody is near');
 const mid = l.built;

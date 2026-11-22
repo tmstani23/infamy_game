@@ -10,7 +10,7 @@
 // createRailTrack({ scene, carSprite }) -> { update(frontierView, show, dt), things(), dispose() }
 import * as THREE from 'three';
 import { spriteMaterial } from './shading.js';
-import { pointAt } from '../sim/frontier/rail_route.js';
+import { pointAt, laidStretches } from '../sim/frontier/rail_route.js';
 import { toScreen, CAM_UP } from './iso.js';
 import { createTrainFx, carriageGlow } from './train_fx.js';
 
@@ -144,9 +144,14 @@ export function createRailTrack({ scene, carSprite = null, hide = null, snow = n
     // ballast track everywhere except over the bridges (spans widened a little onto the banks)
     const spans = (l.bridges || []).map(([b0, b1]) => [Math.max(0, b0 - 3), Math.min(l.length, b1 + 3)]).sort((a, b) => a[0] - b[0]);
     const GAP = BLOWN_L - 0.4, holes = l0.gap == null ? spans : [...spans, [l0.gap * l.k - GAP / 2, l0.gap * l.k + GAP / 2]].sort((a, b) => a[0] - b[0]);   // no track across a blown gap
+    // each crew's stretch (laidStretches, Tim 2026-11-22) gets its own pieces, so each can show its own laid part
+    const cuts = (l0.starts || []).map(d => d * l.k).filter(d => d > 0.5 && d < l.length - 0.5);
     let from = 0;
     for (const [a, b] of [...holes, [l.length, l.length]]) {
-      if (a - from > 0.5) { const t = ribbon(l, from, a, TRACK_W, 0.03), tm = new THREE.Mesh(t.geo, track); tm.renderOrder = -0.4; tm.frustumCulled = false; parts.push({ mesh: tm, d0: from, n: t.n }); }
+      for (const c of [...cuts.filter(c => c > from + 0.5 && c < a - 0.5), a]) {
+        if (c - from > 0.5) { const t = ribbon(l, from, c, TRACK_W, 0.03), tm = new THREE.Mesh(t.geo, track); tm.renderOrder = -0.4; tm.frustumCulled = false; parts.push({ mesh: tm, d0: from, n: t.n }); }
+        from = Math.max(from, c);
+      }
       from = Math.max(from, b);
     }
     for (const [a, b] of spans) {
@@ -284,12 +289,14 @@ export function createRailTrack({ scene, carSprite = null, hide = null, snow = n
     for (const l of Object.values(links)) {
       if (!l.points?.length || !(l.length > 0)) continue;
       const gap = l.blast && l.closed ? l.blast.d : null;   // a blown gap (sim/frontier/rail_blast.js) while the repair runs
-      const key = `${l.length}:${l.points.length}:${gap ?? ''}`;
+      const laid = laidStretches(l), starts = laid.map(([a]) => a);
+      const key = `${l.length}:${l.points.length}:${gap ?? ''}:${laid.length}`;
       let s = shown.get(l.id);
       if (s && s.key !== key) { drop(l.id); s = null; }
-      if (!s) shown.set(l.id, s = { key, meshes: build({ ...l, r: smoothed(l), gap }) });
+      if (!s) shown.set(l.id, s = { key, meshes: build({ ...l, r: smoothed(l), gap, starts }) });
       for (const p of s.meshes) {   // only what has been laid so far
-        const quads = p.whole ? p.n : Math.max(0, Math.min(p.n, Math.floor((l.built * smoothed(l).k - p.d0) / STEP)));
+        const rk = smoothed(l).k, end = (laid.findLast(([a]) => a * rk <= p.d0 + 0.01) || laid[0])[1] * rk;   // the crew stretch this piece is in
+        const quads = p.whole ? p.n : Math.max(0, Math.min(p.n, Math.floor((end - p.d0) / STEP)));
         p.mesh.geometry.setDrawRange(0, quads * 6);
         p.mesh.visible = quads > 0;
       }

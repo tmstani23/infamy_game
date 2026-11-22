@@ -44,6 +44,7 @@
     "model": "rail_worker",
     "spawnRadius": 300,
     "hammerSeconds": 2,
+    "_shownNote": "Tim 2026-11-22: the drawn track and the gang move at the gang's walking pace (speed, hammerSeconds); the line still opens after link.seconds and the rest of the track appears then.",
     "speed": 4.5,
     "anim": {
       "work": "hammer",
@@ -65,6 +66,7 @@
     "overflow": { "on": true, "resources": ["timber", "stone"], "at": 1, "downTo": 0.9, "_note": "placeholder (Tim 2026-11-17): the governor sells timber and stone only when the store is full (at = share of storage), down to downTo of storage, never while a war is on the town or it fills a war camp order; food is never sold on its own" },
     "maxAuto": 4,
     "keepMax": 100000,
+    "refillBelow": 0.5, "noCapitalBuy": ["goods"], "_refill": "placeholder (Tim 2026-11-22, fix list 13): the governor orders a refill only when a town's stock plus what is on its way falls below refillBelow of its keep, then orders back up to the keep in one go; auto refills of noCapitalBuy resources come from your own towns only, never bought at the capital",
     "keepShare": 0.5, "_keepShare": "default keep amount = this share of the town storage cap per resource (goods too: market hold-back); a keep the player sets wins"
   },
   "train": {

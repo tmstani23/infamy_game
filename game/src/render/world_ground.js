@@ -12,6 +12,7 @@ import { buildChunk, cityOnIsland } from '../sim/chunk_gen.js';
 import {islandBiome} from '../sim/island_art.js';
 import {spriteMaterial} from './shading.js';
 import { terrainAt } from '../sim/world_data.js';
+import { laidStretches } from '../sim/frontier/rail_route.js';
 import { placePiece, ELEVATION } from '../sim/geometry.js';
 import { groundMaterial } from './shading.js';
 import { loadTex, cutoutThing, loadGroundTextures, GROUND_CHANNELS } from './scenery.js';
@@ -298,11 +299,13 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (key === railKey) return railSet;
     railKey = key; railSet = new Set(); propAt = null;
     for (const l of links) {
-      const p = l.points, dist = l.dist, end = Math.min(l.built || 0, l.length || 0);
-      if (!p || p.length < 2 || !(end > 0)) continue;
-      for (let i = 1; i < p.length && dist[i - 1] < end; i++) {
+      const p = l.points, dist = l.dist;
+      if (!p || p.length < 2) continue;
+      for (const [start, end] of laidStretches(l)) for (let i = 1; i < p.length && dist[i - 1] < end; i++) {   // each crew's stretch (Tim 2026-11-22)
+        if (!(end > start) || dist[i] < start) continue;
         const [ax, az] = p[i - 1], [bx, bz] = p[i], len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(len));
         for (let k = 0; k <= n; k++) {
+          if (dist[i - 1] + len * k / n < start) continue;
           if (dist[i - 1] + len * k / n > end) break;
           const cx = Math.floor((ax + (bx - ax) * k / n) / 1.5), cz = Math.floor((az + (bz - az) * k / n) / 1.5);
           for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) railSet.add((cx + dx) * 100003 + cz + dz);

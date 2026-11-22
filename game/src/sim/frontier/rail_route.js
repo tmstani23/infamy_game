@@ -222,3 +222,11 @@ export function pointAt(line, d) {
   const [ax, az] = p[lo], [bx, bz] = p[hi];
   return { x: ax + (bx - ax) * t, z: az + (bz - az) * t, heading: Math.atan2(bx - ax, bz - az) };
 }
+
+// Tim 2026-11-22: the track drawn while a line is laid follows the rail gang at a walking pace (link.shown, moved by
+// rail.js), not the true progress (link.built, which takes link.seconds whatever the length); when the line opens the
+// rest appears at once. The laid track as [from, to] distances along the line.
+export function laidStretches(l) {
+  const len = l.length || 0, built = l.done ? len : Math.max(0, Math.min(len, l.built || 0));
+  return [[0, l.done ? len : Math.min(built, l.shown ?? built)]];
+}

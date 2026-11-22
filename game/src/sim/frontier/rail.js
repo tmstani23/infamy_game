@@ -25,7 +25,7 @@
 //  or a call-off half its rail cost goes back to the town it ran to; a fallen camp gives nothing back.
 // createRail({ state, data, world, worldData }) -> { command, tick, econTick, attach, endpoint, preview, linksOf }
 import { crewCommandGroup } from '../deployment_rally.js';
-import { createRailGrid, routeRail, pointAt, measure, roundCorners, openRun, nearestOpen } from './rail_route.js';
+import { createRailGrid, routeRail, pointAt, measure, roundCorners, openRun, nearestOpen, laidStretches } from './rail_route.js';
 import { townExit, railCellsFor, clearRun } from './rail_town.js';
 import { stationParts } from './station_layout.js';
 import { tierOf } from './tiers.js';
@@ -597,7 +597,13 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     l.gang = [];
   }
 
-  // the gang at the railhead: spawn near someone on the island, hammer a few seconds, catch up, repeat
+  // the drawn railhead's pace (Tim 2026-11-22): what the gang can follow at its walking pace (gang.speed over the share
+  // of the cycle spent walking, less a margin), never ahead of the true progress; the line opens at link.seconds
+  function walkPace() {
+    const g = GANG(), hammer = Math.round((g.hammerSeconds ?? 3) * 20), cycle = hammer + 40, walkShare = Math.max(0.2, (cycle - hammer) / cycle);
+    return (g.speed ?? 4.5) * walkShare / 1.3;
+  }
+  // the gang at the drawn railhead: spawn near someone on the island, hammer a few seconds, catch up, repeat
   function tick() {
     if (runtime?.gate) capitalEnds();
     blast.tick();   // charges, gaps and repair crews (train robbery R1)
@@ -608,32 +614,40 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     const anchors = enabled ? Object.values(state.entities).filter(e => e.place === 'world' && !e.worker && !e.railGang && e.type !== 'civilian' && e.owner && !e.dead && !e.downed) : [];
     for (const l of Object.values(rec().links)) {
       if (l.done) continue;
-      const head = pointAt(l, l.built), near = anchors.some(e => Math.hypot(e.x - head.x, e.z - head.z) <= (g.spawnRadius ?? 160));
+      l.shown = Math.min(l.built, (l.shown ?? l.built) + walkPace() / 20);   // lines begun before 2026-11-22 show what is laid
       l.gang = (l.gang || []).filter(id => { const e = state.entities?.[id]; return e && !e.dead; });
-      if (!near) { dropGang(l); continue; }
-      const ahead = [Math.sin(head.heading), Math.cos(head.heading)];   // heading = atan2(dx, dz)
-      for (let k = l.gang.length; k < size; k++) {
-        const spot = gangSpot(l, k, l.built);
-        l.gang.push(runtime.spawn('civilian', g.model || 'laborer', spot.x, spot.z, { place: 'world', area: 'world', railGang: l.id, seenBy: l.owner, town: l.payer, holdFire: true, hp: 120, maxHp: 120, anim: 'idle' }));
-      }
-      const cycle = Math.round(((g.hammerSeconds ?? 3) + 2) * 20);
-      l.gang.forEach((id, k) => {
-        const e = state.entities[id]; if (!e) return;
-        const t = ((state.tick ?? 0) + k * 13) % cycle, working = t < (g.hammerSeconds ?? 3) * 20;
-        // while hammering they keep their spot; then they run up to their place beside the new railhead
-        if (!working || e.railSpot == null) e.railSpot = l.built;
-        const spot = gangSpot(l, k, e.railSpot), dx = spot.x - e.x, dz = spot.z - e.z, d = Math.hypot(dx, dz);
-        // they keep up without racing ahead of a hero on foot (Tim 2026-11-07): gang.speed (below the hero's run),
-        // but at least 1.3 times the railhead's own pace counting the time they stand hammering (they only walk
-        // between swings, Tim 2026-11-07: the track ran ahead of them); a long gap (spawning in) closes at once
-        const hammer = Math.round((g.hammerSeconds ?? 3) * 20), walkShare = Math.max(0.2, (cycle - hammer) / cycle);
-        const v = Math.max(g.speed ?? 4.5, 1.3 * l.length / Math.max(1, L().seconds ?? 600) / walkShare) / 20;
-        if (d > 40) { e.x = spot.x; e.z = spot.z; }
-        else if (d > 0.05) { const m = Math.min(1, v / d); e.x += dx * m; e.z += dz * m; e.dir = dirIndex(dx, dz); }
-        e.anim = d > 0.3 ? (g.anim?.move || 'run') : (g.anim?.work || 'bow');
-        if (d <= 0.3) e.dir = dirIndex(...ahead);
+      laidStretches(l).forEach(([, d], c) => {
+        const head = pointAt(l, d), near = anchors.some(e => Math.hypot(e.x - head.x, e.z - head.z) <= (g.spawnRadius ?? 160));
+        const mine = l.gang.filter(id => (state.entities[id].railCrew || 0) === c);
+        if (!near) { for (const id of mine) runtime?.remove(id); l.gang = l.gang.filter(id => !mine.includes(id)); return; }
+        for (let k = mine.length; k < size; k++) {
+          const spot = gangSpot(l, k, d);
+          const id = runtime.spawn('civilian', g.model || 'laborer', spot.x, spot.z, { place: 'world', area: 'world', railGang: l.id, railCrew: c, seenBy: l.owner, town: l.payer, holdFire: true, hp: 120, maxHp: 120, anim: 'idle' });
+          l.gang.push(id); mine.push(id);
+        }
+        gangMoves(l, mine, d, head);
       });
     }
+  }
+  // one crew's gang: hammer in place, then walk up beside its railhead at d
+  function gangMoves(l, ids, at, head) {
+    const g = GANG();
+    const ahead = [Math.sin(head.heading), Math.cos(head.heading)];   // heading = atan2(dx, dz)
+    const cycle = Math.round(((g.hammerSeconds ?? 3) + 2) * 20);
+    ids.forEach((id, k) => {
+      const e = state.entities[id]; if (!e) return;
+      const t = ((state.tick ?? 0) + k * 13) % cycle, working = t < (g.hammerSeconds ?? 3) * 20;
+      // while hammering they keep their spot; then they run up to their place beside the new railhead
+      if (!working || e.railSpot == null) e.railSpot = at;
+      const spot = gangSpot(l, k, e.railSpot), dx = spot.x - e.x, dz = spot.z - e.z, d = Math.hypot(dx, dz);
+      // they walk at gang.speed (below the hero's run, Tim 2026-11-07); the drawn railhead moves at walkPace, so they
+      // keep up between swings (Tim 2026-11-22); a long gap (spawning in) closes at once
+      const v = (g.speed ?? 4.5) / 20;
+      if (d > 40) { e.x = spot.x; e.z = spot.z; }
+      else if (d > 0.05) { const m = Math.min(1, v / d); e.x += dx * m; e.z += dz * m; e.dir = dirIndex(dx, dz); }
+      e.anim = d > 0.3 ? (g.anim?.move || 'run') : (g.anim?.work || 'bow');
+      if (d <= 0.3) e.dir = dirIndex(...ahead);
+    });
   }
   // gang member k's place: just behind the railhead, alternating sides of the track
   function gangSpot(l, k, d) {
@@ -660,6 +674,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       for (const t of Object.values(r.trains)) if (t.link === l.id) t.d = t.d >= l.length - 0.01 ? n.length : Math.max(0, Math.min(n.length, t.d * k));
       unreserve(l);
       Object.assign(l, { points: n.points, dist: n.dist, length: n.length, bridges: n.bridges, built: Math.min(n.length, (l.built || 0) * k) });
+      if (l.shown != null) l.shown = Math.min(n.length, l.shown * k);
       reserve(l);
     }
   }
