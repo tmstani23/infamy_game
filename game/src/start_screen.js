@@ -20,8 +20,8 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
   const initial = savedMatchOptions(difficulty);
   root.innerHTML = `<div class="start-art" aria-hidden="true"></div><div class="start-light" aria-hidden="true"></div>
     <div class="start-rain" aria-hidden="true"></div><div class="start-mist" aria-hidden="true"></div>
-    <div class="start-content"><header><p class="start-eyebrow">A city. Three clans.</p><h1>INFAMY</h1>
-    <p class="start-tagline">Build your clan. Take the city.</p></header>
+    <div class="start-content"><header><h1>INFAMY</h1>
+    <p class="start-tagline">From the back streets of a Meiji port town to the burning gates of your enemies.</p></header>
     <form><fieldset><legend>Choose your clan</legend><div class="start-clans">${CLAN_CHOICES.map(c => `
       <label class="start-choice"><input type="radio" name="clan" value="${c.id}" ${initial.clan === c.id ? 'checked' : ''} required>
       <span class="start-clan-card" style="--choice-color:${c.color}"><canvas width="72" height="72" data-crest="${c.id}" aria-hidden="true"></canvas>

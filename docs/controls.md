@@ -351,6 +351,7 @@ Menu look (2026-11-11, lantern style 2026-11-23):
 - The start screen shows the painted clan crests on dark shelf cards; the season end window and the loading screen use the same frame and serif. The campaign end scene (2026-11-20 mocks) is kept; its type, stat plates and buttons follow the lantern style.
 - The painted clan crests also show on unit nameplates, business banners, the war bar, the standings window and the campaign end scene (medal and rival crests); a clan without painted art keeps the drawn crest.
 - Hover tips (unit hover, map tips, war bar hover, town map building details, loot toast, garrison hints) are small dark wood plaques with a brass edge in the serif. Building cards (island building pane, city building panel, town cards), the goal card and the war chest coin take the frame and serif; small labels are plain italic, not spaced capitals.
+- The start screen shows the painted "Infamy" title, with the line "From the back streets of a Meiji port town to the burning gates of your enemies." under it.
 - Menu portraits are 3D sprite stills (assets/sprites/portraits/stills/<model>.png).
 - The action bar, character page and buff icons show drawn icons (game/src/hud_icons.js) next to each ability's name and key. Utility and command buttons use drawn icons too. UI text is plain, with no symbol glyphs.
 - Season end: a "Season over" line above the title; New game is the highlighted button.
