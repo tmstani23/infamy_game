@@ -640,3 +640,5 @@ body .uf .pic { background-color: #1d1a16; }
 #townpanel .wdia { flex: none; display: inline-grid; place-items: center; width: 14px; height: 14px; margin: 0 3px; transform: rotate(45deg); background: #d8321f; border: 1.5px solid #f3d29a; box-shadow: 0 0 0 1px #000, 0 0 6px rgba(255,60,30,.6); font-style: normal; }
 #townpanel .wdia b { transform: rotate(-45deg); font: 800 9px/1 system-ui, sans-serif; color: #fff; }
 #townpanel button .wcount { display: inline-grid; place-items: center; min-width: 15px; height: 15px; margin-left: 4px; padding: 0 3px; border-radius: 8px; background: #c4301f; color: #fff; font: 700 10px/15px system-ui, sans-serif; box-shadow: 0 0 0 1px #000; vertical-align: 1px; }
+#townpanel .wtired-r button:disabled { opacity: .6; cursor: default; }
+#townpanel .wtired-r button:active:not(:disabled) { transform: translateY(1px); filter: brightness(1.25); }

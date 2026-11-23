@@ -81,13 +81,14 @@ export function regrowSpot(spot, stateStr, stages, rand) {
   return /^f*$/.test(out) ? null : out;
 }
 
-// Overworked check (Tim 2026-11-06 22:23-22:29): the spot keeps supportsWorkers busy when the camp is beside it
-// (campTripSeconds); a longer trip lets more workers share it: best = supports x campTripSeconds / tripSeconds.
-// Without supports data it falls back to a live estimate (aim = share of value worked out). Returns { speed, best, over }.
+// Overworked check (2026-11-06, changed 2026-11-22): a spot's max is supportsWorkers, one fixed number whatever the
+// walk, the same number the governor fills a spot to and the camp card, Workers view and map marker count with.
+// (Until 2026-11-22 the max shrank as the trip grew, supports x campTripSeconds / tripSeconds: a healthy far spot was
+// called tired at 2 workers while the governor kept 6 on it.) Without supports data it falls back to a live estimate
+// (aim = share of value worked out). tripSeconds is no longer used. Returns { speed, best, over }.
 export function overwork(spot, stateStr, stages, n, aim = 0.35, tripSeconds = null) {
   const now = spotYield(spot, stateStr, stages), full = spotYield(spot, null, stages), worked = Math.max(0, 1 - now / full);
-  const sup = supportsWorkers(spot, stages), S = stages.supports;
-  const best = sup ? Math.max(1, Math.floor(sup * S.campTripSeconds / Math.max(S.campTripSeconds, tripSeconds || S.campTripSeconds)))
-    : !n || worked <= aim ? null : Math.max(1, Math.floor(n * aim / worked));
+  const sup = supportsWorkers(spot, stages);
+  const best = sup ? sup : !n || worked <= aim ? null : Math.max(1, Math.floor(n * aim / worked));
   return { speed: Math.round(100 * now / full), best, over: best != null && n > best };
 }

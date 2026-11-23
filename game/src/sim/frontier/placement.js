@@ -11,7 +11,7 @@
 // A closed wall ring therefore needs a gate; the gate cell is passable and reaches outside.
 // Overgrown ground is allowed: a project on it starts in phase 'clearing' (L3.3's work order clears it).
 import { cellOffset, inCore, setUse, hallRoadCell, hallArtCell, nearCliff } from './town_grid.js';
-import { buildingSafety } from './building_safety.js';
+import { buildingSafety, coverKeepsFlood } from './building_safety.js';
 import { coversResources } from './resource_clearance.js';
 import { placedRoom, buildingCost } from './tiers.js';
 import { shapeOf } from './station_layout.js';
@@ -44,30 +44,65 @@ export function createPlacement({ state, data, world, construction, resourceInde
     return out;
   };
 
+  // The trap check's fixed parts, kept per grid (2026-11-22: the general's room check ran the flood hundreds of times
+  // a review and the game hitched every few seconds). out: which cells count as outside (the grid's edge, and open
+  // country beyond the town's range). base: for the tick in hand and the grid as it stands, the things to keep
+  // reachable and the keys already cut off, so a run of what-if checks floods once each instead of twice.
+  const kept = new WeakMap();
+  function fixed(s) {
+    const g = s.grid, { n } = g; let k = kept.get(g);
+    if (k && k.n === n && k.cell === g.cell) return k;
+    const N = n * n, out = new Uint8Array(N), far = data.townGrid.radius + g.cell;
+    for (let i = 0; i < N; i++) {
+      const col = i % n, row = (i - col) / n;
+      if (col === 0 || row === 0 || col === n - 1 || row === n - 1) { out[i] = 1; continue; }
+      const [ox, oz] = cellOffset(s, i);
+      if (Math.hypot(ox, oz) > far) out[i] = 1;
+    }
+    kept.set(g, k = { n, cell: g.cell, out, base: null });
+    return k;
+  }
   // Keys of things with no path to the outside under grid `g` (use string overridable for a what-if)
   function trapped(s, use = s.grid.use) {
-    const g = s.grid, { n } = g, N = n * n, seen = new Uint8Array(N), stack = [];
-    const outside = i => {
-      const col = i % n, row = (i - col) / n;
-      if (col === 0 || row === 0 || col === n - 1 || row === n - 1) return true;
-      const [ox, oz] = cellOffset(s, i);
-      return Math.hypot(ox, oz) > data.townGrid.radius + g.cell;   // beyond the town's range: open country
-    };
-    const passable = i => (use[i] === '.' || use[i] === 'r' || use[i] === 'g') && (g.ground[i] !== 'x' || outside(i));
-    for (let i = 0; i < N; i++) if (outside(i) && passable(i)) { seen[i] = 1; stack.push(i); }
+    const g = s.grid, { n } = g, N = n * n, k = fixed(s), out = k.out, ground = g.ground;
+    const live = Number.isFinite(state?.tick), same = baseOk(s, k), b = k.base;
+    if (same && use === g.use) return new Set(b.set);
+    const seen = new Uint8Array(N), stack = [];
+    const passable = i => { const u = use[i]; return (u === '.' || u === 'r' || u === 'g') && (ground[i] !== 'x' || out[i] === 1); };
+    for (let i = 0; i < N; i++) if (out[i] && passable(i)) { seen[i] = 1; stack.push(i); }
     while (stack.length) {
       const i = stack.pop(), col = i % n;
-      for (const j of [col > 0 ? i - 1 : -1, col < n - 1 ? i + 1 : -1, i - n, i + n]) {
-        if (j < 0 || j >= N || seen[j] || !passable(j)) continue;
-        seen[j] = 1; stack.push(j);
-      }
+      if (col > 0 && !seen[i - 1] && passable(i - 1)) { seen[i - 1] = 1; stack.push(i - 1); }
+      if (col < n - 1 && !seen[i + 1] && passable(i + 1)) { seen[i + 1] = 1; stack.push(i + 1); }
+      if (i - n >= 0 && !seen[i - n] && passable(i - n)) { seen[i - n] = 1; stack.push(i - n); }
+      if (i + n < N && !seen[i + n] && passable(i + n)) { seen[i + n] = 1; stack.push(i + n); }
     }
-    const reached = (c) => {   // a cell is reached if flooded, or any 4-neighbour is
+    const units = same ? b.units : unit(s);
+    const set = cutOff(units, seen, n);
+    if (live && use === g.use) k.base = { tick: state.tick, use: g.use, zone: g.zone, ground, nb: s.buildings.length, np: s.projects.length, units, set, seen };
+    return use === g.use ? new Set(set) : set;
+  }
+  const baseOk = (s, k) => { const g = s.grid, b = k.base; return !!b && Number.isFinite(state?.tick) && b.tick === state.tick && b.use === g.use && b.zone === g.zone && b.ground === g.ground && b.nb === s.buildings.length && b.np === s.projects.length; };
+  // the keys of the units no flooded cell touches (a cell is reached if flooded, or any 4-neighbour is)
+  function cutOff(units, seen, n) {
+    const N = seen.length;
+    const reached = c => {
       if (seen[c]) return true;
       const col = c % n;
       return (col > 0 && seen[c - 1]) || (col < n - 1 && seen[c + 1]) || (c - n >= 0 && seen[c - n]) || (c + n < N && seen[c + n]);
     };
-    return new Set(unit(s).filter(u => !u.cells.some(reached)).map(u => u.key));
+    return new Set(units.filter(u => !u.cells.some(reached)).map(u => u.key));
+  }
+  // trapped() for the grid as it stands with `cover` (free cells) blocked, `use` being that what-if. When the flooded
+  // cells round the cover still join each other, the flood is the one in hand less the cover: no second flood.
+  function trappedWith(s, cover, use) {
+    const k = fixed(s), n = s.grid.n;
+    if (!baseOk(s, k) || !coverKeepsFlood(k.base.seen, n, cover, i => k.out[i] === 1)) return trapped(s, use);
+    const seen = k.base.seen, hit = cover.filter(i => seen[i]);
+    for (const i of hit) seen[i] = 0;
+    const set = cutOff(k.base.units, seen, n);
+    for (const i of hit) seen[i] = 1;
+    return set;
   }
 
   function costOf(kind, count, s = null) {
@@ -133,7 +168,8 @@ export function createPlacement({ state, data, world, construction, resourceInde
     let use = g.use;
     const mark = LINES[kind] || 'B';
     for (const i of cover) use = put(use, i, mark);
-    const before = trapped(s), after = trapped(s, use);
+    // (a road or gate on free ground stays open ground to the flood: nothing changes)
+    const before = trapped(s), after = mark === 'r' || mark === 'g' ? before : trappedWith(s, cover, use);
     // a building's own footprint is judged as a unit below (it is not in s.buildings yet)
     for (const k of after) if (!before.has(k)) return bad('would trap', cover);
     if (!LINES[kind] && !cover.some(i => {   // the new building itself needs an open neighbour

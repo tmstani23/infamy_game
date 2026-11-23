@@ -2,7 +2,8 @@ import { addCampStock } from './camp_stock.js';
 import { modeRules } from '../modes/index.js';
 // Saved worker records, integer-tick trips, ground clearing and nearby civilian units.
 // Stock/population still have one writer (world.js); no camera, DOM or Math.random.
-import { makeSpotIndex, spotState, spotYield, regrowSpot, supportsWorkers, overwork } from '../resource_spots.js';
+import { makeSpotIndex, spotState, spotYield, regrowSpot, supportsWorkers } from '../resource_spots.js';
+import { campLoad, spotCounts } from './camp_load.js';
 import { cellToWorld, worldToCell, townBlocksBox, townBlockedCells, townBlockSignature, campBlockSignature, ringRadius } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
 import { isFull } from './storage.js';
@@ -739,47 +740,44 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   // nearest hall or storehouse to a camp, for its carts
   const cartHome=(s,b)=>{const p=point(s,b),h=homeDrops(s).map(x=>point(s,x)).sort((a,c)=>distance(a,p)-distance(c,p))[0];return h || [s.x,s.z];};
-  // Move extras (Tim 2026-11-22), the camp card button: on each spot of the camp's kind within campReach of it, the
-  // workers past what the spot keeps busy (overwork best, from trips to THIS camp: one carrying on to a far hall while
-  // the camp is full would make the spot look good for 1) go back to the governor (by 'g'). One with no load leaves
-  // the spot now, one carrying hands it in first (w.offSpot). Then the governor places them (a camp spot with room,
-  // or a wait in the hall); with Initiative off they stand idle. ok + moved = how many.
-  function campBest(p,campId) {
-    const ws=sites().flatMap(t=>t.workers || []).filter(w=>w.spot===p.id && w.dropoff===campId && w.trip && !w.trip.kind);
-    const full=R.harvestTicks*p.pieces.length/spotYield(p,null,spotRules.stages);
-    const trip=ws.length ? ws.reduce((a,w)=>a+(w.trip.out+w.trip.back+full)/HZ,0)/ws.length : null;
-    return overwork(p,state.frontier?.spots?.[p.id],spotRules.stages,0,R.overwork,trip).best;
-  }
-  // the spots of a work camp's kind near it that have more workers than they keep busy: [{p, best, n}]
-  function campOver(s,b,count) {
-    const takes=R.campTakes?.[b.type];if(!takes || !s || !spotRules?.stages)return [];
-    const out=[];
-    for(const p of index.spotsNear(...point(s,b),R.campReach || 0)) {
-      if(!takes.includes(R.resources[p.kind]))continue;
-      const best=campBest(p,b.id),n=count[p.id] || 0;
-      if(best!=null && n>best)out.push({p,best,n});
-    }
-    return out;
-  }
-  const spotCount=()=>{const c={};for(const t of sites())for(const w of t.workers || [])if(w.spot)c[w.spot]=(c[w.spot] || 0)+1;return c;};
+  // Move extras (Tim 2026-11-22), the camp card and Workers view button: on each spot that counts for the camp
+  // (camp_load.js: its kind, in reach, this camp the nearest), the workers past the spot's max (supportsWorkers, the
+  // number the governor fills it to) go back to the governor (by 'g'): his own first, then those with no load. One
+  // with no load leaves the spot now, one carrying hands it in first (w.offSpot). Then the governor places them (a
+  // camp spot with room, or a wait in the hall); with Initiative off they stand idle. ok + moved = how many; a
+  // campMoved news line tells the player what became of them.
+  const spotCount=()=>spotCounts(sites());
+  const loadOf=(s,b,count)=>campLoad(s,b,{R,index,stages:spotRules?.stages,count});
   function campExtras(s,id) {
-    const b=s.buildings.find(x=>x.id===id && x.stage==='built'),takes=b && R.campTakes?.[b.type];
-    if(!takes || !spotRules?.stages)return result('not a work camp');
-    const count=spotCount();
-    let moved=0;
-    for(const {p,best} of campOver(s,b,count)) {
-      // the governor's own go first, then those with no load (they leave at once)
+    const b=s.buildings.find(x=>x.id===id && x.stage==='built'),load=b && loadOf(s,b,spotCount());
+    if(!load)return result('not a work camp');
+    const gone=[];
+    for(const {p,n,max} of load.spots) {
+      if(n<=max)continue;
       const mine=s.workers.filter(w=>w.spot===p.id && !w.project && !w.offSpot).sort((x,y)=>(x.by==='g' ? 0 : 1)-(y.by==='g' ? 0 : 1) || (x.carrying>0 ? 1 : 0)-(y.carrying>0 ? 1 : 0) || compare(x.id,y.id));
-      for(const w of mine.slice(0,count[p.id]-best)) {
+      for(const w of mine.slice(0,n-max)) {
         w.by='g';delete w.nextSpot;delete w.status;delete w.retryAt;delete w.fresh;
         if(w.carrying>0)w.offSpot=true;
         else {const here=currentPoint(w);if(here)w.departure=here;w.spot=null;w.trip=null;w.elapsed=0;w.phase=0;w.dropoff=null;}
-        moved++;
+        gone.push(w);
       }
     }
-    if(!moved)return result('no extra workers at this camp');
+    if(!gone.length)return result('no extra workers at this camp');
     assignIdle(s);
+    const moved=gone.length,loaded=gone.filter(w=>w.offSpot).length,placed=gone.filter(w=>!w.offSpot && (w.spot || w.nextSpot)).length,waiting=gone.filter(w=>!w.offSpot && w.wait).length,idle=moved-loaded-placed-waiting;
+    const label=(data.buildings?.[b.type]?.name || b.type.replace(/_/g,' ')).toLowerCase(),parts=[placed && `${placed} to another spot`,waiting && `${waiting} wait in the town hall`,loaded && `${loaded} hand in their load first`,idle && `${idle} stand idle`].filter(Boolean);
+    (state.news ||= []).push({kind:'campMoved',clan:s.owner,settlement:s.id,building:b.id,moved,placed,waiting,loaded,idle,text:`${s.name} ${label}: ${moved} worker${moved>1 ? 's' : ''} moved off. ${parts.join(', ')}`});
+    refreshTired(s,spotCount());
     return {...result(),moved};
+  }
+  // a town's work camps with more workers on their spots than the max (town alert, map marker, Workers view)
+  function refreshTired(t,count) {
+    const tired=[];
+    for(const b of t.buildings || []) {
+      const load=b.stage==='built' && R.campTakes?.[b.type] && loadOf(t,b,count);
+      if(load && load.extra>0)tired.push({id:b.id,type:b.type,extra:load.extra,n:load.n,max:load.max});
+    }
+    if(tired.length)t.tiredCamps=tired;else delete t.tiredCamps;
   }
   function buyCampCart(s,id) {
     const b=s.buildings.find(x=>x.id===id),C=cartRules(data);
@@ -907,17 +905,8 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   function econTick() {
     if(!R || !spotRules?.stages)return;
-    // Tim 2026-11-22: each town's work camps with more workers on their spots than those keep busy (town alert + map pulse)
-    const count=spotCount();
-    for(const t of towns()) {
-      if(t.camp)continue;
-      const tired=[];
-      for(const b of t.buildings || [])if(b.stage==='built' && R.campTakes?.[b.type]) {
-        const over=campOver(t,b,count),extra=over.reduce((a,o)=>a+o.n-o.best,0);
-        if(extra>0)tired.push({id:b.id,type:b.type,extra,n:over.reduce((a,o)=>a+o.n,0),max:over.reduce((a,o)=>a+o.best,0)});
-      }
-      if(tired.length)t.tiredCamps=tired;else delete t.tiredCamps;
-    }
+    // Tim 2026-11-22: each town's work camps over their max (town alert, map marker, Workers view)
+    { const count=spotCount();for(const t of towns())if(!t.camp)refreshTired(t,count); }
     for(const [id,chars] of Object.entries(state.frontier.spots || {})) {
       const spot=index.get(id);if(!spot)continue;
       let seed=spotData.seed | 0;for(const ch of id)seed=Math.imul(seed^ch.charCodeAt(0),16777619);

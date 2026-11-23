@@ -24,6 +24,7 @@ import { sharedKeybinds } from './keybinds.js';
 import { isMilitary, militaryFor, militaryNeeds, militaryCount, tierMax, townMilitaryTier } from './sim/frontier/town_military.js';
 import { openMenu, placeBeside, unplace } from './card_beside.js';
 import { tiredCamps } from './tired_camps.js';
+import { campLoad, spotCounts } from './sim/frontier/camp_load.js';
 const keybinds = sharedKeybinds();   // rebindable keys (Tim 2026-11-12): Turn a station, Workers hold
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -121,9 +122,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (!n || !spotRules?.stages) return '';
     const { speed, best, over } = overwork(spot, game.state.frontier?.spots?.[spot.id], spotRules.stages, n, data.workers?.overwork, tripSecondsAt(spot));
     const cap = best ?? n, pct = Math.min(100, Math.round(100 * Math.min(n, cap) / Math.max(n, cap))), col = over ? '#d9a25a' : '#7fc27a';
-    return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>Workers ${n}${best != null ? ` of about ${best}` : ''}</span><span>${speed}% full</span></div>`
+    return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>Workers ${n}${best != null ? `, max ${best}` : ''}</span><span>${speed}% full</span></div>`
       + `<div style="height:8px;border-radius:4px;background:${over ? 'rgba(217,162,90,.35)' : 'rgba(0,0,0,.45)'};overflow:hidden;margin:3px 0"><div style="height:100%;width:${pct}%;background:#7fc27a"></div></div>`
-      + `<div style="font-size:12px;color:${col}">${over ? `Tired: ${n - best} extra worker${n - best > 1 ? 's' : ''} add little` : 'Room for more workers'}</div>`
+      + `<div style="font-size:12px;color:${col}">${over ? `Tired: ${n - best} over the max, they add little` : best != null && n >= best ? 'At the max' : 'Room for more workers'}</div>`
       + spotDetails(spot, n) + `</div>`;
   }
   // The actual numbers behind the workers row (Tim 2026-11-06 22:25), folded away under Details.
@@ -146,7 +147,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + row('Worked piece back to full', `about ${regrowSec}s${q ? ` (${Math.round(q * 100)}% chance per stage each second)` : ''}`)
       + row('Each trip works out', '1 piece')
       + row('Workers here', `${n}`)
-      + row('Tired when', q ? 'more workers than it keeps busy at your trip length' : `more than ${Math.round(aim * 100)}% of its value is worked out`)
+      + row('Tired when', q ? 'more workers than its max' : `more than ${Math.round(aim * 100)}% of its value is worked out`)
       + `</details>`;
   }
   // average full-speed trip (walk out + back, at full harvest) of the workers on a spot, in seconds; null if none
@@ -165,26 +166,22 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     for (const w of s.workers || []) if (w.spot && !out.has(w.spot)) { const p = spotIndex.get(w.spot); if (p && overwork(p, game.state.frontier?.spots?.[p.id], spotRules.stages, count[w.spot], data.workers?.overwork, tripSecondsAt(p)).over) out.add(w.spot); }
     return out;
   }
-  // Workers on the spots beside a work camp (Tim 2026-11-22): spots of its kind within workers.campReach of it, the workers
-  // of your towns on them, and about how many those spots keep busy at full speed (overwork best, summed). Over that = Tired.
+  // Workers on the spots of a work camp (Tim 2026-11-22; sim/frontier/camp_load.js): the spots of its kind in reach that
+  // have no nearer camp, the workers on them and the camp's max (each spot's fixed max, summed). Over that = Tired.
   function campWork(b, s) {
-    const W = data.workers || {}, takes = W.campTakes?.[b.type];
-    if (!takes || !spotRules?.stages || !s?.grid || !Number.isInteger(b.cell)) return null;
-    const [x, z] = cellToWorld(s, b.cell), r = W.campReach ?? 0, count = {};
-    for (const t of towns()) for (const w of t.workers || []) if (w.spot) count[w.spot] = (count[w.spot] || 0) + 1;
-    let n = 0, cap = 0, extra = 0, spots = 0;
-    for (const p of spotIndex.spotsNear(x, z, r)) {
-      if (!takes.includes(W.resources?.[p.kind]) || !known(p.x, p.z)) continue;
-      const k = count[p.id] || 0, o = overwork(p, game.state.frontier?.spots?.[p.id], spotRules.stages, k, W.overwork, tripSecondsAt(p, b.id)), best = o.best ?? k;
-      spots++; n += k; cap += best; extra += Math.max(0, k - best);
-    }
-    return { n, cap, extra, spots, res: takes.join(' and '), reach: r };
+    const W = data.workers || {};
+    if (!s?.grid || !Number.isInteger(b.cell)) return null;
+    const load = campLoad(s, b, { R: W, index: spotIndex, stages: spotRules?.stages, count: spotCounts(towns()), known });
+    return load && { n: load.n, cap: load.max, extra: load.extra, spots: load.spots.length, res: W.campTakes[b.type].join(' and '), reach: W.campReach ?? 0 };
   }
+  // Move extras pressed (Tim 2026-11-22): the button reads Moving for a moment, so the press shows before the numbers change
+  const movedAt = new Map(), moving = id => performance.now() - (movedAt.get(id) ?? -1e9) < 2500;
+  function moveExtras(townId, id) { movedAt.set(id, performance.now()); command({ action: 'campExtras', town: townId, building: id }); }
   const campHead = t => `<div style="font:600 10px/12px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#b9a77e;margin:10px 0 3px">${t}</div>`;
   function campWorkHTML(b, s) {
     const c = campWork(b, s); if (!c) return '';
     const most = Math.max(1, c.n, Math.ceil(c.cap * 1.5)), fill = Math.round(100 * Math.min(c.n, c.cap) / most), over = Math.round(100 * c.extra / most), mark = Math.round(100 * c.cap / most), tired = c.extra > 0;
-    const tip = `Workers on the ${c.res} spots near this camp (${c.spots} spot${c.spots === 1 ? '' : 's'}). The max is how many those spots keep busy at full speed. Past it the spots get tired and extra workers add little.`;
+    const tip = `Workers on this camp's ${c.res} spots (${c.spots} spot${c.spots === 1 ? '' : 's'}: the ones in reach with no nearer camp). The max is what the governor puts on them. Past it the spots get tired and extra workers add little.`;
     const note = !c.spots ? `No ${c.res} spots within reach of this camp` : tired ? `${c.extra} over the max of ${c.cap}` : c.n < c.cap ? `Room for ${c.cap - c.n} more (max ${c.cap})` : `At the max of ${c.cap}`;
     return `<div title="${esc(tip)}">${campHead('Workers')}<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#b9b3a6">Workers at this camp</span><span><b style="color:${tired ? '#e3b06a' : '#eadfc6'}">${c.n}</b></span></div>`
       + `<div style="position:relative;height:8px;border-radius:4px;background:rgba(0,0,0,.45);overflow:hidden;margin:3px 0"><div style="position:absolute;left:0;top:0;bottom:0;width:${fill}%;background:#7fc27a"></div>`
@@ -192,7 +189,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + (c.cap ? `<div style="position:absolute;left:calc(${mark}% - 1px);top:0;bottom:0;width:2px;background:#f2e6c9"></div>` : '') + `</div>`
       + `<div style="display:flex;align-items:center;gap:8px;min-height:22px"><div style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${tired || !c.spots ? '#d9a25a' : '#7fc27a'}">${note}</div>`
       // Move extras (Tim 2026-11-22): hands the extra workers back to the governor (a camp spot with room, or a wait in the hall)
-      + (tired ? `<button data-camp-extras="${esc(b.id)}" data-cart-town="${esc(s.id)}" title="${esc(`Hand the ${c.extra} extra worker${c.extra > 1 ? 's' : ''} back to the governor. He puts them on a spot beside a camp with room, or they wait in the town hall until one opens. With Initiative off they stand idle.`)}" style="flex:none;font-size:11px;padding:2px 8px">Move extras</button>` : '') + `</div></div>`;
+      + (tired && moving(b.id) ? '<button disabled style="flex:none;font-size:11px;padding:2px 8px;opacity:.6">Moving</button>' : tired ? `<button data-camp-extras="${esc(b.id)}" data-cart-town="${esc(s.id)}" title="${esc(`Hand the ${c.extra} extra worker${c.extra > 1 ? 's' : ''} back to the governor. He puts them on a spot beside a camp with room, or they wait in the town hall until one opens. With Initiative off they stand idle.`)}" style="flex:none;font-size:11px;padding:2px 8px">Move extras</button>` : '') + `</div></div>`;
   }
   // Workers in shelter, on the town hall card (Tim 2026-11-22): how many of the hall's room, why (hiding from an attack,
   // sent in by hand, waiting for room at their camp, in a work camp), Back to work, and Send the others in (in peace too, Tim 2026-11-22).
@@ -452,7 +449,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (b?.dataset.rebuild) { command({ action: 'rebuild', settlement: b.dataset.rebuildTown, building: b.dataset.rebuild }); return; }
     if (b?.dataset.shelter) { command({ action: 'hallShelter', town: b.dataset.shelter, mode: b.dataset.shelterMode }); return; }
     if (b?.dataset.buyCart) { command({ action: 'buyCart', town: b.dataset.cartTown, building: b.dataset.buyCart }); return; }
-    if (b?.dataset.campExtras) { command({ action: 'campExtras', town: b.dataset.cartTown, building: b.dataset.campExtras }); return; }
+    if (b?.dataset.campExtras) { moveExtras(b.dataset.cartTown, b.dataset.campExtras); return; }
     if (b?.dataset.camp) { town = b.dataset.camp; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = b.dataset.campType; return; }
     if (b?.dataset.stable) { onStable(b.dataset.stable); inspect = null; card.hidden = true; return; }
     if (b?.dataset.build) { town = b.dataset.build; opened = true; onBuild(town); inspect = null; card.hidden = true; }
@@ -751,7 +748,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   }
   function html(s, mini = false, extra = '') {
     if (town !== s.id) { close(); town = s.id; }
-    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{tired:tiredCamps(game.state.frontier,s.owner).filter(c=>c.town===s.id),overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage,filter:workerFilter,stockade:!!data.buildings?.stockade?.garrison && !!s.buildings?.some(b=>b.type==='stockade' && b.stage==='built')})}</div>`;
+    if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{moving,tired:tiredCamps(game.state.frontier,s.owner).filter(c=>c.town===s.id),overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage,filter:workerFilter,stockade:!!data.buildings?.stockade?.garrison && !!s.buildings?.some(b=>b.type==='stockade' && b.stage==='built')})}</div>`;
     // Tim 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
     const capOf = id => {
       // 8b-1: a military building shows used / the war limit, greyed with what it still needs
@@ -863,7 +860,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (ds.act === 'build-worker-spot-page')workerSpotPage=Number(ds.id);
       if (ds.act === 'build-worker-spot') {const spot=spotIndex.get(ds.id);if(spot)view.jumpTo?.(spot.x,spot.z);}
       // camps over their max (Tim 2026-11-22): Move extras as on the camp card; Go to puts the camera on the camp
-      if (ds.act === 'build-worker-campextras')command({action:'campExtras',town:s.id,building:ds.id});
+      if (ds.act === 'build-worker-campextras')moveExtras(s.id,ds.id);
       if (ds.act === 'build-worker-campgo') {const c=tiredCamps(game.state.frontier,s.owner).find(c=>c.town===s.id && c.id===ds.id);if(c)view.jumpTo?.(c.x,c.z);}
       return true;
     },

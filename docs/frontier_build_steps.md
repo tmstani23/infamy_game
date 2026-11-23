@@ -2158,7 +2158,7 @@ Files: `game/src/sim/frontier/construction.js`, `game/tools/test_frontier_grid.m
 Do: `place { kind: 'road' | 'wall' | 'gate', cells }` on cleared cells. A town can have several
 gates (decided, Tim 2026-11-02): each world road (F3) enters at a gate on the site edge, and many
 roads can join the town. Before accepting, flood-fill from the gates over road and open cells:
-reject with reason `'would trap'` if any zoned or built cell would lose a path to every gate. Gates
+reject with reason `'would trap'` if any zoned or built cell would lose a path to every gate. (Faster check 2026-11-22, same answers: see Camp card Move extras and tired camps.) Gates
 count as passable. A market or storehouse only ships goods (F3.3) if it has a road path to a gate
 whose world road reaches the buyer.
 Check (pass/fail): a wall ring with no gate is rejected; the same ring with a gate is accepted; a
@@ -3155,6 +3155,12 @@ Tests: `tools/test_shipments.mjs`, `test_shipments_clerk.mjs`, `test_shipments_t
 - Workers view (2026-11-22, follow-up): in the town panel (O), the Workers button shows a red count of the town's work camps over their max. On the Workers tab (not Groups, Spots or Log) a "Camps over their max" box sits above the worker cards: one row per camp (at most 2, the rest counted in the header) with a numbered red diamond, camp name, "N working, max M", red "+X", Move extras (same as the camp card) and Go to (camera to the camp). The cards show one row fewer while the box is there, so the panel keeps its size.
 - Minimap: each of your work camps over its max gets the same numbered red diamond with a pulsing glow; hover names the camp and the numbers. Numbers run across all your towns (`src/tired_camps.js`).
 - Test: `game/tools/test_camp_extras.mjs`.
+
+- One max per spot (2026-11-22, round 3): a spot's max is its fixed worker number (`resource_spots.json` `stages.supports`: 6 ordinary, 12 rich, 14 rich forest), used by the spot card, camp card, Workers view box, map marker, alert and governor. This replaces the 2026-11-06 trip-based Tired rule (max = supports x campTripSeconds / trip seconds); `resource_spots.js` `overwork()` best = `supportsWorkers()`, the tripSeconds argument is unused.
+- Spot card: "Workers N, max M"; status "Tired: X over the max, they add little", "At the max" or "Room for more workers"; "Tired when: more workers than its max".
+- Each spot counts for its nearest camp of that kind only (ties: lower building id). A worker told off his spot who is still handing in his load no longer counts. Shared by sim and UI: `src/sim/frontier/camp_load.js` `campLoad(s, b, {R, index, stages, count, known})` returns {n, max, extra, spots}; `spotCounts(sites)`.
+- Move extras confirmation: a news line (kind `campMoved`, a callout for 6 seconds): "<Town> <camp>: N workers moved off. A to another spot, B wait in the town hall, C hand in their load first, D stand idle". The button reads "Moving" (disabled) for 2.5 seconds after the press, on the camp card and in the Workers view.
+- Trap check speed (no rule change, see F5.2): `placement.check` keeps one flood of the town grid per tick and skips the second flood when the flooded cells round the footprint still join each other (`building_safety.js` `coverKeepsFlood`); a road or gate on free ground never floods again. `buildingSafety` keeps the built-town flood per grid while walls and built buildings stay the same. Same answers as the old code on 33,600 placement and 19,200 safety checks; the generals' room check on a late save went from about 4 s to about 0.3 s every 30 s. Test: `game/tools/test_cover_flood.mjs`.
 
 ## General, governor and lieutenant logs; full quarter after the list (2026-11-22)
 

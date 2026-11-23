@@ -47,7 +47,7 @@ const HELP='Click a worker to select it, double-click a worker or group to follo
 // camp (7c-4, a war camp's pane): task coins timber, stone, building and repair; spots = the camp's resource spots
 // (every one in its reach, rich or not), paged with spotPage. A town shows a Repair coin only while someone repairs.
 // filter (Tim 2026-11-12): a job coin shows only those workers until another coin or All is clicked; one filter at a time
-export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page=0,known=()=>true,tab='roster',logPage=0,stockade=false,camp=false,spots=null,spotPage=0,spotState=()=>null,filter=null,tired=[]}) {
+export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page=0,known=()=>true,tab='roster',logPage=0,stockade=false,camp=false,spots=null,spotPage=0,spotState=()=>null,filter=null,tired=[],moving=()=>false}) {
   const all=s.workers || [],idle=all.filter(w=>workerIdle(w,index)),workers=tab==='idle'?idle:filter?all.filter(w=>workerTask(w,index)===filter):all,groups=data.workers.groups || 4,rows0=data.workers.panelRows || 6;
   const button=(act,id,label,on=false,extra='')=>`<button data-act="build-worker-${act}" data-id="${esc(id)}" aria-pressed="${on}" class="${on?'on':''}"${extra}>${esc(label)}</button>`;
   const pager=(act,at,pages,prev='Prev',next='Next')=>pages>1?`<div class="wpager"><span>Page ${at+1} of ${pages}</span><span>${button(act,Math.max(0,at-1),prev,false,at?'':' disabled')}${button(act,Math.min(pages-1,at+1),next,false,at<pages-1?'':' disabled')}</span></div>`:'';
@@ -67,7 +67,7 @@ export function workerPanelHTML(s,{overworked=new Set(),selected,index,data,page
   const over=!camp && (tab==='roster' || tab==='idle') ? tired : [],rows=over.length ? Math.max(2,rows0-2) : rows0;
   const tiredBox=over.length ? `<div class="wtired"><div class="wtired-h"><svg viewBox="0 0 15 14" width="13" height="12" aria-hidden="true"><path d="M7.5 1 14 13H1Z" fill="#e8c48a"/><path d="M7 5h1v4H7zM7 10h1v1.4H7z" fill="#2a0c08"/></svg>Camps over their max${over.length>2?`<small>${over.length-2} more on the map</small>`:''}</div>`
     +over.slice(0,2).map(c=>`<div class="wtired-r" title="${esc(`${c.name}: ${c.n} workers on its spots, which keep ${c.max} busy, so ${c.extra} add little`)}"><i class="wdia"><b>${c.num}</b></i><span><b>${esc(c.name)}</b><small>${c.n} working, max ${c.max}</small></span><em>+${c.extra}</em>`
-      +`<button class="wmv" data-act="build-worker-campextras" data-id="${esc(c.id)}" title="${esc(`The ${c.extra} extras go back to the governor: a spot beside a camp with room, or they wait in the town hall. With Initiative off they stand idle.`)}">Move extras</button>`
+      +(moving(c.id)?'<button class="wmv" disabled>Moving</button>':`<button class="wmv" data-act="build-worker-campextras" data-id="${esc(c.id)}" title="${esc(`The ${c.extra} extras go back to the governor: a spot beside a camp with room, or they wait in the town hall. With Initiative off they stand idle.`)}">Move extras</button>`)
       +`<button data-act="build-worker-campgo" data-id="${esc(c.id)}" title="Camera to this camp">Go to</button></div>`).join('')+'</div>' : '';
   const options=value=>Array.from({length:groups+1},(_,g)=>`<option value="${g}" ${g===value?'selected':''}>${g?'Group '+g:'No group'}</option>`).join('');
   if(tab==='log') {
