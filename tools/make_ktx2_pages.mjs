@@ -4,6 +4,7 @@
 //   node tools/make_ktx2_pages.mjs --full     also compress the full pages (for the "Everywhere" setting)
 //   node tools/make_ktx2_pages.mjs --all      make them all again
 //   node tools/make_ktx2_pages.mjs --check    only report what is missing or out of date (exit 1 if any)
+//   add --only=ship_,boat_                     only pages whose names start with these (2026-11-23: ship full pages)
 //
 // PNG pages stay as they are; the compressed pages live in their own folders:
 //   assets/sprites_packed/catalog_v1_half_ktx2/<name>_half.ktx2   from catalog_v1_half/<name>_half.png
@@ -21,16 +22,18 @@ const args = process.argv.slice(2), all = args.includes('--all'), checkOnly = ar
 const P = d => path.join(root, 'assets/sprites_packed', d);
 const sets = [{ from: P('catalog_v1_half'), to: P('catalog_v1_half_ktx2') }, ...(withFull ? [{ from: P('catalog_v1'), to: P('catalog_v1_ktx2') }] : [])];
 const ktxName = f => f.replace(/\.png$/, '.ktx2');
+const only = args.find(a => a.startsWith('--only='))?.slice(7).split(',').filter(Boolean);
+const picked = f => !only || only.some(p => f.startsWith(p));
 
 const jobs = [], stale = [];
 for (const s of sets) {
-  const pngs = fs.existsSync(s.from) ? fs.readdirSync(s.from).filter(f => f.endsWith('.png')) : [];
+  const pngs = fs.existsSync(s.from) ? fs.readdirSync(s.from).filter(f => f.endsWith('.png') && picked(f)) : [];
   for (const f of pngs) {
     const out = path.join(s.to, ktxName(f));
     if (all || !fs.existsSync(out) || fs.statSync(out).mtimeMs < fs.statSync(path.join(s.from, f)).mtimeMs) jobs.push([path.join(s.from, f), out]);
   }
   const wanted = new Set(pngs.map(ktxName));
-  if (fs.existsSync(s.to)) for (const f of fs.readdirSync(s.to)) if (f.endsWith('.ktx2') && !wanted.has(f)) stale.push(path.join(s.to, f));
+  if (fs.existsSync(s.to)) for (const f of fs.readdirSync(s.to)) if (f.endsWith('.ktx2') && picked(f) && !wanted.has(f)) stale.push(path.join(s.to, f));
 }
 if (checkOnly) { console.log(`${jobs.length} compressed pages missing or out of date, ${stale.length} stale`); process.exit(jobs.length || stale.length ? 1 : 0); }
 

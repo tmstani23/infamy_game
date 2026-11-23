@@ -95,6 +95,12 @@ Vehicle footprint shadows are set in `game/data/art.json` `characterFraming` as 
 
 Songs live in `assets/music/` subfolders by mood (`city/`, `frontier/`, `battle/`, `ceremony/`, `stealth/`); the list is in `game/src/menu_music.js`. The in-game shuffle plays every song once per cycle with no repeats; subfolders do not change the playlist.
 
+Ships and boats (2026-11-23):
+- Exported at twice people's page pixels per unit: tools/export_sprites.mjs MOUNTS pxPerUnit boat_river and ship_coastal 320/3, ship_war 160/3 (cells 672, 1536, 896 px). characterFraming cellWorld unchanged except boat_river 6.3.
+- Their pages (names starting ship_ or boat_) load GPU-compressed (KTX2) at every zoom unless Video settings Compressed sprites is Off, and switch to half pages a little further out than people's (render/characters.js BIG_DRAWN, BIG_DRAWN_SCALE 1.2; a separate texture cache). Graphics memory is about the same as the old 1x PNG pages.
+- tools/make_ktx2_pages.mjs --only=ship_,boat_ limits it to pages whose names start with those; after re-exporting ships run `node tools/make_ktx2_pages.mjs --full --only=ship_,boat_` (repack_model.mjs makes the half pages and their compressed copies as before).
+- Exports need Chromium, which the device VM lacks; with the CDN blocked, THREE_LOCAL_DIR points at a local three@0.186.1 and PLAYWRIGHT_MODULE at a small module exporting chromium.
+
 ## Campaign pass (2026-11-11)
 
 ### Campaign goals and first town

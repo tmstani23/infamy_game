@@ -46,6 +46,11 @@ const sheetCache = {};
 // 4. GPU-compressed pages (KTX2, Tim 2026-11-15): Video settings, Compressed sprites, picks where they are used (read
 //    at start); a page without a compressed copy, or a graphics card that cannot take them, uses the PNG.
 const noHalf = new Set();   // full page urls whose half page is missing: use the full page
+// ships and boats (2026-11-23): rendered at twice people's page pixels per unit (tools/export_sprites.mjs MOUNTS) and drawn up
+// to 1.7 times larger (the warship at half that page density, 1.15 times), so their pages switch to half size a little
+// further out than people's (BIG_DRAWN_SCALE) and load GPU-compressed at every zoom unless
+// Video settings Compressed sprites is Off (4 times the pixels at a quarter of the bytes: memory as before)
+const BIG_DRAWN = /\/catalog_v1\/(ship_|boat_)[^/]*\.png$/, BIG_DRAWN_SCALE = 1.2;
 const noKtx = new Set();    // compressed page urls that failed to load
 let ktx = null, ktxMode = 'off';
 const KTX_TRANSCODER = 'https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/libs/basis/';
@@ -64,7 +69,8 @@ async function loadKtx(url) {
   return tex;
 }
 async function loadPage(url, level) {
-  const k = ktx && compressedAt(ktxMode, level) ? ktxUrl(url, level) : null;
+  const squeeze = compressedAt(ktxMode, level) || (ktxMode !== 'off' && BIG_DRAWN.test(url));
+  const k = ktx && squeeze ? ktxUrl(url, level) : null;
   if (k && !noKtx.has(k)) { try { return [await loadKtx(k), level]; } catch { noKtx.add(k); } }
   const h = level === 'half' && !noHalf.has(url) ? halfUrl(url) : null;
   if (h) { try { return [configured(await loadTex(h)), 'half']; } catch { noHalf.add(url); } }
@@ -91,16 +97,23 @@ function adoptPicture(texture, next) {
   texture.flipY = false;
 }
 // the pages the game view draws: detail levels, decoded copy closed after upload
-const packedTextures = createTextureCache(
-  async (url, level) => { const [tex, got] = await loadPage(url, level); describePage(tex, got); closeAfterUpload(tex); return tex; },
-  4,
-  async (texture, url, level, stillHeld) => {
+const pageLoad = async (url, level) => { const [tex, got] = await loadPage(url, level); describePage(tex, got); closeAfterUpload(tex); return tex; };
+const pageSwap = async (texture, url, level, stillHeld) => {
     if (level === 'half' && (noHalf.has(url) || !halfUrl(url))) return;   // no half page for this one: it stays full
     const [next, got] = await loadPage(url, level);
     if (!stillHeld() || got === texture.userData.level) { next.image?.close?.(); next.dispose(); return; }
     texture.dispose();                 // the graphics card copy has a fixed size: free it, the next draw uploads the new picture
     adoptPicture(texture, next); describePage(texture, got); texture.needsUpdate = true;
-  });
+  };
+const mainTextures = createTextureCache(pageLoad, 4, pageSwap);
+const shipTextures = createTextureCache(pageLoad, 4, pageSwap);
+const cacheFor = url => BIG_DRAWN.test(url) ? shipTextures : mainTextures;
+const packedTextures = {
+  acquire: url => cacheFor(url).acquire(url),
+  release(texture) { mainTextures.release(texture); shipTextures.release(texture); },
+  level: () => mainTextures.level(),
+  stats() { const a = mainTextures.stats(), b = shipTextures.stats(); for (const k in b) a[k] = (a[k] || 0) + b[k]; return a; },
+};
 // pages drawn by another renderer (the character page preview): always full, kept as loaded
 const plainTextures = createTextureCache(async url => { const tex = await loadTex(url); describePage(tex, 'full'); configureCharacterTexture(tex); return tex; });
 const SHEET_IDLE_SECONDS = 180;
@@ -131,8 +144,11 @@ export function sweepSheets(now = nowSeconds(), idle = SHEET_IDLE_SECONDS) {
   return n;
 }
 // the view tells how big sprites are on screen (screen pixels per sprite texel); pages follow
-const detail = createDetailPicker();
-export function setSpriteScale(ratio, now = nowSeconds()) { packedTextures.setLevel(detail.update(ratio, now)); }
+const detail = createDetailPicker(), shipDetail = createDetailPicker();
+export function setSpriteScale(ratio, now = nowSeconds()) {
+  mainTextures.setLevel(detail.update(ratio, now));
+  shipTextures.setLevel(shipDetail.update(ratio * BIG_DRAWN_SCALE, now));
+}
 export const spriteMemory = () => ({ ...packedTextures.stats(), level: packedTextures.level(), models: sheetUse.size, inUse: [...sheetUse.values()].filter(u => u.count > 0).length });
 export function loadSheets(catalog, model) {
   return cachedSheetLoad(sheetCache,model,()=>loadModelSheets(catalog,model).then(s=>trackSheets(model,s))).then(s=>{const u=sheetUse.get(s);if(u)u.idleAt=nowSeconds();return s;});
