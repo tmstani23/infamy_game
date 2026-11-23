@@ -1832,11 +1832,11 @@
  },
  "buildings/customs_house": {
   "w": 467,
-  "h": 331,
+  "h": 347,
   "left": 3,
   "right": 464,
   "bottomX": 227,
-  "bottomY": 328,
+  "bottomY": 344,
   "glows": []
  },
  "buildings/boatbuilder": {
@@ -6251,5 +6251,157 @@
     209.2
    ]
   ]
+ },
+ "props/dock_rice_bales": {
+  "w": 317,
+  "h": 301,
+  "left": 1,
+  "right": 315,
+  "bottomX": 154,
+  "bottomY": 299
+ },
+ "props/dock_cargo_matting": {
+  "w": 314,
+  "h": 222,
+  "left": 1,
+  "right": 312,
+  "bottomX": 160,
+  "bottomY": 220
+ },
+ "props/dock_cargo_matting_grey": {
+  "w": 312,
+  "h": 222,
+  "left": 1,
+  "right": 310,
+  "bottomX": 158,
+  "bottomY": 220
+ },
+ "props/dock_net_rack": {
+  "w": 299,
+  "h": 340,
+  "left": 1,
+  "right": 297,
+  "bottomX": 202,
+  "bottomY": 338
+ },
+ "props/dock_net_rack_small": {
+  "w": 219,
+  "h": 259,
+  "left": 1,
+  "right": 217,
+  "bottomX": 117,
+  "bottomY": 257
+ },
+ "props/dock_derrick": {
+  "w": 231,
+  "h": 366,
+  "left": 1,
+  "right": 229,
+  "bottomX": 112,
+  "bottomY": 364
+ },
+ "props/dock_derrick_small": {
+  "w": 217,
+  "h": 275,
+  "left": 1,
+  "right": 215,
+  "bottomX": 101,
+  "bottomY": 273
+ },
+ "props/dock_anchor_chain": {
+  "w": 323,
+  "h": 324,
+  "left": 1,
+  "right": 321,
+  "bottomX": 198,
+  "bottomY": 322
+ },
+ "props/dock_fish_traps": {
+  "w": 262,
+  "h": 319,
+  "left": 1,
+  "right": 260,
+  "bottomX": 129,
+  "bottomY": 317
+ },
+ "props/dock_kura": {
+  "w": 257,
+  "h": 271,
+  "left": 0,
+  "right": 256,
+  "bottomX": 133,
+  "bottomY": 270
+ },
+ "props/dock_cargo_shed": {
+  "w": 334,
+  "h": 271,
+  "left": 0,
+  "right": 332,
+  "bottomX": 216,
+  "bottomY": 270
+ },
+ "props/dock_net_shed": {
+  "w": 303,
+  "h": 271,
+  "left": 1,
+  "right": 301,
+  "bottomX": 187,
+  "bottomY": 270
+ },
+ "props/dock_lookout": {
+  "w": 201,
+  "h": 271,
+  "left": 1,
+  "right": 200,
+  "bottomX": 105,
+  "bottomY": 270
+ },
+ "props/dock_guard_hut": {
+  "w": 265,
+  "h": 268,
+  "left": 0,
+  "right": 264,
+  "bottomX": 149,
+  "bottomY": 267
+ },
+ "props/dock_boat_shed": {
+  "w": 321,
+  "h": 268,
+  "left": 0,
+  "right": 320,
+  "bottomX": 187,
+  "bottomY": 266
+ },
+ "props/dock_lookout_small": {
+  "w": 190,
+  "h": 273,
+  "left": 0,
+  "right": 189,
+  "bottomX": 78,
+  "bottomY": 272
+ },
+ "props/dock_guard_hut_b": {
+  "w": 257,
+  "h": 271,
+  "left": 1,
+  "right": 256,
+  "bottomX": 145,
+  "bottomY": 269
+ },
+ "props/dock_boat_shed_b": {
+  "w": 333,
+  "h": 273,
+  "left": 0,
+  "right": 331,
+  "bottomX": 192,
+  "bottomY": 272
+ },
+ "props/dock_derrick_city": {
+  "w": 231,
+  "h": 366,
+  "left": 1,
+  "right": 229,
+  "bottomX": 112,
+  "bottomY": 364
  }
 }

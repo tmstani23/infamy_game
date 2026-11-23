@@ -28,6 +28,8 @@ import { createChestCashFx } from './chest_cash_fx.js';
 import { islandBiome } from '../sim/island_art.js';
 import { pointAt } from '../sim/frontier/rail_route.js';
 import { createFerryShips, seaSpot } from './ferry_ships.js';
+import { createMooredBoats } from './moored_boats.js';
+import { buildCityDocks } from './city_docks.js';
 import { createShipMarks } from './ship_marks.js';
 import { createShipFx } from './ship_fx.js';
 import { createBoardFx } from './board_fx.js';
@@ -106,6 +108,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   resize();
 
   scene.add(await buildGround(district.ground, renderer, district.bounds));
+  scene.add(await buildCityDocks(district.docks));   // the harbour piers on piles (render/city_docks.js, Tim 2026-11-23)
   const roomLights = [], blueprintWalls = [], blueprintDoors = [];
   const roomCharacterScales = Object.fromEntries(rooms.map(r => [r.name, r.template.characterScale || 1]));
   for (const r of rooms) {
@@ -138,6 +141,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const boardFx = createBoardFx({ scene, figureSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh); return s; } });   // boarding: grappling lines, deck fight, its bar, clan sails and pennants (ships S8)
   const shipFx = createShipFx({ scene });   // ship guns and hull damage (ships S4)   // war ships: ring, plate, wake (ships S2)
   const ferryShips = worldGround && ships ? createFerryShips({ scene, ...ships, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
+  // boats tied up at the castle docks for the look only: a fishing boat, some days a warship (render/moored_boats.js, Tim 2026-11-23)
+  const mooredBoats = worldGround && ships ? createMooredBoats({ scene, rules: ships.rules, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
   const wildGlow = { pos: new THREE.Vector3(), radius: worldChunks?.nightGlow?.radius ?? 12, color: new THREE.Color(...(worldChunks?.nightGlow?.color ?? [0.3, 0.36, 0.5])), fire: false, seed: 1 };
   for (const t of things) scene.add(t.mesh, ...t.extras);
@@ -565,13 +570,14 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
     cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);
     ferryShips?.update(state, (heroPlace === 'street' || cityView) && !worldView, (heroPlace === 'world' && !cityView) || worldView, dt, alpha);
+    mooredBoats?.update(state, (heroPlace === 'world' && !cityView) || worldView, dt);
     mark('rail');
     updateLights(time);
     updateCutaway(hero, dt);
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
     mark('lights');
     // buildings, props and banners stand still, so only the units are re-checked each frame (render/draw_order.js)
-    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || []), ...(cityStation?.things() || []), ...(ferryShips?.things() || [])]);
+    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || []), ...(cityStation?.things() || []), ...(ferryShips?.things() || []), ...(mooredBoats?.things() || [])]);
     for (const d of drivers.values()) if (d?.cart) d.thing.mesh.renderOrder = d.cart.renderOrder + (d.behind ? -1 : 1);   // the coachman just before or after his rickshaw
     mark('sort');
     // effect particles are sized in world units: pixels per unit of each target drawn

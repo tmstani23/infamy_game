@@ -7,7 +7,8 @@
 //   terrainPieces(c, H) -> { top1, top2, rim, ramp, face }: quads ([x, y, z] x4 and a shade) for render/world_ground.js
 //   groundY(x, z): the drawn ground height at a point, from the field set by setHeightField (0 with none)
 //   nearCastle(x, z, margin): inside a castle's box (things there are depth tested against the terraces)
-const EPS = 1e-4, PIER_Y = 0.03;
+import { dockShape, deckY, dockPieces, DOCK } from './dock_shape.js';
+const EPS = 1e-4;
 const PARAPET = { w: 1, h: 1.6, shadeIn: 0.8, shadeOut: 0.92 };
 // footing along the bottom of a face: out over the ground (w), up the face (h); wobble/wobbleUp vary its edges, fade/fadeUp are the soft edges (world units)
 const FOOT = { w: 2.6, h: 1.8, wobble: 0.65, wobbleUp: 0.45, steps: 8, fade: 2.2, fadeUp: 1.6, lift: 0.04 };
@@ -20,7 +21,9 @@ function prep(c) {
   let c0 = c.n, c1 = -1, r0 = c.n, r1 = -1;
   for (let i = 0; i < c.n * c.n; i++) if (c.level[i] !== '.') { const col = i % c.n, row = (i - col) / c.n; c0 = Math.min(c0, col); c1 = Math.max(c1, col); r0 = Math.min(r0, row); r1 = Math.max(r1, row); }
   const box = c1 < 0 ? null : { minX: c.x + (c0 - mid - 0.5) * c.cell, maxX: c.x + (c1 - mid + 0.5) * c.cell, minZ: c.z + (r0 - mid - 0.5) * c.cell, maxZ: c.z + (r1 - mid + 0.5) * c.cell };
-  return { ...c, mid, ramp, half, box };
+  const prepped = { ...c, mid, ramp, half, box, pierSet: new Set(c.pier || []) };
+  prepped.dock = dockShape(prepped);   // the dock drawn on piles (src/dock_shape.js)
+  return prepped;
 }
 
 // height of cell i at (u, v) across it (u along +x, v along +z, 0..1), in levels
@@ -47,18 +50,20 @@ export function createHeightField(castles, { levelHeight = 6 } = {}) {
     const fx = (x - c.x) / c.cell + c.mid + 0.5, fz = (z - c.z) / c.cell + c.mid + 0.5;
     const col = Math.floor(fx), row = Math.floor(fz);
     if (col < 0 || row < 0 || col >= c.n || row >= c.n) return 0;
+    if (c.dock && c.pierSet.has(row * c.n + col)) return deckY(c.dock, x, z);   // on the dock's deck
     return cellLevel(c, row * c.n + col, fx - col, fz - row) * H;
   }
   let top = 0;
   for (const c of list) { for (const ch of c.level) if (ch !== '.' && Number(ch) > top) top = Number(ch); for (const r of c.ramps || []) top = Math.max(top, r.hi); }
-  return { at, near: (x, z, m = 0) => !!owner(x, z, m), list, levelHeight: H, max: top * H };
+  const dockTop = list.some(c => c.dock) ? DOCK.deck : 0;
+  return { at, near: (x, z, m = 0) => !!owner(x, z, m), list, levelHeight: H, max: Math.max(top * H, dockTop) };
 }
 
 // The raised pieces of one castle (prepared by createHeightField): every cell above the ground gets a top quad
 // (cliff cells, ramps and the two terrace levels apart, for their own looks); every cell edge where this side is
 // higher than the next gets an upright face, but only on the sides the camera sees (east and south: it looks from +x, +z).
 export function terrainPieces(c, H) {
-  const out = { top1: [], top2: [], rim: [], ramp: [], face: [], rampFace: [], parapet: [], footing: [], footFade: [], pier: [] }, n = c.n, s = c.cell;
+  const out = { top1: [], top2: [], rim: [], ramp: [], face: [], rampFace: [], parapet: [], footing: [], footFade: [], pier: [], dockBeam: [], dockPile: [], dockWet: [], dockDark: [] }, n = c.n, s = c.cell;
   const P = (col, row, u, v, h) => [c.x + (col - c.mid - 0.5 + u) * s, h, c.z + (row - c.mid - 0.5 + v) * s];
   const lv = (i, u, v) => cellLevel(c, i, u, v) * H;
   // the footing (Tim 2026-11-20, "the base line"): a sloped skirt of rubble stone along the bottom of every face the camera
@@ -157,9 +162,8 @@ export function terrainPieces(c, H) {
       }
     }
   }
-  // the dock: flat planks just over the ground on its cells (PIER_Y keeps them clear of the island ground's depth)
-  for (const i of c.pier || []) { const col = i % n, row = (i - col) / n;
-    out.pier.push({ q: [P(col, row, 0, 0, PIER_Y), P(col, row, 1, 0, PIER_Y), P(col, row, 1, 1, PIER_Y), P(col, row, 0, 1, PIER_Y)], cell: i }); }
+  // the dock (Tim 2026-11-23): a raised deck on piles with an edge beam and bracing (src/dock_shape.js)
+  dockPieces(c, c.dock, out);
   // faces of higher cells looking west or north are hidden behind their own tops; faces of a higher cell to the east or
   // south of a lower one face away from the camera (also hidden)
   return out;

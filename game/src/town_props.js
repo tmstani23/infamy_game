@@ -6,6 +6,7 @@ import { townSlot } from './sim/frontier/town_layout.js';
 import { cellOffset, zoneVariant } from './sim/frontier/town_grid.js';
 import { stationParts } from './sim/frontier/station_layout.js';
 import { tierArt, campTier } from './sim/frontier/art_blocks.js';
+import { dockFrame } from './dock_shape.js';
 // grid towns (L3.1) give cells as grid indices; a town not migrated yet still holds spiral slots
 const slotOf = (s, c, cells) => {
   if (!s.grid) return townSlot(c);
@@ -187,6 +188,19 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
   out.castleWater = towns.filter(s => s.castle && s.grid?.use && Number.isFinite(s.x)).map(s => ({ id: s.id, x: s.x, z: s.z, n: s.grid.n, cell: s.grid.cell,
     use: s.grid.use, level: s.grid.level || null, slope: s.grid.slope || null, ramps: s.castle.ramps || [], pier: s.castle.pier || [] }));
   out.castleArt = townArt?._castle || null;
+  // the castle dock's things (Tim 2026-11-23, look B): cargo, net racks, derricks, lantern posts and boats tied
+  // alongside, placed by dock position from frontier.json townArt._castle.dockProps ([art, across 0..1, land 0 to sea 1, flip])
+  for (const s of towns) {
+    const list = townArt?._castle?.dockProps, g = s.grid;
+    if (!s.castle?.pier?.length || !g || !list || !Number.isFinite(s.x)) continue;
+    const f = dockFrame({ x: s.x, z: s.z, n: g.n, cell: g.cell, mid: (g.n - 1) / 2, use: g.use, level: g.level, pier: s.castle.pier });
+    // flip 'hook' (Tim 2026-11-23): a derrick, mirrored so its hook hangs out over the water past its nearest edge
+    // (the art's hook is on its right; screen right is +x, -z, so an edge facing that way keeps it unmirrored)
+    const hookFlip = (a, b) => { const e = [[1 - a, f.across], [a, f.across.map(v => -v)], [1 - b, f.along]].sort((p, q) => p[0] - q[0])[0][1];
+      return e[0] - e[1] < 0; };
+    if (f) list.forEach(([art, a, b, flip], k) => { const [x, z] = f.spot(a, b), fl = flip === 'hook' ? hookFlip(a, b) : flip;
+      out.push({ key: `${s.id}:dock${k}`, art, x, z, ...(fl ? { flip: true } : {}) }); });
+  }
   for (const s of towns) {
     const lighting = townLights.automatic;
     if (lighting && s.grid) {

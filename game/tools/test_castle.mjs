@@ -144,7 +144,14 @@ assert.ok(CASTLE_BLOCK.includes('m') && CASTLE_BLOCK.includes('k'));
   const pc = terrainPieces(f.list[0], H);
   assert.ok(pc.top1.length > 100 && pc.top2.length > 30 && pc.rim.length === 0 && pc.ramp.length === 10 && pc.face.length > 35);
   assert.ok(pc.face.every(q => q.side === 'E' || q.side === 'S'), 'only the faces the camera sees');
-  assert.equal(s.castle.pier.length, 24); assert.equal(pc.pier.length, 24, 'the dock is drawn as planks'); assert.ok(s.castle.pier.every(i => g.use[i] === '.'));
+  assert.equal(s.castle.pier.length, 24); assert.equal(pc.pier.length, 24 * 16, 'the dock deck is drawn as planks');
+  { const { DOCK } = await import('../src/dock_shape.js'), d = f.list[0].dock;
+    assert.ok(d && d.land.length >= 1 && d.water.length === 3, `dock edges: land ${d?.land.length}, water ${d?.water.length}`);
+    assert.ok(pc.dockPile.length > 100 && pc.dockBeam.length > 0 && pc.dockDark.length > 0 && pc.dockWet.length > 0, 'piles, beam and bracing');
+    const pi = s.castle.pier[0], [px, pz] = [s.x + (pi % n - mid) * g.cell, s.z + (Math.floor(pi / n) - mid) * g.cell];
+    const ys = s.castle.pier.map(i => f.at(s.x + (i % n - mid) * g.cell, s.z + (Math.floor(i / n) - mid) * g.cell));
+    assert.ok(Math.max(...ys) === DOCK.deck && Math.min(...ys) > DOCK.lip - 1e-9 && Math.min(...ys) < DOCK.deck, `the deck rises off the land (${Math.min(...ys).toFixed(2)}..${Math.max(...ys)})`);
+    assert.equal(f.max, 2 * H, 'the dock is lower than the keep'); } assert.ok(s.castle.pier.every(i => g.use[i] === '.'));
   assert.ok(pc.face.every(q => q.q[0][1] > q.q[3][1] - 1e-9 && q.q[1][1] >= q.q[2][1] - 1e-9), 'faces run from the top down');
   // the south face of the inner terrace stands from the yard to the terrace top; the land bridge has side faces
   assert.ok(pc.face.some(q => q.cell === at(9, 22) && q.side === 'S' && Math.abs(q.q[0][1] - H) < 1e-9 && Math.abs(q.q[3][1]) < 1e-9));
