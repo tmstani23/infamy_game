@@ -15,12 +15,12 @@ export function createCrewFx({scene,spriteOf}){
   function ring(radius,color){const m=add(new THREE.RingGeometry(radius-.04,radius+.04,40),color);m.rotation.x=-Math.PI/2;return m;}
   function shot(p){
     const group=new THREE.Group(),color=p.kind==='geishabolt'?0xff82c3:p.kind==='cannonball'?0x26262a:p.kind==='firebomb'?0xff8a3c:p.hamstring?0x8affcb:p.kind==='bullet'?0xfff2b0:0xf3dc9a;
-    const shaft=new THREE.Mesh(p.kind==='cannonball'?new THREE.SphereGeometry(.21,10,8):p.kind==='firebomb'?new THREE.SphereGeometry(.22,8,6):p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):p.kind==='bullet'?new THREE.CylinderGeometry(.035,.035,1.5,5):new THREE.CylinderGeometry(.04,.04,1.0,5),material(color));   // bullet: bright tracer (war riflemen)
+    const shaft=new THREE.Mesh(p.kind==='cannonball'?new THREE.SphereGeometry(p.ship?.13:.21,10,8):p.kind==='firebomb'?new THREE.SphereGeometry(.22,8,6):p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):p.kind==='bullet'?new THREE.CylinderGeometry(.035,.035,1.5,5):new THREE.CylinderGeometry(.04,.04,1.0,5),material(color));   // bullet: bright tracer (war riflemen)
     group.add(shaft);   // 7c (Tim 2026-11-12): shots are much easier to see; the body was never added before, only the faint trail showed
     if(p.kind==='cannonball'){
       // Tim 2026-11-13: a long soft smoke wake, not a defined tube: soft puffs that grow and fade behind the ball
       shaft.material.opacity=1;
-      for(let i=1;i<=8;i++){const puff=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:0xcfc8bc,transparent:true,depthWrite:false,opacity:.2*(1-i/9)}));puff.position.y=-.3*i;puff.scale.setScalar(.3+.07*i);group.add(puff);}
+      for(let i=1;i<=8;i++){const puff=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:0xcfc8bc,transparent:true,depthWrite:false,opacity:.2*(1-i/9)}));puff.position.y=-.3*i*(p.ship?.7:1);puff.scale.setScalar((.3+.07*i)*(p.ship?.65:1));group.add(puff);}
       scene.add(group);group.traverse(onFxLayer);return {mesh:group,elapsed:0};
     }
     // Tim 2026-11-12: arrows and bullets looked the same; an arrow is a wooden shaft with an iron head and pale

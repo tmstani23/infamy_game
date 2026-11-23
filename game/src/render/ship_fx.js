@@ -195,10 +195,14 @@ export function createShipFx({ scene, stages = {} }) {
       blot(g, x, y, 5 + Math.random() * 6, 2 + Math.random() * 2.5, (0.55 + Math.random() * 0.4) * e, Math.random() * 0.4 - 0.2); } });
   const EDGE = paint(256, 32, g => { for (let x = 4; x < 252; x += 2 + Math.random() * 5) { if (Math.sin(x * 0.05) + Math.random() * 0.8 < -0.2) { x += 6; continue; }   // gaps
       blot(g, x, 16 + Math.sin(x * 0.09) * 4, 3 + Math.random() * 7, 1 + Math.random() * 3, 0.4 + Math.random() * 0.5, Math.random() * 0.5 - 0.25); } });
-  const BODY = paint(64, 64, g => { const q = g.createLinearGradient(0, 0, 0, 64); q.addColorStop(0, 'rgba(64,86,98,0)'); q.addColorStop(0.2, 'rgba(64,86,98,0.95)'); q.addColorStop(0.85, 'rgba(46,64,78,0.8)'); q.addColorStop(1, 'rgba(52,72,86,0)');
-      g.fillStyle = q; g.fillRect(0, 0, 64, 64); g.globalCompositeOperation = 'destination-in'; const e = g.createLinearGradient(0, 0, 64, 0); e.addColorStop(0, 'rgba(0,0,0,0)'); e.addColorStop(0.2, 'rgba(0,0,0,1)'); e.addColorStop(0.8, 'rgba(0,0,0,1)'); e.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = e; g.fillRect(0, 0, 64, 64); });
-  const WET = paint(64, 64, g => { const q = g.createLinearGradient(0, 0, 0, 64); q.addColorStop(0, 'rgba(34,30,22,0)'); q.addColorStop(0.35, 'rgba(30,27,20,1)'); q.addColorStop(0.8, 'rgba(30,27,20,0.9)'); q.addColorStop(1, 'rgba(34,30,22,0)');
-      g.fillStyle = q; g.fillRect(0, 0, 64, 64); g.globalCompositeOperation = 'destination-in'; const e = g.createLinearGradient(0, 0, 64, 0); e.addColorStop(0, 'rgba(0,0,0,0)'); e.addColorStop(0.2, 'rgba(0,0,0,1)'); e.addColorStop(0.8, 'rgba(0,0,0,1)'); e.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = e; g.fillRect(0, 0, 64, 64); });
+  // shallow water running in, and the wet sand it leaves (Tim 2026-11-23: no square edges): a lumpy band of soft blots whose
+  // edges undulate all the way round, three variants so the patches of one wave differ
+  const lumpy = (rgb, a) => paint(128, 64, g => { const ph = Math.random() * 6.3, ph2 = Math.random() * 6.3;
+      for (let k = 0; k < 46; k++) { const x = 14 + Math.random() * 100, end = Math.min(1, (x - 8) / 26, (120 - x) / 26), y = 32 + Math.sin(x * 0.07 + ph) * 6 + Math.sin(x * 0.19 + ph2) * 3 + (Math.random() - 0.5) * 10 * end;
+        const r = (7 + Math.random() * 9) * (0.55 + 0.45 * end), q = g.createRadialGradient(x, y, 0, x, y, r);
+        q.addColorStop(0, `rgba(${rgb},${a * (0.5 + 0.5 * end)})`); q.addColorStop(0.6, `rgba(${rgb},${a * 0.6 * (0.5 + 0.5 * end)})`); q.addColorStop(1, `rgba(${rgb},0)`);
+        g.fillStyle = q; g.beginPath(); g.ellipse(x, y, r * 1.3, r, (Math.random() - 0.5) * 0.6, 0, Math.PI * 2); g.fill(); } });
+  const BODYS = [0, 1, 2].map(() => lumpy('58,80,94', 0.42)), WETS = [0, 1, 2].map(() => lumpy('30,27,20', 0.5));
   const FLAT = new THREE.PlaneGeometry(1, 1), flats = [];
   function flat(map, x, z, { r0 = 1, r1 = 1, len = 1, life = 1, alpha = 0.6, rot = Math.random() * 6.3, color = [0.68, 0.75, 0.78], order = 2.01, y = 0.035, vx = 0, vz = 0, drag = 0, fadeIn = 0.08 }) {
     const m = new THREE.Mesh(FLAT, new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, color: new THREE.Color(...color), opacity: 0 }));
@@ -306,18 +310,24 @@ export function createShipFx({ scene, stages = {} }) {
   // back, the sand dark where it reached
   const WASH_AT = 2.1;   // seconds after the sinking, as the camera arrives (render/view.js panTo)
   function wave(c) {
+    // the wave that brings them ashore (Tim 2026-11-23: wide, broken and see-through, not one even band like a wiper):
+    // overlapping patches of shallow water and ragged stretches of foam, each its own size, lag and pace
     const L = c.ashore, B = c.berth || { x: c.x, z: c.z }, d = Math.hypot(L.x - B.x, L.z - B.z) || 1, ux = (L.x - B.x) / d, uz = (L.z - B.z) / d, sx = -uz, sz = ux;
-    const at = clock + WASH_AT - 0.9, W = 4.5, rot = Math.atan2(-sz, sx);   // a flat mark's long side along the shore
-    later.push({ at, fn: () => {   // the body of shallow water running in, its bright lip in front
-      const x = L.x - ux * 4.4, z = L.z - uz * 4.4, V = 5.8;
-      flat(BODY, x - ux * 1.4, z - uz * 1.4, { r0: 1.9, r1: 2.1, len: 2.1, life: 1.5, alpha: 1, rot, color: [1, 1, 1], order: 1.95, y: 0.03, vx: ux * V, vz: uz * V, drag: 0.6, fadeIn: 0.25 });
-      flat(LINE, x, z, { r0: 0.55, r1: 0.6, len: 8, life: 1.25, alpha: 1, rot, color: [0.9, 0.93, 0.94], order: 2.02, y: 0.04, vx: ux * V, vz: uz * V, drag: 0.6, fadeIn: 0.2 });
-      for (let i = 0; i < 40; i++) { const w = rand(-W, W), f = 1 - (Math.abs(w) / (W + 1)) ** 2;
-        lip.emit({ x: x + sx * w - ux * rand(0, 0.5), y: 0.03, z: z + sz * w - uz * rand(0, 0.5), vx: ux * V * f * 0.95, vz: uz * V * f * 0.95, drag: 0.6, life: rand(1, 1.2), size: rand(0.6, 1), grow: 1.3, alpha: 0.6 * f }); } } });
-    later.push({ at: at + 0.95, fn: () => {   // it breaks on them: spray, then the water draws back leaving wet sand and a thin foam line
-      for (let i = 0; i < 8; i++) { const w = rand(-3, 3); spray(L.x + sx * w, 0.3, L.z + sz * w, 2, 3, 0.8, 0.45); }
-      flat(WET, L.x + ux * 0.2, L.z + uz * 0.2, { r0: 1.9, r1: 2, len: 2.3, life: 8, alpha: 0.9, rot, color: [1, 1, 1], order: 1.9, y: 0.025 });
-      flat(EDGE, L.x + ux * 1.8, L.z + uz * 1.8, { r0: 0.45, r1: 0.5, len: 8.5, life: 2.4, alpha: 0.8, rot, color: [0.85, 0.89, 0.9], order: 2.02, y: 0.04, vx: -ux * 1.5, vz: -uz * 1.5, drag: 0.5 });   // the edge it leaves, drawn back down the sand
+    const at = clock + WASH_AT - 1.25, W = 11.5, rot = Math.atan2(-sz, sx);   // a flat mark's long side along the shore
+    later.push({ at, fn: () => {   // the body of shallow water running in, its broken lip in front
+      const x = L.x - ux * 4, z = L.z - uz * 4, V = 4.4;
+      for (let i = 0; i < 10; i++) { const w = rand(-W, W) * 0.8, lag = rand(0, 1.4), v = V * rand(0.88, 1.08);
+        flat(pick(BODYS), x + sx * w - ux * (1.4 + lag), z + sz * w - uz * (1.4 + lag), { r0: rand(1.4, 2), r1: rand(1.8, 2.4), len: rand(1.1, 1.8), life: rand(1.75, 2.2), alpha: rand(0.3, 0.5), rot: rot + rand(-0.15, 0.15), color: [1, 1, 1], order: 1.95, y: 0.03, vx: ux * v, vz: uz * v, drag: 0.6, fadeIn: 0.3 }); }
+      for (let i = 0; i < 11; i++) { const w = (i / 10 - 0.5) * 2 * W * 0.85 + rand(-1.2, 1.2), lag = rand(-0.5, 0.9), v = V * rand(0.84, 1.1), f = 1 - (Math.abs(w) / (W + 2)) ** 2;
+        flat(LINE, x + sx * w - ux * lag, z + sz * w - uz * lag, { r0: rand(0.4, 0.6), r1: rand(0.55, 0.8), len: rand(2.2, 4.4), life: rand(1.4, 1.85), alpha: rand(0.38, 0.62) * f, rot: rot + rand(-0.14, 0.14), color: [0.9, 0.93, 0.94], order: 2.02, y: 0.04, vx: ux * v, vz: uz * v, drag: 0.6, fadeIn: 0.2 }); }
+      for (let i = 0; i < 120; i++) { const w = rand(-W, W), f = 1 - (Math.abs(w) / (W + 1)) ** 2, v = V * rand(0.82, 1.1) * f;
+        lip.emit({ x: x + sx * w - ux * rand(-0.6, 1.2), y: 0.03, z: z + sz * w - uz * rand(-0.6, 1.2), vx: ux * v * 0.95, vz: uz * v * 0.95, drag: 0.6, life: rand(1.2, 1.7), size: rand(0.4, 1.1), grow: 1.3, alpha: rand(0.25, 0.5) * f }); } } });
+    later.push({ at: at + 1.3, fn: () => {   // it breaks on them: spray, then the water draws back leaving wet sand and a broken foam line
+      for (let i = 0; i < 16; i++) { const w = rand(-W, W) * 0.75; spray(L.x + sx * w, 0.3, L.z + sz * w, 2, 3, 0.8, 0.35); }
+      for (let i = 0; i < 4; i++) { const w = (i - 1.5) * W * 0.45 + rand(-1, 1);
+        flat(pick(WETS), L.x + sx * w + ux * rand(-0.3, 0.5), L.z + sz * w + uz * rand(-0.3, 0.5), { r0: rand(1.6, 2), r1: 2, len: rand(1.5, 2.2), life: 8, alpha: rand(0.45, 0.65), rot: rot + rand(-0.1, 0.1), color: [1, 1, 1], order: 1.9, y: 0.025 }); }
+      for (let i = 0; i < 6; i++) { const w = (i / 5 - 0.5) * 2 * W * 0.75 + rand(-1, 1);
+        flat(EDGE, L.x + sx * w + ux * rand(1.2, 2.2), L.z + sz * w + uz * rand(1.2, 2.2), { r0: 0.45, r1: 0.5, len: rand(2.6, 4.2), life: rand(2, 2.6), alpha: rand(0.45, 0.65), rot: rot + rand(-0.12, 0.12), color: [0.85, 0.89, 0.9], order: 2.02, y: 0.04, vx: -ux * rand(1.2, 1.8), vz: -uz * rand(1.2, 1.8), drag: 0.5 }); }   // the edge it leaves, drawn back down the sand
     } });
   }
   const washed = new Map();   // unit id -> { tick, at }

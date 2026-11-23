@@ -15,6 +15,9 @@
 - Ability icons are painted tiles (36, 128 px, rounded corners), clan crests painted ivory and gold on the clan cloth; both made from art_prompts/icons_and_crests/prompts.md.
 - HUD meters sit in a sunk track with a brass rim and a moss green fill; key hints are small vermilion seals.
 
+## Effects (Settled, 2026-11-23)
+- Every visual effect stays somewhat see-through, so it reads as animation and not flat 2D art (Tim).
+
 ## What the look tests showed
 
 **Lantern street** (`look_tests/lantern_street.html`)
