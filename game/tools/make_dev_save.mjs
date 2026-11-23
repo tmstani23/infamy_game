@@ -1,5 +1,5 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/castle_test.json, war_test_yakuza.json, war_defend_yakuza.json, rail_rob_shinobi.json, ship_test.json
+//   node game/tools/make_dev_save.mjs            -> saves/war_test_yakuza.json, war_defend_yakuza.json, rail_rob_shinobi.json, ship_test.json
 //   node game/tools/make_dev_save.mjs war_test_yakuza   -> only the saves named
 // Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 5).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
@@ -29,7 +29,7 @@ const SAVES = {
   // (pre_frontier_yakuza, the fresh campaign before the permit, was here: dropped 2026-11-22)
   // Castle test (Tim 2026-11-19, zones build Z4, replaces dev_frontier): a fresh campaign game, the hero alone on the island
   // in front of the drawbridge of his grey block castle on the East Plains cape, to walk round it.
-  castle_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 20, realGame: true, railTown: true, castleTest: true, castleTour: true },   // castleTour: test only (Tim 2026-11-19), take out after
+  // (castle_test was here: dropped 2026-11-23, Tim; its castleTest/castleTour build options stay for test_castle.mjs)
   // War test (Tim 2026-11-11, replaces campaign_test_yakuza): Yakuza already at war on a rival Kuroda town out on the
   // island. The hero and his crew stand at the war camp, which has only its hall and the tier-2 pack. The defender
   // Kurogane has every military building, a station and line to the capital and average stock; the player owns a

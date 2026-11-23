@@ -33,6 +33,7 @@ export function createIslandPainter({ world, cfg, renderer, groundTex, waterEffe
   const water = new THREE.TextureLoader().load('art/ground/water.jpg');
   water.wrapS = water.wrapT = THREE.RepeatWrapping; water.colorSpace = groundTex.tWater.colorSpace;
   water.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const dr = (d, n) => { const t = new THREE.DataTexture(d, n, n, THREE.RedFormat); t.magFilter = t.minFilter = THREE.LinearFilter; t.unpackAlignment = 1; t.needsUpdate = true; return t; };
   const dt = (d, n) => { const t = new THREE.DataTexture(d, n, n, THREE.RGBAFormat); t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true; return t; };
 
   return {
@@ -47,7 +48,7 @@ export function createIslandPainter({ world, cfg, renderer, groundTex, waterEffe
       const tiles = Array.from({ length: 24 }, (_, i) => c.mats[i] != null ? pc.materials[c.mats[i]].tile : 8);
       const splats = Array.from({ length: 6 }, (_, i) => dt(c.maps[i] || new Uint8Array(c.N * c.N * 4), c.N));
       const bounds = [gen.x0 - c.h, gen.z0 - c.h, S + 2 * c.h, S + 2 * c.h];
-      const mat = islandGroundMaterial({ mats: array, water, splats, over: dt(c.O, c.N), bounds, layers, tiles, mosaic: M, coastTransition: pc.coastTransition, waterSurface: pc.waterSurface, waterEffects: waterEffects?.uniforms });
+      const mat = islandGroundMaterial({ mats: array, water, splats, over: dt(c.O, c.N), depth: dr(c.D, c.N), bounds, layers, tiles, mosaic: M, coastTransition: pc.coastTransition, waterSurface: pc.waterSurface, waterEffects: waterEffects?.uniforms });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat);
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.set(gen.x0 + S / 2, 0, gen.z0 + S / 2);
@@ -57,7 +58,7 @@ export function createIslandPainter({ world, cfg, renderer, groundTex, waterEffe
     },
     dispose(mesh) {
       const u = mesh.material.uniforms;
-      for (const k of ['uSplatA', 'uSplatB', 'uSplatC', 'uSplatD', 'uSplatE', 'uSplatF', 'uOver']) u[k].value.dispose();
+      for (const k of ['uSplatA', 'uSplatB', 'uSplatC', 'uSplatD', 'uSplatE', 'uSplatF', 'uOver', 'uDepth']) u[k].value.dispose();
     },
   };
 }

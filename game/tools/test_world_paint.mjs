@@ -50,8 +50,23 @@ for (const { cx, cz } of sample) {
   for (let j = 0; j < N; j++) for (const [ia, ib] of [[N - 2, 0], [N - 1, 1]]) {
     const ka = j * N + ia, kb = j * N + ib, wa = decode(a, ka), wb = decode(b, kb);
     assert.equal(a.O[ka * 4], b.O[kb * 4], 'water agrees across the border');
+    assert.equal(a.D[ka], b.D[kb], 'water depth from the bank agrees across the border (sea look step 2)');
     for (const m of new Set([...Object.keys(wa), ...Object.keys(wb)])) worstSeam = Math.max(worstSeam, Math.abs((wa[m] || 0) - (wb[m] || 0)));
   }
+}
+// 2c. sea look step 2: water depth is 0 on land, small beside the bank, and grows away from it
+{ let wetPx = 0, dryWithDepth = 0, nearSum = 0, nearN = 0, farSum = 0, farN = 0;
+  for (const { cx, cz } of sample) {
+    const c = P.paintChunk(cx * S, cz * S, S, { segs: [], stamps: [] });
+    for (let k = 0; k < c.N * c.N; k++) {
+      const wet = c.O[k * 4] / 255;
+      if (wet <= 0.5) { if (c.D[k]) dryWithDepth++; continue; }
+      wetPx++;
+      if (wet < 0.8) { nearSum += c.D[k]; nearN++; } else if (wet === 1) { farSum += c.D[k]; farN++; }
+    }
+  }
+  assert.equal(dryWithDepth, 0, 'land pixels carry no water depth');
+  if (nearN && farN) assert.ok(nearSum / nearN < farSum / farN, 'water right at the bank is shallower than open water');
 }
 assert.ok(worstSeam < 0.03, `ground weights agree across chunk borders (worst ${worstSeam.toFixed(3)})`);
 

@@ -16,7 +16,10 @@
  "waterSurface": {
   "_note": "Painted water with animated surface slopes and light, independent of the slow base color drift. World-unit wave sizes/speeds; visual only. Disable to compare the earlier seam-safe color-flow shader.",
   "enabled": true,
-  "normalMaps": {"size":512,"tile":8,"strength":0.65,"flowSpeed":0.045},
+  "normalMaps": {"size":512,"tile":8,"strength":0.65,"flowSpeed":0.045,"style":"painted"},
+  "paint": {"_note":"Sea look step 1 (Look A, Tim 2026-11-23): painted tones from swell bands + baked chop. strength 0 = the earlier look. Was deepColor [0.045,0.115,0.185], skyColor [0.28,0.42,0.55], normalMaps style ripple.","strength":1,"windDeg":14,"swellLength":5.5,"swellSpeed":0.25,"swellAmount":0.3,"inkScale":0.5,"flecks":0.25,"litColor":[0.075,0.115,0.13]},
+  "depth": {"_note":"Sea look step 2 (2026-11-23): distance from the bank in world units, baked per chunk (world_paint.js paintChunk D). foam 0 turns depth tint and foam off.","max":40,"shallowEnd":14,"shallowColor":[0.085,0.14,0.135],"deepStart":24,"foam":0.9,"foamColor":[0.42,0.47,0.46]},
+  "lampStreaks": {"_note":"Sea look step 3 (2026-11-23): broken warm streaks under lamps and fires at night; strength 0 = only the old soft glow.","strength":0.8,"length":1},
   "reflection": {"enabled":true,"size":512,"strength":0.8,"distortion":0.012,"updateHz":15},
   "drift": [0.001, 0.0006],
   "distortion": 0.025,
@@ -24,8 +27,8 @@
   "highlightStrength": 0.14,
   "gloss": 40,
   "sheenStrength": 0.45,
-  "deepColor": [0.045, 0.115, 0.185],
-  "skyColor": [0.28, 0.42, 0.55],
+  "deepColor": [0.032, 0.058, 0.072],
+  "skyColor": [0.16, 0.22, 0.26],
   "lightDirection": [-0.5, 0.85, -0.25],
   "waves": [
    {"direction":[1,0.28],"wavelength":4.2,"amplitude":0.045,"speed":1.2},

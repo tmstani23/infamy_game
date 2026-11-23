@@ -140,3 +140,10 @@
 - Moored boats, for the look only (render/moored_boats.js): three fishing boats (boat_river) at every castle dock, a warship (ship_war) on some days, and a coastal cargo ship at anchor off the sea end (data/campaign_zones.json ship.berth.moored: fishing, cargo, cargoTurn, cargoSize). The castle ferry berth is out at 14.5 (was 12.5) to clear the piles; the city ferry berth is at z -43 (was -40) so its bow clears the bund.
 - art/buildings/customs_house.png: the tower roof is completed to a point (cutouts h and bottomY +16).
 - Prompts: art_prompts/dock_art_prompts.md in the project files. For future sheets, ask for a flat solid magenta background, not "transparent".
+## Water (2026-11-23)
+
+- The sea and lakes are painted, not photoreal. Painted ripple normals with mixed directions come from `water_surface.js` (`paintedNormalData`, style `"painted"`); the baked chop height is kept in the normal map's alpha. The water is graded through three tones: ink in the troughs, deep, and lit. Slow swell bands run along the wind (`data/world_paint.json` `waterSurface.paint`; strength 0 = the old look).
+- Depth: each ground chunk bakes its distance from the bank (`world_paint.js` paintChunk `D`, `waterSurface.depth.max` units). Shallows near banks are lighter and greener, open water sinks to dark ink, and a darker wet band sits just off the foam.
+- Shore foam is see-through and never opaque. It is drawn on the water side of every bank, including castle docks and moats. It never has a straight edge, and its width varies from a thin rim to a wide wash. Whole stretches have none. It surges out with each incoming wave and slides back. Strength: `waterSurface.depth.foam` (0 = off). The coast strip rim (`coastlineMaterial`) also comes and goes, with a ragged edge.
+- At night, lanterns and fires drop broken, wobbling warm streaks on the water below them (`waterSurface.lampStreaks`).
+- Harbour coast corners are rounded for drawing only (`sim/shoreline.js`, `visual` corners); walking and ships keep the square cells. Cliff and mountain corners stay sharp.

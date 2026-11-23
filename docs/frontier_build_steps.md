@@ -1035,7 +1035,7 @@ last-seen marker with direction. The snapshot carries only the player's own disc
 Check (pass/fail): walking reveals cells along the path only; the snapshot never contains another
 clan's discovery or unseen enemy positions; discovery survives save/load.
 Done note: "W2.3 discovery and fog in."
-War fog (2026-11-18): rival towns are spotted from `rules.discovery.townSight` (900) by any unit (M map and world). Remembered sight (`sim/sightings.js`, tools/test_sightings.mjs): a rival town's grid layers are sent only for the 3x3-cell blocks your units or watchtowers have seen (live state there); its buildings, and an enemy camp's buildings, show as last seen. Player clans only; bots unchanged.
+War fog (2026-11-18): rival towns are spotted from `rules.discovery.townSight` (900) by any unit (M map and world). Remembered sight (`sim/sightings.js`, tools/test_sightings.mjs): a rival town's grid layers are sent only for the 3x3-cell blocks your units or watchtowers have seen (live state there); its buildings, and an enemy camp's buildings, show as last seen. Player clans only; bots unchanged. A rival castle's walls and gates show once its ground is discovered, like its moat and cliffs; the buildings inside show only once seen (2026-11-23).
 
 ### W2.4. World tab  [SMALL]
 Needs: W2.3

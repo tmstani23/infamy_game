@@ -539,6 +539,10 @@ ${LIGHTING}
 precision highp sampler2DArray;
 uniform sampler2DArray tMats;
 uniform sampler2D uSplatA, uSplatB, uSplatC, uSplatD, uSplatE, uSplatF, uOver, tWater;   // 24 weight slots (W3.11 P4)
+uniform sampler2D uDepth;   // sea look step 2: water distance from its bank, 0..1 of uWaterDepth.x units
+uniform vec4 uWaterDepth;   // max units, shallows end, deep starts, shore foam strength
+uniform vec3 uWaterShallow, uWaterFoam;
+uniform vec4 uWaterGlow;   // sea look step 3: lamp streak strength, length scale
 uniform vec3 uWetCoastColor, uDryCoastColor, uSnowCoastColor;
 ${WATER_SAMPLE_GLSL}
 ${WATER_SURFACE_GLSL}
@@ -564,6 +568,28 @@ vec2 turn(vec2 v, float k) {
   if (k < 1.5) return vec2(-v.y, v.x);
   if (k < 2.5) return -v;
   return vec2(v.y, -v.x);
+}
+// Sea look step 3: each lamp near the water drops a broken, wobbling warm streak down the screen, where its
+// mirror image (below the water line) shows from this fixed camera. Additive and soft, so the water stays visible.
+vec3 lanternStreaks(vec3 P, vec3 n) {
+  vec2 down = normalize(VIEW_DIR.xz), across = normalize(CAM_RIGHT.xz);
+  vec3 lit = vec3(0.0);
+  for (int i = 0; i < MAX_LIGHTS; i++) {
+    if (i >= uLightCount) break;
+    vec4 L = uLightPos[i];
+    vec2 q = L.xz + VIEW_DIR.xz * (L.y / VIEW_DIR.y);   // the lamp's mirror image, seen on the water
+    vec2 d = P.xz - q;
+    float len = clamp(L.w * 0.35, 1.5, 6.0) * uWaterGlow.y;
+    float s = dot(d, down), t = dot(d, across);
+    if (abs(t) > 2.0 || s < -len || s > len * 1.6) continue;
+    t += sin(s * 3.1 + uTime * 2.1 + L.x) * 0.12 + n.x * 0.9;
+    float w = 0.22 + 0.12 * clamp((s + len) / (2.0 * len), 0.0, 1.0);
+    float sd = max(0.0, s) / len, su = min(0.0, s) / (len * 0.45);
+    float body = exp(-t * t / (w * w)) * exp(-sd * sd - su * su);
+    float dash = smoothstep(0.15, 0.75, 0.5 + 0.5 * sin(s * 6.5 + n.z * 14.0 + uTime * 1.3 + L.z));
+    lit += uLightCol[i].rgb * uLightCol[i].a * body * (0.35 + 0.65 * dash);
+  }
+  return lit;
 }
 vec3 stoch(float layer, float tile, vec2 p) {
   vec2 uv0 = p / tile, dx = dFdx(uv0), dy = dFdy(uv0);
@@ -626,10 +652,53 @@ void main() {
       vec3 painted = continuousWater(uv, waterDx * 4.0, waterDy * 4.0);
       // Color art supplies restrained variation, not repeated white foam curls.
       vec3 base = uWaterDeep * mix(vec3(1.0), vec3(0.6) + painted * 2.0, uWaterOptics.x);
+      if (uWaterPaint.x > 0.0) {
+        // Painted sea (sea look step 1, Look A): slow swell bands + baked directional chop + broad patches,
+        // posterized into ink troughs, mid water and lit faces; rare soft flecks ride the lit crests.
+        float sw = sin(dot(p, uWaterPaint2.xy) * 6.2832 / uWaterPaint.y + (vnz(p / 9.0, 31u) + vnz(p / 23.0, 32u) - 1.0) * 3.0 - uTime * uWaterPaint.z);
+        float chop = (gWaterH * 2.0 - 1.0) * 3.0;
+        float v = 0.75 * sw + 0.45 * chop + 0.85 * (vnz(p / 26.0, 33u) - 0.5);
+        float aa = fwidth(v) * 0.5;
+        vec3 pc = mix(uWaterDeep * uWaterPaint2.w, uWaterDeep, smoothstep(-0.6 - aa, -0.1 + aa, v));
+        pc = mix(pc, uWaterLit, smoothstep(0.5 - aa, 1.0 + aa, v) * 0.6);
+        pc *= 1.0 + uWaterPaint2.z * sw * 0.5;
+        float fleck = smoothstep(1.9, 2.8, chop) * smoothstep(0.5, 1.3, sw) * smoothstep(0.3, 0.8, vnz(p * 2.5, 34u));
+        pc = mix(pc, uWaterLit * 2.6, fleck * uWaterPaint.w);
+        base = mix(base, pc, uWaterPaint.x);
+      }
       // shallow water near banks (from the coast-transition map, 0 deep .. 1 at the bank): clearer and greener, with faint caustics
       float shallow = clamp(over.g * 1.45, 0.0, 1.0); shallow *= shallow;
-      base = mix(base, vec3(0.16, 0.40, 0.42), shallow * 0.55);
+      base = mix(base, mix(vec3(0.16, 0.40, 0.42), vec3(0.09, 0.16, 0.16), clamp(uWaterPaint.x, 0.0, 1.0)), shallow * 0.55);
+      // Sea look step 2: shallows near the bank are lighter and greener, open water sinks to ink, a darker wet band
+      // sits just off the foam. dU: units from the bank (baked per chunk); nd: the sharper near-bank distance from the water mask.
+      float dU = texture2D(uDepth, suv).r * uWaterDepth.x, nd = (over.r - 0.5) * 8.0;
+      float dB = nd < 3.8 ? nd : max(dU, 3.8), dW = dB;
+      if (uWaterDepth.w > 0.0) {
+        base = mix(base, base * 0.55 + uWaterShallow * 0.75, (1.0 - smoothstep(1.0, uWaterDepth.y, dB)) * 0.7);
+        base *= 1.0 - 0.3 * smoothstep(uWaterDepth.y, uWaterDepth.z, dB);
+        // Tim 23:07Z: never a straight edge. The bank distance the wet band and the foam read is wobbled at three scales,
+        // so neither runs parallel to a straight stretch of coast (dB itself stays true for the shallows).
+        dW = dB + (vnz(p / 7.0, 47u) - 0.5) * 2.2 + (vnz(p / 2.3, 48u) - 0.5) * 1.1 + (vnz(p / 0.9, 49u) - 0.5) * 0.45;
+        float wb = (dW - 2.2) / 1.2; base *= 1.0 - 0.2 * exp(-wb * wb);
+      }
       water = waterSurfaceLight(base, waterNormal);
+      if (uWaterDepth.w > 0.0) {
+        // soft broken lapping foam: a line at the bank that breathes in and out, and a fainter one a little way out; never opaque
+        // Tim 2026-11-23: not uniform. Width swings from a thin rim to a wide wash along the coast (two noise scales),
+        // and whole stretches of shore have no foam at all (slow presence noise); the outer line comes and goes on its own.
+        // Tim 23:06Z: it goes with the waves. Each wave rolling in along the wind (half the swell length) pushes the foam
+        // out and lets it slide back, travelling along the coast; the foam breaks up on the same drifting chop as the water.
+        float along = vnz(p / 3.0, 41u);
+        float gaps = smoothstep(0.3, 0.75, 0.6 * gWaterH + 0.4 * vnz(p / 1.4 + uWaterPaint2.xy * uTime * 0.06, 42u));
+        float wide = vnz(p / 16.0, 43u) * 0.65 + vnz(p / 6.0, 44u) * 0.35; wide *= wide;
+        float here = smoothstep(0.38, 0.62, vnz(p / 24.0 + vec2(uTime * 0.004, 0.0), 45u));
+        float surge = dot(p, uWaterPaint2.xy) * 6.2832 / (uWaterPaint.y * 0.55) + (vnz(p / 9.0, 31u) - 0.5) * 2.5 - uTime * 0.8;
+        float lap = 0.5 + 0.5 * sin(surge); lap = lap * lap * (3.0 - 2.0 * lap);
+        float edgeF = (1.0 - smoothstep(0.0, 0.15 + (0.3 + 2.6 * wide) * (0.45 + 0.9 * lap), max(dW, dB * 0.35))) * (0.3 + 0.7 * gaps) * here * (0.75 + 0.25 * lap);
+        float rr = (dW - (1.4 + 3.6 * wide + 1.6 * (1.0 - lap))) / (0.3 + 0.4 * wide);   // the outer line is left behind as the wash slides back
+        float ring = exp(-rr * rr) * gaps * 0.55 * smoothstep(0.45, 0.7, vnz(p / 13.0, 46u));
+        water = mix(water, uWaterFoam, clamp((edgeF * 0.75 + ring) * uWaterDepth.w, 0.0, 0.6));
+      }
       vec2 cq = p * 0.85 + waterNormal.xz * 2.5 + vec2(uTime * 0.07, uTime * 0.045);
       float cA = sin(cq.x * 2.3 + sin(cq.y * 1.7 + uTime * 0.6)), cB = sin(cq.y * 2.1 + sin(cq.x * 1.9 - uTime * 0.5));
       float caus = pow(max(0.0, 1.0 - abs(cA)) * max(0.0, 1.0 - abs(cB)), 4.0);
@@ -648,11 +717,14 @@ void main() {
     g = mix(g, reflection.rgb, reflection.a * wm);
   }
   float ripple = clamp(0.5 + abs(dot(waterNormal.xz, vec2(0.7, 0.3))) * 2.0, 0.5, 1.0);
-  g += wm * uNight * lanternLight(vWorld, false) * 0.35 * ripple;
+  g += wm * uNight * lanternLight(vWorld, false) * 0.35 * ripple * (1.0 - 0.6 * step(0.001, uWaterGlow.x));
+  if (uWaterGlow.x > 0.0 && wm > 0.001 && uNight > 0.01) g += wm * uNight * min(lanternStreaks(vWorld, waterNormal) * uWaterGlow.x, vec3(0.6));
   gl_FragColor = vec4(fogged(g, p), 1.0);
 }`;
 
-export function islandGroundMaterial({ mats, water, splats, over, bounds, layers, tiles, mosaic, coastTransition, waterSurface, waterEffects }) {
+// no depth map (older callers): every water pixel counts as far from its bank
+const BLANK_DEPTH = (() => { const t = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1); t.needsUpdate = true; return t; })();
+export function islandGroundMaterial({ mats, water, splats, over, depth, bounds, layers, tiles, mosaic, coastTransition, waterSurface, waterEffects }) {
   const surface = waterSurfaceUniforms(waterSurface);
   return new THREE.ShaderMaterial({
     uniforms: {
@@ -670,6 +742,14 @@ export function islandGroundMaterial({ mats, water, splats, over, bounds, layers
       uWaterDeep: { value: new THREE.Vector3(...surface.deep) },
       uWaterSky: { value: new THREE.Vector3(...surface.sky) },
       uWaterLight: { value: new THREE.Vector3(...surface.light) },
+      uWaterLit: { value: new THREE.Vector3(...surface.lit) },
+      uDepth: { value: depth || BLANK_DEPTH },
+      uWaterDepth: { value: new THREE.Vector4(...surface.depth) },
+      uWaterShallow: { value: new THREE.Vector3(...surface.shallow) },
+      uWaterFoam: { value: new THREE.Vector3(...surface.foam) },
+      uWaterGlow: { value: new THREE.Vector4(...surface.glow) },
+      uWaterPaint: { value: new THREE.Vector4(...surface.paint) },
+      uWaterPaint2: { value: new THREE.Vector4(...surface.paint2) },
       uWetCoastColor: { value: new THREE.Vector3(...(coastTransition?.wetColor || [0.38, 0.39, 0.30])) },
       uDryCoastColor: { value: new THREE.Vector3(...(coastTransition?.dryColor || [0.56, 0.49, 0.37])) },
       uSnowCoastColor: { value: new THREE.Vector3(...(coastTransition?.snowColor || [0.68, 0.70, 0.69])) },
@@ -755,8 +835,12 @@ export function coastlineMaterial({ textures, available, rows, bounds, cfg }) {
         float wd = -vCoastUv.y;
         if (wd > 0.0) {
           float lap = 0.5 + 0.5 * sin(uTime * 1.1 + vCoastUv.x * 37.0 + sin(vCoastUv.x * 91.0) * 1.3);
-          float reach = vCoastSize.y * (0.28 + 0.34 * lap);
-          float foam = (1.0 - smoothstep(0.0, reach, wd)) * (0.55 + 0.45 * sin(vCoastUv.x * 143.0 + uTime * 0.7));
+          // Tim 23:07Z: never a straight edge: the rim's reach swings with world noise and its outer edge is ragged
+          float rag = 0.5 + 0.3 * sin(p.x * 1.7 + sin(p.y * 1.3) * 2.0) * sin(p.y * 1.9 + sin(p.x * 1.1) * 2.0) + 0.2 * sin(p.x * 4.3 - p.y * 3.7);
+          float reach = vCoastSize.y * (0.12 + 0.5 * lap * rag + 0.25 * (0.5 + 0.5 * sin(p.x * 0.41 + sin(p.y * 0.33) * 2.0)));
+          float foam = (1.0 - smoothstep(reach * 0.55, reach, wd)) * (0.55 + 0.45 * sin(vCoastUv.x * 143.0 + uTime * 0.7));
+          // sea look (Tim 2026-11-23): the bank rim also comes and goes along the coast instead of one even line
+          foam *= smoothstep(0.35, 0.65, 0.5 + 0.25 * sin(p.x * 0.27 + sin(p.y * 0.19) * 2.0) + 0.25 * sin(p.y * 0.23 + sin(p.x * 0.17) * 2.0));
           foam = clamp(foam, 0.0, 1.0) * 0.55 * vCoastClear;
           col = mix(col, vec3(0.82, 0.88, 0.88), foam / max(foam + alpha, 0.0001));
           alpha = max(alpha, foam);

@@ -11,7 +11,7 @@ export function createWaterEffects({ renderer, scene, cfg }) {
   if (!C?.enabled) return null;
   const size = Math.max(128, Math.min(1024, Math.round(C.normalMaps?.size || 512)));
   const normals = [17, 83].map(seed => {
-    const tex = new THREE.DataTexture(waterNormalData(size, seed), size, size, THREE.RGBAFormat);
+    const tex = new THREE.DataTexture(waterNormalData(size, seed, C.normalMaps?.style, C.paint?.windDeg), size, size, THREE.RGBAFormat);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.generateMipmaps = true;
     tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter;
     tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy()); tex.needsUpdate = true;

@@ -73,13 +73,15 @@ function buildTopology(world, inland) {
     const codes = cells.map(([a, b]) => rows[b]?.[a] ?? 'w'), wet = cells.map(([a, b]) => wetAt(a, b));
     const count = wet.filter(Boolean).length;
     if ((count !== 1 && count !== 3) || codes.some((c, i) => c === 'm' || (!inland && c === 'r') || (c === 'w' && !wet[i]))) continue;
-    if (harbors.some(h => Math.hypot(h.x - x, h.z - z) < radius + (C.harborKeep || 30))) continue;
+    // Beside a harbour the cells stay square for walking and ships (harborKeep), but the drawn shore is rounded
+    // too (Tim 2026-11-23: no sharp coast points): the same drawing-only path as the ford corners below.
+    const nearHarbor = harbors.some(h => Math.hypot(h.x - x, h.z - z) < radius + (C.harborKeep || 30));
     const convex = count === 3, q = wet.indexOf(!convex), [sx, sz] = quadrants[q];
     // Fine-rasterizing a cell that intersects a ford would also refine its
     // legacy crossing circle and could unexpectedly narrow the crossing. Such
     // corners are rounded for drawing only (visual): terrain/collision keep the square cell.
     const [cellX, cellZ] = cells[q];
-    const visual = crossings.some(f => Math.hypot(Math.max(cellX * T - f.x, 0, f.x - (cellX + 1) * T), Math.max(cellZ * T - f.z, 0, f.z - (cellZ + 1) * T)) < (world.rules?.fordRadius || 30));
+    const visual = nearHarbor || crossings.some(f => Math.hypot(Math.max(cellX * T - f.x, 0, f.x - (cellX + 1) * T), Math.max(cellZ * T - f.z, 0, f.z - (cellZ + 1) * T)) < (world.rules?.fordRadius || 30));
     const waterCode = codes.includes('r') ? 'r' : 'w';
     const corner = { x, z, sx, sz, radius, convex, visual, waterCode, code: codes.find(c => !'wr'.includes(c)), cx: x + sx * radius, cz: z + sz * radius };
     corner.body = waterCode === 'r' ? 'river' : wet.some((v, i) => v && ocean(...cells[i])) ? 'sea' : 'lake';

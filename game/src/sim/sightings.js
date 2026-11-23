@@ -87,14 +87,16 @@ export function createSightings({ state, sight = {}, towers = () => [] }) {
 }
 
 // For the snapshot: a rival town's grid with only the seen blocks filled in (ground is landscape and stays)
-export function maskGrid(g, mask, block = BLOCK) {
+// keep: use chars shown even in unseen blocks. Always the moat and cliffs; a rival castle also keeps its walls and
+// gates (Tim 2026-11-23: they show with the castle's ground, like the cliffs; the buildings inside still need sight)
+export function maskGrid(g, mask, block = BLOCK, keep = 'mk') {
   if (!g?.n) return g;
   const n = g.n, nb = Math.ceil(n / block);
-  if (!mask) return { ...g, use: g.use.replace(/[^mk]/g, '.'), zone: '.'.repeat(n * n), by: '.'.repeat(n * n), stage: '0'.repeat(n * n) };
+  if (!mask) return { ...g, use: [...g.use].map(ch => keep.includes(ch) ? ch : '.').join(''), zone: '.'.repeat(n * n), by: '.'.repeat(n * n), stage: '0'.repeat(n * n) };
   const use = g.use.split(''), zone = g.zone.split(''), by = g.by.split(''), stage = g.stage.split('');
   for (let i = 0; i < n * n; i++) {
     if (mask[Math.floor(Math.floor(i / n) / block) * nb + Math.floor((i % n) / block)] === '1') continue;
-    if (use[i] !== 'm' && use[i] !== 'k') use[i] = '.';   // a castle's moat and cliffs are landscape, seen with the ground (Z4h)
+    if (!keep.includes(use[i])) use[i] = '.';   // a castle's moat and cliffs are landscape, seen with the ground (Z4h)
     zone[i] = '.'; by[i] = '.'; stage[i] = '0';
   }
   return { ...g, use: use.join(''), zone: zone.join(''), by: by.join(''), stage: stage.join('') };

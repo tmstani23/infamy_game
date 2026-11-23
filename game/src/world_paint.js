@@ -270,6 +270,9 @@ export function createPaint(world, cfg) {
   function paintChunk(x0, z0, S, near) {
     const n0 = Math.round(S * cfg.res), N = n0 + 2, pitch = S / n0, h = pitch;
     const px = new Float32Array(N * N * NM), O = new Uint8Array(N * N * 4), cover = new Float64Array(NM), w = new Float32Array(NM);
+    // Sea look step 2: how far each water pixel is from its bank (0 at the bank .. 255 at waterSurface.depth.max units),
+    // world-space so neighbouring chunks agree. The shader turns it into shallows, deep ink and the shore foam lines.
+    const DM = cfg.waterSurface?.depth?.max || 40, D = new Uint8Array(N * N);
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const x = x0 - h + (i + 0.5) * pitch, z = z0 - h + (j + 0.5) * pitch, k = j * N + i;
       materialsAt(x, z, w, near.segs, near.stamps);
@@ -278,6 +281,12 @@ export function createPaint(world, cfg) {
       const fd = fordZones.length ? fordAt(x, z) : 0;
       if (fd > 0 && wet > FD.waterLevel) wet += (FD.waterLevel - wet) * fd;   // thin water: the gravel shows through
       O[k * 4] = Math.round(wet * 255);
+      if (wet > 0.5) {
+        let dd = DM;
+        if (shore) { const own = baseWaterAt(x, z); dd = own > 0.5 ? shore.distanceAt(x, z, DM, null) : 0; }
+        if (extra.length) { const e = extraWet(x, z); if (e > 0) dd = Math.max(shore ? Math.min(dd, DM) : 0, Math.min(e, DM)); }
+        D[k] = Math.round(Math.min(1, dd / DM) * 255);
+      }
       // Reuse the actual local ground mosaic; this mask only adjusts its tone.
       const CT = cfg.coastTransition;
       if (CT?.enabled && !BLOCKED_BIOME.has(gridAt(x, z))) {
@@ -313,7 +322,7 @@ export function createPaint(world, cfg) {
       if (s <= 0) s = 1;
       order.forEach((mi, slot) => { maps[slot >> 2][k * 4 + (slot & 3)] = Math.round(px[k * NM + mi] / s * 255); });
     }
-    return { N, h, mats: order.map(mi => matIds[mi]), maps, O };
+    return { N, h, mats: order.map(mi => matIds[mi]), maps, O, D };
   }
 
   const paint = {

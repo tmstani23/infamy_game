@@ -18,6 +18,22 @@ for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
 }
 assert.ok(wrap / (N * 4) < inner / count * 1.3, 'tile wrap has no larger seam than ordinary neighboring pixels');
 
+// Painted chop (sea look step 1): seamless too, height in alpha spans the range around calm, and crests follow the wind.
+const P = waterNormalData(N, 17, 'painted', 14);
+assert.deepEqual(P, waterNormalData(N, 17, 'painted', 14));
+let pIn = 0, pWrap = 0, pCount = 0, hMin = 255, hMax = 0, hSum = 0, gx = 0, gz = 0;
+for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
+  const i = (z * N + x) * 4, v = [...P.slice(i, i + 3)].map(c => c / 255 * 2 - 1);
+  assert.ok(Math.abs(Math.hypot(...v) - 1) < 0.015 && v[2] > 0.9, 'painted normals stay unit and gentle');
+  hMin = Math.min(hMin, P[i + 3]); hMax = Math.max(hMax, P[i + 3]); hSum += P[i + 3];
+  gx += Math.abs(v[0]); gz += Math.abs(v[1]);
+  if (x < N - 1) { pIn += Math.abs(P[i + 3] - P[i + 7]); pCount++; }
+  if (x === N - 1) pWrap += Math.abs(P[i + 3] - P[z * N * 4 + 3]);
+}
+assert.ok(pWrap / N < pIn / pCount * 1.3, 'painted height wraps without a seam');
+assert.ok(hMin < 40 && hMax > 215 && Math.abs(hSum / (N * N) - 127.5) < 6, 'painted height uses the alpha range around calm');
+assert.ok(gx > gz * 1.5, 'wind along x (14 degrees): slopes mostly along the wind axis, not one-way scratches across it');
+
 function fixture(fail = false) {
   const matrix = () => ({ copy() { return this; }, invert() { return this; }, multiply() { return this; } });
   const scene = { background: { sky: true } }, originalBackground = scene.background;
@@ -47,4 +63,4 @@ f.capture.run(f.camera, 1.05, false, f.hidden); assert.equal(f.uniforms.uWaterRe
 f.capture.run(f.camera, 1.051, true, f.hidden); assert.equal(f.attempts(), 3, 'returning to water refreshes immediately');
 const bad = fixture(true); bad.capture.run(bad.camera, 2, true, bad.hidden); bad.restored();
 bad.capture.run(bad.camera, 3, true, bad.hidden); assert.equal(bad.attempts(), 1); assert.equal(bad.errors(), 1); assert.equal(bad.uniforms.uWaterReflectionCfg.value.x, 0, 'failed reflection falls back cleanly');
-console.log('test_water_capture: normal data unit length/periodic/deterministic, shared capture throttle, visibility/renderer restoration and failure fallback passed');
+console.log('test_water_capture: painted chop seamless/directional, normal data unit length/periodic/deterministic, shared capture throttle, visibility/renderer restoration and failure fallback passed');

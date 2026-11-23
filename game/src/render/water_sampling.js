@@ -21,11 +21,14 @@ export const WATER_SURFACE_GLSL = /* glsl */`
 uniform vec4 uWaterWaves[4]; // kx, kz, amplitude, angular speed
 uniform vec4 uWaterMotion; // enabled, base drift x/z, small ripple distortion
 uniform vec4 uWaterOptics; // texture strength, highlight strength, gloss, sheen
-uniform vec3 uWaterDeep, uWaterSky, uWaterLight;
+uniform vec3 uWaterDeep, uWaterSky, uWaterLight, uWaterLit;
+uniform vec4 uWaterPaint;  // painted look: strength, swell length (world units), swell speed, crest flecks
+uniform vec4 uWaterPaint2; // wind direction xz, swell banding, ink (trough) darkness
 uniform sampler2D uWaterNormal0, uWaterNormal1, uWaterReflection;
 uniform vec4 uWaterNormalCfg; // world tile, strength, flow speed, repeat cycle
 uniform mat4 uWaterReflectionMatrix;
 uniform vec4 uWaterReflectionCfg; // ready, strength, distortion, texel size
+float gWaterH = 0.5;   // set by waterSurfaceNormal: baked chop height, 0..1
 vec3 waterSurfaceNormal(vec2 p, vec2 pixelWidth, vec2 worldDx, vec2 worldDy) {
   vec2 slope = vec2(0.0);
   for (int i = 0; i < 4; i++) {
@@ -41,8 +44,9 @@ vec3 waterSurfaceNormal(vec2 p, vec2 pixelWidth, vec2 worldDx, vec2 worldDy) {
     float blend = abs(halfCycle - phase0) / halfCycle;
     vec2 flow = normalize(vec2(1.0, 0.25));
     vec2 uv = p / uWaterNormalCfg.x, dx = worldDx / uWaterNormalCfg.x, dy = worldDy / uWaterNormalCfg.x;
-    vec3 a = textureGrad(uWaterNormal0, uv + flow * phase0, dx, dy).rgb * 2.0 - 1.0;
-    vec3 b = textureGrad(uWaterNormal1, uv + flow * phase1, dx, dy).rgb * 2.0 - 1.0;
+    vec4 a4 = textureGrad(uWaterNormal0, uv + flow * phase0, dx, dy), b4 = textureGrad(uWaterNormal1, uv + flow * phase1, dx, dy);
+    vec3 a = a4.rgb * 2.0 - 1.0, b = b4.rgb * 2.0 - 1.0;
+    gWaterH = mix(a4.a, b4.a, blend);   // painted maps keep the chop height in alpha (plain ripple maps: 1.0, unused)
     vec2 fine = mix(a.xy / max(a.z, 0.25), b.xy / max(b.z, 0.25), blend);
     slope -= fine * uWaterNormalCfg.y;
   }
