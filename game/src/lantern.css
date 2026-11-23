@@ -1007,3 +1007,81 @@ body #gamemap.game-map .maplayers button { width: 100%; }
 body #gamemap.game-map .maplayers { width: 100%; box-sizing: border-box; }
 body #gamemap.game-map .maplayers button { min-width: 0; padding: 5px 3px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 body #gamemap.game-map .maplayers button { font-size: 12px; padding: 5px 1px; text-overflow: clip; letter-spacing: -.01em; }
+
+/* ================= CP6: start screen, season end, campaign end, loading ================= */
+/* start screen: the harbour art stays; the form sits on a lacquer board; the clans are dark shelves holding their painted crests */
+#startscreen { font-family: var(--ln-font); }
+#startscreen .start-eyebrow { display: none; }
+#startscreen h1 { font-family: var(--ln-font); font-weight: 800; letter-spacing: .08em; text-shadow: 0 3px 0 rgba(0,0,0,.6), 0 0 30px rgba(255,170,80,.18); }
+#startscreen .start-tagline { font: italic 500 19px var(--ln-font); letter-spacing: 0; }
+#startscreen legend { font: 800 18px var(--ln-font); letter-spacing: 0; text-transform: none; color: #efdcb5; }
+#startscreen .start-clan-card { position: relative; border: none; border-radius: 2px; font-family: var(--ln-font);
+  background: radial-gradient(ellipse 70% 60% at 30% 20%, rgba(255,170,80,.12), transparent 70%), linear-gradient(180deg, rgba(14,9,6,.92), rgba(28,18,11,.92)); box-shadow: inset 0 3px 10px #000, 0 0 0 2px #070403, 0 0 0 3px rgba(138,106,58,.5); }
+#startscreen .start-choice:hover .start-clan-card { box-shadow: inset 0 3px 10px #000, 0 0 0 2px #070403, 0 0 0 3px rgba(240,205,132,.75); }
+#startscreen .start-choice input:checked + .start-clan-card { background: radial-gradient(ellipse 70% 60% at 30% 20%, color-mix(in srgb, var(--choice-color) 26%, transparent), transparent 70%), linear-gradient(180deg, rgba(20,12,8,.94), rgba(34,22,13,.94));
+  box-shadow: inset 0 3px 10px #000, 0 0 0 2px #070403, 0 0 0 4px #e8b85a, 0 0 22px rgba(255,170,80,.3); }
+#startscreen .start-clan-card canvas { opacity: 0; }
+#startscreen .start-clan-card::before { content: ""; position: absolute; left: 12px; top: 12px; width: 64px; height: 64px; background: center / contain no-repeat; filter: drop-shadow(0 3px 3px #000); pointer-events: none; }
+#startscreen .start-choice:has(input[value="yakuza"]) .start-clan-card::before { background-image: url(../../assets/ui/crests/yakuza_96.png); }
+#startscreen .start-choice:has(input[value="kuroda"]) .start-clan-card::before { background-image: url(../../assets/ui/crests/kuroda_96.png); }
+#startscreen .start-choice:has(input[value="shinobi"]) .start-clan-card::before { background-image: url(../../assets/ui/crests/shinobi_96.png); }
+#startscreen .start-clan-card strong { font: 800 26px var(--ln-font); color: #f2e6cf; }
+#startscreen .start-clan-card em { font: italic 600 14px var(--ln-font); color: var(--ln-gold); }
+#startscreen .start-clan-card > span { font: 500 14px/1.45 var(--ln-font); color: #d8c4a0; }
+#startscreen .start-levels span { border: none; border-radius: 2px; font: 700 15px var(--ln-font); color: #ead3a6; background: linear-gradient(180deg, #3a281b, #1e140d);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.22), inset 0 -2px 0 rgba(0,0,0,.45), 0 3px 0 #0a0604; }
+#startscreen .start-levels input:checked + span { color: #2b1d12; border: none; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.06)), var(--ln-fiber), #e4d4ae; box-shadow: 0 0 0 2px #0a0604, 0 3px 6px rgba(0,0,0,.6); }
+#startscreen .start-difficulty-note, #startscreen .start-mode-note, #startscreen .start-season, #startscreen .start-loadout, #startscreen .start-save-note, #startscreen .start-exit-note { font-family: var(--ln-font); color: #cdb48d; }
+#startscreen .start-loadout { color: #ecdcbc; font-size: 15px; }
+#startscreen .start-footer { border-top: none; }
+#startscreen .start-play { font: 800 18px var(--ln-font); letter-spacing: 0; color: #2a1b10; border: none; border-radius: 2px; background: linear-gradient(180deg, #f7e0a4 0%, #d9ad5e 38%, #a9772f 62%, #c99a52 100%);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), inset 0 -3px 0 rgba(90,50,10,.5), 0 4px 0 #2b1c0c, 0 8px 18px rgba(0,0,0,.6); }
+#startscreen .start-play:hover { background: linear-gradient(180deg, #ffe8b0 0%, #e4b968 38%, #b5843a 62%, #d4a55c 100%); }
+#startscreen .start-play span { display: none; }
+#startscreen button:not(.start-play), #startscreen .start-exit-button, #startscreen .start-music-toggle { font: 700 14px var(--ln-font); letter-spacing: 0; border: none; border-radius: 2px; color: #ead3a6;
+  background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.28), inset 0 -2px 0 rgba(0,0,0,.4), 0 3px 0 #0a0604; }
+#startscreen button:not(.start-play):hover { background: linear-gradient(180deg, #6b4b30, #3a2718); color: #ffe6b8; }
+#startscreen .start-music, #startscreen .start-music label, #startscreen .start-music-title { font-family: var(--ln-font); color: #cdb48d; }
+#startscreen .start-music-volume { accent-color: #c99a52; }
+#startscreen .start-content { position: relative; }
+#startscreen .start-content::before { content: ""; position: absolute; inset: -34px -40px -30px -44px; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse 80% 70% at 30% 30%, rgba(20,12,8,.75), rgba(10,6,4,.35) 70%, transparent 100%); }
+#startscreen .start-save-list li { font-family: var(--ln-font); }
+
+/* season end (classic mode): a framed window with the cloth header */
+#seasonend { font: 500 14px/1.45 var(--ln-font); color: var(--ln-text); border: 18px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0;
+  background-color: #1b120d; background-origin: border-box; background-clip: padding-box; background-image: radial-gradient(ellipse 75% 45% at 70% 8%, rgba(255,150,60,.12), transparent 70%), linear-gradient(rgba(20,13,9,.5), rgba(20,13,9,.5)), var(--ln-grain); box-shadow: 0 24px 60px rgba(0,0,0,.85); }
+#seasonend .ms-eyebrow { display: none; }
+#seasonend h2 { font: 800 30px/1.1 var(--ln-font); color: #f2e6cf; padding: 10px 16px 14px 60px; margin: 0 0 8px;
+  background-color: var(--ln-dye); background-image: var(--ln-crest), var(--ln-weave), linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.4));
+  background-position: 12px 45%, 0 0, 0 0; background-size: 36px 36px, auto, auto; background-repeat: no-repeat, repeat, no-repeat;
+  clip-path: polygon(0 0, 100% 0, 100% 93%, 92% 97%, 80% 93%, 66% 99%, 50% 94%, 34% 98%, 20% 93%, 8% 98%, 0 94%); }
+#seasonend .sub { color: var(--ln-dim); }
+#seasonend .list .row { border-bottom: none; box-shadow: 0 2px 0 rgba(0,0,0,.55), 0 3px 0 rgba(255,215,160,.07); }
+#seasonend .list .row b { border: none; border-radius: 2px; font: 800 15px var(--ln-font); color: var(--ln-num); background: #0b0705; box-shadow: inset 0 2px 4px #000; }
+#seasonend button { font: 700 14px var(--ln-font); border: none; border-radius: 2px; color: #ead3a6; background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.28), 0 3px 0 #0a0604; }
+#seasonend button.go { color: #2a1b10; background: linear-gradient(180deg, #ecca86, #b6873f); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), 0 3px 0 #2b1c0c; }
+
+/* campaign end: the approved scene stays (rays, embers, medal, struck crests); words in the serif, no spaced capitals; buttons wood and brass */
+body #campaignend { font-family: var(--ln-font); }
+body #campaignend .eyebrow { font: italic 600 18px var(--ln-font); letter-spacing: 0; text-transform: none; }
+body #campaignend h1 { font-family: var(--ln-font); font-weight: 800; letter-spacing: .06em; }
+body #campaignend .sub { font-family: var(--ln-font); }
+body #campaignend .rule { display: none; }
+body #campaignend .fc b { font: 800 17px var(--ln-font); } body #campaignend .fc span { font: 500 13px var(--ln-font); letter-spacing: 0; }
+body #campaignend .st { border-radius: 2px; background: linear-gradient(180deg, rgba(14,9,6,.85), rgba(28,18,11,.85)); box-shadow: inset 0 3px 8px #000, 0 0 0 2px #070403, 0 6px 16px #000a; }
+body #campaignend .st b { font: 800 28px var(--ln-font); } body #campaignend .st span { font: 600 13px var(--ln-font); letter-spacing: 0; text-transform: none; }
+body #campaignend .btns button { font: 700 16px var(--ln-font); letter-spacing: 0; text-transform: none; border: none; border-radius: 2px; color: #ead3a6;
+  background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.28), inset 0 -2px 0 rgba(0,0,0,.4), 0 3px 0 #0a0604, 0 8px 16px rgba(0,0,0,.6); }
+body #campaignend .btns button.go { color: #2a1b10; background: linear-gradient(180deg, #f7e0a4 0%, #d9ad5e 38%, #a9772f 62%, #c99a52 100%); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), 0 3px 0 #2b1c0c, 0 8px 16px rgba(0,0,0,.6); }
+
+/* loading: the word in the serif on dark wood */
+#loading { font: 700 22px var(--ln-font); color: var(--ln-gold); background-color: #0d0806; background-image: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,150,60,.10), transparent 70%), linear-gradient(rgba(10,6,4,.75), rgba(10,6,4,.75)), var(--ln-grain); text-shadow: 0 2px 0 #000; }
+#startscreen .start-clan-card canvas, #startscreen .start-choice input:checked + .start-clan-card canvas { opacity: 0 !important; }
+/* critic CP6 round 1: room under the end subtitle, stat tiles as lacquer plates, a square-cut chosen clan card, a board behind the start form */
+body #campaignend .sub { margin-bottom: 16px; }
+body #campaignend .st { width: auto; min-width: 118px; padding: 9px 14px 7px; background: linear-gradient(#2b1611, #120807); box-shadow: 0 0 0 2px #0a0604, 0 0 0 3px #6e4b22, inset 0 1px 0 rgba(255,214,150,.22), inset 0 -2px 0 #000, 0 6px 14px rgba(0,0,0,.6); }
+body #campaignend .fc { border-radius: 30px 2px 2px 30px; }
+#startscreen .start-choice input:checked + .start-clan-card { background: radial-gradient(ellipse 70% 60% at 30% 20%, rgba(255,170,80,.16), transparent 70%), linear-gradient(180deg, rgba(20,12,8,.94), rgba(34,22,13,.94));
+  box-shadow: inset 0 3px 10px #000, inset 0 0 0 1px rgba(168,50,31,.6), 0 0 0 2px #070403, 0 0 0 4px #c99a52; }
+#startscreen .start-content::before { inset: -30px -40px -26px -44px; background: linear-gradient(90deg, rgba(16,10,6,.86), rgba(16,10,6,.7) 80%, transparent), var(--ln-grain); opacity: .92; border-right: 3px solid rgba(90,61,28,.6); }
