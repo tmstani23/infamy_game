@@ -11,6 +11,7 @@ import { upgradeTick, nextTier } from './tiers.js';
 import { warUpgradeTick, warUpgradeBuilding } from './town_military.js';
 import { noteArrival, noteTierUp } from './arrivals.js';
 import { foldFlow } from './flow.js';
+import { upkeepKeep } from './upkeep.js';
 const EPS = 1e-9;
 
 export function createEconomy({ state, data, world, zones = null, workers = null, trade = {} }) {
@@ -254,7 +255,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     for (const [res, m] of Object.entries(sellAt)) {
       // a town on auto also holds back what its next hall tier costs (2026-11-21 soak: else the market sells it and the hall never goes up)
       const save = s.autoBuild ? (nextTier(s, data)?.upgrade?.cost?.[res] || 0) : 0;
-      const keep = Math.max((res === 'goods' ? s.marketKeep : s.keep?.[res]) ?? defaultKeep(s, data, res), save) + (s.reserved?.[res] || 0);
+      const keep = Math.max((res === 'goods' ? s.marketKeep : s.keep?.[res]) ?? defaultKeep(s, data, res), save) + (s.reserved?.[res] || 0) + upkeepKeep(s, data, res);   // never sells the upkeep (2026-11-23)
       const sell = Math.min(m.perTick ?? 0, (s.stock[res] || 0) - keep);
       if (!(sell > EPS)) continue;
       world.change(s.id, res, -sell, 'market');

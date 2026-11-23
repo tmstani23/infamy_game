@@ -52,14 +52,14 @@
     }
   },
   "ship": {
-    "_note": "Rail shipments (Tim 2026-11-08), placeholders, Tim to tune. keep = default stock a town never ships out (per resource; later: upkeep plus next build); minOrder = smallest order; queueTrips (Tim 2026-11-09) = your own undelivered orders into a town may add up to this many trainloads per line at the town (trainload = goods wagons x wagonLoad; 3 x 240 = 720 (Tim 2026-11-17: wagons carry double, 120 each), about 3 round trips, ~11 min on a capital line); maxAuto = open auto orders per town; budget = default auto-buy ryo per town at the port (a town may have this much tied up in open auto orders); buyPrice / sellPrice = ryo per unit at the port wholesale houses (buying costs more than selling pays); sell = what is above the keep goes to the capital (see sell._note); keepMax = highest keep a player can set.",
+    "_note": "Rail shipments (Tim 2026-11-08), placeholders, Tim to tune. keep = default stock a town never ships out (per resource; later: upkeep plus next build); minOrder = smallest order; queueTrips (Tim 2026-11-09) = your own undelivered orders into a town may add up to this many trainloads per line at the town (trainload = goods wagons x wagonLoad; 3 x 480 = 1440 (Tim 2026-11-23: 240 a wagon, was 120 since 2026-11-17: at 240 a train a far town, 13 min round trip, got 18 a minute and could not cover one shortage; 480 gives it 37), about 3 round trips; maxAuto = open auto orders per town; budget = default auto-buy ryo per town at the port (a town may have this much tied up in open auto orders); buyPrice / sellPrice = ryo per unit at the port wholesale houses (buying costs more than selling pays); sell = what is above the keep goes to the capital (see sell._note); keepMax = highest keep a player can set.",
     "resources": ["food", "timber", "stone", "goods"],
     "keep": { "food": 40, "timber": 30, "stone": 10, "goods": 10 },
     "minOrder": 10,
-    "wagonLoad": 120,
+    "wagonLoad": 240,
     "queueTrips": 3,
     "ryoPerTrain": 2000, "ryoMin": 10, "_ryoNote": "8e-1 (2026-11-16), placeholders: ryoPerTrain = ryo one train carries (guard car, no wagon room); ryoMin = smallest ryo order.",
-    "budget": 150,
+    "budget": 150, "budgetShare": 0.05, "_budgetShareNote": "Tim 2026-11-23, placeholder: last resort. When a town's workers cannot bring in more of a resource under its keep line (no hands to spare or no free spot in reach), its auto-buy budget for that resource is this share of the town's ryo, when that is more than budget, at most one trainload's price. A budget the player typed always stands.",
     "buyPrice": { "food": 3, "timber": 4, "stone": 5, "goods": 8 },
     "sellPrice": { "food": 2, "timber": 2, "stone": 3, "goods": 5 },
     "sell": { "on": true, "resources": ["goods", "timber", "stone"], "batch": 240, "min": 60, "_note": "placeholder (2026-11-22): with Initiative on, each governor review sends what is above the keep (and above the next hall tier cost) to the capital, at most batch per resource per open order, only once at least min is spare; the keep is what stays, war or not; food is never sold on its own" },

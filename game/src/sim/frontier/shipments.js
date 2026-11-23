@@ -478,7 +478,11 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     for (let i = 1; i < p.length; i++) n += lineLen(owner, p[i - 1], p[i]);
     return n;
   }
-  const budgetOf = s => s.shipBudget ?? S().budget ?? 150;
+  // Tim 2026-11-23 (last resort): a town whose workers cannot supply a resource any more (workers.js rebalance:
+  // s.gov.handsDone) buys it with a budget of ship.budgetShare of its ryo, when that is more than the flat budget.
+  // A budget the player typed always stands.
+  const trainload = () => { const T = data.railways?.train || {}; return Math.max(1, T.consist ? T.consist.filter(k => k === 'goods').length : 1) * wagonLoad(); };
+  const budgetOf = (s, res = null) => s.shipBudget ?? Math.max(S().budget ?? 150, res && s.gov?.handsDone === res ? Math.floor(Math.min((s.stock?.ryo || 0) * (S().budgetShare ?? 0), trainload() * (S().buyPrice?.[res] ?? 5))) : 0);
   const spentOf = s => orders().filter(o => o.state === 'open' && o.to === s.id && o.auto).reduce((a, o) => a + (o.ryoPaid || 0), 0);
 
   function cover(s, o) {
@@ -489,7 +493,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     for (const [, t] of cand) { if (need() <= 0) return; accept(o.id, t.id, need()); }
     if (need() <= 0 || o.pin || (s.camp && !(o.ryo > 0))) return;   // a camp buys only with a ryo offer (Tim 2026-11-17)
     if (o.auto && (S().noCapitalBuy || ['goods']).includes(o.resource)) return;   // Tim 2026-11-22: goods refills come from your own towns only
-    const price = S().buyPrice?.[o.resource] ?? 5, left = o.auto ? (s.autoBuy === false ? 0 : budgetOf(s) - spentOf(s)) : (o.ryo || 0) - (o.ryoPaid || 0);
+    const price = S().buyPrice?.[o.resource] ?? 5, left = o.auto ? (s.autoBuy === false ? 0 : budgetOf(s, o.resource) - spentOf(s)) : (o.ryo || 0) - (o.ryoPaid || 0);
     const n = Math.min(need(), Math.floor(left / price));
     if (n > 0 && route(s.owner, 'capital', s.id)) accept(o.id, 'capital', n);
   }

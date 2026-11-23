@@ -5,6 +5,11 @@
 import { workerCount } from './people.js';
 import { nextTier, cellCap, zoneCells } from './tiers.js';
 
+// 2026-11-23 (Kagemura alert): what workshops and the market leave in stock for upkeep, data upkeep.inputKeepTicks
+// economy ticks of the town's last bill. Before, both took every log between deliveries, timber upkeep went unpaid
+// about half the ticks and the military upkeep alert came back every cooldown.
+export const upkeepKeep = (s, data, r) => (s.upkeepBill?.[r] || 0) * (data.upkeep?.inputKeepTicks ?? 0);
+
 export function payUpkeep(s, data, world) {
   const U = data.upkeep, out = { zone: {}, goods: 1 };
   s.goodsShort = false; s.wagesShort = false; s.militaryShort = false;

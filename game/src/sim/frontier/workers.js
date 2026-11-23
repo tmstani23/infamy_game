@@ -6,7 +6,7 @@ import { makeSpotIndex, spotState, spotYield, regrowSpot, supportsWorkers } from
 import { campLoad, spotCounts } from './camp_load.js';
 import { cellToWorld, worldToCell, townBlocksBox, townBlockedCells, townBlockSignature, campBlockSignature, ringRadius } from './town_grid.js';
 import { dirIndex, blockOffset } from '../geometry.js';
-import { isFull } from './storage.js';
+import { isFull, defaultKeep } from './storage.js';
 import { cartRules, isCamp, campFull, stepCarts, buyCart, cartPoint, orderCarts, wreckCart } from './camp_carts.js';
 import { workerCap, nextTier } from './tiers.js';
 import { workerCount } from './people.js';
@@ -335,6 +335,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   // Tim 2026-11-05 (self-running governor): move one governor-placed worker per call from a well stocked
   // resource to the lowest one that needs hands (the player's own picks never move).
   function rebalance(s) {
+    if(s.gov)delete s.gov.campWant;
     if(!on(s) || !has(s))return;
     const res=w=>R.resources[index.get(w.spot)?.kind],mine=s.workers.filter(w=>w.by!=='p' && w.spot && !w.order && !w.project && !w.trip?.kind);
     const kinds=[...new Set(Object.values(R.resources))].filter(r=>!isFull(s,data,r));
@@ -344,9 +345,17 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const goal=nextTier(s,data)?.upgrade?.cost || {},fill=r=>(s.stock[r] || 0)/Math.max(50,goal[r] || 200);
     const low=[...kinds].sort((a,b)=>fill(a)-fill(b) || compare(a,b))[0];
     const met=r=>fill(r)>=1 && fill(low)<1;   // a resource already at its goal gives hands to one still short
-    const donor=kinds.filter(r=>r!==low && (met(r) ? count(r)>0 : fill(r)>fill(low)*2+0.1 && count(r)>(count(low)===0?0:count(low)+1)))
+    // Tim 2026-11-23 (Kagemura: 23 hands on stone at 9,800 while timber sat at 0): a resource above its keep line
+    // gives hands to one below its own, whatever the head counts, down to R.keepHands workers left on it
+    const line=r=>s.keep?.[r] ?? defaultKeep(s,data,r),over=r=>line(r)>0 && (s.stock[r] || 0)>line(r) && (s.stock[low] || 0)<line(low) && count(r)>(R.keepHands ?? 2);
+    const donor=kinds.filter(r=>r!==low && (met(r) ? count(r)>0 : over(r) || fill(r)>fill(low)*2+0.1 && count(r)>(count(low)===0?0:count(low)+1)))
       .sort((a,b)=>count(b)-count(a) || compare(a,b))[0];
-    if(!donor)return;
+    // s.gov.handsDone (Tim 2026-11-23): the lowest resource is under its keep line and no more hands can go to it
+    // (nobody to spare, or no free spot in reach): only then the rail clerk's auto-buy budget grows with the town's ryo
+    // (kept until a move works again or that resource is back over its line, so it does not flicker between reviews)
+    const done=()=>{ if(s.gov && line(low)>0 && (s.stock[low] || 0)<line(low))s.gov.handsDone=low; };
+    if(s.gov?.handsDone && (s.gov.handsDone!==low || (s.stock[low] || 0)>=line(low)))delete s.gov.handsDone;
+    if(!donor)return done();
     const w=mine.filter(w=>res(w)===donor).sort((a,b)=>(a.carrying || 0)-(b.carrying || 0) || compare(a.id,b.id))[0];if(!w)return;
     const side=campSide(s),held=side && Object.keys(side).length,per={};
     if(held)for(const t of sites())for(const k of t.workers || [])if(k.spot)per[k.spot]=(per[k.spot] || 0)+1;
@@ -356,7 +365,10 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     // no camp spot left for it and no more camps can be built (s.gov.campsDone): the nearest free spot in reach, as
     // before the camp rule (2026-11-22 soak: a hill town could not move hands to timber and never reached Town tier)
     const spots=all.filter(p=>sideOk(side,p)),to=spots[0] || (s.gov?.campsDone ? all[0] : null);
-    if(to)assign(s,[w.id],to.id,'g');
+    if(to) { assign(s,[w.id],to.id,'g');if(s.gov)delete s.gov.handsDone; }
+    // 2026-11-23 (Kagemura: timber at 0, stone near full, every lumber camp spot taken): no spot with room, so the
+    // governor's moreCampRule builds another camp for it this review (gone again when the move works)
+    else if(s.gov) { s.gov.campWant=low;if(s.gov.campsDone)done(); }
   }
   // Lag fix (Tim 2026-11-08): working out new routes is the costly part, so only one worker sets out on a
   // new trip per tick (defer); the next tries again a tick later. This counts trips, not uncached routes, so a

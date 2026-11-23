@@ -305,10 +305,12 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const side = workers.campSide(s) || {}, grid = (data.townGrid?.radius ?? 600) - 2 * (s.grid?.cell || 11);
     // his workers waiting in the hall, and the ones still working away from the camps (they keep going meanwhile)
     const far = w => { const p = w.spot && workers.index.get(w.spot), set = p && side[R.resources[p.kind]]; return !!set && !set.has(p.id); };
+    // or (2026-11-23) a worker rebalance wanted to move to the town's lowest resource found no camp spot with room
+    const want = s.gov.campWant;
     const n = (s.workers || []).filter(w => w.by !== 'p' && (w.wait || far(w))).length;
-    if (!n) return false;
-    const say = why => { s.report.spare = `${n} worker${n > 1 ? 's have' : ' has'} no spot beside a camp: ${why}`; return false; };
-    const kinds = [['lumber_camp', 'timber'], ['quarry', 'stone'], ['food_camp', 'food']].filter(([t, r]) => data.buildings?.[t] && side[r] && !isFull(s, data, r))
+    if (!n && !want) return false;
+    const say = why => { s.report.spare = n ? `${n} worker${n > 1 ? 's have' : ' has'} no spot beside a camp: ${why}` : `No ${want} spot beside a camp for more workers: ${why}`; return false; };
+    const kinds = [['lumber_camp', 'timber'], ['quarry', 'stone'], ['food_camp', 'food']].filter(([t, r]) => data.buildings?.[t] && side[r] && !isFull(s, data, r) && (n || r === want))
       .sort((a, b) => (s.stock[a[1]] || 0) - (s.stock[b[1]] || 0));
     if (!kinds.length) return say('the stores are full');
     // no more camps can be built: workers.assignIdle then lets a waiting worker take a far spot of what the town is short of

@@ -15,7 +15,7 @@ import { cellOffset, inCore, centreCell, hallRoadCell, nearCliff } from './town_
 import {coversResources} from './resource_clearance.js';
 import { residents } from './people.js';
 import { cellCap, zoneCells } from './tiers.js';
-import { payUpkeep } from './upkeep.js';
+import { payUpkeep, upkeepKeep } from './upkeep.js';
 import { noteLevelUp } from './arrivals.js';
 import { storageCap } from './storage.js';
 
@@ -246,7 +246,7 @@ export function createZones({ state, data, world,resourceIndex }) {
         let scale = 1;
         // a full store makes no more (Tim 2026-11-05 governor soak: workshops burned timber/stone into a full goods store)
         if (k.inputs) for (const [r, v] of Object.entries(made)) if (v > 0) scale = Math.min(scale, Math.max(0, storageCap(s, data, r) - (s.stock[r] || 0)) / v);
-        const has = r => Math.max(0, s.stock[r] - (s.gov?.inputKeep?.[r] || 0));   // what the governor saves for a camp stays
+        const has = r => Math.max(0, s.stock[r] - (s.gov?.inputKeep?.[r] || 0) - upkeepKeep(s, data, r));   // what the governor saves for a camp stays, and a few ticks of upkeep
         for (const [r, per] of Object.entries(k.inputs || {})) { const need = per * total; if (need > 0) scale = Math.min(scale, has(r) / need); }
         if (scale < 1) wait(s, 'inputs');
         if (scale > 0) {

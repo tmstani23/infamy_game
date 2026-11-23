@@ -65,7 +65,10 @@ export function createAlerts({ state, data }) {
       cond('mood', (s.mood ?? 100) < (A.moodBelow ?? 40));
       cond('food', (s.report?.waiting || []).includes('food'));
       cond('suggestion', (s.suggestions || []).length > 0);
-      cond('militaryUpkeep', !!s.militaryShort);   // 8b-1: a warning only
+      // 8b-1: a warning only. 2026-11-23: only once it has gone unpaid alerts.militaryShortTicks economy ticks in a row
+      // (a short gap before the next timber cart came every cooldown and read as a bug)
+      st.milRun = s.militaryShort ? (st.milRun || 0) + 1 : 0;
+      cond('militaryUpkeep', st.milRun >= (A.militaryShortTicks ?? 1));
       // Tim 2026-11-22: a work camp with more workers on its spots than they keep busy (workers.js econTick: s.tiredCamps)
       const tired = s.tiredCamps?.[0];
       if (tired && !st.on.campTired) { const label = data.buildings?.[tired.type]?.name || tired.type.replace(/_/g, ' '); say('campTired', `${s.name} ${label.toLowerCase()}: ${tired.extra} worker${tired.extra > 1 ? 's' : ''} over the max`); }
