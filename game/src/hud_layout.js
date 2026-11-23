@@ -13,7 +13,7 @@ export function layoutCategory(id){
  if(['hire','clinic','police','contracts','deploymentpanel','townpanel','townsoverview','gamesettings','blacksmithshop','hqstash','characterpage','controls','seasonend'].includes(id))return 'windows';
  return 'main';
 }
-const STRUCTURAL=new Set(['shopmarker','view','vignette','fx','selbox','lock','hudlayout','startscreen','loading','gamemap','gamesettings','blacksmithshop','hqstash','characterpage','controls','results','towngrowthfx','townbuildoverlay','townbuildhint','gatefade']);   // full-screen effect layers are never movable panels
+const STRUCTURAL=new Set(['shopmarker','view','vignette','fx','selbox','lock','hudlayout','startscreen','loading','gamemap','gamesettings','blacksmithshop','hqstash','characterpage','controls','results','towngrowthfx','townbuildoverlay','townbuildhint','townbuildreview','gatefade']);   // full-screen effect layers are never movable panels
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Panel opacity (Tim 2026-11-20): saved._all.o fades every panel (default 0.88), saved[id].o overrides it for one panel (30 means 30).
 export const OPACITY_ALL='_all',OPACITY_DEFAULT=.88,OPACITY_MIN=.3;

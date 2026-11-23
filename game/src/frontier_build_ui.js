@@ -80,6 +80,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     ? Object.values(game.state.frontier?.rail?.links || {}).filter(l => l.owner === s.owner && (l.from === s.id || l.to === s.id)).length : 0;
   let inspectionHtml = '', inspectionPressed = false;
   let pendingPlan = null, reviewHtml = '', reviewPressed = false;
+  let pointer = { x: 420, y: 300 };   // the last pointer spot anywhere: the confirm box opens next to it (Tim 2026-11-22)
   let workerPage = 0;
   let workerTab='roster',workerLogPage=0,workerSpotPage=0,workerFilter=null;   // workerFilter: the job coin showing only its workers (Tim 2026-11-12)
   let workersOpen = false;
@@ -346,9 +347,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     }
     say(kind==='hold'?'Workers: stand here':kind==='return'?'Return carried resources':kind==='drop'?'Carried resources dropped':'Worker move order sent');
   }
-  function requestTraining(id) {cancel();pendingPlan={tool:'worker training',request:{action:'train',town:id,count:1}};}
+  function requestTraining(id) {cancel();pendingPlan={tool:'worker training',request:{action:'train',town:id,count:1},at:{...pointer}};}
   function requestDrop() {
-    cancel();pendingPlan={drop:workSites().map(s=>({town:s.id,workers:(s.workers || []).filter(w=>selected.includes(w.id) && w.carrying>0).map(w=>w.id)})).filter(p=>p.workers.length)};
+    cancel();pendingPlan={at:{...pointer},drop:workSites().map(s=>({town:s.id,workers:(s.workers || []).filter(w=>selected.includes(w.id) && w.carrying>0).map(w=>w.id)})).filter(p=>p.workers.length)};
   }
   // Tim 2026-11-05: the town hall card can also upgrade the hall (same upgradeHall command as the town panel)
   function hallUpgradeButton(s) {
@@ -498,6 +499,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (active) consume(e);
   }, { capture: true });
   addEventListener('blur', cancel);
+  addEventListener('mousedown', e => { pointer = { x: e.clientX, y: e.clientY }; }, { capture: true });
   addEventListener('mousedown', e => {
     if (e.button === 0 && !inspect?.menu && !e.target?.closest?.('#towninspect')) { inspect = null; card.hidden = true; }   // beside a menu the card stays until the menu closes
     if (!canvasEvent(e)) return;
@@ -539,9 +541,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
           }
           eraseConfirm = null; request.confirmLines = true;
         }
-        if (data.buildUI?.confirmDrag) { pendingPlan = { request, tool }; }
-        else if (result.ok) command(request);
-        say(result.ok ? data.buildUI?.confirmDrag ? 'Review requirements, then Confirm or Cancel' : `${townName(tool)}: ordered${result.warning ? ' · ' + result.warning : ''}` : result.reason);
+        // the confirm box opens beside the cursor and says it all, so no extra hint (Tim 2026-11-22)
+        if (data.buildUI?.confirmDrag) { pendingPlan = { request, tool, at: { x: e.clientX, y: e.clientY } }; hint.hidden = true; }
+        else { if (result.ok) command(request); say(result.ok ? `${townName(tool)}: ordered${result.warning ? ' · ' + result.warning : ''}` : result.reason); }
       } else say('Outside town grid');
       crewInput.cancelPointer(); consume(e); return;
     }
@@ -601,6 +603,50 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     return out;
   }
   let roadZones = null;   // road-link query for the overlay (cached per road layout)
+  // the confirm box (Tim 2026-11-22): rows per resource, short ones red
+  function requirementRows(s, cost = {}, people = 0) {
+    const row = (r, need, have) => `<div class="br-row${have < need ? ' short' : ''}" title="need ${need}, have ${have}"><i class="br-ic ${esc(r)}"></i>${esc(townName(r))} <b>${have < need ? `${have} of ${need}` : need}</b></div>`;
+    const out = Object.entries(cost).map(([r,n]) => row(r, n, Math.floor((s.stock?.[r] || 0)*100)/100));
+    if (people) out.push(row('people', people, s.pop));
+    return out.join('') || '<div class="br-row muted">No resource cost</div>';
+  }
+  function shortLabel(s, cost = {}, people = 0) {
+    const r = Object.entries(cost).find(([r,n]) => (s.stock?.[r] || 0) < n);
+    if (r) return `${Math.ceil((r[1] - (s.stock?.[r[0]] || 0))*100)/100} ${townName(r[0]).toLowerCase()} short`;
+    return people > s.pop ? `${people - s.pop} people short` : 'Confirm';
+  }
+  function refundRows(refund = {}) {
+    const out = Object.entries(refund).map(([r,n]) => `<div class="br-row"><i class="br-ic ${esc(r)}"></i>${esc(townName(r))} <b>back ${n}</b></div>`);
+    return out.join('') || '<div class="br-row muted">No paid resources to refund</div>';
+  }
+  // Tim 2026-11-22: the confirm box sits beside the cursor, kept on screen and off the spot being placed
+  function footprintBox() {
+    const r = pendingPlan?.request, s = r && towns().find(t => t.id === r.town);
+    const cells = preview?.cells?.length ? preview.cells : r?.cells;
+    if (!s?.grid || !cells?.length || r.action === 'train') return null;
+    const half = s.grid.cell / 2; let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const i of cells) { const [x, z] = cellToWorld(s, i);
+      for (const [a, b] of [[x-half,z-half],[x+half,z-half],[x+half,z+half],[x-half,z+half]]) { const p = view.unitToScreen(a, b, 0.08); x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); } }
+    if (!Number.isFinite(x0)) return null;
+    if (!data.zones.kinds[pendingPlan.tool] && r.action !== 'remove') y0 -= (y1 - y0) * 1.2;   // a building's art stands up above its cells
+    return { x0, y0, x1, y1 };
+  }
+  function placeReview() {
+    const w = review.offsetWidth, h = review.offsetHeight;
+    if (!w || !h) return;
+    const at = pendingPlan.at || pointer, gap = 18, m = 8, box = footprintBox();
+    const fit = ([x, y]) => [Math.max(m, Math.min(innerWidth - m - w, x)), Math.max(m, Math.min(innerHeight - m - h, y))];
+    const clear = ([x, y]) => !box || x >= box.x1 + m || x + w <= box.x0 - m || y >= box.y1 + m || y + h <= box.y0 - m;
+    const spots = [[at.x + gap, at.y + gap], [at.x - gap - w, at.y + gap], [at.x + gap, at.y - gap - h], [at.x - gap - w, at.y - gap - h]];
+    if (box) spots.push([box.x1 + gap, at.y - h / 2], [box.x0 - gap - w, at.y - h / 2], [at.x - w / 2, box.y1 + gap], [at.x - w / 2, box.y0 - gap - h]);
+    const [x, y] = spots.map(fit).find(clear) || fit(spots[0]);
+    review.style.left = `${Math.round(x)}px`; review.style.top = `${Math.round(y)}px`;
+    // a little tail on the side facing the cursor
+    const side = at.x < x ? 'l' : at.x > x + w ? 'r' : at.y < y ? 't' : at.y > y + h ? 'b' : '';
+    const t = side === 'l' || side === 'r' ? Math.max(12, Math.min(h - 12, at.y - y)) : Math.max(12, Math.min(w - 12, at.x - x));
+    if (review.dataset.tail !== side) review.dataset.tail = side;
+    review.style.setProperty?.('--tail', `${Math.round(t)}px`);
+  }
   function update() {
     for (const r of game.state.frontier?.receipts || []) if (r.seq > seen) {
       seen = r.seq;
@@ -614,7 +660,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     showInspection();
     review.hidden = !show || !pendingPlan;
     if(show && pendingPlan?.drop) {
-      const html='<b>Drop carried resources?</b><div>All carried cargo on these workers will be permanently lost. You can then reassign them without returning.</div><button data-confirm>Drop resources permanently</button><button data-cancel>Cancel</button>';
+      const html='<div class="br-head"><b>Drop carried resources?</b><button data-cancel class="br-x" title="Cancel (Esc or right click)">Esc</button></div><div class="br-note bad">All carried cargo on these workers will be permanently lost. You can then reassign them without returning.</div><button data-confirm class="go">Drop resources</button>';
       if(html!==reviewHtml && !reviewPressed){review.innerHTML=html;reviewHtml=html;}
     } else if (show && pendingPlan) {
       const plannedTown = towns().find(t => t.id === pendingPlan.request.town);
@@ -622,13 +668,16 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       else {
         const isTraining=pendingPlan.request.action==='train';
         const result = isTraining?workerTrainingPreview(plannedTown,pendingPlan.request.count,data):previewBuild(plannedTown,pendingPlan.request), enough = affordable(plannedTown,result.cost);
-        const requirements=pendingPlan.request.action==='remove' ? '100% refund: '+(Object.entries(result.refund || {}).map(([r,n])=>`${n} ${r}`).join(', ') || 'no paid resources') : resourceRequirements(plannedTown,result.cost,isTraining?result.people:0);
+        const rows=pendingPlan.request.action==='remove' ? refundRows(result.refund) : requirementRows(plannedTown,result.cost,isTraining?result.people:0);
         const quantity=isTraining?`<div><button data-training-count="-1">−</button> <input type="number" class="numbox" min="1" data-training-input value="${pendingPlan.request.count}"> workers <button data-training-count="1">+</button></div><div>Keep ${data.opening?.reservePeople || 0} townsperson for food/building. Training time: ${pendingPlan.request.count*data.workers.trainTicks/20}s, plus existing queue.</div>`:'';
-        const html = `<b>${esc(townName(pendingPlan.tool))}${isTraining?'':' · '+(result.cells?.length || pendingPlan.request.cells.length)+' cell(s)'}</b>${quantity}<div class="requirements">${esc(requirements)}</div>`
-          + `<div>${esc(result.reason || result.warning || '')}</div><button data-confirm ${result.ok && enough ? '' : 'disabled'}>Confirm</button><button data-cancel>Cancel</button>`;
+        const n=result.cells?.length || pendingPlan.request.cells?.length || 0, note=result.reason || result.warning || '';
+        const act=isTraining?'Train workers':pendingPlan.request.action==='remove'?'Erase':data.zones.kinds[pendingPlan.tool]?'Lay zone':'Place';
+        const html = `<div class="br-head" title="${esc(act)} in ${esc(plannedTown.name || 'town')}"><b>${esc(townName(pendingPlan.tool))}${isTraining?'':`<span>${n} cell${n===1?'':'s'}</span>`}</b><button data-cancel class="br-x" title="Cancel (Esc or right click)">Esc</button></div>${quantity}<div class="br-rows">${rows}</div>`
+          + (note ? `<div class="br-note${result.ok?'':' bad'}">${esc(note)}</div>` : '') + `<button data-confirm class="go" ${result.ok && enough ? '' : 'disabled'}>${esc(result.ok && !enough ? shortLabel(plannedTown,result.cost,isTraining?result.people:0) : result.ok ? 'Confirm' : 'Cannot place here')}</button>`;
         if (html !== reviewHtml && !reviewPressed && !(document.activeElement?.hasAttribute?.('data-training-input') && review.contains(document.activeElement))) { review.innerHTML = html; reviewHtml = html; }
       }
     }
+    if (show && pendingPlan) placeReview();
     if (!show) { hint.hidden = true; return; }
     if (!s && opened) close();
     if ((!tool || !mouse) && Date.now() > messageUntil) hint.hidden = true;
@@ -715,7 +764,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
             ctx.lineTo(b.x - Math.cos(ang + 0.5) * head, b.y - Math.sin(ang + 0.5) * head); ctx.stroke();
           }
           ctx.restore(); }
-        if (Date.now() > messageUntil) {
+        if (Date.now() > messageUntil && !pendingPlan) {
           const zk = data.zones.kinds[pendingPlan?.tool || tool], cap = zk ? cellCap(s,pendingPlan?.tool || tool,data) : Infinity;
           const count = Number.isFinite(cap) ? ` · ${zoneCells(s,zk.char)} / ${cap} cells` : '';   // B3: tier cell cap
           const turn = Number.isInteger(request.rot) ? ` · R turns it: the track leaves to the ${['lower right', 'lower left', 'upper left', 'upper right'][request.rot]} (arrow)` : '';

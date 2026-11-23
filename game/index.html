@@ -271,11 +271,39 @@
   #towninspect { position: fixed; top: 33vh; left: 48vw; max-width: min(330px, calc(100vw - 24px)); padding: 10px; background: #171b22f5; border: 1px solid #aa9266; color: #e4dac6; z-index: 34; font: 12px/18px system-ui; }
   #towninspect button { cursor: pointer; background: #302e26; color: #f0dfb9; border: 1px solid #776341; margin-top: 5px; }
   #towninspect button[data-close] { float: right; margin: 0 0 4px 10px; }
-  #townbuildreview { position: fixed; left: 48vw; top: 33vh; max-width: min(440px, calc(100vw - 24px)); padding: 14px; background: #171b22f5; border: 1px solid #c6ae70; color: #f0e4c7; z-index: 41; font: 14px/21px system-ui; }
+  /* the build confirm box (Tim 2026-11-22): opens beside the cursor (frontier_build_ui.js placeReview, tail toward it), not a layout panel; a lacquered wooden placard */
+  #townbuildreview { position: fixed; left: 48vw; top: 33vh; width: 236px; max-width: calc(100vw - 16px); box-sizing: border-box; padding: 9px 11px 11px; background: radial-gradient(ellipse at 30% 0%, #3a2c22 0%, transparent 70%), linear-gradient(180deg, #2b211a, #1a1411); border: 2px solid #0e0b09; box-shadow: inset 0 0 0 1px #8a6a3e, inset 0 0 0 3px #1a1411, inset 0 0 0 4px #4a3826, inset 0 0 22px #0009, 0 10px 26px #000c; color: #eadfc6; z-index: 41; font: 14px/1.4 Georgia, 'Times New Roman', serif; font-variant-numeric: lining-nums tabular-nums; }
   #townbuildreview[hidden] { display: none; }
-  #townbuildreview .requirements, #townbuildhint { white-space: pre-line; }
-  #townbuildreview button { margin: 9px 10px 0 0; padding: 6px 14px; cursor: pointer; }
-  #townbuildreview button:disabled { opacity: .5; cursor: default; }
+  #townbuildhint { white-space: pre-line; }
+  #townbuildreview::before { content: ''; position: absolute; width: 0; height: 0; border: 8px solid transparent; display: none; }
+  #townbuildreview[data-tail="l"]::before { display: block; right: 100%; top: calc(var(--tail, 20px) - 8px); border-right-color: #8a6a3e; border-left-width: 0; }
+  #townbuildreview[data-tail="r"]::before { display: block; left: 100%; top: calc(var(--tail, 20px) - 8px); border-left-color: #8a6a3e; border-right-width: 0; }
+  #townbuildreview[data-tail="t"]::before { display: block; bottom: 100%; left: calc(var(--tail, 20px) - 8px); border-bottom-color: #8a6a3e; border-top-width: 0; }
+  #townbuildreview[data-tail="b"]::before { display: block; top: 100%; left: calc(var(--tail, 20px) - 8px); border-top-color: #8a6a3e; border-bottom-width: 0; }
+  #townbuildreview .br-head { display: flex; align-items: baseline; gap: 10px; margin: 0 2px 6px; }
+  #townbuildreview .br-head b { font-size: 18px; font-weight: 600; line-height: 1.2; color: #f3e2b8; text-shadow: 0 1px 0 #000; }
+  #townbuildreview .br-head b span { margin-left: 7px; font-size: 14px; font-weight: 400; font-style: italic; color: #b8945c; text-shadow: none; }
+  #townbuildreview .br-x { margin-left: auto; align-self: center; padding: 0 5px; border: 1px solid #0b0806; border-radius: 2px; background: linear-gradient(#3a2e25, #1e1712); box-shadow: inset 0 1px 0 #6b553e, 0 1px 0 #000; color: #c9b48c; font: 11px/16px Georgia, serif; cursor: pointer; }
+  #townbuildreview .br-x:hover { color: #fff1d6; }
+  #townbuildreview .br-rows { display: flex; flex-wrap: wrap; gap: 2px 14px; padding: 7px 2px 1px; background: linear-gradient(90deg, transparent, #8a6a3e 20%, #8a6a3e 80%, transparent) top / 100% 1px no-repeat; }
+  #townbuildreview .br-row { display: flex; align-items: center; gap: 5px; color: #cdbf9f; white-space: nowrap; }
+  #townbuildreview .br-row b { font-weight: 600; color: #f3e2b8; }
+  #townbuildreview .br-row.short, #townbuildreview .br-row.short b { color: #f08a72; }
+  #townbuildreview .br-row.muted { color: #9c8f78; font-style: italic; }
+  #townbuildreview .br-ic { flex: none; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe8a0, #b58a2a 70%); box-shadow: 0 0 0 1px #0b0806, inset 0 -2px 2px #0006; }
+  #townbuildreview .br-ic.timber { width: 12px; height: 6px; border-radius: 2px; background: linear-gradient(#c48a52, #6b4424); }
+  #townbuildreview .br-ic.stone { background: radial-gradient(circle at 35% 30%, #d4d4cc, #6e6e68 75%); }
+  #townbuildreview .br-ic.food { background: radial-gradient(circle at 35% 30%, #c4dc84, #5c7a2e 75%); }
+  #townbuildreview .br-ic.goods { border-radius: 1px; background: linear-gradient(135deg, #d4b0e0, #7a4c8c); }
+  #townbuildreview .br-ic.people { background: radial-gradient(circle at 35% 30%, #f0dcb8, #9a7a52 75%); }
+  #townbuildreview .br-note { margin: 6px 2px 0; color: #e0b85a; font-size: 13px; line-height: 17px; font-style: italic; }
+  #townbuildreview .br-note.bad { color: #f08a72; }
+  #townbuildreview > div:not(.br-head):not(.br-rows):not(.br-note) { margin-top: 6px; }
+  #townbuildreview button { padding: 2px 8px; border: 1px solid #0e0b09; background: linear-gradient(#3a2e25, #261d17); color: #e6d6b4; box-shadow: inset 0 1px 0 #6b553e; font: 600 13px Georgia, serif; cursor: pointer; }
+  #townbuildreview button.go { display: block; width: 100%; margin-top: 9px; padding: 6px 12px 7px; border: 2px solid #4a120c; background: linear-gradient(#b03626, #7e2016); color: #fff1d6; box-shadow: inset 0 1px 0 #e07a5a, inset 0 -2px 0 #5a140c, 0 1px 0 #000; font-size: 13px; text-transform: uppercase; letter-spacing: .14em; }
+  #townbuildreview button.go:hover:not(:disabled) { background: linear-gradient(#c23c2a, #8e2519); }
+  #townbuildreview button.go:active:not(:disabled) { box-shadow: inset 0 2px 4px #000a; }
+  #townbuildreview button.go:disabled { cursor: default; border-color: #0e0b09; background: linear-gradient(#211a15, #17120f); color: #f08a72; box-shadow: inset 0 1px 3px #000a; text-transform: none; letter-spacing: .02em; font-style: italic; }
   .workerroster { border-top: 1px solid #66573a; margin-top: 10px; padding-top: 7px; }
   .workerroster h3 { margin: 2px 0 6px; }
   .workergroups { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-bottom: 6px; }
