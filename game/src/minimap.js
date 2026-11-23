@@ -14,6 +14,7 @@ import { contractMapLocation } from './contract_map_marker.js';
 import { featureTip } from './world_features.js';
 import { drawRailLines } from './rail_map.js';
 import { worldTerrainCache, worldToCanvas, gridLabel, isDiscovered, drawSpotMarker } from './world_map.js';
+import { drawMapSymbol } from './map_symbols.js';
 import { shoreWanted, shoreLine, drawShore } from './landing_shore.js';   // ships S6b
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
@@ -261,20 +262,18 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       drawSpotMarker(ctx, u, v, spot.deposit ? spot.nodeKind || spot.kind : spot.kind, !!spot.deposit); islandHits.push([u, v, 6, 'spot', spot, tipCtx]);
     }
     for (const n of nearAll(world.nodes || [])) { const [u, v] = at(n.x, n.z); islandHits.push([u, v, 8, 'node', n, tipCtx]); drawSpotMarker(ctx, u, v, n.kind, true); }
-    for (const t of near(world.sites || [])) { const [u, v] = at(t.x, t.z); islandHits.push([u, v, 8, 'site', t, tipCtx]); ctx.beginPath(); ctx.moveTo(u, v - 5); ctx.lineTo(u + 4, v); ctx.lineTo(u, v + 5); ctx.lineTo(u - 4, v); ctx.closePath(); ctx.fillStyle = '#f3dfae'; ctx.fill(); ctx.stroke(); }
-    for (const f of near(world.fords || [])) {   // bridges (brown bar) and fords (pale x)
+    for (const t of near(world.sites || [])) { const [u, v] = at(t.x, t.z); islandHits.push([u, v, 8, 'site', t, tipCtx]); drawMapSymbol(ctx, 'site', u, v, { scale: 0.9, faded: !tipCtx.scouted.includes(t.id) }); }
+    for (const f of near(world.fords || [])) {   // bridges and fords
       const [u, v] = at(f.x, f.z); islandHits.push([u, v, 8, f.kind === 'bridge' ? 'bridge' : 'ford', f, tipCtx]);
-      if (f.kind === 'bridge') { ctx.fillStyle = '#b98a4e'; ctx.fillRect(u - 5, v - 2, 10, 4); ctx.strokeRect(u - 5, v - 2, 10, 4); }
-      else { ctx.strokeStyle = '#bfe6ee'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(u - 4, v - 4); ctx.lineTo(u + 4, v + 4); ctx.moveTo(u + 4, v - 4); ctx.lineTo(u - 4, v + 4); ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.85)'; }
+      drawMapSymbol(ctx, f.kind === 'bridge' ? 'bridge' : 'ford', u, v, { scale: 0.9 });   // ink chart symbols (Tim 2026-11-23)
     }
-    for (const p of near(world.passes || [])) {   // mountain passes (hollow diamond)
+    for (const p of near(world.passes || [])) {   // mountain passes (the chart sign for a pass)
       const [u, v] = at(p.x, p.z); islandHits.push([u, v, 8, 'pass', p, tipCtx]);
-      ctx.beginPath(); ctx.moveTo(u, v - 5); ctx.lineTo(u + 5, v); ctx.lineTo(u, v + 5); ctx.lineTo(u - 5, v); ctx.closePath(); ctx.strokeStyle = '#e8d8a8'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.85)';
+      drawMapSymbol(ctx, 'pass', u, v, { scale: 0.9 });
     }
     for (const c of near(world.camps || [])) {
       const [u, v] = at(c.x, c.z), done = camps[c.id]?.cleared; islandHits.push([u, v, 9, 'camp', c, tipCtx]);
-      ctx.beginPath(); ctx.moveTo(u, v - 6); ctx.lineTo(u + 6, v + 5); ctx.lineTo(u - 6, v + 5); ctx.closePath();
-      ctx.fillStyle = done ? '#7d7d78' : c.kind === 'bandit' ? '#e0583a' : c.kind === 'ruin' ? '#c9b6e0' : '#e8d27a'; ctx.fill(); ctx.stroke();
+      drawMapSymbol(ctx, ['ruin', 'cache'].includes(c.kind) ? c.kind : 'bandit', u, v, { scale: 0.95, faded: !!done });
     }
     // major buildings of the towns (Tim 2026-11-07): lettered badges, name on hover; they show once you are close enough to tell
     if (islandZoom >= 0.6) for (const b of near(majorBuildings(game.state.frontier))) {

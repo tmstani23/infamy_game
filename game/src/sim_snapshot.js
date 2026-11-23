@@ -58,7 +58,7 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
       const mask = sightings?.seenMask?.(clan, id), seenCell = c => { if (!sightings) return true; if (!mask || !Number.isInteger(c)) return false; const n = s.grid?.n || 1, B = sightings.BLOCK, nb = Math.ceil(n / B); return mask[Math.floor(Math.floor(c / n) / B) * nb + Math.floor((c % n) / B)] === '1'; };
       const blds = sightings ? Object.values(sightings.remembered(clan, id)) : (s.buildings || []);
       // a rival castle (Z4, castle.js) is a capital with a place on the island: drawn once its ground is discovered
-      if ((!s.capital || s.castle && discovery?.isDiscovered?.(clan, s.x, s.z)) && Number.isFinite(s.x)) Object.assign(settlements[id], { x: s.x, z: s.z, tier: s.tier || 1, grid: sightings ? maskGrid(s.grid, mask, sightings.BLOCK) : s.grid,
+      if ((!s.capital || s.castle && discovery?.isDiscovered?.(clan, s.x, s.z)) && Number.isFinite(s.x)) Object.assign(settlements[id], { x: s.x, z: s.z, tier: s.tier || 1, grid: sightings ? maskGrid(s.grid, mask, sightings.BLOCK, s.castle ? 'mkwg' : 'mk') : s.grid,
         buildings: blds.map(({ id, type, cell, cells, stage, rot }) => ({ id, type, cell, cells, stage, rot })), ...(s.castle ? { castle: s.castle } : {}), ...(s.breaches ? { breaches: s.breaches } : {}),
         projects: (s.projects || []).filter(p => seenCell(p.cell ?? p.cells?.[0])).map(({ id, type, cell, cells, phase, paid, progress, need }) => ({ id, type, cell, cells, phase, paid, progress, need })),
         zones: Object.fromEntries(Object.entries(s.zones || {}).map(([k, z]) => [k, { abandoned: !!z.abandoned }])), tierUpgrade: s.tierUpgrade || null, ...(s.captured ? { captured: s.captured } : {}) });
@@ -123,6 +123,8 @@ export function createSnapshotEncoder(game, clan = 'player') {
     if (st.frontier) {
       if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { const workers=game.frontier?.modules?.find(m => m.name === 'workers')?.workers; frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts, workers?.index,workers?.position, scoutedBy(game, clan)(st), game.frontier?.structures?.viewFor(clan), game.sightings)); frontierAt = st.tick; }
       roots.frontier = frontierView;
+      // dev builds only (Show everything on the World map, Tim 2026-11-23): where every clan's castle stands, past the fog
+      if (game.frontier?.data?.dev) roots.devCastles = Object.values(st.frontier.settlements || {}).filter(s => s.castle && Number.isFinite(s.x)).map(s => ({ id: s.id, owner: s.owner, x: s.x, z: s.z, castle: true, capital: true }));
       // Sleeping workers move every tick but the frontier view is 4 Hz: send just their positions each tick so
       // they glide on screen instead of stepping 4 times a second (Tim 2026-11-05 "morse code" workers).
       if (!map) {

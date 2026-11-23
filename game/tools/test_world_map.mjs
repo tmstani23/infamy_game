@@ -37,7 +37,7 @@ for (const [x,z,label] of [[0,0,'A1'],[499.99,499.99,'A1'],[500,500,'B2'],[12480
 const globals = { document: globalThis.document, devicePixelRatio: globalThis.devicePixelRatio, addEventListener: globalThis.addEventListener };
 function canvasDouble(w=800,h=460) {
   const events = {}, calls = [];
-  const ctx = new Proxy({ calls, measureText: s=>({width:s.length*7}) }, {get(o,k){return o[k] ?? ((...args)=>calls.push([k,...args]));}});
+  const ctx = new Proxy({ calls, measureText: s=>({width:s.length*7}) }, {get(o,k){return o[k] ?? (String(k).endsWith("Gradient") ? (()=>({addColorStop(){}})) : ((...args)=>calls.push([k,...args])));}});
   return { width:w, height:h, clientWidth:w, clientHeight:h, ctx, events, getContext:()=>ctx,
     getBoundingClientRect:()=>({left:0,top:0,width:w*2,height:h*2}),
     addEventListener:(name,fn)=>{events[name]=fn;},setPointerCapture(){},releasePointerCapture(){} };

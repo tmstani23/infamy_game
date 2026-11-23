@@ -4,6 +4,7 @@
 // its ground is discovered, a rival castle likewise. A zone where you have a town uses the true holder (you know
 // whether you hold it). Pure helpers first (Node tested, tools/test_zone_map.mjs); drawing needs a canvas.
 import { createCampaignZones } from './sim/campaign_zones.js';
+import { mapTint } from './rail_map.js';
 
 export const ZONE_YOU = '#e2b84a';
 const YOU_TINT = '#f0a020', STEP = 50;
@@ -89,12 +90,29 @@ function chip(ctx, px, py, r) {
   ctx.font = '12px Georgia, serif'; ctx.fillStyle = r.color || (r.status === 'contested' ? '#e58a6a' : '#c9bfa6'); ctx.fillText(r.text, px, py + 6);
   ctx.fillStyle = '#c9bfa6'; ctx.fillText(l3, px, py + 22);
 }
+// castle mark (Tim 2026-11-23, replaces the black box): an engraved keep in the sea-chart manner of the capital's wheel, ink
+// with brass edges on a stone base, a pennant in the clan's colour, the name in the map serif beside it
 function castleMark(ctx, px, py, c) {
-  ctx.fillStyle = 'rgba(20,17,14,0.9)'; ctx.strokeStyle = c.color; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.rect(px - 8, py - 6, 16, 12); ctx.fill(); ctx.stroke();
-  for (const dx of [-8, -1.5, 5]) { ctx.beginPath(); ctx.rect(px + dx, py - 10, 3.5, 4); ctx.fill(); ctx.stroke(); }
-  ctx.font = '600 12px Georgia, serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,17,14,0.9)'; ctx.strokeText(c.name, px + 13, py + 4);
-  ctx.fillStyle = '#f3e9cf'; ctx.fillText(c.name, px + 13, py + 4);
+  const u = 1, BRASS = '#d9b56a', INK = 'rgba(18,11,7,.95)';
+  ctx.save(); ctx.translate(px, py); ctx.lineJoin = 'round';
+  const roof = (y0, hw, h) => { ctx.beginPath();
+    for (let i = 0; i <= 12; i++) { const t = i / 12, lift = Math.abs(t - 0.5) ** 3 * 8 * 1.2 * u; ctx.lineTo(-hw + 2 * hw * t, y0 - lift); }
+    ctx.lineTo(hw * 0.45, y0 - h); ctx.lineTo(-hw * 0.45, y0 - h); ctx.closePath(); ctx.fillStyle = BRASS; ctx.fill(); ctx.strokeStyle = INK; ctx.stroke(); ctx.fillStyle = INK; ctx.strokeStyle = BRASS; };
+  ctx.shadowColor = 'rgba(8,5,3,.7)'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 1;
+  ctx.fillStyle = INK; ctx.strokeStyle = BRASS; ctx.lineWidth = 0.9;
+  ctx.beginPath(); ctx.moveTo(-8, 7); ctx.lineTo(8, 7); ctx.lineTo(6, 2.5); ctx.lineTo(-6, 2.5); ctx.closePath(); ctx.fill(); ctx.stroke();   // stone base
+  ctx.shadowColor = 'transparent';
+  ctx.fillRect(-4.6, -1, 9.2, 3.6); ctx.strokeRect(-4.6, -1, 9.2, 3.6); roof(-0.8, 7.2, 2);
+  ctx.fillRect(-3.2, -5, 6.4, 3); ctx.strokeRect(-3.2, -5, 6.4, 3); roof(-4.8, 5.2, 1.8);
+  ctx.fillRect(-1.9, -8.6, 3.8, 2.6); roof(-8.4, 3.6, 1.8);
+  ctx.fillStyle = 'rgba(255,200,110,.9)'; ctx.fillRect(-0.6, 0, 1.2, 1.6); ctx.fillRect(-0.5, -4, 1, 1.2);   // lit windows
+  // pennant in the clan colour
+  ctx.strokeStyle = INK; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(0, -19); ctx.stroke();
+  ctx.fillStyle = mapTint(c.color, 0.28); ctx.strokeStyle = INK; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(0.5, -19.5); ctx.lineTo(15, -17.6); ctx.lineTo(11, -15.6); ctx.lineTo(15, -13.4); ctx.lineTo(0.5, -12.8); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.font = '600 12px Georgia, serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,17,14,0.9)'; ctx.strokeText(c.name, 13, 0.5);
+  ctx.fillStyle = '#f3e9cf'; ctx.fillText(c.name, 13, 0.5);
+  ctx.restore();
 }
 // over the map marks: the zone chips and the castles you know
 export function drawZoneLabels(ctx, zs, project) {

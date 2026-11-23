@@ -15,7 +15,7 @@ import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
 import { portrait } from './portraits.js';
 import { zoneMapState } from './zone_map.js';
 import { isDiscovered } from './world_map.js';
-import { createWorldMap, canvasToWorld, gridLabel, WORLD_LAYERS as ATLAS_LAYERS, worldFeatureName as atlasFeatureName } from './world_map.js';
+import { createWorldMap, canvasToWorld, gridLabel, WORLD_LAYERS as ATLAS_LAYERS, worldFeatureName as atlasFeatureName, richKeyImg } from './world_map.js';
 import { ATLAS_DEV_LAYERS, ATLAS_MARKERS, atlasGlyphSVG } from './world_atlas.js';
 import { spotInfo } from './resource_spot_props.js';
 import { siteReport, placeNo, featureTip } from './world_features.js';
@@ -243,11 +243,12 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
       founded: Object.values(game.state.frontier?.settlements || {}).some(s => s.owner === r.clan && s.founded && !s.capital) }));
     // campaign zones (Z3): what your clan knows of each zone, worked out again only when towns or discovery change
     const zr = game.frontier?.data?.campaignZones, grid = w?.discovered?.[clan] ?? '0';
-    if (zr) { const key = `${grid}:${Object.values(game.state.frontier?.settlements || {}).map(s => `${s.id}${s.owner}${s.founded ?? ''}`).join()}:${game.state.day ?? Math.floor((game.state.tick ?? 0) / 2400)}`;
-      if (key !== zoneKey) { zoneKey = key; zoneState = zoneMapState({ rules: zr, world, settlements: game.state.frontier?.settlements, clans: game.state.clans, clan, known: (x, z) => isDiscovered(world, grid, x, z) }); } }
+    if (zr) { const all = !!worldMap?.layers.revealAll, key = `${all}:${grid}:${Object.values(game.state.frontier?.settlements || {}).map(s => `${s.id}${s.owner}${s.founded ?? ''}`).join()}:${game.state.day ?? Math.floor((game.state.tick ?? 0) / 2400)}`;
+      if (key !== zoneKey) { zoneKey = key;  const towns = game.state.frontier?.settlements; zoneState = zoneMapState({ rules: zr, world, settlements: all && game.state.devCastles ? { ...towns, ...Object.fromEntries(game.state.devCastles.map(c => [c.id, { ...towns?.[c.id], ...c }])) } : towns, clans: game.state.clans, clan, known: all ? () => true : (x, z) => isDiscovered(world, grid, x, z) }); } }   // Show everything shows every castle (Tim 2026-11-23)
     // the Found card's site picks (Tim 2026-11-20), read twice a second
     if (!goalSitesAt || performance.now() - goalSitesAt > 500) { goalSitesAt = performance.now(); goalSites = game.goals?.current?.(clan)?.sites || []; }
-    return { zones: zr ? zoneState : null, zoneRules: zr, rivalHints, goalSites, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
+    const campsCleared = Object.fromEntries(Object.entries(w?.camps || {}).filter(([, c]) => c?.cleared).map(([id]) => [id, true]));   // cleared camps drawn faded
+    return { campsCleared, zones: zr ? zoneState : null, zoneRules: zr, rivalHints, goalSites, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
       knownSites: told, knownAt: told.map(id => siteXZ[id]).filter(Boolean).map(t => ({ x: t.x, z: t.z, r: R })), highlight: tourStop,
       hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, shore: shoreWanted(game, h?.owner).flatMap(w => shoreLine(world, w.box, w.water)), towns: townsOnMap(), robbery: robberyMarks(game.state, clan),
       rail: { links: game.state.frontier?.rail?.links || {}, trains: game.state.frontier?.rail?.trains || {}, highlight: ledgerOpen ? ledger.train() : null, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600, wars: game.state.frontier?.wars?.list, me: clan, clans: game.state.clans } };
@@ -304,7 +305,7 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
     const zoom = '<div class="atlas-navigation"><button type="button" data-locate title="Center on your location">Your location</button><button type="button" data-zoom="0.714" aria-label="Zoom out">-</button><button type="button" data-zoom="1.4" aria-label="Zoom in">+</button><button type="button" data-fit>Fit island</button></div>';
     const toggles = [...ATLAS_LAYERS, ...(devTravel ? ATLAS_DEV_LAYERS : [])].map(l => `<button type="button" data-atlas-layer="${l.id}" aria-pressed="${!!worldMap.layers[l.id]}">${l.label}</button>`).join('')
       + `<button type="button" data-rail-ledger aria-pressed="${ledgerOpen}" title="Your rail shipments: open, delivered and lost">Rail ledger</button>`;
-    worldSide.innerHTML = `<div class="atlas-rail">${zoom}<div class="atlas-layers" aria-label="Atlas layers">${toggles}</div></div><div class="atlas-detail" ${!travelTo && !picked && !pinDraft ? 'hidden' : ''}>${travel}${picked && !travelTo?.city ? box : ''}${form}</div><div class="atlas-footer"><div class="atlas-status"><div class="atlas-hover">Hover the map for zone, biome, grid square and coordinates.</div><div class="worldlocation"></div><div class="atlas-hint">North up, 500-unit squares, Drag to pan, Wheel to zoom, Right-click to pin</div></div><div class="atlas-legend" aria-label="Map key"></div></div>`;
+    worldSide.innerHTML = `<div class="atlas-rail">${zoom}<div class="atlas-layers" aria-label="Atlas layers">${toggles}</div></div><div class="atlas-detail" ${!travelTo && !picked && !pinDraft ? 'hidden' : ''}>${travel}${picked && !travelTo?.city ? box : ''}${form}</div>`;
     updateWorldLocation(); updateWorldLegend();
     if (travelTo) {
       worldSide.querySelector('.travelgo').addEventListener('click', () => { send({ id: heroId, type: 'travel', ...travelTo, units: selected() }); travelTo = null; picked = null; drawWorldSide(); close(); });
@@ -319,9 +320,9 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
     }
   }
   function updateWorldLocation() {
-    const h = game.state.entities[heroId], p = h && game.discovery?.worldPos?.(h), el = worldSide.querySelector('.worldlocation');
+    const h = game.state.entities[heroId], p = h && game.discovery?.worldPos?.(h), el = root.querySelector('.atlas-hud .worldlocation');
     if (!el) return;
-    const label = p ? `You, ${gridLabel(p.x, p.z)}, x ${Math.floor(p.x).toLocaleString('en-US')} z ${Math.floor(p.z).toLocaleString('en-US')}` : '';
+    const label = p ? `You are in ${gridLabel(p.x, p.z)}` : '';
     if (el.textContent !== label) el.textContent = label;
   }
   // the railway key (Tim 2026-11-08): shown while the Railways switch is on and you have a line
@@ -335,11 +336,11 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
       + (laying ? `<span title="Track still to lay; the dot is the rail gang">${dash}Being laid <small>${laying}, dot: rail gang</small></span>` : '');
   }
   function updateWorldLegend() {
-    const el=worldSide.querySelector('.atlas-legend'); if (!el || !worldMap) return;
+    const el=root.querySelector('.atlas-hud .atlas-legend'); if (!el || !worldMap) return;
     const counts = {};
     for (const it of worldMap.items()) counts[it.kind]=(counts[it.kind] || 0)+1;
     if (worldState().hero) counts.hero=1;
-    const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Hollow: not scouted. Walk close to learn its traits.' : s.label}">${atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}${kind==='site' ? ', hollow: unscouted' : ''}</small></span>`).join('') + (counts.spot ? `<span>Spots <small>${counts.spot} in view, green timber, grey stone, blue fish, tan forage</small></span>` : '')
+    const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Faded: not scouted. Walk close to learn its traits.' : kind==='camp' ? 'Crossed blades: bandit camp. Broken gate: ruin. Chest: cache. Faded: cleared.' : s.label}">${kind === 'resource' ? richKeyImg() : atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}</small></span>`).join('') + (counts.spot ? `<span>Spots <small>${counts.spot} in view, small symbols like the rich ones</small></span>` : '')
       + railKey();
     if (el._html !== html) { el._html = html; el.innerHTML = html; }   // last string: SVG re-serialises, so an innerHTML compare never matched
   }
@@ -358,13 +359,28 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
       }
       b.blur();
     });
+    // the map's own overlay (Tim 2026-11-23): the hover line on a plaque at the bottom middle, a small key at the bottom left
+    // that folds away with its button (remembered); the how-to line lives in the key button's hover
+    const hud = document.createElement('div'); hud.className = 'atlas-hud';
+    let keyShut = false; try { keyShut = localStorage.getItem('infamy.atlasKeyShut') === '1'; } catch {}
+    hud.innerHTML = `<div class="atlas-plaque"><div class="atlas-hover"><b>Hover the map</b><span>Zone, biome and grid square</span></div><div class="worldlocation"></div></div>`
+      + `<div class="atlas-keybox${keyShut ? ' shut' : ''}"><button type="button" class="atlas-keytoggle" aria-expanded="${!keyShut}" title="North up, 500-unit squares. Drag to pan, wheel to zoom, right-click to pin. Click to fold the key.">Key</button><div class="atlas-legend" aria-label="Map key"></div></div>`;
+    root.querySelector('.mapbox').appendChild(hud);
+    hud.addEventListener('mousedown', e => e.stopPropagation());
+    hud.querySelector('.atlas-keytoggle').addEventListener('click', e => {
+      const box = hud.querySelector('.atlas-keybox'), shut = !box.classList.contains('shut');
+      box.classList.toggle('shut', shut); e.currentTarget.setAttribute('aria-expanded', String(!shut)); e.currentTarget.blur();
+      try { localStorage.setItem('infamy.atlasKeyShut', shut ? '1' : '0'); } catch {}
+    });
     worldCanvas = document.createElement('canvas'); worldCanvas.className = 'worldcanvas'; worldCanvas.setAttribute('aria-label', 'World map');
     canvas.after(worldCanvas);
     worldCanvas.width = worldCanvas.clientWidth || 1200; worldCanvas.height = worldCanvas.clientHeight || 686;
     worldMap = createWorldMap({ canvas: worldCanvas, world, resourceSpots, paintConfig, atlasConfig, getState: worldState, onHover: info => {
-      const el=worldSide.querySelector('.atlas-hover'); if (!el) return;
-      const text=info ? `${info.feature ? info.feature + ', ' : ''}${info.zone ? info.zone + ', ' : ''}${info.biome}, ${info.grid}, x ${Math.floor(info.x).toLocaleString('en-US')} z ${Math.floor(info.z).toLocaleString('en-US')}` : 'Hover the map for zone, biome, grid square and coordinates.';
-      if (el.textContent!==text) el.textContent=text;
+      const el=root.querySelector('.atlas-hud .atlas-hover'); if (!el) return;
+      // the place name large, then zone, biome and grid square, the coordinates small (Tim 2026-11-23)
+      const head = info ? String(info.feature || info.zone || info.biome).replace(' · ', ' ') : 'Hover the map', rest = info ? [info.feature && info.zone, info.biome, info.grid].filter(Boolean).join(', ') : 'Zone, biome and grid square';
+      const html = `<b>${esc(head)}</b><span>${esc(rest)}</span>`;
+      if (el._html !== html) { el._html = html; el.innerHTML = html; }
     } }); worldMap.attach();
     const local = e => { const r = worldCanvas.getBoundingClientRect(); return [(e.clientX - r.left) * worldMap.view.w / r.width, (e.clientY - r.top) * worldMap.view.h / r.height]; };
     const scouted0 = () => worldState().scoutedSites || [];

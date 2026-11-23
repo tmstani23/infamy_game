@@ -1,11 +1,11 @@
 // World atlas: registered illustration with data overlays, feature discovery and exact hover.
 // Shared terrain caching below also serves the minimap; atlas visibility never changes its fog.
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
-import { drawRailLines, supplySectionAt } from './rail_map.js';
+import { drawRailLines, supplySectionAt, mapTint } from './rail_map.js';
 import { drawRobberyMark } from './minimap_icons.js';
 import { drawShore } from './landing_shore.js';   // ships S6b
 import { pointAt } from './sim/frontier/rail_route.js';
-import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, atlasItems, drawAtlasGlyph, drawTownBadge, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
+import { ATLAS_LAYERS, ATLAS_DEV_LAYERS, atlasItems, drawAtlasGlyph, drawTownBadge, drawCapitalBadge, atlasFeatureName, createAtlasBiomes, atlasRegionAt, atlasZoneLabels } from './world_atlas.js';
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots } from './resource_spot_props.js';
 import { drawZoneGround, drawZoneLabels, drawZoneGoal } from './zone_map.js';
@@ -15,22 +15,60 @@ export const WORLD_LAYERS = [...ATLAS_LAYERS, { id: 'spots', label: 'Spots', on:
 export const worldFeatureName = it => it?.kind === 'spot' ? `${it.featureKind} spot · ${it.id}` : atlasFeatureName(it);
 // Resource markers (brighter, Tim 2026-11-05): a soft glow, a dark rim and a bright dot; big = rich spot or node.
 export const SPOT_COLORS = { timber: '#8ff09a', forest: '#8ff09a', stone: '#f2eee2', quarry: '#f2eee2', ore: '#ffb35c', fish: '#7fe2ff', fishing: '#7fe2ff', forage: '#ffe07a', fertile: '#d4f57a' };
-// Rich deposits (Tim 2026-11-06): a dark painted badge with the kind character and a coloured rim, so they
-// never read as one more small spot. Small spots keep the plain dot.
-const RICH_MARK = { quarry: '石', ore: '鉱', forest: '木', fishing: '魚', fertile: '稲', stone: '石', timber: '木', fish: '魚', forage: '稲' };
+// Rich deposits (Tim 2026-11-23, replaces the kanji badges of 2026-11-06): a sea-chart symbol inked straight onto the
+// map, iron-gall ink with hatching inside a pale paper halo, so they read on any ground and need no reading: a pine
+// for timber, a cut rock for a quarry, pick and hammer for ore, a fish for fishing, an ear of grain for
+// farmland. Small spots keep the plain dot.
+const RICH_SYMBOL = { quarry: 'block', stone: 'block', ore: 'pick', forest: 'pine', timber: 'pine', fishing: 'fish', fish: 'fish', fertile: 'sheaf', forage: 'sheaf' };
+function drawRichSymbol(ctx, kind, u, halo) {
+  const INK = '#2b1d12', PAPER = 'rgba(240,226,190,.62)';
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  // every shape goes down twice: a wide paper stroke first (halo), then the ink
+  const fill = () => { if (halo) { ctx.strokeStyle = PAPER; ctx.lineWidth = 2 * u; ctx.stroke(); } else { ctx.fillStyle = INK; ctx.fill(); } };
+  const line = (w = 0.8) => { if (halo) { ctx.strokeStyle = PAPER; ctx.lineWidth = (w + 1.8) * u; } else { ctx.strokeStyle = INK; ctx.lineWidth = w * u; } ctx.stroke(); };
+  const hatch = (lines, w = 0.35) => { if (halo) return; ctx.strokeStyle = 'rgba(243,230,196,.75)'; ctx.lineWidth = w * u; ctx.beginPath(); for (const [x1,y1,x2,y2] of lines) { ctx.moveTo(x1*u,y1*u); ctx.lineTo(x2*u,y2*u); } ctx.stroke(); };
+  const poly = pts => { ctx.beginPath(); pts.forEach(([a, b], i) => i ? ctx.lineTo(a * u, b * u) : ctx.moveTo(a * u, b * u)); ctx.closePath(); };
+  if (kind === 'pine') {
+    poly([[0,-5.4],[2.4,-2.4],[1.3,-2.4],[3.4,0.6],[2,0.6],[4.2,3.4],[-4.2,3.4],[-2,0.6],[-3.4,0.6],[-1.3,-2.4],[-2.4,-2.4]]); fill();
+    ctx.beginPath(); ctx.moveTo(0, 3.2 * u); ctx.lineTo(0, 5.4 * u); line(1.1);
+    hatch([[0.4,-3.4,1.2,-2.6],[0.5,-1.2,2,0.2],[0.6,1.4,2.8,3]]);
+  } else if (kind === 'block') {   // a split block of quarried stone: square cut faces, a wedge crack down the middle
+    poly([[-5,4],[-5,-1.6],[-3,-3.6],[4.6,-3.6],[4.6,2],[2.6,4]]); fill();
+    hatch([[-5,-1.6,2.6,-1.6],[2.6,-1.6,4.6,-3.6],[2.6,-1.6,2.6,4]], 0.55);
+    hatch([[-0.6,-3.6,0.2,-1.6],[0.2,-1.6,-0.8,1],[-0.8,1,0,4],[3.2,-0.6,4,0.4],[3.2,1.2,4,2.2]], 0.45);
+  } else if (kind === 'pick') {   // a miner's pick crossed with a hammer
+    ctx.beginPath(); ctx.moveTo(-3.6 * u, 4.2 * u); ctx.lineTo(2.8 * u, -2.6 * u); ctx.moveTo(3.6 * u, 4.2 * u); ctx.lineTo(-2.8 * u, -2.6 * u); line(1.1);
+    ctx.beginPath(); ctx.moveTo(-1 * u, -4.8 * u); ctx.quadraticCurveTo(3.4 * u, -4.6 * u, 5 * u, -0.4 * u); ctx.quadraticCurveTo(3.4 * u, -2.6 * u, 0.6 * u, -2.9 * u); ctx.closePath(); fill();
+    ctx.save(); ctx.translate(-2.8 * u, -2.8 * u); ctx.rotate(Math.PI / 4); ctx.beginPath(); ctx.rect(-2.6 * u, -1.3 * u, 5.2 * u, 2.6 * u); fill(); ctx.restore();
+  } else if (kind === 'fish') {   // a deep-bodied bream with a big forked tail
+    ctx.beginPath(); ctx.moveTo(-5.4 * u, 0.4 * u); ctx.quadraticCurveTo(-2.4 * u, -4.4 * u, 2.2 * u, -0.8 * u); ctx.lineTo(5.8 * u, -3.8 * u); ctx.lineTo(4.2 * u, 0); ctx.lineTo(5.8 * u, 3.8 * u);
+    ctx.lineTo(2.2 * u, 0.8 * u); ctx.quadraticCurveTo(-2.4 * u, 3.6 * u, -5.4 * u, 0.4 * u); ctx.closePath(); fill();
+    hatch([[-3.4,-1.6,-3.2,1.6]], 0.5);
+  } else if (kind === 'sheaf') {   // an ear of grain: a stem with paired kernels up to a bowed tip
+    ctx.beginPath(); ctx.moveTo(-0.6 * u, 5.4 * u); ctx.quadraticCurveTo(0, 0, 0.8 * u, -4.8 * u); line(0.8);
+    for (let g = 0; g < 4; g++) { const y = (2 - g * 1.75) * u, x = (g * 0.2) * u;
+      for (const sd of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x + sd * 1.3 * u, y - 0.2 * u, 0.75 * u, 1.35 * u, sd * 0.6, 0, Math.PI * 2); fill(); } }
+    ctx.beginPath(); ctx.ellipse(1 * u, -5 * u, 0.6 * u, 1.1 * u, 0.2, 0, Math.PI * 2); fill();
+  }
+}
+// the key's picture for resources: a pine and a pick (browser only)
+let richKey = '';
+export function richKeyImg() {
+  if (typeof document === 'undefined') return '';
+  if (!richKey) { const c = document.createElement('canvas'); c.width = 80; c.height = 40; const g = c.getContext('2d'); g.scale(2, 2); drawSpotMarker(g, 10, 10, 'forest', true); drawSpotMarker(g, 30, 10, 'ore', true); richKey = c.toDataURL(); }
+  return `<img src="${richKey}" width="40" height="20" alt="" aria-hidden="true">`;
+}
 export function drawSpotMarker(ctx, x, y, kind, big = false) {
-  const c = SPOT_COLORS[kind] || '#ffffff', r = big ? 6.5 : 2.6;
+  const c = SPOT_COLORS[kind] || '#ffffff', r = big ? 7.5 : 2.6;
   ctx.save();
   if (big) {
-    ctx.fillStyle = 'rgba(58,40,24,.92)'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = c; ctx.lineWidth = 1.6; ctx.stroke();
-    ctx.fillStyle = '#f3e6c8'; ctx.font = `bold ${Math.round(r * 1.35)}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(RICH_MARK[kind] || '◆', x, y + 0.5);
+    ctx.translate(x, y); const u = 1.5;
+    drawRichSymbol(ctx, RICH_SYMBOL[kind], u, true); drawRichSymbol(ctx, RICH_SYMBOL[kind], u, false);
     ctx.restore(); return;
   }
-  ctx.globalAlpha = 0.35; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r * 2.1, 0, Math.PI * 2); ctx.fill();
-  ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(0,0,0,.85)'; ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  // small spots: the same symbol, smaller and lighter (Tim 2026-11-23: no plain dots)
+  ctx.translate(x, y); ctx.globalAlpha = 0.85; const u = 0.8;
+  drawRichSymbol(ctx, RICH_SYMBOL[kind], u, true); drawRichSymbol(ctx, RICH_SYMBOL[kind], u, false);
   ctx.restore();
 }
 export const FOG_CELL = 250;   // default; world.json rules.discovery.cell wins
@@ -69,8 +107,8 @@ export function canvasToWorld(px, py, view) { return { x: (px - view.w / 2) / vi
 export function worldTransform(view) { const k = view.scale; return [k, 0, 0, k, view.w / 2 - k * view.cx, view.h / 2 - k * view.cz]; }
 // Nearest item ({ x, z }) within maxPx pixels of (px, py), or null.
 export function hitTest(items, px, py, view, maxPx = 8) {
-  let best = null, bd = maxPx;
-  for (const it of items) { const p = worldToCanvas(it.x, it.z, view); const d = Math.hypot(p.px - px, p.py - py); if (d <= bd) { bd = d; best = it; } }
+  let best = null, bd = Infinity;   // the capital's seal is big, so it answers further out (Tim 2026-11-23)
+  for (const it of items) { const p = worldToCanvas(it.x, it.z, view); const d = Math.hypot(p.px - px, p.py - py); if (d <= (it.kind === 'capital' ? Math.max(maxPx, 14) : maxPx) && d <= bd) { bd = d; best = it; } }
   return best;
 }
 export function fitView(world, w, h) { const scale = Math.min(Math.max(1, w - 2 * MARGIN) / world.size.w, Math.max(1, h - 2 * MARGIN) / world.size.h); return { cx: world.size.w / 2, cz: world.size.h / 2, scale, w, h }; }
@@ -164,12 +202,12 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     if (layers.names) {
       ctx.save(); ctx.font='italic 12px Georgia, serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.lineWidth=3; ctx.lineJoin='round'; ctx.strokeStyle='rgba(16,33,37,.85)'; ctx.fillStyle='#f5e5ba';
-      const obstacles=[...items,...(st.hero ? [st.hero] : [])].map(it=>{const p=worldToCanvas(it.x,it.z,view);return {left:p.px-10,right:p.px+10,top:p.py-10,bottom:p.py+10};});
+      const obstacles=[...items,...(st.hero ? [st.hero] : [])].map(it=>{const p=worldToCanvas(it.x,it.z,view);return it.kind==='capital' ? {left:p.px-18,right:p.px+100,top:p.py-18,bottom:p.py+18} : {left:p.px-10,right:p.px+10,top:p.py-10,bottom:p.py+10};});   // the capital's seal and banner are big
       const labels=atlasZoneLabels(world,(x,z)=>worldToCanvas(x,z,view),s=>ctx.measureText(s).width,{left:MARGIN+5,top:MARGIN+5,right:view.w-5,bottom:view.h-5},obstacles);
       for (const label of labels) label.lines.forEach((line,i)=>{const y=label.py+(i-(label.lines.length-1)/2)*label.lineHeight;ctx.strokeText(line,label.px,y);ctx.fillText(line,label.px,y);});
       ctx.restore();
     }
-    for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.deposit ? it.nodeKind || it.featureKind : it.featureKind,!!it.deposit); else if (it.kind === 'resource') drawSpotMarker(ctx,p.px,p.py,it.featureKind,true); else if (it.kind === 'town') drawTownBadge(ctx,p.px,p.py,it.color,it.mine); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id)); }
+    for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.deposit ? it.nodeKind || it.featureKind : it.featureKind,!!it.deposit); else if (it.kind === 'resource') drawSpotMarker(ctx,p.px,p.py,it.featureKind,true); else if (it.kind === 'town') drawTownBadge(ctx,p.px,p.py,it.color,it.mine); else if (it.kind === 'capital') drawCapitalBadge(ctx,p.px,p.py); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id) || it.kind==='camp' && !!st.campsCleared?.[it.id],it.featureKind); }
     // your railway lines (Tim 2026-11-07): laid track glows, the rest of the route dashed, progress at the railhead
     if (st.rail && layers.rail) drawRailLines(ctx, st.rail.links, (x, z) => { const p = worldToCanvas(x, z, view); return [p.px, p.py]; }, { width: 3, seconds: st.rail.seconds, wars: st.rail.wars, me: st.rail.me, clans: st.rail.clans, inked: true });
     // Rail ledger (Tim 2026-11-08): the selected shipment's train glows

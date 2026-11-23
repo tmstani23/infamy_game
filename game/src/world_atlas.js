@@ -4,6 +4,7 @@ import { createPaint } from './world_paint.js';
 import { terrainAt } from './sim/world_data.js';
 import { RICH_NAME } from './sim/resource_spots.js';
 import { mapTint } from './rail_map.js';
+import { drawMapSymbol, mapSymbolImg } from './map_symbols.js';
 
 export const ATLAS_LAYERS = [
   { id: 'routes', label: 'Routes', on: true },
@@ -34,14 +35,25 @@ export const ATLAS_MARKERS = {
   hero: { label: 'You', color: '#75ecae', glyph: [polygon([0,-8],[6,5],[0,2],[-6,5])] },
   pin: { label: 'Your pin', color: '#f9a2d7', glyph: [circle(5)], hollow: true },
 };
+// the capital's key entry is a small copy of its seal
+const CAPITAL_SVG = '<svg viewBox="-12 -12 24 24" width="20" height="20" aria-hidden="true">'
+  + [0,1,2,3,4,5,6,7].map(i => { const a = (i + .5) * Math.PI / 4, c = Math.cos(a), s = Math.sin(a); return `<line x1="${(c*6.5).toFixed(1)}" y1="${(s*6.5).toFixed(1)}" x2="${(c*10.5).toFixed(1)}" y2="${(s*10.5).toFixed(1)}" stroke="#d9b56a" stroke-width="1.4" stroke-linecap="round"/><line x1="0" y1="0" x2="${(c*6).toFixed(1)}" y2="${(s*6).toFixed(1)}" stroke="#d9b56a" stroke-width=".7"/>`; }).join('')
+  + '<circle r="6.3" fill="none" stroke="#d9b56a" stroke-width="1.5"/><circle r="2" fill="#d9b56a"/><circle r="1" fill="#5e3f16"/></svg>';
+// feature kinds drawn as ink chart symbols (map_symbols.js); camps pick theirs from what they are
+const SYMBOL_OF = { site: 'site', pass: 'pass', bridge: 'bridge', ford: 'ford', camp: 'bandit', pin: 'pin', hero: 'hero' };
 export function atlasGlyphSVG(kind) {
+  if (kind === 'capital') return CAPITAL_SVG;
+  if (kind === 'town' && typeof document !== 'undefined') { const c = document.createElement('canvas'); c.width = c.height = 40; const g = c.getContext('2d'); g.scale(2, 2); drawTownBadge(g, 10, 10); return `<img src="${c.toDataURL()}" width="20" height="20" alt="" aria-hidden="true">`; }
+  if (kind === 'camp') return mapSymbolImg('bandit') + mapSymbolImg('ruin') + mapSymbolImg('cache');
+  if (SYMBOL_OF[kind]) return mapSymbolImg(SYMBOL_OF[kind]);
   const s = ATLAS_MARKERS[kind];
   return `<svg viewBox="-11 -11 22 22" width="20" height="20" aria-hidden="true" style="color:${s.color}">` + s.glyph.map(g => g.circle
     ? `<circle cx="0" cy="0" r="${g.circle}"/>`
     : `<path d="M${g.points.map(p => p.join(',')).join(' L')}${g.closed ? ' Z' : ''}"/>`).join('')
     .replaceAll('/>', ` fill="${s.hollow ? 'none' : 'currentColor'}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`) + '</svg>';
 }
-export function drawAtlasGlyph(ctx, kind, x, y, hollow = false) {
+export function drawAtlasGlyph(ctx, kind, x, y, hollow = false, featureKind = null) {
+  if (SYMBOL_OF[kind]) return drawMapSymbol(ctx, kind === 'camp' ? (['ruin', 'cache'].includes(featureKind) ? featureKind : 'bandit') : SYMBOL_OF[kind], x, y, { faded: hollow });
   const s = ATLAS_MARKERS[kind];
   ctx.save(); ctx.translate(x, y); ctx.lineWidth = 1.7; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
   // A dark outline keeps small symbols readable over the painting without opaque map labels.
@@ -79,6 +91,45 @@ export function drawTownBadge(ctx, x, y, color = ATLAS_MARKERS.town.color, mine 
   ctx.fillStyle = '#261a14'; ctx.fillRect(-2.6 * u, -4.6 * u, 5.2 * u, 1.6 * u);
   ctx.fillStyle = color; roof(-3.6 * u, 4.6 * u, 2.6 * u);
   ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, 0.9 * u); ctx.beginPath(); ctx.moveTo(0, -6.2 * u); ctx.lineTo(0, -7.6 * u); ctx.stroke();
+  ctx.restore();
+}
+// The Capital (Tim 2026-11-23): an engraved brass ship's wheel, a little bigger than a castle mark, in the manner of an
+// old sea chart: eight spokes to a red hub inside a double rim, eight turned handles, a faint see-through warm glow
+// and its name in the map serif beside it, like the castles.
+export function drawCapitalBadge(ctx, x, y, { label = true, scale = 1 } = {}) {
+  const k = scale * 1.15, R = 8.5 * k, L = 13 * k, TAU = Math.PI * 2, INK = 'rgba(18,11,7,.95)', BRASS = '#d9b56a', DARK = '#8a6528';
+  const disc = r => { ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); };
+  ctx.save(); ctx.translate(x, y);
+  const halo = ctx.createRadialGradient(0, 0, R * 0.5, 0, 0, L * 1.7);
+  halo.addColorStop(0, 'rgba(255,190,100,.28)'); halo.addColorStop(1, 'rgba(255,170,80,0)');
+  ctx.fillStyle = halo; disc(L * 1.7); ctx.fill();
+  const ang = i => i * TAU / 8 + TAU / 16;
+  ctx.lineCap = 'round';
+  // ink under everything, so it reads on light and dark ground
+  ctx.strokeStyle = INK; ctx.lineWidth = 2.6 * k;
+  for (let i = 0; i < 8; i++) { const c = Math.cos(ang(i)), s = Math.sin(ang(i)); ctx.beginPath(); ctx.moveTo(c * R, s * R); ctx.lineTo(c * L, s * L); ctx.stroke(); }
+  ctx.fillStyle = INK; disc(R + 1.3 * k); ctx.fill();
+  for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.arc(Math.cos(ang(i)) * L, Math.sin(ang(i)) * L, 1.9 * k, 0, TAU); ctx.fill(); }
+  // handles: turned brass, a bead near the rim and a knob at the tip
+  for (let i = 0; i < 8; i++) { const c = Math.cos(ang(i)), s = Math.sin(ang(i));
+    ctx.strokeStyle = BRASS; ctx.lineWidth = 1.1 * k; ctx.beginPath(); ctx.moveTo(c * R, s * R); ctx.lineTo(c * (L - 1 * k), s * (L - 1 * k)); ctx.stroke();
+    ctx.fillStyle = BRASS; ctx.beginPath(); ctx.arc(c * (R + 1.8 * k), s * (R + 1.8 * k), 0.95 * k, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(c * L, s * L, 1.25 * k, 0, TAU); ctx.fill(); }
+  // field, spokes, hub, double rim
+  ctx.fillStyle = 'rgba(30,18,11,.9)'; disc(R); ctx.fill();
+  ctx.strokeStyle = DARK; ctx.lineWidth = 0.9 * k;
+  for (let i = 0; i < 8; i++) { const c = Math.cos(ang(i)), s = Math.sin(ang(i)); ctx.beginPath(); ctx.moveTo(c * 2.2 * k, s * 2.2 * k); ctx.lineTo(c * R, s * R); ctx.stroke(); }
+  ctx.strokeStyle = BRASS; ctx.lineWidth = 0.55 * k;
+  for (let i = 0; i < 8; i++) { const c = Math.cos(ang(i)), s = Math.sin(ang(i)); ctx.beginPath(); ctx.moveTo(c * 2.2 * k, s * 2.2 * k); ctx.lineTo(c * R, s * R); ctx.stroke(); }
+  ctx.strokeStyle = BRASS; ctx.lineWidth = 1.5 * k; disc(R - 0.6 * k); ctx.stroke();
+  ctx.lineWidth = 0.5 * k; disc(R - 2.6 * k); ctx.stroke();
+  ctx.fillStyle = BRASS; disc(2.4 * k); ctx.fill();
+  ctx.fillStyle = '#5e3f16'; disc(1.3 * k); ctx.fill();
+  if (label) {
+    ctx.font = `600 ${Math.round(12 * scale)}px Georgia, serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,17,14,0.9)'; ctx.strokeText('The Capital', L + 5 * k, 0.5);
+    ctx.fillStyle = '#f3e9cf'; ctx.fillText('The Capital', L + 5 * k, 0.5);
+  }
   ctx.restore();
 }
 const titleCase = s => String(s).replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
