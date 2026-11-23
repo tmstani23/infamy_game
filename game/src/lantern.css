@@ -1247,3 +1247,35 @@ body #startscreen .start-saves button:focus-visible, body #startscreen .start-ex
 #startscreen:has(input[name="clan"][value="yakuza"]:checked) .start-art::after { background-image: url(../../assets/ui/leaders/yakuza.png); }
 #startscreen:has(input[name="clan"][value="kuroda"]:checked) .start-art::after { background-image: url(../../assets/ui/leaders/kuroda.png); }
 #startscreen:has(input[name="clan"][value="shinobi"]:checked) .start-art::after { background-image: url(../../assets/ui/leaders/shinobi.png); aspect-ratio: 519 / 900; }
+
+/* ---------- city selection panel (#selpanel): framed board, each crewman a small dark well with a brass-ringed face ---------- */
+body #selpanel { border: 9px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0; font-family: var(--ln-font);
+  background-origin: border-box; background-clip: padding-box; background-color: #1b120d;
+  background-image: radial-gradient(ellipse 75% 45% at 70% 0%, rgba(255,150,60,.08), transparent 70%), linear-gradient(rgba(20,13,9,.45), rgba(20,13,9,.45)), var(--ln-grain);
+  box-shadow: 0 12px 28px rgba(0,0,0,.75); }
+body #selpanel .card { border: none; border-radius: 2px; background: radial-gradient(ellipse 60% 100% at 50% 100%, rgba(255,170,80,.08), transparent 70%), linear-gradient(180deg, #0c0705, #1a110b 85%);
+  box-shadow: inset 0 2px 6px #000, 0 0 0 1px #070403; }
+body #selpanel .card:hover { box-shadow: inset 0 2px 6px #000, 0 0 0 1px #070403, 0 0 0 2px #c9a04e; }
+body #selpanel .pic { border: none; border-radius: 2px; box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 0 0 1px #0a0604, 0 0 0 2px #8a6a3a; }
+body #selpanel .grp { font: 800 11px/12px var(--ln-font); color: #ffe2a6; }
+body #selpanel b { font: 700 12px/13px var(--ln-font); color: #f2e2c0; }
+body #selpanel i { font: italic 500 11px/12px var(--ln-font); color: var(--ln-dim); }
+body #selpanel s { font: 500 11px/12px var(--ln-font); color: var(--ln-faint); }
+body #selpanel .hp { border: none; border-radius: 1px; background: #120b07; box-shadow: inset 0 1px 2px #000, 0 0 0 1px #5a4430; }
+body #selpanel .hp .fill { background-image: linear-gradient(180deg, rgba(255,255,255,.3) 0 1px, rgba(255,255,255,.08) 1px, rgba(0,0,0,.3)) !important; }
+body #selpanel .card.down { background: linear-gradient(180deg, #2a0b07, #1a0806); } body #selpanel .card.down i { color: #f08a72; }
+body #selpanel .card.jailed { background: linear-gradient(180deg, #101828, #0a0f18); } body #selpanel .card.jailed i { color: #9ab8ef; }
+body #selpanel.micro .card, body #selpanel.tiny .card { box-shadow: 0 0 0 1px #070403; }
+body #selpanel.micro .pic, body #selpanel.tiny .pic { box-shadow: 0 0 0 1px #8a6a3a; }
+/* war bar text (found with the selection panel): serif, no spaced capitals (the line over the title also carries channel progress, so it stays) */
+body #warbar { font-family: var(--ln-font); }
+body #warbar .wb-name { font: italic 600 12.5px/1.2 var(--ln-font); letter-spacing: 0; text-transform: none; color: #e2c992; }
+body #warbar .wb-eyebrow { font: italic 600 12px/1.2 var(--ln-font); letter-spacing: 0; text-transform: none; color: #e89a86; }
+body #warbar .wb-title { font: 800 16px/1.2 var(--ln-font); color: #f6e6c6; text-shadow: 0 1px 2px #000; }
+body #warbar .wb-pct { font: 800 20px var(--ln-font); }
+body #warbar .wb-ready { font: italic 700 11px var(--ln-font); letter-spacing: 0; text-transform: none; }
+body #warbar .wb-line { font: 500 13px var(--ln-font); border: none; border-radius: 2px; background: rgba(30,20,13,.92); box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #8e2d26; }
+body #warbar .wb-line.good { box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #4d6b3a; }
+body #warbar .wb-terms b { font: 800 18px var(--ln-font); } body #warbar .wb-terms span { font: italic 500 12px var(--ln-font); }
+body #warbar .wb-terms button, body #warbar .wb-watch { font: 700 13px var(--ln-font); letter-spacing: 0; color: #ead3a6; border: none; border-radius: 2px;
+  background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,220,170,.25), 0 2px 0 #0a0604; }
