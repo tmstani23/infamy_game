@@ -17,6 +17,7 @@ import { buildingCost, placedRoom } from './frontier/tiers.js';
 import { fundOf, fundPct, fundHas, fundPay, setFundCap } from './frontier/fund.js';
 import { logAct, aName } from './frontier/action_log.js';
 import { pointAt } from './frontier/rail_route.js';
+import { createGeneralShips } from './war_general_ships.js';
 
 const DET = SCREEN_RIGHT.x * SCREEN_DOWN.z - SCREEN_DOWN.x * SCREEN_RIGHT.z;
 const intent = (dx, dz) => ({ right: (dx * SCREEN_DOWN.z - dz * SCREEN_DOWN.x) / DET, down: (SCREEN_RIGHT.x * dz - SCREEN_RIGHT.z * dx) / DET });
@@ -31,9 +32,13 @@ export function createGeneralBrain(game, { clan }) {
   const isBot = () => !!state.clans[clan]?.bot;
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const strat = () => gen().rules().strategies?.[gen().strategyOf(clan)] || {};
+  // ships S9 (sim/war_general_ships.js): yards, ship training and use; its boarding and landing parties are detached
+  const fleet = createGeneralShips(game, { clan, memory: (w, side) => memory(w, side), rules: () => gen().rules(), strategy: () => gen().strategyOf(clan),
+    campHall: w => campHall(w), pickTarget: (w, A, from) => pickTarget(w, A, from), attackA: () => strat().attack || {} });
   // troops away with the hero on a train robbery, or sent to an own stopped train, are not the army's to order (R5)
-  const detached = () => { const a = mem.rob?.escort || [], g = mem.guard ? Object.values(mem.guard).flat() : []; return a.length || g.length ? new Set([...a, ...g]) : null; };
-  const troops = w => { const off = detached(); return Object.values(state.entities).filter(e => e.warTroop === w.id && e.owner === clan && !e.dead && e.type !== 'horse' && !(off && off.has(e.id))); };
+  const detached = () => { const a = mem.rob?.escort || [], g = mem.guard ? Object.values(mem.guard).flat() : [], f = fleet.detached(mem); return a.length || g.length || f.size ? new Set([...a, ...g, ...f]) : null; };
+  // (S9: ships, and troops aboard one or walking to one, are no part of the land army)
+  const troops = w => { const off = detached(); return Object.values(state.entities).filter(e => e.warTroop === w.id && e.owner === clan && !e.dead && e.type !== 'horse' && !e.ship && !e.inShip && !e.boardShip && !(off && off.has(e.id))); };
   const hero = () => Object.values(state.entities).find(e => e.owner === clan && e.type === 'hero');
   const town = id => state.frontier?.settlements?.[id] || null;
   // a side's workers out in the open (worker units carry workerOwner and their site in town: a town id or a war id)
@@ -232,6 +237,7 @@ export function createGeneralBrain(game, { clan }) {
       chestByTrain(out, cmd, w, 'defender', w.defense?.chest || 0, (memory(w, 'defender').room || 0) * (gen().rules().troopRyo ?? 120));
       sellSpare(out, cmd, w);
     }
+    fleet.train(out, cmd, w, 'defender', troops(w).length);   // S9: ships first, one at a time
     train(out, cmd, w);
     // the attacker has (almost) no troops left and the town can train no more: the archers come out of the houses and the whole army goes for his camp
     const all = troops(w).filter(e => !e.downed), theirs = Object.values(state.entities).filter(e => e.warTroop === w.id && e.owner === w.attacker && !e.dead && e.type !== 'horse').length;
@@ -242,6 +248,7 @@ export function createGeneralBrain(game, { clan }) {
     mend(out, cmd, town(w.town), w.town, `t|${w.town}|`, st => st.town === w.town && !st.camp);
     rebuildTown(out, cmd, w);
     army(out, order, w);
+    fleet.use(out, cmd, order, w, 'defender', mem);   // S9
     // a bot's hero comes to take the camp hall once the camp's morale is 0 (a player does that himself)
     if (isBot() && F().warMorale.ready(w.id, 'camp') && !w.channel) {
       const p = F().warEnd.hallPoint(w, 'camp'), h = hero();
@@ -315,6 +322,12 @@ export function createGeneralBrain(game, { clan }) {
     const can = cost => fund ? fundHas(fund, cost) : Object.entries(cost || {}).every(([r, v]) => (s.stock?.[r] ?? 0) >= v + (R[r] ?? 0));
     const pay = cost => !fund || fundPay(s, cost, F().world);
     if ((s.projects || []).some(p => isMilitary(p.type, data) || p.type === 'stockade') || s.warUpgrade) return;
+    // S9: a rival's town at war puts up a shipyard by its harbour while ships have work in that war
+    if (wOn && fleet.yardWanted(s, wOn) && !militaryWhy(s, 'shipyard', data, state)) {
+      if (!can(buildingCost(data, 'shipyard', s))) return;   // saving for it
+      const cell = fleet.yardCell(s);
+      if (cell != null) { out.push(cmd({ action: 'place', town: s.id, kind: 'shipyard', cells: [cell] })); return; }
+    }
     // at its troop cap with ryo to train more (a war on the town): the next supply tents come before the list
     if (wOn && wOn.defender === clan && memory(wOn, 'defender').capped && !militaryWhy(s, TENT, data, state) && militaryNeeds(s, TENT, data).length === 0) {
       if (!can(buildingCost(data, TENT, s))) return;   // saving for it
@@ -456,6 +469,7 @@ export function createGeneralBrain(game, { clan }) {
   // a free spot for a camp building: a lumber camp or quarry by the nearest of its resource, fighting buildings on the
   // town's side of the camp hall, the rest behind it
   function campSpot(w, type, A) {
+    if (type === 'slipway') return fleet.slipSpot(w);   // S9: on the shore nearest the camp hall
     const War = F().war, hall = campHall(w), t = town(w.town), data = F().data;
     const toTown = Math.atan2(t.z - hall.z, t.x - hall.x), tries = [];
     const takes = data.workers?.campTakes?.[type];
@@ -491,7 +505,7 @@ export function createGeneralBrain(game, { clan }) {
     // Tim 2026-11-17: at its troop cap with ryo to train more, the next supply tents come first; after its own list
     // the camp goes on with the tail (buildTail). Neither holds a push back (m.left counts its own list only).
     const tentNow = m.capped && camp.buildings.filter(b => b.type === TENT && b.stage !== 'ruined').length < (list.find(x => x.type === TENT)?.max ?? 4) && !camp.buildings.some(b => b.type === TENT && b.stage === 'site');
-    const head = [...(tentNow ? [TENT] : []), ...(m.fort ? FT.build || [] : [])];
+    const head = [...(tentNow ? [TENT] : []), ...(fleet.slipWanted(w) ? ['slipway'] : []), ...(m.fort ? FT.build || [] : [])];   // S9: a slipway once a barracks stands, while ships have work
     const plan = [...head, ...own, ...buildTail(own)];
     // what is left of the plan (8d-10): the army does not push in full before it is all built (campArmy), and
     // training keeps back the ryo of the camp hall upgrade while a building of the plan still needs it (campTrain)
@@ -556,9 +570,10 @@ export function createGeneralBrain(game, { clan }) {
         continue;   // waits on an earlier building
       }
       const now = tentNow && i === 0;
-      if (!e.ok) { if (i < extra && !now) continue; m.want = e.cost; return; }   // saving for it (a dig-in extra it cannot pay yet does not hold up its list; the supply tents wanted now do)
+      const keen = now || type === 'slipway';   // (S9: it saves for the slipway as for the supply tents wanted now)
+      if (!e.ok) { if (i < extra && !keen) continue; m.want = e.cost; return; }   // saving for it (a dig-in extra it cannot pay yet does not hold up its list; the supply tents wanted now do)
       // (8d-10, Tim 2026-11-16) a dig-in extra waits while paying it would leave too little for the next building of its own list
-      if (i < extra && !now && nextCost && Object.entries({ ...nextCost, ...e.cost }).some(([r]) => (camp.stock?.[r] || 0) < (e.cost?.[r] || 0) + (nextCost[r] || 0))) continue;
+      if (i < extra && !keen && nextCost && Object.entries({ ...nextCost, ...e.cost }).some(([r]) => (camp.stock?.[r] || 0) < (e.cost?.[r] || 0) + (nextCost[r] || 0))) continue;
       // its turn in the plan and paid for: clear a ruin of that type and build on its spot (Tim 2026-11-17)
       const ruin = type !== 'camp_station' && camp.buildings.find(b => b.type === type && b.stage === 'ruined' && Number.isFinite(b.x));
       if (ruin) { out.push(cmd({ action: 'campErase', war: w.id, building: ruin.id }), cmd({ action: 'campPlace', war: w.id, kind: type, x: ruin.x, z: ruin.z })); return; }
@@ -883,8 +898,10 @@ export function createGeneralBrain(game, { clan }) {
     campSupply(out, cmd, w, A);
     armory(out, cmd, w, 'attacker');
     campWorkers(out, cmd, w, A);
+    fleet.train(out, cmd, w, 'attacker', troops(w).length);   // S9: ships first, one at a time
     campTrain(out, cmd, w, A);
     campArmy(out, order, w, A, cmd);
+    { const m = memory(w, 'attacker'); fleet.use(out, cmd, order, w, 'attacker', mem, { mode: m.mode, spent: m.spent, wave: m.wave }); }   // S9
     if (!isBot()) return;
     // a bot's hero waits behind the camp hall, and takes the town hall once the town's morale is 0
     const h = hero(), hall = campHall(w), t = town(w.town);
@@ -1228,6 +1245,6 @@ export function createGeneralBrain(game, { clan }) {
     walk(out, h);
     return out;
   }
-  return { tick, saveState: () => JSON.parse(JSON.stringify(mem)), loadState: d => { if (d && typeof d === 'object') mem = { wars: d.wars || {}, plan: d.plan || null, walls: d.walls || {}, rob: d.rob || null, guard: d.guard || {}, robLast: d.robLast, robMode: d.robMode }; }, view: () => ({ ...mem, goal }) };
+  return { tick, saveState: () => JSON.parse(JSON.stringify(mem)), loadState: d => { if (d && typeof d === 'object') mem = { wars: d.wars || {}, plan: d.plan || null, walls: d.walls || {}, rob: d.rob || null, guard: d.guard || {}, robLast: d.robLast, robMode: d.robMode }; }, view: () => ({ ...mem, goal }), fleet };
 
 }

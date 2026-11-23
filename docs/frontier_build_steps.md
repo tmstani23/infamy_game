@@ -3101,7 +3101,14 @@ Checklist (2026-11-22):
   - Broadside: the gun barrels run out of the painted gun ports first, then the broadside fires (runOutTicks 10, half a second) with a fiery, see-through flash and smoke at each port; the barrels kick back and haul in.
   - Data: frontier.json war.ships.boarding (hero, crew, lossShare, grappleSeconds, reach, alongside, gatlingCut, weakDefender, breakOffSeconds, cooldownSeconds, generalEdge, chaseSeconds), war.ships.guns.broadside.runOutTicks. All placeholders, Tim to tune in play.
   - No new keybind: Board and Break off use the existing special ability key on the ship button.
-- [ ] S9 AI general with ships.
+- [x] S9 AI general with ships.
+- S9 built 2026-11-23 (`sim/war_general_ships.js`, `war_general_brain.js`; test_general_ships):
+  - A general (a rival's side always, the player's side while his hero is outside the war circle) uses ships only while they have work in that war, looked at every 30 s: an enemy target within gun range of water its ships can reach in the circle (attacker: town hall, military buildings, shipyard; defender: camp hall, camp buildings, slipway), enemy ships in the war, or (attacker) a landing past the town's walls or much nearer the hall than the camp is.
+  - Yards: the camp puts a slipway in its plan once a barracks stands, on the shore nearest the camp hall, and saves for it. A rival's town at war builds a shipyard by its harbour. A player's town at war builds nothing new (Tim's rule of 2026-11-22), so his general only uses a shipyard he already has.
+  - Ships trained by strategy, one at a time at the yard, once the land army has 6 troops: attack Rush 1 warship + 1 transport, Siege 2 + 1, Raider 1 + 2; defence Rush 1 warship, Siege 2, Raider 1. Transports only when a landing is worth it.
+  - Warships: under half hull they go home to their yard and lie there until mended to 90%. Else they board an enemy ship under half health when their hold is 1.5 times stronger; else go at enemy ships (the guns fire on their own); else shell the nearest target from water in range; else lie by their yard. While the enemy has ships a warship takes 3 troops aboard at its yard as a boarding party.
+  - Transports (attacker): take up to 8 troops aboard at the camp shore (while the army gathers it keeps 6 back; during a push only the reserve gathering at the camp goes), sail when the army pushes or after 2 minutes, land on the shore nearest the town away from the camp, and the party attacks from there. The next landing waits a minute after that party is gone. Troops that have not reached the ship in 60 s are left behind.
+  - Data: frontier.json war.general.ships (lookSeconds, shellMargin, landShorter, landReach, after, mendBelow, mendTo, boardParty, landParty, landLeast, landWaitSeconds, landRestSeconds, loadSeconds, byStrategy). All placeholders, Tim to tune in play. No new controls.
 - [ ] S10 Fishing boats and Boathouse.
 - [ ] S11 Harbour travel.
 - [ ] S12 Settler ship and goal card rows (optional after: rivals found by sea).
