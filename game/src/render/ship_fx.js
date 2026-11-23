@@ -9,9 +9,13 @@
 //    with the land Gatling's flash and tracer at its muzzle.
 //  - Damage stages (war.ships.stages): under smoke a thin dark smoke from the deck, under fire small flames and thick
 //    smoke, under list the hull leans and sits lower.
+//  - S6: repair at the yard (s.mending): hammer sparks along the deck. A sunk ship goes under: it lurches, the sea
+//    closes over it from the waterline up (render/shading.js uSea), steam, foam, bubbles, wreckage. The troops in its
+//    hold (drowned) bob half under in splash rings, then go under; the hero and crew (washed) come up the shore on a wave.
 //   createShipFx({ scene, stages }) -> { cast(c, state), update(state, sprites, dt, place) }
 import * as THREE from 'three';
-import { VIEW_DIR, CAM_RIGHT } from './iso.js';
+import { VIEW_DIR, CAM_RIGHT, CAM_UP } from './iso.js';
+import { createFoam } from './ship_marks.js';
 import { createParticles, createCards, SHAPE } from './vfx.js';
 
 const rand = (a, b) => a + Math.random() * (b - a), pick = l => l[Math.floor(Math.random() * l.length)];
@@ -151,7 +155,8 @@ export function createShipFx({ scene, stages = {} }) {
     const want = k < (stages.list ?? 0.15) ? 1 : 0;
     s.listK = (s.listK ?? 0) + (want - (s.listK ?? 0)) * Math.min(1, dt * 1.5);
     s.roll = -0.2 * s.listK; s.listRoll = s.roll; s.listY = 1.1 * s.listK;   // roll: the sprite turns about its waterline (render/characters.js)
-    if (s.listY > 0.001) s.thing.mesh.position.y -= s.listY;   // after the sprite's own update this frame
+    if (s.listY > 0.001) { s.thing.mesh.position.y -= s.listY; sea(s, p.x, p.z, keel(e.heading, s.roll), 0.4); }   // after the sprite's own update this frame; S6: the sea hides the low hull
+    else dry(s);
     if (s.listK > 0.3) {   // foam washing along the low side, wreckage spreading on the water
       const near = Math.sign(hz * vg.x - hx * vg.z) || 1;   // the hull side toward the camera: a broken line of churned foam hides where it meets the water
       for (let n = Math.floor(dt * 160 + Math.random()); n > 0; n--) { const t = rand(-1, 1) * H.half * (1 - Math.random() * 0.15), off = rand(0.8, 1.2), x = p.x + hx * t + hz * near * off, z = p.z + hz * t - hx * near * off;
@@ -161,25 +166,195 @@ export function createShipFx({ scene, stages = {} }) {
     }
   }
 
+  // ---- S6: repair, going under, drowning, washed ashore (sim/frontier/ships.js sink(), mend()) ----------------
+  // on the water, under the ships (render/ship_marks.js foam flecks): foam, a dark hole where a hull goes down, the
+  // sheet of a wave running up the sand and the wet sand it leaves
+  const paint = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.NoColorSpace; return t; };
+  const blot = (g, x, y, rx, ry, a, rot = 0) => { g.save(); g.translate(x, y); g.rotate(rot); g.scale(1, ry / rx); const q = g.createRadialGradient(0, 0, 0, 0, 0, rx);
+    q.addColorStop(0, `rgba(255,255,255,${a})`); q.addColorStop(0.7, `rgba(255,255,255,${a * 0.85})`); q.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = q; g.beginPath(); g.arc(0, 0, rx, 0, Math.PI * 2); g.fill(); g.restore(); };
+  // broken streaks of foam, lying flat (squashed 2:1 on the iso ground), with fairly hard painted edges
+  const STREAK = paint(64, 64, g => { for (const [x, y, rx, a] of [[30, 30, 22, 0.8], [20, 36, 12, 0.7], [42, 26, 13, 0.75], [36, 38, 9, 0.6], [16, 27, 7, 0.55]]) blot(g, x, y, rx, rx * 0.32, a, -0.12); });
+  // timbers on the water: weathered planks and a spar, flat, each with a thin rim of foam (two sets, for variety)
+  const planks = set => paint(64, 64, g => { for (const [x, y, w, h, r] of set) { g.save(); g.translate(x, y); g.rotate(r); g.scale(1, 0.5);
+      blot(g, -w / 2, 0, 5, 3, 0.35); blot(g, w / 2, 0, 6, 3, 0.4);   // a little foam where the water breaks on its ends
+      g.fillStyle = '#2a2119'; g.fillRect(-w / 2 - 1, -h / 2 - 1, w + 2, h + 2);
+      g.fillStyle = '#3e3125'; g.fillRect(-w / 2, -h / 2, w, h); g.fillStyle = '#54432f'; g.fillRect(-w / 2, -h / 2, w, h * 0.35); g.restore(); } });
+  const PLANK_A = planks([[32, 32, 44, 6, 0.25]]), PLANK_B = planks([[30, 34, 22, 9, -0.6]]);
+  const SAIL = paint(64, 64, g => { g.translate(32, 32); g.scale(1, 0.5); g.rotate(0.4); g.fillStyle = 'rgba(120,110,92,0.85)'; g.beginPath(); g.moveTo(-18, -10); g.lineTo(14, -14); g.lineTo(20, 8); g.lineTo(-6, 16); g.lineTo(-20, 6); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(70,60,48,0.8)'; g.lineWidth = 2; g.beginPath(); g.moveTo(-16, -2); g.lineTo(18, -4); g.stroke(); });
+  const foam = createFoam(scene, 3000, [0.78, 0.83, 0.85], 2, STREAK), lip = createFoam(scene, 600, [0.92, 0.95, 0.96], 2.02, STREAK);
+  const deep = createFoam(scene, 600, [0.04, 0.08, 0.12], 1.9), sheet = createFoam(scene, 900, [0.36, 0.47, 0.54], 1.95);
+  const wreckA = createFoam(scene, 120, [1, 1, 1], 2.01, PLANK_A), wreckB = createFoam(scene, 120, [1, 1, 1], 2.01, PLANK_B), wreckC = createFoam(scene, 40, [1, 1, 1], 2.005, SAIL);
+  // marks lying flat on the water: a broken ring of foam spreading and thinning; a band of wet sand drying
+  const RING = paint(128, 128, g => { let a = Math.random() * 6.3; const stop = a + Math.PI * 2 * (0.55 + Math.random() * 0.25);   // a broken rim of foam: a few eroded arcs, gaps between
+    while (a < stop) { const n = 1 + Math.floor(Math.random() * 4), r = 50 + Math.sin(a * 3) * 3 + Math.random() * 4;
+      for (let i = 0; i < n; i++, a += 0.06) if (Math.random() < 0.8) blot(g, 64 + Math.cos(a) * r, 64 + Math.sin(a) * r, 2 + Math.random() * 5, 1.2 + Math.random() * 2.2, 0.3 + Math.random() * 0.6, a + Math.PI / 2);
+      a += 0.2 + Math.random() * 0.7; } });
+  // a scalloped line of foam (a wave's lip, the edge it leaves on the sand), the length along x
+  const LINE = paint(256, 32, g => { for (let x = 4; x < 252; x += 3 + Math.random() * 4) { const y = 16 + Math.sin(x * 0.11) * 3 + Math.sin(x * 0.37) * 1.5, e = Math.min(1, x / 40, (256 - x) / 40);
+      blot(g, x, y, 5 + Math.random() * 6, 2 + Math.random() * 2.5, (0.55 + Math.random() * 0.4) * e, Math.random() * 0.4 - 0.2); } });
+  const EDGE = paint(256, 32, g => { for (let x = 4; x < 252; x += 2 + Math.random() * 5) { if (Math.sin(x * 0.05) + Math.random() * 0.8 < -0.2) { x += 6; continue; }   // gaps
+      blot(g, x, 16 + Math.sin(x * 0.09) * 4, 3 + Math.random() * 7, 1 + Math.random() * 3, 0.4 + Math.random() * 0.5, Math.random() * 0.5 - 0.25); } });
+  const BODY = paint(64, 64, g => { const q = g.createLinearGradient(0, 0, 0, 64); q.addColorStop(0, 'rgba(64,86,98,0)'); q.addColorStop(0.2, 'rgba(64,86,98,0.95)'); q.addColorStop(0.85, 'rgba(46,64,78,0.8)'); q.addColorStop(1, 'rgba(52,72,86,0)');
+      g.fillStyle = q; g.fillRect(0, 0, 64, 64); g.globalCompositeOperation = 'destination-in'; const e = g.createLinearGradient(0, 0, 64, 0); e.addColorStop(0, 'rgba(0,0,0,0)'); e.addColorStop(0.2, 'rgba(0,0,0,1)'); e.addColorStop(0.8, 'rgba(0,0,0,1)'); e.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = e; g.fillRect(0, 0, 64, 64); });
+  const WET = paint(64, 64, g => { const q = g.createLinearGradient(0, 0, 0, 64); q.addColorStop(0, 'rgba(34,30,22,0)'); q.addColorStop(0.35, 'rgba(30,27,20,1)'); q.addColorStop(0.8, 'rgba(30,27,20,0.9)'); q.addColorStop(1, 'rgba(34,30,22,0)');
+      g.fillStyle = q; g.fillRect(0, 0, 64, 64); g.globalCompositeOperation = 'destination-in'; const e = g.createLinearGradient(0, 0, 64, 0); e.addColorStop(0, 'rgba(0,0,0,0)'); e.addColorStop(0.2, 'rgba(0,0,0,1)'); e.addColorStop(0.8, 'rgba(0,0,0,1)'); e.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = e; g.fillRect(0, 0, 64, 64); });
+  const FLAT = new THREE.PlaneGeometry(1, 1), flats = [];
+  function flat(map, x, z, { r0 = 1, r1 = 1, len = 1, life = 1, alpha = 0.6, rot = Math.random() * 6.3, color = [0.68, 0.75, 0.78], order = 2.01, y = 0.035, vx = 0, vz = 0, drag = 0, fadeIn = 0.08 }) {
+    const m = new THREE.Mesh(FLAT, new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, color: new THREE.Color(...color), opacity: 0 }));
+    m.rotation.set(-Math.PI / 2, 0, rot); m.position.set(x, y, z); m.renderOrder = order; scene.add(m);
+    flats.push({ m, t: 0, r0, r1, len, life, alpha, vx, vz, drag, fadeIn });
+  }
+  function flatsUpdate(dt) {
+    for (let i = flats.length - 1; i >= 0; i--) { const f = flats[i]; f.t += dt; const k = Math.min(1, f.t / f.life);
+      if (k >= 1) { scene.remove(f.m); f.m.material.dispose(); flats.splice(i, 1); continue; }
+      const d = Math.exp(-f.drag * dt); f.vx *= d; f.vz *= d; f.m.position.x += f.vx * dt; f.m.position.z += f.vz * dt;
+      const r = f.r0 + (f.r1 - f.r0) * (1 - (1 - k) ** 2); f.m.scale.set(r * 2 * f.len, r * 2, 1); f.m.material.opacity = f.alpha * Math.min(1, f.t / f.fadeIn) * (1 - k) ** 1.3; }
+  }
+  // a waterline on a sprite (render/shading.js uSea): what lies below the line through (x, 0, z) along slope on
+  // screen is under water and not drawn; a band just above it darkens toward the sea
+  const uni = s => s.material?.uniforms || s.thing?.mesh?.material?.uniforms;
+  const sea = (s, x, z, slope = 0, band = 0.4) => { const u = uni(s); if (u?.uSea) { u.uSea.value.set(x, 0, z, band); u.uSeaSlope.value = slope; } return u; };
+  const dry = s => { const u = uni(s); if (u?.uSea && u.uSea.value.w) u.uSea.value.w = 0; };
+  const fade = (s, k) => { const u = uni(s); if (u?.uOpacity) u.uOpacity.value *= Math.max(0, Math.min(1, k)); if (s.shadow) s.shadow.visible = false; };
+  const UPY = Math.max(0.3, CAM_UP.y);   // screen up per unit of world height
+  const hash = id => (String(id).split('').reduce((n, ch) => n * 31 + ch.charCodeAt(0) >>> 0, 7) % 1000) / 1000;
+  // the hull's long axis as a slope on screen; a rolled hull tilts its waterline with it, so it goes down along its own line
+  const keel = (h, roll = 0) => { const [hx, hz] = head(h), sx = hx * CAM_RIGHT.x + hz * CAM_RIGHT.z, sy = hx * CAM_UP.x + hz * CAM_UP.z; return Math.max(-0.7, Math.min(0.7, (Math.abs(sx) < 0.05 ? 0 : sy / sx) + Math.tan(roll))); };
+  const ring = (x, z, r0, r1, life, alpha = 0.6) => flat(RING, x, z, { r0: r0 * rand(0.85, 1.2), r1: r1 * rand(0.8, 1.25), life, alpha: alpha * 0.6, color: [0.5, 0.58, 0.63] });   // a broken ring of foam spreading and thinning
+  const wreck = p => (Math.random() < 0.15 ? wreckC : Math.random() < 0.55 ? wreckA : wreckB).emit(p);
+  function spray(x, y, z, n, up = 3, out = 0.8, size = 0.3) {   // water thrown up: small grey-blue tufts, falling back
+    for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, o = rand(0.2, 1) * out;
+      soot.emit({ x, y, z, vx: Math.cos(a) * o, vz: Math.sin(a) * o, vy: rand(0.6, 1) * up, gravity: 10, drag: 0.6, life: rand(0.45, 0.7), size: size * rand(0.7, 1.2), grow: 0.8, color: SPRAY[1 + (i % 2)], alpha: 0.38, shape: SHAPE.puff, rot: rand(-1, 1) }); }
+  }
+  // repair at the yard: carpenters at three or four places along the deck, each a burst of sparks under the hammer,
+  // a little smoke from the work, the yard lamp-light on the planks; the health bar's end pulses (render/ship_marks.js)
+  const taps = new Map();   // ship id -> [{ next, t }]
+  function mending(e, s, dt) {
+    const H = HULL[e.warUnit] || HULL.warship, [hx, hz] = head(e.heading), p = s.pos || s.thing.mesh.position, near = Math.sign(hz * vg.x - hx * vg.z) || 1;
+    const T = taps.get(e.id) || [-0.7, -0.2, 0.3, 0.72].map((t, k) => ({ t, next: clock + k * 0.17 + rand(0, 0.1), n: 0 }));
+    taps.set(e.id, T);
+    for (const c of T) {
+      if (clock < c.next) continue;
+      c.next = clock + (++c.n % 4 ? rand(0.26, 0.36) : rand(0.8, 1.3));   // three or four blows, then a pause
+      const t = c.t * H.half, x = p.x + hx * t + hz * near * 0.6, z = p.z + hz * t - hx * near * 0.6, y = H.deck - 0.1 - (s.listY || 0);
+      glow.emit({ x, y, z, life: 0.08, size: 0.9, color: FLAME[0], alpha: 1, shape: SHAPE.sparkle, rot: Math.random() });   // the blow
+      const a0 = Math.random() * Math.PI * 2;   // the sparks fly off the hammer one way, a short fan of bright streaks
+      for (let i = 0, n = Math.round(rand(4, 7)); i < n; i++) { const a = a0 + rand(-0.5, 0.5), o = rand(5, 8), dx = Math.cos(a), dz = Math.sin(a);
+        for (let k = 0; k < 3; k++) glow.emit({ x: x + dx * (0.1 - k * 0.07), y: y + 0.1, z: z + dz * (0.1 - k * 0.07), vx: dx * o, vz: dz * o, vy: rand(1.5, 3), gravity: 9, drag: 2, life: rand(0.25, 0.35), size: 0.14 - k * 0.03, color: FLAME[k ? 1 : 0], alpha: 1 - k * 0.25, shape: SHAPE.dot }); }
+    }
+  }
+  // going under (sim: dead, diedAt): it lurches over, then goes down along its own waterline with the masts last, in a
+  // dark hole of churned water; the fires die in steam, foam rings it, timbers and spars drift off
+  const SINK = 6.5;   // seconds
+  const sunk = new Map();   // ship id -> { at, y, roll }
+  function goingDown(e, x, z) {
+    const H = HULL[e.warUnit] || HULL.warship, [hx, hz] = head(e.heading);
+    for (let i = 0; i < 12; i++) { const t = rand(-1, 1) * H.half, sd = Math.random() < 0.5 ? -1 : 1;
+      spray(x + hx * t + hz * sd * 1.2, 0.3, z + hz * t - hx * sd * 1.2, 2, 4, 1.4, 0.5); }
+    for (let i = 0; i < 7; i++) { const a = Math.random() * Math.PI * 2;   // timbers thrown off as she breaks
+      soot.emit({ x: x + Math.cos(a) * 2, y: rand(1, 2.2), z: z + Math.sin(a) * 1.2, vx: Math.cos(a) * rand(1.5, 3), vz: Math.sin(a) * rand(1.5, 3), vy: rand(2.5, 4), gravity: 9, drag: 0.4, life: rand(1, 1.3), size: rand(0.6, 1), color: pick(WOOD), alpha: 1, shape: SHAPE.shard, spin: rand(-6, 6), rot: rand(0, 6.3) }); }
+  }
+  function sinking(e, s, dt, tick) {
+    const p = s.pos || s.thing.mesh.position;
+    if (!sunk.has(e.id)) { const ago = Math.max(0, (tick - (e.diedAt ?? tick)) / 20); sunk.set(e.id, { at: clock - ago, y: s.listY || 0, roll: s.roll || 0, drift: 0 }); if (ago < 0.6) goingDown(e, p.x, p.z); }
+    const S0 = sunk.get(e.id), t = clock - S0.at, k = Math.min(1, t / SINK), H = HULL[e.warUnit] || HULL.warship, [hx, hz] = head(e.heading), CW = s.cellWorld ?? 16;
+    const lurch = Math.min(1, t / 0.55) ** 0.7, under = Math.min(1, Math.max(0, (t - 0.6) / (SINK - 0.9)) ** 1.3);
+    s.roll = S0.roll + (-0.28 - S0.roll) * lurch - 0.36 * under; s.listRoll = s.roll;   // she goes down by the stern, the bow rising
+    s.listY = S0.y + 0.7 * lurch + CW * 0.29 / UPY * under;   // the masthead goes under at the end
+    s.thing.mesh.position.y -= s.listY;
+    sea(s, p.x, p.z, keel(e.heading, s.roll * 0.4), 0.5 + 10 * under);   // what is left above goes dark with the sea as she goes
+    fade(s, (SINK + 0.3 - t) / 0.6);
+    if (k >= 1) return;
+    const r = H.half * (1 - under * 0.5);
+    if ((S0.drift -= dt) <= 0) { S0.drift = 0.25;   // the dark hole of disturbed water round the hull
+      for (let j = 0; j < 3; j++) { const u = rand(-0.8, 0.8) * r; deep.emit({ x: p.x + hx * u, y: 0.02, z: p.z + hz * u, vx: 0, vz: 0, drag: 1, life: 1.4, size: rand(4.5, 6.5) * (1 - under * 0.4), grow: 1.15, alpha: 0.32 }); } }
+    for (let n = Math.floor(dt * 60 * (1 - under * 0.6) + Math.random()); n > 0; n--) {   // a broken collar of foam where the sea meets the hull
+      const u = rand(-1.05, 1.05) * H.half * (1 - under * 0.4); foam.emit({ x: p.x + hx * u + vg.x * rand(0.1, 0.5), y: 0.03, z: p.z + hz * u + vg.z * rand(0.1, 0.5), vx: vg.x * 0.2, vz: vg.z * 0.2, drag: 1, life: rand(0.5, 0.9), size: rand(0.5, 0.9), grow: 1.3, alpha: rand(0.4, 0.65) }); }
+    for (let n = Math.floor(dt * 25 * (1 - under * 0.5) + Math.random()); n > 0; n--) {   // foam boiling along the waterline and round the hull
+      const u = rand(-1.1, 1.1) * r, sd = Math.random() < 0.5 ? -1 : 1, off = rand(0, 1.5), x = p.x + hx * u + hz * sd * off, z = p.z + hz * u - hx * sd * off;
+      foam.emit({ x, y: 0.03, z, vx: hz * sd * rand(0.2, 0.7), vz: -hx * sd * rand(0.2, 0.7), drag: 0.7, life: rand(1, 1.8), size: rand(0.9, 1.6), grow: 1.4, alpha: rand(0.3, 0.5) }); }
+    if (Math.random() < dt * 6) { const u = rand(-0.9, 0.9) * r, sd = Math.random() < 0.5 ? -1 : 1, x = p.x + hx * u + hz * sd * rand(0.4, 1.2), z = p.z + hz * u - hx * sd * rand(0.4, 1.2);   // air bursting up
+      ring(x, z, 0.3, 1.6, 1.1, 0.55); spray(x, 0.1, z, 3, 2.4, 0.4, 0.25); }
+    if (t < 3.4 && Math.random() < dt * 8) { const u = (Math.random() - 0.5) * H.half * 1.2;   // the fires meet the sea: steam
+      soot.emit({ x: p.x + hx * u, y: Math.max(0.4, H.deck - s.listY * 0.6), z: p.z + hz * u, vx: rand(0.6, 1.2), vz: rand(-0.4, -0.1), vy: rand(1.6, 2.6), gravity: -0.2, drag: 0.6, sway: 0.4, life: rand(1.8, 2.6), size: rand(0.5, 0.8), grow: 2.6, color: [0.6, 0.63, 0.64], alpha: 0.24, shape: SHAPE.puff, spin: rand(-0.3, 0.3), rot: rand(-0.4, 0.4) }); }
+    if (Math.random() < dt * 0.7) { const u = rand(-0.9, 0.9) * H.half, cx = p.x + hx * u + rand(0.5, 2), cz = p.z + hz * u - rand(0.2, 1.2), vx = rand(0.3, 0.6), vz = rand(-0.3, -0.05);   // a clump of timbers and rag breaking free, drifting off downwind
+      for (let i = 0, n = 2 + Math.floor(Math.random() * 3); i < n; i++) wreck({ x: cx + rand(-0.9, 0.9), y: 0.04, z: cz + rand(-0.6, 0.6), vx: vx * rand(0.7, 1.3), vz: vz * rand(0.7, 1.3), drag: 0.1, life: rand(8, 11), size: rand(0.7, 2.4), grow: 1, alpha: 0.8 }); }
+    if (t - dt < SINK - 0.4 && t >= SINK - 0.4) { ring(p.x, p.z, 2, 9, 2.6, 0.7); ring(p.x, p.z, 1, 5, 2, 0.55); spray(p.x, 0.3, p.z, 8, 4, 0.6, 0.55); }   // the sea closes over the mastheads
+  }
+  // the troops in its hold (sim: dead, drowned = the ship): heads and shoulders in the sea round the wreck, bobbing in
+  // rings of foam they beat up, then one by one they go under
+  const drown = new Map();   // unit id -> { at (clock), end (s), ring (next) }
+  function drowning(e, s, dt, tick) {
+    const p = s.pos || s.thing.mesh.position;
+    let D = drown.get(e.id);
+    if (!D) { const h = hash(e.id); D = { at: clock - Math.max(0, (tick - (e.diedAt ?? tick)) / 20), end: 2.4 + h * 2.6, ring: 0, seed: h * 40 }; drown.set(e.id, D); }
+    const t = clock - D.at, go = Math.max(0, (t - D.end) / 0.7);
+    const half = 1.2, bob = Math.sin(clock * 5.5 + D.seed) * 0.1 + Math.sin(clock * 9 + D.seed * 2) * 0.05;
+    s.roll = (D.seed % 2 < 1 ? 0.35 : -0.35) + Math.sin(clock * 3.2 + D.seed) * 0.12;   // thrown over, struggling
+    s.thing.mesh.position.y -= (half + bob + go * 1.6) / UPY;
+    sea(s, p.x, p.z, 0, 0.3);
+    fade(s, Math.min(t / 0.35, 1 - go));
+    if (go >= 1) return;
+    const u = uni(s); if (u?.uFlash) u.uFlash.value = Math.max(u.uFlash.value, 0.08 + 0.06 * Math.max(0, bob * 8));   // wet, catching the light
+    if (D.up !== (bob > 0.06)) { D.up = bob > 0.06; if (D.up && go < 0.3) spray(p.x + rand(-0.3, 0.3), 0.35, p.z, 3, 2.6, 0.5, 0.2); }   // a flick of water as he heaves up
+    if (Math.random() < dt * 12) foam.emit({ x: p.x + rand(-0.4, 0.4), y: 0.03, z: p.z + rand(-0.3, 0.3), vx: rand(-0.3, 0.3), vz: rand(-0.3, 0.3), drag: 1, life: rand(0.8, 1.2), size: rand(0.7, 1.1), grow: 1.4, alpha: 0.55 });   // the foam round him
+    if (clock >= D.ring) { D.ring = clock + rand(0.45, 0.75); ring(p.x, p.z, 0.4, 1.5, 0.9, 0.6); if (go < 0.2 && Math.random() < 0.7) spray(p.x, 0.5, p.z, 4, 3, 0.6, 0.22); }   // arms beating the water
+    if (go > 0 && !D.last) { D.last = true; ring(p.x, p.z, 0.4, 2.2, 1.3, 0.65); spray(p.x, 0.3, p.z, 5, 3.5, 0.7, 0.3); }
+  }
+  // the hero and crew (sim: washed = tick): a wave runs up the sand and breaks, and leaves them lying there as it runs
+  // back, the sand dark where it reached
+  const WASH_AT = 2.1;   // seconds after the sinking, as the camera arrives (render/view.js panTo)
+  function wave(c) {
+    const L = c.ashore, B = c.berth || { x: c.x, z: c.z }, d = Math.hypot(L.x - B.x, L.z - B.z) || 1, ux = (L.x - B.x) / d, uz = (L.z - B.z) / d, sx = -uz, sz = ux;
+    const at = clock + WASH_AT - 0.9, W = 4.5, rot = Math.atan2(-sz, sx);   // a flat mark's long side along the shore
+    later.push({ at, fn: () => {   // the body of shallow water running in, its bright lip in front
+      const x = L.x - ux * 4.4, z = L.z - uz * 4.4, V = 5.8;
+      flat(BODY, x - ux * 1.4, z - uz * 1.4, { r0: 1.9, r1: 2.1, len: 2.1, life: 1.5, alpha: 1, rot, color: [1, 1, 1], order: 1.95, y: 0.03, vx: ux * V, vz: uz * V, drag: 0.6, fadeIn: 0.25 });
+      flat(LINE, x, z, { r0: 0.55, r1: 0.6, len: 8, life: 1.25, alpha: 1, rot, color: [0.9, 0.93, 0.94], order: 2.02, y: 0.04, vx: ux * V, vz: uz * V, drag: 0.6, fadeIn: 0.2 });
+      for (let i = 0; i < 40; i++) { const w = rand(-W, W), f = 1 - (Math.abs(w) / (W + 1)) ** 2;
+        lip.emit({ x: x + sx * w - ux * rand(0, 0.5), y: 0.03, z: z + sz * w - uz * rand(0, 0.5), vx: ux * V * f * 0.95, vz: uz * V * f * 0.95, drag: 0.6, life: rand(1, 1.2), size: rand(0.6, 1), grow: 1.3, alpha: 0.6 * f }); } } });
+    later.push({ at: at + 0.95, fn: () => {   // it breaks on them: spray, then the water draws back leaving wet sand and a thin foam line
+      for (let i = 0; i < 8; i++) { const w = rand(-3, 3); spray(L.x + sx * w, 0.3, L.z + sz * w, 2, 3, 0.8, 0.45); }
+      flat(WET, L.x + ux * 0.2, L.z + uz * 0.2, { r0: 1.9, r1: 2, len: 2.3, life: 8, alpha: 0.9, rot, color: [1, 1, 1], order: 1.9, y: 0.025 });
+      flat(EDGE, L.x + ux * 1.8, L.z + uz * 1.8, { r0: 0.45, r1: 0.5, len: 8.5, life: 2.4, alpha: 0.8, rot, color: [0.85, 0.89, 0.9], order: 2.02, y: 0.04, vx: -ux * 1.5, vz: -uz * 1.5, drag: 0.5 });   // the edge it leaves, drawn back down the sand
+    } });
+  }
+  const washed = new Map();   // unit id -> { tick, at }
+  function ashore(e, s, tick) {
+    if (washed.get(e.id)?.tick !== e.washed) washed.set(e.id, { tick: e.washed, at: clock - Math.max(0, (tick - e.washed) / 20) });
+    const t = clock - washed.get(e.id).at, u = uni(s);
+    if (t < WASH_AT + 0.6) fade(s, (t - WASH_AT) / 0.3);
+    if (u?.uFlash) u.uFlash.value = Math.max(u.uFlash.value, 0.22 * Math.max(0, 1 - Math.abs(t - WASH_AT - 0.3) / 0.6));   // wet, catching the light as the water leaves them
+  }
+
   return {
     cast(c) {
       if (c.kind === 'shipBroadside') broadside(c);
       else if (c.kind === 'shipCannon') bow(c);
       else if (c.kind === 'gatlingShot' && c.deck) deckShot(c);
+      else if (c.kind === 'shipSunk' && c.ashore && c.washed) wave(c);
     },
     update(state, sprites, dt, place) {
       clock += dt;
       for (let i = later.length - 1; i >= 0; i--) if (later[i].at <= clock) { const f = later[i].fn; later.splice(i, 1); f(); }
       const seen = new Set();
       if (place === 'world') for (const e of Object.values(state.entities)) {
+        if ((e.ship && e.dead) || (e.drowned && e.dead) || (e.washed != null && state.tick - e.washed < (WASH_AT + 1) * 20)) {   // S6
+          const s = sprites.get(e.id);
+          if (s?.thing?.mesh) { if (e.ship) sinking(e, s, dt, state.tick); else if (e.drowned) drowning(e, s, dt, state.tick); else ashore(e, s, state.tick); }
+        }
         if (!e.ship || e.dead) continue;
         const s = sprites.get(e.id); if (!s?.thing?.mesh) continue;
         seen.add(e.id);
         stagesFor(e, s, dt);
         if (e.warUnit === 'warship') deckGun(s, e, place);
+        if (e.mending) mending(e, s, dt);
       }
       for (const [id, m] of guns) if (!seen.has(id)) { scene.remove(m); m.material.dispose(); guns.delete(id); aims.delete(id); }
       for (const id of [...fires.keys()]) if (!seen.has(id)) fires.delete(id);
+      foam.update(dt); lip.update(dt); deep.update(dt); sheet.update(dt); wreckA.update(dt); wreckB.update(dt); wreckC.update(dt); flatsUpdate(dt);
+      for (const m of [taps, sunk, drown, washed]) for (const id of [...m.keys()]) if (!state.entities[id] || (m === taps && !state.entities[id].mending)) m.delete(id);
       glow.update(dt); soot.update(dt); cards.update(dt);
     },
   };

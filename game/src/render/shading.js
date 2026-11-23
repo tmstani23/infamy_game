@@ -139,6 +139,8 @@ uniform float uFlash;        // 0..1 white hit flash
 uniform vec4 uClip;          // near interior walls: ground point xyz on the wall, w = height to keep
 uniform float uClipSlope;    // screen slope of the wall's foot
 uniform vec4 uFogAt;         // w > 0: darken by the fog of war at ground point xy (scenery)
+uniform vec4 uSea;           // w > 0: a waterline through xyz (ships S6: a ship going under, a man drowning); w = the wet band
+uniform float uSeaSlope;     // its slope on screen
 varying vec2 vUv;
 varying vec3 vWorld;
 void main() {
@@ -168,6 +170,13 @@ void main() {
     if (h > uClip.w) discard;
     edge = smoothstep(uClip.w - 0.08, uClip.w, h);   // dark cut line along the top
   }
+  float wet = 0.0;
+  if (uSea.w > 0.0) {
+    vec3 sw = vWorld - uSea.xyz;
+    float sx = dot(sw, CAM_RIGHT), hw = dot(sw, CAM_UP) - uSeaSlope * sx + 0.05 * sin(sx * 3.1 + uTime * 2.3) + 0.03 * sin(sx * 7.7 - uTime * 3.1);   // a little swell along it
+    if (hw < 0.0) discard;
+    wet = hw < 0.0 ? 1.0 : 1.0 - smoothstep(0.0, uSea.w, hw);
+  }
   float a = t.a * uOpacity;
   if (uCut > 0.0) {
     vec3 d = vWorld - uCutCenter;
@@ -181,6 +190,7 @@ void main() {
     a = max(a * (0.65 + 0.5 * veilRipple), veilEdge * 0.36);
   }
   if (uFogAt.w > 0.0) c = fogged(c, uFogAt.xy);
+  if (wet > 0.0) { c = mix(c, vec3(0.08, 0.16, 0.24), wet * 0.7); }   // dark and wet just above the waterline
   gl_FragColor = vec4(mix(c, vec3(1.0, 0.97, 0.9), uFlash), a);
 }`;
 
@@ -366,6 +376,8 @@ export function spriteMaterial(map, extra = {}, packed = false) {
       uClipSlope: { value: 0 },
       uDepthAt: { value: new THREE.Vector4(0, 0, 0, 0) },
       uFogAt: { value: new THREE.Vector4(0, 0, 0, 0) },
+      uSea: { value: new THREE.Vector4(0, 0, 0, 0) },
+      uSeaSlope: { value: 0 },
       ...extra,
     },
     vertexShader: SPRITE_VERT,

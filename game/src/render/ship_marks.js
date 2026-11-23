@@ -31,13 +31,13 @@ function fleckTexture() {
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.NoColorSpace; return t;
 }
-function createFoam(scene, max = 1600) {
+export function createFoam(scene, max = 1600, color = FOAM, order = 2, tex = null) {   // ships S6: ship_fx.js uses it too
   const pos = new Float32Array(max * 3), info = new Float32Array(max * 2), geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('aInfo', new THREE.BufferAttribute(info, 2));
-  const points = new THREE.Points(geo, new THREE.ShaderMaterial({ uniforms: { uPx: fxShared.uPx, uTex: { value: fleckTexture() }, uColor: { value: new THREE.Vector3(...FOAM) } },
+  const points = new THREE.Points(geo, new THREE.ShaderMaterial({ uniforms: { uPx: fxShared.uPx, uTex: { value: tex || fleckTexture() }, uColor: { value: new THREE.Vector3(...color) } },
     vertexShader: F_VERT, fragmentShader: F_FRAG, transparent: true, depthWrite: false }));
-  points.renderOrder = 2;   // with the unit rings: on the water, under the ships
+  points.renderOrder = order;   // with the unit rings: on the water, under the ships
   points.frustumCulled = false;
   scene.add(points);
   const list = [];
@@ -69,7 +69,7 @@ function shadowTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.NoColorSpace; return t;
 }
 // ---- the plate: health bar over hold sockets, cut corners, lacquer with a warm gold edge ---------------------
-function drawPlate(g, { frac, enemy, n, hold }) {
+function drawPlate(g, { frac, enemy, n, hold, mend = null }) {
   const W = PLATE_PX[0], H = (hold ? PLATE_PX[1] : PLATE_PX[1] / 2) - 7, c = 12;
   g.clearRect(0, 0, W, PLATE_PX[1]);
   const cut = (x0, y0, x1, y1, k) => { g.beginPath(); g.moveTo(x0 + k, y0); g.lineTo(x1 - k, y0); g.lineTo(x1, y0 + k); g.lineTo(x1, y1 - k); g.lineTo(x1 - k, y1); g.lineTo(x0 + k, y1); g.lineTo(x0, y1 - k); g.lineTo(x0, y0 + k); g.closePath(); };
@@ -89,6 +89,11 @@ function drawPlate(g, { frac, enemy, n, hold }) {
   g.fillStyle = `rgb(${r},${gg},${b})`; g.fillRect(bx, by, bw * frac, bh);
   g.fillStyle = 'rgba(255,240,200,.22)'; g.fillRect(bx, by, bw * frac, 4);
   g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(bx, by + bh - 3, bw * frac, 3);
+  if (mend != null && frac < 1) {   // ships S6: mending at the yard, a bright highlight running along the fill
+    const x = bx + bw * frac * mend, q = g.createLinearGradient(x - 14, 0, x + 3, 0);
+    q.addColorStop(0, 'rgba(244,250,214,0)'); q.addColorStop(0.8, 'rgba(244,250,214,0.75)'); q.addColorStop(1, 'rgba(255,255,236,0.95)');
+    g.save(); g.beginPath(); g.rect(bx, by, bw * frac, bh); g.clip(); g.fillStyle = q; g.fillRect(x - 14, by, 17, bh); g.restore();
+  }
   if (!hold) return;
   // hold: a small figure (men aboard), then one socket a place, then the count
   const y = 38, s = 14, gap = 3, ax = 25, ay = y + s / 2;
@@ -167,8 +172,9 @@ export function createShipMarks({ scene, types, holdOf }) {
       const hold = holdOf(e), n = Object.values(state.entities).filter(u => u.inShip === e.id && !u.dead).length;
       const frac = Math.max(0, Math.min(1, (e.hp ?? 0) / (e.maxHp || 1)));
       const rows = enemy ? 0 : hold;   // an enemy's hold is not shown (with Board armed, S8)
-      const key = `${Math.round(frac * 100)}|${n}|${rows}|${enemy ? 1 : 0}`;
-      if (key !== m.key) { m.key = key; drawPlate(m.g, { frac, enemy, n, hold: rows }); m.tex.needsUpdate = true;
+      const mend = e.mending ? ((state.tick ?? 0) % 24) / 24 : null;   // ships S6
+      const key = `${Math.round(frac * 100)}|${n}|${rows}|${enemy ? 1 : 0}|${mend}`;
+      if (key !== m.key) { m.key = key; drawPlate(m.g, { frac, enemy, n, hold: rows, mend }); m.tex.needsUpdate = true;
         m.tex.repeat.set(1, rows ? 1 : 0.5); m.tex.offset.set(0, rows ? 0 : 0.5); m.plate.scale.y = PLATE_W * PLATE_PX[1] / PLATE_PX[0] * (rows ? 1 : 0.5); }
       // foam while under way: from how far the drawn ship moved this frame
       if (m.last && dt > 0) {

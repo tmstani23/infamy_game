@@ -96,7 +96,7 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: callou
       if (n.kind === 'hqRecovered' && n.clan === me) callout('HQ fire extinguished · contracts available · HQ protected for a full day/night cycle', 'news');
       if (n.kind === 'shipSunk') {   // ships S4
         const what = n.unit === 'transport' ? 'transport' : 'warship';
-        if (n.clan === me) { callout(n.hero ? `Your ${what} sank: you wash ashore` : `Your ${what} sank${n.lost ? `, ${n.lost} troops lost` : ''}`, 'loss', 6000); if (!n.hero) { mini.ping(n.x, n.z); bigMap.ping(n.x, n.z); } }
+        if (n.clan === me) { callout(n.hero ? `Your ${what} sank: you wash ashore` : `Your ${what} sank${n.lost ? `, ${n.lost} troops lost` : ''}`, 'loss', 6000); if (!n.hero) { mini.ping(n.x, n.z); bigMap.ping(n.x, n.z); } else if (n.ashore) view.panTo?.(n.x, n.z, n.ashore.x, n.ashore.z); }
         else if (n.by === me) callout(`Enemy ${what} sunk`, 'win', 4000);
       }
       if (n.kind === 'bossDown' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss knocked out!`, n.by === me ? 'win' : 'news');

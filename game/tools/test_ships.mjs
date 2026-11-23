@@ -117,11 +117,14 @@ const rider = g.ships.riders(ship2).find(u => u.type !== 'hero'), hp0 = ship2.hp
 assert.ok(g.ships.shelter(rider, 150) && ship2.hp === hp0 - 150 && rider.hp > 0, 'the hull takes the hit');
 const troop = S.entities[g.frontier.war.spawnTroop(rec, 'grunt', ship2.x, ship2.z, 'player')]; Object.assign(troop, { aboard: ship2.id, inShip: ship2.id }); delete troop.order;
 const aboard = g.ships.riders(ship2);
-g.ships.shelter(rider, 1e6); g.step([]);
+g.ships.shelter(rider, 1e6); const sunkCast = S.casts?.find(c => c.kind === 'shipSunk' && c.a === ship2.id); g.step([]);
 assert.ok(ship2.dead, 'sunk');
 assert.ok(troop.dead && !troop.inShip, 'plain troops aboard drown');
+assert.ok(troop.drowned === ship2.id && Math.hypot(troop.x - ship2.x, troop.z - ship2.z) > 1, 'S6: a drowned troop lies in the sea round the wreck');
+{ const c = sunkCast; assert.ok(c && c.berth && c.washed === aboard.filter(u => !u.warTroop).length, 'S6: the sinking cast carries the landing for the wave'); }
 for (const u of aboard.filter(u => !u.warTroop)) {
   assert.ok(!u.inShip && (u.downed || u.dead) && passable(world, u.x, u.z), `${u.type} washed ashore on landable ground`);
+  assert.ok(u.washed != null, 'S6: marked washed ashore for the wave');
   assert.ok(Math.hypot(u.x - circle.x, u.z - circle.z) <= circle.r, 'inside the war circle');
 }
 console.log('ships: ok');

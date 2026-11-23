@@ -388,16 +388,19 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
   // plan 1.6: plain troops aboard drown; the hero and crew wash ashore downed at the nearest landable shore in the circle
   function sink(s, by = null) {
     const g = grid(), box = boxOf(s), L = landingFor(g, s.x, s.z, waterOf(s), { box, maxR: (data?.war?.circleRadius ?? 900) * 2 });
-    const list = riders(s);
+    const list = riders(s), [hx, hz] = [Math.sin(s.heading ?? 0), Math.cos(s.heading ?? 0)], half = s.warUnit === 'transport' ? 3.6 : 4.4;
+    let dk = 0;
     list.forEach((u, k) => {
       delete u.aboard; delete u.inShip; delete u.boardShip;
-      if (u.warTroop) { Object.assign(u, { dead: true, diedAt: state.tick ?? 0, hp: 0, anim: 'death' }); return; }
+      if (u.warTroop) {   // S6: they drown in the sea round the wreck (render/ship_fx.js draws them half under, then gone)
+        const t = ((dk % 5) / 4 - 0.5) * 1.5 * half, sd = dk & 1 ? 1 : -1, off = 1.8 + (dk++ % 3) * 0.8;
+        Object.assign(u, { dead: true, diedAt: state.tick ?? 0, hp: 0, anim: 'idle', drowned: s.id, x: s.x + hx * t + hz * sd * off, z: s.z + hz * t - hx * sd * off }); return; }
       const [ox, oz] = followOffset?.(k % 36) || [0, 0], n = navOf?.('world'), at = L?.land || { x: s.x, z: s.z };
       const [x, z] = n?.nearestFree?.(at.x + ox * 0.9, at.z + oz * 0.9) || [at.x, at.z];
-      Object.assign(u, { x, z, hp: 0 }); forget?.(u.id); down?.(u);
+      Object.assign(u, { x, z, hp: 0, washed: state.tick ?? 0 }); forget?.(u.id); down?.(u);
     });
     for (const u of Object.values(state.entities)) if (u.boardShip === s.id) delete u.boardShip;
-    state.casts?.push({ kind: 'shipSunk', a: s.id, x: s.x, z: s.z, place: 'world', ashore: L?.land || null, owner: s.owner, hero: list.some(u => u.type === 'hero') });
+    state.casts?.push({ kind: 'shipSunk', a: s.id, x: s.x, z: s.z, place: 'world', ashore: L?.land || null, berth: L?.berth || null, washed: list.filter(u => !u.warTroop).length, owner: s.owner, hero: list.some(u => u.type === 'hero') });
     // S4: news for the alert (src/news_callouts.js): the owner's camera follows his hero ashore when he was aboard, else an alert and a ping
     state.news?.push({ kind: 'shipSunk', clan: s.owner, by: by?.owner ?? null, unit: s.warUnit, x: s.x, z: s.z, ashore: L?.land || null, hero: list.some(u => u.type === 'hero'), lost: list.filter(u => u.warTroop).length });
     Object.assign(s, { dead: true, diedAt: state.tick ?? 0, hp: 0, anim: 'idle', sorder: { kind: 'stay' } });

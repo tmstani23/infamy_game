@@ -10,7 +10,8 @@ const SOFT = [0, 1, 2, 3, 4].map(i => `Audio/impactSoft_medium_00${i}`);
 const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
   'katana_draw_1', 'katana_draw_2', 'club_hit_1', 'club_hit_2', 'club_hit_3', 'crit_hit_1', 'crit_hit_2',
   'death_thud_1', 'death_thud_2', 'knockdown_thud_1', ...SOFT,
-  'Audio/handleCoins', 'Audio/handleCoins2', 'Audio/doorOpen_1', 'Audio/doorOpen_2', 'Audio/bookOpen', 'Audio/impactMetal_light_000', 'Audio/impactMetal_light_001', 'Audio/impactMetal_light_002', 'punch_hit_1', 'punch_hit_2', 'punch_hit_heavy_1'];
+  'Audio/handleCoins', 'Audio/handleCoins2', 'Audio/doorOpen_1', 'Audio/doorOpen_2', 'Audio/bookOpen', 'Audio/impactMetal_light_000', 'Audio/impactMetal_light_001', 'Audio/impactMetal_light_002', 'punch_hit_1', 'punch_hit_2', 'punch_hit_heavy_1',
+  'Audio/impactPlank_medium_000', 'Audio/impactPlank_medium_001', 'Audio/impactPlank_medium_002', 'Audio/creak1', 'Audio/creak2', 'Audio/creak3', 'Audio/impactWood_heavy_000', 'Audio/impactWood_heavy_001', 'Audio/impactSoft_heavy_000', 'Audio/impactSoft_heavy_001'];   // ships S6
 // Punch fallback for models without a dedicated weapon route; heavy impacts use a lower pitch.
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
 // Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
@@ -224,6 +225,12 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         lastTapTick = state.tick; let taps = 0;
         for (const e of Object.values(state.entities)) {
           if (taps >= 3) break;
+          if (e.ship && e.mending && !e.dead) {   // ships S6: a ship mending at its yard, a few blows a second, plank and nail
+            let k = 0; for (const ch of String(e.id)) k = (k * 31 + ch.charCodeAt(0)) >>> 0;
+            if ((state.tick + k) % 7 !== 0) continue;
+            const v = near(me, e.x, e.z, e.place); if (v <= 0.05) continue;
+            play((state.tick + k) % 3 ? `Audio/impactPlank_medium_00${(state.tick + k) % 3}` : 'Audio/impactMetal_light_001', 0.2 * v, 0.95 + (k % 5) * 0.03); taps++; continue;
+          }
           if (!e.worker || e.anim !== 'hammer') continue;
           let k = 0; for (const ch of String(e.id)) k = (k * 31 + ch.charCodeAt(0)) >>> 0;
           if ((state.tick + k) % 20 !== 0) continue;
@@ -275,6 +282,11 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (c.kind === 'shipBroadside' || c.kind === 'shipCannon') {   // ships S4: a broadside rolls (four booms), the bow cannon one
           const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero));
           if (v > 0.01) for (let k = 0; k < (c.kind === 'shipBroadside' ? 4 : 1); k++) setTimeout(() => variant('cannon_fire_1', (k ? 0.6 : 0.85) * v, 0.76 + Math.random() * 0.1), k * 110);
+          continue; }
+        if (c.kind === 'shipSunk') {   // ships S6: the hull groans and breaks, then the sea swallows it
+          const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero));
+          if (v > 0.01) { play(['Audio/creak1', 'Audio/creak2', 'Audio/creak3'], 0.75 * v, 0.55); play(['Audio/impactWood_heavy_000', 'Audio/impactWood_heavy_001'], 0.6 * v, 0.6);
+            setTimeout(() => play('Audio/creak2', 0.55 * v, 0.45), 1400); setTimeout(() => play(['Audio/impactSoft_heavy_000', 'Audio/impactSoft_heavy_001'], 0.7 * v, 0.5), 5300); }
           continue; }
         if (c.kind === 'cannonFire') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero)); variant('cannon_fire_1', 0.85 * v, c.brass ? 1 : 0.88); continue; }   // Tim 2026-11-07: only heard near the hero or the camera, fading fast
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);

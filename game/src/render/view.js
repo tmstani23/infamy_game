@@ -65,6 +65,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const camTarget = new THREE.Vector3();
   let camReady = false;
   let freeCam = null;      // where the camera looks while panned away from the hero (arrow keys), else null
+  let shipPan = null;      // ships S6: { k, x, z, tx, tz } the hero's ship went down at x, z; he washes ashore at tx, tz
   let watchedPlace=null,watchedId=null;
   let roomView=null;       // interior view (Tim 2026-11-10): the room the camera stays in after following crew inside, until it goes back out
   const indoorPlace=p=>!!p&&p!=='street'&&p!=='world';
@@ -691,6 +692,11 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     const sea = h.shipRide && !freeCam && !watchFn ? seaSpot(state, h.shipRide, frameAlpha) : null;
     if (sea) cameraPoint.set(sea.x, 0, sea.z);
     if (jumped) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; roomView = null; camTarget.copy(cameraPoint); }
+    if (shipPan) {   // ships S6: a moment on the wreck, then a pan to the shore
+      const k = (shipPan.k += dt), m = Math.max(0, Math.min(1, (k - 1.1) / 0.9)), e = m * m * (3 - 2 * m);
+      if (k > 2.2) { shipPan = null; freeCam = null; farCam = false; }
+      else { farCam = true; (freeCam ||= new THREE.Vector3()).set(shipPan.x + (shipPan.tx - shipPan.x) * e, cameraPoint.y, shipPan.z + (shipPan.tz - shipPan.z) * e); }
+    }
     const w = watchFn && watchFn();
     if (watchFn && !w) watchFn = null;
     watchedPlace = w?.place ?? null; watchedId = w?.id ?? null;
@@ -708,6 +714,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     heroPlace = h.place;
     if (!camReady || camTarget.distanceTo(cameraPoint) > (farCam || freeCam ? Infinity : 20)) { camTarget.copy(cameraPoint); camReady = true; freeCam = null; }
     camTarget.lerp(freeCam || cameraPoint, 1 - Math.exp(-dt * (freeCam ? 14 : 6)));
+    if (shipPan && freeCam) camTarget.copy(freeCam);
     if (sea) camTarget.copy(cameraPoint);
     (heroPos ||= new THREE.Vector3()).copy(cameraPoint);
     const place = cameraPlace(h);
@@ -757,7 +764,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       freeCam.addScaledVector(CAM_RIGHT, right * k).addScaledVector(GROUND_UP, up * k);
       inMap(freeCam);
     },
-    snapBack() { freeCam = null; farCam = false; watchFn = null; roomView = null; if (cityView) { cityView = false; const f = cityExit; cityExit = null; f?.(); } if (worldView) { worldView = false; const f = worldExit; worldExit = null; f?.(); } },
+    panTo(x, z, tx, tz) { shipPan = { k: 0, x, z, tx, tz }; watchFn = null; },   // ships S6: the hero's ship sank
+    snapBack() { shipPan = null; freeCam = null; farCam = false; watchFn = null; roomView = null; if (cityView) { cityView = false; const f = cityExit; cityExit = null; f?.(); } if (worldView) { worldView = false; const f = worldExit; worldExit = null; f?.(); } },
     // Watch a war (war 8d-4): show the island at (x, z) wherever the hero is; onExit runs when Home / snapBack ends it
     setWarWatch(on, x = 0, z = 0, onExit = null) {
       if (on && cityView) { cityView = false; const f = cityExit; cityExit = null; f?.(); }
