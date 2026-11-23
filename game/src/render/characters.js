@@ -440,7 +440,7 @@ export class CharacterSprite {
     if (hero) { g.lineWidth = 1; g.beginPath(); g.roundRect(9, 10, 238, 28, 5); g.stroke(); }
     if (clan) {
       g.fillStyle = color; g.beginPath(); g.arc(231, 24, 14, 0, Math.PI * 2); g.fill();
-      drawCrest(g, 231, 24, 10);
+      drawCrest(g, 231, 24, 10, undefined, typeof clan === 'string' ? clan : null);
     }
     g.font = '600 25px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillStyle = '#f1e4c7'; g.shadowColor = '#000'; g.shadowBlur = 4; g.fillText(name, clan ? 114 : 128, 24, clan ? 204 : 232);

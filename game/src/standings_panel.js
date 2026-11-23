@@ -20,7 +20,7 @@ export function createStandingsPanel({ root, game, heroId }) {
     const m = standingsModel(game, owner()); if (!m) return close();
     if (!m.rows.some(r => r.clan === tab)) tab = m.rows[0]?.clan;
     const d = standingsDetail(game, owner(), tab); if (!d) return close();
-    const aside = `<aside class="ms-aside"><div class="ms-art"><span class="st-crest" style="--c:${msEsc(d.color || '#888')}"></span></div><span class="ms-tier">${msEsc(d.me ? 'Your clan' : 'Rival clan')}</span>`
+    const aside = `<aside class="ms-aside"><div class="ms-art"><span class="st-crest"${d.faction ? ` data-faction="${msEsc(d.faction)}"` : ''} style="--c:${msEsc(d.color || '#888')}"></span></div><span class="ms-tier">${msEsc(d.me ? 'Your clan' : 'Rival clan')}</span>`
       + `<div class="ms-coins">${d.coins.map(c => `<div class="ms-coin${c.red ? ' red' : ''}"${c.tip ? ` title="${msEsc(c.tip)}"` : ''}><b>${msEsc(c.v)}</b><span>${msEsc(c.label)}</span></div>`).join('')}</div></aside>`;
     let body = `<div class="ms-tabs">${m.rows.map(r => `<button class="ms-tab${r.clan === tab ? ' on' : ''}" data-sclan="${msEsc(r.clan)}" title="${msEsc(r.hover)}">${msEsc(r.name)} ${r.big}</button>`).join('')}</div>`;
     if (d.from.length) body += msSec('Where the Influence comes from', '', 'Influence = Renown + businesses held each day + town trade') + d.from.map(r => msRow({ name: msEsc(r.name), sub: msEsc(r.sub), right: `<b>${msEsc(r.right)}</b>` })).join('');

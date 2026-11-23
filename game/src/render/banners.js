@@ -37,7 +37,12 @@ const shade = (hex, k) => {
 };
 
 // the clan crest (mon): a ring with three commas, in cream, centred on (cx, cy) with radius r
-export function drawCrest(g, cx, cy, r, color = '#f0e8d6') {
+// the painted clan crests (assets/ui/crests/<faction>_96.png, Tim 2026-11-23), loaded once; the drawn mon is the fallback
+const PAINTED = {};
+if (typeof Image !== 'undefined') for (const f of ['yakuza', 'kuroda', 'shinobi']) { const im = new Image(); im.src = `../assets/ui/crests/${f}_96.png`; PAINTED[f] = im; }
+export const paintedCrest = faction => { const im = PAINTED[faction]; return im?.complete && im.naturalWidth ? im : null; };
+export function drawCrest(g, cx, cy, r, color = '#f0e8d6', faction = null) {
+  const im = paintedCrest(faction); if (im) { const s = r * 2.4; g.drawImage(im, cx - s / 2, cy - s / 2, s, s); return; }
   g.save();
   g.strokeStyle = g.fillStyle = color; g.lineWidth = r * 0.14;
   g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
@@ -49,7 +54,7 @@ export function drawCrest(g, cx, cy, r, color = '#f0e8d6') {
   g.restore();
 }
 
-function bannerTexture(color) {
+function bannerTexture(color, faction = null) {
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const g = c.getContext('2d');
@@ -85,7 +90,7 @@ function bannerTexture(color) {
   g.fillStyle = '#1e1612'; for (let y = y0 + 10; y < y1; y += 26) g.fillRect(px - 4, y, 10, 4);
   // crest and brush strokes
   const cx = (x0 + x1) / 2;
-  drawCrest(g, cx, y0 + 26, 14);
+  drawCrest(g, cx, y0 + 26, 14, undefined, faction);
   g.strokeStyle = '#f0e8d6'; g.lineCap = 'round';
   [[0.22, 0.78], [0.3, 0.7], [0.18, 0.82]].forEach(([a, b], i) => {
     const y = y0 + 56 + i * 19;
@@ -158,10 +163,11 @@ export function createBanners({ scene }) {
     return [rx - oz / len * 1.6, rz + ox / len * 1.6];
   };
 
-  function add(b, color) {
-    if (!textures.has(color)) textures.set(color, bannerTexture(color));
+  function add(b, color, faction = null) {
+    const key = `${color}|${paintedCrest(faction) ? faction : ''}`;   // the painted crest once it has loaded
+    if (!textures.has(key)) textures.set(key, bannerTexture(color, faction));
     const [x, z] = spot(b);
-    const mat = new THREE.MeshBasicMaterial({ map: textures.get(color), transparent: true, opacity: 0.82, depthWrite: false });   // a little see-through (Tim: subtle)
+    const mat = new THREE.MeshBasicMaterial({ map: textures.get(key), transparent: true, opacity: 0.82, depthWrite: false });   // a little see-through (Tim: subtle)
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     mesh.quaternion.copy(CAM_QUAT);
     mesh.scale.set(WORLD_W, WORLD_H, 1);
@@ -349,7 +355,7 @@ export function createBanners({ scene }) {
       drop(b.id);
       if (!b.owner) continue;
       const color = state.clans?.[b.owner]?.color || '#b02424';
-      shown.set(b.id, { owner: b.owner, ...add(b, color) });
+      shown.set(b.id, { owner: b.owner, ...add(b, color, state.clans?.[b.owner]?.faction) });
       if (s !== undefined || state.tick > 1) claimed.push(b);
     }
     // the glow breathes a little

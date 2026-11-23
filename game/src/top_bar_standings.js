@@ -70,7 +70,7 @@ export function standingsDetail(game, owner, clan) {
   if (!c || !t) return null;
   const campaign = !modeRules(S).seasonEnds, renown = Math.floor(c.renown || 0), me = clan === owner;
   const held = Object.values(S.businesses || {}).filter(b => b.owner === clan && !b.hideout).length;
-  const base = { clan, me, name: c.name || clan, color: c.color, campaign, renownWhy: RENOWN_WHY(c) };
+  const base = { clan, me, name: c.name || clan, color: c.color, faction: c.faction || c.kind, campaign, renownWhy: RENOWN_WHY(c) };
   if (!campaign) {
     const score = t.standings().find(r => r.clan === clan)?.score ?? 0;
     return { ...base, coins: [{ v: score, label: 'Points', red: true, tip: 'Season points: businesses by weight, Renown and HQ raids. Most points when the season ends wins.' },

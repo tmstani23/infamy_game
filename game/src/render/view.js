@@ -461,7 +461,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // salute cannons: no health bar; a ridden horse neither: its bar sat on the rider's and the two flickered (Tim 2026-11-16), her health shows on her Mount card
       if (e.cannon || (e.guide && !e.owner) || (e.type === 'horse' && e.rider)) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp, SIDE_BAR[teamOf(e, state.entities[followId])]);   // nor the clanless guides (Tim 2026-11-20)
       s.setNameplate(e.name || entityName(units || { types: {} }, e), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
-        state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), !!state.clans?.[e.owner], e.type === 'hero',
+        state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), state.clans?.[e.owner] ? state.clans[e.owner].faction || true : false, e.type === 'hero',
         teamOf(e, state.entities[followId]) === 'enemy' ? '#e63c32' : null);   // enemies: a red border, the crest keeps the clan colour (Tim 2026-11-19)
       // an execute or arrest channel shows one bar, the labelled one in render/abilityfx.js (the
       // health bar stays a health bar: two bars used to show, Tim 2026-10-18);

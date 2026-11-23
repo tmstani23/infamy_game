@@ -349,6 +349,8 @@ Menu look (2026-11-11, lantern style 2026-11-23):
 - Settings, Controls, Character and inventory, HQ stash and Your towns use the same timber frame and clan cloth header with the crest at the left. Selects and text boxes are paper slips; the open tab is a paper tag.
 - The map screen (M) sits on dark wood with the map in a timber frame; the title is a clan cloth with the crest; map layers that are on show as brass buttons. The build bar is a small framed board, its zone buttons keep their zone colours, and hover tips are dark plaques in the serif.
 - The start screen shows the painted clan crests on dark shelf cards; the season end window and the loading screen use the same frame and serif. The campaign end scene (2026-11-20 mocks) is kept; its type, stat plates and buttons follow the lantern style.
+- The painted clan crests also show on unit nameplates, business banners, the war bar, the standings window and the campaign end scene (medal and rival crests); a clan without painted art keeps the drawn crest.
+- Hover tips (unit hover, map tips, war bar hover, town map building details, loot toast, garrison hints) are small dark wood plaques with a brass edge in the serif. Building cards (island building pane, city building panel, town cards), the goal card and the war chest coin take the frame and serif; small labels are plain italic, not spaced capitals.
 - Menu portraits are 3D sprite stills (assets/sprites/portraits/stills/<model>.png).
 - The action bar, character page and buff icons show drawn icons (game/src/hud_icons.js) next to each ability's name and key. Utility and command buttons use drawn icons too. UI text is plain, with no symbol glyphs.
 - Season end: a "Season over" line above the title; New game is the highlighted button.

@@ -1085,3 +1085,105 @@ body #campaignend .fc { border-radius: 30px 2px 2px 30px; }
 #startscreen .start-choice input:checked + .start-clan-card { background: radial-gradient(ellipse 70% 60% at 30% 20%, rgba(255,170,80,.16), transparent 70%), linear-gradient(180deg, rgba(20,12,8,.94), rgba(34,22,13,.94));
   box-shadow: inset 0 3px 10px #000, inset 0 0 0 1px rgba(168,50,31,.6), 0 0 0 2px #070403, 0 0 0 4px #c99a52; }
 #startscreen .start-content::before { inset: -30px -40px -26px -44px; background: linear-gradient(90deg, rgba(16,10,6,.86), rgba(16,10,6,.7) 80%, transparent), var(--ln-grain); opacity: .92; border-right: 3px solid rgba(90,61,28,.6); }
+/* Tim 2026-11-23: the wood board runs to the screen's left edge and full height */
+#startscreen .start-content::before { position: fixed; inset: 0 auto 0 0; width: calc(clamp(36px, 7vw, 150px) + min(720px, 100vw - 72px) + 40px); }
+@media (max-width: 850px) { #startscreen .start-content::before { width: 100vw; border-right: none; } }
+/* painted crests on the war bar and the standings window (Tim 2026-11-23): the crest over the clan-colour disc */
+body #warbar .wb-crest[data-faction], #standingspanel .st-crest[data-faction] { background-position: center, center; background-size: 92%, auto; background-repeat: no-repeat, no-repeat; }
+body #warbar .wb-crest[data-faction] { width: 24px; height: 24px; }
+body #warbar .wb-crest[data-faction="yakuza"], #standingspanel .st-crest[data-faction="yakuza"] { background-image: url(../../assets/ui/crests/yakuza_96.png), radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 60%); }
+body #warbar .wb-crest[data-faction="kuroda"], #standingspanel .st-crest[data-faction="kuroda"] { background-image: url(../../assets/ui/crests/kuroda_96.png), radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 60%); }
+body #warbar .wb-crest:is([data-faction="shinobi"], [data-faction="ninja"]), #standingspanel .st-crest:is([data-faction="shinobi"], [data-faction="ninja"]) { background-image: url(../../assets/ui/crests/shinobi_96.png), radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 60%); }
+
+/* ---------- hover boxes and small cards (Tim 2026-11-23: "fix those hover tooltips, they look like the old style") ----------
+   Hover tips are small lacquer plaques with a brass edge in the serif; building cards take the frame. Injected and inline
+   styles load after this file, so body / id weight. Eyebrows become a plain italic line under the title. */
+body #uhover.uf, body #gamemap .maptip, body #warbar .wb-hov, body #interiorinfo .building-details, body #garhint, body .loot-toast {
+  font-family: var(--ln-font); color: var(--ln-text); border: none; border-radius: 2px;
+  background: linear-gradient(180deg, rgba(255,210,150,.05), rgba(0,0,0,.25)), var(--ln-grain), rgba(30,20,13,.94);
+  box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #8a6a3a, 0 0 0 3px #0a0604, 0 8px 16px rgba(0,0,0,.65); }
+body #uhover.uf { padding: 6px 9px 7px; background-color: rgba(30,20,13,.88); }
+body #uhover.uf em { font: italic 500 11.5px/1.2 var(--ln-font); color: var(--ln-dim); }
+body #gamemap .maptip { font: 500 13px/1.45 var(--ln-font); padding: 6px 11px; }
+body #gamemap .maptip b { color: var(--ln-gold); font-weight: 700; }
+body #garhint { font: 700 12px/15px var(--ln-font); color: #f6e6bf; padding: 4px 9px; }
+body .zonegar { font: 700 12px var(--ln-font); color: #f6e6bf; background: radial-gradient(circle at 40% 30%, #3a2618, #140c08); border: none; box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #c9a04e, 0 2px 4px #000; }
+body .zonegar.foe { box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #c4503e, 0 2px 4px #000; }
+body .loot-toast { font: 500 14px/1.25 var(--ln-font); padding: 6px 14px 6px 7px; }
+body .loot-toast small { font: italic 500 12px var(--ln-font); letter-spacing: 0; text-transform: none; color: var(--ln-dim); }
+body .loot-toast.green { box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #6f9a4a, 0 0 0 3px #0a0604, 0 8px 16px rgba(0,0,0,.65); }
+/* war bar side hover: a framed card */
+body #warbar .wb-hov { border: 12px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; background-origin: border-box; background-clip: padding-box; box-shadow: 0 14px 34px rgba(0,0,0,.8); padding: 8px 14px 10px; }
+body #warbar .wb-hov h4 { font: 800 18px/1.2 var(--ln-font); color: #f2e2c0; }
+body #warbar .wb-hov .hl, body #warbar .wb-hov .hleft { font: 500 14px/1.5 var(--ln-font); }
+body #warbar .wb-hov .hb { border-radius: 2px; background: #120b07; box-shadow: inset 0 2px 3px #000, 0 0 0 1px #5a4430, 0 0 0 2px #0a0604; }
+/* town map footer: the building's details hover */
+body #interiorinfo .building-details { padding: 10px 13px; }
+body #interiorinfo .building-details strong { font: 800 16px/1.25 var(--ln-font); color: #f2e2c0; }
+body #interiorinfo .building-details small { font: italic 500 12px var(--ln-font); color: var(--ln-dim); }
+body #interiorinfo .building-details dt { color: var(--ln-faint); } body #interiorinfo .building-details dd { color: var(--ln-num); }
+
+/* building cards: the island building pane, the city building panel, the town inspect card */
+body #structcard, body #bldpanel { font-family: var(--ln-font); color: var(--ln-text); border: 11px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0;
+  background-origin: border-box; background-clip: padding-box; background-color: #1b120d;
+  background-image: radial-gradient(ellipse 75% 45% at 70% 0%, rgba(255,150,60,.10), transparent 70%), linear-gradient(rgba(20,13,9,.45), rgba(20,13,9,.45)), var(--ln-grain);
+  box-shadow: 0 14px 34px rgba(0,0,0,.8); }
+body #structcard:not([hidden]) { display: flex; flex-direction: column; }
+body #structcard h1 { order: -1; margin: 0 40px 0 0; font: 800 18px/1.2 var(--ln-font); color: #f2e2c0; }
+body #structcard .sub { margin: 1px 0 6px; font: italic 500 12.5px/1.25 var(--ln-font); letter-spacing: 0; text-transform: none; color: var(--ln-dim); }
+body #structcard .bar { height: 10px; border: none; border-radius: 2px; background: #120b07; box-shadow: inset 0 2px 3px #000, 0 0 0 1px #5a4430, 0 0 0 2px #0a0604; }
+body #structcard .dim { color: var(--ln-faint); font-size: 12px; } body #structcard .stat { color: var(--ln-gold); font-size: 13px; }
+body #structcard .gar { font: 800 14px var(--ln-font); background: radial-gradient(circle at 40% 30%, #3a2618, #140c08); box-shadow: 0 0 0 1px #0a0604, 0 0 0 2.5px #c9a04e; }
+body #structcard button, body #bldpanel button, body #towninspect button {
+  font: 700 12.5px/15px var(--ln-font); color: #ead3a6; border: none; border-radius: 2px; padding: 4px 9px;
+  background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,220,170,.25), inset 0 -2px 0 rgba(0,0,0,.4), 0 2px 0 #0a0604; }
+body #structcard button:hover:not(:disabled), body #bldpanel button:hover:not(:disabled), body #towninspect button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #5a3f28, #2e1f14); box-shadow: 0 0 0 1.5px #0a0604, 0 0 0 2.5px #c9a04e, inset 0 1px 0 rgba(255,220,170,.3); }
+body #structcard .x, body #towninspect button.ti-x { font-size: 11px; padding: 2px 7px; }
+body #structcard .x { top: 2px; right: 2px; }
+body #bldpanel .pic { border: none; border-radius: 2px; background-color: #0a0605; box-shadow: inset 0 3px 10px #000, 0 0 0 1px #0a0604, 0 0 0 2px #5a4430; }
+body #bldpanel b { font: 800 17px/1.2 var(--ln-font); color: #f2e2c0; }
+body #bldpanel i { font: italic 500 12.5px/1.3 var(--ln-font); color: var(--ln-dim); }
+body #bldpanel dl { font: 500 12.5px/1.35 var(--ln-font); } body #bldpanel dt { color: var(--ln-faint); } body #bldpanel dd { color: var(--ln-num); }
+body #bldpanel .why { font: italic 500 12px/1.3 var(--ln-font); color: var(--ln-dim); } body #bldpanel .notice { font: 700 12.5px/1.3 var(--ln-font); color: var(--ln-gold); }
+body #bldpanel .buy { color: #2a1b10; background: linear-gradient(180deg, #ecca86, #b6873f); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), 0 2px 0 #2b1c0c; }
+body #bldpanel .raid, body #bldpanel .lantern, body #bldpanel .atk { color: #ffb09a; background: linear-gradient(180deg, #5a2418, #2c110b); }
+body #towninspect { color: var(--ln-text); background-image: radial-gradient(ellipse 75% 45% at 70% 0%, rgba(255,150,60,.10), transparent 70%), linear-gradient(rgba(20,13,9,.45), rgba(20,13,9,.45)), var(--ln-grain); box-shadow: 0 14px 34px rgba(0,0,0,.8); }
+body #towninspect .ti-name { display: flex; flex-direction: column-reverse; }
+body #towninspect .ti-eye { font: italic 500 12.5px/1.25 var(--ln-font); letter-spacing: 0; text-transform: none; color: var(--ln-dim); }
+body #towninspect .ti-title { font: 800 19px/1.2 var(--ln-font); color: #f2e2c0; }
+body #towninspect .ti-rows { border-top: none; gap: 1px; }
+body #towninspect .ti-row { border-bottom: none; padding: 3px 6px; font: 500 13px/1.35 var(--ln-font); background: rgba(0,0,0,.18); }
+body #towninspect .ti-row:nth-child(odd) { background: rgba(255,210,150,.04); }
+body #towninspect .ti-row span { color: var(--ln-faint); } body #towninspect .ti-row b { color: var(--ln-num); font-weight: 700; } body #towninspect .ti-row .ti-txt { color: var(--ln-text); }
+body #towninspect .ti-row.good .ti-txt, body #towninspect .ti-row.good b { color: #b6d68c; } body #towninspect .ti-row.warn .ti-txt, body #towninspect .ti-row.warn b { color: #e8b264; }
+body #towninspect .ti-coins > div { border: none; border-radius: 3px; background: radial-gradient(ellipse 60% 100% at 50% 100%, rgba(255,170,80,.14), transparent 70%), linear-gradient(180deg, #0a0605, #1c120b 80%); box-shadow: inset 0 3px 8px #000, 0 0 0 2px #070403; }
+body #towninspect .ti-coins b { font: 800 14px/17px var(--ln-font); color: var(--ln-num); }
+body #towninspect .ti-coins span { font: italic 500 11px var(--ln-font); letter-spacing: 0; text-transform: none; color: var(--ln-faint); }
+body #towninspect .ti-acts button { padding: 6px 6px 7px; }
+body #towninspect .ti-acts button small { font: italic 500 11px/13px var(--ln-font); color: var(--ln-dim); }
+body #towninspect button.ti-go { color: #2a1b10; background: linear-gradient(180deg, #ecca86, #b6873f); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), 0 2px 0 #2b1c0c; }
+body #towninspect button.ti-go small { color: #4a3420; }
+body #towninspect .ti-prog { border: none; border-radius: 2px; background: #120b07; box-shadow: inset 0 2px 3px #000, 0 0 0 1px #5a4430; }
+/* goal card, war chest coin, purse and heat dial labels, garrison badges (found while checking the hovers) */
+body #goalcard { font: 500 12px/1.3 var(--ln-font); color: var(--ln-text); border: 8px solid transparent; margin-right: -4px; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0; padding-bottom: 6px;
+  background-origin: border-box; background-clip: padding-box; background-color: #1b120d; background-image: linear-gradient(rgba(20,13,9,.45), rgba(20,13,9,.45)), var(--ln-grain); box-shadow: 0 14px 34px rgba(0,0,0,.75); }
+body #goalcard .gc-banner { border: none; border-radius: 0; padding: 5px 8px 8px; color: #f2e2c0; text-shadow: 0 1px 2px #000; font: 800 14.5px/1.2 var(--ln-font);
+  background-color: var(--ln-dye); background-image: var(--ln-weave), linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.4));
+  clip-path: polygon(0 0, 100% 0, 100% 92%, 80% 98%, 55% 93%, 30% 100%, 0 95%); }
+body #goalcard .gc-banner small { display: none; }
+body #goalcard .gc-trail i { border-color: #8a6a3a; } body #goalcard .gc-trail i.now { background: var(--ln-gold); border-color: var(--ln-gold); }
+body #goalcard .gc-row { padding: 5px 6px 1px 5px; gap: 6px; }
+body #goalcard .gc-top { font: 700 12.5px/1.25 var(--ln-font); gap: 4px; color: #f2e2c0; } body #goalcard .gc-row.done .gc-top { color: var(--ln-gold); }
+body #goalcard .gc-count { color: var(--ln-num); }
+body #goalcard .gc-seal { color: var(--ln-dim); border: none; background: radial-gradient(circle at 40% 30%, #3a2618, #140c08); box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #8a6a3a; }
+body #goalcard .gc-bar { border: none; border-radius: 2px; background: #120b07; box-shadow: inset 0 1px 2px #000, 0 0 0 1px #5a4430; }
+body #goalcard .gc-count { white-space: nowrap; }
+body #goalcard .gc-body em, body #goalcard em { font: italic 500 11px/1.3 var(--ln-font); color: var(--ln-dim); }
+body #warcoin { font: 500 12px/1.2 var(--ln-font); color: var(--ln-dim); background: radial-gradient(circle at 40% 30%, #3a1d14, #120907 72%); }
+body #warcoin b { font: 800 20px/1.1 var(--ln-font); color: #f6e6bf; }
+body #warcoin small, body #ryo .lvl, body #heat .lvl { font: italic 500 12px/1.1 var(--ln-font); letter-spacing: 0; text-transform: lowercase; }
+body #warcoin small::first-letter, body #ryo .lvl::first-letter, body #heat .lvl::first-letter { text-transform: uppercase; }
+body #ryo .num, body #heat .num { font-family: var(--ln-font); font-weight: 800; }
+body .garrisonbadge { font: 700 12.5px/16px var(--ln-font); color: #f6e6bf; border: none; border-radius: 2px; background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 1.5px #0a0604, 0 0 0 2.5px #c9a04e, 0 3px 6px #000; }
+body .garrisonbadge:hover { background: linear-gradient(180deg, #5a3f28, #2e1f14); }

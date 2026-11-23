@@ -59,7 +59,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 export function warBarHtml(m) {
   if (!m) return '';
   const side = (s, cls) => {
-    const crest = `<span class="wb-crest"></span>`, pct = `<b class="wb-pct">${Math.round(s.pct)}</b>`;
+    const crest = `<span class="wb-crest"${s.faction ? ` data-faction="${esc(s.faction)}"` : ''}></span>`, pct = `<b class="wb-pct">${Math.round(s.pct)}</b>`;
     const col = `<div class="wb-col"><div class="wb-name">${esc(s.name)}</div><div class="wb-track"><i style="width:${Math.max(0, Math.min(100, s.pct))}%"></i>${s.ready ? `<span class="wb-ready">${esc(s.readyText || '')}</span>` : ''}</div></div>`;
     // 8e-6 (mock E, Tim 2026-11-16): a bigger, shorter hover: what is down and what it cost, then what is left
     const H = s.hover, hov = H ? `<div class="wb-hov"><h4>${esc(H.title)}</h4><div class="hb"><i style="width:${Math.max(0, Math.min(100, s.pct))}%"></i></div>${H.down.map(d => `<div class="hl"><span>${esc(d.name)}</span><span>-${d.minus}</span></div>`).join('')}<div class="hleft">${esc(H.left)}</div></div>` : '';
@@ -95,7 +95,8 @@ export function warBarModel(game, heroId, prefer = null) {
   const last = v.last && st.tick - v.last.tick < LINE_TICKS ? v.last : null;
   const side = (key, mine) => {
     const s = v[key], hall = key === 'town' ? 'town hall' : 'camp hall';
-    return { name: names[key], pct: s.pct, color: st.clans?.[mine ? me : (attacking ? w.defender : w.attacker)]?.color, ready: s.ready,
+    const clan = st.clans?.[mine ? me : (attacking ? w.defender : w.attacker)];
+    return { name: names[key], pct: s.pct, color: clan?.color, faction: clan?.faction, ready: s.ready,
       readyText: mine ? 'Your hall can be taken' : 'Hall can be taken', hit: !!last && last.side === key && st.tick - last.tick < HIT_TICKS,
       hover: hoverOf(key, s), tip: `${names[key]}: morale ${s.pct} of 100. Standing: ${listOf(s.up) || 'nothing'}. Down: ${listOf(s.down) || 'nothing'}. Morale falls only when military buildings and the hall are destroyed. Walls, gates, houses and workshops do not count. At 0 the enemy hero can take the ${hall}.` };
   };

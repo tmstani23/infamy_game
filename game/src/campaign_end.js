@@ -35,10 +35,10 @@ export function endModel(game) {
   const rivals = Object.keys(S.clans).filter(id => win ? id !== me : true).map(id => {
     const c = S.clans[id], out = !!c.out;
     const sub = out ? (c.out.day != null ? `Castle fell on day ${c.out.day}` : 'Castle fell') : `Still standing, ${Z?.held ? Z.held(id).length : 0} zones`;
-    return { id, name: name(id), color: c.color || '#888', out, sub };
+    return { id, name: name(id), color: c.color || '#888', faction: c.faction, out, sub };
   }).sort((a, b) => (a.out ? 1 : 0) - (b.out ? 1 : 0) || (a.id === me ? -1 : 0));
   const day = end.day ?? S.season?.day ?? '';
-  return { win, me, color: S.clans[me]?.color || '#2aa198', clan: name(me),
+  return { win, me, color: S.clans[me]?.color || '#2aa198', faction: S.clans[me]?.faction, clan: name(me),
     title: win ? 'Victory' : 'Defeat', eyebrow: win ? 'The campaign is won' : 'The campaign is lost',
     sub: win ? `The ${name(me)} rules the island` : end.by ? `Your castle has fallen to the ${name(end.by)}` : 'Your castle has fallen',
     rivals, stats: [[day, 'Days'], [`${zones} of ${all}`, 'Zones'], [towns, 'Towns'], [taken, 'Castles taken']],
@@ -66,6 +66,8 @@ body.campaign-end > :not(#view):not(#vignette):not(#campaignend), body.campaign-
 #campaignend .st b{display:block;font:700 28px Georgia,serif}#campaignend .st span{font-size:10px;letter-spacing:.2em;text-transform:uppercase}
 #campaignend .btns{display:flex;justify-content:center;gap:14px;margin-top:20px}
 #campaignend .btns button{font:600 14px system-ui;letter-spacing:.12em;text-transform:uppercase;padding:11px 26px;border-radius:5px;cursor:pointer}
+#campaignend .pc{display:block;border-radius:50%;background:var(--pc) center/82% no-repeat,radial-gradient(circle at 40% 32%,color-mix(in srgb,var(--rc) 70%,#fff 10%),color-mix(in srgb,var(--rc) 55%,#000) 75%);box-shadow:inset 0 0 0 2px #0a0604,inset 0 3px 8px #0008}
+#campaignend .pc.grey{background:var(--pc) center/82% no-repeat,radial-gradient(circle at 40% 32%,#4a4844,#24221f 75%);filter:grayscale(1) brightness(.75)}
 #campaignend .fx{position:absolute;inset:0;pointer-events:none}#campaignend .fx i{position:absolute;border-radius:50%}
 #campaignend .shade{position:absolute;inset:0;pointer-events:none}
 /* victory: the castle in warm light */
@@ -117,16 +119,22 @@ body.campaign-end > :not(#view):not(#vignette):not(#campaignend), body.campaign-
 #campaignend.loss .btns .go{border-color:#c0392b;background:linear-gradient(180deg,#8e2d26,#5e1c18);color:#ffe9dc;box-shadow:0 0 18px #c9473d66}
 `;
 
+// a clan's painted crest (assets/ui/crests/<faction>.png) on a disc dyed in the clan colour; drawn mon when the faction has none
+const CRESTS = ['yakuza', 'kuroda', 'shinobi'];
+const crestDisc = (faction, color, size, cls = '', style = '') => `<span class="pc ${cls}" style="--rc:${esc(color)};--pc:url(../assets/ui/crests/${faction}.png);width:${size}px;height:${size}px;${style}"></span>`;
 export function endHtml(m) {
   let r = m.win ? 7 : 11; const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647, f = (n, d = 1) => n.toFixed(d);
   const dots = (n, size, op, secs, top = [0, 100]) => Array.from({ length: n }, () => `<i style="left:${f(rnd() * 100)}%;top:${f(top[0] + rnd() * (top[1] - top[0]))}%;width:${f(2 + rnd() * size)}px;height:${f(2 + rnd() * size)}px;opacity:${f(op[0] + rnd() * op[1], 2)};animation-delay:-${f(rnd() * secs)}s"></i>`).join('');
   const fx = m.win ? `<div class="fx">${dots(70, 4, [0.35, 0.6], 9)}</div>`
     : `<div class="glow"></div><div class="fx sparks">${dots(64, 4, [0.55, 0.45], 6, [25, 75])}</div><div class="fx">${dots(80, 3, [0.25, 0.45], 12)}</div>`;
   const crack = `<svg class="crack" viewBox="0 0 200 200" width="104" height="104" aria-hidden="true"><path d="M96 4 L104 46 L88 70 L110 98 L92 128 L106 160 L98 196" fill="none" stroke="#120d0a" stroke-width="6" stroke-linejoin="round"/><path d="M104 46 L132 58 M110 98 L140 108 M92 128 L64 140" fill="none" stroke="#120d0a" stroke-width="4"/></svg>`;
-  const medal = m.win ? monSvg(m.color, '#f6edd8', 80) : monSvg('#3c4a47', '#bdb4a3', 80) + crack;
+  const painted = f => CRESTS.includes(f);
+  const medal = painted(m.faction) ? crestDisc(m.faction, m.color, 84, m.win ? '' : 'grey') + (m.win ? '' : crack)
+    : m.win ? monSvg(m.color, '#f6edd8', 80) : monSvg('#3c4a47', '#bdb4a3', 80) + crack;
   const clan = c => {
     const up = !c.out, glow = up && !m.win;
-    const icon = glow ? monSvg(c.color, '#f0e8d6', 52, `style="filter:drop-shadow(0 0 10px ${esc(c.color)})"`)
+    const icon = painted(c.faction) ? crestDisc(c.faction, c.color, 52, c.out ? 'grey' : '', c.out ? '' : `filter:drop-shadow(0 0 ${glow ? 10 : 6}px ${esc(c.color)})`)
+      : glow ? monSvg(c.color, '#f0e8d6', 52, `style="filter:drop-shadow(0 0 10px ${esc(c.color)})"`)
       : monSvg('#2a2622', m.win ? '#8d877c' : '#7d776c', 52, m.win ? `style="filter:drop-shadow(0 0 6px ${esc(c.color)})"` : '');
     return `<div class="fc${glow ? ' up' : ''}" style="--rc:${esc(c.color)}"><div class="fm">${icon}${m.win ? `<span class="ring" style="border-color:${esc(c.color)}"></span>` : ''}${c.out ? '<span class="slash"></span>' : ''}</div><div><b>${esc(c.name)}</b><span>${esc(c.sub)}</span></div></div>`;
   };
