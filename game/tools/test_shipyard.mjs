@@ -43,6 +43,7 @@ assert.match(yardSpotWhy(world, town, town.x, town.z, W.buildings.shipyard) || '
 // the dev save has a built shipyard on the shore by the harbour: take it out to try the placement rules, then put it back
 const yard = town.buildings.find(b => b.type === 'shipyard');
 assert.ok(yard?.stage === 'built', 'ship_test has a built shipyard');
+for (const e of Object.values(S.entities)) if (e.ship) e.holdFire = true;   // no gunfire here: the bow cannon (twice as fast, Tim 2026-11-23) would ruin the yard before it trains
 { const pts = yard.cells.map(i => cellToWorld(town, i)), cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cz = pts.reduce((a, p) => a + p[1], 0) / pts.length;
   assert.equal(yardSpotWhy(world, town, cx, cz, W.buildings.shipyard), null, 'it stands on the shore by the harbour'); }
 const use0 = town.grid.use;

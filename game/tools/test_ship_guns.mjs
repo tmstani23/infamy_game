@@ -38,7 +38,7 @@ for (const e of Object.values(S.entities)) if (e.ship) e.holdFire = true;   // o
   g.ships.shelter(mine, 100, pseudo('army_rifleman')); assert.ok(Math.abs(hp - mine.hp - 100 * H.ranged) < 0.02, `a rifle does almost nothing (${hp - mine.hp})`);
   const h1 = mine.hp; g.ships.shelter(mine, 60, pseudo('field_cannon')); assert.ok(Math.abs(h1 - mine.hp - 60 * H.siege) < 0.02, 'a siege cannon does the damage');
   const h2 = mine.hp; g.ships.shelter(mine, 100, pseudo('thug')); assert.ok(Math.abs(h2 - mine.hp - 100 * H.melee) < 0.02, 'melee almost nothing');
-  const h3 = mine.hp; g.ships.shelter(mine, 100, pseudo('gatling_crew')); assert.ok(Math.abs(h3 - mine.hp - 100 * H.gatling) < 0.02, 'a Gatling nothing');
+  const h3 = mine.hp; g.ships.shelter(mine, 100, pseudo('gatling_crew')); assert.ok(Math.abs(h3 - mine.hp - 100 * H.gatling) < 0.02, 'a Gatling a little (its own row)');
   assert.equal(mine.hitAt, S.tick, 'a hit marks the hull (repair pauses)');
   mine.hp = mine.maxHp; }
 
@@ -62,6 +62,29 @@ delete enemy.holdFire; mine.holdFire = true;
 { enemy.holdFire = true; const h = enemy.hp; run(400); assert.equal(enemy.hp, h, 'Z: no fire'); }
 // a ceasefire holds fire
 { delete mine.holdFire; rec.terms = { by: foe }; const h = enemy.hp; run(400); assert.equal(enemy.hp, h, 'ceasefire: no fire'); delete rec.terms; }
+// gun slots (Tim 2026-11-23): Broadside auto off holds it; an aimed click fires it at the enemy nearest the click
+{ const { specialView } = await import('../src/sim/special_cast.js');
+  delete mine.holdFire; enemy.holdFire = true; mine.gunAt = {};
+  const special = c => g.step([{ id: hero.id, type: 'special', units: [mine.id], ...c }]);
+  const v = specialView({ state: S, units: options().units }, 'broadside', [mine.id]); assert.ok(v.have === 1 && v.auto === 1, 'a Broadside slot, auto on');
+  assert.equal(specialView({ state: S, units: options().units }, 'deckgun', [mine.id]).have, 1, 'a Deck Gatling slot');
+  special({ ability: 'broadside', auto: false }); assert.equal(mine.gunAuto?.broadside, false, 'auto off');
+  const h = enemy.hp; run(200); assert.equal(enemy.hp, h, 'auto off: no volley');
+  special({ ability: 'broadside', x: enemy.x + 1, z: enemy.z }); assert.ok(mine.gunReq?.broadside, 'aimed');
+  for (let i = 0; i < 60 && enemy.hp === h; i++) g.step([]); assert.ok(enemy.hp < h, 'the aimed volley lands');
+  assert.ok(!mine.gunReq, 'the aim is used up');
+  special({ ability: 'broadside', auto: true }); assert.ok(!mine.gunAuto, 'auto back on'); }
+// the deck Gatling aimed at a spot (Tim 2026-11-23, as the land Unload): it sweeps the spot even with nobody there
+{ const special = c => g.step([{ id: hero.id, type: 'special', units: [mine.id], ...c }]); let shots = 0;
+  delete mine.gat; special({ ability: 'deckgun', x: mine.x + 9, z: mine.z + 3 });
+  for (let i = 0; i < 60; i++) { g.step([]); shots += (S.casts || []).filter(c => c.kind === 'gatlingShot' && c.a === mine.id && c.deck).length; }
+  assert.ok(shots > 3, `the deck gun fires at an empty spot (${shots})`); run(80); assert.ok(!mine.gat, 'the burst ends'); }
+// aimed at an enemy ship: its hull takes the burst at the gatling share (one hull table, Tim 2026-11-23)
+{ const special = c => g.step([{ id: hero.id, type: 'special', units: [mine.id], ...c }]), at = { x: enemy.x, z: enemy.z };
+  Object.assign(enemy, { x: mine.x + 8, z: mine.z + 2 }); enemy.holdFire = true; const h = enemy.hp;
+  special({ ability: 'deckgun', x: enemy.x, z: enemy.z }); run(140);
+  const lost = h - enemy.hp; assert.ok(lost > 0 && lost <= 140 * H.gatling + 1, `a little hull damage (${lost})`);
+  Object.assign(enemy, at); }
 // sinking is news
 mine.holdFire = true;
 { S.news.length = 0; g.ships.shelter(enemy, 1e6, pseudo('field_cannon', { owner: 'player' })); assert.ok(enemy.dead, 'sunk');

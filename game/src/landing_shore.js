@@ -12,6 +12,7 @@
 import { coastSamples } from './world_coast.js';
 import { terrainAt } from './sim/world_data.js';
 import { waterGrid, landable, waterAt, sailable } from './sim/frontier/water_nav.js';
+import { SIZE, SEE } from './cursors.js';
 
 const WET = c => c === 'w' || c === 'r';
 const inBox = (box, x, z) => !box || Math.hypot(x - box.x, z - box.z) <= box.r;
@@ -82,10 +83,10 @@ export function drawShore(ctx, runs, project, r = 1.2, step = 5) {
   ctx.restore();
 }
 
-// the cursors (40 px, hot spot in the middle): a dark ink anchor on a cream disc; the same anchor struck through in
+// the cursors (drawn on 40, shown at cursors.js SIZE, hot spot in the middle): a dark ink anchor on a cream disc; the same anchor struck through in
 // vermilion for blocked coast, so the two read as a pair
 const disc = "<circle cx='20' cy='20' r='17.6' fill='#efe4c6' stroke='#1d1208' stroke-width='3'/>";
 const ANCHOR = "<g fill='none' stroke='#1d1208' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><circle cx='20' cy='10.6' r='2.4'/><path d='M20 13v18.4M14.6 16.4h10.8M10.8 24c1 4.8 4.4 7.2 9.2 7.2s8.2-2.4 9.2-7.2M8.8 26.2l2-2.4 2.8 1.2M31.2 26.2l-2-2.4-2.8 1.2'/></g>";
-const svg = body => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'>${disc}${body}</svg>`)}") 20 20`;
+const svg = body => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${SIZE}' height='${SIZE}' viewBox='0 0 40 40'><g opacity='${SEE}'>${disc}${body}</g></svg>`)}") ${SIZE / 2} ${SIZE / 2}`;   // the size of the other pointers (src/cursors.js)
 const STRIKE = "<path d='M8.6 31.4L31.4 8.6' stroke='#efe4c6' stroke-width='5.4' stroke-linecap='round'/><path d='M8.6 31.4L31.4 8.6' stroke='#b0443a' stroke-width='2.8' stroke-linecap='round'/>";
 export const SHORE_CURSOR = { anchor: `${svg(ANCHOR)}, pointer`, blocked: `${svg(ANCHOR + STRIKE)}, not-allowed` };

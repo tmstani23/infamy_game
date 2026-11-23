@@ -13,6 +13,7 @@
 import { SPECIALS, specialView } from './sim/special_cast.js';
 import { specialNumbers } from './special_stats.js';
 import { sharedKeybinds } from './keybinds.js';
+import { PAINTED } from './hud_icons.js';
 const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
 const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICONS = {
@@ -26,7 +27,13 @@ const ICONS = {
   dogs: svg('<path d="M4 9l3-3 2 3h6l3-3 2 3v5a6 6 0 0 1-6 5h-4a6 6 0 0 1-6-5V9z"/><path d="M9.500 13h.010M14.500 13h.010M11 16.500h2"/>'),
   board: svg('<path d="M12 3v13"/><path d="M5.500 9.500c0 4 3 6.500 6.500 6.500s6.500-2.500 6.500-6.500"/><path d="M5.500 9.500L4 11.500M18.500 9.500l1.500 2"/><path d="M9.500 5.500h5"/><path d="M12 16c0 2 1.500 3.500 4 4.500"/>'),   // ships S8: a grappling hook
   breakoff: svg('<path d="M3 12h6.500M14.500 12H21"/><path d="M9.500 12c.800-1.200 1.500-1.200 2.500 0M12 12c1 1.200 1.700 1.200 2.500 0"/><path d="M8 6l8 12"/>'),   // a cut line
+  broadside: svg('<path d="M3 15h18"/><path d="M5 15l1.500 4h11L19 15"/><path d="M7 12h3M11 12h3M15 12h3"/><path d="M8.500 9.500a1.500 1.500 0 1 0 0-.010M15.500 7a1 1 0 1 0 0-.010"/>'),   // gun ports and smoke
+  bowcannon: svg('<circle cx="8" cy="15" r="3.500"/><path d="M10.500 13l9-5M11.500 15.500l9-5M20.500 8v2.500"/>'),
+  deckgun: svg('<circle cx="7" cy="15" r="4"/><path d="M9 12l11-5M10 14l11-5M20 7v2"/>'),
 };
+// painted art (data/ui_art.json, lantern style) where it exists: the slot id, or the painted id it borrows (Tim 2026-11-23)
+const PAINT_ID = { board: 'boarding', deckgun: 'gatling', bowcannon: 'bow_cannon' };
+const slotIcon = id => { const p = PAINT_ID[id] || id; return PAINTED.has(p) ? `<img class="painted" src="../assets/ui/abilities/${p}.png" alt="" draggable="false">` : ICONS[id] || ''; };
 export const ABOUT = {
   charm: 'Then left-click near an enemy. The nearest ready geisha charms the enemy closest to the click. An enemy already charmed is skipped.',
   aimed: 'Then left-click near an enemy. The nearest ready rifleman takes a slow, heavy shot at the enemy closest to the click. A target another rifleman is already aiming at is avoided.',
@@ -35,6 +42,9 @@ export const ABOUT = {
   hamstring: 'Then left-click near an enemy. The nearest ready archer shoots a slowing arrow at the enemy closest to the click.',
   gatling: 'A cone shows where the nearest ready Gatling crew will fire; left-click to fire there. The gun stops, spins up and empties itself into the cone for a few seconds at extra damage, hitting every enemy in it. Any move order ends it. On auto it unloads into a packed group.',
   board: 'Then left-click an enemy ship. The nearest selected warship with troops aboard sails alongside and grapples for a few seconds; if the enemy ship gets out of reach the grapple fails. Then both ships stop moving and firing while the holds fight, a bar over them showing both sides. Fighters fall one by one until one hold is empty: the strength of a fighter is what he costs, so the stronger hold wins. Defenders on a ship under half health fight at a penalty, so shell it first. A defending warship\'s deck Gatling cuts down part of the boarding party as it comes over. Win and the ship is yours, with the damage it has. An empty hold is taken at once. Another ship can join from the free side. Transports cannot board but can be boarded.',
+  broadside: 'Then left-click an enemy ship, siege gun, troops or building in range. The nearest ready warship turns its next broadside on the target nearest the click. On auto it fires on its own at the nearest target, ships first; with auto off it fires only when aimed.',
+  bowcannon: 'Then left-click an enemy ship, siege gun, troops or building in range. The nearest ready transport fires its bow cannon at the target nearest the click. On auto it fires on its own; with auto off only when aimed.',
+  deckgun: 'Then left-click near enemy troops. The nearest warship spins up its deck Gatling and fires bursts toward the click, at the troops nearest it. On auto it fires at troops in reach on its own; with auto off only when aimed.',
   breakoff: 'The boarding warship nearest the pointer breaks off and keeps who is left. Only after a few seconds of fighting; then it cannot board again for a while.',
   dogs: 'Then left-click near an enemy. The nearest ready dog handler looses his dogs at the enemy closest to the click: they bite for heavy damage and knock it down for a moment. On auto he sends them at ranged or fleeing enemies.',
 };
@@ -82,7 +92,7 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
     let s = slots.get(a.id);
     if (s) return s;
     const b = el('div', 'slot ability', row);
-    el('div', 'icon', b).innerHTML = `<span class="ab-ico">${ICONS[a.id] || ''}</span><span class="ab-name">${a.name}</span>`;
+    el('div', 'icon', b).innerHTML = `<span class="ab-ico">${slotIcon(a.id)}</span><span class="ab-name">${a.name}</span>`;
     const key = el('div', 'key', b), count = el('div', 'count', b), secs = el('div', 'secs', b), auto = el('div', 'autotag', b, 'Auto');
     auto.hidden = true;
     b.addEventListener('click', () => arm(a));

@@ -10,6 +10,7 @@
 import { prisonerOf, POLICE } from './sim/police.js';
 import { isRallyParticipant,crewCommandGroup } from './sim/deployment_rally.js';
 import { landMark, SHORE_CURSOR } from './landing_shore.js';   // ships S6b
+import { CURSOR } from './cursors.js';   // painted pointers (Tim 2026-11-23)
 const PICK_PX = 22;     // how close a click must be to a unit's body (feet to head)
 const CIV_PX = 16;      // ...and a townsperson's (a little tighter, so a move order in a crowd stays a move order)
 
@@ -317,17 +318,27 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     box.hidden = w < 6 && h < 6;
     Object.assign(box.style, { left: `${x0}px`, top: `${y0}px`, width: `${w}px`, height: `${h}px` });
   });
-  // ships S6b: while ships take your right-click (your hero aboard with nothing selected, or a ship selected), the cursor
-  // shows an anchor over landable shore and a red mark over blocked coast (src/landing_shore.js); armed cursors win
-  let shoreCur = null, shoreAt = 0;
+  // the pointer says what a right-click would do (Tim 2026-11-23): attack over an enemy unit, ship or (at war) building;
+  // with your units or ship to command, move over ground or water, and over shore a ship can land at the anchor
+  // (ships S6b: struck through on blocked coast). Armed cursors (X attack-move, an aimed ability) are set when armed.
+  let curNow = null, curAt = 0;
+  const setCur = c => { if (c !== curNow) { document.body.style.cursor = c; curNow = c; } };
   addEventListener('mousemove', e => {
-    if (drag || targetPick || attackMove || performance.now() - shoreAt < 50) { if (targetPick || attackMove) shoreCur = null; return; }
-    shoreAt = performance.now();
-    const hs = hero()?.inShip && game.state.entities[hero().inShip], sel = mine().map(id => game.state.entities[id]).find(s => s?.ship && !s.dead);
-    const s = mine().length ? sel : hs?.ship && !hs.dead ? hs : null, w = game.ships?.world;
-    const p = s && w && commandPlace() === 'world' && view.screenToGround(e.clientX, e.clientY);
-    const m = p ? landMark(w, p.x, p.z, game.frontier?.data?.war?.ships?.kinds?.[s.warUnit]?.water || 'big', game.ships.boxOf(s)) : null;
-    if (m !== shoreCur) { if (m) document.body.style.cursor = SHORE_CURSOR[m]; else if (shoreCur) document.body.style.cursor = ''; shoreCur = m; }
+    if (targetPick || attackMove) { curNow = null; return; }
+    if (drag || performance.now() - curAt < 50) return;
+    curAt = performance.now();
+    if (e.target && e.target !== document.body && e.target.tagName !== 'CANVAS') { setCur(''); return; }   // over the UI
+    const h = hero(); if (!h) { setCur(''); return; }
+    const hs = h.inShip && game.state.entities[h.inShip], sel = mine().map(id => game.state.entities[id]).find(s => s?.ship && !s.dead);
+    const ship = mine().length ? sel : hs?.ship && !hs.dead ? hs : null;
+    if (unitAt(e.clientX, e.clientY, enemies())) { setCur(CURSOR.attack); return; }
+    const p = view.screenToGround(e.clientX, e.clientY), world = commandPlace() === 'world';
+    const atWar = p && world && Object.values(game.state.frontier?.wars?.list || {}).some(w => w.attacker === h.owner || w.defender === h.owner);
+    if (atWar && game.frontier?.structures?.at?.(h.owner, p.x, p.z)) { setCur(CURSOR.attack); return; }
+    const w = game.ships?.world;
+    const m = ship && p && w && world ? landMark(w, p.x, p.z, game.frontier?.data?.war?.ships?.kinds?.[ship.warUnit]?.water || 'big', game.ships.boxOf(ship)) : null;
+    if (m) { setCur(SHORE_CURSOR[m]); return; }
+    setCur(p && (mine().length || ship) ? CURSOR.move : '');
   });
   addEventListener('mouseup', e => {
     if (!drag || e.button !== 0) return;
@@ -494,9 +505,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       looked = null; building = null; attackMove = false; targetPick = null; document.body.style.cursor = '';
     },
     cancelAction() { send({ id: heroId, type: 'cancel', units: mine() }); },
-    armAttackMove() { if (mine().length) { attackMove = true; document.body.style.cursor = 'crosshair'; } },
+    armAttackMove() { if (mine().length) { attackMove = true; document.body.style.cursor = CURSOR.attackMove; } },
     // an ability that needs a target: the next left-click on the ground calls fn({ x, z }); right-click or Escape cancels
-    armTarget(fn, id = true) { attackMove = false; targetPick = { fn, id }; document.body.style.cursor = 'crosshair'; },
+    armTarget(fn, id = true) { attackMove = false; targetPick = { fn, id }; document.body.style.cursor = CURSOR.attack; },
     targetArmed() { return targetPick?.id || null; },
     onShiftRight(fn) { shiftRight = fn; },
     cancelTarget() { if (!targetPick) return false; targetPick = null; document.body.style.cursor = ''; return true; },

@@ -50,7 +50,8 @@ export function createStationClock({ game, heroId, view }) {
   function zones(rail, hero) {
     const shown = hero && !document.body.classList.contains('ui-hidden');
     const calls = [...(shown && rail ? rail.trains().filter(t => t.call && t.owner === hero.owner && t.call.place === hero.place).map(t => ({ c: t.call, n: () => rail.inZone(t).length, sub: 'Space boards now' })) : []),
-      ...(shown && hero.shipCall?.place === hero.place && game.ferry ? [{ c: hero.shipCall, n: () => game.ferry.inZone(hero).length, sub: 'Space sails now' }] : [])];
+      ...(shown && hero.shipCall?.place === hero.place && game.ferry ? [{ c: hero.shipCall, n: () => game.ferry.inZone(hero).length, sub: 'Space sails now' }] : []),
+      ...(shown && hero.shipBoard?.place === hero.place && game.ships?.ringCount ? [{ c: hero.shipBoard, n: () => game.ships.ringCount(hero), sub: 'Space boards now' }] : [])];   // your war ship's All aboard (ships S2; Tim 2026-11-23: it had no ring)
     if (!calls.length) { if (drawn) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawn = false; } return; }
     const dpr = devicePixelRatio || 1;
     if (canvas.width !== innerWidth * dpr || canvas.height !== innerHeight * dpr) { canvas.width = innerWidth * dpr; canvas.height = innerHeight * dpr; }

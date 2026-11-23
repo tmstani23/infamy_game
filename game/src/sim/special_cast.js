@@ -23,11 +23,32 @@ export const SPECIALS = {
   board: { name: 'Board', targeted: true, noAuto: true, has: (u, e) => !!e.ship && e.warUnit === 'warship' && !e.board, readyAt: e => e.boardReadyAt ?? 0,
     able: (state, e) => !e.locked && !e.leave && e.sorder?.kind !== 'unload' && Object.values(state.entities).some(u => u.inShip === e.id && !u.dead) },
   breakoff: { name: 'Break off', targeted: false, noAuto: true, has: (u, e) => !!e.ship && !!e.board && e.board.role !== 'd', readyAt: e => e.board?.offAt ?? 0 },
+  // ships (Tim 2026-11-23): the guns as slots beside Board. Auto (default) = they pick their own targets as before;
+  // off = they fire only when asked. A click aims the next volley (cannons) or the next bursts (Gatling) at the
+  // target nearest the click (sim/frontier/ships.js). A ship has several of these, so its auto is per gun (e.gunAuto).
+  broadside: { name: 'Broadside', targeted: true, ship: true, gun: 'broadside', has: (u, e) => !!e.ship && e.warUnit === 'warship', readyAt: e => e.gunAt?.broadside ?? 0,
+    able: (state, e) => !e.locked && !e.leave },
+  bowcannon: { name: 'Bow cannon', targeted: true, ship: true, gun: 'bowCannon', has: (u, e) => !!e.ship && e.warUnit === 'transport', readyAt: e => e.gunAt?.bowCannon ?? 0,
+    able: (state, e) => !e.locked && !e.leave },
+  deckgun: { name: 'Deck Gatling', targeted: true, ship: true, gun: 'deckGatling', has: (u, e) => !!e.ship && e.warUnit === 'warship', readyAt: () => 0,
+    able: (state, e) => !e.locked && !e.leave },
 };
+// every special of a unit: ships carry several (Board or Break off, and their guns); anyone else one at most
+export function specialsOf(units, e) {
+  const u = units?.types?.[e?.type];
+  if (!e || !u) return [];
+  if (!e.ship) { const id = specialOf(units, e); return id ? [id] : []; }
+  return Object.keys(SPECIALS).filter(id => SPECIALS[id].has(u, e));
+}
+// a ship gun's auto switch (per gun); every other special's is the unit's autoCast
+export const gunAuto = (e, id) => e?.gunAuto?.[id] !== false;
+// the asked-for aim of one ship gun (or null): e.gunReq[id] = { x, z, until }
+export const gunWanted = (state, e, id) => { const r = e?.gunReq?.[id]; return r && r.until > (state.tick ?? 0) ? r : null; };
+export const gunDone = (e, id) => { if (!e?.gunReq) return; delete e.gunReq[id]; if (!Object.keys(e.gunReq).length) delete e.gunReq; };
 export function specialOf(units, e) {
   const u = units?.types?.[e?.type];
   if (!e || !u) return null;
-  for (const [id, s] of Object.entries(SPECIALS)) if (s.has(u, e)) return id;
+  for (const [id, s] of Object.entries(SPECIALS)) if (!s.ship && s.has(u, e)) return id;
   return null;
 }
 const usable = e => e && !e.dead && !e.downed && !e.jailed && !e.garrison && !e.aboard;
@@ -50,16 +71,20 @@ export function specialCommand({ state, units }, hero, c) {
   let n = 0, best = null, bd = Infinity;
   for (const id of Array.isArray(c.units) ? c.units : []) {
     const e = state.entities[id];
-    if (!e || e.owner !== hero.owner || specialOf(units, e) !== c.ability) continue;
-    if (typeof c.auto === 'boolean') { if (c.auto) delete e.autoCast; else e.autoCast = false; n++; continue; }
+    if (!e || e.owner !== hero.owner || !specialsOf(units, e).includes(c.ability)) continue;
+    if (typeof c.auto === 'boolean') {
+      if (S.ship) { if (c.auto) { if (e.gunAuto) { delete e.gunAuto[c.ability]; if (!Object.keys(e.gunAuto).length) delete e.gunAuto; } } else (e.gunAuto ||= {})[c.ability] = false; }
+      else if (c.auto) delete e.autoCast; else e.autoCast = false;
+      n++; continue; }
     if (!usable(e) || !able(S, state, e) || S.readyAt(e) > now) continue;
     if (S.targeted && !spot) continue;
-    if (castWanted(state, e)) continue;   // already asked: the next press takes the next unit
+    if (!S.ship && castWanted(state, e)) continue;   // already asked: the next press takes the next unit (a ship gun takes a new aim)
     const d = spot ? Math.hypot(e.x - c.x, e.z - c.z) : n++;   // no spot: listed order
     if (d < bd) { bd = d; best = e; }
   }
   if (typeof c.auto === 'boolean') return n;
   if (!best) return 0;
+  if (S.ship) { (best.gunReq ||= {})[c.ability] = { x: c.x, z: c.z, until: now + CAST_WAIT_TICKS }; return 1; }   // each gun its own aim
   best.castReq = S.targeted ? { x: c.x, z: c.z, until: now + CAST_WAIT_TICKS } : { until: now + CAST_WAIT_TICKS };
   return 1;
 }
@@ -69,8 +94,8 @@ export function specialView({ state, units }, ability, ids) {
   let have = 0, ready = 0, auto = 0, next = Infinity;
   for (const id of ids || []) {
     const e = state.entities[id];
-    if (!e || !usable(e) || specialOf(units, e) !== ability) continue;
-    have++; if (autoOn(e)) auto++;
+    if (!e || !usable(e) || !specialsOf(units, e).includes(ability)) continue;
+    have++; if (S.ship ? gunAuto(e, ability) : autoOn(e)) auto++;
     const at = able(S, state, e) ? S.readyAt(e) : Infinity;
     if (at <= now) ready++; else next = Math.min(next, at);
   }

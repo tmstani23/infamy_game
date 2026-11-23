@@ -187,6 +187,13 @@ void main() {
     if (hw < 0.0) discard;
     wet = hw < 0.0 ? 1.0 : 1.0 - smoothstep(0.0, uSea.w, hw);
   }
+  float under = 0.0, lip = 0.0;
+  if (uSea.w < 0.0) {   // afloat (Tim 2026-11-23): the hull below the waterline sinks from sight into the sea, a broken foam lip at the line
+    vec3 sw = vWorld - uSea.xyz;
+    float sx = dot(sw, CAM_RIGHT), hw = dot(sw, CAM_UP) - uSeaSlope * sx + 0.04 * sin(sx * 2.3 + uTime * 1.7) + 0.025 * sin(sx * 6.1 - uTime * 2.6);
+    under = 1.0 - smoothstep(uSea.w, 0.03, hw);
+    float l = hw / 0.09; lip = exp(-l * l) * (0.55 + 0.45 * sin(sx * 4.7 + uTime * 1.3 + sin(sx * 1.9) * 2.0));
+  }
   float a = t.a * uOpacity;
   if (uCut > 0.0) {
     vec3 d = vWorld - uCutCenter;
@@ -201,6 +208,7 @@ void main() {
   }
   if (uFogAt.w > 0.0) c = fogged(c, uFogAt.xy);
   if (wet > 0.0) { c = mix(c, vec3(0.08, 0.16, 0.24), wet * 0.7); }   // dark and wet just above the waterline
+  if (uSea.w < 0.0) { c = mix(c, vec3(0.05, 0.11, 0.17), under * 0.85); a *= 1.0 - under * 0.92; c = mix(c, vec3(0.78, 0.84, 0.86), lip * 0.42 * (1.0 - under * 0.6)); }
   if (uFill.w > 0.0) { c = uFill.rgb; a *= uFill.w; }
   gl_FragColor = vec4(mix(c, vec3(1.0, 0.97, 0.9), uFlash), a);
 }`;

@@ -19,9 +19,11 @@
 import { steer } from '../vehicle_steer.js';
 import { waterGrid, sailable, landingFor, shipPath, nearestSailable } from './water_nav.js';
 import { yardBerth } from './shipyard.js';
+import { terrainAt } from '../world_data.js';
 import { cellToWorld } from './town_grid.js';
 import { dirIndex } from '../geometry.js';
 import { createBoarding } from './boarding.js';
+import { gunWanted, gunAuto, gunDone } from '../special_cast.js';
 
 export function createShips({ state, data, types, world, war, navOf, followOffset, forget, dismount, say, down, structures = () => null, hit = null }) {
   const S = () => data?.war?.ships || {}, U = () => data?.war?.units || {};
@@ -68,7 +70,9 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     const at = world?.terrain ? yardBerth(world, x, z, S().launchReach ?? 80) : { x, z };
     if (!at) return null;
     const k = Object.values(state.entities).filter(s => isShip(s) && Math.hypot(s.x - at.x, s.z - at.z) < 10).length;   // a second one a little aside
-    return spawn(w, unit, at.x + Math.cos(k * 2.4) * 9 * Math.sign(k), at.z + Math.sin(k * 2.4) * 9 * Math.sign(k), owner);
+    // (on drawn water: Tim 2026-11-23 saw a new ship sit on the grass by the slipway)
+    for (let j = k; j < k + 8; j++) { const x = at.x + Math.cos(j * 2.4) * 9 * Math.sign(j), z = at.z + Math.sin(j * 2.4) * 9 * Math.sign(j); if (wetNear(x, z)) return spawn(w, unit, x, z, owner); }
+    return spawn(w, unit, at.x, at.z, owner);
   }
   // S3 dock repair: the built yards of the ship's own side in its war: the camp's slipway, the town's shipyard
   const centre = (t, b) => { const pts = (b.cells?.length ? b.cells : [b.cell]).map(i => cellToWorld(t, i)); return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length]; };
@@ -253,8 +257,18 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       if ((state.tick ?? 0) - (o.replanned ?? -99) >= 20) { o.replanned = state.tick ?? 0; const pts = shipPath(g, [s.x, s.z], [o.x, o.z], { water, box: boxOf(s) }); if (pts) o.pts = pts.slice(1); else { s.sorder = { kind: 'stay' }; } }
       s.anim = 'idle'; return;
     }
-    s.x = nx; s.z = nz; s.anim = 'walk';
+    // the drawn shore (Tim 2026-11-23: ships sailed up onto the grass): the grid's 20 unit cells let a hull centre ride
+    // up to a cell's width onto land, so a step must also end on drawn water (within a hull's half beam); else it slides
+    // along the shore, and a way point it cannot reach is passed over after a second (the last one: it stops there)
+    if (!wetNear(nx, nz) && wetNear(s.x, s.z)) {
+      if (wetNear(nx, s.z)) nz = s.z; else if (wetNear(s.x, nz)) nx = s.x;
+      else { o.stuck = (o.stuck ?? 0) + 1; s.anim = 'idle'; if (o.stuck >= 20) { o.stuck = 0; o.pts.shift(); if (!o.pts.length) arrive(s); } return; }
+    }
+    o.stuck = 0; s.x = nx; s.z = nz; s.anim = 'walk';
   }
+  const WET = { w: 1, r: 1 }, BEAM = 2;
+  const wetAt = (x, z) => !world?.terrain || !!WET[terrainAt(world, x, z)];
+  const wetNear = (x, z) => wetAt(x, z) || wetAt(x + BEAM, z) || wetAt(x - BEAM, z) || wetAt(x, z + BEAM) || wetAt(x, z - BEAM);
   function arrive(s) {
     const o = s.sorder;
     s.anim = 'idle';
@@ -325,13 +339,29 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (list.includes('building')) { const st = structures?.()?.near?.(s.owner, s.x, s.z, R); if (st) return { st }; }
     return null;
   }
+  // a gun aimed by the player (Tim 2026-11-23): the enemy ship, siege gun or troop nearest the click (within 6), else the
+  // enemy building under it, if within the gun's range; null = keep waiting for it
+  function aimAt(s, g, foe, req) {
+    const R = g.range ?? 30, ents = Object.values(state.entities), list = g.targets || [];
+    let b = null, bd = 6;
+    for (const t of ents) {
+      if (t.owner !== foe || !alive(t) || t.type === 'horse' || t.type === 'civilian') continue;
+      const d = Math.hypot(t.x - req.x, t.z - req.z) - (types?.[t.type]?.radius ?? 0.5);
+      if (d < bd && Math.sqrt(dist2(s, t)) - (types?.[t.type]?.radius ?? 0.5) <= R) { b = t; bd = d; }
+    }
+    if (b) return { t: b };
+    if (list.includes('building')) { const st = structures?.()?.at?.(s.owner, req.x, req.z, 3); if (st && Math.hypot(st.x - s.x, st.z - s.z) - (st.r ?? 3) <= R) return { st }; }
+    return null;
+  }
+  const GUN_SLOT = { broadside: 'broadside', bowCannon: 'bowcannon' };   // gun key -> its slot (sim/special_cast.js)
   function cannons(s, now) {
     const foe = foeOf(s);
-    if (!foe || s.holdFire) return;
+    if (!foe) return;
     for (const key of kindOf(s).guns || []) {
-      const g = GUN()[key];
+      const g = GUN()[key], slot = GUN_SLOT[key], req = slot ? gunWanted(state, s, slot) : null;
       if (!g || g.from || now < (s.gunAt?.[key] ?? 0) || (now + key.length) % 5) continue;   // look for a target every 5 ticks
-      const a = aim(s, g, foe); if (!a) continue;
+      if (!req && (s.holdFire || (slot && !gunAuto(s, slot)))) continue;   // Z or auto off: only an aimed shot
+      const a = req ? aimAt(s, g, foe, req) : aim(s, g, foe); if (!a) continue;
       const tg = a.t || a.st;
       if (g.runOutTicks && (s.runOut?.key !== key || now > s.runOut.at + 20)) {   // S8 (Tim 2026-11-23): the guns run out first, then the broadside fires
         s.runOut = { key, at: now + g.runOutTicks };
@@ -343,6 +373,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       const d = Math.sqrt(dist2(s, tg)), flight = Math.max(2, Math.ceil(d / (g.speed ?? 52) * 20));
       (state.frontier.shipShots ||= []).push({ a: s.id, by: s.owner, unit: s.warUnit, ...(a.t ? { t: a.t.id } : { key: a.st.key }), damage: (g.balls ?? 1) * (g.ballDamage ?? 0), unitShare: g.unitShare ?? 0.5, at: now + flight });
       (s.gunAt ||= {})[key] = now + (g.reloadTicks ?? 300); s.firedAt = now;
+      if (slot) gunDone(s, slot);
       const n = g.balls ?? 1, spread = n > 1 ? SPREAD.slice(0, n) : [[0, 0]], hitR = a.t ? types?.[a.t.type]?.radius ?? 1 : a.st.r ?? 3;
       state.casts?.push({ kind: key === 'broadside' ? 'shipBroadside' : 'shipCannon', gun: key, a: s.id, t: a.t?.id ?? null, key: a.st?.key ?? null, x: s.x, z: s.z, tx: tg.x, tz: tg.z, heading: s.heading ?? 0, balls: n, spread, hitR, flightTicks: flight, place: 'world' });
       { const dx = tg.x - s.x, dz = tg.z - s.z, L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L;   // the balls in flight (drawing only: an 'a' that is no unit never hits, combat.js)
@@ -366,11 +397,14 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (!(kindOf(s).guns || []).includes('deckGatling')) return;
     const g = GUN().deckGatling || {}, R = types?.[g.from]?.gatling; if (!R) return;
     const foe = foeOf(s), stop = () => { if (s.gat?.firing != null) state.casts?.push({ kind: 'gatlingStop', a: s.id, x: s.x, z: s.z, place: 'world', deck: true }); delete s.gat; };
-    if (!foe || s.holdFire) { stop(); return; }
+    const req = gunWanted(state, s, 'deckgun');   // aimed by the player (Tim 2026-11-23): fire toward the click
+    if (!foe || (s.holdFire && !req && !s.gat?.spot)) { stop(); return; }
     const range = g.range ?? R.range ?? 13, min = R.minRange ?? 0;
     const foes = () => Object.values(state.entities).filter(t => t.owner === foe && alive(t) && !t.ship && t.type !== 'horse' && t.type !== 'civilian' && dist2(s, t) <= range * range && dist2(s, t) >= min * min);
+    if (req) { gunDone(s, 'deckgun'); const ang = Math.atan2(req.z - s.z, req.x - s.x), spot = { x: req.x, z: req.z };
+      if (s.gat) Object.assign(s.gat, { ang, spot }); else { s.gat = { state: 'spin', until: now + (R.spinTicks ?? 20), ang, spot }; return; } }
     if (!s.gat) {
-      if ((now + 2) % 5) return;
+      if ((now + 2) % 5 || !gunAuto(s, 'deckgun')) return;
       const l = foes(); if (!l.length) return;
       const n = l.reduce((b, t) => !b || dist2(s, t) < dist2(s, b) || (dist2(s, t) === dist2(s, b) && t.id < b.id) ? t : b, null);
       s.gat = { state: 'spin', until: now + (R.spinTicks ?? 20), ang: Math.atan2(n.z - s.z, n.x - s.x) }; return;
@@ -380,15 +414,20 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (now >= G.end) { stop(); return; }
     const k = now - G.firing, every = R.everyTicks ?? 4;
     if (k % 2 && k % every) return;
-    const l = foes(); if (!l.length) { stop(); return; }
-    if (k % (R.turnTicks ?? 10) === 0) { const n = l.reduce((b, t) => !b || dist2(s, t) < dist2(s, b) ? t : b, null); G.ang = Math.atan2(n.z - s.z, n.x - s.x); }
+    // aimed (Tim 2026-11-23): enemy ships in its cone take the burst too, at the hull table's gatling share
+    const l = [...foes(), ...(G.spot ? Object.values(state.entities).filter(t => t.ship && !t.dead && t.owner === foe && dist2(s, t) <= range * range) : [])];
+    if (!l.length && !G.spot) { stop(); return; }
+    // aimed at a spot (Tim 2026-11-23, as the land Gatling's Unload): it sweeps the spot for the whole burst, enemies there or not
+    if (!G.spot && k % (R.turnTicks ?? 10) === 0) { const n = l.reduce((b, t) => !b || dist2(s, t) < dist2(s, b) ? t : b, null); G.ang = Math.atan2(n.z - s.z, n.x - s.x); }
     const half = (R.coneDeg ?? 30) * Math.PI / 360, cx = Math.cos(G.ang), cz = Math.sin(G.ang);
     const cone = l.filter(t => { const d = Math.sqrt(dist2(s, t)) || 1; return ((t.x - s.x) * cx + (t.z - s.z) * cz) / d >= Math.cos(half); });
-    if (!cone.length) return;
-    if (k % 2 === 0) state.casts?.push({ kind: 'gatlingShot', a: s.id, x: s.x, z: s.z, place: 'world', dir: dirIndex(Math.cos(G.ang), Math.sin(G.ang)), deck: true, ang: G.ang, heading: s.heading ?? 0, reach: Math.sqrt(Math.min(...cone.map(t => dist2(s, t)))) });
+    if (!cone.length && !G.spot) return;
+    const reach = cone.length ? null : Math.min(range, Math.max(3, Math.hypot(G.spot.x - s.x, G.spot.z - s.z)));
+    if (k % 2 === 0) state.casts?.push({ kind: 'gatlingShot', a: s.id, x: s.x, z: s.z, place: 'world', dir: dirIndex(Math.cos(G.ang), Math.sin(G.ang)), deck: true, ang: G.ang, heading: s.heading ?? 0, reach: reach ?? Math.sqrt(Math.min(...cone.map(t => dist2(s, t)))) });
     if (k % every === 0) {
       const dmg = Math.round((R.damage ?? 0) * (g.damageMul ?? 1));
-      for (const t of cone) hit?.(s, t, dmg, false, 'bullet');
+      const gunner = { id: s.id, type: g.from, owner: s.owner, x: s.x, z: s.z, place: 'world', dir: s.dir ?? 0, model: s.model };   // a hull takes it as a Gatling's
+      for (const t of cone) if (t.ship) shelter(t, dmg, gunner); else hit?.(s, t, dmg, false, 'bullet');
       s.firedAt = now;
     }
   }
@@ -515,5 +554,5 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
   }
 
   const boarding = createBoarding({ state, data, grid, kindOf, radiusOf, waterOf, boxOf, foeOf, riders, wash, say });
-  return { isShip, of, riders, order, command, use, prompt, spawn, launch, yardsOf, tick, shelter, sink, holdOf, room, boxOf, shoreOf, leave, boarding, get world() { return world; } };
+  return { isShip, of, riders, order, command, use, prompt, ringCount: hero => inRing(hero).length, spawn, launch, yardsOf, tick, shelter, sink, holdOf, room, boxOf, shoreOf, leave, boarding, get world() { return world; } };
 }

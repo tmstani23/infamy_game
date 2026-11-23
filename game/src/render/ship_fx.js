@@ -232,7 +232,7 @@ export function createShipFx({ scene, stages = {} }) {
     s.listK = (s.listK ?? 0) + (want - (s.listK ?? 0)) * Math.min(1, dt * 1.5);
     s.roll = -0.2 * s.listK; s.listRoll = s.roll; s.listY = 1.1 * s.listK;   // roll: the sprite turns about its waterline (render/characters.js)
     if (s.listY > 0.001) { s.thing.mesh.position.y -= s.listY; sea(s, p.x, p.z, keel(e.heading, s.roll), 0.4); }   // after the sprite's own update this frame; S6: the sea hides the low hull
-    else dry(s);
+    else afloat(s, e, p);   // Tim 2026-11-23: the low hull sits in the sea, not cut out on top of it
     if (s.listK > 0.3) {   // foam washing along the low side, wreckage spreading on the water
       const near = Math.sign(hz * vg.x - hx * vg.z) || 1;   // the hull side toward the camera: a broken line of churned foam hides where it meets the water
       for (let n = Math.floor(dt * 160 + Math.random()); n > 0; n--) { const t = rand(-1, 1) * H.half * (1 - Math.random() * 0.15), off = rand(0.8, 1.2), x = p.x + hx * t + hz * near * off, z = p.z + hz * t - hx * near * off;
@@ -300,6 +300,27 @@ export function createShipFx({ scene, stages = {} }) {
   const UPY = Math.max(0.3, CAM_UP.y);   // screen up per unit of world height
   const hash = id => (String(id).split('').reduce((n, ch) => n * 31 + ch.charCodeAt(0) >>> 0, 7) % 1000) / 1000;
   // the hull's long axis as a slope on screen; a rolled hull tilts its waterline with it, so it goes down along its own line
+  // afloat: the waterline along the near side of the hull, a little up the drawn hull, so its bottom is under the sea
+  // (shading.js uSea.w < 0: below it the hull fades into the water, a broken foam lip on the line). FLOAT: per kind
+  const FLOAT = { warship: { below: 0.022, rise: 0.4, near: 0.9, band: 0.6, end: 1 }, transport: { rise: 0.45, near: 0.8, band: 0.45, end: 1 } };
+  function afloat(s, e, p) {
+    const u = uni(s), F = FLOAT[e.warUnit] || FLOAT.warship; if (!u?.uSea) return;
+    const P = e.warUnit === 'warship' && PORTS[dirOf(e)], m = s.thing?.mesh;
+    if (P && m) {   // the drawn hull: a line parallel to its painted gun-port row, F.below under it on the card (the sprite turns in 8 steps, the heading does not)
+      const cw = s.cellWorld ?? 16, v0 = P[1] + F.below, v1 = P[3] + F.below;
+      u.uSea.value.set(m.position.x + CAM_RIGHT.x * (P[0] - 0.5) * cw + CAM_UP.x * (0.5 - v0) * cw, m.position.y + CAM_RIGHT.y * (P[0] - 0.5) * cw + CAM_UP.y * (0.5 - v0) * cw,
+        m.position.z + CAM_RIGHT.z * (P[0] - 0.5) * cw + CAM_UP.z * (0.5 - v0) * cw, -F.band);
+      u.uSeaSlope.value = (v0 - v1) / ((P[2] - P[0]) || 1e-3); return; }
+    // the drawn keel: the sprite row's ground direction (rows S, SW, W .. SE: 45 degree steps round from toward the camera)
+    const t = dirOf(e) * Math.PI / 4, gl = Math.hypot(vg.x, vg.z) || 1, rl = Math.hypot(CAM_RIGHT.x, CAM_RIGHT.z) || 1;
+    const hx = Math.cos(t) * vg.x / gl - Math.sin(t) * CAM_RIGHT.x / rl, hz = Math.cos(t) * vg.z / gl - Math.sin(t) * CAM_RIGHT.z / rl;
+    const side = Math.sign(hz * vg.x - hx * vg.z) || 1;   // the hull side toward the camera
+    const sx = hx * CAM_RIGHT.x + hz * CAM_RIGHT.z, sy = hx * CAM_UP.x + hz * CAM_UP.z;
+    // bow or stern toward the camera (Tim 2026-11-23: end on, half the hull looked sunk): the line moves along the keel to the
+    // near end, so the whole drawn hull stays above it; on a side view that slides along the line itself and changes nothing
+    const c = (hx * vg.x + hz * vg.z) / gl * (HULL[e.warUnit] || HULL.warship).half * F.end;
+    u.uSea.value.set(p.x + hz * side * F.near + hx * c, F.rise, p.z - hx * side * F.near + hz * c, -F.band); u.uSeaSlope.value = Math.abs(sx) < 0.05 ? 0 : Math.max(-0.7, Math.min(0.7, sy / sx));
+  }
   const keel = (h, roll = 0) => { const [hx, hz] = head(h), sx = hx * CAM_RIGHT.x + hz * CAM_RIGHT.z, sy = hx * CAM_UP.x + hz * CAM_UP.z; return Math.max(-0.7, Math.min(0.7, (Math.abs(sx) < 0.05 ? 0 : sy / sx) + Math.tan(roll))); };
   const ring = (x, z, r0, r1, life, alpha = 0.6) => flat(RING, x, z, { r0: r0 * rand(0.85, 1.2), r1: r1 * rand(0.8, 1.25), life, alpha: alpha * 0.6, color: [0.5, 0.58, 0.63] });   // a broken ring of foam spreading and thinning
   const wreck = p => (Math.random() < 0.15 ? wreckC : Math.random() < 0.55 ? wreckA : wreckB).emit(p);
@@ -436,7 +457,7 @@ export function createShipFx({ scene, stages = {} }) {
         const s = sprites.get(e.id); if (!s?.thing?.mesh) continue;
         seen.add(e.id);
         stagesFor(e, s, dt);
-        if (e.warUnit === 'warship') deckGun(s, e, place);
+        // the painted deck gun is not drawn (Tim 2026-11-23: on the hull it read as a black hanging body); its flash and tracer stay
         if (e.mending) mending(e, s, dt);
       }
       for (const [id, m] of guns) if (!seen.has(id)) { scene.remove(m); m.material.dispose(); guns.delete(id); aims.delete(id); }

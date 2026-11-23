@@ -3,10 +3,15 @@
 // slipway on any shore inside the war circle outside the town ring. "On the shore" = within shoreReach of water big ships sail
 // (sim/frontier/water_nav.js). Plain functions of the world and the data, so the sim and the build bar agree.
 import { waterGrid, nearestSailable, landingFor } from './water_nav.js';
-import { buildable, passable } from '../world_data.js';
+import { buildable, passable, terrainAt } from '../world_data.js';
 
 const harbourOf = (world, s) => world?.sites?.find(t => t.id === s?.site)?.harbor || null;
 const sailNear = (world, x, z, r) => !!nearestSailable(waterGrid(world), x, z, 'big', r);
+// right at the drawn water's edge (Tim 2026-11-23: a slipway stood far up the grass): drawn sea or river within r of
+// the middle, as the eye sees the shore; the grid test above only says that water is big ships' water
+const wetWithin = (world, x, z, r) => { const w = (a, b) => { const c = terrainAt(world, a, b); return c === 'w' || c === 'r'; };
+  if (w(x, z)) return true; for (let d = 2; d <= r; d += 2) for (let k = 0; k < 24; k++) if (w(x + Math.cos(k * Math.PI / 12) * d, z + Math.sin(k * Math.PI / 12) * d)) return true; return false; };
+const onShore = (world, x, z, def) => sailNear(world, x, z, def.shoreReach ?? 30) && wetWithin(world, x, z, def.shoreEdge ?? 18);
 const cache = new WeakMap();   // world -> Map(key -> bool)
 function remember(world, key, fn) {
   let m = cache.get(world); if (!m) cache.set(world, m = new Map());
@@ -28,12 +33,12 @@ export function yardSpotWhy(world, s, x, z, def = {}) {
   if (!yardWater(world, s, def)) return 'This town has no harbour water ships can sail';
   const h = harbourOf(world, s);
   if (h && Math.hypot(x - h.x, z - h.z) > (def.harbourReach ?? 250)) return 'A shipyard stands by the harbour';
-  return sailNear(world, x, z, def.shoreReach ?? 30) ? null : 'A shipyard stands on the shore, beside water ships can sail';
+  return onShore(world, x, z, def) ? null : 'A shipyard stands on the shore, at the water\'s edge';
 }
 // why a camp slipway cannot stand at x, z, or null
 export function slipSpotWhy(world, x, z, def = {}) {
   if (!world?.terrain) return null;
-  return sailNear(world, x, z, def.shoreReach ?? 30) ? null : 'A slipway stands on the shore, beside water ships can sail';
+  return onShore(world, x, z, def) ? null : 'A slipway stands on the shore, at the water\'s edge';
 }
 // does the war circle round a town hold shore outside the town's build ring (ring: its radius) where a slipway could
 // stand: ground that can be built on (as war.js groundOk) within shoreReach of water big ships sail? Offered only then.
@@ -45,7 +50,7 @@ export function circleShore(world, t, r, ring = 0, def = {}) {
     const g = waterGrid(world);
     for (let x = t.x - r; x <= t.x + r; x += 10) for (let z = t.z - r; z <= t.z + r; z += 10) {
       const d = Math.hypot(x - t.x, z - t.z);
-      if (d > ring + 15 && d < r - 15 && landOk(world, x, z) && nearestSailable(g, x, z, 'big', reach)) return true;
+      if (d > ring + 15 && d < r - 15 && landOk(world, x, z) && nearestSailable(g, x, z, 'big', reach) && wetWithin(world, x, z, def.shoreEdge ?? 18)) return true;
     }
     return false;
   });

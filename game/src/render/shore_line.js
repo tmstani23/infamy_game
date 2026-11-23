@@ -26,9 +26,9 @@ void main() {
   float h = (a - 0.27) / 0.24, halo = exp(-h * h) * step(0.17, a);   // the glow falls out over the water, hardly onto the sand
   float sd = (a - 0.36) / 0.08, shade = exp(-sd * sd) * 0.3 * gap;   // a thin cool shadow on the water side: reads on snow too
   float paint = 0.86 + 0.14 * sin(s * 0.11 + sin(s * 0.031) * 3.0);
-  float shimmer = 0.8 + 0.2 * smoothstep(0.6, 1.0, sin(s * 0.09 - uTime * 1.2));
-  float breathe = 0.88 + 0.12 * sin(uTime * 1.9);
-  float lit = (core * 0.8 + halo * 0.18) * paint * shimmer * breathe;
+  float shimmer = 0.94 + 0.06 * smoothstep(0.6, 1.0, sin(s * 0.09 - uTime * 0.6));
+  float breathe = 1.0;   // still: it read as a flash on the darker sea (Tim 2026-11-23)
+  float lit = (core * 0.42 + halo * 0.06) * paint * shimmer * breathe;   // quieter: a pale chalk line, no glow beam (Tim 2026-11-23)
   float sh = shade * (1.0 - lit);
   float k = (lit + sh) * vF * uAlpha;
   gl_FragColor = vec4((uColor * lit + vec3(0.04, 0.08, 0.13) * sh) / max(lit + sh, 1e-4), k);
