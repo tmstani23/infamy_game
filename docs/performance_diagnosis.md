@@ -143,4 +143,9 @@ Ticks about 20-25% faster in a 100-a-side battle, same fight results.
 ## Worker routes (2026-11-22)
 
 - Worker routes read a per-town blocked-cell lookup (`sim/frontier/town_grid.js` `townBlockedCells`); the route cache holds 512 and keeps in-use routes (`frontier.json`). Route search time is about a third of before on wartest1camp.
-- Still open: the governor review every 100 steps (70 to 100 ms) and crewStep (about 5 ms a step).
+## Governor and general reviews (2026-11-23)
+- Towns take turns for the governor review (sim/frontier/governor.js, s.govPhase), still every reviewTicks economy ticks. The general's 30 s town check works the same way (sim/war_general_brain.js, townsDue).
+- zones.js linkedRoads and streets.js streets compare their cache keys in parts. Street wobble is precomputed per town. The results are unchanged.
+- On wartest1camp the worst tick is about a third of what it was (about 195 to 70 ms in the cloud).
+- Fog banks (render/weather.js) discard pixels outside their oval before running the noise (speed only, pixel-identical). Fog banks are almost all of the weather's GPU cost, at any fog amount.
+- Still open: the economy tick (about 12 ms), crewStep (about 5 ms a step), and a 15 to 45 ms review for the largest towns.

@@ -1188,6 +1188,15 @@ export function createGeneralBrain(game, { clan }) {
     out.push({ id: h.id, type: 'move', ...intent(dx, dz) });
   }
 
+  // Lag fix (2026-11-23): his towns take turns. Each is still looked at every `slow` ticks, but the k-th of his towns
+  // (by id) on the review where (tick / every) % (slow / every) is k % (slow / every), not all on one tick with the
+  // other generals (a hitch every 30 s). The first town keeps the old tick.
+  function townsDue(every, slow, mine) {
+    const k = Math.max(1, Math.round(slow / every)), at = Math.floor((state.tick ?? 0) / every) % k;
+    return Object.values(state.frontier?.settlements || {}).filter(s => s.owner === clan).sort((a, b) => a.id < b.id ? -1 : 1)
+      .filter((s, i) => i % k === at && mine(s));
+  }
+
   function tick() {
     const gen = GEN(), h = hero();
     if (!gen || !h) return [];
@@ -1207,16 +1216,14 @@ export function createGeneralBrain(game, { clan }) {
       rob(out, cmd, order, h);   // R5: a train robbery under way, a chest to carry home, or a new one when it is due
       // in peace and war alike a bot's towns build up their defences (less often), and it looks for a war of its own
       const slow = Math.max(every, Math.round((gen.rules().buildSeconds ?? 30) * 20 / every) * every);
-      if ((state.tick ?? 0) % slow === 0)
-        for (const s of Object.values(state.frontier?.settlements || {}).sort((a, b) => a.id < b.id ? -1 : 1)) if (s.owner === clan) { prepare(out, cmd, s); walls(out, cmd, s); }
+      for (const s of townsDue(every, slow, s => s.owner === clan)) { prepare(out, cmd, s); walls(out, cmd, s); }
       if (!goal) claim(out, cmd, h);   // Z6d: an empty town in reach comes before a new war
       if (!goal) launch(out, cmd, h);
     } else {
       // 8d-5: a player's general builds the war buildings of his strategy on his own only inside the military zone the
       // player painted, and only in towns whose governor has the initiative (autoBuild)
       const MZ = F().data.zones?.military?.char, slow = Math.max(every, Math.round((gen.rules().buildSeconds ?? 30) * 20 / every) * every);
-      if (MZ && (state.tick ?? 0) % slow === 0)
-        for (const s of Object.values(state.frontier?.settlements || {}).sort((a, b) => a.id < b.id ? -1 : 1)) if (s.owner === clan && s.autoBuild && s.grid?.zone && !F().war.warOn?.(s.id)) prepare(out, cmd, s, true);   // with no military zone it only hands the fund back
+      if (MZ) for (const s of townsDue(every, slow, s => s.owner === clan && s.autoBuild && s.grid?.zone && !F().war.warOn?.(s.id))) prepare(out, cmd, s, true);   // with no military zone it only hands the fund back
     }
     walk(out, h);
     return out;

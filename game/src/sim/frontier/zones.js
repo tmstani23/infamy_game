@@ -52,9 +52,10 @@ export function createZones({ state, data, world,resourceIndex }) {
   // Cached per grid layout string, so it is recomputed only when roads change.
   const linkedCache = new WeakMap();
   function linkedRoads(s) {
-    const { n, use } = s.grid, key = use + '|' + (s.roadReserve || 0);
+    // (lag fix 2026-11-23) the key is kept in parts: building one long string per call cost more than the search
+    const { n, use } = s.grid, R = s.roadReserve || 0;
     const hit = linkedCache.get(s);
-    if (hit?.key === key) return hit.mask;
+    if (hit && hit.R === R && hit.use === use) return hit.mask;
     const mask = new Uint8Array(use.length), hall = centreCell(n), hc = hall % n, hr = (hall - hc) / n, apron = (s.roadReserve || 0) + 1;
     const road = j => use[j] === 'r' || use[j] === 'g', stack = [];
     for (let r = Math.max(0, hr - apron); r <= Math.min(n - 1, hr + apron); r++)
@@ -67,7 +68,7 @@ export function createZones({ state, data, world,resourceIndex }) {
         mask[k] = 1; stack.push(k);
       }
     }
-    linkedCache.set(s, { key, mask });
+    linkedCache.set(s, { use, R, mask });
     return mask;
   }
   // A road or gate (or the town hall, when hallIsRoad) within `reach` cells (square ring); with zones.roadsConnect

@@ -619,9 +619,18 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return pid;
   }
 
+  // Lag fix (2026-11-23): towns are reviewed in turns, not all on the same economy tick (13 towns at once was a
+  // 70-100 ms hitch every 5 s). Each town keeps its own phase (s.govPhase, 0 to reviewTicks - 1, the least used one
+  // when first seen) and is still reviewed every reviewTicks economy ticks. The first town gets phase 0.
   function run() {
-    if (f().econTick % G.reviewTicks !== 0) return;
-    for (const s of Object.values(f().settlements)) if (!s.capital) review(s);
+    const R = G.reviewTicks, towns = Object.values(f().settlements).filter(s => !s.capital);
+    for (const s of towns) if (!(Number.isInteger(s.govPhase) && s.govPhase >= 0 && s.govPhase < R)) {
+      const used = Array(R).fill(0);
+      for (const t of towns) if (Number.isInteger(t.govPhase) && t.govPhase >= 0 && t.govPhase < R) used[t.govPhase]++;
+      s.govPhase = used.indexOf(Math.min(...used));
+    }
+    const at = f().econTick % R;
+    for (const s of towns) if (s.govPhase === at) review(s);
   }
 
   return { review, run, approve };

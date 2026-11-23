@@ -72,6 +72,15 @@ export function route(s, data, linked, goal, wob = () => 0, block = null, turn =
   return null;
 }
 
+// each cell's fixed wobble for a town, worked out once per town and grid size (the same numbers as hashing per step)
+const wobbles = new Map();
+function wobble(seed, N, W) {
+  const k = `${seed}|${N}|${W}`;
+  let t = wobbles.get(k);
+  if (!t) { t = new Float64Array(N); for (let j = 0; j < N; j++) t[j] = hash(seed + ':' + j) * W; wobbles.set(k, t); }
+  return j => t[j];
+}
+
 // streets(s, data, { linked, aims, reach }) -> [[cell, ...], ...], each from the network outward.
 // Cached per town while the grid and aims stay the same.
 const cache = new WeakMap();
@@ -79,9 +88,10 @@ export function streets(s, data, { linked, aims = [], reach = 3 }) {
   if (!s.grid) return [];
   const G = data.governor || {}, g = s.grid, n = g.n, want = G.streets ?? 3, gap = (G.streetGap ?? 60) * Math.PI / 180;
   const blds = (s.buildings || []).filter(b => b.type !== 'town_hall' && b.stage !== 'ruined');
-  const key = [g.use, g.zone, g.by, s.tier || 1, blds.map(b => b.cell).join(','), aims.map(a => `${Math.round(a.x)},${Math.round(a.z)}`).join(';')].join('|');
-  const hit = cache.get(s); if (hit?.key === key) return hit.out;
-  const W = G.streetWobble ?? 0, seed = String(s.id), wob = j => hash(seed + ':' + j) * W;
+  // (lag fix 2026-11-23) the key is kept in parts, so the long grid strings are not joined on every call
+  const key = [g.use, g.zone, g.by, s.tier || 1, blds.map(b => b.cell).join(','), aims.map(a => `${Math.round(a.x)},${Math.round(a.z)}`).join(';')];
+  const hit = cache.get(s); if (hit && hit.key.every((v, i) => v === key[i])) return hit.out;
+  const W = G.streetWobble ?? 0, seed = String(s.id), wob = wobble(seed, n * n, W);
   const near = (cells, d) => { const set = new Set(); for (const i of cells) { const c = i % n, r = (i - c) / n; for (let rr = r - d; rr <= r + d; rr++) for (let cc = c - d; cc <= c + d; cc++) if (rr >= 0 && cc >= 0 && rr < n && cc < n) set.add(rr * n + cc); } return set; };
   const out = [], heads = [];
   // a street already laid all the way still counts (else a finished street would make him start one more)

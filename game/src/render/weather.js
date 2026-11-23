@@ -52,6 +52,7 @@ void main() {
   c = c * vec2(0.065, 0.11) + uSeed;                                         // wisps stretched along the wind
   float t = uFlowT;   // flow clock built up on the CPU, so a change of speed never makes the curls jump
   // the bank is a slowly bending ribbon with a ragged edge, and always fades out before the quad ends
+  if (length(vUv * 2.0) >= 1.0) discard;   // outside the oval env is 0 (speed only, 2026-11-23: skips the edge noise in the quad's corners)
   vec2 e = vUv * 2.0;
   e.y += 0.32 * sin(e.x * 2.6 + uSeed + uFlowT * 0.12);
   float edge = length(e * vec2(1.0, 1.1)) + (wFbm3(c * 0.9 + 3.7) - 0.5) * 0.6;
