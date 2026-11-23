@@ -8,6 +8,7 @@ import { loadSave, makeSave } from '../src/sim/save.js';
 import { build } from './make_dev_save.mjs';
 import { waterGrid, sailable, landingFor, nearestSailable } from '../src/sim/frontier/water_nav.js';
 import { passable } from '../src/sim/world_data.js';
+import { shoreWanted, shoreLine, landMark } from '../src/landing_shore.js';   // ships S6b
 
 const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
 const options = () => ({ district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
@@ -102,6 +103,14 @@ run(10 * 20 + 7 * 20);
 assert.ok(hero().inShip === ship.id && g.ships.riders(ship).length >= 5, `the hero and the men in the ring are aboard (${g.ships.riders(ship).length})`);
 const sx = hero().x; g.step([{ id: hero().id, type: 'move', right: 1, down: 0 }]); assert.equal(hero().x, sx, 'the hero aboard does not walk');
 assert.ok(g.ships.prompt(hero())?.text.includes('Step off'), 'aboard at the shore: Space steps off');
+
+// --- S6b: the landable shore shows while your people are afloat; the cursor marks where a click lands ---
+{ const want = shoreWanted(g, 'player'); assert.equal(want.length, 1, 'the war circle your people are afloat in');
+  assert.equal(shoreWanted(g, 'nobody').length, 0, 'no line with nobody afloat');
+  const runs = shoreLine(world, want[0].box, want[0].water), p = runs[0]?.[Math.floor(runs[0].length / 2)];
+  assert.ok(p && runs.every(r => r.every(q => Math.hypot(q.x - town.x, q.z - town.z) <= circle.r)), 'landable shore lines, inside the circle');
+  assert.equal(landMark(world, p.x - p.nx * 6, p.z - p.nz * 6, 'big', want[0].box), 'anchor', 'an anchor just ashore on the line');
+  assert.equal(landMark(world, p.x + p.nx * 40, p.z + p.nz * 40, 'big', want[0].box), null, 'no mark out on the water'); }
 
 // --- save and load mid-sail ---
 order([ship.id], { kind: 'move', x: goal.x, z: goal.z }); run(40);

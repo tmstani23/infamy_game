@@ -8,6 +8,7 @@ import { createRailLedger } from './rail_ledger.js';
 // Drawn by src/minimap.js in its big mode. Only reads the state.
 import { hoverCard } from './frontier_report.js';
 import { createMinimap } from './minimap.js';
+import { shoreWanted, shoreLine } from './landing_shore.js';   // ships S6b
 import { robberyMarks } from './minimap_icons.js';
 import { createDeploymentMapData } from './deployment_map_data.js';
 import { createDeploymentMapOverlay } from './deployment_map_overlay.js';
@@ -248,7 +249,7 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
     if (!goalSitesAt || performance.now() - goalSitesAt > 500) { goalSitesAt = performance.now(); goalSites = game.goals?.current?.(clan)?.sites || []; }
     return { zones: zr ? zoneState : null, zoneRules: zr, rivalHints, goalSites, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
       knownSites: told, knownAt: told.map(id => siteXZ[id]).filter(Boolean).map(t => ({ x: t.x, z: t.z, r: R })), highlight: tourStop,
-      hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, towns: townsOnMap(), robbery: robberyMarks(game.state, clan),
+      hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, shore: shoreWanted(game, h?.owner).flatMap(w => shoreLine(world, w.box, w.water)), towns: townsOnMap(), robbery: robberyMarks(game.state, clan),
       rail: { links: game.state.frontier?.rail?.links || {}, trains: game.state.frontier?.rail?.trains || {}, highlight: ledgerOpen ? ledger.train() : null, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600, wars: game.state.frontier?.wars?.list, me: clan, clans: game.state.clans } };
   };
   // Frontier towns to draw and hover (F4.4d): your own, plus rival towns on ground you have discovered

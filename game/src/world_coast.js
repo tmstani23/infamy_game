@@ -52,6 +52,12 @@ function sampleLoop(loop, cfg, corners) {
   return { points: out, length, period: length / Math.max(1, Math.round(length / cfg.length)) };
 }
 
+// the drawn shore as sampled points { p, normal (toward the land), s } per loop, fillets and all (ships S6b: the landable
+// shore line, src/landing_shore.js, lies on the same edge the beach strips do)
+export function coastSamples(world, cfg = { sampleStep: 3, miterLimit: 1.5, inland: { enabled: true } }) {
+  const topology = cfg.inland?.enabled ? shorelineTopology(world) : oceanTopology(world);
+  return topology.loops.map(loop => sampleLoop(loop, cfg, topology.corners));
+}
 export function createCoastline(world, cfg, paint, chunkSize) {
   const topology = cfg.inland?.enabled ? shorelineTopology(world) : oceanTopology(world);
   const loops = topology.loops.map(loop => sampleLoop(loop, cfg, topology.corners)), bins = new Map();

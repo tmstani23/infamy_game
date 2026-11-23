@@ -61,6 +61,7 @@ import { createRyoBadge } from './ryo_badge.js';
 import { createLootNotice } from './loot_notice.js';
 import { drawCrest } from './render/banners.js';
 import { createCrewInput, bodyDistance } from './crew_input.js';
+import { shoreWanted } from './landing_shore.js';   // ships S6b
 import { createActionBar } from './action_bar.js';
 import { createCrewBar } from './crew_bar.js';
 import { createSelectionPanel, unitWhere } from './selection_panel.js';
@@ -158,7 +159,7 @@ async function start() {
   try {
     view = await createView({
       canvas: $('view'), fxLayer: $('fx'), district, catalog, parts, scenery: game.scenery, rooms: game.rooms, world: simOptions.world, worldChunks: simOptions.worldChunks, cutouts, resourceSpots: simOptions.resourceSpots, spotConfig: frontier?.townArt?._spots, hallSeconds: frontier?.war?.channel?.seconds ?? 60, weather: weatherCfg,
-      doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || modeRules(game.state).island)), units, ships: campaignZones?.ship && castleBlueprint ? { bp: castleBlueprint, rules: campaignZones } : null,   // back windows: Shinobi only; the island gate: campaign only (W3.5)
+      doors: game.doors.filter(d => (!d.ninja || game.state.clans.player.kind === 'ninja') && (!d.gate || modeRules(game.state).island)), units, ships: campaignZones?.ship && castleBlueprint ? { bp: castleBlueprint, rules: campaignZones } : null, shore: () => shoreWanted(game, game.state.entities[heroId]?.owner),   // back windows: Shinobi only; the island gate: campaign only (W3.5)
     });
   } catch (e) {
     status('This browser could not start WebGL, which the game needs.');

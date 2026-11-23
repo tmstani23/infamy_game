@@ -9,6 +9,7 @@
 // Selection lives only on this screen; orders go to the rules as 'order' commands.
 import { prisonerOf, POLICE } from './sim/police.js';
 import { isRallyParticipant,crewCommandGroup } from './sim/deployment_rally.js';
+import { landMark, SHORE_CURSOR } from './landing_shore.js';   // ships S6b
 const PICK_PX = 22;     // how close a click must be to a unit's body (feet to head)
 const CIV_PX = 16;      // ...and a townsperson's (a little tighter, so a move order in a crowd stays a move order)
 
@@ -315,6 +316,18 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const w = Math.abs(e.clientX - drag.x), h = Math.abs(e.clientY - drag.y);
     box.hidden = w < 6 && h < 6;
     Object.assign(box.style, { left: `${x0}px`, top: `${y0}px`, width: `${w}px`, height: `${h}px` });
+  });
+  // ships S6b: while ships take your right-click (your hero aboard with nothing selected, or a ship selected), the cursor
+  // shows an anchor over landable shore and a red mark over blocked coast (src/landing_shore.js); armed cursors win
+  let shoreCur = null, shoreAt = 0;
+  addEventListener('mousemove', e => {
+    if (drag || targetPick || attackMove || performance.now() - shoreAt < 50) { if (targetPick || attackMove) shoreCur = null; return; }
+    shoreAt = performance.now();
+    const hs = hero()?.inShip && game.state.entities[hero().inShip], sel = mine().map(id => game.state.entities[id]).find(s => s?.ship && !s.dead);
+    const s = mine().length ? sel : hs?.ship && !hs.dead ? hs : null, w = game.ships?.world;
+    const p = s && w && commandPlace() === 'world' && view.screenToGround(e.clientX, e.clientY);
+    const m = p ? landMark(w, p.x, p.z, game.frontier?.data?.war?.ships?.kinds?.[s.warUnit]?.water || 'big', game.ships.boxOf(s)) : null;
+    if (m !== shoreCur) { if (m) document.body.style.cursor = SHORE_CURSOR[m]; else if (shoreCur) document.body.style.cursor = ''; shoreCur = m; }
   });
   addEventListener('mouseup', e => {
     if (!drag || e.button !== 0) return;

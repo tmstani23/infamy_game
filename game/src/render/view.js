@@ -30,13 +30,14 @@ import { pointAt } from '../sim/frontier/rail_route.js';
 import { createFerryShips, seaSpot } from './ferry_ships.js';
 import { createShipMarks } from './ship_marks.js';
 import { createShipFx } from './ship_fx.js';
+import { createShoreLine } from './shore_line.js';   // ships S6b
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
 import { groundY, maxGroundY } from '../castle_height.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
-export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null, resourceSpots = null, spotConfig = null, hallSeconds = 60, weather: weatherCfg = null, ships = null }) {
+export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null, resourceSpots = null, spotConfig = null, hallSeconds = 60, weather: weatherCfg = null, ships = null, shore = null }) {
   // Use one close interior camera setting without enlarging character sprites separately.
   const INDOOR_ZOOM = 1.1;
   const minZoom = place => place === 'world' ? 0.175 : 0.35;
@@ -132,6 +133,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // the ships at the city pier and the castle docks, and the one at sea (Z7, render/ferry_ships.js); ships = { bp, rules }
   const shipMarks = createShipMarks({ scene, types: units?.types, holdOf: e => e.hold ?? 0 });
+  const shoreLine = world && shore ? createShoreLine({ scene, world }) : null;   // ships S6b: the landable shore while your people are afloat (src/landing_shore.js)
   const shipFx = createShipFx({ scene });   // ship guns and hull damage (ships S4)   // war ships: ring, plate, wake (ships S2)
   const ferryShips = worldGround && ships ? createFerryShips({ scene, ...ships, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
@@ -526,6 +528,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       }
     }
     shipMarks.update(state, sprites, { colourOf: e => TEAM[teamOf(e, state.entities[followId])], enemyOf: e => teamOf(e, state.entities[followId]) === 'enemy', own: e => e.owner === state.entities[followId]?.owner }, selected, fdt);
+    shoreLine?.update(shore, fdt, cameraPlace(state.entities[followId]) === 'world');
     shipFx.update(state, sprites, fdt, cameraPlace(state.entities[followId]));   // after the sprites: a listing hull sits lower
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);

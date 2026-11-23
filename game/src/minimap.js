@@ -14,6 +14,7 @@ import { contractMapLocation } from './contract_map_marker.js';
 import { featureTip } from './world_features.js';
 import { drawRailLines } from './rail_map.js';
 import { worldTerrainCache, worldToCanvas, gridLabel, isDiscovered, drawSpotMarker } from './world_map.js';
+import { shoreWanted, shoreLine, drawShore } from './landing_shore.js';   // ships S6b
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
 import {workerLocation,workerDetails} from './worker_details.js';
@@ -240,6 +241,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     for (const c of world.corridors) { ctx.beginPath(); c.points.forEach(([x, z], i) => { const [u, v] = at(x, z); if (i) ctx.lineTo(u, v); else ctx.moveTo(u, v); }); ctx.stroke(); }
     // your railway lines (Tim 2026-11-07): laid track glows; the railhead is a dot
     drawRailLines(ctx, game.state.frontier?.rail?.links, at, { width: 1.6, label: false, wars: game.state.frontier?.wars?.list, me: clan, clans: game.state.clans });
+    for (const w of shoreWanted(game, game.state.entities[heroId]?.owner)) drawShore(ctx, shoreLine(world, w.box, w.water), at, 1.1 * Math.sqrt(islandZoom), 4.5);   // ships S6b: landable shore while your people are afloat
     const o = world.capital.cityOffset || {}, b = district.bounds, cx = world.capital.x + (o.x || 0), cz = world.capital.z + (o.z || 0);
     ctx.strokeStyle = '#e8d8a8'; ctx.lineWidth = 1.5; ctx.beginPath();
     [[b.minX, b.minZ], [b.maxX, b.minZ], [b.maxX, b.maxZ], [b.minX, b.maxZ]].forEach(([x, z], i) => { const [u, v] = at(cx + x, cz + z); if (i) ctx.lineTo(u, v); else ctx.moveTo(u, v); });
