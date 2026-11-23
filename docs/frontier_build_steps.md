@@ -3020,16 +3020,45 @@ and place a relic in a town.
 
 ---
 
-## Phase S: Seafaring (outline; expand into full cards before building)
+## Phase S: Seafaring (designed 2026-11-22; planned, not built)
 
-Goal (2026-11-19, replaces the 2026-11-02 trade-by-ship goal): ships are mostly for fighting. No sea cargo or goods system; new systems feed the fights, not town upkeep. W1 already stores harbor spots and sea lanes, F3.1 links carry a `mode`, and W3.1 plans a `water` movement layer, so this adds links, ships and a building, not a rewrite. Needs: comes after train robbery in the build order (and F6 war).
+Goal (2026-11-19): ships are for fighting. No sea cargo or goods system; new systems feed the fights, not town upkeep.
 
-Outline, each line becomes one or more cards when the phase is expanded:
-1. **Harbors:** coastal towns build a harbor on their W1 harbor spot; the capital already has one.
-2. **Piloting:** the hero and crew board a ship like a vehicle and can pilot their own ship as they ride horses; landing at any landing spot. Harbour to harbour travel between towns is shown as a sail that can be skipped. Small offshore islets with their own set pieces and loot (W5 pattern).
-3. **Pirates:** not planned for now.
-4. **Navy:** the **shipyard** is a war building for towns and war camps on the sea or a river. Ships fight inside war circles under the normal war rules; no separate open-sea war system for now.
-Checklist line is added when the cards are written.
+**Design (2026-11-22, planned, nothing built; numbers are placeholders in data files):**
+
+| Ship | Model | Role | Guns | Hold | Troop places | Exists |
+|---|---|---|---|---|---|---|
+| Warship | ship_war | fight, shell, land a few | cannon + deck Gatling, automatic | 6 | 5 | only during a war |
+| Transport | ship_coastal | carry troops, light fire support | one cannon (half the warship's damage), automatic | 12 | 4 | only during a war |
+| Fishing boat | boat_river | peacetime mount on water | none | rider only | none | bought and kept, like horses |
+
+- Units: warships and transports are RTS units (select, move, attack, X attack-move, Z hold fire, auto-attack in range). Hero, crew and troops can go in a hold; troops still count their troop places. No ship cap: the war troop cap is the limit. Transport hull about 1.5 times the warship's; it cannot board. Siege guns, Gatling crews and horses do not fit in a hold.
+- Warship weapons: cannon (siege cannon range, single target; ships, the buildings a siege cannon may hit, siege guns) and deck Gatling (short range, troops only; every clan). Both fire while unloading. Ships fight only inside the war circle and cannot leave it during the war.
+- Where built: only during a war, from the war chest (ryo, plus timber from stock). Defender: Shipyard, a war building of a town with a harbour (world.json site.harbor) or on a main river, on the shore at the harbour outside the ring, one per town. Attacker: Slipway, a camp building on any landable shore in the war circle (not chained to the camp, never in the town ring), one per camp. Neither is on a morale bar. Ruin loses the ship in training, not finished ships; rebuilt in place. Queue as troops (war.units, at shipyard / slipway). Offered only where water can work (navigable water at the harbour; landable shore on navigable water in the circle).
+- Water: warships and transports use the sea and the four main rivers (V1 to V4); bridges and fords stop them. Fishing boats also use the 8 streams (under bridges, over fords) and the 2 lakes.
+- Landing: any walkable shore; mountain and cliff coast blocks. Units step off one at a time (start 1 s); loading the same, and the All aboard ring works. Helpers: a pale line on landable shore (world, minimap, World map) while anyone of yours is aboard; right-click shore to land (anchor cursor, red over blocked coast, a click there goes to the nearest landable shore); anchor marks at the surveyor's coastal picks.
+- Hull: arrows, rifles, melee and Gatling do almost nothing; siege cannons, cannon towers and ship cannons do the damage (own row beside war.structures.damage). One cannon tower sinks a ship in about 60 s. Stages: smoke under 66%, fire under 50%, listing under 15%. Under half health a ship moves at half speed. Repair only docked (within 20 of its own yard), full in about 60 s, paused 10 s after it is hit or fires; no other regeneration; a ruined yard repairs nothing. Sinking: plain troops aboard drown; hero and crew wash ashore downed at the nearest landable shore in the circle outside any wall ring (else island respawn). Camera pans only when the player's hero was aboard; otherwise an alert and minimap ping.
+- Boarding (warship special, manual only): select ships, press the ability key, click an enemy ship; one press sends the nearest selected ship with troops aboard. Grapple 4 s alongside, then both ships stop while the holds fight (a bar over both), one fighter at a time falling until one hold is empty. Strength = war.units ryo cost (hero 400, crew 200); each second each side removes 10% of its current strength from the other. Defenders on a ship under half health fight at x0.6; a defending warship's Gatling removes 20% of the boarders before the struggle. Winner takes the ship with its damage; losing hero or crew wash ashore downed. Break off with the same key after 3 s, then 15 s before boarding again. Others may shoot the locked ship or join from the free side. Tie or both empty: defender keeps it with its strongest survivor. An empty hold is captured at once. A captured ship counts its troop places. Generals board only with a clearly stronger hold against a ship under half health.
+- Cannon tower (new land building, all wars): siege cannon range, less damage, more health; targets ships and siege guns first. Cap by town hall tier 1 / 2 / 4; war camps 1, 2 after the camp hall upgrade. On the morale bar like a watchtower; needs the town hall war upgrade; at most 4 menders.
+- War end: warships and transports (captured too) sail off and fade; they first land hero and crew (defender at their harbour, attacker by the slipway or nearest shore to the camp hall). Troops in the hold go with the ship. Fishing boats stay.
+- Peacetime: fishing boats bought and recalled like horses at a Boathouse (placed town building for harbour or river towns) and at the castle dock. Harbour travel: a skippable sail between your own harbour towns and your castle harbour. Settler ship at the castle dock and your harbour towns: steer it yourself, land on any landable shore, unload; it then sails off. First trip free, then a fare. Goal card: after the ferry, two rows, ride out or sail out.
+- Rival general: builds a yard only when ships can do something (a target within ship gun range of water, or a shorter or unwalled way in); shells, lands troops away from the camp, sinks or boards enemy ships, guards its slipway.
+- Pirates: not planned for now.
+
+Checklist (2026-11-22):
+- [ ] S0 Check sprites (all three exported and packed with half pages; confirm KTX2 pages and near/far page use in game), data blocks (war.ships, war.units, war.buildings shipyard / slipway / cannon_tower, structures health, cannon_tower morale weight), dev save ship_test.
+- [ ] S1 Water navigation: water grid, bridges and fords as blockers, landable shore cells, ship path finding.
+- [ ] S2 Ship as a unit: hull, steering, selection, move, attack-move, hold fire, hold boarding, land and unload, drawing, Controls rows.
+- [ ] S3 Shipyard and slipway: placement, training queue, troop places, dock repair, ruins, menus.
+- [ ] S4 Guns and hull: auto fire, damage row, stages, sinking, drowning and wash-up, pan or ping.
+- [ ] S5 Cannon tower: building, cap by tier, target order, morale weight, mender cap 4, general build lists.
+- [ ] S6 Landing helpers and effects: repair effect, pale shore line, anchor cursor, damage look, drowning and wash-up effects.
+- [ ] S7 War end: ships land hero and crew, sail off and fade.
+- [ ] S8 Boarding.
+- [ ] S9 AI general with ships.
+- [ ] S10 Fishing boats and Boathouse.
+- [ ] S11 Harbour travel.
+- [ ] S12 Settler ship and goal card rows (optional after: rivals found by sea).
 
 
 ---
@@ -3094,6 +3123,7 @@ Each becomes its own phase after a short design session with Tim:
   worth about 4× as fast, so far towns pay like near ones. Runs station to station only; a cut
   track stops the whole line until repaired, and train robbery is its own raid. Same shipment
   records with `mode: 'rail'` (F3.1), so it adds links and a train, not a rewrite.
+- Current design: Phase S (2026-11-22). The cargo-by-sea text below was replaced 2026-11-19.
 - **Sea travel** (Tim, 2026-11-01: planned now, built later; now outlined as Phase S, kept here as
   background): harbors as town buildings on the W1
   harbor spots, ships carrying shipments along sea lanes (same shipment records, `mode: 'sea'`), the

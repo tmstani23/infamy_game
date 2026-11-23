@@ -62,9 +62,9 @@ Progress of each concept through the character pipeline (see `art_direction.md`)
 | cannon_field | Field cannon | fire (recoil only, no flash or smoke) |
 | cannon_wooden | Wooden cannon | fire (recoil only, no flash or smoke) |
 | gatling | Gatling gun (rig `assets/models/source/gatling_rig/`) | fire (whole barrel spins on its axis with a small shudder; 8 directions) |
-| ship_coastal | Cargo ship (fast-travel ride) | idle, sail; modelled and animated in `assets/models/source/boat_rig/`, not exported yet |
-| boat_river | River boat | idle; oarsman needs a Mixamo rowing clip; not exported yet |
-| ship_war | Warship (1870s steam-and-sail corvette) | idle, sail, broadside; not exported yet |
+| ship_coastal | Cargo ship (fast-travel ride) | idle, sail; modelled and animated in `assets/models/source/boat_rig/`; exported and packed with half pages (catalog_v1, catalog_v1_half) |
+| boat_river | River boat | idle, sail; exported and packed with half pages (catalog_v1, catalog_v1_half); oarsman needs a Mixamo rowing clip |
+| ship_war | Warship (1870s steam-and-sail corvette) | idle, sail, broadside; exported and packed with half pages (catalog_v1, catalog_v1_half) |
 
 Riding sheets ride_saddle and ride_attack (2026-11-14) for every riding body: swordsman, kuroda_spearman, ninja_grunt, ronin, ninja_leader, rival_yakuza, thug, brute (enforcer), demolitions (Brute crew), ninja_tanto, geisha (Shinobi geisha), koruda_enforcer, shinobi_enforcer, mercenary, archer. Civilian bodies (gunslinger, monk, rickshaw_driver) keep coach_sitting.
 
