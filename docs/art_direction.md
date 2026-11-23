@@ -8,6 +8,11 @@
 - Fixed isometric camera over the city (see Look and camera below).
 - **See-through**: buildings between the camera and the action fade so the street stays visible.
 
+## UI look (Settled, 2026-11-23)
+- Style target: the lantern town panel mock (project files ui_audit/mock/town_panel_and_bar_v5.png); it replaces the war camp panel mock.
+- Materials instead of boxes: lacquer and timber frame, dyed cloth header with the clan crest, wood body, washi paper notes with red seals, brass and dark wood buttons with press depth, dark shelves holding the game's own painted props.
+- Serif type throughout (Shippori Mincho B1); no spaced small caps, no thin rule lines, no pills.
+
 ## What the look tests showed
 
 **Lantern street** (`look_tests/lantern_street.html`)

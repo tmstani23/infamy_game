@@ -1,0 +1,511 @@
+/* Lantern style (Tim 2026-11-23, plan project files ui_style2/plan.md, mock ui_audit/mock/town_panel_and_bar_v5.png).
+   A skin layer loaded after menu_shell.css: looks only, no layout logic. Lacquer frames, clan-dyed cloth headers,
+   dark wood bodies, washi notes, brass and wood buttons, wooden tag tabs, serif type, no eyebrows, no thin rules.
+   Kept rules: no scrollbars, plain text, hovers for long text, typeable number boxes, clan accents (body[data-clan]). */
+
+@font-face { font-family: "Lantern"; src: url(../art/ui/fonts/shippori-mincho-b1-latin-500-normal.woff2) format("woff2"); font-weight: 400 500; font-display: block; }
+@font-face { font-family: "Lantern"; src: url(../art/ui/fonts/shippori-mincho-b1-latin-700-normal.woff2) format("woff2"); font-weight: 600 700; font-display: block; }
+@font-face { font-family: "Lantern"; src: url(../art/ui/fonts/shippori-mincho-b1-latin-800-normal.woff2) format("woff2"); font-weight: 800 900; font-display: block; }
+
+:root {
+  --ln-font: "Lantern", Georgia, serif;
+  --ln-text: #ecdcbc; --ln-dim: #c2a983; --ln-faint: #9c8564; --ln-gold: #f0cd84; --ln-num: #f3e2bf;
+  --ln-lacq: #120c0a; --ln-wood: #23170f;
+  --ln-edge: rgba(110, 30, 18, .5);
+  --ln-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='700' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.004 0.09' numOctaves='3' seed='3'/><feColorMatrix values='0 0 0 0 0.10  0 0 0 0 0.062  0 0 0 0 0.038  0 0 0 .7 -0.2'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+  --ln-weave: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='c'><feTurbulence type='fractalNoise' baseFrequency='1.1 0.55' numOctaves='2' seed='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23c)'/></svg>"), repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 1px, transparent 1px 3px);
+  --ln-fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.36  0 0 0 0 0.22  0 0 0 .22 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>");
+}
+/* clan dye for cloth headers: a deep version of the clan accent (declared on body so body[data-clan] feeds it) */
+body, body[data-clan] { --ln-dye: color-mix(in srgb, var(--ms-accent) 30%, #170c0a); }
+
+/* ---------- shared pieces (usable anywhere) ---------- */
+.ln-wood { background-color: var(--ln-wood); background-image: linear-gradient(180deg, rgba(255,200,140,.05), rgba(0,0,0,.3)), var(--ln-grain); }
+.ln-lacq { background: radial-gradient(ellipse 80% 120% at 30% -20%, rgba(255,235,210,.08), transparent 60%), linear-gradient(180deg, #1a1210, #0b0807);
+  box-shadow: 0 0 0 1px #000, inset 0 0 8px 3px var(--ln-edge), 0 12px 30px rgba(0,0,0,.8); }
+.ln-cloth { background-color: var(--ln-dye); background-image: var(--ln-weave), radial-gradient(ellipse at 85% 0%, rgba(255,170,90,.16), transparent 55%), linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.35)); }
+.ln-paper { color: #3a2a1c; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.08)), var(--ln-fiber), #e2d2ad;
+  clip-path: polygon(0 3px, 6% 0, 22% 2px, 48% 0, 71% 3px, 90% 0, 100% 2px, 99.6% 50%, 100% 100%, 80% 98.5%, 55% 100%, 30% 98%, 8% 100%, 0 98%, .4% 50%); }
+.ln-seal { display: inline-block; padding: 3px 8px; font: 800 12px var(--ln-font); color: #a8321f; border: 3px double #a8321f; transform: rotate(-6deg); opacity: .88; mix-blend-mode: multiply; }
+.ln-well { border-radius: 3px; background: radial-gradient(ellipse 60% 100% at 50% 100%, rgba(255,170,80,.16), transparent 70%), linear-gradient(180deg, #0a0605, #1c120b 80%);
+  box-shadow: inset 0 4px 12px #000, 0 0 0 2px #070403; }
+
+/* ---------- the shared menu shell (.ms) ---------- */
+#hire.ms, #clinic.ms, #police.ms, #landoffice.ms, #sitemenu.ms, #stablemenu.ms, #stationmenu.ms, #contracts.ms, #vehiclespanel.ms, #standingspanel.ms, #lttalk.ms, #svtalk.ms {
+  --ms-gold: var(--ln-gold); --ms-text: var(--ln-text); --ms-dim: var(--ln-dim); --ms-line: transparent;
+  font: 500 14px/1.45 var(--ln-font); color: var(--ln-text); border: none; border-radius: 3px;
+  background-color: var(--ln-wood); background-image: linear-gradient(180deg, rgba(10,6,5,0), rgba(10,6,5,.35)), var(--ln-grain);
+  box-shadow: 0 0 0 1px #000, 0 0 0 7px #140d0a, 0 -1px 0 7px rgba(255,225,190,.10), 0 0 0 8px #000, inset 0 0 0 1px #000, inset 0 0 14px 5px rgba(120,35,20,.45), inset 0 0 90px rgba(0,0,0,.5), 0 0 40px rgba(255,140,50,.08), 0 24px 60px rgba(0,0,0,.85);
+}
+.ms button { font: 700 14px var(--ln-font); letter-spacing: 0; }
+/* header: a strip of clan-dyed cloth with a ragged hem */
+.ms .ms-head { border-bottom: none; margin: 10px 12px 4px; padding: 12px 18px 16px; border-radius: 0 0 2px 2px;
+  background-color: var(--ln-dye); background-image: var(--ln-weave), radial-gradient(ellipse at 85% 0%, rgba(255,170,90,.16), transparent 55%), linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.35));
+  clip-path: polygon(0 0, 100% 0, 100% 93%, 92% 97%, 80% 93%, 66% 99%, 50% 94%, 34% 98%, 20% 93%, 8% 98%, 0 94%);
+  filter: drop-shadow(0 6px 8px rgba(0,0,0,.6)); }
+.ms .ms-eyebrow { display: none; }
+.ms .ms-head h2 { margin: 0; font: 800 28px/1.1 var(--ln-font); color: #f2e6cf; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
+/* buttons: dark wood with depth; the main action is brass; Esc a small wooden tablet */
+.ms .ms-btn { border: none; border-radius: 2px; padding: 6px 13px; color: #ead3a6;
+  background: linear-gradient(180deg, #5a3f28, #2e1f14);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.28), inset 0 -2px 0 rgba(0,0,0,.4), 0 3px 0 #0a0604, 0 5px 8px rgba(0,0,0,.55); }
+.ms .ms-btn:hover:not(:disabled) { border: none; background: linear-gradient(180deg, #6b4b30, #3a2718); color: #ffe6b8; }
+.ms .ms-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.2), 0 1px 0 #0a0604; }
+.ms .ms-btn:disabled { opacity: .45; }
+.ms .ms-go { color: #2a1b10; letter-spacing: 0; text-shadow: 0 1px 0 rgba(255,240,200,.5);
+  background: linear-gradient(180deg, #ecca86, #b6873f);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), inset 0 -2px 0 rgba(90,50,10,.5), 0 3px 0 #2b1c0c, 0 5px 8px rgba(0,0,0,.55); }
+.ms .ms-go:hover:not(:disabled) { background: linear-gradient(180deg, #f6d898, #c39350); color: #1e1208; }
+.ms .ms-small { font-size: 13px; color: var(--ln-dim); }
+.ms .ms-bad { color: #f09a80; } .ms .ms-good { color: #b4dc8a; }
+
+/* left column: the building on a lit stand, coin stats as carved plaques */
+.ms .ms-aside { border-right: none; background: radial-gradient(ellipse 90% 60% at 50% 30%, rgba(255,160,70,.13), transparent 70%), linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.35));
+  box-shadow: inset -3px 0 0 #0a0604, inset -4px 0 0 rgba(255,210,150,.07); }
+.ms .ms-art { background: radial-gradient(ellipse at 50% 70%, rgba(255,170,80,.18), transparent 65%); }
+.ms .ms-art img { filter: drop-shadow(0 8px 8px #000) drop-shadow(0 0 14px rgba(255,150,60,.18)); }
+.ms .ms-tier { font: 700 14px var(--ln-font); letter-spacing: 0; text-transform: none; color: var(--ln-gold); }
+.ms .ms-coin { border-radius: 2px; padding: 6px 4px 5px; background: linear-gradient(180deg, #120b07, #1e140d); box-shadow: inset 0 2px 6px #000, 0 0 0 2px #070403, 0 1px 0 2px rgba(255,210,150,.06); }
+.ms .ms-coin b { font: 800 20px/1.1 var(--ln-font); color: var(--ln-num); text-shadow: 0 2px 0 #000; }
+.ms .ms-coin span { font: 500 12px var(--ln-font); letter-spacing: 0; text-transform: none; color: var(--ln-dim); }
+.ms .ms-coin.red { background: linear-gradient(180deg, #2a0f0b, #1a0b08); box-shadow: inset 0 2px 6px #000, 0 0 0 2px #070403, 0 0 12px rgba(200,60,30,.25); }
+.ms .ms-coin.red span { color: #f0a088; }
+
+/* tabs: wooden name tags; the open one raised and lantern lit */
+.ms .ms-tabs { border-bottom: none; gap: 6px; padding-bottom: 4px; }
+.ms .ms-tab { border: none; border-radius: 1px; padding: 6px 14px; background: transparent; color: #a48c69; letter-spacing: 0; text-transform: none; font: 700 15px var(--ln-font); }
+.ms .ms-tab:hover { color: #ecd6aa; }
+.ms .ms-tab.on { border: none; color: #ffe2a8; background: linear-gradient(180deg, #5a3e27, #3a2716);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.25), 0 3px 0 #0a0604, 0 5px 14px rgba(255,150,60,.22); text-shadow: 0 0 10px rgba(255,170,80,.6), 0 1px 0 #000; }
+
+/* cards: objects standing in a recessed, lit shelf slot, not bordered tiles */
+.ms .ms-grid { gap: 10px; }
+.ms .ms-card { border: none; border-radius: 2px; background: radial-gradient(ellipse 70% 60% at 50% 70%, rgba(255,170,80,.12), transparent 70%), linear-gradient(180deg, #0b0705, #1b120b 85%);
+  box-shadow: inset 0 3px 10px #000, 0 0 0 2px #070403; }
+.ms .ms-card:hover { border: none; box-shadow: inset 0 3px 10px #000, 0 0 0 2px #070403, 0 0 0 3px rgba(240,205,132,.55); }
+.ms .ms-card.sel { border: none; box-shadow: inset 0 3px 10px #000, 0 0 0 2px #070403, 0 0 0 3px #e9c47c, 0 0 16px rgba(255,170,80,.35); }
+.ms .ms-card .ms-face { border: none; border-radius: 2px; box-shadow: 0 0 0 2px #070403, 0 4px 8px #000a; }
+.ms .ms-card .ms-t { font: 800 15px var(--ln-font); color: var(--ln-num); }
+.ms .ms-hot, .ms .ms-key { font: 800 12px var(--ln-font); color: #e8d3a8; background: linear-gradient(180deg, #160e09, #2a1c12); border-radius: 2px; padding: 1px 6px;
+  box-shadow: inset 0 2px 3px #000, 0 1px 0 rgba(255,210,150,.15); }
+.ms .ms-badge { font: 700 12px var(--ln-font); color: var(--ln-dim); background: rgba(0,0,0,.45); border: none; border-radius: 2px; }
+/* chips: plain inked costs, coin and material marks, no pill outlines */
+.ms .ms-chip { border: none; background: none; border-radius: 0; padding: 0 2px; font: 700 14px var(--ln-font); color: var(--ln-num); }
+.ms .ms-chip.short { color: #f09a80; }
+.ms .ms-qchip { border: none; border-radius: 2px; background: rgba(0,0,0,.35); box-shadow: inset 0 1px 3px #000; font: 500 13px var(--ln-font); }
+
+/* sections: a serif heading over space, no small caps, no rule */
+.ms .ms-sec { color: #efdcb5; font: 800 17px var(--ln-font); letter-spacing: 0; text-transform: none; border-bottom: none; padding: 14px 0 6px; align-items: baseline; }
+.ms .ms-sec b { color: var(--ln-gold); font-weight: 800; }
+.ms .ms-sec > :last-child:not(:first-child) { font: 500 13px var(--ln-font); color: var(--ln-dim); }
+.ms .ms-row { border-bottom: none; padding: 7px 8px; margin: 0 -8px; border-radius: 2px; }
+.ms .ms-row:nth-child(even) { background: rgba(0,0,0,.18); }
+.ms .ms-row b { font-weight: 800; color: var(--ln-num); }
+.ms .ms-thumb { border: none; border-radius: 2px; box-shadow: 0 0 0 2px #070403, 0 3px 6px rgba(0,0,0,.6); }
+.ms .ms-prog { height: 10px; border: none; border-radius: 5px; background: #0b0705; box-shadow: inset 0 1px 3px #000, 0 1px 0 rgba(255,210,150,.08); }
+.ms .ms-prog i { background: linear-gradient(180deg, #f0cd84, #a87a35); box-shadow: 0 0 8px rgba(255,170,80,.45); }
+.ms input.ms-num { border: none; border-radius: 2px; background: #0b0705; font: 800 16px var(--ln-font); color: var(--ln-num); box-shadow: inset 0 2px 5px #000, 0 0 0 2px #070403, 0 1px 0 2px rgba(255,210,150,.08); }
+/* notes: pinned washi slips */
+.ms .ms-note { font: 500 13px var(--ln-font); color: var(--ln-dim); }
+.ms .ms-note.hot { color: #3a2a1c; padding: 8px 12px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.08)), var(--ln-fiber), #e2d2ad; box-shadow: 0 4px 8px rgba(0,0,0,.55); transform: rotate(-.4deg); }
+.ms .ms-p { font: 500 14px/1.5 var(--ln-font); color: var(--ln-text); }
+.ms .ms-speech { font-family: var(--ln-font); }
+
+/* stat plaques: small wooden ema tags hung in the aside */
+.ms .ms-coins { gap: 10px 8px; }
+.ms .ms-coin { position: relative; padding: 12px 4px 6px; border-radius: 0; background-color: #2e1f14; background-image: linear-gradient(180deg, rgba(255,210,150,.08), rgba(0,0,0,.25)), var(--ln-grain);
+  clip-path: polygon(0 9px, 50% 0, 100% 9px, 100% 100%, 0 100%); box-shadow: none; filter: drop-shadow(0 4px 4px rgba(0,0,0,.7)); }
+.ms .ms-coin.red { background-color: #3a140e; }
+.ms .ms-row.off { opacity: .72; }
+
+/* round 3: the cloth hangs from a lacquered rod, lit warm from the right; deeper rows; bigger section heads */
+.ms .ms-head { position: relative; margin-top: 18px; overflow: visible;
+  background-image: var(--ln-weave), radial-gradient(ellipse 70% 140% at 92% 0%, rgba(255,160,70,.30), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.4)); }
+.ms .ms-lay, .ms .ms-main { position: relative; }
+.ms::before { content: ""; display: block !important; position: absolute; left: 6px; right: 6px; top: 8px; height: 11px; z-index: 2; border-radius: 6px;
+  background: linear-gradient(180deg, #3a2418, #120a07 70%); box-shadow: 0 3px 4px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,220,180,.2); pointer-events: none; }
+.ms .ms-head h2 { font-size: 30px; letter-spacing: .01em; }
+.ms .ms-sec { font-size: 20px; padding-top: 16px; }
+.ms .ms-row { background: rgba(0,0,0,.22); box-shadow: inset 0 1px 3px rgba(0,0,0,.5); margin: 0 -8px 5px; }
+.ms .ms-row:nth-child(even) { background: rgba(0,0,0,.22); }
+.ms .ms-small { color: #cdb48b; }
+
+/* round 4: a built timber frame with iron corner caps (art/ui/lantern_frame.png, 2x nine-slice); quiet lacquer content;
+   tabs are washi tags, buttons wood, the main action brass */
+#hire.ms, #clinic.ms, #police.ms, #landoffice.ms, #sitemenu.ms, #stablemenu.ms, #stationmenu.ms, #contracts.ms, #vehiclespanel.ms, #standingspanel.ms, #lttalk.ms, #svtalk.ms {
+  border: 18px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0;
+  background-color: #150e0b; background-image: radial-gradient(ellipse 70% 50% at 70% 0%, rgba(255,150,60,.10), transparent 70%), linear-gradient(180deg, #1a120e, #0f0a08);
+  background-origin: border-box; background-clip: padding-box;
+  box-shadow: 0 24px 60px rgba(0,0,0,.85), 0 0 40px rgba(255,140,50,.06); }
+.ms::before { display: none !important; }
+.ms .ms-head { margin: 8px 10px 4px; }
+.ms .ms-aside { box-shadow: none; background: radial-gradient(ellipse 90% 60% at 50% 30%, rgba(255,160,70,.12), transparent 70%), linear-gradient(180deg, #1d140f, #130c09); margin: 6px 0 8px 8px; border-radius: 2px; }
+.ms .ms-coin { clip-path: none; filter: none; padding: 7px 4px 6px; border-radius: 2px; background: linear-gradient(180deg, #0c0806, #160f0a); box-shadow: inset 0 2px 6px #000, inset 0 -1px 0 rgba(255,210,150,.07); }
+.ms .ms-coin.red { background: linear-gradient(180deg, #1e0a07, #150806); }
+.ms .ms-tab { color: #b39a76; }
+.ms .ms-tab.on { color: #2b1d12; text-shadow: none; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.06)), var(--ln-fiber), #e4d4ae;
+  box-shadow: 0 3px 6px rgba(0,0,0,.6); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 88%, 0 100%); padding-bottom: 9px; }
+.ms .ms-go { background: linear-gradient(180deg, #f7e0a4 0%, #d9ad5e 38%, #a9772f 62%, #c99a52 100%); }
+.ms .ms-go:hover:not(:disabled) { background: linear-gradient(180deg, #fff0c0 0%, #e6bd70 38%, #b9853a 62%, #d6a85e 100%); }
+.ms .ms-row { background: rgba(255,220,170,.035); box-shadow: inset 0 1px 0 rgba(255,220,170,.05), 0 1px 2px rgba(0,0,0,.5); }
+.ms .ms-row:nth-child(even) { background: rgba(255,220,170,.035); }
+#clinic.ms, #police.ms, #landoffice.ms, #sitemenu.ms, #stablemenu.ms, #stationmenu.ms, #contracts.ms, #vehiclespanel.ms, #standingspanel.ms { width: min(680px, 94vw); }
+.ms .ms-lay { grid-template-columns: 196px minmax(0, 1fr); }
+.ms .ms-coin span { font-size: 12px; white-space: nowrap; }
+/* round 5: body back to soft grain under a lantern pool, rows engraved not boxed, the cloth spans the frame */
+#hire.ms, #clinic.ms, #police.ms, #landoffice.ms, #sitemenu.ms, #stablemenu.ms, #stationmenu.ms, #contracts.ms, #vehiclespanel.ms, #standingspanel.ms, #lttalk.ms, #svtalk.ms {
+  background-color: #1b120d;
+  background-image: radial-gradient(ellipse 75% 60% at 60% 18%, rgba(255,150,60,.14), transparent 70%), radial-gradient(ellipse 120% 100% at 50% 40%, transparent 55%, rgba(0,0,0,.55)), var(--ln-grain); }
+.ms .ms-head { margin: 0 0 6px; clip-path: polygon(0 0, 100% 0, 100% 92%, 94% 97%, 82% 92%, 68% 99%, 52% 93%, 36% 98%, 20% 92%, 7% 98%, 0 93%); }
+.ms .ms-aside { background: radial-gradient(ellipse 90% 60% at 50% 30%, rgba(255,160,70,.12), transparent 70%); margin: 0; }
+.ms .ms-row, .ms .ms-row:nth-child(even) { background: none; box-shadow: 0 2px 0 rgba(0,0,0,.55), 0 3px 0 rgba(255,215,160,.07); margin: 0 0 6px; padding: 7px 0 9px; border-radius: 0; }
+.ms .ms-sec { font-size: 18px; }
+.ms .ms-btn:not(.ms-go) { background: linear-gradient(180deg, #4a3322, #24170f); }
+
+/* ================= CP2: Town panel (O) ================= */
+#townpanel, #townsoverview, #railledger {
+  font: 500 14px/1.45 var(--ln-font); color: var(--ln-text); border: 18px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0;
+  background-color: #1b120d; background-origin: border-box; background-clip: padding-box;
+  background-image: radial-gradient(ellipse 75% 45% at 70% 8%, rgba(255,150,60,.13), transparent 70%), radial-gradient(ellipse 120% 100% at 50% 40%, transparent 55%, rgba(0,0,0,.5)), var(--ln-grain);
+  box-shadow: 0 24px 60px rgba(0,0,0,.85); }
+#townpanel h1, #townsoverview h1 { font: 800 30px/1.1 var(--ln-font); color: #f2e6cf; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
+#townpanel .sub, #townsoverview .sub { color: var(--ln-dim); font-size: 14px; }
+#townpanel .dim, #townsoverview .dim { color: var(--ln-dim); }
+#townpanel .lab { font: 800 18px var(--ln-font); color: #efdcb5; letter-spacing: 0; text-transform: none; border: none; padding: 12px 0 4px; margin: 6px 0 4px; }
+#townpanel .lab button { font-size: 12px; padding: 2px 8px; margin-left: 8px; vertical-align: 2px; }
+#townpanel button, #railledger button { font: 700 13.5px var(--ln-font); border: none; border-radius: 2px; color: #ead3a6; background: linear-gradient(180deg, #4a3322, #24170f);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.28), inset 0 -2px 0 rgba(0,0,0,.4), 0 3px 0 #0a0604; }
+#townpanel button:hover:not(:disabled), #railledger button:hover:not(:disabled) { border: none; background: linear-gradient(180deg, #6b4b30, #3a2718); color: #ffe6b8; }
+#townpanel button.go, #townpanel .shbig.go, #townpanel button.wtrain { border: none; color: #2a1b10; text-shadow: none; background: linear-gradient(180deg, #f7e0a4 0%, #d9ad5e 38%, #a9772f 62%, #c99a52 100%);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), 0 3px 0 #2b1c0c; }
+/* tabs as in the shell: plain wood text, the open one a washi tag */
+#townpanel .ptabs { border-bottom: none; gap: 4px; padding-bottom: 6px; }
+#townpanel .ptabs button { border: none; background: none; box-shadow: none; color: #b39a76; font: 700 15px var(--ln-font); letter-spacing: 0; text-transform: none; padding: 6px 10px 8px; }
+#townpanel .ptabs button.on { color: #2b1d12; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.06)), var(--ln-fiber), #e4d4ae; box-shadow: 0 3px 6px rgba(0,0,0,.6);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%); padding-bottom: 11px; }
+/* Build and Military: one carved beam */
+#townpanel .bigrow { gap: 0; padding: 0; border-radius: 2px; box-shadow: 0 0 0 2px #070403, 0 6px 12px rgba(0,0,0,.6); }
+#townpanel .bigrow button { font: 800 19px var(--ln-font); letter-spacing: 0; text-transform: none; min-height: 50px; border-radius: 0; }
+#townpanel .bigrow button.buildbig { color: #f2deb4; background: linear-gradient(180deg, rgba(255,210,150,.10), rgba(0,0,0,.3)), var(--ln-grain), #3a281b;
+  box-shadow: inset 0 1px 0 rgba(255,220,170,.22), inset 0 -3px 0 rgba(0,0,0,.45), inset -8px 0 0 #2a2420, inset -9px 0 0 #000; }
+#townpanel button.warbig { border: none; border-radius: 0; color: #ffd6bf; background: linear-gradient(90deg, rgba(120,25,15,.1), rgba(120,25,15,.55)), linear-gradient(180deg, rgba(255,210,150,.10), rgba(0,0,0,.3)), var(--ln-grain), #3a1f16;
+  box-shadow: inset 0 1px 0 rgba(255,220,170,.2), inset 0 -3px 0 rgba(0,0,0,.45); }
+#townpanel button.warbig:hover { border: none; background: linear-gradient(90deg, rgba(150,35,20,.2), rgba(150,35,20,.65)), var(--ln-grain), #4a2418; }
+/* the storehouse shelf: painted props on a lit plank, numbers under them */
+#townpanel div.stock { position: relative; gap: 0; padding: 8px 4px 0; border-radius: 3px;
+  background: radial-gradient(ellipse 60% 100% at 50% 100%, rgba(255,170,80,.16), transparent 70%), linear-gradient(180deg, #0a0605, #1c120b 80%); box-shadow: inset 0 4px 12px #000, 0 0 0 2px #070403; }
+#townpanel div.stock::after { content: ""; position: absolute; left: 0; right: 0; top: 70px; height: 10px; background: linear-gradient(180deg, #6a4a2e, #3a2716 60%, #1a0f08); box-shadow: 0 4px 6px rgba(0,0,0,.7); }
+#townpanel .stock div, #townpanel .stock div.ppl { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 0 0 8px; border: none; border-radius: 0; background: none; box-shadow: none; }
+#townpanel .stock img.sprop { height: 58px; max-width: 100%; object-fit: contain; object-position: 50% 100%; margin-bottom: 14px; filter: drop-shadow(0 4px 3px rgba(0,0,0,.85)); position: relative; z-index: 2; }
+#townpanel .stock div.low img.sprop { opacity: .7; filter: sepia(.4) saturate(.6) drop-shadow(0 3px 2px #000); }
+#townpanel .stock b { order: 3; font: 800 19px/1.1 var(--ln-font); color: var(--ln-num); text-shadow: 0 2px 0 #000; }
+#townpanel .stock div.low b { color: #ff9d7d; }
+#townpanel .stock button { order: 4; background: none; box-shadow: none; padding: 0; font: 700 13px var(--ln-font); color: var(--ln-dim); }
+#townpanel .stock button:hover:not(:disabled) { background: none; color: #ffe6b8; }
+#townpanel .stock .cap { order: 5; font-size: 11.5px; }
+#townpanel .stock div > :last-child:not(b):not(button):not(.cap):not(img) { position: absolute; right: 6px; top: 50px; z-index: 3; }
+/* people */
+#townpanel .bar, #townpanel .shbar { height: 12px; border: none; border-radius: 6px; background: #0b0705; box-shadow: inset 0 1px 3px #000, 0 1px 0 rgba(255,210,150,.08); }
+#townpanel .bar i { background: linear-gradient(180deg, #f0cd84, #a87a35); }
+#townpanel .bar.m i { background: linear-gradient(90deg, #5e240f, #c8702a 70%, #ffd27a); box-shadow: 0 0 10px rgba(255,150,60,.5); }
+#townpanel .pjobs { gap: 4px 14px; }
+#townpanel .pjob { border: none; background: none; padding: 0; font: 500 14px var(--ln-font); color: var(--ln-text); }
+#townpanel .pjob b { font-weight: 800; color: var(--ln-num); }
+#townpanel .pjob.short { background: none; } #townpanel .pjob.short b, #townpanel .pjob i { color: #ff9d7d; }
+#townpanel .pgood { color: #b4dc8a; } #townpanel .pwarn { color: #ff9d7d; }
+#townpanel .hint { font: 500 13px var(--ln-font); color: var(--ln-dim); }
+/* the governor's word: a pinned washi slip with red seals */
+#townpanel .govnote { position: relative; margin: 14px 2px 6px; padding: 10px 16px 12px; color: #3a2a1c; transform: rotate(-.5deg);
+  background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.08)), var(--ln-fiber), #e2d2ad; box-shadow: 0 6px 12px rgba(0,0,0,.6);
+  clip-path: polygon(0 3px, 6% 0, 22% 2px, 48% 0, 71% 3px, 90% 0, 100% 2px, 99.6% 50%, 100% 100%, 80% 98.5%, 55% 100%, 30% 98%, 8% 100%, 0 98%, .4% 50%); }
+#townpanel .govnote::before { content: ""; position: absolute; top: 7px; left: 50%; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #b59a74, #3d2c1a); }
+#townpanel .govnote .lab { color: #3b2716; font-size: 16px; padding: 2px 0 0; margin: 0 0 2px; }
+#townpanel .govnote b { color: #1e130b; } #townpanel .govnote .dim { color: #6a5338; }
+#townpanel .govnote .pill { display: inline-block; margin: 6px 6px 0 0; padding: 2px 8px; font: 800 12px var(--ln-font); color: #a8321f !important; background: none !important;
+  border: 3px double #a8321f; border-radius: 0; transform: rotate(-4deg); opacity: .9; }
+/* workers card and steps */
+#townpanel .wcard { border-radius: 2px; background: linear-gradient(180deg, #0c0806, #170f0a); box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403; }
+#townpanel .wart, #townpanel .wqp { border: none; border-radius: 2px; box-shadow: 0 0 0 2px #070403; }
+#townpanel .wbig b { font: 800 24px var(--ln-font); color: var(--ln-num); }
+#townpanel .tcoin { background: none; font: 700 13px var(--ln-font); }
+#townpanel .wst { border: none; border-radius: 2px; background: rgba(0,0,0,.3); box-shadow: inset 0 1px 3px #000; font: 500 12px var(--ln-font); color: var(--ln-dim); }
+#townpanel .wst.done { border: none; color: #b4dc8a; } #townpanel .wst.now { border: none; background: rgba(120,80,30,.35); color: #ffe2a8; box-shadow: inset 0 1px 3px #000, 0 0 8px rgba(255,170,80,.3); }
+#townpanel .row { font-size: 14px; }
+#townpanel .pclose { font: 700 13px var(--ln-font); padding: 4px 10px; }
+#townpanel .bigrow button.on, #townpanel .bigrow button.buildbig.on { outline: none; color: #ffe2a8; text-shadow: 0 0 10px rgba(255,170,80,.6), 0 1px 0 #000; }
+#townpanel .bigrow button.buildbig { border: none !important; }
+/* CP2: everything inside the town panel speaks the same serif, no spaced caps */
+#townpanel *, #townsoverview *, #railledger * { font-family: var(--ln-font) !important; letter-spacing: 0 !important; text-transform: none !important; }
+#townpanel input, #townsoverview input, #railledger input { font-weight: 800; color: var(--ln-num); background: #0b0705; border: none; border-radius: 2px; box-shadow: inset 0 2px 5px #000, 0 0 0 2px #070403; }
+/* recessed wells instead of bordered cards */
+#townpanel .gplan, #townpanel .fundcard, #townpanel .fcres div, #townpanel .wst, #townpanel button.gcard, #townpanel .shcard, #townpanel .row.plan, #townpanel .lgrow, #townpanel .lgbox {
+  border: none !important; border-radius: 2px !important; background: linear-gradient(180deg, #0c0806, #170f0a) !important; box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403 !important; }
+#townpanel button.gcard { font: 700 14px var(--ln-font); color: var(--ln-dim); }
+#townpanel button.gcard svg { filter: drop-shadow(0 2px 2px #000); }
+#townpanel button.gcard.on { color: #ffe2a8 !important; background: radial-gradient(ellipse at 50% 30%, rgba(255,160,70,.28), transparent 70%), linear-gradient(180deg, #2a1c12, #170f0a) !important;
+  box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403, 0 0 0 3px #c99a52, 0 0 14px rgba(255,160,70,.3) !important; }
+/* eyebrows become headings or go */
+#townpanel .goveye { display: none; }
+#townpanel .fceye, #townpanel .fclab, #townpanel .lghead b, #railledger h3 { font: 800 16px var(--ln-font) !important; color: #efdcb5 !important; }
+#townpanel .fcres small { font-size: 12.5px; color: var(--ln-dim); }
+#townpanel .fcres b { font: 800 19px var(--ln-font); color: var(--ln-num); }
+/* the governor speaks on paper */
+#townpanel .govface { border: none; border-radius: 2px; box-shadow: 0 0 0 2px #070403, 0 4px 8px rgba(0,0,0,.6); }
+#townpanel .govmain .chat { border: none; border-radius: 0; font-style: italic; color: #3a2a1c; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.08)), var(--ln-fiber), #e2d2ad; box-shadow: 0 4px 8px rgba(0,0,0,.55); }
+#townpanel .govmain .chat::before { display: none; }
+#townpanel .choices button { font-size: 14px; padding: 7px 8px; }
+/* chips and pills: inked words, small seals for alarms */
+#townpanel .gchip, #townpanel .pill, #townpanel .tag, #townpanel .lgtag { border: none !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; font: 800 13px var(--ln-font) !important; color: var(--ln-gold) !important; padding: 0 2px !important; }
+#townpanel .pill.red { color: #ff9d7d !important; }
+/* switches: separate wooden blocks, the chosen one lit */
+#townpanel .gseg { border: none; border-radius: 0; overflow: visible; gap: 5px; }
+#townpanel .gseg button { border: none !important; border-radius: 2px; font-size: 13.5px; padding: 4px 10px; }
+#townpanel .gseg button.on, #townpanel button.on { color: #ffe2a8; background: radial-gradient(ellipse at 50% 0%, rgba(255,170,80,.35), transparent 75%), linear-gradient(180deg, #6b4b30, #3a2718);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.3), 0 0 0 3px rgba(201,154,82,.6), 0 3px 0 #0a0604; text-shadow: 0 0 8px rgba(255,170,80,.5); }
+#townpanel .fcstat.bad { border: none; border-radius: 2px; background: rgba(90,20,12,.55); box-shadow: inset 0 1px 4px #000; color: #ffd2c4; }
+/* CP2 tabs: Shipments, Workers, Stable. Clan purple fills become lit wood, meters become brass grooves, cards become wells */
+#townpanel .shtabs button, #townpanel .wtabs button, #townpanel .tabs3 button { border: none !important; border-radius: 2px; font: 700 14px var(--ln-font); color: var(--ln-dim); min-height: 32px;
+  background: linear-gradient(180deg, #3a281b, #1e140d); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.18), 0 3px 0 #0a0604; }
+#townpanel .shtabs button.on, #townpanel .wtabs button.on, #townpanel .tabs3 button[aria-pressed="true"] { color: #ffe2a8; border: none !important;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,170,80,.35), transparent 75%), linear-gradient(180deg, #6b4b30, #3a2718);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.3), 0 0 0 3px rgba(201,154,82,.6), 0 3px 0 #0a0604; text-shadow: 0 0 8px rgba(255,170,80,.5); }
+#townpanel .wtabs { border-bottom: none; gap: 6px; margin: 4px 0 8px; }
+#townpanel .shauto, #townpanel .shauto.on { border: none; border-radius: 0; background: none; padding: 2px 0; font: italic 500 14px var(--ln-font); color: var(--ln-dim); }
+#townpanel .shauto.on { color: #c9dba6; }
+#townpanel .shres, #townpanel .shres.low { border-left: none; border-bottom: none; background: none; box-shadow: 0 2px 0 rgba(0,0,0,.55), 0 3px 0 rgba(255,215,160,.07); padding: 8px 2px 10px; margin-bottom: 4px; }
+#townpanel .shres b { color: var(--ln-num); font-weight: 800; }
+#townpanel .shres.low { background: radial-gradient(ellipse 50% 100% at 0% 50%, rgba(170,50,25,.28), transparent 75%); }
+#townpanel .shres.low b { color: #ff9d7d; }
+#townpanel .shmeter, #townpanel .pbody.stabbody .stab .rbar, #townpanel .pbody.stabbody .stab .prog, #townpanel .wprog, #townpanel .wqbar { height: 9px; border: none; border-radius: 5px; background: #0b0705; box-shadow: inset 0 1px 3px #000, 0 1px 0 rgba(255,210,150,.08); }
+#townpanel .shmeter i, #townpanel .pbody.stabbody .stab .prog i, #townpanel .wprog i, #townpanel .wqbar i { border-radius: 5px; background: linear-gradient(180deg, #f0cd84, #a87a35); }
+#townpanel .shres.low .shmeter i { background: linear-gradient(90deg, #5e240f, #c8502a 70%, #ff9a6a); box-shadow: 0 0 8px rgba(255,110,60,.45); }
+#townpanel .shmeter b { background: #f3e2bf; }
+#townpanel .shico svg, #townpanel .wjob .wico { filter: drop-shadow(0 2px 1px #000); }
+#townpanel .shchip { border: none; background: none; padding: 0; font-size: 13px; color: var(--ln-gold); }
+#townpanel .shopts { font-size: 13.5px; color: var(--ln-dim); }
+#townpanel .shopts button { font: 700 13px var(--ln-font); padding: 3px 10px; }
+#townpanel .shnote { font-size: 13.5px; }
+/* Workers: the job coins are wells with the count lit, workers are cards on a dark shelf */
+#townpanel .workerroster button.wcoin { border: none; border-radius: 2px; background: linear-gradient(180deg, #0c0806, #170f0a); box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403; }
+#townpanel .workerroster button.wcoin:hover:not(:disabled) { border: none; background: radial-gradient(ellipse at 50% 30%, rgba(255,160,70,.16), transparent 70%), linear-gradient(180deg, #120c08, #1c130c); }
+#townpanel .workerroster button.wcoin.on, #townpanel .workerroster button.wcoin.idle { border: none; background: radial-gradient(ellipse at 50% 30%, rgba(255,160,70,.28), transparent 70%), linear-gradient(180deg, #2a1c12, #170f0a);
+  box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403, 0 0 0 3px #c99a52, 0 0 14px rgba(255,160,70,.3); }
+#townpanel .workerroster .wcoin b { font: 800 20px/1 var(--ln-font); color: var(--ln-num); }
+#townpanel .workerroster .wcoin.idle b { color: #ffd27a; }
+#townpanel .workerroster .wcoin > span:last-child { font-size: 12.5px; color: var(--ln-dim); }
+#townpanel .workerroster .wcard, #townpanel .workerroster .wcard.sel { border: none; border-radius: 2px; background: linear-gradient(180deg, #0c0806, #170f0a); box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403; }
+#townpanel .workerroster .wcard.sel { background: radial-gradient(ellipse at 30% 30%, rgba(255,160,70,.22), transparent 70%), linear-gradient(180deg, #2a1c12, #170f0a); box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403, 0 0 0 3px #c99a52; }
+#townpanel .workerroster button.wface, #townpanel .wcard.sel button.wface { border: none; border-radius: 2px; background-color: #1a110b; box-shadow: 0 0 0 2px #070403, inset 0 0 10px rgba(0,0,0,.8); }
+#townpanel .wtop b { font: 800 14px var(--ln-font); color: var(--ln-num); }
+#townpanel .wjob { font-size: 12.5px; color: var(--ln-dim); }
+#townpanel .wcard .harvestline { font-size: 12px; color: var(--ln-dim); }
+#townpanel .wchip { border: 3px double #c4432b; border-radius: 0; background: none; color: #ff9d7d; font: 800 11px var(--ln-font); padding: 0 4px; transform: rotate(-3deg); }
+#townpanel select, #townsoverview select { -webkit-appearance: none; appearance: none; font: 700 12.5px var(--ln-font) !important; color: #ead3a6; border: none; border-radius: 2px; padding: 3px 22px 3px 8px;
+  background: linear-gradient(45deg, transparent 50%, #c99a52 50%) right 11px center / 5px 5px no-repeat, linear-gradient(-45deg, transparent 50%, #c99a52 50%) right 6px center / 5px 5px no-repeat, linear-gradient(180deg, #3a281b, #1e140d);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.18); }
+#townpanel select option { background: #1e140d; color: #ead3a6; }
+#townpanel .wcard select.wgrp { font-size: 12px !important; padding: 2px 22px 2px 6px; }
+#townpanel .wsec { font: 800 16px var(--ln-font); color: #efdcb5; }
+#townpanel .wsec b { font-weight: 500; font-size: 13px; color: var(--ln-dim); }
+#townpanel .wpager { font-size: 13px; color: var(--ln-dim); }
+#townpanel .wselbar { border: none; border-radius: 2px; background: rgba(0,0,0,.3); box-shadow: inset 0 1px 4px #000; }
+#townpanel .wspot, #townpanel .wgroups > * { border: none !important; border-radius: 2px !important; background: linear-gradient(180deg, #0c0806, #170f0a) !important; box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403 !important; }
+/* Stable: room meters in brass, cards as lit wells, the stock as plaques */
+#townpanel .pbody.stabbody > .ms-pagefoot { grid-column: 1 / -1; }
+#townpanel .pbody.stabbody .sbox, #townpanel .pbody.stabbody .sbox.first, #townpanel .pbody.stabbody .stab .bcard, #townpanel .pbody.stabbody .stab .coin, #townpanel .pbody.stabbody .stab .slot, #townpanel .pbody.stabbody .stab .thumb {
+  border: none; border-radius: 2px; background: linear-gradient(180deg, #0c0806, #170f0a); box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403; }
+#townpanel .pbody.stabbody .sbox.first { background: radial-gradient(ellipse at 20% 50%, rgba(255,160,70,.2), transparent 70%), linear-gradient(180deg, #1e140d, #120b07); }
+#townpanel .pbody.stabbody .stab .bcard { background: radial-gradient(ellipse 70% 55% at 50% 100%, rgba(255,160,70,.18), transparent 70%), linear-gradient(180deg, #0c0806, #170f0a); }
+#townpanel .pbody.stabbody .stab .slot.now { box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403, 0 0 0 3px #c99a52; }
+#townpanel .pbody.stabbody .stab .rbar i { border-radius: 5px; background: linear-gradient(180deg, #f0cd84, #a87a35); }
+#townpanel .pbody.stabbody .stab .rbar i.q, #townpanel .pbody.stabbody .stab .legend i.q { background: repeating-linear-gradient(45deg, #c99a5299 0 3px, #c99a5233 3px 6px); }
+#townpanel .pbody.stabbody .stab .legend { font-size: 12px; color: var(--ln-dim); } #townpanel .pbody.stabbody .stab .legend i { background: #c99a52; border-radius: 50%; }
+#townpanel .pbody.stabbody .stab .room { font-size: 14px; } #townpanel .pbody.stabbody .stab .room em { font-weight: 800; color: var(--ln-num); }
+#townpanel .pbody.stabbody .stab .coin b { font: 800 19px var(--ln-font); color: var(--ln-num); } #townpanel .pbody.stabbody .stab .coin span { font-size: 12.5px; color: var(--ln-dim); }
+#townpanel .pbody.stabbody .stab .sm { font-size: 12.5px; color: var(--ln-dim); }
+#townpanel .pbody.stabbody .stab .grp { font: 800 15px var(--ln-font); color: #efdcb5; padding: 8px 0 2px; }
+#townpanel .pbody.stabbody .stab .vrow { border-bottom: none; box-shadow: 0 2px 0 rgba(0,0,0,.55), 0 3px 0 rgba(255,215,160,.07); padding: 5px 0 7px; }
+#townpanel .pbody.stabbody .stab .chip, #townpanel .pbody.stabbody .stab .bcard .tag, #townpanel .pbody.stabbody .stab .pill { border: none !important; background: none !important; border-radius: 0; padding: 0 2px; font: 700 12.5px var(--ln-font); color: var(--ln-gold); }
+#townpanel .pbody.stabbody .stab .chip.short { color: #ff9d7d; }
+#townpanel .pbody.stabbody .stab .pill.ride { color: #b4dc8a; } #townpanel .pbody.stabbody .stab .pill.move { color: #f0cd84; } #townpanel .pbody.stabbody .stab .pill.board { color: #a9c9e6; }
+#townpanel .pbody.stabbody .sb, #townpanel .pbody.stabbody .sc { border-left: none !important; box-shadow: -2px 0 0 rgba(0,0,0,.5), -3px 0 0 rgba(255,215,160,.06); }
+#townpanel .pbody.stabbody .stab .room { grid-template-columns: 92px minmax(0, 1fr) auto; }
+#townpanel .pbody.stabbody .stab .bcard .tag { top: 6px; right: 0; left: 0; text-align: center; }
+#townpanel .wcard select.wgrp { color: #ead3a6; border: none; border-radius: 2px;
+  background: linear-gradient(45deg, transparent 50%, #c99a52 50%) right 11px center / 5px 5px no-repeat, linear-gradient(-45deg, transparent 50%, #c99a52 50%) right 6px center / 5px 5px no-repeat, linear-gradient(180deg, #3a281b, #1e140d);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.18); }
+#townpanel .ms-pagefoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; color: var(--ln-dim); margin-top: 10px; }
+#townpanel .ms-pagefoot .ms-small { white-space: nowrap; }
+#townpanel .ms-pagefoot button { padding: 3px 12px; margin-left: 4px; }
+#townpanel .lab { padding: 8px 0 2px; margin: 4px 0 3px; }
+
+/* ================= CP2: town hall Military window (#townwar) and the war camp window (#warcamp), same sheet =================
+   Their CSS is injected at run time after this file, so each rule here carries `body` for weight. War keeps its red: the cloth is war red. */
+body :is(#warcamp, #townwar) { font: 500 14px/1.4 var(--ln-font); color: var(--ln-text); }
+body :is(#warcamp, #townwar) * { font-family: var(--ln-font) !important; letter-spacing: 0 !important; text-transform: none !important; }
+body :is(#warcamp, #townwar) .win { border: 18px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0; overflow: visible;
+  background-color: #1b120d; background-origin: border-box; background-clip: padding-box;
+  background-image: radial-gradient(ellipse 75% 45% at 70% 8%, rgba(255,150,60,.12), transparent 70%), radial-gradient(ellipse 120% 100% at 50% 40%, transparent 55%, rgba(0,0,0,.5)), var(--ln-grain);
+  box-shadow: 0 24px 60px rgba(0,0,0,.85); }
+body :is(#warcamp, #townwar) header { border-bottom: none; padding: 12px 16px 16px; color: #f6e8cf;
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(0,0,0,.28)), var(--ln-weave), #5a1712;
+  clip-path: polygon(0 0, 100% 0, 100% 90%, 94% 97%, 82% 91%, 68% 99%, 52% 92%, 36% 98%, 20% 91%, 7% 98%, 0 92%); box-shadow: inset 0 -3px 8px rgba(0,0,0,.35); }
+body :is(#warcamp, #townwar) .eyebrow { display: none; }
+body :is(#warcamp, #townwar) h2 { font: 800 28px/1.1 var(--ln-font); color: #f8ead0; text-shadow: 0 2px 0 rgba(0,0,0,.55); margin: 0; }
+body :is(#warcamp, #townwar) aside { border-right: none; background: radial-gradient(ellipse 90% 55% at 50% 25%, rgba(255,160,70,.14), transparent 70%); box-shadow: 2px 0 0 rgba(0,0,0,.5), 3px 0 0 rgba(255,215,160,.06); }
+body :is(#warcamp, #townwar) aside .art { background: radial-gradient(ellipse at 50% 70%, rgba(255,160,70,.2), transparent 65%); }
+body :is(#warcamp, #townwar) .tier, body :is(#warcamp, #townwar) .upg b { font: 800 15px var(--ln-font); color: var(--ln-gold); }
+body :is(#warcamp, #townwar) .small { font-size: 12.5px; color: var(--ln-dim); }
+/* buttons: wood, the main action brass, war actions red lacquer */
+body :is(#warcamp, #townwar) button { font: 700 13.5px var(--ln-font); border: none; border-radius: 2px; color: #ead3a6; background: linear-gradient(180deg, #4a3322, #24170f);
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.28), inset 0 -2px 0 rgba(0,0,0,.4), 0 3px 0 #0a0604; }
+body :is(#warcamp, #townwar) button:hover:not(:disabled) { border: none; background: linear-gradient(180deg, #6b4b30, #3a2718); color: #ffe6b8; }
+body :is(#warcamp, #townwar) button.go { color: #ffe4d6; background: linear-gradient(180deg, #a3342a, #6a1c16 60%, #4a120e); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,200,180,.35), 0 3px 0 #2a0806; }
+/* coins: recessed plaques with a lit number */
+body :is(#warcamp, #townwar) .coin { border-radius: 2px; background: linear-gradient(180deg, #0c0806, #170f0a); box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403; }
+body :is(#warcamp, #townwar) .coin b { font: 800 20px var(--ln-font); color: var(--ln-num); }
+body :is(#warcamp, #townwar) .coin span { font-size: 12.5px; color: var(--ln-dim); }
+body :is(#warcamp, #townwar) .coin.red, body #townwar .coin.warn { background: radial-gradient(ellipse at 50% 30%, rgba(180,50,30,.35), transparent 75%), linear-gradient(180deg, #120806, #1c0c08); box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403; }
+body :is(#warcamp, #townwar) .coin.red span, body #townwar .coin.warn b { color: #ff9d7d; }
+body :is(#warcamp, #townwar) .upg, body #townwar .muster { border: none; border-radius: 0; color: #3a2a1c; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.08)), var(--ln-fiber), #e2d2ad;
+  box-shadow: 0 5px 10px rgba(0,0,0,.6); transform: rotate(-.6deg); }
+body :is(#warcamp, #townwar) .upg b { color: #8a2a1a; } body :is(#warcamp, #townwar) .upg .small, body #townwar .muster span { color: #5a4530; }
+body #townwar .muster b { color: #8a2a1a; }
+/* tabs: text on the wood, the open one a washi tag */
+body :is(#warcamp, #townwar) .tabs { border-bottom: none; gap: 4px; padding-bottom: 4px; }
+body :is(#warcamp, #townwar) .tab { border: none; border-radius: 0; background: none; box-shadow: none; color: #b39a76; font: 700 15px var(--ln-font); padding: 6px 12px 8px; }
+body :is(#warcamp, #townwar) .tab:hover:not(:disabled) { background: none; color: #ffe6b8; }
+body :is(#warcamp, #townwar) .tab.on { color: #2b1d12; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.06)), var(--ln-fiber), #e4d4ae; box-shadow: 0 3px 6px rgba(0,0,0,.6);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%); padding-bottom: 11px; }
+/* cards: lit wells holding the building art */
+body :is(#warcamp, #townwar) .card, body :is(#warcamp, #townwar) .ucard, body :is(#warcamp, #townwar) .tq .bimg, body :is(#warcamp, #townwar) .thumb, body :is(#warcamp, #townwar) .ustill, body :is(#warcamp, #townwar) .port {
+  border: none; border-radius: 2px; box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403;
+  background-color: #120b07; }
+body :is(#warcamp, #townwar) .card, body :is(#warcamp, #townwar) .ucard, body :is(#warcamp, #townwar) .tq .bimg { background-image: radial-gradient(ellipse 70% 50% at 50% 100%, rgba(255,160,70,.16), transparent 70%), linear-gradient(180deg, #0c0806, #170f0a); }
+body :is(#warcamp, #townwar) .card:hover, body :is(#warcamp, #townwar) .ucard:hover { border: none; box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403, 0 0 0 3px rgba(201,154,82,.7); }
+body :is(#warcamp, #townwar) .card.sel { border: none; box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403, 0 0 0 3px #c99a52, 0 0 14px rgba(255,160,70,.35); }
+body :is(#warcamp, #townwar) .card .t, body :is(#warcamp, #townwar) .un { font: 800 14.5px var(--ln-font); color: var(--ln-num); }
+body :is(#warcamp, #townwar) .chip, body :is(#warcamp, #townwar) .badge { border: none; background: none; box-shadow: none; font: 700 13px var(--ln-font); color: var(--ln-gold); padding: 0 2px; }
+body :is(#warcamp, #townwar) .chip.short, body :is(#warcamp, #townwar) .lockline, body :is(#warcamp, #townwar) .why { color: #ff9d7d; }
+/* sections: serif headings, rows engraved */
+body :is(#warcamp, #townwar) .sec { border-bottom: none; font: 800 16px var(--ln-font); color: #efdcb5; padding: 12px 0 4px; }
+body :is(#warcamp, #townwar) .sec b { font-weight: 700; font-size: 13.5px; color: var(--ln-gold); }
+body :is(#warcamp, #townwar) .vrow, body :is(#warcamp, #townwar) .site, body :is(#warcamp, #townwar) .tq { border-bottom: none; box-shadow: 0 2px 0 rgba(0,0,0,.55), 0 3px 0 rgba(255,215,160,.07); }
+body :is(#warcamp, #townwar) .foot { font-size: 13px; color: var(--ln-dim); }
+body :is(#warcamp, #townwar) .prog, body :is(#warcamp, #townwar) .capbar i { border: none; border-radius: 5px; background: #0b0705; box-shadow: inset 0 1px 3px #000, 0 1px 0 rgba(255,210,150,.08); }
+body :is(#warcamp, #townwar) .prog i { border-radius: 5px; background: linear-gradient(180deg, #f0cd84, #a87a35); }
+body :is(#warcamp, #townwar) .capbar i.u { background: linear-gradient(180deg, #c8502a, #6a1c16); } body :is(#warcamp, #townwar) .capbar i.w { background: linear-gradient(180deg, #a87a35, #5a3a18); }
+body :is(#warcamp, #townwar) input.num { border: none; border-radius: 2px; font: 800 16px var(--ln-font); color: var(--ln-num); background: #0b0705; box-shadow: inset 0 2px 5px #000, 0 0 0 2px #070403; }
+body :is(#warcamp, #townwar) .chestcoin { background: radial-gradient(circle at 50% 35%, #6a2a1c, #1a0806 72%); box-shadow: 0 0 0 4px #070403, 0 0 0 6px #8a5a2a, 0 0 24px rgba(200,70,40,.4); }
+body :is(#warcamp, #townwar) .chestcoin b { font: 800 30px var(--ln-font); color: #ffe6b8; } body :is(#warcamp, #townwar) .chestcoin span { font-size: 13px; color: #ffb59a; }
+body :is(#warcamp, #townwar) .badge { z-index: 2; top: 4px; right: 6px; font-size: 13px; text-shadow: 0 1px 2px #000, 0 0 6px #000; }
+body :is(#warcamp, #townwar) .foot { gap: 10px; } body :is(#warcamp, #townwar) .foot > span:last-child { display: flex; gap: 6px; flex: none; }
+body :is(#warcamp, #townwar) .sec b::first-letter, #townpanel .lab .dim::first-letter, #townpanel .wsec b::first-letter { text-transform: uppercase; }
+/* the larger serif makes the town window's two-column Stable layout page away its right column and leave half the page empty:
+   one column until the window is wide enough for three */
+@container (max-width: 979px) {
+  body #townpanel .pbody.stabbody { grid-template-columns: minmax(0, 1fr); grid-template-areas: "a" "b" "c"; }
+  body #townpanel .pbody.stabbody .sb, body #townpanel .pbody.stabbody .sc { margin-left: 0; padding-left: 0; box-shadow: none; }
+}
+/* the clan crest stamped on the cloth header (painted crests, assets/ui/crests, 2026-11-23) */
+body { --ln-crest: url(../../assets/ui/crests/yakuza_96.png); }
+body[data-clan="kuroda"] { --ln-crest: url(../../assets/ui/crests/kuroda_96.png); }
+body[data-clan="shinobi"], body[data-clan="ninja"] { --ln-crest: url(../../assets/ui/crests/shinobi_96.png); }
+.ms .ms-head h2::before, body :is(#warcamp, #townwar) header h2::before { content: ""; display: inline-block; width: 1.45em; height: 1.45em; margin: -.2em .4em -.25em 0; vertical-align: middle;
+  background: var(--ln-crest) center / contain no-repeat; filter: drop-shadow(0 2px 2px rgba(0,0,0,.7)); }
+/* critic CP2 round 1: the town window gets the cloth header band the other windows have; the tabs hang from it */
+#townpanel .ptabs { position: relative; margin: -10px -10px 10px; padding: 9px 56px 0 64px; min-height: 50px; align-items: flex-end; gap: 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(0,0,0,.3)), var(--ln-weave), var(--ln-dye);
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,.45), inset 0 -4px 0 rgba(255,215,160,.12), 0 4px 8px rgba(0,0,0,.5); }
+#townpanel .ptabs::before { content: ""; position: absolute; left: 12px; top: 8px; width: 42px; height: 42px; background: var(--ln-crest) center / contain no-repeat; filter: drop-shadow(0 2px 2px rgba(0,0,0,.7)); }
+#townpanel .ptabs button { color: #e6cfb0; text-shadow: 0 1px 2px rgba(0,0,0,.8); padding: 6px 11px 10px; }
+#townpanel .ptabs button:hover:not(:disabled) { color: #fff0d0; }
+#townpanel .ptabs button.on { text-shadow: none; margin-bottom: -10px; }
+#townpanel .pclose { top: 10px; right: 10px; }
+/* inputs and selects: recessed slots with a brass hairline */
+#townpanel input, #townsoverview input, #railledger input, body :is(#warcamp, #townwar) input.num { background: linear-gradient(180deg, #120b07, #24170f); box-shadow: inset 0 2px 4px #000, 0 0 0 1px #6a4c2c, 0 0 0 2px #0a0604; }
+#townpanel select, #townpanel .wcard select.wgrp { box-shadow: 0 0 0 1px #6a4c2c, 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.18); }
+/* the governor's quote: deckled washi with ink */
+#townpanel .govmain .chat { color: #2a1d12; padding: 8px 14px; transform: rotate(-.4deg);
+  clip-path: polygon(0 4%, 3% 0, 18% 3%, 40% 0, 63% 4%, 84% 0, 100% 3%, 99.4% 50%, 100% 97%, 82% 100%, 60% 96%, 37% 100%, 15% 97%, 0 100%, .6% 50%); }
+/* one lit state for every chosen button: lit wood with a brass ring (coins, switches, sub-tabs) */
+#townpanel button.gcard.on, #townpanel .workerroster button.wcoin.on { box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403, 0 0 0 3px #c99a52 !important; }
+#townpanel .workerroster button.wcoin.idle:not(.on) { box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403; } #townpanel .workerroster button.wcoin.idle:not(.on) b { color: #ffb77a; }
+/* secondary text up a step */
+#townpanel .stock .cap, #townpanel .hint, #townpanel .stab .legend, #townpanel .shopts, #townpanel .dim { font-size: 13px; color: #cdb48d; }
+#townpanel .sub { color: #cdb48d; }
+/* one meter style: brass in an inset groove; mood keeps a warmer brass */
+#townpanel .bar.m i { background: linear-gradient(180deg, #f3c77a, #b0702e); box-shadow: none; }
+#townpanel .ptabs button.on:hover:not(:disabled) { color: #2b1d12; }
+/* critic round 1: the worker list reads as a ledger, not a grid of empty cards */
+#townpanel .workerroster .wcards { gap: 0 18px; }
+#townpanel .workerroster .wcard { background: none; box-shadow: 0 2px 0 rgba(0,0,0,.55), 0 3px 0 rgba(255,215,160,.07); padding: 8px 2px 10px; }
+#townpanel .workerroster .wcard.sel { background: radial-gradient(ellipse 60% 90% at 20% 50%, rgba(255,160,70,.18), transparent 75%); box-shadow: 0 2px 0 rgba(0,0,0,.55), 0 3px 0 rgba(201,154,82,.6); }
+#townpanel .workerroster .wcard select.wgrp { margin-top: auto; }
+/* critic CP2 round 2 */
+/* quieter body: the grain sinks under a lacquer wash so rows read as sitting on a finished surface */
+#townpanel { background-image: radial-gradient(ellipse 75% 45% at 70% 8%, rgba(255,150,60,.11), transparent 70%), linear-gradient(180deg, rgba(24,14,9,.62), rgba(14,8,5,.7)), radial-gradient(ellipse 120% 100% at 50% 40%, transparent 55%, rgba(0,0,0,.5)), var(--ln-grain); }
+/* sub-tabs are words on the cloth, the open one underlined in brass; boxes stay for actions */
+#townpanel .shtabs, #townpanel .wtabs { gap: 0; padding: 0 4px; margin: 2px 0 10px; background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.25)), var(--ln-weave), var(--ln-dye); box-shadow: 0 2px 4px rgba(0,0,0,.5); }
+#townpanel .shtabs button, #townpanel .wtabs button { background: none !important; box-shadow: none !important; min-height: 34px; color: #dcc4a0; font-size: 14.5px; text-shadow: 0 1px 2px #000; }
+#townpanel .shtabs button.on, #townpanel .wtabs button.on { background: none !important; color: #ffe2a8; box-shadow: inset 0 -3px 0 #c99a52 !important; }
+/* disabled brass goes back to dark wood with dim ink, not a washed-out slab */
+#townpanel button.go:disabled, #townpanel button.wtrain:disabled, #townpanel button.wtrain.no { opacity: 1; color: #8f7a5e; background: linear-gradient(180deg, #33241a, #1c130d); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.1); }
+#townpanel button:disabled { opacity: .55; }
+/* meters: highlight along the top of the brass */
+#townpanel .bar i, #townpanel .shmeter i, #townpanel .pbody.stabbody .stab .rbar i, #townpanel .wprog i { background: linear-gradient(180deg, #ffe2a0 0, #e0b66a 30%, #9c7432 100%); box-shadow: inset 0 -1px 0 rgba(0,0,0,.3); }
+#townpanel .bar.m i { background: linear-gradient(180deg, #ffc890 0, #e27a3a 35%, #8e3416 100%); }
+/* text a step bigger and brighter */
+#townpanel .row, #townpanel .pjob, #townpanel .shres, #townpanel .shnote { font-size: 14px; color: #e6d8bc; }
+#townpanel .hint, #townpanel .dim, #townpanel .shopts, #townpanel .stock .cap, #townpanel .pbody.stabbody .stab .sm { font-size: 13.5px; color: #d2bb94; }
+/* worker group pick: a small timber tag, not a full-width form field */
+#townpanel .workerroster .wcard select.wgrp { width: auto; min-width: 118px; align-self: flex-start; }
+/* stable: the seat tag sits inside its card; cards you cannot afford get a red seal */
+#townpanel .pbody.stabbody .stab .bcard { padding-top: 22px; }
+#townpanel .pbody.stabbody .stab .bcard.off .pic { filter: grayscale(.8) brightness(.6); }
+#townpanel .pbody.stabbody .stab .bcard .why { display: inline-block; margin: 4px auto 6px; padding: 1px 6px; font: 800 12px var(--ln-font); color: #d0442c; border: 3px double #b5341f; transform: rotate(-3deg); }
+/* critic CP2 round 3 */
+/* number fields: warm wooden wells with cream figures; the keep steppers are bevelled tabs fixed to the field */
+#townpanel input, #townsoverview input, #railledger input, body :is(#warcamp, #townwar) input.num { color: #f3e2bf; background: linear-gradient(180deg, #1f150e, #2b1e14);
+  box-shadow: inset 0 2px 3px rgba(0,0,0,.7), 0 0 0 1px #5a4430, 0 1px 0 1px rgba(255,255,255,.06); }
+#townpanel .gkeep { display: inline-flex; align-items: stretch; gap: 0; }
+#townpanel .gkeep button { padding: 0 8px; min-width: 24px; border-radius: 0; font-size: 15px; box-shadow: 0 0 0 1px #0a0604, inset 0 1px 0 rgba(255,220,170,.25), inset 0 -2px 0 rgba(0,0,0,.4); }
+#townpanel .gkeep button:first-child { border-radius: 3px 0 0 3px; } #townpanel .gkeep button:last-child { border-radius: 0 3px 3px 0; }
+#townpanel .gkeep input { border-radius: 0; margin: 0; }
+/* switch buttons never fall back to the cold slate of the old sheet */
+#townpanel .gseg button:not(.on) { color: #ead3a6; background: linear-gradient(180deg, #4a3322, #24170f); }
+/* meters: sunk track with a brass rim and squared ends */
+#townpanel .bar, #townpanel .shmeter, #townpanel .pbody.stabbody .stab .rbar, #townpanel .wprog, body :is(#warcamp, #townwar) .prog { height: 9px; border-radius: 2px; background: #120b07;
+  box-shadow: inset 0 2px 3px #000, 0 0 0 1px #5a4430, 0 0 0 2px #0a0604; }
+#townpanel .bar i, #townpanel .shmeter i, #townpanel .pbody.stabbody .stab .rbar i, #townpanel .wprog i, body :is(#warcamp, #townwar) .prog i { border-radius: 1px; }
+/* sub-tabs: wooden index tabs, the open one the same paper as the window's own tab */
+#townpanel .shtabs, #townpanel .wtabs { background: none; box-shadow: none; padding: 0; gap: 3px; border-bottom: 2px solid #4a3322; }
+#townpanel .shtabs button, #townpanel .wtabs button { border-radius: 3px 3px 0 0 !important; min-height: 32px; color: #cdb48d; text-shadow: none;
+  background: linear-gradient(180deg, #3a281b, #24170f) !important; box-shadow: inset 0 1px 0 rgba(255,220,170,.16) !important; }
+#townpanel .shtabs button.on, #townpanel .wtabs button.on { color: #2b1d12; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.06)), var(--ln-fiber), #e4d4ae !important;
+  box-shadow: 0 -2px 4px rgba(0,0,0,.4) !important; }
+#townpanel button:disabled, body :is(#warcamp, #townwar) button:disabled { opacity: .6; color: #a8916f; }
+/* worker rows: name and job on the left, the group tag on the right */
+#townpanel .workerroster .wcard .wmain { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-content: center; }
+#townpanel .workerroster .wcard .wmain > * { grid-column: 1; }
+#townpanel .workerroster .wcard .wmain > select.wgrp { grid-column: 2; grid-row: 1 / span 2; align-self: center; margin: 0; min-width: 112px; }
+#townpanel .pbody.stabbody .stab button.on { color: #2a1b10; text-shadow: none; background: linear-gradient(180deg, #f7e0a4 0%, #d9ad5e 38%, #a9772f 62%, #c99a52 100%); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), 0 3px 0 #2b1c0c; }
+#townpanel .fchead, #townpanel .fcres, #townpanel .fcres div { border: none !important; }
+/* critic CP2 round 4 */
+/* chosen cards: pressed into the wood with a brass bar along the bottom, square corners, no ring */
+#townpanel button.gcard.on, #townpanel .workerroster button.wcoin.on { border-radius: 0 !important; color: #ffe8b8 !important;
+  background: radial-gradient(ellipse at 50% 20%, rgba(255,170,80,.22), transparent 70%), linear-gradient(180deg, #0a0604, #1e130c) !important;
+  box-shadow: inset 0 3px 8px #000, inset 0 -3px 0 #c9a24a, 0 0 0 2px #070403 !important; }
+/* number fields are paper slips with ink figures */
+#townpanel input, #townsoverview input, #railledger input, body :is(#warcamp, #townwar) input.num { color: #2b2118; font-weight: 800;
+  background: linear-gradient(180deg, rgba(255,255,255,.2), rgba(0,0,0,.06)), var(--ln-fiber), #e8dcc0; box-shadow: inset 0 1px 2px rgba(0,0,0,.45), 0 0 0 1px #3a2a1c, 0 0 0 2px #0a0604; }
+#townpanel .gkeep button { color: #2a1b10; background: radial-gradient(circle at 40% 35%, #f3d898, #b8873e 60%, #6e4a1c); text-shadow: 0 1px 0 rgba(255,240,200,.5); }
+/* meters: brass caps at both ends, a mottled fill */
+#townpanel .bar, #townpanel .shmeter, #townpanel .pbody.stabbody .stab .rbar { box-shadow: inset 0 2px 3px #000, 0 0 0 1px #5a4430, 0 0 0 2px #0a0604, -3px 0 0 -1px #c9a24a, 3px 0 0 -1px #c9a24a; }
+#townpanel .bar i, #townpanel .shmeter i, #townpanel .pbody.stabbody .stab .rbar i { background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 3px, transparent 3px 9px), linear-gradient(180deg, #ffe2a0 0, #e0b66a 30%, #9c7432 100%); }
+#townpanel .bar.m i { background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.1) 0 3px, transparent 3px 9px), linear-gradient(180deg, #ffc890 0, #e27a3a 35%, #8e3416 100%); }
+/* disabled keeps its outline */
+#townpanel button:disabled, body :is(#warcamp, #townwar) button:disabled { opacity: .55; box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.12), 0 0 0 3px rgba(201,154,82,.25); }
+/* type: bigger headings, body text at least 13px warm */
+#townpanel .lab, #townpanel .wsec { font-size: 20px; color: #f2e2c0; }
+#townpanel .hint, #townpanel .dim, #townpanel .shopts, #townpanel .stock .cap, #townpanel .pbody.stabbody .stab .sm, #townpanel .fcres small, #townpanel .fcsub { font-size: 13.5px; color: #d2bb94; }

@@ -4,6 +4,8 @@
 // Talk to the governor is a button for now; the Space-at-the-town-hall version arrives with the town in the world (E5).
 import { bindTips } from './frontier_tips.js';
 import {resourceUsage} from './sim/frontier/resource_usage.js';
+// Lantern style (Tim 2026-11-23): the game's painted props stand on the storehouse shelf in the Town panel
+const STOCK_ART = { food: 'art/props/sake_barrels.png', timber: 'art/props/firewood.png', stone: 'art/props/sandstone_stones.png', goods: 'art/props/crates.png', ryo: 'art/props/iron_chest.png', fish: 'art/props/barrels.png', people: 'art/buildings/tenements.png' };
 import { usageView, housingView, flowFocus } from './sim/frontier/usage_view.js';
 import { reportRows, peopleRows, governorSays, talkCommand } from './frontier_report.js';
 import { tierOf, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
@@ -75,7 +77,15 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   // pages instead of a scrollbar (menu restyle, Tim 2026-11-10): the body splits by height, per tab
   const pageState = { page: 0 }; let pageKey = '';
   if (typeof addEventListener === 'function') addEventListener('resize', () => paginate());
-  const paginate = () => { const body = root.querySelector?.('.pbody'); if (!body || typeof innerHeight === 'undefined') return; msPaginate(body, pageState, innerHeight - 24 - body.getBoundingClientRect().top); };
+  // Lantern style: the serif face loads its weights on first use and text grows, so the pages are cut again then
+  if (typeof document !== 'undefined') document.fonts?.addEventListener?.('loadingdone', () => paginate());
+  // room in screen pixels (msPaginate measures boxes on screen): the window's own max height and frame, shrunk by a layout
+  // scale, bound the body as well as the screen does (Lantern style frame, Tim 2026-11-23)
+  const paginate = () => { const body = root.querySelector?.('.pbody'); if (!body || typeof innerHeight === 'undefined') return;
+    const rr = root.getBoundingClientRect?.(), cs = typeof getComputedStyle === 'function' ? getComputedStyle(root) : null, sc = rr && root.offsetHeight ? rr.height / root.offsetHeight || 1 : 1;
+    const bt = body.getBoundingClientRect().top, screen = innerHeight - 24 - bt;
+    const maxH = parseFloat(cs?.maxHeight), own = rr && maxH > 0 ? (maxH - parseFloat(cs.borderBottomWidth || 0) - parseFloat(cs.paddingBottom || 0) - (bt - rr.top) / sc - 4) * sc : Infinity;
+    msPaginate(body, pageState, Math.min(screen, own)); };
   const data=game.frontier?.data;
   let usageResource='timber',usagePage=0;
   const usageTip=(s,r)=>{
@@ -255,9 +265,9 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       // war 8b: the town's military buildings, war chest and hall war upgrade live in the town war window
       if (onTownWar && data?.war?.town) h += `<div class="row"><span${tip('Military buildings go inside the town ring and are built by town builders. Some need the town hall war upgrade. Troops train only while a war is on this town, paid from its war chest.')}>War upgrade: <b>${s.warHall ? 'Done' : s.warUpgrade ? (s.builders ? `Building, about ${warUpgradeSeconds(s, data)} s` : 'Waiting for builders') : 'Not bought'}</b></span></div>`;
       const people = peopleRows(s, prevStock[s.id]?.prev, data);
-      h += '<div class="lab">Stock <button data-act="usage" data-id="timber">Usage</button></div><div class="stock">' + rows.stock.map(r => `<div${tip((r.tip || '')+'\n'+usageTip(s,r.key))}><button data-act="usage" data-id="${r.key}">${esc(r.label)}</button><b${r.full ? ' class="full"' : ''}>${r.value}</b>${r.cap != null ? `<span class="dim cap">/ ${r.cap}${r.full ? ' full' : ''}</span>` : ''}${arrow[r.arrow]}</div>`).join('')
+      h += '<div class="lab">Stock <button data-act="usage" data-id="timber">Usage</button></div><div class="stock">' + rows.stock.map(r => `<div${tip((r.tip || '')+'\n'+usageTip(s,r.key))}${(s.stock[r.key] ?? 0) < 50 ? ' class="low"' : ''}>${STOCK_ART[r.key] ? `<img class="sprop" src="${STOCK_ART[r.key]}" alt="">` : ''}<button data-act="usage" data-id="${r.key}">${esc(r.label)}</button><b${r.full ? ' class="full"' : ''}>${r.value}</b>${r.cap != null ? `<span class="dim cap">/ ${r.cap}${r.full ? ' full' : ''}</span>` : ''}${arrow[r.arrow]}</div>`).join('')
         // Tim 2026-11-16: townspeople are a stock too; the hover says what they do and how the town grows
-        + `<div class="ppl"${tip(people.tip)}><button data-act="usage" data-id="housing">People</button><b>${people.pop}</b><span class="dim cap">/ ${people.beds} beds</span>${arrow[people.arrow]}</div>` + '</div>';
+        + `<div class="ppl"${tip(people.tip)}><img class="sprop" src="${STOCK_ART.people}" alt=""><button data-act="usage" data-id="housing">People</button><b>${people.pop}</b><span class="dim cap">/ ${people.beds} beds</span>${arrow[people.arrow]}</div>` + '</div>';
       // Tim 2026-11-16: the growth line (green, or red with what blocks it) and one chip per job type, short ones red
       h += `<div class="lab">People</div><div class="row"><span>${esc(rows.pop.text)}</span><span class="${people.growth.bad ? 'pwarn' : 'pgood'}">${esc(people.growth.text)}</span></div><div class="bar"><i style="width:${Math.round(rows.pop.fill * 100)}%"></i></div>`
         + (people.chips.length ? `<div class="pjobs"${tip(rows.jobsTip)}>` + people.chips.map(c => `<span class="pjob${c.short ? ' short' : ''}">Job: ${esc(c.label)} <b>${c.want == null ? c.have : `${c.have} / ${c.want}`}</b>${c.short ? ` <i>short ${c.short}</i>` : ''}</span>`).join('') + '</div>' : '')
@@ -266,8 +276,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h += `<div class="row" style="margin-top:5px"><span>Mood</span><span class="dim"${tip(mood.why.map(w=>w.tip).join('\n'))}>${mood.why.length ? esc(mood.why.map(w => w.text).join(', ')) : 'Content'}</span></div><div class="bar m"><i style="width:${mood.value}%"></i></div>`;
       if (mood.why.length) h += '<div class="hint">' + esc(mood.why.map(w => w.hint).join(', ')) + '</div>';
       h += buildUI?.workersHtml?.(s) || '';   // Tim 2026-11-16: training and first steps, as their own section
-      h += `<div class="lab">Governor says</div><div>Doing: <b>${esc(rows.doing || 'Nothing yet')}</b></div>` + (rows.next ? `<div>Next: <span class="dim">${esc(rows.next)}</span></div>` : '')
-        + rows.waiting.map((w, i) => { const wi = rows.waitingInfo?.[i]; return `<span class="pill red"${wi ? tip(wi.tip) + ` style="background:linear-gradient(90deg,#3d5a2a ${Math.round(wi.fill * 100)}%,#2a1714 ${Math.round(wi.fill * 100)}%)"` : ''}>${esc(w)}</span>`; }).join(' ');
+      h += `<div class="govnote"><div class="lab">From the governor</div><div>Doing: <b>${esc(rows.doing || 'Nothing yet')}</b></div>` + (rows.next ? `<div>Next: <span class="dim">${esc(rows.next)}</span></div>` : '')
+        + rows.waiting.map((w, i) => { const wi = rows.waitingInfo?.[i]; return `<span class="pill red"${wi ? tip(wi.tip) + ` style="background:linear-gradient(90deg,#3d5a2a ${Math.round(wi.fill * 100)}%,#2a1714 ${Math.round(wi.fill * 100)}%)"` : ''}>${esc(w)}</span>`; }).join(' ') + '</div>';
       { // 7c-5 (Tim 2026-11-12): the town's ox carts in their own section: recall them into the town (also in a war), send parked ones out again
         const camps = (s.buildings || []).filter(b => b.stage === 'built' && (b.carts || []).length), all = camps.flatMap(b => b.carts);
         if (all.length) {

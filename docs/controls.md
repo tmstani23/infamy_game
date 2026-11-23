@@ -340,9 +340,11 @@ Garrison card (2026-11-10):
 - Ctrl + right-click your stockade: selected crew go in; with the hero selected or nothing selected, the hero and crew following him walk over and go in; WASD cancels the hero's walk.
 - Island minimap: recentres on the camera once it passes 85% of the way to the edge.
 
-Menu look (2026-11-11):
-- All menus share one look (game/src/menu_shell.js and menu_shell.css): dark panel with an accent top edge, a small title line above the name, the building's art with coin stats on the left, accent tabs, an Esc button. Long lists turn pages with Prev / Next; no menu has a scrollbar.
+Menu look (2026-11-11, lantern style 2026-11-23):
+- All menus share one look (game/src/menu_shell.js and menu_shell.css, with the lantern skin game/src/lantern.css on top): a dark timber frame, a dyed cloth header in the clan colour with the title in a large serif, a wood body lit like a lantern pool, brass buttons for the main action and dark wood for the rest, the open tab as a paper tag, cards as dark recessed shelves holding the building art. Text is the Shippori Mincho B1 serif (bundled, no internet). No spaced small-caps labels over titles. Long lists turn pages with Prev / Next; no menu has a scrollbar.
 - The accent colour follows your clan: Yakuza red, Kuroda copper, Shinobi violet.
+- The clan's painted crest (assets/ui/crests/<clan>_96.png) is stamped on every cloth header.
+- Town window (O): a cloth band in the clan colour carries the crest and the tabs; sub-tabs are wooden index tabs, the open one paper. Stock stands as the game's painted props on a lit storehouse shelf, numbers under them; low stock shows red with dimmed art. The governor's word is a pinned paper note. The Military window and the war camp window keep a war red cloth header.
 - Menu portraits are 3D sprite stills (assets/sprites/portraits/stills/<model>.png).
 - The action bar, character page and buff icons show drawn icons (game/src/hud_icons.js) next to each ability's name and key. Utility and command buttons use drawn icons too. UI text is plain, with no symbol glyphs.
 - Season end: a "Season over" line above the title; New game is the highlighted button.
