@@ -897,3 +897,113 @@ body .uf .fill { background-color: var(--bar); background-image: linear-gradient
 #controls h3 { justify-content: flex-start; }
 #townsoverview td { font-size: 14.5px; color: #e6d6b0; }
 #characterpage .character-supplies button { text-shadow: 0 1px 0 #000; }
+
+/* ================= CP5: map (City and World), deployment, build bar and build confirm box ================= */
+/* the map screen: a lacquered table; side column and deployment panel framed like the windows; the map itself in a timber frame */
+#gamemap.game-map { font-family: var(--ln-font); background-color: #0d0806; background-image: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(255,150,60,.06), transparent 70%), linear-gradient(rgba(10,6,4,.72), rgba(10,6,4,.72)), var(--ln-grain); color: var(--ln-text); }
+#gamemap .mapcol, #deploymentpanel { border: 14px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0; background-origin: border-box; background-clip: padding-box;
+  background-color: #1b120d; background-image: radial-gradient(ellipse 75% 45% at 70% 8%, rgba(255,150,60,.10), transparent 70%), linear-gradient(rgba(20,13,9,.5), rgba(20,13,9,.5)), var(--ln-grain); box-shadow: 0 16px 40px rgba(0,0,0,.8); color: var(--ln-text); font-family: var(--ln-font); }
+#gamemap.game-map.world .mapcol { border: none; background: none; box-shadow: none; }
+#gamemap .mapbox, #gamemap.game-map.world .mapbox { border: 14px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0; background-clip: padding-box; box-shadow: 0 16px 40px rgba(0,0,0,.8); }
+#gamemap.game-map.docked .mapbox { border-radius: 0; }
+#gamemap #deploymentpanel { border-left: 14px solid transparent; border-radius: 0; }
+/* titles: serif, not shouted (the source text is in capitals, so it is set lower case with a capital first letter) */
+#gamemap h3, #deploymentpanel h3 { font: 800 22px/1.1 var(--ln-font) !important; letter-spacing: 0 !important; text-transform: lowercase; color: #f2e6cf !important; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
+#gamemap h3::first-letter, #deploymentpanel h3::first-letter { text-transform: uppercase; }
+#gamemap.game-map.world h3::after { content: "Island atlas"; display: inline-block; margin-left: 12px; font: 600 15px var(--ln-font); letter-spacing: 0; text-transform: none; color: var(--ln-dim); }
+#gamemap.game-map.world h3::first-line { text-transform: lowercase; }
+#gamemap h4, #deploymentpanel h4 { font: 800 16px var(--ln-font) !important; letter-spacing: 0 !important; text-transform: none !important; color: #efdcb5 !important; border-bottom: none !important; padding-bottom: 2px; }
+#deploymentpanel .duty h4, #deploymentpanel .sweep-ops h4, #deploymentpanel .shakedown-ops h4 { font-size: 19px !important; }
+#deploymentpanel > header { margin: -4px -4px 10px; padding: 10px 14px 14px; border-bottom: none;
+  background-color: var(--ln-dye); background-image: var(--ln-weave), radial-gradient(ellipse 70% 140% at 92% 0%, rgba(255,160,70,.30), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.4));
+  clip-path: polygon(0 0, 100% 0, 100% 93%, 92% 97%, 80% 93%, 66% 99%, 50% 94%, 34% 98%, 20% 93%, 8% 98%, 0 94%); }
+#deploymentpanel > header h3 { display: flex; align-items: center; }
+#deploymentpanel > header h3::before { content: ""; width: 34px; height: 34px; margin-right: 10px; background: var(--ln-crest) center / contain no-repeat; filter: drop-shadow(0 2px 2px #000); }
+/* buttons: dark wood; layer toggles lit when on; the open tab a paper tag */
+#gamemap button, #deploymentpanel button, .sector-actions button, .map-crew-tray button, .recent-targets button { font: 700 13.5px var(--ln-font); letter-spacing: 0; text-transform: none; border: none; border-radius: 2px; color: #ead3a6;
+  background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.28), inset 0 -2px 0 rgba(0,0,0,.4), 0 3px 0 #0a0604; }
+#gamemap button:hover:not(:disabled), #deploymentpanel button:hover:not(:disabled) { border: none; background: linear-gradient(180deg, #6b4b30, #3a2718); color: #ffe6b8; }
+#gamemap .maplayers button:not(.on), #gamemap .atlas-rail button:not([aria-pressed="true"]) { color: #9c8564; background: linear-gradient(180deg, #2a1c12, #170f0a); box-shadow: 0 0 0 2px #0a0604, inset 0 2px 4px rgba(0,0,0,.6); }
+#gamemap .maplayers button.on, #gamemap .atlas-rail button[aria-pressed="true"] { color: #ffe2a8; background: radial-gradient(ellipse at 50% 30%, rgba(255,170,80,.25), transparent 75%), linear-gradient(180deg, #4a3322, #2a1c12);
+  box-shadow: 0 0 0 2px #0a0604, 0 0 0 3px rgba(201,154,82,.7), inset 0 1px 0 rgba(255,220,170,.3); }
+#gamemap .maptabs button, #deploymentpanel .tabs button, #deploymentpanel .page-tabs button { color: #b39a76; background: none; box-shadow: none; border: none; font-size: 15px; }
+#gamemap .maptabs button.on, #deploymentpanel .tabs button[aria-pressed="true"], #deploymentpanel .page-tabs button[aria-pressed="true"], #deploymentpanel .page-tabs button.on {
+  color: #2b1d12; border: none; text-shadow: none; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.06)), var(--ln-fiber), #e4d4ae; box-shadow: 0 3px 6px rgba(0,0,0,.6);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%); padding-bottom: 9px; }
+#gamemap .mapclose, #deploymentpanel .close, #gamemap .mapwatch, #deploymentpanel .away-watch { color: #2a1b10 !important; text-shadow: 0 1px 0 rgba(255,240,200,.5); background: linear-gradient(180deg, #ecca86, #b6873f) !important;
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), inset 0 -2px 0 rgba(90,50,10,.5), 0 3px 0 #2b1c0c !important; }
+#gamemap .mapwatch, #deploymentpanel .away-watch { color: #ead3a6 !important; text-shadow: none; background: linear-gradient(180deg, #4a3322, #24170f) !important; box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.28), 0 3px 0 #0a0604 !important; }
+/* inputs and checks: paper slips and brass */
+#deploymentpanel input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), #deploymentpanel select, .sector-actions input, .sector-actions select { border: none; border-radius: 2px; font: 800 15px var(--ln-font); color: #2b1d12;
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(0,0,0,.06)), var(--ln-fiber), #e2d2ad; box-shadow: inset 0 1px 3px rgba(0,0,0,.45), 0 0 0 2px #0a0604; }
+#deploymentpanel input[type="checkbox"], #deploymentpanel input[type="radio"], #gamemap input[type="checkbox"] { accent-color: #c99a52; }
+#deploymentpanel label, #deploymentpanel p, #deploymentpanel small, #deploymentpanel footer, #gamemap .mapside, #gamemap .key, #gamemap .atlas-footer, #gamemap .atlas-legend > span { font-family: var(--ln-font); }
+#deploymentpanel small, #deploymentpanel footer, #gamemap .atlas-hint, #gamemap .atlas-legend small { color: var(--ln-dim); }
+#deploymentpanel .away-note, #deploymentpanel .sector-alert { color: #3a2a1c; border: none; border-radius: 0; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.08)), var(--ln-fiber), #e2d2ad; box-shadow: 0 4px 8px rgba(0,0,0,.55); transform: rotate(-.3deg); }
+#deploymentpanel .lt-portrait { border: none; box-shadow: 0 0 0 2px #070403, 0 0 0 3px #8a6a3a, 0 3px 6px #000; }
+#deploymentpanel .member, #deploymentpanel .assign-member, #deploymentpanel details, #deploymentpanel .away-logbox, #deploymentpanel .travel-member { border: none; border-radius: 2px; background: linear-gradient(180deg, #0c0806, #170f0a); box-shadow: inset 0 2px 6px #000, 0 0 0 2px #070403; }
+#deploymentpanel .member.selected, #deploymentpanel .assign-member.selected { box-shadow: inset 0 2px 6px #000, 0 0 0 2px #070403, 0 0 0 3px #7fa04a; }
+#deploymentpanel .group-head { color: var(--ln-gold); border-bottom: none; } #deploymentpanel .group-head.focus { color: #ffe2a8; }
+#deploymentpanel summary { color: var(--ln-gold); font-weight: 700; }
+#gamemap .mapside .row b, #gamemap .mapside b { color: var(--ln-num); }
+#gamemap .atlas-detail { border: none; border-radius: 2px; background: linear-gradient(180deg, #0c0806, #170f0a); box-shadow: inset 0 2px 6px #000, 0 0 0 2px #070403; font-family: var(--ln-font); }
+#gamemap .atlas-hover { color: #f3e2bf; }
+#gamemap .sector-select { border: none; border-radius: 2px; font-family: var(--ln-font); background: linear-gradient(180deg, #2a1c12, #170f0a); box-shadow: 0 0 0 2px #0a0604; }
+#gamemap .sector-select[aria-pressed="true"] { box-shadow: 0 0 0 2px #0a0604, 0 0 0 3px #c99a52; }
+
+/* build bar: a small framed board, group names in serif, buttons wood with the zone colour kept on the text */
+#buildmini { font-family: var(--ln-font); border: 14px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0; background-origin: border-box; background-clip: padding-box;
+  background-color: #1b120d; background-image: linear-gradient(rgba(20,13,9,.45), rgba(20,13,9,.45)), var(--ln-grain); box-shadow: 0 12px 30px rgba(0,0,0,.8); padding: 6px 8px 8px; }
+#buildmini .bmhead { margin: -2px -4px 6px; padding: 7px 10px 10px; background-color: var(--ln-dye); background-image: var(--ln-weave), linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.4));
+  clip-path: polygon(0 0, 100% 0, 100% 92%, 85% 97%, 66% 93%, 45% 99%, 25% 94%, 0 98%); }
+#buildmini .bmhead b { font: 800 17px var(--ln-font); color: #f2e6cf; text-shadow: 0 2px 0 rgba(0,0,0,.6); }
+#buildmini button { font: 700 12.5px/15px var(--ln-font); border: none; border-radius: 2px; color: #ead3a6; padding: 3px 8px;
+  background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,220,170,.25), inset 0 -2px 0 rgba(0,0,0,.4), 0 2px 0 #0a0604; }
+#buildmini button[style*="border-color"] { box-shadow: 0 0 0 1.5px #0a0604, inset 0 -3px 0 currentColor, inset 0 1px 0 rgba(255,220,170,.25), 0 2px 0 #0a0604; }
+#buildmini button.on { color: #ffe2a8; background: radial-gradient(ellipse at 50% 30%, rgba(255,170,80,.3), transparent 75%), linear-gradient(180deg, #5a3f28, #2e1f14); box-shadow: 0 0 0 1.5px #0a0604, 0 0 0 3px #e8b85a, 0 0 10px rgba(255,170,80,.4); }
+#buildmini .bmexit { color: #2a1b10; background: linear-gradient(180deg, #ecca86, #b6873f); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), 0 2px 0 #2b1c0c; }
+.buildtools .blab { font: 700 13px var(--ln-font); letter-spacing: 0; text-transform: none; color: var(--ln-dim); padding-top: 3px; }
+.buildtools button small { font: 600 11px var(--ln-font); }
+.buildtools button.locked { color: #7a6a52 !important; background: linear-gradient(180deg, #1c130d, #120b07) !important; border: none !important; box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 3px rgba(0,0,0,.7) !important; }
+.buildtools button.eraser { color: #e08a78; }
+#buildmini .hint { font: 500 12.5px var(--ln-font); color: var(--ln-dim); }
+#townbuildhint { font: 500 13px/18px var(--ln-font); border: none; border-radius: 0; color: #3a2a1c; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.08)), var(--ln-fiber), #e2d2ad; box-shadow: 0 4px 8px rgba(0,0,0,.6), inset 3px 0 0 #5d7a2c; }
+#townbuildhint[data-ok="false"] { background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.08)), var(--ln-fiber), #e2d2ad; box-shadow: 0 4px 8px rgba(0,0,0,.6), inset 3px 0 0 #a8321f; color: #6a1e10; }
+/* build confirm box: keeps its placard and tail, takes the frame and the serif */
+#townbuildreview { font-family: var(--ln-font); border: 10px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; background-origin: border-box; background-clip: padding-box; }
+#townbuildreview .br-head b { font: 800 18px/1.2 var(--ln-font); }
+#townbuildreview .br-x { font-family: var(--ln-font); }
+#townbuildreview button { font-family: var(--ln-font); }
+#towninspect { font-family: var(--ln-font); border: 10px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; background-origin: border-box; background-clip: padding-box; background-color: #1b120d; }
+#towninspect button { font-family: var(--ln-font); border: none; border-radius: 2px; background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,220,170,.25); }
+#deploymentpanel > header h3 { display: block; }
+#deploymentpanel > header h3::before { display: inline-block; vertical-align: middle; margin-top: -4px; }
+#deploymentpanel > header h3::before { content: none; }
+#deploymentpanel > header { display: flex; align-items: center; }
+#deploymentpanel > header::before { content: ""; flex: none; width: 34px; height: 34px; margin-right: 10px; background: var(--ln-crest) center / contain no-repeat; filter: drop-shadow(0 2px 2px #000); }
+#deploymentpanel > header > :last-child { margin-left: auto; }
+/* critic CP5 round 1: the map's injected styles load later, so body weight; hover tips as small lacquer plaques in the serif */
+body #gamemap.game-map, body #gamemap.game-map.world { background-color: #0d0806; background-image: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(255,150,60,.06), transparent 70%), linear-gradient(rgba(10,6,4,.72), rgba(10,6,4,.72)), var(--ln-grain); }
+body #gamemap.game-map .mapcol:not(.x) { border: 14px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0; background-origin: border-box; background-clip: padding-box;
+  background-color: #1b120d; background-image: radial-gradient(ellipse 75% 45% at 70% 8%, rgba(255,150,60,.10), transparent 70%), linear-gradient(rgba(20,13,9,.5), rgba(20,13,9,.5)), var(--ln-grain); box-shadow: 0 16px 40px rgba(0,0,0,.8); }
+body #gamemap.game-map.world .mapcol { border: none; background: none; box-shadow: none; padding: 0; }
+body #gamemap.game-map .mapbox, body #gamemap.game-map.world .mapbox { border: 14px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0; background-color: #0b0705; background-clip: padding-box; box-shadow: 0 16px 40px rgba(0,0,0,.8); }
+body #gamemap.game-map.deployment .mapbox::after { display: none; }
+body #gamemap.game-map.world .atlas-rail { padding: 6px 10px; background: linear-gradient(180deg, rgba(255,210,150,.06), rgba(0,0,0,.3)), var(--ln-grain), #2a1c12; box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.12), inset 0 -3px 0 rgba(0,0,0,.45), 0 6px 12px rgba(0,0,0,.6); }
+body #gamemap.game-map.world .mapcol h3 { padding: 6px 16px 10px 12px; display: flex; align-items: center; background-color: var(--ln-dye); background-image: var(--ln-weave), linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.4));
+  clip-path: polygon(0 0, 100% 0, 100% 90%, 80% 97%, 55% 92%, 30% 99%, 0 94%); }
+body #gamemap.game-map.world .mapcol h3::before { content: ""; width: 30px; height: 30px; margin-right: 10px; background: var(--ln-crest) center / contain no-repeat; filter: drop-shadow(0 2px 2px #000); }
+#deploymentpanel .away-orders label, #deploymentpanel label:has(> input[type="checkbox"]) { display: block; padding-left: 1.6em; text-indent: -1.6em; }
+#fptip { font: 500 13px/1.45 var(--ln-font); color: #ecdcbc; border: none; border-radius: 2px; background: linear-gradient(180deg, #24170f, #150e0a); box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #8a6a3a, 0 6px 14px rgba(0,0,0,.7); }
+body #gamemap.game-map.world .mapcol h3::before { content: none; }
+body #gamemap.game-map.world .mapcol h3 { display: block; padding-left: 48px; background-image: var(--ln-crest), var(--ln-weave), linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.4));
+  background-position: 10px 42%, 0 0, 0 0; background-size: 28px 28px, auto, auto; background-repeat: no-repeat, repeat, no-repeat; }
+/* critic CP5 round 2: layer toggles read on or off at a glance, even side buttons, a lit legend */
+#gamemap .maplayers button.on, #gamemap .atlas-rail button[aria-pressed="true"] { color: #2a1b10; text-shadow: 0 1px 0 rgba(255,240,200,.45); background: linear-gradient(180deg, #e2bd78, #a87a35); box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,245,215,.55), inset 0 -2px 0 rgba(90,50,10,.5); }
+#gamemap .maplayers button:not(.on), #gamemap .atlas-rail button:not([aria-pressed="true"]) { opacity: .8; }
+body #gamemap.game-map .maplayers { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+body #gamemap.game-map .maplayers button { width: 100%; }
+#gamemap .atlas-legend > span, #gamemap .atlas-hint { color: #cdb48d; }
+body #gamemap.game-map .maplayers { width: 100%; box-sizing: border-box; }
+body #gamemap.game-map .maplayers button { min-width: 0; padding: 5px 3px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body #gamemap.game-map .maplayers button { font-size: 12px; padding: 5px 1px; text-overflow: clip; letter-spacing: -.01em; }
