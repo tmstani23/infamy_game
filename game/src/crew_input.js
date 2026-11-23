@@ -197,6 +197,14 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     return best;
   }
   const busRiders = b => Object.values(game.state.entities).some(u => u.aboard === b.id);
+  // your own ship under a page pixel (sim/frontier/ships.js): long, so a line down its length, as the vehicles (ships S2)
+  function shipAt(px, py) {
+    const h = hero();
+    if (!h) return null;
+    let best = null, bd = 50;
+    for (const s of Object.values(game.state.entities)) { if (!s.ship || s.dead || s.owner !== h.owner || s.place !== commandPlace()) continue; const d = vehicleDistance(view, s, px, py, 12); if (d < bd) { bd = d; best = s; } }
+    return best;
+  }
   function horseAt(px, py) {
     const h = hero();
     if (!h || h.place !== 'world') return null;
@@ -238,6 +246,12 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     // with crew selected (Tim 2026-11-07): they ride, the nearest on this horse, the rest on your other free horses
     const riders = horse ? mine().filter(id => { const u = game.state.entities[id]; return u && u.type !== 'hero' && !game.omnibus?.isVehicle(u) && u.type !== 'horse' && !u.aboard && u.place === horse.place && !u.dead && !u.downed && !u.jailed && !u.garrison; }) : [];
     if (horse) { send({ id: heroId, type: 'mount', horse: horse.id, ...(riders.length ? { units: riders } : {}) }); return; }
+    // right-click your ship (ships S2): the selected crew and troops walk to its shore and go aboard; nothing selected, the hero
+    const ship = e.button === 2 && shipAt(e.clientX, e.clientY);
+    if (ship) { const boarders = mine().filter(id => { const u = game.state.entities[id]; return u && !u.ship && !u.aboard && !game.omnibus?.isVehicle(u) && u.type !== 'horse' && u.place === ship.place && !u.dead && !u.downed && !u.jailed && !u.garrison; });
+      if (!boarders.length && !mine().length && !hero()?.aboard) boarders.push(heroId);
+      if (boarders.length) send({ id: heroId, type: 'ship', action: 'board', ship: ship.id, units: boarders });
+      return; }
     const bus = e.button === 2 && omnibusAt(e.clientX, e.clientY);
     // selected crew walk over and get in on their own (Tim 2026-11-07), the rickshaw (2 seats) the same as the omnibus,
     // also into one that already has crew aboard; only with the hero right beside an empty one does he get in with them.
@@ -275,6 +289,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       // selected crew member does that); right-click the ground to go there (Ctrl: hold it),
       // or the hero to follow
       // with nothing selected at war, a right-click on an enemy house, wall or gate sends the hero at it (Tim 2026-11-12)
+      // the hero aboard his ship with nothing selected: a right-click sails it there, or to the shore nearest a click on land (ships S2)
+      { const hs = hero()?.inShip && game.state.entities[hero().inShip]; if (!mine().length && hs?.ship && !hs.dead) { const p = view.screenToGround(e.clientX, e.clientY); if (p) order({ units: [hs.id], kind: e.ctrlKey ? 'station' : 'move', x: p.x, z: p.z }); return; } }
       if (!mine().length) { const p = !e.ctrlKey && commandPlace() === 'world' && view.screenToGround(e.clientX, e.clientY); if (p && Object.values(game.state.frontier?.wars?.list || {}).some(w => w.attacker === hero()?.owner || w.defender === hero()?.owner)) send({ id: heroId, type: 'order', kind: 'raze', x: p.x, z: p.z, slack: 3, units: [], hero: true, place: 'world' }); return; }
       const foe = target();
       if (foe?.downed) { send({ id: heroId, type: 'execute', target: foe.id, units: mine(),crewJob:true, crewOnly: true }); return; }
@@ -312,7 +328,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     if (Math.abs(e.clientX - x) < 6 && Math.abs(e.clientY - y) < 6) {
       // a left-click on an enemy makes it the Tab target (MMO-style) and shows its card
       // vehicles are bigger than people: a wider reach so a click on a loaded one of yours selects it (Tim 2026-11-07)
-      const mate = unitAt(e.clientX, e.clientY, myCrew().filter(u => !u.aboard)) || unitAt(e.clientX, e.clientY, Object.values(game.state.entities).filter(v => game.omnibus?.isVehicle(v) && v.omnibusOwner === hero()?.owner && !v.dead && !v.stored && v.place === commandPlace()), 45)   // any of your vehicles, loaded or empty (Tim 2026-11-10); crew inside a vehicle: the click is on the vehicle || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
+      const mate = unitAt(e.clientX, e.clientY, myCrew().filter(u => !u.aboard && !u.ship)) || shipAt(e.clientX, e.clientY) || unitAt(e.clientX, e.clientY, Object.values(game.state.entities).filter(v => game.omnibus?.isVehicle(v) && v.omnibusOwner === hero()?.owner && !v.dead && !v.stored && v.place === commandPlace()), 45)   // any of your vehicles, loaded or empty (Tim 2026-11-10); crew inside a vehicle: the click is on the vehicle || (game.state.deployment?.restrictionsEnabled&&hero()?.place===commandPlace()&&unitAt(e.clientX,e.clientY,[hero()]));
       const foe = !mate && unitAt(e.clientX, e.clientY, enemies().filter(f => !f.downed));
       if (foe) {tabbed = foe.id;looked=null;}
       const civ = !mate && !foe && unitAt(e.clientX, e.clientY, townsfolk(), CIV_PX);

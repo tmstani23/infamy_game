@@ -3050,9 +3050,13 @@ Goal (2026-11-19): ships are for fighting. No sea cargo or goods system; new sys
 - Pirates: not planned for now.
 
 Checklist (2026-11-22):
-- [ ] S0 Check sprites (all three exported and packed with half pages; confirm KTX2 pages and near/far page use in game), data blocks (war.ships, war.units, war.buildings shipyard / slipway / cannon_tower, structures health, cannon_tower morale weight), dev save ship_test.
-- [ ] S1 Water navigation: water grid, bridges and fords as blockers, landable shore cells, ship path finding.
-- [ ] S2 Ship as a unit: hull, steering, selection, move, attack-move, hold fire, hold boarding, land and unload, drawing, Controls rows.
+- [x] S0 Check sprites (all three exported and packed with half pages; confirm KTX2 pages and near/far page use in game), data blocks (war.ships, war.units, war.buildings shipyard / slipway / cannon_tower, structures health, cannon_tower morale weight), dev save ship_test.
+- [x] S1 Water navigation: water grid, bridges and fords as blockers, landable shore cells, ship path finding.
+- [x] S2 Ship as a unit: hull, steering, selection, move, attack-move, hold fire, hold boarding, land and unload, drawing, Controls rows.
+- S0 to S2 built 2026-11-23 (`sim/frontier/water_nav.js`, `sim/frontier/ships.js`, `render/ship_marks.js`; tests test_water_nav, test_ships; dev save ship_test):
+  - Water: sea and the 4 main rivers are big-ship water, stopped by bridges and fords; streams and lakes are fishing-boat water only (grid at 20 units). About a third of the sea coast is landable; every harbour site has some landable shore inside its war circle. The river V2 cannot be reached from the sea.
+  - Ships stay inside the war circle. A ship lying still within reach of landable shore takes men aboard or lets them off one a second. Units aboard are hidden and safe; hits go to the hull (S4 adds hull damage and guns). A right-click on the ground at war (a raze order) sails selected ships there.
+  - Look: a ring at the waterline in your teal (vermilion for enemies), a lacquer plate over the masthead with health and, for your own ships, hold sockets and a count; foam wake and bow wave only while under way.
 - [ ] S3 Shipyard and slipway: placement, training queue, troop places, dock repair, ruins, menus.
 - [ ] S4 Guns and hull: auto fire, damage row, stages, sinking, drowning and wash-up, pan or ping.
 - [ ] S5 Cannon tower: building, cap by tier, target order, morale weight, mender cap 4, general build lists.

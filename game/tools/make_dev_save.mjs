@@ -1,5 +1,5 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/castle_test.json, war_test_yakuza.json, war_defend_yakuza.json, rail_rob_shinobi.json
+//   node game/tools/make_dev_save.mjs            -> saves/castle_test.json, war_test_yakuza.json, war_defend_yakuza.json, rail_rob_shinobi.json, ship_test.json
 //   node game/tools/make_dev_save.mjs war_test_yakuza   -> only the saves named
 // Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 5).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
@@ -12,6 +12,7 @@ import { createPlacement } from '../src/sim/frontier/placement.js';
 import { militaryFor } from '../src/sim/frontier/town_military.js';
 import { storageCap } from '../src/sim/frontier/storage.js';
 import { addCastle } from '../src/sim/frontier/castle.js';
+import { waterGrid, landingFor, nearestSailable } from '../src/sim/frontier/water_nav.js';
 
 const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
@@ -47,6 +48,9 @@ const SAVES = {
   // a short line (the nearest town sites, 1000 to 1200 apart) between two Kuroda Villages, Kurohama and Kuromine, in peace. Standing orders
   // both ways (timber, stone, food, goods and coffers ryo) keep its train loaded, so it can be blown and robbed. A small
   // Shinobi Village, Kagemura, a little off the line, is where the stolen chest is cashed. His horse waits beside him.
+  // Ship test (Tim 2026-11-23, ships plan S0, the 5th and last dev save): the Yakuza camp on the harbour side of a Kuroda
+  // Village at a harbour site, both sides with a war chest (shipTest below).
+  ship_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, shipTest: true },
   rail_rob_shinobi: { clan: 'shinobi', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, robTest: true },
 };
 
@@ -414,6 +418,62 @@ function robTest(game, heroId) {
 
 // Shares out the free businesses (the kinds that give crew room) between the clans that may hold them (the
 // Shinobi clan holds none; its crew room comes from Renown). Biggest first, snake order, so the shares stay even.
+// The ship test (Tim 2026-11-23, ships plan S0): the Yakuza at war on a Kuroda Village by the sea. The town (Kurominato)
+// stands at a harbour site (world.json site.harbor) with the town hall war upgrade, a barracks, a rifle range and two
+// watchtowers, and 1500 ryo in its war chest; the hero's banner is planted on the harbour side of the town with the
+// tier-2 pack, so the camp has its own chest and the shore is near. The hero, his crew and their horses wait by the camp hall;
+// a warship and a transport lie at the shore nearest the camp (ships plan S2).
+function shipTest(game, heroId) {
+  const S = game.state, hero = S.entities[heroId], F = options.frontier, W = F.war, wd = options.world, war = game.frontier.war;
+  const rival = Object.keys(S.clans).find(id => id !== hero.owner && S.clans[id].faction === 'kuroda') || Object.keys(S.clans).find(id => id !== hero.owner);
+  const [gx, gz] = game.gate.island, far = s => Math.hypot(s.x - gx, s.z - gz);
+  const gap = s => Math.min(...Object.values(S.frontier.settlements).filter(t => Number.isFinite(t.x)).map(t => Math.hypot(t.x - s.x, t.z - s.z)), Infinity);
+  const sites = wd.sites.filter(s => s.harbor && far(s) > 1400 && far(s) < 3200 && gap(s) >= 1600).sort((a, b) => far(a) - far(b));
+  let rec = null, town = null;
+  for (const site of sites) {
+    town = game.frontier.world.addTown({ id: 'ship_test_town', name: 'Kurominato', region: null, owner: rival, x: site.x, z: site.z, site: site.id ?? null,
+      traits: { soil: 1, water: 1, defense: 1, nodes: {} }, pop: 20, stock: { food: 2000, timber: 1500, stone: 800, goods: 300, ryo: 2500 }, buildings: [{ type: 'town_hall', stage: 'built', cell: 0 }] });
+    game.step([]);   // the hub gives the town its grid
+    const [inner, outer] = war.band(town), mid = (inner + outer) / 2, toSea = Math.atan2(site.harbor.z - town.z, site.harbor.x - town.x);
+    S.clans[hero.owner].warPack = { ...(W.general.attack.packByTier?.[1] || W.general.attack.pack) };
+    for (let a = 0; a < 24 && !rec; a++) {   // nearest the harbour side first
+      const ang = toSea + (a % 2 ? 1 : -1) * Math.ceil(a / 2) * Math.PI / 12;
+      for (const r of [mid, inner + 10, outer - 10]) {
+        const x = Math.round(town.x + Math.cos(ang) * r), z = Math.round(town.z + Math.sin(ang) * r);
+        Object.assign(hero, { place: 'world', area: 'world', x: x + 3, z }); delete hero.aboard;
+        if (!war.check(hero, town.id, { x, z }).ok) continue;
+        game.step([{ id: hero.id, type: 'frontier', action: 'plantBanner', town: town.id, x, z }]);
+        rec = war.warOn(town.id); if (rec) break;
+      }
+    }
+    if (rec) break;
+    delete S.frontier.settlements.ship_test_town; town = null;
+  }
+  if (!rec) throw new Error('ship_test: could not start a war on a harbour town');
+  delete S.clans[hero.owner].warPack;
+  town.tier = 2; town.warHall = true; town.founded = (S.tick ?? 0) - 12000 * 4;
+  for (const kind of ['barracks', 'rifle_range', 'watchtower', 'watchtower']) if (!placeBuilt(game, town, kind)) throw new Error('ship_test: no room for a ' + kind);
+  const cap = r => storageCap(town, game.frontier.data, r);
+  Object.assign(town.stock, { food: Math.min(3000, cap('food')), timber: Math.min(1500, cap('timber')), stone: Math.min(800, cap('stone')), goods: Math.min(300, cap('goods')), ryo: 2500 });
+  rec.defense = { ...(rec.defense || {}), chest: 1500, put: 1500 };
+  for (const w of rec.camp.workers) delete w.project;
+  const hall = rec.camp.buildings.find(b => b.type === 'camp_hall');
+  Object.assign(hero, { x: hall.x + 6, z: hall.z + 4 });
+  let k = 0;
+  for (const u of Object.values(S.entities)) if (u.owner === hero.owner && u.order?.kind === 'follow' && u.order.target === hero.id) {
+    Object.assign(u, { place: 'world', area: 'world', x: hall.x + 8 + (k % 4) * 1.2, z: hall.z + 6 + Math.floor(k / 4) * 1.2 }); delete u.aboard; k++;
+  }
+  for (let i = 0; i <= k; i++) (S.frontier.bornHorses ||= []).push({ owner: hero.owner, kind: i ? 'calico' : 'black_beauty', x: hall.x + 4 + i * 2.6, z: hall.z + 11, stable: 'capital', town: 'capital' });
+  // ships plan S2: a warship and a transport lie at the shore nearest the camp, to try sailing, landing and boarding
+  { const wg = waterGrid(wd), circle = { x: town.x, z: town.z, r: W.circleRadius ?? 900 }, L = landingFor(wg, hall.x, hall.z, 'big', { box: circle, maxR: 600 });
+    if (!L?.berth || !game.ships) throw new Error('ship_test: no landable shore for the ships');
+    game.ships.spawn(rec, 'warship', L.berth.x, L.berth.z, hero.owner);
+    const t2 = nearestSailable(wg, L.berth.x + 25, L.berth.z + 25, 'big', 80, circle); if (t2) game.ships.spawn(rec, 'transport', t2.x, t2.z, hero.owner); }
+  game.areas.update(Object.values(S.entities));
+  for (let i = 0; i < 20; i++) game.step([]);
+  return { rec, town, harbor: wd.sites.find(s => s.id === town.site)?.harbor };
+}
+
 function shareCity(game) {
   const room = game.settings.units.rules.capPerBusiness, ids = Object.keys(game.state.clans).filter(id => game.state.clans[id].kind !== 'ninja');
   const free = Object.values(game.state.businesses).filter(b => !b.owner && room[b.kind]).sort((a, b) => room[b.kind] - room[a.kind] || a.id.localeCompare(b.id));
@@ -448,6 +508,7 @@ export function build(name, spec) {
   if (spec.warTest) warTest(game, m.heroId);
   if (spec.warDefend) warDefend(game, m.heroId);
   if (spec.robTest) robTest(game, m.heroId);
+  if (spec.shipTest) shipTest(game, m.heroId);
   if (spec.castleTest) { const h = game.state.entities[m.heroId], p = game.castles?.approach('player'); if (!h || !p) throw new Error('castle_test: no castle');
     // Z4f (Tim 2026-11-19): the rail hub is the castle; a town with a station and a finished line to it, to see and ride
     { const t = Object.values(game.state.frontier.settlements).find(x => x.owner === h.owner && x.founded !== undefined); if (t) layLine(game, h, t.id, 'capital'); }

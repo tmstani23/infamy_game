@@ -28,6 +28,7 @@ import { createChestCashFx } from './chest_cash_fx.js';
 import { islandBiome } from '../sim/island_art.js';
 import { pointAt } from '../sim/frontier/rail_route.js';
 import { createFerryShips, seaSpot } from './ferry_ships.js';
+import { createShipMarks } from './ship_marks.js';
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
 import { groundY, maxGroundY } from '../castle_height.js';
@@ -128,6 +129,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const cityStation = cityStationAt ? createCityStation({ scene, station: cityStationAt, edgeX: district.bounds.maxX,
     carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // the ships at the city pier and the castle docks, and the one at sea (Z7, render/ferry_ships.js); ships = { bp, rules }
+  const shipMarks = createShipMarks({ scene, types: units?.types, holdOf: e => e.hold ?? 0 });   // war ships: ring, plate, wake (ships S2)
   const ferryShips = worldGround && ships ? createFerryShips({ scene, ...ships, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
   const wildGlow = { pos: new THREE.Vector3(), radius: worldChunks?.nightGlow?.radius ?? 12, color: new THREE.Color(...(worldChunks?.nightGlow?.color ?? [0.3, 0.36, 0.5])), fire: false, seed: 1 };
@@ -520,6 +522,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
         s.sheltered = sheltered;
       }
     }
+    shipMarks.update(state, sprites, { colourOf: e => TEAM[teamOf(e, state.entities[followId])], enemyOf: e => teamOf(e, state.entities[followId]) === 'enemy', own: e => e.owner === state.entities[followId]?.owner }, selected, fdt);
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);
     if (state.entities[followId]) markCrewDoors(rings, state, state.entities[followId].owner);

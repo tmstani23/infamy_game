@@ -111,6 +111,9 @@ Global Shinobi stealth badge (2026-10-27): round eye icon shows hidden/seen, out
 | 1–4 | Recall a numbered selection filtered by active deployment command group; manual move/attack continues, then duty; open clinic, police, contract and hiring menus take priority |
 | Esc | Clear selection, returning released manually controlled sector crew to saved duty; clear hero attack/loot and cancel hero execution. Menus close as before; Ctrl behavior unchanged |
 | Right-click the ground | Send the selected crew there |
+| Right-click water or shore with your ships selected (war, 2026-11-23) | They sail there by water, round the coast. A click on land sails to the nearest shore they can land on; cliff and mountain coast cannot be landed on. Bridges and fords stop big ships. Aboard with nothing selected, a right-click sails your ship. |
+| Right-click your ship with crew or troops selected | They walk to the shore beside it and go aboard as room allows (warship 6, transport 12; siege guns and horses stay ashore). The ship must lie still at the shore. With nothing selected the hero goes, standing by it. |
+| Space by your ship at the shore | All aboard: a gold ring round the landing for 10 s; everyone of yours in it goes aboard as room allows; Space again boards at once. Aboard at the shore: everyone steps off, one each second. Boarding an enemy ship is not right-click: it is the warship's special (planned, S8). |
 | Right-click your own business | Selected crew go in and patrol/defend; see [indoor patrol rules](crew_recruiting_plan.md#phase-3c-indoor-patrols-tim-2026-10-21) |
 | Ctrl + right-click the ground | Station the selected crew there (they hold that spot) |
 | Right-click your hero, or V | Selected crew follow you, entering if you are inside; outdoor Follow does not recall indoor crew |

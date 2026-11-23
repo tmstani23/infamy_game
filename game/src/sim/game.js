@@ -66,6 +66,7 @@ import { createFrontier } from './frontier/frontier.js';
 import { createLandOffice } from './frontier/land_office.js';
 import { createCastles, castleClearings, castleWalkBoxes } from './castles.js';
 import { createFerry } from './frontier/ferry.js';
+import { createShips } from './frontier/ships.js';
 import { createCannonSalute } from './cannon_salute.js';
 import { createCampaignGoals } from './campaign_goals.js';
 import { createInfluence } from './influence/influence.js';
@@ -433,7 +434,7 @@ export function createGame(options) {
   const blind = (a, b) => !!state.smokes && state.smokes.some(s => a.owner !== s.clan && (inSmoke(s, a) || inSmoke(s, b))
     && !(b && b.owner === s.clan && stealth.exposed(b)));
   // (a.rout: war troops running off after their war ended, sim/frontier/war_end.js: they fight nobody and nobody chases them)
-  const baseHostile = (a, b) => b && a !== b && !a.rout && !b.rout && !a.garrison && !b.garrison && !a.aboard && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
+  const baseHostile = (a, b) => b && a !== b && !a.rout && !b.rout && !a.garrison && !b.garrison && !a.aboard && !b.ship && !b.inShip && !b.guide && !a.guide && !b.dead && !b.downed && !b.jailed && a.owner && b.owner && a.owner !== b.owner && a.place === b.place
     && (!wild(a) || angryAt(a, b)) && (!wild(b) || angryAt(b, a)) && (!cop(a) || angryAt(a, b)) && (!cop(b) || angryAt(b, a)) && !blind(a, b)
     && !warNeutral(a, b) && deployment.canActAt(a, b.x, b.z, b.place);
   // F6 rules 2026-11-10: in a war circle only the two sides of that war fight each other; other clans pass through
@@ -679,7 +680,7 @@ export function createGame(options) {
   // units standing on each other ease apart; on the island too (Tim 2026-11-07: crew following the hero stacked
   // there), for clan units on foot or horseback (a horse takes more room); riders inside vehicles, horses, vehicles
   // and scenery keep their places. Each place separately: street and island coordinates overlap
-  const looseOnIsland = e => e.owner && !e.aboard && !e.guide && !e.garrison && e.type !== 'horse' && e.type !== 'omnibus' && e.type !== 'rickshaw';
+  const looseOnIsland = e => e.owner && !e.aboard && !e.ship && !e.guide && !e.garrison && e.type !== 'horse' && e.type !== 'omnibus' && e.type !== 'rickshaw';
   function separate() {
     const all = Object.values(state.entities).filter(e => e.type !== 'hero' && !e.dead && !e.downed && !e.pack);
     separateUnits(all.filter(e => e.place === 'street'),e=>statsOf(e).radius,tryMove);
@@ -896,6 +897,12 @@ export function createGame(options) {
       clan.settlersWaiting = 0; return Array.from({ length: n }, () => state.entities[spawn('settler', st.sprite, e.x, e.z, { owner: e.owner, hp: st.hp, holdFire: true, place: 'street' })]); } }) : null;
   if (ferry) doors.push({ x: ferry.pier[0], z: ferry.pier[1], place: 'street', menu: 'harbour', label: 'Harbour pier: ship to your castle' });   // the ring on the pier (Use there boards, main.js)
   if (ferry) frontier.modules.unshift({ name: 'ferry', command: (e, c) => ferry.command(e, c) });
+  // warships and transports in a war (ships plan S2, sim/frontier/ships.js): RTS units on the water; one sunk washes the
+  // hero (knocked out, as in a fight) and crew (downed) ashore
+  const shipAshore = u => { if (u.type === 'hero') { Object.assign(u, { dead: true, anim: 'death', diedAt: state.tick }); state.news.push({ kind: 'bossDown', clan: u.owner, hero: u.id, by: null, x: u.x, z: u.z }); } else Object.assign(u, { downed: true, downedAt: state.tick, anim: 'death' }); };
+  const ships = frontier && options.world?.terrain ? createShips({ state, data: options.frontier, types: units?.types, world: options.world, war: () => frontier.war,
+    navOf: p => navOf(p), followOffset: (...a) => followOffset(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; }, dismount: e => mounts?.dismount(e),
+    say: (owner, text) => { const c = state.clans?.[owner]; if (c) c.notice = { tick: state.tick, text }; return true; }, down: shipAshore }) : null;
   const landOffice = frontier && units ? createLandOffice({ state, data: options.frontier, worldData: options.world, units, clans, doorNear, discovered: (clan, id) => discovery?.siteDiscovered?.(clan, id), dayTicks, maxTowns: (id, base) => influence.maxTowns(id, base), zones: frontier.campaignZones, castles }) : null;
   frontier?.rivalCampaign?.setLandOffice(landOffice, units?.types?.settler);   // Z2: rival homes, strategies and later towns
   const goals = createCampaignGoals({ state, clans, landOffice, influence, zones: frontier?.campaignZones, lieutenantGuide: id => lieutenant?.guideOf(id) || (doors.find(d => d.menu === 'lieutenant') ?? null), surveyorAt: () => doors.find(d => d.menu === 'surveyor') ?? null, harbourAt: () => ferry ? { x: ferry.pier[0], z: ferry.pier[1] } : null, castleApproach: id => castles?.approach?.(id) || null, hasCastle: id => !!castles?.castleOf(id), rules: units?.rules, spotKind: (() => { const kinds = new Map((options.resourceSpots?.spots || []).map(p => [p.id, p.kind])); return id => kinds.get(id) || null; })(), foodSpotNear: (() => { const food = (options.resourceSpots?.spots || []).filter(p => options.frontier?.workers?.resources?.[p.kind] === 'food'); return (x, z, r) => food.map(p => [Math.hypot(p.x - x, p.z - z), p]).filter(([d]) => d <= r).sort((a, b) => a[0] - b[0] || (a[1].id < b[1].id ? -1 : 1))[0]?.[1] || null; })(), data: options.frontier || {} });   // quest log (2026-11-06)
@@ -1068,6 +1075,7 @@ export function createGame(options) {
       // on horseback everything works (Tim 2026-11-14: attacks and abilities from the saddle); only a vehicle seat blocks
       if (ferry?.riding(e) && c.type !== 'frontier') continue;   // at sea: nothing but skipping the crossing
       if (e.aboard && ['attack', 'ability', 'execute', 'loot', 'snuff', 'interiorDoor', 'item'].includes(c.type)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'Step out of the omnibus first (Q)' }; continue; }
+      if (c.type === 'use' && e.type === 'hero' && !e.dead && !e.downed && !e.jailed && ships?.use(e)) continue;   // aboard a ship at the shore: step off; beside one: All aboard
       if (e.aboard && c.type === 'use') omnibus?.deploy(e);
       if (e.mounted && c.type === 'use') mounts?.dismount(e);
       // Selection and crew commands cannot replace the hero's current execution.
@@ -1125,6 +1133,7 @@ export function createGame(options) {
       if (c.type === 'expedition' && landOffice && areas && gate && !stunned(e, state.tick)) expedition(e, c);
       if (c.type === 'inventory') inventory.command(e, c);
       if (c.type === 'omnibus') omnibus?.command(e, c);
+      if (c.type === 'ship') ships?.command(e, c);   // board, unload, All aboard (sim/frontier/ships.js)
       if (c.type === 'mount') mounts?.command(e, c);
       if (c.type === 'garage') garage?.command(e, c);
       if (c.type === 'rickshaw') stationTravel?.command(e, c);
@@ -1140,8 +1149,10 @@ export function createGame(options) {
       if (c.type === 'dismiss' && clans) clans.dismiss(e, c.unit, c.business, c.patient, c.prisoner);
       if (c.type === 'business' && businesses) businesses.command(e, c);
       // war checkpoint 6: right-click on an enemy structure of a war (sim/frontier/structures.js)
+      // ships in a raze order (a right-click on the ground at war) sail there instead (sim/frontier/ships.js, ships S2)
+      if (c.type === 'order' && c.kind === 'raze' && ships && e.type === 'hero' && !e.dead) { const rc = ships.order(e, c); if (rc !== c) c.units = rc.units; }
       if (c.type === 'order' && c.kind === 'raze') { if (e.type === 'hero' && !e.dead && !e.downed && !e.jailed) { for (const id of c.units || []) { const u = state.entities[id]; if (u?.owner === e.owner && u.type !== 'hero') manualCrew(u); } const razed = frontier?.structures?.order(e, c); if (razed && e.order?.kind === 'raze' && heroMode(e)) e.attackMode = true; if (!razed && (c.fallback === 'move' || c.fallback === 'station') && c.units?.length) { omnibus?.orderVehicles(e, { ...c, kind: c.fallback }); giveOrder(e, { ...c, kind: c.fallback }); } } continue; }
-      if (c.type === 'order') { omnibus?.orderVehicles(e, c); giveOrder(e, c); }
+      if (c.type === 'order') { const cc = ships ? ships.order(e, c) : c; omnibus?.orderVehicles(e, cc); giveOrder(e, cc); }   // ships take their own (sim/frontier/ships.js)
       // X with the hero in the selection on the frontier: he attack-moves too, in attack mode (Tim 2026-11-15); a plain move
       // order to the selection does not move him (WASD does)
       if (c.type === 'order' && c.kind === 'attackmove' && e.type === 'hero' && Array.isArray(c.units) && c.units.includes(e.id) && heroMode(e) && !e.dead && !e.downed && !e.jailed && Number.isFinite(c.x) && Number.isFinite(c.z)) { e.order = { kind: 'attackmove', x: c.x, z: c.z }; e.attackMode = true; delete e.attackTarget; delete paths[e.id]; }
@@ -1230,6 +1241,7 @@ export function createGame(options) {
       const unit = statsOf(e);
       if (e.pack) continue;   // a dog handler's loosed dog (sim/dogs.js moves it)
       if (e.type === 'civilian' || e.wild || e.cop) continue;   // townsfolk, bandits and police move in their own ticks below
+      if (e.ship || e.inShip) continue;   // ships sail and riders sit inside in their own tick (sim/frontier/ships.js)
       if (e.type !== 'hero') { crewStep(e, unit); continue; }
       if (e.dead || e.downed || e.jailed) continue;      // knocked down by the police, or in jail (sim/police.js)
       if (stunned(e, state.tick)) { e.anim = 'idle'; continue; }
@@ -1410,6 +1422,7 @@ export function createGame(options) {
       if (clan && v.town !== 'capital' && !v.quiet) clan.notice = { tick: state.tick, text: `${town?.name || 'Your town'}: a new ${v.kind} is parked at the station` };   // capital stable: its own notice
     }
     omnibus?.tick();
+    ships?.tick(DT);
     mounts?.tick(DT);
     garage?.tick(DT);
     castleMounts();
@@ -1459,7 +1472,7 @@ export function createGame(options) {
   const lootExecute = createLootExecute({ items:itemServices, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
   const crewOrders = createCrewOrders({ generalOrder: (hero, u) => !!u.warTroop && !!frontier?.warGeneral?.runs(frontier.war.byId(u.warTroop), hero.owner), gateNav: e => frontier?.structures?.gateNav(e) || null, roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules: units?.rules, sees, state, stats, tryMove });
   const crewSteps = createCrewStep({ gatling, firebomb, assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures: () => frontier?.structures, sweep, swingStep, taunt });
-  const combat = createCombat({ decide, shelter: (t, d, a) => omnibus?.shelter(t, d) || (frontier?.garrison?.shelter(t, d, a) ?? false), onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
+  const combat = createCombat({ decide, shelter: (t, d, a) => omnibus?.shelter(t, d) || ships?.shelter(t, d) || (frontier?.garrison?.shelter(t, d, a) ?? false), onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();
   // --- Save and load (sim/save.js, frontier F1; audit in to_delete/_chk/save_audit.md) ---
   // Closure state that lives outside game.state. Values are copied by the save encoder.
@@ -1479,5 +1492,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, castles, ferry, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, mounts, garage, stationTravel, governorNear, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, castles, ferry, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, ships, mounts, garage, stationTravel, governorNear, dayTicks };
 }

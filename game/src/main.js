@@ -197,6 +197,8 @@ async function start() {
     { const rp = game.frontier?.rail?.prompt?.(game.state.entities[heroId]); if (rp?.mode) { pending.push({ id: heroId, type: 'frontier', action: 'rail', mode: rp.mode }); return; } }
     // the ship between the city harbour pier and your castle dock (Tim 2026-11-19): board here, or skip the crossing
     { const sp = game.ferry?.prompt(game.state.entities[heroId]); if (sp) { pending.push({ id: heroId, type: 'frontier', action: 'ferry', mode: sp.riding ? 'skip' : 'board' }); return; } }
+    // your war ship (sim/frontier/ships.js, ships S2): beside it at the shore All aboard, aboard at the shore everyone steps off
+    if (game.ships?.prompt(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'use', units: [] }); return; }
     if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
     // on the island at your omnibus station, or by your omnibus away from the gate: travel (Tim 2026-11-06)
     if (stableMenu.isOpen() || stableMenu.at()) { stableMenu.toggle(); return; }
@@ -897,7 +899,7 @@ async function start() {
       const stablePrompt = !door && !innerDoor && !knockable && stableMenu.at() && !stableMenu.isOpen();
       const travel = !door && !innerDoor && !knockable && !stablePrompt && stationMenu.at() && !stationMenu.isOpen();
       const lamp = !door && !travel && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
-      const allAboard = stationMenu.callPrompt() || warOutcome.prompt() || game.ferry?.prompt(game.state.entities[heroId])?.text || game.frontier?.rail?.prompt?.(game.state.entities[heroId])?.text;   // (or the ruined hall of a war: take it)
+      const allAboard = stationMenu.callPrompt() || warOutcome.prompt() || game.ferry?.prompt(game.state.entities[heroId])?.text || game.ships?.prompt(game.state.entities[heroId])?.text || game.frontier?.rail?.prompt?.(game.state.entities[heroId])?.text;   // (or the ruined hall of a war: take it)
       // the world prompts name the Use key: whatever it is bound to now (Tim 2026-11-12)
       // Tim 2026-11-20: the key is a gold keycap and the prompt flashes gold when a Use action comes up (index.html #prompt.act)
       const setPrompt = t => { t = t || ''; const el = $('prompt'), use = t.startsWith('Space  '), key = use ? keybinds.badge('use') : '', sig = key + '|' + t; if (el.dataset.sig === sig) return; el.dataset.sig = sig; el.textContent = '';
