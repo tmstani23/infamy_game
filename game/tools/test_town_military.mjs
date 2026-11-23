@@ -14,13 +14,13 @@ const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const world = data('data/world.json'), U = data('data/units.json'), FR = data('data/frontier.json');
 
 { // the data: every camp military building has a town entry with the camp's cost; limits and needs stay in war.buildings
-  const camp = Object.keys(FR.war.buildings).filter(t => !['camp_hall', 'lumber_camp', 'quarry', 'palisade', 'gate', 'stable', 'stockade', 'camp_station'].includes(t));   // (the stable and the stockade are town buildings of their own; camp_station is camp only, towns have their railway station, 8e-4)
+  const camp = Object.keys(FR.war.buildings).filter(t => !['camp_hall', 'lumber_camp', 'quarry', 'palisade', 'gate', 'stable', 'stockade', 'camp_station', 'slipway'].includes(t));   // (ships S3: the slipway is camp only)   // (the stable and the stockade are town buildings of their own; camp_station is camp only, towns have their railway station, 8e-4)
   assert.deepEqual(militaryTypes(FR).sort(), camp.sort(), 'the same military buildings as a camp');
   for (const t of camp) {
     const b = FR.buildings[t];
     assert.ok(b.size >= 1 && b.military && b.buildTicks > 0, t);
     assert.deepEqual(b.cost, FR.war.buildings[t].cost, `${t} costs what it costs at a camp`);
-    assert.ok(FR.war.structures.town[t] >= FR.war.structures.camp[t], `${t} is at least as sturdy as at a camp`);   // 8d-6 (Tim 2026-11-16): town military buildings have 2.5 times the camp health
+    assert.ok(FR.war.structures.town[t] >= (FR.war.structures.camp[t] ?? 0), `${t} is at least as sturdy as at a camp`);   // (a town-only one, the shipyard, has no camp health)   // 8d-6 (Tim 2026-11-16): town military buildings have 2.5 times the camp health
     assert.ok(FR.upkeep.buildings[t], `${t} pays upkeep`);
     assert.equal(b.max, undefined, 'limits live in war.buildings only');
   }

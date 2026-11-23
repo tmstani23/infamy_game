@@ -207,10 +207,10 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       const q = b.queue || [], first = q[0], cap = v.cap;
       const cards = list.slice(tpage * UPP, tpage * UPP + UPP).map(u => {
         const S = stats(u), price = ryoOf(u), pic = face(S.model);
-        const tip = `${S.name}. Health ${S.hp}, damage a second ${S.dps.toFixed(1)}, range ${S.range}, speed ${S.speed}. ${price} ryo from the war chest, ${Math.round(ticksOf(u) / 20)} s to train.${(U[u]?.slots ?? 1) > 1 ? ` Takes ${U[u].slots} troop places.` : ''}${S.abil.length ? ' ' + S.abil.join(' ') : ''}`;
+        const tip = `${S.name}. Health ${S.hp}, damage a second ${S.dps.toFixed(1)}, range ${S.range}, speed ${S.speed}. ${price} ryo from the war chest, ${U[u]?.timber ? `${U[u].timber} timber from the camp stock, ` : ''}${Math.round(ticksOf(u) / 20)} s to train.${(U[u]?.slots ?? 1) > 1 ? ` Takes ${U[u].slots} troop places.` : ''}${S.abil.length ? ' ' + S.abil.join(' ') : ''}`;
         return `<div class="ucard" title="${esc(tip)}"><div class="uhead"><div class="ustill${pic.includes('/stills/') ? ' concept' : ''}"${pic ? ` style="background-image:url('${esc(pic)}')"` : ''}></div><div class="ustats"><div class="un">${esc(S.name)}</div>
           <div class="sr"><span>Health</span><b>${S.hp}</b></div><div class="sr"><span>Damage a sec</span><b>${S.dps.toFixed(S.dps < 10 ? 1 : 0)}</b></div><div class="sr"><span>Range</span><b>${S.range}</b></div><div class="sr"><span>Speed</span><b>${S.speed}</b></div></div></div>
-          <div class="cost" style="justify-content:flex-start;margin-top:6px"><span class="chip ryo${(c.chest || 0) < price ? ' short' : ''}"><i></i>${price}</span><span class="small">${Math.round(ticksOf(u) / 20)} s each</span></div>
+          <div class="cost" style="justify-content:flex-start;margin-top:6px"><span class="chip ryo${(c.chest || 0) < price ? ' short' : ''}"><i></i>${price}</span>${U[u]?.timber ? `<span class="chip timber${(c.stock?.timber || 0) < U[u].timber ? ' short' : ''}"><i></i>${U[u].timber}</span>` : ''}<span class="small">${Math.round(ticksOf(u) / 20)} s each</span></div>
           <div class="small ab">${S.abil.length ? S.abil.map(x => `<span title="${esc(x)}">${esc(x.split(':')[0].split('.')[0])}</span>`).join(', ') : '&nbsp;'}</div>
           <div style="display:flex;gap:6px;margin-top:6px">${num(`t:${b.id}:${u}`)}<button class="go" data-train="${esc(b.id)}" data-unit="${esc(u)}">Train</button></div></div>`;
       }).join('');
@@ -394,7 +394,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const w = rec(placing.war); if (!w) { cancelPlacing(false); return; }
     ghost.hidden = false; ghost.width = innerWidth; ghost.height = innerHeight;
     const ctx = ghost.getContext('2d'), chain = W().chainDistance ?? 120;
-    drawBuildArea(ctx, view, w, W(), placing.kind, frontierData?.workers?.gatherBuildings || []);   // 7c-4: one outline, the ground outside darkened
+    drawBuildArea(ctx, view, w, W(), placing.kind, [...(frontierData?.workers?.gatherBuildings || []), ...Object.keys(W().buildings || {}).filter(t => W().buildings[t]?.unchained)]);   // ships S3: unchained (the slipway) like resource camps   // 7c-4: one outline, the ground outside darkened
     if (!mouse) { hint.hidden = true; return; }
     const p = view.screenToGround(mouse.x, mouse.y); if (!p) { hint.hidden = true; return; }
     const next = `${Math.round(p.x)},${Math.round(p.z)}|${game.state.frontier?.econTick}|${w.camp.buildings.length}|${placing.from ? `${placing.from.x},${placing.from.z}` : ''}`;

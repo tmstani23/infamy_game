@@ -6,6 +6,7 @@
 // builder work (s.warUpgrade = { left, total } while it runs; other projects wait meanwhile), at any tier. Limits may grow with the town hall tier (tierMax, Tim 2026-11-21).
 // Plain functions of the town and the data, so the sim and the build bar (on the snapshot) give the same answers.
 
+import { yardWater } from './shipyard.js';
 const nice = t => (t || '').replace(/_/g, ' ');
 const costText = cost => Object.entries(cost || {}).filter(([, v]) => v).map(([r, v]) => `${v} ${r}`).join(', ');
 
@@ -24,9 +25,10 @@ export function tierMax(def, kind, tier) {
 const factionOf = (s, state) => state?.clans?.[s?.owner]?.faction ?? null;
 
 // types this town's clan may build: a building with clan: '<faction>' is only for that clan (kennel, hidden dojo)
-export function militaryFor(s, data, state) {
+// world (the island, optional): a shore building (shipyard) is offered only to a town with water ships can sail at its harbour (ships S3)
+export function militaryFor(s, data, state, world = null) {
   const f = factionOf(s, state);
-  return militaryTypes(data).filter(t => { const c = data.war?.buildings?.[t]?.clan; return !c || !f || c === f; });
+  return militaryTypes(data).filter(t => { const c = data.war?.buildings?.[t]?.clan; return (!c || !f || c === f) && (!data.buildings[t]?.shore || !world || yardWater(world, s, data.war?.buildings?.[t])); });
 }
 
 // how many of a type the town has or has under way (ruins count, like a camp's sites and ruins)

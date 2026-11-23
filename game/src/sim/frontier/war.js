@@ -24,6 +24,7 @@ import { createWarDefense } from './war_defense.js';
 import { createWarArmory } from './war_armory.js';
 import { castleBox } from './castle.js';
 import { tierMax } from './town_military.js';
+import { slipSpotWhy, circleShore } from './shipyard.js';
 
 export function createWar({ state, data, world = null, worldData = null, resourceIndex = null, dayTicks = 12000, zones = null }) {
   const W = data.war || null;
@@ -347,7 +348,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function placeWhy(war, type, x, z, opts = {}) {
     const def = BD()[type], camp = war?.camp;
     if (!war || !camp) return 'No such war camp';
-    if (!def || type === 'camp_hall' || !def.cost) return 'Not a camp building';
+    if (!def || type === 'camp_hall' || !def.cost || def.where === 'town') return 'Not a camp building';   // ships S3: where town = a town building only (the shipyard)
     if (!Number.isFinite(x) || !Number.isFinite(z)) return 'Choose a spot';
     const need = missing(camp, type);
     if (need.length) return `Needs ${need.join(' and ')}`;
@@ -365,7 +366,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     // camp (lumber camp, quarry) may also stand outside it, by its resource (within resourceCampReach of a spot it
     // takes); resource camps never extend the area.
     const chain = W.chainDistance ?? 120;
-    if (!opts.chained && !camp.buildings.some(b => !isResourceCamp(b.type) && dist(b, p) <= chain)) {
+    // ships S3: an unchained building (the slipway) stands anywhere in the circle and does not widen the area either
+    if (!opts.chained && !def.unchained && !camp.buildings.some(b => !isResourceCamp(b.type) && !BD()[b.type]?.unchained && dist(b, p) <= chain)) {
       if (!isResourceCamp(type)) return 'Outside the build area: place it nearer a camp building (resource camps do not extend the area)';
       const takes = data.workers?.campTakes?.[type] || [], reach = W.resourceCampReach ?? 45;
       const by = resourceIndex?.spotsNear ? resourceIndex.spotsNear(x, z, reach).some(sp => takes.includes(data.workers?.resources?.[sp.kind]) && Math.hypot(sp.x - x, sp.z - z) <= reach) : false;
@@ -377,7 +379,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       const gap = def.line && BD()[b.type]?.line && w === war ? (opts.step ?? Math.min(r, radiusOf(b.type))) * 0.6 : r + radiusOf(b.type);
       if (dist(b, p) < gap) return w === war ? b.stage === 'ruined' ? 'Erase the ruin first' : `Too close to the ${nice(b.type)}` : 'Too close to another war camp';
     }
-    const k = r * 0.7;
+    if (def.shore) { const why = slipSpotWhy(worldData, x, z, def); if (why) return why; }   // ships S3: on the shore, beside water big ships sail
+    const k = def.shore ? 0 : r * 0.7;   // a shore building may lean out over the water's edge: only its middle must be buildable
     for (const [dx, dz] of [[0, 0], [k, 0], [-k, 0], [0, k], [0, -k]]) if (!groundOk(x + dx, z + dz)) return 'This ground cannot be built on';
     if (resourceIndex && coversResources({ x, z, grid: { n: 1, cell: r * 2 } }, [0], resourceIndex, 1)) return 'It would cover a resource area';
     return opts.free ? null : canPay(camp, def.cost);
@@ -491,7 +494,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     const war = byId(warId), camp = war?.camp;
     if (!camp) return [];
     // (checkpoint 7: a building with clan: '<faction>' is only for that clan: the kennel, the hidden dojo)
-    return Object.entries(BD()).filter(([type, d]) => type !== 'camp_hall' && d && typeof d === 'object' && d.cost && (!d.clan || d.clan === factionOf(war.attacker))).map(([type, d]) => {
+    // (ships S3: town-only buildings are left out, and a shore building is offered only when the circle holds shore outside the town ring)
+    return Object.entries(BD()).filter(([type, d]) => type !== 'camp_hall' && d && typeof d === 'object' && d.cost && d.where !== 'town' && (!d.clan || d.clan === factionOf(war.attacker)) && (!d.shore || circleShore(worldData, town(war.town), W.circleRadius, isCastle(town(war.town)) ? 0 : ringRadius(town(war.town), data), d))).map(([type, d]) => {
       const need = missing(camp, type), count = camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length;
       const max = campMax(camp, type);
       const reason = need.length ? `Needs ${need.join(' and ')}` : max && count >= max ? (max < (d.max ?? Infinity) ? `A camp has at most ${max} ${nice(type)} before the camp hall upgrade` : `A camp has at most ${max} ${nice(type)}`) : canPay(camp, d.cost);
@@ -515,7 +519,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   }
   // Tim 2026-11-17: a ruined camp station or rail section is rebuilt where it stood (a site again, built by camp
   // workers like any site). Cost: the station's build cost; a section war.supply.sectionCost, sectionBuildTicks.
-  const REBUILD = new Set(['camp_station', 'rail_section']);
+  const REBUILD = new Set(['camp_station', 'rail_section', 'slipway']);   // ships S3: the slipway too
   const rebuildCost = b => b.type === 'rail_section' ? W.supply?.sectionCost || { timber: 60, stone: 20 } : BD()[b.type]?.cost || {};
   function campRebuildCheck(warId, id) {
     const war = byId(warId), b = war?.camp?.buildings.find(x => x.id === id);
@@ -644,9 +648,12 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (need > left) return { ok: false, reason: left > 0 ? (need === n ? `Troop cap: room for ${left} more` : `Troop cap: ${need} places needed, ${left} free`) : `Troop cap reached (${troopCap(war)}): build supply tents for more` };
     const each = ryoOf(war.attacker, c.unit), cost = each * n;
     if ((war.camp.chest || 0) < cost) return { ok: false, reason: `Needs ${cost} ryo from the war chest (it has ${Math.floor(war.camp.chest || 0)})` };
+    const wood = u.timber || 0, has = war.camp.stock?.timber || 0;   // ships S3: a ship also takes timber from the camp stock
+    if (wood * n > has) return { ok: false, reason: `Needs ${wood * n} timber from the camp stock (it has ${Math.floor(has)})` };
     war.camp.chest = Math.round((war.camp.chest - cost) * 100) / 100;
+    if (wood) addCampStock(war.camp, 'timber', -wood * n);
     b.queue ||= [];
-    for (let i = 0; i < n; i++) b.queue.push({ unit: c.unit, left: ticksOf(war.attacker, c.unit), paid: each });
+    for (let i = 0; i < n; i++) b.queue.push({ unit: c.unit, left: ticksOf(war.attacker, c.unit), paid: each, ...(wood ? { timber: wood } : {}) });
     return { ok: true };
   }
   // Cancel the last queued troop at a building: its ryo goes back to the war chest
@@ -657,6 +664,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!q) return { ok: false, reason: 'Nothing waiting there' };
     if (!b.queue.length) delete b.queue;
     war.camp.chest = Math.round(((war.camp.chest || 0) + (q.paid ?? UD()[q.unit]?.ryo ?? 0)) * 100) / 100;
+    if (q.timber) addCampStock(war.camp, 'timber', q.timber);   // ships S3
     return { ok: true };
   }
   // A trained troop of a roster unit: its clan's body, clan bonus hp and damage, and a cavalry unit comes already on
@@ -708,6 +716,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!q || b.stage !== 'built') continue;
       if (q.left > 0) q.left--;
       if (q.left > 0 || !runtime?.spawn) continue;   // without the game (bare tests) a ready troop waits at the front
+      // ships S3: a ship comes out on the water beside its slipway (it waits there while no water is found)
+      if (UD()[q.unit]?.ship) { if (!runtime.ships?.launch(war, q.unit, b.x, b.z, war.attacker)) continue; f().nextId++; b.queue.shift(); if (!b.queue.length) delete b.queue; continue; }
       // Tim 2026-11-12: new troops come out on the side facing the town and gather in one spot there, a little spread
       const t = town(war.town), r = radiusOf(b.type) + 2, a = t ? Math.atan2(t.z - b.z, t.x - b.x) : 0;
       const gx = b.x + Math.cos(a) * (r + 6), gz = b.z + Math.sin(a) * (r + 6), k = b.rally = ((b.rally || 0) % 24) + 1;

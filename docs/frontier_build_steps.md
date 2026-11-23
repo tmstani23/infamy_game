@@ -3057,7 +3057,13 @@ Checklist (2026-11-22):
   - Water: sea and the 4 main rivers are big-ship water, stopped by bridges and fords; streams and lakes are fishing-boat water only (grid at 20 units). About a third of the sea coast is landable; every harbour site has some landable shore inside its war circle. The river V2 cannot be reached from the sea.
   - Ships stay inside the war circle. A ship lying still within reach of landable shore takes men aboard or lets them off one a second. Units aboard are hidden and safe; hits go to the hull (S4 adds hull damage and guns). A right-click on the ground at war (a raze order) sails selected ships there.
   - Look: a ring at the waterline in your teal (vermilion for enemies), a lacquer plate over the masthead with health and, for your own ships, hold sockets and a count; foam wake and bow wave only while under way.
-- [ ] S3 Shipyard and slipway: placement, training queue, troop places, dock repair, ruins, menus.
+- [x] S3 Shipyard and slipway: placement, training queue, troop places, dock repair, ruins, menus.
+- S3 built 2026-11-23 (`sim/frontier/shipyard.js`, test_shipyard):
+  - Shipyard: a town war building (military, town only) on the shore, within 30 of water big ships sail, within 250 of the town's harbour (a river town without a harbour: anywhere on its grid); it may stand outside the build ring. Offered only to a town with such water near its harbour (or within 300 of its hall). One per town. Cost 250 timber, 100 stone.
+  - Slipway: a camp building on buildable shore ground inside the war circle, outside the town ring, within 30 of water big ships sail. Not chained to the camp; does not widen the build area. Offered only when the circle has such shore. One per camp. Cost 250 timber, 60 stone. A ruined slipway is rebuilt in place.
+  - Neither is on the morale bar. Both use the boatbuilder art. A ruined yard loses the ship it was building.
+  - Ships train in the yard's queue like troops: ryo from the war chest, timber from the camp stock (slipway) or the town stock (shipyard), troop places as listed. A cancelled or unfinished ship gives its timber back. A finished ship comes out on the water beside its yard.
+  - Repair: a ship stopped within 20 of its own built shipyard or slipway mends to full in 60 s, paused 10 s after it is hit or fires (from S4); no mending anywhere else. No new controls.
 - [ ] S4 Guns and hull: auto fire, damage row, stages, sinking, drowning and wash-up, pan or ping.
 - [ ] S5 Cannon tower: building, cap by tier, target order, morale weight, mender cap 4, general build lists.
 - [ ] S6 Landing helpers and effects: repair effect, pale shore line, anchor cursor, damage look, drowning and wash-up effects.

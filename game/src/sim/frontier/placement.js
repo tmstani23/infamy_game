@@ -16,11 +16,12 @@ import { coversResources } from './resource_clearance.js';
 import { placedRoom, buildingCost } from './tiers.js';
 import { shapeOf } from './station_layout.js';
 import { militaryWhy } from './town_military.js';
+import { yardSpotWhy } from './shipyard.js';
 
 const LINES = { road: 'r', wall: 'w', gate: 'g' };
 const put = (str, i, ch) => str.slice(0, i) + ch + str.slice(i + 1);
 
-export function createPlacement({ state, data, world, construction, resourceIndex }) {
+export function createPlacement({ state, data, world, construction, resourceIndex, worldData = null }) {   // worldData: the island (ships S3 shore rule)
   const sizeOf = kind => (data.buildings[kind]?.size) | 0;
 
   // Cells a placement covers: a line kind covers each listed cell, a building its 1x1 or 2x2 footprint.
@@ -147,7 +148,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
       if(reason)return bad(reason,cover);
     }
     // B3: everything but roads and work camps stays inside the town hall tier's ring
-    const needsRing = kind !== 'road' && !data.tiers?.camps?.includes(kind);
+    const needsRing = kind !== 'road' && !data.tiers?.camps?.includes(kind) && !data.buildings[kind]?.shore;   // ships S3: the shipyard stands on the shore, in the ring or out
     if (needsRing && cover.some(i => !inCore(s, i, data))) {
       // Tim 2026-11-21: a watchtower may stand outside the ring beside one of the town's own built work camps
       // (tiers.outsideRing: within near world units of it, perCamp towers each), to guard the workers out there
@@ -161,6 +162,9 @@ export function createPlacement({ state, data, world, construction, resourceInde
       if (!free.length) return bad(O ? `outside the town ring (a ${kind.replace(/_/g, ' ')} may stand beside one of your work camps)` : 'outside the town ring', cover);
       if (towers >= camps.length * (O.perCamp ?? 1)) return bad(`one ${kind.replace(/_/g, ' ')} per work camp outside the ring`, cover);
     }
+    // ships S3: a shore building (shipyard) by water big ships sail, by the town's harbour
+    if (!LINES[kind] && data.buildings[kind]?.shore) { const pts = cover.map(i => cellOffset(s, i)), cx = s.x + pts.reduce((n, p) => n + p[0], 0) / pts.length, cz = s.z + pts.reduce((n, p) => n + p[1], 0) / pts.length;
+      const why = yardSpotWhy(worldData, s, cx, cz, data.war?.buildings?.[kind]); if (why) return bad(why, cover); }
     if (!LINES[kind] && placedRoom(s, kind, data) < 1) return bad('town hall tier limit', cover);
     const mil = !LINES[kind] && militaryWhy(s, kind, data, state);   // 8b-1: military buildings share the war camp's limits and needs
     if (mil) return bad(mil, cover);

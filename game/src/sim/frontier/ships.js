@@ -15,6 +15,8 @@
 //   -> { isShip, of, riders, order, command, use, prompt, spawn, tick, shelter, holdOf, sink }
 import { steer } from '../vehicle_steer.js';
 import { waterGrid, sailable, landingFor, shipPath } from './water_nav.js';
+import { yardBerth } from './shipyard.js';
+import { cellToWorld } from './town_grid.js';
 
 export function createShips({ state, data, types, world, war, navOf, followOffset, forget, dismount, say, down }) {
   const S = () => data?.war?.ships || {}, U = () => data?.war?.units || {};
@@ -54,6 +56,34 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     s.hold = holdOf(s);   // places aboard, for the plate (render/ship_marks.js)
     delete s.order;
     return s;
+  }
+
+  // S3: a ship trained at a shipyard or slipway at x, z comes out on the water beside it; null while none is found
+  function launch(w, unit, x, z, owner) {
+    const at = world?.terrain ? yardBerth(world, x, z, S().launchReach ?? 80) : { x, z };
+    if (!at) return null;
+    const k = Object.values(state.entities).filter(s => isShip(s) && Math.hypot(s.x - at.x, s.z - at.z) < 10).length;   // a second one a little aside
+    return spawn(w, unit, at.x + Math.cos(k * 2.4) * 9 * Math.sign(k), at.z + Math.sin(k * 2.4) * 9 * Math.sign(k), owner);
+  }
+  // S3 dock repair: the built yards of the ship's own side in its war: the camp's slipway, the town's shipyard
+  const centre = (t, b) => { const pts = (b.cells?.length ? b.cells : [b.cell]).map(i => cellToWorld(t, i)); return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length]; };
+  function yardsOf(s) {
+    const w = s.warTroop && war?.()?.byId?.(s.warTroop), B = data?.war?.buildings || {};
+    if (!w) return [];
+    if (s.owner === w.attacker) return (w.camp?.buildings || []).filter(b => b.type === 'slipway' && b.stage === 'built').map(b => ({ x: b.x, z: b.z, r: B.slipway?.radius ?? 12 }));
+    const t = state.frontier?.settlements?.[w.town];
+    if (!t?.grid || t.owner !== s.owner) return [];
+    return (t.buildings || []).filter(b => b.type === 'shipyard' && b.stage === 'built').map(b => { const [x, z] = centre(t, b); return { x, z, r: B.shipyard?.radius ?? 12 }; });
+  }
+  // stopped within repair.dockReach of its own yard it mends to full in repair.fullSeconds, paused repair.pauseSeconds
+  // after it is hit or fires (hitAt, firedAt: S4); nowhere else. s.mending is set while it mends (S6 draws it).
+  function mend(s, every) {
+    const R = S().repair || {}, now = state.tick ?? 0, k = s.sorder?.kind;
+    const ok = s.hp != null && s.hp < s.maxHp && (k === 'stay' || k === 'unload') && now - Math.max(s.hitAt ?? -Infinity, s.firedAt ?? -Infinity) >= (R.pauseSeconds ?? 10) * 20
+      && yardsOf(s).some(y => Math.hypot(y.x - s.x, y.z - s.z) <= y.r + radiusOf(s) + (R.dockReach ?? 20));
+    if (!ok) { delete s.mending; return; }
+    s.hp = Math.min(s.maxHp, Math.round((s.hp + s.maxHp * every / Math.max(1, (R.fullSeconds ?? 60) * 20)) * 100) / 100);
+    s.mending = true;
   }
 
   // ---- orders ----
@@ -301,6 +331,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       else if (k === 'unload') { s.anim = 'idle'; unloadStep(s); }
       else s.anim = 'idle';
       if (s.sorder.kind === 'stay' || s.sorder.kind === 'unload') loadStep(s);
+      if (now % 10 === 0) mend(s, 10);   // S3 dock repair, every half second
       for (const u of riders(s)) {   // riders sit inside
         if (u.jailed) { delete u.aboard; delete u.inShip; continue; }
         Object.assign(u, { x: s.x, z: s.z, place: 'world', anim: 'idle' });
@@ -309,5 +340,5 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     }
   }
 
-  return { isShip, of, riders, order, command, use, prompt, spawn, tick, shelter, sink, holdOf, room, boxOf, shoreOf };
+  return { isShip, of, riders, order, command, use, prompt, spawn, launch, yardsOf, tick, shelter, sink, holdOf, room, boxOf, shoreOf, get world() { return world; } };
 }

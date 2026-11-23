@@ -67,7 +67,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
     const bld = bid ? s.buildings.find(x => x.id === bid) || null : null; if (bid && !bld) bid = null;
     const ST = game.frontier?.structures, stOf = b => b && ST?.list?.().find(st => st.b?.id === b.id && st.town === s.id) || null;
     const hall = s.buildings.find(b => b.type === 'town_hall'), hallSt = stOf(hall);
-    const types = militaryFor(s, F, game.state), pages = Math.max(1, Math.ceil(types.length / PER_PAGE)); page = Math.min(page, pages - 1);
+    const types = militaryFor(s, F, game.state, game.ships?.world), pages = Math.max(1, Math.ceil(types.length / PER_PAGE)); page = Math.min(page, pages - 1);
     const sites = (s.projects || []).filter(p => F.buildings?.[p.type]?.military);
     const strat = game.frontier?.warGeneral?.strategyOf?.(me) || 'siege', GR = game.frontier?.warGeneral?.rules?.() || W().general || {};
     const next = JSON.stringify([open, bid, tab, page, tpage, why, confirm, !!w?.terms, v, strat, s.warKeep, Math.floor(s.stock?.ryo || 0), Math.floor(s.stock?.timber || 0), Math.floor(s.stock?.stone || 0), s.warHall, s.warUpgrade?.left, s.builders, Math.floor(clan?.ryo ?? 0), clan?.treasuryKeep,
@@ -102,10 +102,10 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
         const lockWhy = bld.type === 'stable' && !s.warHall ? 'Cavalry need the town hall war upgrade (Hall tab)' : '';
         const cards = ulist.slice(tpage * UPP, tpage * UPP + UPP).map(({ unit, ryo, seconds }) => {
           const S = stats(unit), pic = face(S.model);
-          const tip = `${S.name}. Health ${S.hp}, damage a second ${S.dps.toFixed(1)}, range ${S.range}, speed ${S.speed}. ${ryo} ryo from the war chest, ${Math.round(seconds)} s to train.${(U[unit]?.slots ?? 1) > 1 ? ` Takes ${U[unit].slots} troop places.` : ''}${S.abil.length ? ' ' + S.abil.join(' ') : ''}`;
+          const tip = `${S.name}. Health ${S.hp}, damage a second ${S.dps.toFixed(1)}, range ${S.range}, speed ${S.speed}. ${ryo} ryo from the war chest, ${U[unit]?.timber ? `${U[unit].timber} timber from town stock, ` : ''}${Math.round(seconds)} s to train.${(U[unit]?.slots ?? 1) > 1 ? ` Takes ${U[unit].slots} troop places.` : ''}${S.abil.length ? ' ' + S.abil.join(' ') : ''}`;
           return `<div class="ucard" title="${esc(tip)}"><div class="uhead"><div class="ustill${pic.includes('/stills/') ? ' concept' : ''}"${pic ? ` style="background-image:url('${esc(pic)}')"` : ''}></div><div class="ustats"><div class="un">${esc(S.name)}</div>
             <div class="sr"><span>Health</span><b>${S.hp}</b></div><div class="sr"><span>Damage a sec</span><b>${S.dps.toFixed(S.dps < 10 ? 1 : 0)}</b></div><div class="sr"><span>Range</span><b>${S.range}</b></div><div class="sr"><span>Speed</span><b>${S.speed}</b></div></div></div>
-            <div class="cost" style="justify-content:flex-start;margin-top:6px"><span class="chip ryo${v.chest < ryo ? ' short' : ''}"><i></i>${ryo}</span><span class="small">${Math.round(seconds)} s each</span></div>
+            <div class="cost" style="justify-content:flex-start;margin-top:6px"><span class="chip ryo${v.chest < ryo ? ' short' : ''}"><i></i>${ryo}</span>${U[unit]?.timber ? `<span class="chip timber${(s.stock?.timber || 0) < U[unit].timber ? ' short' : ''}"><i></i>${U[unit].timber}</span>` : ''}<span class="small">${Math.round(seconds)} s each</span></div>
             <div class="small ab">${S.abil.length ? S.abil.map(x => `<span title="${esc(x)}">${esc(x.split(':')[0].split('.')[0])}</span>`).join(', ') : '&nbsp;'}</div>
             <div style="display:flex;gap:6px;margin-top:6px">${num(`t:${bld.id}:${unit}`)}<button class="go" data-train="${esc(bld.id)}" data-unit="${esc(unit)}"${locked ? ' disabled' : ''}>Train</button></div></div>`;
         }).join('');

@@ -77,6 +77,8 @@ export function createWarDefense({ state, data, war, world }) {
     if (need > room) return room > 0 ? (need === n ? `Troop cap: room for ${room} more` : `Troop cap: ${need} places needed, ${room} free`) : `Troop cap reached (${troopCap(w, s)}): build supply tents for more`;
     const cost = war.ryoOf(w.defender, unit) * n, chest = chestOf(w);
     if (chest < cost) return `Needs ${cost} ryo from the ${s.castle ? 'Clan treasury' : 'war chest'} (it has ${Math.floor(chest)})`;
+    const wood = (UD()[unit]?.timber || 0) * n, has = s.stock?.timber ?? 0;   // ships S3: a ship also takes timber from the town stock
+    if (wood > has) return `Needs ${wood} timber from the town stock (it has ${Math.floor(has)})`;
     return null;
   }
   function townTrain(e, c) {
@@ -87,8 +89,10 @@ export function createWarDefense({ state, data, war, world }) {
     if (why) return { ok: false, reason: why };
     const each = war.ryoOf(w.defender, c.unit);
     spend(w, each * c.count);
+    const wood = UD()[c.unit]?.timber || 0;
+    if (wood) world.change(s.id, 'timber', -wood * c.count, 'ships');
     b.queue ||= [];
-    for (let i = 0; i < c.count; i++) b.queue.push({ unit: c.unit, left: ticksOf(w.defender, c.unit), paid: each, war: w.id });
+    for (let i = 0; i < c.count; i++) b.queue.push({ unit: c.unit, left: ticksOf(w.defender, c.unit), paid: each, war: w.id, ...(wood ? { timber: wood } : {}) });
     return { ok: true };
   }
   function townUntrain(e, c) {
@@ -98,6 +102,7 @@ export function createWarDefense({ state, data, war, world }) {
     if (!q) return { ok: false, reason: 'Nothing waiting there' };
     if (!b.queue.length) delete b.queue;
     spend(w, -(q.paid ?? 0));
+    if (q.timber) world.change(s.id, 'timber', q.timber, 'ships');   // ships S3
     return { ok: true };
   }
 
@@ -115,6 +120,8 @@ export function createWarDefense({ state, data, war, world }) {
         if (q.left > 0) q.left--;
         if (q.left > 0 || !runtime?.spawn) continue;   // bare tests: a ready troop waits at the front
         const [bx, bz] = centre(s, b), r = Math.sqrt((b.cells || [b.cell]).length) * (s.grid.cell || 11) / 2 + 2;
+        // ships S3: a ship comes out on the water beside its shipyard (it waits there while no water is found)
+        if (UD()[q.unit]?.ship) { if (!runtime.ships?.launch(w, q.unit, bx, bz, w.defender)) continue; f().nextId++; b.queue.shift(); if (!b.queue.length) delete b.queue; continue; }
         const a = Number.isFinite(camp.x) ? Math.atan2(camp.z - bz, camp.x - bx) : 0;
         const gx = bx + Math.cos(a) * (r + 6), gz = bz + Math.sin(a) * (r + 6), k = b.rally = ((b.rally || 0) % 24) + 1;
         const id = war.spawnTroop(w, q.unit, bx + Math.cos(a) * r, bz + Math.sin(a) * r, w.defender), e = state.entities[id];
@@ -129,6 +136,9 @@ export function createWarDefense({ state, data, war, world }) {
   // the end of a war: chest and queued ryo back to the town coffers (once)
   function settle(w) {
     const s = town(w.town);
+    // ships S3: the timber of queued ships back to the town stock
+    const wood = (s?.buildings || []).reduce((n, b) => n + (b.queue || []).reduce((m, q) => m + (q.timber || 0), 0), 0);
+    if (wood > 0 && s?.stock) world.change(s.id, 'timber', wood, 'ships');
     if (s?.castle) {   // queued troops' ryo back to the treasury; there is no separate chest
       let back = 0;
       for (const b of s.buildings || []) if (b.queue?.length) { back += b.queue.reduce((n, q) => n + (q.paid || 0), 0); delete b.queue; }

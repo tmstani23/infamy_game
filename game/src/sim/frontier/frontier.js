@@ -69,7 +69,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const campaignZones = data.campaignZones ? createCampaignZones({ rules: data.campaignZones, world: worldData, settlements: () => state.frontier?.settlements, isClan: id => !!state.clans?.[id] }) : null;
   const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit, resourceIndex:workers.index, zones: campaignZones }) : null;
   const rivalCampaign = campaignZones && founding ? createRivalCampaign({ state, data, worldData, zones: campaignZones, founding, world: () => live, construction, dayTicks }) : null;
-  const placement = createPlacement({ state, data, world: live, construction, resourceIndex:workers.index });
+  const placement = createPlacement({ state, data, world: live, construction, resourceIndex:workers.index, worldData });
   modules.push({ name: 'placement', placement }, { name: 'zones', zones });
   const commandHooks = {};   // .rail once it exists (a removed station tears up its lines)
   const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones, workers, hooks: commandHooks });

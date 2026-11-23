@@ -56,8 +56,8 @@ export function buildRequest(s, tool, first, last, data, rot = 0) {
 
 // The same dry-run functions the sim commands use, applied to the read-only snapshot.
 // Erasing has no query entry point: run its real validation against an isolated copy.
-export function buildPreview(s, request, data, {state,resourceIndex}={}) {
-  const placement = createPlacement({ data, state, resourceIndex, construction: { cancel() {} } });
+export function buildPreview(s, request, data, {state,resourceIndex,worldData=null}={}) {
+  const placement = createPlacement({ data, state, resourceIndex, worldData, construction: { cancel() {} } });
   const zones = createZones({ data,resourceIndex });
   const result = request.action === 'zone' ? zones.zone(s, { ...request, dryRun: true })
     : request.action === 'remove' ? placement.remove(s, {...request,dryRun:true}) : placement.check(s, request);
@@ -108,7 +108,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   const current = () => towns().find(s => s.id === town);
   const outdoors = () => (view.commandPlace?.(game.state, heroId) || hero()?.place) === 'world';
   const command = c => send({ id: heroId, type: 'frontier', ...c });
-  const previewBuild=(s,r)=>buildPreview(s,r,data,{state:game.state,resourceIndex:spotIndex});
+  const previewBuild=(s,r)=>buildPreview(s,r,data,{state:game.state,resourceIndex:spotIndex,worldData:game.ships?.world});
   const workSites = () => [...towns(), ...campSitesOf(game.state.frontier, hero()?.owner)];   // towns plus own war camps (checkpoint 3)
   const workers = () => workSites().flatMap(s => (s.workers || []).map(w => ({ s, w, e: workerPresentation(w,s,data,game.state.entities,game.state.workerAt) })).filter(p => !p.e.dead && !p.e.downed));
   const selectedLive = () => workSites().flatMap(s => (s.workers || []).filter(w => selected.includes(w.id)).map(w => ({ s, w })));
@@ -817,7 +817,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     // the build bar in groups, one row each, the eraser apart at the right of the first row
     const camps = data.tiers?.camps || ['lumber_camp', 'food_camp', 'quarry'];
     const others = Object.entries(data.buildings).filter(([k, v]) => v.size && !v.military && !data.zones.fromBuilding[k] && !camps.includes(k)).map(([k]) => k);
-    const military = militaryFor(s, data, game.state);   // 8b-1: the war camp's military buildings, in their own row
+    const military = militaryFor(s, data, game.state, game.ships?.world);   // 8b-1: the war camp's military buildings, in their own row
     const group = (name, ids, extra = '') => `<div class="bgroup"><span class="blab">${name}</span><div class="btns">${ids.map(t => button(t, camps.includes(t) ? townName(t).replace(/ camp$/i, '') : townName(t))).join('')}${extra}</div></div>`;
     // Tim 2026-11-10: in build mode only this small box shows (top left); long text lives in the hovers
     if (mini) return `<div class="bmhead"><b>Build · ${esc(s.name)}</b><button data-act="build-toggle" class="bmexit" data-tip="Leave build mode and go back to the town panel (Esc).">Exit build</button></div>`

@@ -13,6 +13,7 @@ import { militaryFor } from '../src/sim/frontier/town_military.js';
 import { storageCap } from '../src/sim/frontier/storage.js';
 import { addCastle } from '../src/sim/frontier/castle.js';
 import { waterGrid, landingFor, nearestSailable } from '../src/sim/frontier/water_nav.js';
+import { circleShore } from '../src/sim/frontier/shipyard.js';
 
 const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
@@ -144,8 +145,8 @@ function railTown(game, heroId, spec = {}) {
 }
 
 // Places a town building on the cell nearest `toward` (or the hall) that passes the real placement check, built at once.
-function placeBuilt(game, t, kind, toward = null) {
-  const F = options.frontier, S = game.state, P = createPlacement({ data: F, state: S, construction: {} }), n = t.grid.n, put = (s, i, ch) => s.slice(0, i) + ch + s.slice(i + 1);
+function placeBuilt(game, t, kind, toward = null, worldData = null) {
+  const F = options.frontier, S = game.state, P = createPlacement({ data: F, state: S, construction: {}, worldData }), n = t.grid.n, put = (s, i, ch) => s.slice(0, i) + ch + s.slice(i + 1);
   const px = toward ? toward.x : t.x, pz = toward ? toward.z : t.z;
   const order = [...Array(n * n).keys()].map(i => { const [x, z] = cellToWorld(t, i); return { i, d: Math.hypot(x - px, z - pz), h: Math.hypot(x - t.x, z - t.z) }; })
     .filter(c => c.h > 22).sort((a, b) => a.d - b.d || a.i - b.i);
@@ -428,7 +429,8 @@ function shipTest(game, heroId) {
   const rival = Object.keys(S.clans).find(id => id !== hero.owner && S.clans[id].faction === 'kuroda') || Object.keys(S.clans).find(id => id !== hero.owner);
   const [gx, gz] = game.gate.island, far = s => Math.hypot(s.x - gx, s.z - gz);
   const gap = s => Math.min(...Object.values(S.frontier.settlements).filter(t => Number.isFinite(t.x)).map(t => Math.hypot(t.x - s.x, t.z - s.z)), Infinity);
-  const sites = wd.sites.filter(s => s.harbor && far(s) > 1400 && far(s) < 3200 && gap(s) >= 1600).sort((a, b) => far(a) - far(b));
+  const ring2 = F.tiers?.list?.[1]?.ring ?? 300;   // ships S3: the circle also has shore outside a tier 2 ring, for a slipway (none such within 3200 of the gate: 4500)
+  const sites = wd.sites.filter(s => s.harbor && far(s) > 1400 && far(s) < 4500 && gap(s) >= 1600 && circleShore(wd, s, W.circleRadius ?? 900, ring2, W.buildings?.slipway)).sort((a, b) => far(a) - far(b));
   let rec = null, town = null;
   for (const site of sites) {
     town = game.frontier.world.addTown({ id: 'ship_test_town', name: 'Kurominato', region: null, owner: rival, x: site.x, z: site.z, site: site.id ?? null,
@@ -453,11 +455,26 @@ function shipTest(game, heroId) {
   delete S.clans[hero.owner].warPack;
   town.tier = 2; town.warHall = true; town.founded = (S.tick ?? 0) - 12000 * 4;
   for (const kind of ['barracks', 'rifle_range', 'watchtower', 'watchtower']) if (!placeBuilt(game, town, kind)) throw new Error('ship_test: no room for a ' + kind);
+  { const h = wd.sites.find(s => s.id === town.site)?.harbor; if (!placeBuilt(game, town, 'shipyard', h, wd)) throw new Error('ship_test: no room for a shipyard'); }   // ships S3
   const cap = r => storageCap(town, game.frontier.data, r);
   Object.assign(town.stock, { food: Math.min(3000, cap('food')), timber: Math.min(1500, cap('timber')), stone: Math.min(800, cap('stone')), goods: Math.min(300, cap('goods')), ryo: 2500 });
   rec.defense = { ...(rec.defense || {}), chest: 1500, put: 1500 };
   for (const w of rec.camp.workers) delete w.project;
   const hall = rec.camp.buildings.find(b => b.type === 'camp_hall');
+  // ships S3: a built slipway on the shore nearest the camp hall, and timber in the camp for a ship or two
+  { const wg = waterGrid(wd), reach = W.buildings.slipway.shoreReach ?? 30; let best = null;
+    rec.camp.stock.timber = Math.max(rec.camp.stock.timber || 0, 900); rec.camp.stock.stone = Math.max(rec.camp.stock.stone || 0, 300);
+    for (let x = town.x - 900; x <= town.x + 900; x += 6) for (let z = town.z - 900; z <= town.z + 900; z += 6) {
+      const d = Math.hypot(x - hall.x, z - hall.z); if (best && d >= best.d) continue;
+      if (!nearestSailable(wg, x, z, 'big', reach) || !war.campCheck(rec.id, 'slipway', { x, z }).ok) continue;
+      best = { x, z, d }; }
+    if (!best) throw new Error('ship_test: no shore for a slipway');
+    rec.camp.buildings.push({ id: `${rec.id}:slipway${S.frontier.nextId++}`, type: 'slipway', stage: 'built', x: best.x, z: best.z, progress: W.buildings.slipway.buildTicks, need: W.buildings.slipway.buildTicks });
+    for (let t = 0; t < 2; t++) { let spot = null;   // two supply tents, so the camp has troop places for a ship or two
+      for (let r = 20; r < 110 && !spot; r += 6) for (let a = 0; a < 24; a++) { const x = Math.round(hall.x + Math.cos(a * Math.PI / 12) * r), z = Math.round(hall.z + Math.sin(a * Math.PI / 12) * r); if (war.campCheck(rec.id, 'supply_tents', { x, z }).ok) { spot = { x, z }; break; } }
+      if (!spot) throw new Error('ship_test: no room for supply tents');
+      rec.camp.buildings.push({ id: `${rec.id}:supply_tents${S.frontier.nextId++}`, type: 'supply_tents', stage: 'built', x: spot.x, z: spot.z, progress: 1, need: 1 }); }
+  }
   Object.assign(hero, { x: hall.x + 6, z: hall.z + 4 });
   let k = 0;
   for (const u of Object.values(S.entities)) if (u.owner === hero.owner && u.order?.kind === 'follow' && u.order.target === hero.id) {
