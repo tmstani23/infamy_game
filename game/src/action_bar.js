@@ -206,7 +206,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       if (!shown[name] || b.until > shown[name].until) shown[name] = active;
     }
     for (const [name, timer] of buffTimers) if (timer.until <= t) buffTimers.delete(name);
-    const passiveHtml = (game.stats?.passives(h) || []).map(p => `<span class="clan-passive ${p.active ? 'active' : ''}" tabindex="0" role="img" aria-label="${p.name}" title="${p.name}: ${p.status}. ${p.description}">${hudIcon(p.icon === 'shield' ? 'shield' : 'passive')}</span>`).join('');
+    const passiveHtml = (game.stats?.passives(h) || []).map(p => `<span class="clan-passive ${p.active ? 'active' : ''}" tabindex="0" role="img" aria-label="${p.name}" title="${p.name}: ${p.status}. ${p.description}">${hudIcon(p.id, p.icon === 'shield' ? 'shield' : 'passive')}</span>`).join('');
     const html = passiveHtml + Object.entries(shown).map(([n, { until, total }]) => {
       const left = Math.max(0, (until - t) / tickRate), pct = Math.max(0, Math.min(1, left / total));
       const name = BUFFS[n] || n;

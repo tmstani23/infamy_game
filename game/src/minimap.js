@@ -313,7 +313,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       ctx.beginPath(); ctx.arc(ox, oy, r + 5, 0, Math.PI * 2); ctx.fillStyle = 'rgba(10,20,27,.8)'; ctx.fill(); ctx.strokeStyle = '#6b5a38'; ctx.lineWidth = 1; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(ox + nx * r, oy + ny * r); ctx.lineTo(ox - ny * 6 - nx * 7, oy + nx * 6 - ny * 7); ctx.lineTo(ox + ny * 6 - nx * 7, oy - nx * 6 - ny * 7); ctx.closePath(); ctx.fillStyle = '#f3dfae'; ctx.fill();
       ctx.font = '700 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f3dfae'; ctx.fillText('N', ox + nx * (r + 11), oy + ny * (r + 11)); }
-    ctx.font = '600 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = 'rgba(10,20,27,.85)'; ctx.fillRect(4, size - 24, 100, 20);
+    ctx.font = '700 13px Lantern, Georgia, serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = 'rgba(26,17,11,.88)'; ctx.fillRect(4, size - 24, 100, 20);   // lantern style wood plate (Tim 2026-11-23)
     ctx.fillStyle = '#f3dfae'; ctx.fillText(`World, ${gridLabel(ic.x, ic.z)}`, 10, size - 10);
   }
 

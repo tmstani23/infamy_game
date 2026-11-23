@@ -44,5 +44,13 @@ export const HUD_ICONS = {
  "warlanternbtn": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 2.5h4M12 2.5V5\"/><ellipse cx=\"12\" cy=\"12\" rx=\"6\" ry=\"7\"/><path d=\"M6.4 9.5h11.2M6.4 14.5h11.2\"/><path d=\"M10 19v2.5h4V19\"/></svg>",
  "warbannerbtn": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 21.5V2.5\"/><path d=\"M7 3.5h10v13H7\"/><path d=\"M10 7.5h4M10 11.5h4\"/></svg>"
 };
-// an icon by name (ability kind, effect, button id); unknown names give a plain dot
-export const hudIcon = name => HUD_ICONS[name] || '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';
+// Painted icons (lantern style, 2026-11-23): the ids listed in data/ui_art.json show assets/ui/abilities/<id>.png; every
+// other name keeps its drawn icon. Read once before the HUD builds (top-level await); outside a browser the set stays empty.
+export const PAINTED = new Set();
+if (typeof document !== 'undefined' && typeof fetch === 'function') {
+  try { for (const id of (await (await fetch('data/ui_art.json')).json()).abilities || []) PAINTED.add(id); } catch { /* no manifest: drawn icons */ }
+}
+// an icon by name (ability kind, effect, button id); `fallback` names the drawn icon to use when `name` has neither
+// painted nor drawn art; unknown names give a plain dot
+export const hudIcon = (name, fallback) => PAINTED.has(name) ? `<img class="painted" src="../assets/ui/abilities/${name}.png" alt="" draggable="false">`
+  : HUD_ICONS[name] || HUD_ICONS[fallback] || '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';

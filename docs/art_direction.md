@@ -12,6 +12,8 @@
 - Style target: the lantern town panel mock (project files ui_audit/mock/town_panel_and_bar_v5.png); it replaces the war camp panel mock.
 - Materials instead of boxes: lacquer and timber frame, dyed cloth header with the clan crest, wood body, washi paper notes with red seals, brass and dark wood buttons with press depth, dark shelves holding the game's own painted props.
 - Serif type throughout (Shippori Mincho B1); no spaced small caps, no thin rule lines, no pills.
+- Ability icons are painted tiles (36, 128 px, rounded corners), clan crests painted ivory and gold on the clan cloth; both made from art_prompts/icons_and_crests/prompts.md.
+- HUD meters sit in a sunk track with a brass rim and a moss green fill; key hints are small vermilion seals.
 
 ## What the look tests showed
 

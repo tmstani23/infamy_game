@@ -509,3 +509,252 @@ body[data-clan="shinobi"], body[data-clan="ninja"] { --ln-crest: url(../../asset
 /* type: bigger headings, body text at least 13px warm */
 #townpanel .lab, #townpanel .wsec { font-size: 20px; color: #f2e2c0; }
 #townpanel .hint, #townpanel .dim, #townpanel .shopts, #townpanel .stock .cap, #townpanel .pbody.stabbody .stab .sm, #townpanel .fcres small, #townpanel .fcsub { font-size: 13.5px; color: #d2bb94; }
+
+/* ================= CP3: HUD ================= */
+/* ability bar: a lacquered timber plank; each slot a recessed well holding the painted icon, name in serif beneath */
+#bar .row { border: none; border-radius: 3px; padding: 9px 12px 10px;
+  background: radial-gradient(ellipse 60% 120% at 50% 0%, rgba(255,150,60,.12), transparent 70%), linear-gradient(180deg, rgba(30,18,11,.55), rgba(12,7,4,.75)), var(--ln-grain), #1b120d;
+  box-shadow: 0 0 0 2px #0a0604, 0 0 0 4px #3a2616, 0 0 0 5px #0a0604, 0 8px 22px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,220,170,.12); }
+#bar .slot { border: none; border-radius: 9px; background: linear-gradient(180deg, #0a0604, #1a110b); box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403, 0 0 0 3px #4a3322; }
+#bar .slot .icon { font: 700 12px/1.1 var(--ln-font); color: #ecdcbc; letter-spacing: 0; }
+#bar .slot .key { left: 3px; top: 3px; z-index: 2; min-width: 13px; padding: 1px 3px; font: 800 11px/1.1 var(--ln-font); color: #f3e2bf; border-radius: 2px;
+  background: linear-gradient(180deg, #3a281b, #1e140d); box-shadow: 0 0 0 1px #0a0604, inset 0 1px 0 rgba(255,220,170,.2); text-shadow: none; }
+#bar .slot .ab-ico img.painted { display: block; width: 46px; height: 46px; margin: 0 auto 2px; border-radius: 12%; box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px rgba(201,154,82,.55), 0 3px 5px rgba(0,0,0,.8); }
+#bar .slot.ability .ab-ico img.painted { width: 52px; height: 52px; }
+#bar .slot:has(img.painted) .icon { inset: 4px 2px 3px; align-content: start; }
+#bar .slot:has(img.painted) .ab-name { font-size: 11.5px; line-height: 1.05; }
+#bar .slot.active, #bar .slot.ability.armed { box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403, 0 0 0 3px #e8b85a, 0 0 14px rgba(255,180,70,.55); }
+#bar .slot.ability .count, #bar .slot.ability .autotag { font-family: var(--ln-font); }
+#bar .buff { border-radius: 8px; }
+#bar .buff b img.painted { width: 34px; height: 34px; border-radius: 12%; display: block; }
+#bar .buff:has(img.painted) { padding: 2px; background: #0a0604; box-shadow: 0 0 0 1px rgba(201,154,82,.55); }
+#bar .clan-passive:has(img.painted) { width: 34px; height: 34px; padding: 0; border: none; border-radius: 12%; overflow: hidden; background: none; box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px rgba(201,154,82,.55); }
+#bar .clan-passive img.painted { width: 100%; height: 100%; display: block; }
+#bar .clan-passive.active:has(img.painted) { box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #a4d599, 0 0 9px #8ac77b88; }
+#bar .clan-passive:not(.active) img.painted { filter: saturate(.5) brightness(.7); }
+#bar .slot .icon:has(img.painted) .ab-ico { display: block; width: auto; height: auto; filter: none; }
+#bar .slot .ab-ico img.painted { width: 42px; height: 42px; }
+#bar .slot.ability .ab-ico img.painted { width: 46px; height: 46px; }
+#bar .slot:has(img.painted) .icon { inset: 5px 2px 2px; gap: 1px; }
+#bar .slot .icon .ab-name { font: 700 11.5px/1.05 var(--ln-font); color: #ecdcbc; }
+/* painted icon fills the slot; the name sits on a dark band over its foot */
+#bar .slot:has(img.painted) .icon { inset: 0; justify-content: flex-end; gap: 0; }
+#bar .slot .icon:has(img.painted) .ab-ico { position: absolute; inset: 0; }
+#bar .slot .ab-ico img.painted, #bar .slot.ability .ab-ico img.painted { width: 100%; height: 100%; margin: 0; object-fit: cover; border-radius: 9px; box-shadow: none; }
+#bar .slot:has(img.painted) .ab-name { position: relative; z-index: 1; width: 100%; max-width: none; padding: 9px 2px 3px; box-sizing: border-box; border-radius: 0 0 9px 9px;
+  background: linear-gradient(180deg, transparent, rgba(8,4,2,.82) 45%); font-size: 11px; -webkit-line-clamp: 1; text-overflow: ellipsis; white-space: nowrap; display: block; }
+#bar .slot:has(img.painted) { box-shadow: 0 0 0 2px #070403, 0 0 0 3px rgba(201,154,82,.6), 0 3px 6px rgba(0,0,0,.6); }
+#bar .slot:has(img.painted) .ab-name { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 10.5px; line-height: 1.02; padding: 12px 1px 2px; letter-spacing: -.01em; }
+/* standings bar: boards hanging on cords from a timber rail, each with its clan's painted crest; the leader wears a First seal */
+#hud { background: none; border: none; box-shadow: none; border-radius: 0; padding: 18px 10px 4px; gap: 10px; align-items: flex-start; font-family: var(--ln-font); }
+#hud::before { content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 9px; border-radius: 2px;
+  background: linear-gradient(180deg, #6a4a2e, #3a2716 55%, #1a0f08), #3a2716; box-shadow: 0 0 0 1px #0a0604, 0 3px 5px rgba(0,0,0,.6); }
+#hud > b, #hud #clan, #hud #score .tb-clock, #hud #score .tb-clan { position: relative; border: none; border-radius: 3px; padding: 5px 11px 6px;
+  background: radial-gradient(ellipse 80% 70% at 50% 20%, rgba(255,160,70,.12), transparent 70%), linear-gradient(180deg, rgba(30,18,11,.35), rgba(10,6,4,.6)), var(--ln-grain), #2a1c12;
+  box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.16), inset 0 -2px 0 rgba(0,0,0,.4), 0 5px 10px rgba(0,0,0,.6); }
+#hud > b::before, #hud #clan::before, #hud #score .tb-clock::before, #hud #score .tb-clan::before { content: ""; position: absolute; top: -16px; left: 14px; right: 14px; height: 16px; pointer-events: none;
+  background: linear-gradient(90deg, #6e5638 0 2px, transparent 2px calc(100% - 2px), #6e5638 calc(100% - 2px)); }
+#hud > b { font: 800 16px var(--ln-font); letter-spacing: .12em !important; color: #f0cd84; text-shadow: 0 2px 0 #000; padding-top: 9px; padding-bottom: 9px; }
+#hud #clan { gap: 8px; margin: 0; }
+#hud #clan canvas { display: none; }
+#hud #clan::after { content: ""; order: -1; width: 30px; height: 30px; background: var(--ln-crest) center / contain no-repeat; filter: drop-shadow(0 2px 2px #000); }
+#hud #clan em { font: 800 15px var(--ln-font); color: #f2e2c0; letter-spacing: 0; }
+#hud span, #hud #money, #hud #renown { font-family: var(--ln-font); color: #cdb48d; }
+#hud #score { gap: 10px; }
+#hud #score .tb-clock { font: 600 13px/1.3 var(--ln-font); }
+#hud #score .tb-day { color: #f2e2c0; font-weight: 800; } #hud #score .tb-time { color: #f0cd84; } #hud #score .tb-crew { color: #cdb48d; }
+#hud #score .tb-clan { font: 600 13px/1.25 var(--ln-font); padding: 4px 12px 5px 6px; }
+#hud #score .tb-clan::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--c); opacity: .85; }
+#hud #score .tb-clan.me { box-shadow: 0 0 0 2px #0a0604, 0 0 0 3px #c99a52, inset 0 1px 0 rgba(255,220,170,.2), 0 0 16px rgba(255,170,70,.35), 0 5px 10px rgba(0,0,0,.6); }
+#hud #score .tb-clan:hover { border: none; box-shadow: 0 0 0 2px #0a0604, 0 0 0 3px rgba(201,154,82,.7), 0 5px 10px rgba(0,0,0,.6); }
+#hud #score .tb-crest { width: 30px; height: 30px; border-radius: 0; box-shadow: none; margin: 0 2px; background: var(--c); -webkit-mask: none; }
+#hud #score .tb-clan[data-faction] .tb-crest { background: center / contain no-repeat; filter: drop-shadow(0 2px 2px #000); }
+#hud #score .tb-clan[data-faction="yakuza"] .tb-crest { background-image: url(../../assets/ui/crests/yakuza_96.png); }
+#hud #score .tb-clan[data-faction="kuroda"] .tb-crest { background-image: url(../../assets/ui/crests/kuroda_96.png); }
+#hud #score .tb-clan:is([data-faction="shinobi"], [data-faction="ninja"]) .tb-crest { background-image: url(../../assets/ui/crests/shinobi_96.png); }
+#hud #score .tb-name { color: #f2e2c0; font-weight: 800; letter-spacing: 0; }
+#hud #score .tb-big { font: 800 21px var(--ln-font); color: #f3e2bf; text-shadow: 0 2px 0 #000; }
+#hud #score .tb-sub { font-size: 12px; letter-spacing: 0; text-transform: none; color: #cdb48d; }
+#hud #score .tb-ren { border: none; background: none; padding: 0 0 0 4px; font: 700 13px var(--ln-font); color: #cdb4ec; }
+#hud #score .tb-clan.lead .tb-big::after { content: "First"; position: absolute; right: -8px; bottom: -11px; padding: 0 4px; font: 800 11px var(--ln-font); color: #c43a22;
+  border: 3px double #b5341f; background: rgba(230,214,180,.92); transform: rotate(-6deg); text-shadow: none; }
+#hud #score .tb-big { position: relative; }
+#hud #score .tb-clan.lead .tb-big::after { content: none; }
+#hud #score .tb-clan.lead .tb-sub::after { content: "First"; display: inline-block; margin-left: 6px; padding: 0 3px; font: 800 10.5px/1.2 var(--ln-font); color: #c43a22;
+  border: 3px double #b5341f; background: rgba(230,214,180,.92); transform: rotate(-5deg); vertical-align: 1px; }
+#hud > #money:not([hidden]), #hud > #renown:not([hidden]) { position: relative; padding: 9px 10px; border-radius: 3px; font: 700 13.5px var(--ln-font); color: #e6d2ac;
+  background: linear-gradient(180deg, rgba(30,18,11,.35), rgba(10,6,4,.6)), var(--ln-grain), #2a1c12; box-shadow: 0 0 0 2px #0a0604, inset 0 1px 0 rgba(255,220,170,.16), 0 5px 10px rgba(0,0,0,.6); }
+#hud > #money:not([hidden])::before, #hud > #renown:not([hidden])::before { content: ""; position: absolute; top: -16px; left: 12px; right: 12px; height: 16px; background: linear-gradient(90deg, #6e5638 0 2px, transparent 2px calc(100% - 2px), #6e5638 calc(100% - 2px)); }
+/* system buttons: filled silhouettes (generator /home/user/tools/filled_icons.py) */
+body #deploymentbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M1.5 5.2 8 2.8l8 2.8 6.5-2.4v16L16 21.6l-8-2.8-6.5 2.4Z M7.4 4.6v13.2h1.2V4.6Z M15.4 7.2v13.2h1.2V7.2Z'/%3E%3C/svg%3E"); }
+body #characterbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M12 2.2a4.8 4.8 0 1 1 0 9.6 4.8 4.8 0 1 1 0-9.6Z M2.8 22c0-5.6 4.1-9 9.2-9s9.2 3.4 9.2 9Z'/%3E%3C/svg%3E"); }
+body #inventorybtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M8 6V4.2C8 3 9 2.2 10.2 2.2h3.6C15 2.2 16 3 16 4.2V6h-1.8V4.4c0-.3-.2-.5-.5-.5h-3.4c-.3 0-.5.2-.5.5V6Z M2 7h20v5.2H13.6v-1.4h-3.2v1.4H2Z M2 13.6h8.4v1.6h3.2v-1.6H22V21H2Z'/%3E%3C/svg%3E"); }
+body #settingsbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M22.84 10.14 L22.84 13.86 L20.39 13.90 L19.27 16.59 L20.98 18.35 L18.35 20.98 L16.59 19.27 L13.90 20.39 L13.86 22.84 L10.14 22.84 L10.10 20.39 L7.41 19.27 L5.65 20.98 L3.02 18.35 L4.73 16.59 L3.61 13.90 L1.16 13.86 L1.16 10.14 L3.61 10.10 L4.73 7.41 L3.02 5.65 L5.65 3.02 L7.41 4.73 L10.10 3.61 L10.14 1.16 L13.86 1.16 L13.90 3.61 L16.59 4.73 L18.35 3.02 L20.98 5.65 L19.27 7.41 L20.39 10.10Z M12 8.6a3.4 3.4 0 1 0 0.001 0Z'/%3E%3C/svg%3E"); }
+body #unstuckbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M12 1.8 1.5 11h3v10.5h6v-6h3v6h6V11h3Z'/%3E%3C/svg%3E"); }
+body #pausebtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M5 3h5v18H5Z M14 3h5v18h-5Z'/%3E%3C/svg%3E"); }
+body #pausebtn[aria-pressed="true"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M6 2.5 21 12 6 21.5Z'/%3E%3C/svg%3E"); }
+body #mutebtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M8 5.2 20.5 2.6v13.2a3.4 3.4 0 1 1-2.2-3.2V7.4L10.2 9v9.3a3.4 3.4 0 1 1-2.2-3.2Z'/%3E%3C/svg%3E"); }
+body #fullscreenbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M2 2h8v3.4H5.4V10H2Z M14 2h8v8h-3.4V5.4H14Z M2 14h3.4v4.6H10V22H2Z M18.6 14H22v8h-8v-3.4h4.6Z'/%3E%3C/svg%3E"); }
+body #ctlbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M3 3.5c3.2-1.2 6.4-.9 9 1 2.6-1.9 5.8-2.2 9-1v16c-3.2-1.2-6.4-.9-9 1-2.6-1.9-5.8-2.2-9-1Z M11.3 5.6v13.2h1.4V5.6Z'/%3E%3C/svg%3E"); }
+body #townbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M12 1.6 1 10.4l1.2 1.5L4 10.5V22h16V10.5l1.8 1.4 1.2-1.5Z M10 14.5h4V22h-4Z'/%3E%3C/svg%3E"); }
+body #townsbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M7 4 0.8 9.2 1.8 10.4 2.8 9.6V20h8.4V9.6l1 .8 1-1.2Z M17 4l-6.2 5.2 1 1.2 1-.8V20h8.4V9.6l1 .8 1-1.2Z M5.6 15h2.8v5H5.6Z M15.6 15h2.8v5h-2.8Z'/%3E%3C/svg%3E"); }
+body #vehiclesbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M2 9h11l2.5 4.5H22v1.8h-6.2L14 12H4.8l-1 3.2H2Z M7.5 13.6a4.2 4.2 0 1 1 0 8.4 4.2 4.2 0 1 1 0-8.4Z M7.5 15.8a2 2 0 1 0 .001 0Z M15 4h4v1.6h-4Z'/%3E%3C/svg%3E"); }
+body #daynight { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M12 6.5a5.5 5.5 0 1 0 .001 0Z M23.30 12.00 L19.60 13.60 L19.60 10.40Z M19.99 19.99 L16.24 18.51 L18.51 16.24Z M12.00 23.30 L10.40 19.60 L13.60 19.60Z M4.01 19.99 L5.49 16.24 L7.76 18.51Z M0.70 12.00 L4.40 10.40 L4.40 13.60Z M4.01 4.01 L7.76 5.49 L5.49 7.76Z M12.00 0.70 L13.60 4.40 L10.40 4.40Z M19.99 4.01 L18.51 7.76 L16.24 5.49Z'/%3E%3C/svg%3E"); }
+body #goalbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M5 2h11l4 4v16H5Z M8 9v1.6h9V9Z M8 13v1.6h9V13Z M8 17v1.6h6V17Z'/%3E%3C/svg%3E"); }
+body #rallybtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M4 1.8h2.2V22H4Z M6.2 3h14l-3.4 5 3.4 5h-14Z'/%3E%3C/svg%3E"); }
+body #warlanternbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M9 1.5h6v2.2H9Z M5.5 12c0-4.6 2.9-7.6 6.5-7.6s6.5 3 6.5 7.6-2.9 7.6-6.5 7.6S5.5 16.6 5.5 12Z M6.4 9.6h11.2v1H6.4Z M6.2 13.4h11.6v1H6.2Z M9 20.3h6v2.2H9Z'/%3E%3C/svg%3E"); }
+body #warbannerbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M5 1.6h2.2V22.4H5Z M7.2 2.4h12.6v2H7.2Z M8.4 5.2h10.2v13l-5.1-2.8-5.1 2.8Z'/%3E%3C/svg%3E"); }
+/* the system button tray: a timber box, each button a carved block, the icon in brass */
+#utilitymenu { border: none; border-radius: 3px; padding: 8px; gap: 6px;
+  background: linear-gradient(180deg, rgba(30,18,11,.5), rgba(10,6,4,.75)), var(--ln-grain), #1b120d;
+  box-shadow: 0 0 0 2px #0a0604, 0 0 0 4px #3a2616, 0 0 0 5px #0a0604, 0 8px 20px rgba(0,0,0,.7); }
+#utilitymenu .utility-button { border: none; border-radius: 3px; background: linear-gradient(180deg, #3f2b1d, #1e140d);
+  box-shadow: 0 0 0 1px #0a0604, inset 0 1px 0 rgba(255,220,170,.2), inset 0 -2px 0 rgba(0,0,0,.45), 0 2px 0 #0a0604; }
+#utilitymenu .utility-button::before { width: 21px; height: 21px; background: linear-gradient(180deg, #ffe7ae, #e0b66a 45%, #9c7432); filter: drop-shadow(0 1px 0 #000); }
+#utilitymenu .utility-button:hover, #utilitymenu .utility-button:focus-visible { border: none; outline: none; background: linear-gradient(180deg, #5a3f29, #2c1d12); box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px rgba(201,154,82,.7), inset 0 1px 0 rgba(255,220,170,.25); }
+#utilitymenu .utility-button[aria-pressed="true"] { border: none; background: radial-gradient(ellipse at 50% 30%, rgba(255,170,80,.35), transparent 75%), linear-gradient(180deg, #1a110b, #2c1d12);
+  box-shadow: inset 0 2px 5px #000, 0 0 0 1px #0a0604, 0 0 0 2px #c99a52; }
+#utilitymenu .utility-button::after { font: 600 13px/1.4 var(--ln-font); border: none; border-radius: 0; color: #2a1d12; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.06)), var(--ln-fiber), #e4d4ae; box-shadow: 0 4px 10px rgba(0,0,0,.6); }
+body #unstuckbtn { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M12 1 16.5 5.5H13.3V10.7H18.5V7.5L23 12 18.5 16.5V13.3H13.3V18.5H16.5L12 23 7.5 18.5H10.7V13.3H5.5V16.5L1 12 5.5 7.5V10.7H10.7V5.5H7.5Z'/%3E%3C/svg%3E"); }
+#hud { gap: 7px; } #hud #score { gap: 7px; }
+#hud > b, #hud #clan, #hud #score .tb-clock, #hud > #money:not([hidden]), #hud > #renown:not([hidden]) { padding-left: 9px; padding-right: 9px; }
+/* order grid: carved blocks on a plank, key letters as small carved squares */
+body #crewcommands .crewcmds { padding: 6px; border-radius: 3px; background: linear-gradient(180deg, rgba(30,18,11,.5), rgba(10,6,4,.75)), var(--ln-grain), #1b120d;
+  box-shadow: 0 0 0 2px #0a0604, 0 0 0 4px #3a2616, 0 0 0 5px #0a0604, 0 6px 16px rgba(0,0,0,.6); }
+body #crewcommands .ccmd, body #crewcommands button { border: none; border-radius: 3px; color: #ecdcbc; background: linear-gradient(180deg, #3f2b1d, #1e140d);
+  box-shadow: 0 0 0 1px #0a0604, inset 0 1px 0 rgba(255,220,170,.2), inset 0 -2px 0 rgba(0,0,0,.45), 0 2px 0 #0a0604; }
+body #crewcommands .ccmd:hover { border: none; box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px rgba(201,154,82,.7), inset 0 1px 0 rgba(255,220,170,.25); }
+body #crewcommands .ccmd.on { border: none; background: radial-gradient(ellipse at 50% 30%, rgba(255,170,80,.35), transparent 75%), linear-gradient(180deg, #1a110b, #2c1d12); box-shadow: inset 0 2px 5px #000, 0 0 0 1px #0a0604, 0 0 0 2px #c99a52; }
+body #crewcommands .ccmd.off { filter: none; opacity: .5; }
+body #crewcommands .ccmd .key { left: 3px; top: 3px; padding: 1px 3px; font: 800 11px/1.1 var(--ln-font); color: #f3e2bf; border-radius: 2px; background: rgba(0,0,0,.45); box-shadow: inset 0 1px 2px #000; text-shadow: none; }
+body #crewcommands .ccmd .nm { font: 700 13.5px/1 var(--ln-font); color: #f2e2c0; }
+body #crewcommands .mounthead { font-family: var(--ln-font); }
+/* crew panel: timber box, sections as dark shelves, the group tabs as small wooden tags */
+body #partyframes { border: none; border-radius: 3px; background: linear-gradient(180deg, rgba(30,18,11,.55), rgba(10,6,4,.8)), var(--ln-grain), #1b120d;
+  box-shadow: 0 0 0 2px #0a0604, 0 0 0 4px #3a2616, 0 0 0 5px #0a0604, 0 8px 20px rgba(0,0,0,.7); font-family: var(--ln-font); }
+body #partyframes h3 { font: 800 16px var(--ln-font); letter-spacing: 0; text-transform: none; color: #f2e2c0; }
+body #partyframes .crew-tab { border: none; border-radius: 2px; font: 800 13px var(--ln-font); color: #cdb48d; background: linear-gradient(180deg, #3f2b1d, #1e140d); box-shadow: 0 0 0 1px #0a0604, inset 0 1px 0 rgba(255,220,170,.18); }
+body #partyframes .crew-tab.empty { opacity: .55; }
+body #partyframes .crew-section { border: none; border-radius: 2px; background: linear-gradient(180deg, #0c0806, #170f0a); box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403; padding: 4px; }
+body #partyframes .crew-group-select { background: none; color: #efdcb5; font: 800 14px var(--ln-font); }
+body #partyframes .crew-group-select[aria-pressed="true"] { background: none; color: #ffe2a8; text-shadow: 0 0 8px rgba(255,170,80,.5); }
+body #partyframes .crew.grouped .mate { border: none; border-radius: 2px; background: linear-gradient(180deg, #2a1c12, #1a110b); box-shadow: 0 0 0 1px #0a0604, inset 0 1px 0 rgba(255,220,170,.1); }
+body #partyframes .crew.grouped .mate.picked { background: radial-gradient(ellipse at 30% 30%, rgba(255,160,70,.25), transparent 70%), linear-gradient(180deg, #2a1c12, #1a110b); box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #c99a52; }
+body #partyframes .mate .name { font: 700 12px/1.2 var(--ln-font); color: #f2e2c0; }
+body #partyframes .mate .crew-status, body #partyframes .mate small { font-family: var(--ln-font); color: #cdb48d; }
+body #partyframes .mate .pip { border-radius: 2px; box-shadow: inset 0 1px 2px #000, 0 0 0 1px #0a0604; }
+/* minimap: the map sits in the same timber frame as the windows */
+body #minimap { border: 10px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0; background: #1b120d; box-shadow: 0 8px 24px rgba(0,0,0,.75); }
+body #minimapcanvas { border-radius: 0; }
+body #minimapfooter { border-top: none; border-radius: 0; background: linear-gradient(180deg, #2a1c12, #1a110b); font-family: var(--ln-font); }
+body #minimapfooter > button { border-left: 1px solid rgba(0,0,0,.6); color: #f0cd84; font-family: var(--ln-font); }
+/* unit frames (you, your target, the hover card): small timber plaques */
+body .uf { border: none; border-radius: 3px; font-family: var(--ln-font); background: linear-gradient(180deg, rgba(30,18,11,.4), rgba(10,6,4,.7)), var(--ln-grain), #1b120d;
+  box-shadow: 0 0 0 2px #0a0604, 0 0 0 3px #4a3322, 0 6px 14px rgba(0,0,0,.7); }
+body .uf .pic { border: none; border-radius: 2px; box-shadow: inset 0 2px 6px #000, 0 0 0 1px #0a0604, 0 0 0 2px var(--c); }
+body .uf b { font: 800 12.5px/1.15 var(--ln-font); color: #f2e2c0; }
+body .uf em { font: italic 500 11.5px var(--ln-font); color: #cdb48d; }
+body .uf i { font: 500 11.5px/1.15 var(--ln-font); color: #cdb48d; }
+body .uf .hp, #bar .hp { height: 12px; border: none; border-radius: 2px; background: #120b07; box-shadow: inset 0 2px 3px #000, 0 0 0 1px #5a4430, 0 0 0 2px #0a0604; overflow: hidden; }
+body .uf .hp span, #bar .hp .txt { font: 700 10px/12px var(--ln-font); }
+#bar .hp .fill, body .uf .fill { background-image: linear-gradient(180deg, rgba(255,255,255,.25), transparent 45%, rgba(0,0,0,.25)); }
+#bar .face { border: none; box-shadow: 0 0 0 2px #0a0604, 0 0 0 3px #c99a52, 0 3px 6px rgba(0,0,0,.7); }
+#bar .face .glyph { font-family: var(--ln-font); font-weight: 800; }
+/* the big orders beside the bar (Pack for war, Rally, War Lantern): carved blocks with the brass icon */
+#bar .action-commands button { border: none; border-radius: 3px; font: 700 12.5px/1.15 var(--ln-font); color: #f2e2c0; background: linear-gradient(180deg, #3f2b1d, #1e140d);
+  box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #4a3322, inset 0 1px 0 rgba(255,220,170,.2), inset 0 -2px 0 rgba(0,0,0,.45); }
+#bar .action-commands button::before { background: linear-gradient(180deg, #ffe7ae, #e0b66a 45%, #9c7432); }
+#bar .action-commands button:hover:not(:disabled) { box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px rgba(201,154,82,.8), inset 0 1px 0 rgba(255,220,170,.25); }
+#bar .item-slot.empty { border: none; background: linear-gradient(180deg, #0a0604, #1a110b); box-shadow: inset 0 2px 8px #000, 0 0 0 2px #070403, 0 0 0 3px #3a2616; }
+/* mount row under the order grid */
+body #crewcommands .mounthead { border: none; border-radius: 3px; background: linear-gradient(180deg, rgba(30,18,11,.5), rgba(10,6,4,.75)), var(--ln-grain), #1b120d; box-shadow: 0 0 0 2px #0a0604, 0 0 0 3px #3a2616; }
+body #crewcommands .mounthead .mpic { border: none; border-radius: 2px; background-color: #0a0604; box-shadow: inset 0 2px 5px #000, 0 0 0 1px #c99a52; color: #f0cd84; }
+body #crewcommands .mounthead .minfo b { font: 800 13.5px var(--ln-font); color: #f2e2c0; } body #crewcommands .mounthead .minfo small { font-family: var(--ln-font); color: #cdb48d; }
+body #crewcommands .mounthead .mmore { border: none; background: linear-gradient(180deg, #3f2b1d, #1e140d); box-shadow: 0 0 0 1px #0a0604; color: #f0cd84; }
+#bar .hp .fill { background-image: linear-gradient(#5fc35a, #2e7d2a); }
+/* critic CP3 round 1 */
+/* materials per family: timber frames on the panels, black-red lacquer under the ability bar */
+#bar .row, body #partyframes, #utilitymenu, body #crewcommands .crewcmds { border: 10px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; background-origin: border-box; background-clip: padding-box; }
+#bar .row { box-shadow: 0 8px 22px rgba(0,0,0,.7); padding: 6px 8px;
+  background: radial-gradient(ellipse 70% 120% at 50% 0%, rgba(255,120,80,.10), transparent 70%), linear-gradient(180deg, #2a0f0b 0%, #160706 55%, #0b0303 100%); }
+#bar .row { box-shadow: 0 8px 22px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,220,160,.15), inset 0 -2px 4px #000; }
+body #partyframes, #utilitymenu, body #crewcommands .crewcmds { box-shadow: 0 8px 20px rgba(0,0,0,.7); }
+/* health: moss in a dark trough */
+body #partyframes .mate .pip { height: 7px; background-color: #120b07; }
+body #partyframes .mate:not(.hurt):not(.down):not(.jailed) .pip { background: linear-gradient(180deg, #a4c26a, #5d7a2c 60%, #3e5520); }
+body #partyframes .mate.hurt .pip { background: linear-gradient(to right, #c2522e var(--hp), #120b07 0); }
+body .uf .fill, #bar .hp .fill { background-image: linear-gradient(180deg, #a4c26a, #5d7a2c 60%, #3e5520); }
+/* every HUD word in the serif */
+body #partyframes *, body #crewcommands *, body .uf *, #minimapfooter *, #bar .slot *, #bar .hp * { font-family: var(--ln-font) !important; }
+body #partyframes .mate small, body #partyframes .mate .crew-status, body #partyframes .mate .hp, body #partyframes .mate span { font-size: 11px; color: #d2bb94; }
+#minimapfooter .building-name { color: #f2e2c0; font: 700 12.5px var(--ln-font); }
+#minimapfooter > button { color: #2a1b10; text-shadow: 0 1px 0 rgba(255,240,200,.5); background: radial-gradient(circle at 40% 35%, #f3d898, #b8873e 60%, #6e4a1c); border-left: none; margin: 2px; width: 22px; border-radius: 50%; padding: 2px 0; }
+/* key letters as small vermilion seals */
+body #crewcommands .ccmd .key, #bar .slot .key { color: #fbe9d0; background: linear-gradient(180deg, #b23a24, #7a1f12); box-shadow: 0 0 0 1px #2a0806, inset 0 1px 0 rgba(255,200,170,.3); border-radius: 2px; text-shadow: 0 1px 0 rgba(0,0,0,.4); }
+body #crewcommands .ccmd.off { opacity: .68; } body #crewcommands .ccmd .nm { color: #e6d4ad; }
+/* system tray: blocks packed tight with brass rims */
+#utilitymenu { gap: 3px; padding: 4px; }
+#utilitymenu .utility-button { box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px rgba(160,120,60,.55), inset 0 1px 0 rgba(255,220,170,.2), inset 0 -2px 0 rgba(0,0,0,.45); }
+/* ability names stay on one line under the art */
+#bar .slot:has(img.painted) .ab-name { -webkit-line-clamp: 1; white-space: nowrap; display: block; text-overflow: clip; font-size: 10px; letter-spacing: -.02em; }
+#hud > b { letter-spacing: .04em !important; }
+/* critic CP3 round 2 */
+/* clan colour moves from a tab-like stripe to the dyed cords the board hangs from */
+#hud #score .tb-clan::after { content: none; }
+#hud #score .tb-clan::before { background: linear-gradient(90deg, var(--c) 0 3px, transparent 3px calc(100% - 3px), var(--c) calc(100% - 3px)); filter: saturate(.8) brightness(.9); }
+/* crew panel: legible tags and cards with a warm cloth tint and a brass inset */
+body #partyframes .crew-tab { color: #e8d9b0; min-height: 24px; box-shadow: 0 0 0 1px #0a0604, inset 0 1px 0 rgba(255,220,170,.25), inset 0 -2px 0 rgba(0,0,0,.45); }
+body #partyframes .crew-tab.empty { opacity: .75; }
+body #partyframes .crew.grouped .mate { background: linear-gradient(180deg, #2a2118, #1d1610); box-shadow: 0 0 0 1px #0a0604, inset 0 0 0 1px rgba(201,154,82,.35); }
+body #partyframes .mate .name { font-size: 13px; }
+body #partyframes .mate small, body #partyframes .mate .crew-status, body #partyframes .mate .hp, body #partyframes .mate span { font-size: 11.5px; color: #e0cba4; }
+/* Pack for war: its label sits inside its block */
+#bar .action-commands button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px 4px; }
+#bar .action-commands button::before { margin: 0; }
+/* the hero's health numbers read at a glance */
+#bar .hp { height: 15px; } #bar .hp .txt { font-size: 11px !important; line-height: 15px; color: #fff6e0; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
+#bar .face { box-shadow: 0 0 0 2px #0a0604, 0 0 0 4px #c99a52, 0 3px 6px rgba(0,0,0,.7); }
+/* minimap zoom studs engraved */
+#minimapfooter > button { font-weight: 800; font-size: 15px; line-height: 16px; color: #3a2410; text-shadow: 0 1px 0 rgba(255,240,200,.6); }
+/* order grid labels brighter, its frame the same as the crew panel's */
+body #crewcommands .ccmd .nm { color: #efdcb5; } body #crewcommands .ccmd.off { opacity: .75; }
+/* hero portrait: the frame leaves the row about 55px, so the face shrinks and the health bar keeps its height */
+#bar .portrait { gap: 3px; justify-content: flex-end; }
+#bar .portrait .face { width: 34px; height: 34px; font-size: 20px; flex: 0 0 auto; }
+#bar .portrait .hp { flex: 0 0 15px; }
+/* order grid: filled brass marks (generator /home/user/tools/order_icons.py), one per order in the grid order */
+body #crewcommands .ccmd::after { content: ''; position: absolute; right: 4px; top: 4px; width: 17px; height: 17px; pointer-events: none;
+  background: linear-gradient(180deg, #ffe7ae, #e0b66a 45%, #9c7432); -webkit-mask: var(--oico) center / contain no-repeat; mask: var(--oico) center / contain no-repeat; filter: drop-shadow(0 1px 0 #000); }
+body #crewcommands .ccmd { position: relative; }
+body #crewcommands .ccmd:nth-child(1) { --oico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M12 2 2 9.5l1.2 1.6L5 9.8V21h5v-6h4v6h5V9.8l1.8 1.3L22 9.5Z'/%3E%3C/svg%3E"); }
+body #crewcommands .ccmd:nth-child(2) { --oico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M6.5 2.5c2 0 3 1.8 3 4.2S8.4 11 6.6 11 3.6 9 3.6 6.7 4.5 2.5 6.5 2.5Z M4.4 12.2h4.3l-.4 2.6c-.2 1-1 1.6-1.9 1.6s-1.8-.7-1.9-1.7Z M17.5 7.5c2 0 2.9 1.8 2.9 4.2S19.3 16 17.4 16s-3-2-3-4.3.9-4.2 3.1-4.2Z M15.3 17.2h4.3l-.4 2.6c-.2 1-1 1.6-1.9 1.6s-1.8-.7-1.9-1.7Z'/%3E%3C/svg%3E"); }
+body #crewcommands .ccmd:nth-child(3) { --oico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M20.5 1.5 22.5 3.5 10 16 8 14Z M5.2 12.6l6.2 6.2-1.4 1.4-1.6-1.6-3.1 3.1H3.1l-1.2-1.2v-2.2l3.1-3.1-1.6-1.6Z'/%3E%3C/svg%3E"); }
+body #crewcommands .ccmd:nth-child(4) { --oico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M7 1.5h10L22.5 7v10L17 22.5H7L1.5 17V7Z M6.5 10.6v2.8h11v-2.8Z'/%3E%3C/svg%3E"); }
+body #crewcommands .ccmd:nth-child(5) { --oico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M1.5 13.8 3 15.3l5.5-5.5 2 2-5.5 5.5 1.5 1.5L1.5 22.5ZM14.5 3.5h3.6l-.1 2.2 3.8 4.3-3.8 4.3.1 2.2h-3.6l3-6.5Z M8.8 3.5h3.6l3 6.5-3 6.5H8.8l3-6.5Z'/%3E%3C/svg%3E"); }
+body #crewcommands .ccmd:nth-child(6) { --oico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M4 6.5h16c1.4 0 2.5 1.1 2.5 2.5v6c0 1.4-1.1 2.5-2.5 2.5H4C2.6 17.5 1.5 16.4 1.5 15V9c0-1.4 1.1-2.5 2.5-2.5Z M8 8.5v7h8v-7Z'/%3E%3C/svg%3E"); }
+body #crewcommands .ccmd:nth-child(7) { --oico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M12 1.5 21 6v3.5H3V6Z M5 11h14v2.5c0 4.5-3 8-7 9-4-1-7-4.5-7-9Z'/%3E%3C/svg%3E"); }
+body #crewcommands .ccmd:nth-child(8) { --oico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M5 1.6h2.2V22.4H5Z M7.2 2.4h12.6v2H7.2Z M8.4 5.2h10.2v13l-5.1-2.8-5.1 2.8Z'/%3E%3C/svg%3E"); }
+/* critic CP3 round 3: quieter key seals, readable crew lines, lit control group tabs */
+body #crewcommands .ccmd .key, #bar .slot .key { background: linear-gradient(180deg, #9a3324, #6e2015); box-shadow: inset 0 1px 2px rgba(0,0,0,.5), 0 0 0 1px #2a0806; transform: rotate(-3deg); font-size: 10px; }
+body #partyframes .crew .mate small, body #partyframes .crew .mate .crew-status, body #partyframes .crew .mate .hpt { font-size: 12px !important; color: #dcc59c; }
+body #partyframes .crew-tab:not(.empty) { color: #fff0cf; background: linear-gradient(180deg, #8a2a1c, #4e150d); box-shadow: 0 0 0 1px #0a0604, inset 0 0 0 1px rgba(232,190,110,.55), inset 0 1px 0 rgba(255,210,170,.3); }
+body #partyframes .crew-tab.empty { opacity: 1; color: #a89070; }
+/* critic CP3 round 4: boards as square-cut planks, tray blocks set into the wood, roomier crew cards, order marks above the names */
+#hud > b, #hud #clan, #hud #score .tb-clock, #hud #score .tb-clan, #hud > #money:not([hidden]), #hud > #renown:not([hidden]) { border-radius: 1px;
+  box-shadow: 0 0 0 1px #0a0604, inset 0 1px 0 rgba(255,220,170,.14), inset 0 -3px 0 rgba(0,0,0,.45), inset 1px 0 0 rgba(255,220,170,.06), inset -1px 0 0 rgba(0,0,0,.4), 0 6px 10px rgba(0,0,0,.65); }
+#hud #score .tb-clan.me { box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #c99a52, inset 0 1px 0 rgba(255,220,170,.2), inset 0 -3px 0 rgba(0,0,0,.45), 0 0 16px rgba(255,170,70,.35), 0 6px 10px rgba(0,0,0,.65); }
+#utilitymenu .utility-button { background: linear-gradient(180deg, #120b07, #24170f); box-shadow: inset 0 2px 5px #000, inset 0 -1px 0 rgba(255,220,170,.12), 0 1px 0 rgba(255,220,170,.08); }
+#utilitymenu .utility-button:hover, #utilitymenu .utility-button:focus-visible { background: radial-gradient(ellipse at 50% 40%, rgba(255,170,80,.22), transparent 70%), linear-gradient(180deg, #120b07, #24170f); box-shadow: inset 0 2px 5px #000, 0 0 0 1px rgba(201,154,82,.7); }
+#utilitymenu .utility-button::before { filter: drop-shadow(0 -1px 0 rgba(0,0,0,.9)) drop-shadow(0 1px 0 rgba(255,220,170,.18)); }
+body #partyframes .crew.grouped .mate { padding: 5px 7px 6px; line-height: 1.25; }
+body #partyframes .crew .mate .crew-status { font-style: italic; color: #bfa47c; }
+body #crewcommands .ccmd::after { right: auto; left: 50%; top: 5px; width: 18px; height: 18px; transform: translateX(-50%); }
+body #crewcommands .ccmd .nm { align-self: end; padding-top: 18px; }
+/* critic CP3 round 5: crew cards as wood tags, health bars in a sunk brass-rimmed track */
+body #partyframes .crew.grouped .mate { background: linear-gradient(180deg, rgba(58,42,28,.9), rgba(36,24,15,.95)), var(--ln-grain), #2a1c12; box-shadow: 0 0 0 1px #0a0604, inset 0 1px 0 rgba(255,215,150,.12), inset 0 -2px 0 rgba(0,0,0,.5); }
+body #partyframes .crew.grouped .mate.picked { box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #c99a52, inset 0 1px 0 rgba(255,215,150,.16), inset 0 -2px 0 rgba(0,0,0,.5); }
+body #partyframes .mate .pip, body .uf .hp, #bar .hp { box-shadow: inset 0 1px 2px #000, 0 0 0 1px #7a5a34, 0 0 0 2px #0a0604; }
+body #partyframes .mate:not(.hurt):not(.down):not(.jailed) .pip, body .uf .fill, #bar .hp .fill { background-image: linear-gradient(180deg, #b6cf7c 0 1px, #7fa04a 1px, #3f5e22); }
+/* keep meaning colours: unit frames tint by relation (--bar), the hero bar goes red when low */
+body .uf .fill { background-color: var(--bar); background-image: linear-gradient(180deg, rgba(255,255,255,.35) 0 1px, rgba(255,255,255,.1) 1px, rgba(0,0,0,.35)); }
+#bar .hp.low .fill { background-image: linear-gradient(180deg, #f08070 0 1px, #c2402e 1px, #7a1a10); }

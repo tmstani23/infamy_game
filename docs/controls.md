@@ -345,6 +345,7 @@ Menu look (2026-11-11, lantern style 2026-11-23):
 - The accent colour follows your clan: Yakuza red, Kuroda copper, Shinobi violet.
 - The clan's painted crest (assets/ui/crests/<clan>_96.png) is stamped on every cloth header.
 - Town window (O): a cloth band in the clan colour carries the crest and the tabs; sub-tabs are wooden index tabs, the open one paper. Stock stands as the game's painted props on a lit storehouse shelf, numbers under them; low stock shows red with dimmed art. The governor's word is a pinned paper note. The Military window and the war camp window keep a war red cloth header.
+- HUD (lantern style): the standings bar is a row of wooden boards hanging from a rail, each rival with its painted crest and the leader marked with a red "First" seal. Ability slots show the painted ability art (assets/ui/abilities/<id>.png), with key letters as small red seals. The order grid, crew panel, system buttons and minimap sit in the same timber frame; system buttons and orders use filled brass marks.
 - Menu portraits are 3D sprite stills (assets/sprites/portraits/stills/<model>.png).
 - The action bar, character page and buff icons show drawn icons (game/src/hud_icons.js) next to each ability's name and key. Utility and command buttons use drawn icons too. UI text is plain, with no symbol glyphs.
 - Season end: a "Season over" line above the title; New game is the highlighted button.

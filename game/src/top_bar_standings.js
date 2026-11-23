@@ -20,14 +20,14 @@ export function standingsModel(game, owner, TICK_RATE = 20) {
     const c = S.clans[r.clan], me = r.clan === owner, name = me ? 'You' : (c.name || r.clan).replace(/ clan$/, ''), renown = Math.floor(c.renown || 0);
     if (campaign) {
       const st = game.influence?.status(r.clan) || { value: 0, tier: 0, next: null }, ir = S.influence?.[r.clan];
-      return { clan: r.clan, me, name, color: c.color, label: 'Influence', big: st.value, tier: st.tier, renown,
+      return { clan: r.clan, faction: c.faction || c.kind, me, name, color: c.color, label: 'Influence', big: st.value, tier: st.tier, renown,
         hover: [`${c.name || r.clan}: Influence ${st.value}, Tier ${st.tier}`,
           `Renown ${counted(game, r.clan, renown)} + businesses held ${Math.floor(ir?.days || 0)} + town trade ${Math.floor(ir?.trade || 0)}.`,
           st.next ? `Next tier at ${st.next.at}: ${st.next.label}` : 'All Influence tiers reached',
           'Influence is a clan\'s standing in the campaign. Each tier gives better Market prices or one more town permit.',
           RENOWN_WHY(c), 'Click for the full standings.'].join('\n') };
     }
-    return { clan: r.clan, me, name, color: c.color, label: 'Points', big: r.score, tier: null, renown,
+    return { clan: r.clan, faction: c.faction || c.kind, me, name, color: c.color, label: 'Points', big: r.score, tier: null, renown,
       hover: [`${c.name || r.clan}: ${r.score} season points`, t.breakdown(r.clan).map(x => `${x.label} ${x.points}`).join(' + ') || 'no businesses', RENOWN_WHY(c), 'Click for the full standings.'].join('\n') };
   });
   rows.sort((a, b) => (b.me - a.me) || (b.big - a.big));
@@ -44,7 +44,7 @@ export function createStandingsBar(root, onClan = null) {
     root.textContent = ''; root.removeAttribute('title');
     const ck = el('tb-clock', root);
     parts = { ck, day: el('tb-day', ck), time: el('tb-time', ck), crew: el('tb-crew', ck), rows: m.rows.map(r => {
-      const chip = el(`tb-clan${r.me ? ' me' : ''}`, root); chip.style.setProperty('--c', r.color || '#888'); chip.dataset.clan = r.clan;
+      const chip = el(`tb-clan${r.me ? ' me' : ''}`, root); chip.style.setProperty('--c', r.color || '#888'); chip.dataset.clan = r.clan; if (r.faction) chip.dataset.faction = r.faction;   // faction: the painted crest (lantern style)
       el('tb-crest', chip);
       const name = el('tb-name', chip), big = el('tb-big', chip), sub = el('tb-sub', chip), ren = el('tb-ren', chip);
       return { chip, name, big, sub, ren };
@@ -55,7 +55,8 @@ export function createStandingsBar(root, onClan = null) {
     const k = m.rows.map(r => r.clan).join('|') + (m.campaign ? 'c' : 's');
     if (k !== sig) { sig = k; build(m); }
     set(parts.day, 'textContent', m.clock.day); set(parts.time, 'textContent', m.clock.time); set(parts.crew, 'textContent', m.clock.crew); set(parts.ck, 'title', m.clock.hover);
-    m.rows.forEach((r, i) => { const p = parts.rows[i];
+    const top = Math.max(...m.rows.map(r => r.big));   // lantern style: the leading clan's board carries a First seal
+    m.rows.forEach((r, i) => { const p = parts.rows[i]; p.chip.classList.toggle('lead', m.rows.length > 1 && r.big === top && m.rows.filter(x => x.big === top).length === 1);
       set(p.name, 'textContent', r.name); set(p.big, 'textContent', String(r.big));
       set(p.sub, 'textContent', r.tier == null ? r.label : `Tier ${r.tier}`);
       set(p.ren, 'textContent', String(r.renown)); set(p.ren, 'hidden', !m.campaign && !r.renown); set(p.chip, 'title', r.hover); });
