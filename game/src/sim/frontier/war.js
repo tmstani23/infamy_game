@@ -693,7 +693,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function tick() {
     armory?.tick();   // 8e-9: upgrades in the work
     // a war that is over takes its troops with it (they disband)
-    if (runtime?.remove && (state.tick ?? 0) % 20 === 0) for (const e of Object.values(state.entities || {})) if (e.warTroop && !e.rout && !byId(e.warTroop)) runtime.remove(e.id);   // routed troops run off first (war_end.js)
+    if (runtime?.remove && (state.tick ?? 0) % 20 === 0) for (const e of Object.values(state.entities || {})) if (e.warTroop && !e.rout && !e.leave && !e.inShip && !byId(e.warTroop)) runtime.remove(e.id);   // routed troops run off first (war_end.js); a ship landing its people, and the troops in its hold, wait for it (ships S7)
     // 7c (Tim 2026-11-12): war troops cannot leave their war circle. One past the edge is set back on it and stops;
     // a move order to a spot outside ends at the edge.
     if ((state.tick ?? 0) % 5 === 0) for (const e of Object.values(state.entities || {})) {

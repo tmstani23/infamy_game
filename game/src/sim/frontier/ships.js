@@ -17,7 +17,7 @@
 // createShips({ state, data, types, world, war, navOf, followOffset, forget, dismount, say, down, structures, hit })
 //   -> { isShip, of, riders, order, command, use, prompt, spawn, tick, shelter, holdOf, sink }
 import { steer } from '../vehicle_steer.js';
-import { waterGrid, sailable, landingFor, shipPath } from './water_nav.js';
+import { waterGrid, sailable, landingFor, shipPath, nearestSailable } from './water_nav.js';
 import { yardBerth } from './shipyard.js';
 import { cellToWorld } from './town_grid.js';
 import { dirIndex } from '../geometry.js';
@@ -260,7 +260,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
   function unloadStep(s) {
     const o = s.sorder, now = state.tick ?? 0;
     if (now < (o.next ?? now)) return;
-    const list = riders(s).sort((a, b) => (a.type === 'hero' ? -1 : 0) - (b.type === 'hero' ? -1 : 0) || (a.id < b.id ? -1 : 1));
+    const list = riders(s).filter(u => !s.leave || !u.warTroop).sort((a, b) => (a.type === 'hero' ? -1 : 0) - (b.type === 'hero' ? -1 : 0) || (a.id < b.id ? -1 : 1));   // S7: a leaving ship keeps its troops
     if (!list.length) { s.sorder = { kind: 'stay' }; return; }
     o.k = (o.k ?? 0) + 1;
     stepOff(list[0], s, o.k, o.land);
@@ -404,6 +404,46 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     delete s.loadQueue;
   }
 
+  // ---- S7 war end (plan 1.9): when a war ends (war_end.js rout calls leave before the war record goes), each ship of
+  // that war (of one clan when only it gives up) with the hero or crew aboard first sails to its landing and puts only
+  // them off: the defender at its town's harbour (a river town: the shore nearest the hall), the attacker at the shore by
+  // its slipway, else the shore nearest its camp hall. Then it sails away from the town, fades over war.rout.seconds
+  // and leaves the map (war_end.js removes routed units); troops in the hold go with it. s.leave = { from, landBy, off }.
+  function leave(w, clan = null) {
+    const now = state.tick ?? 0, t = state.frontier?.settlements?.[w.town], from = { x: t?.x ?? w.x ?? 0, z: t?.z ?? w.z ?? 0 }, g = grid();
+    for (const s of Object.values(state.entities)) {
+      if (!s.ship || s.dead || s.leave || s.warTroop !== w.id || (clan != null && s.owner !== clan)) continue;
+      delete s.loadQueue; s.holdFire = true; delete s.gat;
+      s.leave = { from, landBy: now + Math.round((S().leaveLandSeconds ?? 90) * 20) };
+      if (!riders(s).some(u => !u.warTroop)) { goOff(s); continue; }
+      delete s.rout;   // not fading yet: it lands its people first
+      const camp = w.camp, slip = camp?.buildings?.find(b => b.type === 'slipway' && b.stage === 'built'), hall = camp?.buildings?.find(b => b.type === 'camp_hall');
+      const harbour = world?.sites?.find(x => x.id === t?.site)?.harbor;
+      const p = s.owner === w.defender ? harbour ? { x: harbour.x ?? harbour[0], z: harbour.z ?? harbour[1] } : from : slip || hall || from;
+      const water = waterOf(s), L = landingFor(g, p.x, p.z, water, { maxR: 2000 });
+      const pts = L?.berth && shipPath(g, [s.x, s.z], [L.berth.x, L.berth.z], { water });
+      if (!pts) { goOff(s); continue; }
+      s.sorder = { kind: 'land', x: L.berth.x, z: L.berth.z, land: L.land, pts: pts.slice(1), blocked: L.blocked };
+    }
+  }
+  // sail away from the town and fade (war_end.js removes it when its rout runs out; anyone still aboard is set ashore)
+  function goOff(s) {
+    const now = state.tick ?? 0, R = data?.war?.rout || {}, g = grid(), water = waterOf(s), f = s.leave?.from || { x: s.x, z: s.z };
+    s.leave = { ...(s.leave || {}), off: true };
+    s.rout = { start: now, until: now + Math.round((R.seconds ?? 6) * 20), x: s.x, z: s.z };
+    const d = Math.hypot(s.x - f.x, s.z - f.z) || 1, run = R.run ?? 70;
+    const to = nearestSailable(g, s.x + (s.x - f.x) / d * run, s.z + (s.z - f.z) / d * run, water, 60);
+    const pts = to && shipPath(g, [s.x, s.z], [to.x, to.z], { water });
+    s.sorder = pts ? { kind: 'move', x: to.x, z: to.z, pts: pts.slice(1) } : { kind: 'stay' };
+  }
+  // a leaving ship: once its hero and crew are off (or it waited too long), away it goes
+  function leaving(s) {
+    const L = s.leave;
+    if (!L || L.off) return;
+    const keep = riders(s).some(u => !u.warTroop), k = s.sorder?.kind;
+    if (!keep || (state.tick ?? 0) >= L.landBy || (k !== 'land' && k !== 'unload')) goOff(s);
+  }
+
   function strand(u) {
     const L = landingFor(grid(), u.x, u.z, 'big', { maxR: 2000 }), at = L?.land || { x: u.x, z: u.z }, n = navOf?.('world');
     const [x, z] = n?.nearestFree?.(at.x, at.z) || [at.x, at.z];
@@ -430,9 +470,10 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       if (k === 'move' || k === 'attackmove' || k === 'land') sail(s, dt);
       else if (k === 'unload') { s.anim = 'idle'; unloadStep(s); }
       else s.anim = 'idle';
-      if (s.sorder.kind === 'stay' || s.sorder.kind === 'unload') loadStep(s);
+      if (s.leave) leaving(s);   // S7: the war is over
+      else if (s.sorder.kind === 'stay' || s.sorder.kind === 'unload') loadStep(s);
       if (now % 10 === 0) mend(s, 10);   // S3 dock repair, every half second
-      if (!s.dead && s.hp > 0) { cannons(s, now); deckGun(s, now); }   // S4 guns
+      if (!s.dead && s.hp > 0 && !s.leave) { cannons(s, now); deckGun(s, now); }   // S4 guns
       if (s.anim === 'idle' && now - (s.broadAt ?? -1e9) < 30) s.anim = 'attack';   // lying still after a volley: the broadside clip
       for (const u of riders(s)) {   // riders sit inside
         if (u.jailed) { delete u.aboard; delete u.inShip; continue; }
@@ -442,5 +483,5 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     }
   }
 
-  return { isShip, of, riders, order, command, use, prompt, spawn, launch, yardsOf, tick, shelter, sink, holdOf, room, boxOf, shoreOf, get world() { return world; } };
+  return { isShip, of, riders, order, command, use, prompt, spawn, launch, yardsOf, tick, shelter, sink, holdOf, room, boxOf, shoreOf, leave, get world() { return world; } };
 }

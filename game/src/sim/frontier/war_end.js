@@ -118,13 +118,14 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
   function rout(w, clan = null) {
     const s = town(w.town), R = ROUT(), cx = s?.x ?? w.x, cz = s?.z ?? w.z, until = (state.tick ?? 0) + Math.round(R.seconds * 20);
     for (const e of Object.values(state.entities || {})) {
-      if (e.warTroop !== w.id || e.dead || e.rout || (clan != null && e.owner !== clan && e.horseOwner !== clan)) continue;
+      if (e.warTroop !== w.id || e.dead || e.rout || e.leave || (clan != null && e.owner !== clan && e.horseOwner !== clan)) continue;   // e.leave: a ship landing its people (S7)
       const d = Math.hypot(e.x - cx, e.z - cz) || 1, tx = e.x + (e.x - cx) / d * R.run, tz = e.z + (e.z - cz) / d * R.run;
       e.rout = { start: state.tick ?? 0, until, x: tx, z: tz };
       e.order = { kind: 'move', x: tx, z: tz };
       if (e.garrison?.zone) garrison?.breakOutKey?.(e.garrison.key);   // troops holding a house come out
       delete e.attackTarget; delete e.swing; delete e.garrison; delete e.holdHouse;
     }
+    runtime?.ships?.leave?.(w, clan);   // ships S7: ships land their hero and crew, then sail off and fade (sim/frontier/ships.js)
   }
   // result: 'captured' | 'sacked' | 'burned' | 'fell' (a castle, Z6: its clan is out) | 'campFell' | 'attackerSurrendered' (8c: as a fallen camp) |
   // 'ransomed' (8c: terms accepted, the town is kept) | anything else (called off): the chest goes home

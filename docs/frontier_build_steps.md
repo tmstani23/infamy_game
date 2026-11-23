@@ -3078,7 +3078,11 @@ Checklist (2026-11-22):
   - Fire: one ball every 5 s at the nearest enemy within 32; ships and siege guns first, even with troops nearer. A ball does 40: a hull takes it x4 (one tower sinks a warship in about 60 s), a siege gun whole, a troop half. No fire under a ceasefire. Shot uses the field cannon's flash and boom without the camera kick.
   - The general builds it in each strategy's town list after the war upgrade and in the build tail after its lists (towns and camps); a camp puts it on the town side; an army counts it as a tower target. No new controls.
 - [ ] S6 Landing helpers and effects: repair effect, pale shore line, anchor cursor, damage look, drowning and wash-up effects.
-- [ ] S7 War end: ships land hero and crew, sail off and fade.
+- [x] S7 War end: ships land hero and crew, sail off and fade.
+- S7 built 2026-11-23, before S6 (`sim/frontier/ships.js` leave, `war_end.js`, `war.js`; test_ship_war_end):
+  - When a war ends its warships and transports stop firing, sail away from the town and fade, then leave the map; troops in a hold go with the ship. When only one side gives up, only its ships leave.
+  - A ship with the hero or crew aboard first lands them (only they step off): the defender at its town's harbour (a river town: the shore nearest the hall), the attacker at the shore by its slipway, else nearest its camp hall. If it cannot reach the landing or has not landed them within 90 s, it leaves anyway and anyone still aboard is set ashore at the nearest landable shore.
+  - Captured ships (S8) and fishing boats (S10) come later. No new controls.
 - [ ] S8 Boarding.
 - [ ] S9 AI general with ships.
 - [ ] S10 Fishing boats and Boathouse.
