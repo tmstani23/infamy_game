@@ -29,6 +29,7 @@ import { islandBiome } from '../sim/island_art.js';
 import { pointAt } from '../sim/frontier/rail_route.js';
 import { createFerryShips, seaSpot } from './ferry_ships.js';
 import { createShipMarks } from './ship_marks.js';
+import { createShipFx } from './ship_fx.js';
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
 import { groundY, maxGroundY } from '../castle_height.js';
@@ -129,7 +130,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const cityStation = cityStationAt ? createCityStation({ scene, station: cityStationAt, edgeX: district.bounds.maxX,
     carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // the ships at the city pier and the castle docks, and the one at sea (Z7, render/ferry_ships.js); ships = { bp, rules }
-  const shipMarks = createShipMarks({ scene, types: units?.types, holdOf: e => e.hold ?? 0 });   // war ships: ring, plate, wake (ships S2)
+  const shipMarks = createShipMarks({ scene, types: units?.types, holdOf: e => e.hold ?? 0 });
+  const shipFx = createShipFx({ scene });   // ship guns and hull damage (ships S4)   // war ships: ring, plate, wake (ships S2)
   const ferryShips = worldGround && ships ? createFerryShips({ scene, ...ships, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
   const wildGlow = { pos: new THREE.Vector3(), radius: worldChunks?.nightGlow?.radius ?? 12, color: new THREE.Color(...(worldChunks?.nightGlow?.color ?? [0.3, 0.36, 0.5])), fire: false, seed: 1 };
@@ -523,6 +525,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       }
     }
     shipMarks.update(state, sprites, { colourOf: e => TEAM[teamOf(e, state.entities[followId])], enemyOf: e => teamOf(e, state.entities[followId]) === 'enemy', own: e => e.owner === state.entities[followId]?.owner }, selected, fdt);
+    shipFx.update(state, sprites, fdt, cameraPlace(state.entities[followId]));   // after the sprites: a listing hull sits lower
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);
     if (state.entities[followId]) markCrewDoors(rings, state, state.entities[followId].owner);
@@ -591,6 +594,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   function addCasts(casts) {
     for (const c of casts) {
       abilityFx.cast(c);
+      shipFx.cast(c);   // broadsides, bow cannon, deck Gatling (ships S4)
       if (c.ryo) abilityFx.coins(c.x, c.z);   // c.ryo: an execute that paid ryo
       // crew sent onto the boss's horse (sim/mounts.js): she shies sideways, a red ring, and a cross with the reason
       if (c.kind === 'refuseMount') { const s = sprites.get(c.a); if (s) { s.lean = 1; s.leanX = 1; s.leanZ = -0.4; } hitFx.refuse(c.x, c.z, c.text || "The boss's horse"); }
@@ -650,7 +654,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const h of hits) {
       const a = state.entities[h.a], t = state.entities[h.t];
       if (h.crit) sprites.get(h.a)?.shadowBlade?.critical();
-      const dry = t && (t.cart || /cannon|gatling|omnibus|rickshaw$|ox_cart|train_/.test(t.model || t.type || ''));   // no blood from carts, guns and vehicles
+      const dry = t && (t.cart || /cannon|gatling|omnibus|rickshaw$|ox_cart|train_|^ship_/.test(t.model || t.type || ''));   // no blood from carts, guns and vehicles
       hitFx.hit(h, a, t?.owner === me?.owner, me?.place === 'world', !dry);   // no damage numbers on the frontier (Tim 2026-11-12)
       const s = sprites.get(h.t);
       if (s && a) { const d = Math.hypot(h.x - a.x, h.z - a.z) || 1; s.struck((h.x - a.x) / d, (h.z - a.z) / d, h.crit || h.kill); }

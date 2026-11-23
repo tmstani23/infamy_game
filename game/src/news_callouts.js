@@ -4,7 +4,7 @@ import { sweepArrivalVisible } from './render/sweep_trail.js';
 export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: calloutRaw, contractCallout: contractRaw, minimap: mini, gameMap: bigMap, view, presentation, showResults, townAlert = () => {}, warAlert = () => {} }) {
   // Out on the island (Tim 2026-11-06) the lieutenant has the city: city alerts stay quiet, only major capital
   // losses show, marked "Capital:", plus one warning when the clan falls below half the businesses it held on leaving
-  const AWAY_OK = new Set(['town', 'worldCampCleared', 'renown', 'leaderBounty', 'unstuck', 'seasonEnd', 'hallChannel', 'hallChannelReset', 'hallChannelStop', 'warEnded', 'warSurrender', 'warOffer', 'warAnswer', 'warNoTerms', 'buildSiteTip', 'supplyLineTip', 'campMoved']);
+  const AWAY_OK = new Set(['town', 'shipSunk', 'worldCampCleared', 'renown', 'leaderBounty', 'unstuck', 'seasonEnd', 'hallChannel', 'hallChannelReset', 'hallChannelStop', 'warEnded', 'warSurrender', 'warOffer', 'warAnswer', 'warNoTerms', 'buildSiteTip', 'supplyLineTip', 'campMoved']);
   let hallResetAt = -1e9;   // "starts over" shows at most once every 3 s while he is being hit
   const major = (n, me) => (n.kind === 'raidWon' && n.defender === me) || (n.kind === 'quarterLost' && n.clan === me) || (n.kind === 'hqSuppressed' && n.defender === me);
   let prefix = '', quiet = false, heldOnLeaving = null, warned = false;
@@ -94,6 +94,11 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: callou
         callout(`${clanName(n.raider)} successfully raided ${whose} ${n.hq ? 'HQ' : n.name.replace(/^The /, '')}!`, n.raider === me ? 'win' : n.defender === me ? 'loss' : 'news');
       }
       if (n.kind === 'hqRecovered' && n.clan === me) callout('HQ fire extinguished · contracts available · HQ protected for a full day/night cycle', 'news');
+      if (n.kind === 'shipSunk') {   // ships S4
+        const what = n.unit === 'transport' ? 'transport' : 'warship';
+        if (n.clan === me) { callout(n.hero ? `Your ${what} sank: you wash ashore` : `Your ${what} sank${n.lost ? `, ${n.lost} troops lost` : ''}`, 'loss', 6000); if (!n.hero) { mini.ping(n.x, n.z); bigMap.ping(n.x, n.z); } }
+        else if (n.by === me) callout(`Enemy ${what} sunk`, 'win', 4000);
+      }
       if (n.kind === 'bossDown' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss knocked out!`, n.by === me ? 'win' : 'news');
       if (n.kind === 'bossArrested' && n.clan !== me && game.vision.canSee(me, game.state.entities[n.hero])) callout(`${boss} boss arrested!`, 'news');
       if (n.kind === 'lanternDown' && n.defender === me) callout('War Lantern destroyed!', 'win');

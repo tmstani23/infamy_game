@@ -110,6 +110,7 @@ assert.ok(Math.hypot(made.x - sb.x, made.z - sb.z) < 80, 'beside the slipway');
 assert.ok(!sb.queue, 'the queue is empty');
 
 // --- dock repair: stopped by its own built yard it mends; under way, hit lately, or far off it does not ---
+made.holdFire = true;   // a ship that fires pauses its repair (S4): hold fire for the repair checks
 made.hp = made.maxHp * 0.4; const hp0 = made.hp;
 assert.ok(g.ships.yardsOf(made).length === 1);
 run(200);
@@ -120,7 +121,7 @@ const old = rec.camp.buildings.find(b => b.type !== 'slipway' && b.type !== 'cam
 const ship0 = Object.values(S.entities).find(e => e.ship && before.has(e.id) && e.owner === 'player');
 { let away = null; for (let a = 0; a < 72 && !away; a++) for (const r of [200, 300, 400, 500]) { const p = nearestSailable(wg, sb.x + Math.cos(a / 11.5) * r, sb.z + Math.sin(a / 11.5) * r, 'big', 40, { x: town.x, z: town.z, r: W.circleRadius - 30 }); if (p && Math.hypot(p.x - sb.x, p.z - sb.z) > 150) { away = p; break; } }
   assert.ok(away); Object.assign(ship0, { x: away.x, z: away.z, sorder: { kind: 'stay' } }); }
-ship0.hp = ship0.maxHp * 0.5; run(100); assert.equal(ship0.hp, ship0.maxHp * 0.5, 'away from a yard it does not mend');
+ship0.holdFire = true; ship0.hp = ship0.maxHp * 0.5; run(100); assert.equal(ship0.hp, ship0.maxHp * 0.5, 'away from a yard it does not mend');
 sb.stage = 'ruined'; made.hp = made.maxHp * 0.4; run(100); assert.equal(made.hp, made.maxHp * 0.4, 'a ruined slipway mends nothing');
 assert.ok(war.campRebuildCheck(rec.id, sb.id).ok !== false || /afford|Needs|has/.test(war.campRebuildCheck(rec.id, sb.id).reason), 'a ruined slipway is rebuilt in place');
 assert.notEqual(war.campRebuildCheck(rec.id, sb.id).reason, 'Erase the ruin, then build a new one');

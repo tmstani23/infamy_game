@@ -583,6 +583,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
           if (e.owner !== foe || e.place !== 'world' || e.dead || e.downed || e.jailed || e.garrison || e.aboard || e.type === 'civilian' || e.type === 'horse' || e.guide) continue;
           const d = (e.x - st.x) ** 2 + (e.z - st.z) ** 2, r = range * (rt?.rangeScale?.(from, e) ?? 1);
           if (d >= r * r) continue;
+          if (best && !!e.ship !== !!best.ship) { if (e.ship) continue; bd = d; best = e; continue; }   // ships S4: a ship only with nobody else in range
           if (d < bd || (d === bd && best && e.id < best.id)) { bd = d; best = e; }
         }
         if (!best) continue;

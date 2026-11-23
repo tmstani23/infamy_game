@@ -186,7 +186,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
     // c: one entry of state.casts
     cast(c) {
       if (c.kind === 'cannonFire') return cannonShot(c);
-      if (c.kind === 'gatlingShot') return gatlingShot(c);
+      if (c.kind === 'gatlingShot') { if (!c.deck) gatlingShot(c); return; }   // a ship's deck gun: render/ship_fx.js
       if (c.kind === 'gatlingFire' || c.kind === 'gatlingStop') return;
       crewFx.cast(c);kurodaFx.cast(c);
       shakedownFx.cast(c);

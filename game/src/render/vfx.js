@@ -20,7 +20,7 @@ function canvasTex(w, h, draw) {
   return t;
 }
 // particle atlas, 4 cells in a row: soft dot, 4-point sparkle, petal, ember streak
-const ATLAS_CELLS = 5;
+const ATLAS_CELLS = 8;   // 5 to 7: puff, tongue, shard (ship guns, render/ship_fx.js)
 let atlas = null;
 const getAtlas = () => atlas ||= canvasTex(64 * ATLAS_CELLS, 64, (g) => {
   // soft dot
@@ -55,8 +55,20 @@ const getAtlas = () => atlas ||= canvasTex(64 * ATLAS_CELLS, 64, (g) => {
   r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.3, 'rgba(255,255,255,.8)'); r.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = r; g.fillRect(192, 0, 64, 64);
   g.save();g.translate(288,32);g.fillStyle='#fff';g.beginPath();g.moveTo(0,23);g.bezierCurveTo(-40,-1,-25,-35,0,-13);g.bezierCurveTo(25,-35,40,-1,0,23);g.fill();g.restore();
+  // puff: a painted wisp of smoke, ragged and uneven, lit on top and shaded under (tinted per particle)
+  g.save(); g.beginPath(); g.rect(320, 0, 64, 64); g.clip(); g.translate(352, 34);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  g.filter = 'blur(2px)';
+  for (let i = 0; i < 26; i++) { const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * 16, x = Math.cos(a) * d * 1.15, y = Math.sin(a) * d * 0.85, r = 4 + rnd() * 9 * (1 - d / 24);
+    const v = Math.round(255 - (y + 18) * 2.6 - rnd() * 30); g.fillStyle = `rgba(${v},${v},${v},${(0.25 + rnd() * 0.4).toFixed(2)})`; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
+  g.filter = 'none'; g.restore();
+  // tongue: a flame or flash pointing up the cell (turn it with the particle's spin), hot at the root
+  g.save(); g.translate(416, 32); const tg = g.createLinearGradient(0, 26, 0, -28); tg.addColorStop(0, '#fff'); tg.addColorStop(0.5, 'rgba(255,255,255,.85)'); tg.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = tg; g.beginPath(); g.moveTo(0, 28); g.bezierCurveTo(-13, 18, -9, -6, 0, -29); g.bezierCurveTo(9, -6, 13, 18, 0, 28); g.fill(); g.restore();
+  // shard: a jagged splinter
+  g.save(); g.translate(480, 32); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(-14, 4); g.lineTo(-3, -6); g.lineTo(15, -9); g.lineTo(6, 2); g.lineTo(11, 8); g.lineTo(-8, 7); g.closePath(); g.fill(); g.restore();
 });
-export const SHAPE = { dot: 0, sparkle: 1, petal: 2, ember: 3, heart:4 };
+export const SHAPE = { dot: 0, sparkle: 1, petal: 2, ember: 3, heart:4, puff: 5, tongue: 6, shard: 7 };
 
 // big 4-point star for glints on steel
 let starTex = null;

@@ -11,14 +11,18 @@
 // the hero and crew wash ashore downed at the nearest landable shore (the S4 effects come later).
 // Ship orders live on e.sorder = { kind: 'stay' | 'move' | 'attackmove' | 'land' | 'unload', pts, x, z, land, berth }.
 // Commands: { id: <hero>, type: 'ship', action: 'board', ship, units } | { action: 'unload', ships } | { action: 'call' }
-// createShips({ state, data, types, world, war, navOf, followOffset, forget, dismount, say, down })
+// S4: hits on the hull count by the attacker's kind (war.ships.hullDamage: arrows, rifles, melee, Gatling almost nothing;
+// siege guns, cannon towers and ship cannons the damage); ships fire their guns on their own (guns below); a sinking
+// is news ('shipSunk') for the alert.
+// createShips({ state, data, types, world, war, navOf, followOffset, forget, dismount, say, down, structures, hit })
 //   -> { isShip, of, riders, order, command, use, prompt, spawn, tick, shelter, holdOf, sink }
 import { steer } from '../vehicle_steer.js';
 import { waterGrid, sailable, landingFor, shipPath } from './water_nav.js';
 import { yardBerth } from './shipyard.js';
 import { cellToWorld } from './town_grid.js';
+import { dirIndex } from '../geometry.js';
 
-export function createShips({ state, data, types, world, war, navOf, followOffset, forget, dismount, say, down }) {
+export function createShips({ state, data, types, world, war, navOf, followOffset, forget, dismount, say, down, structures = () => null, hit = null }) {
   const S = () => data?.war?.ships || {}, U = () => data?.war?.units || {};
   const grid = () => waterGrid(world);
   const isShip = e => !!e?.ship && !e.dead;
@@ -281,15 +285,108 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
   }
 
   // ---- hull ----
-  // a hit on someone aboard: the hull takes it (true when absorbed)
-  function shelter(u, damage) {
-    const s = of(u); if (!s) return false;
-    s.hp = Math.max(0, (s.hp ?? 0) - Math.max(0, damage || 0)); s.hitAt = state.tick ?? 0;
-    if (s.hp <= 0) sink(s);
+  // a hit on a ship or on someone aboard: the hull takes it (true when absorbed), times war.ships.hullDamage for the
+  // attacker's kind (S4); with no attacker given (tests, scripted damage) in full
+  function shelter(u, damage, a = null) {
+    const s = u?.ship ? u : of(u); if (!s) return false;
+    if (s.dead) return true;
+    const k = a ? hullKind(a) : null, n = Math.max(0, (damage || 0) * (k ? S().hullDamage?.[k] ?? 1 : 1));
+    s.hp = Math.max(0, Math.round(((s.hp ?? 0) - n) * 100) / 100); s.hitAt = state.tick ?? 0;
+    if (a && n > 0) state.hits?.push({ a: a.id, t: s.id, damage: Math.round(n * 10) / 10, crit: false, kill: s.hp <= 0, x: s.x, z: s.z, dir: a.dir ?? 0, weapon: a.model, kind: 'hull' });
+    if (s.hp <= 0) sink(s, a);
     return true;
   }
+
+  // ---- S4 guns (frontier.json war.ships.guns, kinds[].guns) ----
+  // Cannons (broadside, bowCannon) fire on their own at the nearest target in range of their war's enemy, ships first,
+  // then siege guns, then buildings: balls x ballDamage per volley every reloadTicks; the balls fly at speed and land
+  // as frontier.shipShots (a ship takes it times hullDamage.siege, a siege gun unitShare of it, a building the siege
+  // factor of war.structures.damage). The deck Gatling (warship) fires as the land Gatling crew (units.json from.gatling:
+  // spin up, burst, cone) at enemy troops in range. Z (holdFire), a ceasefire or no war: no fire. Firing sets s.firedAt.
+  const GUN = () => S().guns || {};
+  const warOf = s => (s?.warTroop && war?.()?.byId?.(s.warTroop)) || null;
+  const foeOf = s => { const w = warOf(s); return !w || w.terms || w.state === 'ended' ? null : s.owner === w.attacker ? w.defender : s.owner === w.defender ? w.attacker : null; };
+  const alive = t => t && !t.dead && !t.downed && !t.jailed && !t.garrison && !t.aboard && t.place === 'world';
+  const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
+  const isSiege = t => !!types?.[t?.type]?.siege;
+  // where the balls of a volley land round the aim point: [across, along] the line of fire (the first and last stray: splashes)
+  const SPREAD = [[-0.8, -10], [2.4, -0.8], [-1.6, 0.3], [0.6, -0.2], [-2.6, 0.6], [1.5, 1], [-0.4, 1.5], [1.2, 7.4]];
+  // what a gun of s may hit within range: { t: entity } or { st: structure }, nearest of the first kind on the list
+  function aim(s, g, foe) {
+    const R = g.range ?? 30, list = g.targets || [], ents = Object.values(state.entities);
+    const best = test => { let b = null, bd = Infinity; for (const t of ents) { if (t.owner !== foe || !alive(t) || !test(t)) continue; const d = Math.sqrt(dist2(s, t)) - (types?.[t.type]?.radius ?? 0.5); if (d <= R && (d < bd || (d === bd && t.id < b.id))) { b = t; bd = d; } } return b; };
+    if (list.includes('ship')) { const t = best(isShip); if (t) return { t }; }
+    if (list.includes('siege')) { const t = best(t => !t.ship && isSiege(t)); if (t) return { t }; }
+    if (list.includes('building')) { const st = structures?.()?.near?.(s.owner, s.x, s.z, R); if (st) return { st }; }
+    return null;
+  }
+  function cannons(s, now) {
+    const foe = foeOf(s);
+    if (!foe || s.holdFire) return;
+    for (const key of kindOf(s).guns || []) {
+      const g = GUN()[key];
+      if (!g || g.from || now < (s.gunAt?.[key] ?? 0) || (now + key.length) % 5) continue;   // look for a target every 5 ticks
+      const a = aim(s, g, foe); if (!a) continue;
+      const tg = a.t || a.st, d = Math.sqrt(dist2(s, tg)), flight = Math.max(2, Math.ceil(d / (g.speed ?? 52) * 20));
+      (state.frontier.shipShots ||= []).push({ a: s.id, by: s.owner, unit: s.warUnit, ...(a.t ? { t: a.t.id } : { key: a.st.key }), damage: (g.balls ?? 1) * (g.ballDamage ?? 0), unitShare: g.unitShare ?? 0.5, at: now + flight });
+      (s.gunAt ||= {})[key] = now + (g.reloadTicks ?? 300); s.firedAt = now;
+      const n = g.balls ?? 1, spread = n > 1 ? SPREAD.slice(0, n) : [[0, 0]], hitR = a.t ? types?.[a.t.type]?.radius ?? 1 : a.st.r ?? 3;
+      state.casts?.push({ kind: key === 'broadside' ? 'shipBroadside' : 'shipCannon', gun: key, a: s.id, t: a.t?.id ?? null, key: a.st?.key ?? null, x: s.x, z: s.z, tx: tg.x, tz: tg.z, heading: s.heading ?? 0, balls: n, spread, hitR, flightTicks: flight, place: 'world' });
+      { const dx = tg.x - s.x, dz = tg.z - s.z, L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L;   // the balls in flight (drawing only: an 'a' that is no unit never hits, combat.js)
+        spread.forEach(([p, q], k) => (state.projectiles ||= []).push({ kind: 'cannonball', a: `ship:${s.id}:${k}`, t: null, tower: true, ship: true, x: s.x, z: s.z, tx: tg.x - uz * p + ux * q, tz: tg.z + ux * p + uz * q, place: 'world', at: now, until: now + flight + k, damage: 0 })); }
+      if (key === 'broadside') s.broadAt = now;
+    }
+  }
+  function shotsLand(now) {
+    const list = state.frontier?.shipShots; if (!list?.length) return;
+    const due = list.filter(o => o.at <= now); if (!due.length) return;
+    state.frontier.shipShots = list.filter(o => o.at > now); if (!state.frontier.shipShots.length) delete state.frontier.shipShots;
+    for (const o of due) {
+      const src = state.entities[o.a], by = { id: `ship:${o.a}`, type: types?.[src?.type] ? src.type : 'warship', owner: o.by, x: src?.x ?? 0, z: src?.z ?? 0, place: 'world', dir: src?.dir ?? 0, model: src?.model || 'ship_war', shipGun: true };
+      if (o.key) { const st = structures?.()?.find?.(o.key); if (st && structures().damage(o.by, st, o.damage, 'siege')) (state.structureHits ||= []).push({ a: by.id, key: st.key, x: st.x, z: st.z, kind: 'siege', ship: true }); continue; }
+      const t = state.entities[o.t]; if (!t || t.dead || t.downed || t.place !== 'world') continue;
+      if (t.ship) shelter(t, o.damage, by);
+      else if (!t.aboard && !t.garrison) hit?.(by, t, Math.round(o.damage * o.unitShare), false, 'cannon');
+    }
+  }
+  function deckGun(s, now) {
+    if (!(kindOf(s).guns || []).includes('deckGatling')) return;
+    const g = GUN().deckGatling || {}, R = types?.[g.from]?.gatling; if (!R) return;
+    const foe = foeOf(s), stop = () => { if (s.gat?.firing != null) state.casts?.push({ kind: 'gatlingStop', a: s.id, x: s.x, z: s.z, place: 'world', deck: true }); delete s.gat; };
+    if (!foe || s.holdFire) { stop(); return; }
+    const range = g.range ?? R.range ?? 13, min = R.minRange ?? 0;
+    const foes = () => Object.values(state.entities).filter(t => t.owner === foe && alive(t) && !t.ship && t.type !== 'horse' && t.type !== 'civilian' && dist2(s, t) <= range * range && dist2(s, t) >= min * min);
+    if (!s.gat) {
+      if ((now + 2) % 5) return;
+      const l = foes(); if (!l.length) return;
+      const n = l.reduce((b, t) => !b || dist2(s, t) < dist2(s, b) || (dist2(s, t) === dist2(s, b) && t.id < b.id) ? t : b, null);
+      s.gat = { state: 'spin', until: now + (R.spinTicks ?? 20), ang: Math.atan2(n.z - s.z, n.x - s.x) }; return;
+    }
+    const G = s.gat;
+    if (G.state === 'spin') { if (now < G.until) return; Object.assign(G, { state: 'fire', firing: now, end: now + (R.burstTicks ?? 100) }); }
+    if (now >= G.end) { stop(); return; }
+    const k = now - G.firing, every = R.everyTicks ?? 4;
+    if (k % 2 && k % every) return;
+    const l = foes(); if (!l.length) { stop(); return; }
+    if (k % (R.turnTicks ?? 10) === 0) { const n = l.reduce((b, t) => !b || dist2(s, t) < dist2(s, b) ? t : b, null); G.ang = Math.atan2(n.z - s.z, n.x - s.x); }
+    const half = (R.coneDeg ?? 30) * Math.PI / 360, cx = Math.cos(G.ang), cz = Math.sin(G.ang);
+    const cone = l.filter(t => { const d = Math.sqrt(dist2(s, t)) || 1; return ((t.x - s.x) * cx + (t.z - s.z) * cz) / d >= Math.cos(half); });
+    if (!cone.length) return;
+    if (k % 2 === 0) state.casts?.push({ kind: 'gatlingShot', a: s.id, x: s.x, z: s.z, place: 'world', dir: dirIndex(Math.cos(G.ang), Math.sin(G.ang)), deck: true, ang: G.ang, heading: s.heading ?? 0, reach: Math.sqrt(Math.min(...cone.map(t => dist2(s, t)))) });
+    if (k % every === 0) {
+      const dmg = Math.round((R.damage ?? 0) * (g.damageMul ?? 1));
+      for (const t of cone) hit?.(s, t, dmg, false, 'bullet');
+      s.firedAt = now;
+    }
+  }
+  // the kind of hit a hull takes from an attacker (war.ships.hullDamage): ship and siege guns are siege
+  function hullKind(a) {
+    if (a?.shipGun || a?.ship || a?.siegeTower) return 'siege';
+    const u = types?.[a?.type];
+    return u?.gatling ? 'gatling' : u?.siege ? 'siege' : u?.projectile?.bomb ? 'bomb' : u?.projectile ? 'ranged' : 'melee';
+  }
   // plan 1.6: plain troops aboard drown; the hero and crew wash ashore downed at the nearest landable shore in the circle
-  function sink(s) {
+  function sink(s, by = null) {
     const g = grid(), box = boxOf(s), L = landingFor(g, s.x, s.z, waterOf(s), { box, maxR: (data?.war?.circleRadius ?? 900) * 2 });
     const list = riders(s);
     list.forEach((u, k) => {
@@ -301,6 +398,8 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     });
     for (const u of Object.values(state.entities)) if (u.boardShip === s.id) delete u.boardShip;
     state.casts?.push({ kind: 'shipSunk', a: s.id, x: s.x, z: s.z, place: 'world', ashore: L?.land || null, owner: s.owner, hero: list.some(u => u.type === 'hero') });
+    // S4: news for the alert (src/news_callouts.js): the owner's camera follows his hero ashore when he was aboard, else an alert and a ping
+    state.news?.push({ kind: 'shipSunk', clan: s.owner, by: by?.owner ?? null, unit: s.warUnit, x: s.x, z: s.z, ashore: L?.land || null, hero: list.some(u => u.type === 'hero'), lost: list.filter(u => u.warTroop).length });
     Object.assign(s, { dead: true, diedAt: state.tick ?? 0, hp: 0, anim: 'idle', sorder: { kind: 'stay' } });
     delete s.loadQueue;
   }
@@ -320,6 +419,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       // a rider whose ship is gone without sinking (a war that ended took it: S7 lands them first): set ashore
       if (u.inShip && !state.entities[u.inShip]) strand(u);
     }
+    shotsLand(now);   // S4: cannon balls in flight land
     for (const s of Object.values(state.entities)) {
       if (!s.ship) continue;
       if (s.dead) { if (riders(s).length) sink(s); continue; }
@@ -332,6 +432,8 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       else s.anim = 'idle';
       if (s.sorder.kind === 'stay' || s.sorder.kind === 'unload') loadStep(s);
       if (now % 10 === 0) mend(s, 10);   // S3 dock repair, every half second
+      if (!s.dead && s.hp > 0) { cannons(s, now); deckGun(s, now); }   // S4 guns
+      if (s.anim === 'idle' && now - (s.broadAt ?? -1e9) < 30) s.anim = 'attack';   // lying still after a volley: the broadside clip
       for (const u of riders(s)) {   // riders sit inside
         if (u.jailed) { delete u.aboard; delete u.inShip; continue; }
         Object.assign(u, { x: s.x, z: s.z, place: 'world', anim: 'idle' });

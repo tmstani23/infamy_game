@@ -272,6 +272,10 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       }
       for (const c of state.casts) {
         if (c.kind === 'gatlingShot' || c.kind === 'gatlingStop') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0; gatling(c, Math.max(ear(me), ear(me?.hero))); continue; }
+        if (c.kind === 'shipBroadside' || c.kind === 'shipCannon') {   // ships S4: a broadside rolls (four booms), the bow cannon one
+          const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero));
+          if (v > 0.01) for (let k = 0; k < (c.kind === 'shipBroadside' ? 4 : 1); k++) setTimeout(() => variant('cannon_fire_1', (k ? 0.6 : 0.85) * v, 0.76 + Math.random() * 0.1), k * 110);
+          continue; }
         if (c.kind === 'cannonFire') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero)); variant('cannon_fire_1', 0.85 * v, c.brass ? 1 : 0.88); continue; }   // Tim 2026-11-07: only heard near the hero or the camera, fading fast
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);
         if(c.kind==='arrow'){ if(buffers.arrow_whoosh_1)variant('arrow_whoosh_1',.4*v,.94+Math.random()*.12); else swordSlash(.16*v); }   // Tim's arrow flight clips (2026-11-12), the old quiet whoosh without them

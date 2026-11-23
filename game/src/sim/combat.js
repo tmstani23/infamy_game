@@ -54,7 +54,8 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
       if (d < fd || (d === fd && first && k < fk)) { fd = d; first = t; fk = k; }
     }
     if (!first) return null;
-    const ok = t => state.entities[t.id] === t && hostile(e, t) && sees(e, t) && !(cop(t) && !cop(e) && !t.wave);
+    // (ships S4: a ship on the water is a target only for units that reach it from where they stand: no melee chases it)
+    const ok = t => state.entities[t.id] === t && hostile(e, t) && sees(e, t) && !(cop(t) && !cop(e) && !t.wave) && !(t.ship && reachOf(e, t) < 8);
     if (ok(first)) return first;
     const near = [];
     for (let n = 0; n < count; n++) {
@@ -338,7 +339,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
 
   function hit(a, t, damage, crit = false, kind = null) {
     if(t.shopkeeper||t.animal||t.untouchable||charmProtected(a,t,state))return;   // town dogs can't be hit either (sim/civilians.js); nor a rail repair crew (train robbery R1)
-    if ((t.garrison || t.aboard) && shelter(t, damage, a)) return;   // inside a stockade, an omnibus or a rickshaw: it takes the hit (Tim 2026-11-06; vehicles fixed 2026-11-09)
+    if ((t.garrison || t.aboard || t.ship) && shelter(t, damage, a)) return;   // ships S4: a hit on a ship goes to its hull (sim/frontier/ships.js)   // inside a stockade, an omnibus or a rickshaw: it takes the hit (Tim 2026-11-06; vehicles fixed 2026-11-09)
     // Assassinate's explicit current-health rule stays exact inside a formation.
     { const amb = stealth.ambush?.(a, t); if (amb) damage = Math.round(damage * amb); }   // a kunoichi's first hit from hiding (war checkpoint 7-5)
     if (kind !== 'assassinate') damage = Math.round(damage * stats.damageTaken(t));

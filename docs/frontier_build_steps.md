@@ -3064,7 +3064,13 @@ Checklist (2026-11-22):
   - Neither is on the morale bar. Both use the boatbuilder art. A ruined yard loses the ship it was building.
   - Ships train in the yard's queue like troops: ryo from the war chest, timber from the camp stock (slipway) or the town stock (shipyard), troop places as listed. A cancelled or unfinished ship gives its timber back. A finished ship comes out on the water beside its yard.
   - Repair: a ship stopped within 20 of its own built shipyard or slipway mends to full in 60 s, paused 10 s after it is hit or fires (from S4); no mending anywhere else. No new controls.
-- [ ] S4 Guns and hull: auto fire, damage row, stages, sinking, drowning and wash-up, pan or ping.
+- [x] S4 Guns and hull: auto fire, damage row, stages, sinking, drowning and wash-up, pan or ping.
+- S4 built 2026-11-23 (`render/ship_fx.js`, test_ship_guns; three new vfx particle shapes puff, tongue, shard):
+  - Guns fire on their own at war, never under a ceasefire or terms. Z (Stop) holds still and holds fire; any move or follow order lifts it.
+  - Warship broadside: 8 balls of 22.5 at one target within 32, every 15 s; enemy ships first, then siege guns, then buildings. Hulls and buildings take it x4 (siege); troops take half. Transport bow cannon: 1 ball of 90, same range, reload and targets. Warship deck Gatling: the land Gatling's fire at enemy troops within 13, troops only.
+  - Hull damage by attacker kind: siege guns, cannon towers and ship cannons x4; bombs x0.25; melee x0.02; ranged x0.01; Gatlings 0. Troops never chase a ship to melee it. Watchtowers shoot a ship only when nothing else is in range.
+  - Under half health a ship sails at half speed until repaired above half. Smoke under 66%, fire under 50%, a list under 15%. At 0 it sinks; news: your ship lost (minimap and big map ping unless the hero was aboard), or "Enemy warship sunk". Firing or being hit pauses dock repair for 10 s.
+  - Look: the broadside ripples bow to stern with a flame from each port and drifting powder smoke; hits throw splinters and smoke, misses a water spout and foam ring (dust on land). The transport fires one bow flash. The deck Gatling is drawn on the after deck. A listing ship leans, sits lower and churns foam with wreckage. Sounds: a rolling four-gun broadside, a single boom for the bow cannon. No new controls.
 - [ ] S5 Cannon tower: building, cap by tier, target order, morale weight, mender cap 4, general build lists.
 - [ ] S6 Landing helpers and effects: repair effect, pale shore line, anchor cursor, damage look, drowning and wash-up effects.
 - [ ] S7 War end: ships land hero and crew, sail off and fade.
