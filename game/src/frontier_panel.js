@@ -62,6 +62,12 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   // Tim 2026-11-07: Steer merged into Governor (his talk, focus, taxes, market, stockade and initiative on one tab)
   const TABS = [['town', 'Overview'], ['governor', 'Governor'], ['stable', 'Stable'], ['ship', 'Shipments']];   // Shipments: rail shipments S4 (Tim 2026-11-09)
   let selected = null, mode = 'town', tab = 'town', prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
+  // A press on the panel holds its redraw until the mouse is let go (2026-11-22: the once-a-second redraw swapped the
+  // button out from under a press and the click was lost, about one press in ten on the Workers view). Never over 2 s.
+  let pressedAt = 0;
+  const held = () => pressedAt > 0 && performance.now() - pressedAt < 2000;
+  globalThis.addEventListener?.('mouseup', () => { if (pressedAt) { pressedAt = 0; setTimeout(() => { if (!root.hidden) render(); }, 0); } });
+  globalThis.addEventListener?.('blur', () => { pressedAt = 0; });
   let govLog = false, glpage = 0;   // the governor's log: open view and its page
   if (typeof document !== 'undefined' && document.head) { const st = document.createElement('style'); st.textContent = LOG_CSS('#townpanel'); document.head.append(st); }
   const tips = bindTips(root); if (miniRoot) bindTips(miniRoot);
@@ -199,7 +205,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     document.body?.classList?.toggle('buildmode', !!on);
     if (!miniRoot) return;
     miniRoot.hidden = !on; root.style.display = on ? 'none' : '';
-    if (on) { const h = buildUI.miniHtml(s); if (h !== miniHtml) { miniRoot.innerHTML = h; miniHtml = h; afterRender(); } } else miniHtml = '';
+    if (on) { const h = buildUI.miniHtml(s); if (h !== miniHtml && !held()) { miniRoot.innerHTML = h; miniHtml = h; afterRender(); } } else miniHtml = '';
   }
   function render() {
     if (root.hidden) { showMini(false); return; }
@@ -297,10 +303,10 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const key = h + tab;
     if (['keepinput', 'shipinput', 'fundinput'].includes(document.activeElement?.dataset?.act) && root.contains(document.activeElement)) return;   // typing a keep level
     const pk = `${mode}|${tab}|${rosterOpen}|${usageResource}`; if (pk !== pageKey) { pageKey = pk; pageState.page = 0; }
-    if (key !== lastHtml) { root.innerHTML = h; lastHtml = key; paginate(); afterRender(); }
+    if (key !== lastHtml && !held()) { root.innerHTML = h; lastHtml = key; paginate(); afterRender(); }
   }
   if (miniRoot) {
-    miniRoot.addEventListener('mousedown', e => e.stopPropagation());
+    miniRoot.addEventListener('mousedown', e => { pressedAt = performance.now(); e.stopPropagation(); });
     miniRoot.addEventListener('click', e => {
       const b = e.target.closest('button[data-act]'), s = pick();
       if (b && s && buildUI?.click(b.dataset, s, e)) { lastHtml = ''; render(); b.blur?.(); }
@@ -309,7 +315,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   // Tim 2026-11-20: a click anywhere on a worker card selects it (not only the portrait); the group dropdown and buttons keep their own clicks
   const btnOf = e => e.target.closest('button[data-act]') || (e.target.closest('select, input, button, a') ? null : e.target.closest('.wcard')?.querySelector('button.wface'));
   root.addEventListener('mousedown', e => {
-    e.stopPropagation();
+    pressedAt = performance.now(); e.stopPropagation();
     // a typed Shipments amount counts before the button under the mouse is clicked (its change event would redraw the row first)
     const t = document.activeElement;
     if (t?.dataset?.act === 'shipinput' && t !== e.target && root.contains(t)) { shipTab.input(t.dataset, t.value, pick()); t.dataset.act = 'shipdone'; }
