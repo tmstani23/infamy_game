@@ -11,6 +11,7 @@ import { warUpgradeSeconds } from './sim/frontier/town_military.js';
 import { defaultKeep } from './sim/frontier/storage.js';
 import { workerCount } from './sim/frontier/people.js';
 import { createShipmentsTab } from './shipments_tab.js';
+import { createStableTab, STABLE_TAB_CSS } from './stable_tab.js';
 import { msPaginate, msConcept } from './menu_shell.js';
 import { sharedKeybinds } from './keybinds.js';
 import { logRowHtml, logPageHtml, logHover, logTurn, LOG_CSS } from './action_log_ui.js';   // governor's log (Tim 2026-11-22)
@@ -69,7 +70,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   globalThis.addEventListener?.('mouseup', () => { if (pressedAt) { pressedAt = 0; setTimeout(() => { if (!root.hidden) render(); }, 0); } });
   globalThis.addEventListener?.('blur', () => { pressedAt = 0; });
   let govLog = false, glpage = 0;   // the governor's log: open view and its page
-  if (typeof document !== 'undefined' && document.head) { const st = document.createElement('style'); st.textContent = LOG_CSS('#townpanel'); document.head.append(st); }
+  if (typeof document !== 'undefined' && document.head) { const st = document.createElement('style'); st.textContent = LOG_CSS('#townpanel'); document.head.append(st); const st2 = document.createElement('style'); st2.textContent = STABLE_TAB_CSS; document.head.append(st2); }
   const tips = bindTips(root); if (miniRoot) bindTips(miniRoot);
   // pages instead of a scrollbar (menu restyle, Tim 2026-11-10): the body splits by height, per tab
   const pageState = { page: 0 }; let pageKey = '';
@@ -118,6 +119,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     lastHtml = ''; render(); return true;
   }
   const shipTab = createShipmentsTab({ game, data, cmd, usage: resourceUsage });
+  const stableTab = createStableTab({ game, heroId, send, data, focus });   // Stable tab shows the stable itself (Tim 2026-11-23)
   const towns = () => ownTowns(game.state.frontier, clan);
   function pick() {
     const list = towns();
@@ -281,8 +283,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       // Tim 2026-11-05: every choice says what it does (hover) and the current one is spelled out under its row
       const b = (act, val, label, on, t = '') => `<button data-act="${act}" data-id="${val}" class="${on ? 'on' : ''}"${t ? tip(t) : ''}>${label}</button>`;
       projectsH = `<h1>${esc(rows.title)}</h1>` + h; h = '';
-      // Stable (Tim 2026-11-07): horses, rickshaws and omnibuses are bought in the stable menu (src/stable_menu.js)
-      if (hasStable) stableH = `<h1>${esc(rows.title)}</h1><div class="lab">Stable</div><div class="row"><span${tip('Horses, rickshaws and omnibuses are made at the stable: click it or Space beside it.')}>Horses and vehicles</span><span>${b('openstable', 'open', 'Open stable', false, 'Open the stable menu for this town')}</span></div>`;
+      if (hasStable) stableH = stableTab.html(s);   // Tim 2026-11-23: the whole stable in the tab (src/stable_tab.js)
     }
     if (mode === 'town' && tab !== 'governor') {
       // h now holds the steer section; pick the body of the current tab
@@ -299,7 +300,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h = rosterOpen ? build : build + h;
     }
     // Tim 2026-11-08: a close button on the panel itself (O and Esc still work)
-    h = CLOSE + tabsH + '<div class="pbody">' + h + (failure && Date.now() - failure.at < 5000 ? `<div class="why">${esc(failure.text)}</div>` : '') + '</div>';
+    h = CLOSE + tabsH + `<div class="pbody${mode === 'town' && tab === 'stable' && !rosterOpen ? ' stabbody' : ''}">` + h + (failure && Date.now() - failure.at < 5000 ? `<div class="why">${esc(failure.text)}</div>` : '') + '</div>';
     const key = h + tab;
     if (['keepinput', 'shipinput', 'fundinput'].includes(document.activeElement?.dataset?.act) && root.contains(document.activeElement)) return;   // typing a keep level
     const pk = `${mode}|${tab}|${rosterOpen}|${usageResource}`; if (pk !== pageKey) { pageKey = pk; pageState.page = 0; }
@@ -340,6 +341,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const s = pick(), id = b.dataset.id, sid = s?.id;
     if (s && buildUI?.click(b.dataset, s, e)) { lastHtml = ''; render(); b.blur?.(); return; }
     if (s && shipTab.click(b.dataset, s)) { lastHtml = ''; render(); b.blur?.(); return; }
+    if (s && stableTab.click(b.dataset, s)) { lastHtml = ''; render(); b.blur?.(); return; }
     if (b.dataset.act === 'talk') buildUI?.close();
     switch (b.dataset.act) {
       case 'usage': if(data && (data.resources.includes(id) || id==='housing')){usageResource=id;mode='usage';usagePage=0;buildUI?.close();}break;
