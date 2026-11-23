@@ -18,6 +18,11 @@ export const SPECIALS = {
   gatling: { name: 'Unload', targeted: true, has: u => !!u?.gatling, readyAt: e => e.gatReadyAt ?? 0 },   // sim/gatling.js (7-4, reworked Tim 2026-11-21)
   firebomb: { name: 'Fire bomb', targeted: true, has: u => !!u?.bomb, readyAt: e => e.bomb?.channel ? e.bomb.channel.until + 1 : e.bomb?.readyAt ?? 0 },   // sim/firebomb.js (7c-2)
   hamstring: { name: 'Slowing arrow', targeted: true, has: u => !!u?.projectile?.hamstring, readyAt: e => e.hamstringReadyAt ?? 0 },
+  // ships S8 (sim/frontier/boarding.js): a warship with troops aboard boards an enemy ship; while it goes or fights the
+  // same slot is Break off. Manual only. able: also needs someone aboard and no unloading
+  board: { name: 'Board', targeted: true, noAuto: true, has: (u, e) => !!e.ship && e.warUnit === 'warship' && !e.board, readyAt: e => e.boardReadyAt ?? 0,
+    able: (state, e) => !e.locked && !e.leave && e.sorder?.kind !== 'unload' && Object.values(state.entities).some(u => u.inShip === e.id && !u.dead) },
+  breakoff: { name: 'Break off', targeted: false, noAuto: true, has: (u, e) => !!e.ship && !!e.board && e.board.role !== 'd', readyAt: e => e.board?.offAt ?? 0 },
 };
 export function specialOf(units, e) {
   const u = units?.types?.[e?.type];
@@ -26,6 +31,7 @@ export function specialOf(units, e) {
   return null;
 }
 const usable = e => e && !e.dead && !e.downed && !e.jailed && !e.garrison && !e.aboard;
+const able = (S, state, e) => !S.able || S.able(state, e);
 // the wanted cast of a unit right now (or null); the ability modules call this
 export const castWanted = (state, e) => e?.castReq && e.castReq.until > (state.tick ?? 0) ? e.castReq : null;
 export const autoOn = e => e?.autoCast !== false;
@@ -46,7 +52,7 @@ export function specialCommand({ state, units }, hero, c) {
     const e = state.entities[id];
     if (!e || e.owner !== hero.owner || specialOf(units, e) !== c.ability) continue;
     if (typeof c.auto === 'boolean') { if (c.auto) delete e.autoCast; else e.autoCast = false; n++; continue; }
-    if (!usable(e) || S.readyAt(e) > now) continue;
+    if (!usable(e) || !able(S, state, e) || S.readyAt(e) > now) continue;
     if (S.targeted && !spot) continue;
     if (castWanted(state, e)) continue;   // already asked: the next press takes the next unit
     const d = spot ? Math.hypot(e.x - c.x, e.z - c.z) : n++;   // no spot: listed order
@@ -65,7 +71,7 @@ export function specialView({ state, units }, ability, ids) {
     const e = state.entities[id];
     if (!e || !usable(e) || specialOf(units, e) !== ability) continue;
     have++; if (autoOn(e)) auto++;
-    const at = S.readyAt(e);
+    const at = able(S, state, e) ? S.readyAt(e) : Infinity;
     if (at <= now) ready++; else next = Math.min(next, at);
   }
   return { have, ready, auto, nextReadyAt: ready || !have ? 0 : next };

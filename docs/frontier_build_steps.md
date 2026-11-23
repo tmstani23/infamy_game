@@ -3086,7 +3086,21 @@ Checklist (2026-11-22):
   - When a war ends its warships and transports stop firing, sail away from the town and fade, then leave the map; troops in a hold go with the ship. When only one side gives up, only its ships leave.
   - A ship with the hero or crew aboard first lands them (only they step off): the defender at its town's harbour (a river town: the shore nearest the hall), the attacker at the shore by its slipway, else nearest its camp hall. If it cannot reach the landing or has not landed them within 90 s, it leaves anyway and anyone still aboard is set ashore at the nearest landable shore.
   - Captured ships (S8) and fishing boats (S10) come later. No new controls.
-- [ ] S8 Boarding.
+- [x] S8 Boarding.
+- S8 built 2026-11-23 (`sim/frontier/boarding.js`, `render/board_fx.js`, `sim/frontier/ships.js`, `special_cast.js`; test_ship_boarding):
+  - Boarding is the warship's special: select ships, press the special key (Shift+Q by default), click an enemy ship. One press sends the nearest selected warship with troops aboard. Manual only, no auto toggle. A transport cannot board but can be boarded. An empty hold, a ship unloading or a ship leaving cannot board.
+  - The boarder sails alongside (a free side of the target) and must stay within reach for the grapple (4 s) before the fight starts. If it cannot catch the target within 45 s it gives up. Ships of one kind sail at the same speed, so only a slowed, stopped, unloading or docked ship can be caught.
+  - While they fight, both ships stop moving and firing. A bar over the ships shows both holds' strength (your side on the left) and "weakened" under the boarded ship when it is under half health.
+  - Strength of a fighter is his ryo cost (hero 400, crew 200). Each second each side takes 10% of its own current strength off the other; the weakest fighter falls first, damage carries over. Defenders on a ship under half health fight at 0.6. A defending warship's deck Gatling cuts 20% of the boarders before the fight.
+  - Fighters really die. The winner keeps its survivors and takes the ship with the damage it has; its sails and pennant turn to the new owner's clan colour. A hero or crew on the losing side wash ashore downed. A tie goes to the defender. Boarding an empty hold captures the ship at once.
+  - Break off: the same slot becomes Break off while boarding. Only the boarder can break off, after 3 s of fighting; it keeps who is left and cannot board again for 15 s. Before the fight starts it just stops.
+  - Others may shoot the locked ships, or join from the free side with their own hold.
+  - Hover label: with Board armed, hovering an enemy ship shows both holds' strength, "weakened" when it is under half health, a line when its deck Gatling will cut the boarders, and "No room alongside" when both sides are taken.
+  - A general boards only with 1.5 times the strength against a ship under half health (S9 wires the AI).
+  - Look: black grappling lines with small hooks, sparks, shots and smoke across the gap, small fighters (real unit sprites) on the boarded deck with a thin clan-colour outline, the bar. Clan-coloured sails and a pennant on every ship, muted painted tones.
+  - Broadside: the gun barrels run out of the painted gun ports first, then the broadside fires (runOutTicks 10, half a second) with a fiery, see-through flash and smoke at each port; the barrels kick back and haul in.
+  - Data: frontier.json war.ships.boarding (hero, crew, lossShare, grappleSeconds, reach, alongside, gatlingCut, weakDefender, breakOffSeconds, cooldownSeconds, generalEdge, chaseSeconds), war.ships.guns.broadside.runOutTicks. All placeholders, Tim to tune in play.
+  - No new keybind: Board and Break off use the existing special ability key on the ship button.
 - [ ] S9 AI general with ships.
 - [ ] S10 Fishing boats and Boathouse.
 - [ ] S11 Harbour travel.

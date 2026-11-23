@@ -26,26 +26,36 @@ const SPRAY = [[0.86, 0.91, 0.94], [0.72, 0.8, 0.86], [0.6, 0.7, 0.78]];
 const FIRE = [[0.79, 0.5, 0.24], [0.7, 0.38, 0.15], [0.88, 0.6, 0.3], [0.6, 0.3, 0.12]];   // dull ochre flames, not glow
 const WOOD = [[0.36, 0.24, 0.14], [0.27, 0.18, 0.1], [0.45, 0.32, 0.2]];
 // the hull as drawn (world units): half length of the gun deck, ports above the water, deck height, gun deck spot
+// the near hull's gun-port row in each of the 8 warship sprite rows, as a share of the frame: [u0, v0, u1, v1, bow at u0,
+// first port, port spacing] (the ports as shares along u0..u1; measured from the idle sheets; bow-on rows show no ports)
+const PORTS = [null, [0.374, 0.707, 0.753, 0.547, 1, 0.143, 0.098], [0.261, 0.648, 0.808, 0.647, 1, 0.11, 0.1], [0.317, 0.574, 0.696, 0.743, 1, 0.118, 0.1], null,
+  [0.302, 0.739, 0.667, 0.584, 0, 0.093, 0.1], [0.171, 0.642, 0.698, 0.647, 0, 0.15, 0.102], [0.283, 0.563, 0.678, 0.731, 0, 0.145, 0.099]];
 const HULL = { warship: { half: 4.4, port: 0.95, out: 1.15, deck: 2.1, gun: -2.9, ports: 8 }, transport: { half: 3.6, port: 1.1, out: 1, deck: 2, bow: 4.4 } };
 
 export function createShipFx({ scene, stages = {} }) {
   const glow = createParticles(scene, { max: 1600 }), soot = createParticles(scene, { max: 4000, additive: false }), cards = createCards(scene);
   const later = [];   // [{ at (s), fn }]
   let clock = 0;
-  const vg = new THREE.Vector3(VIEW_DIR.x, 0, VIEW_DIR.z).normalize();   // screen up on the ground
+  const vg = new THREE.Vector3(VIEW_DIR.x, 0, VIEW_DIR.z).normalize();   // on the ground, toward the camera (down the screen)
   const head = (h = 0) => [Math.sin(h), Math.cos(h)];
 
   // the spin that turns a tongue (it points up the screen at 0) to point along the ground direction (dx, dz)
   const turnTo = (dx, dz) => -Math.atan2(dx * CAM_RIGHT.x + dz * CAM_RIGHT.z, -(dx * vg.x + dz * vg.z));
 
-  // one gun port firing outward along (nx, nz): a flame tongue out of the port, then its own puff of powder smoke
+  // one gun port firing outward along (nx, nz): a quick spark burst out of the port, then its own puff of powder smoke
   function muzzle(x, y, z, nx, nz, big = 1, flash = 1) {
     const along = (sp, spread) => { const a = rand(-spread, spread); return [(nx * Math.cos(a) - nz * Math.sin(a)) * sp, (nz * Math.cos(a) + nx * Math.sin(a)) * sp]; };
     const rot = turnTo(nx, nz);
-    glow.emit({ x: x + nx * 0.4, y, z: z + nz * 0.4, vx: nx * 2, vz: nz * 2, life: 0.08, size: 1 * flash, grow: 0.5, color: FLAME[1], alpha: 0.7, shape: SHAPE.tongue, rot });
-    soot.emit({ x: x + nx * 0.5, y, z: z + nz * 0.5, vx: nx * 3, vz: nz * 3, life: 0.1, size: 0.85 * flash, grow: 0.6, color: FLAME[2], alpha: 0.9, shape: SHAPE.tongue, rot: rot + rand(-0.15, 0.15) });
-    for (const sd of [-1, 1]) soot.emit({ x: x + nx * 0.35, y, z: z + nz * 0.35, vx: nx * 2 - nz * sd * 2, vz: nz * 2 + nx * sd * 2, life: 0.07, size: 0.5 * flash, color: FLAME[3], alpha: 0.8, shape: SHAPE.tongue, rot: rot + sd * 0.9 });
-    for (let i = 0; i < 3; i++) soot.emit({ x: x + nx * 0.4, y: y + 0.05, z: z + nz * 0.4, vx: nx * rand(2, 5), vz: nz * rand(2, 5), life: rand(0.07, 0.12), size: rand(0.5, 0.8) * flash, grow: -0.3, color: FLAME[3], alpha: 0.8, shape: SHAPE.tongue, rot: rot + rand(-0.5, 0.5) });
+    // S8 (Tim 2026-11-23): sparky, not blobby: a small see-through glow core, a glint, and a spray of sparks thrown outboard
+    // Tim 2026-11-23 (later): a fiery burst you can see: a hot fireball punched outboard, flame tongues, then the sparks
+    glow.emit({ x: x + nx * 0.6, y: y + 0.05, z: z + nz * 0.6, vx: nx * 3, vz: nz * 3, life: 0.16, size: 1.5 * flash, grow: 0.9, color: FLAME[1], alpha: 0.7, shape: SHAPE.dot });
+    glow.emit({ x: x + nx * 0.35, y, z: z + nz * 0.35, life: 0.09, size: 0.9 * flash, grow: 0.4, color: FLAME[0], alpha: 0.8, shape: SHAPE.dot });
+    for (let i = 0; i < 3; i++) { const a = rand(-0.35, 0.35), tx = nx * Math.cos(a) - nz * Math.sin(a), tz = nz * Math.cos(a) + nx * Math.sin(a);
+      glow.emit({ x: x + tx * 0.7, y: y + rand(-0.05, 0.12), z: z + tz * 0.7, vx: tx * rand(3, 5), vz: tz * rand(3, 5), life: rand(0.1, 0.16), size: rand(1.1, 1.6) * flash, grow: 0.7, color: FLAME[1 + (i & 1)], alpha: 0.78, shape: SHAPE.tongue, rot: turnTo(tx, tz) }); }
+    for (let i = 0; i < 2; i++) soot.emit({ x: x + nx * rand(0.8, 1.3), y: y + 0.1, z: z + nz * rand(0.8, 1.3), vx: nx * 2, vz: nz * 2, vy: 0.4, drag: 2, life: rand(0.28, 0.4), size: rand(0.8, 1.1) * flash, grow: 1.2, color: [0.95, 0.52, 0.2], alpha: 0.55, shape: SHAPE.puff, rot: rand(-0.4, 0.4) });   // fire-lit smoke at the burst
+    glow.emit({ x: x + nx * 0.2, y, z: z + nz * 0.2, life: 0.06, size: 0.75 * flash, grow: 0.3, color: FLAME[0], alpha: 0.4, shape: SHAPE.sparkle, rot: rand(0, 3) });
+    for (let i = 0; i < Math.round(16 * flash); i++) { const [vx, vz] = along(rand(5, 12), 0.5);
+      glow.emit({ x: x + nx * 0.25, y: y + rand(-0.05, 0.1), z: z + nz * 0.25, vx, vz, vy: rand(-0.5, 2), gravity: 6, drag: 2.2, life: rand(0.12, 0.32), size: rand(0.05, 0.1), color: FLAME[1 + (i % 3 === 0 ? 1 : 0)], alpha: 0.7, shape: SHAPE.ember }); }
     const n = Math.round(rand(5, 8) * big);   // a cone punched outboard, then rising and shearing downwind
     for (let i = 0; i < n; i++) { const [vx, vz] = along(rand(3, 10), 0.28);
       soot.emit({ x: x + nx * rand(0.3, 0.7), y: y + rand(0.1, 0.4), z: z + nz * rand(0.3, 0.7), vx: vx + 1, vz: vz - 0.4, vy: rand(0.5, 1), gravity: -0.4, drag: 1.8, sway: 0.25,
@@ -79,10 +89,26 @@ export function createShipFx({ scene, stages = {} }) {
       later.push({ at: clock + delay(k) + (c.flightTicks ?? 10) / 20, fn: () => hit ? impact(x, c.key ? 1.2 : 1.4, z, !c.key) : c.key ? dust(x, z) : splash(x, z) });
     });
   }
+  // S8 (Tim 2026-11-23): the guns run out first (sim cast shipRunOut, runOutTicks before the shot), then the broadside fires;
+  // only on a side turned toward the camera
+  const RUN_OUT = 0.5;
+  function gunSide(c) {
+    const [hx, hz] = head(c.heading), side = Math.sign((c.tx - c.x) * hz - (c.tz - c.z) * hx) || 1, nx = hz * side, nz = -hx * side;
+    return { hx, hz, nx, nz, shown: nx * vg.x + nz * vg.z > -0.15, n: Math.min(HULL.warship.ports, Math.max(1, c.balls ?? 8)) };
+  }
+  function runOut(c) {
+    const { hx, hz, nx, nz, shown, n } = gunSide(c), H = HULL.warship; if (!shown || !c.a) return;
+    for (const b of barrels) if (b.id === c.a && !b.armed) b.fire = -99;   // an earlier run out that never fired: gone
+    for (let k = 0; k < n; k++) { const t = -H.half + (k + 0.5) * (2 * H.half / n);
+      barrel(c.a, (k + 0.5) / n, nx, nz, RUN_OUT + k * 0.06, c.x + hx * -t + nx * H.out, c.z + hz * -t + nz * H.out, false, k); }
+  }
   function broadside(c) {
-    const H = HULL.warship, [hx, hz] = head(c.heading), side = Math.sign((c.tx - c.x) * hz - (c.tz - c.z) * hx) || 1, nx = hz * side, nz = -hx * side;
-    const n = Math.min(H.ports, Math.max(1, c.balls ?? 8)), gap = 0.06;
+    const H = HULL.warship, { hx, hz, nx, nz, shown, n } = gunSide(c), gap = 0.06;
+    const ready = barrels.filter(b => b.id === c.a && !b.armed && clock - b.fire > -RUN_OUT - 0.4);
     for (let k = 0; k < n; k++) { const t = -H.half + (k + 0.5) * (2 * H.half / n), x = c.x + hx * -t + nx * H.out, z = c.z + hz * -t + nz * H.out;   // bow (front) first
+      const b = ready.find(r => r.k === k);
+      if (b) { b.armed = true; b.fire = clock + k * gap + rand(0, 0.02); b.wx = x; b.wz = z; continue; }   // run out already: it fires now
+      if (shown && c.a) { barrel(c.a, (k + 0.5) / n, nx, nz, k * gap + rand(0, 0.02), x, z, true, k); continue; }   // flashes from its painted port
       later.push({ at: clock + k * gap + rand(0, 0.02), fn: () => muzzle(x, H.port, z, nx, nz, 1) }); }
     landings(c, k => k * gap);
   }
@@ -90,6 +116,55 @@ export function createShipFx({ scene, stages = {} }) {
     const H = HULL.transport, [hx, hz] = head(c.heading), x = c.x + hx * H.bow, z = c.z + hz * H.bow, dx = c.tx - x, dz = c.tz - z, d = Math.hypot(dx, dz) || 1;
     muzzle(x, H.port + 0.3, z, dx / d, dz / d, 1.7, 1.1);
     landings(c, () => 0);
+  }
+  // a broadside gun at its port (S8, Tim 2026-11-23): short and dark, run out as it fires (under the flash), kicked back,
+  // run out again by its crew as the smoke clears, then hauled in
+  let barrelTex = null;
+  const barrelMap = () => barrelTex ||= (() => { const cv = document.createElement('canvas'); cv.width = 32; cv.height = 12; const g = cv.getContext('2d');
+    const q = g.createLinearGradient(0, 2, 0, 10); q.addColorStop(0, '#9a8c78'); q.addColorStop(0.35, '#3e3730'); q.addColorStop(1, '#14110e');
+    g.fillStyle = q; g.beginPath(); g.moveTo(2, 2.5); g.lineTo(26, 3.5); g.lineTo(26, 8.5); g.lineTo(2, 9.5); g.closePath(); g.fill();
+    g.fillStyle = '#0c0b0a'; g.fillRect(25, 2.5, 4, 7);   // the muzzle swell
+    g.fillStyle = '#050505'; g.beginPath(); g.ellipse(29, 6, 1.4, 2.4, 0, 0, Math.PI * 2); g.fill();   // the bore
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+  const barrels = [];
+  const dirOf = e => ((e.dir ?? 0) % 8 + 8) % 8;
+  const portAt = (s, e, f) => {   // the painted port a share f along the hull from the bow, on the ship's card
+    const P = PORTS[dirOf(e)], m = s.thing.mesh, cw = s.cellWorld ?? 16, k = Math.max(0, Math.min(7, Math.round(f * 8 - 0.5))), g = P[5] + P[6] * (P[4] ? k : 7 - k);   // the port of gun k, from the bow
+    const u = P[0] + (P[2] - P[0]) * g, v = P[1] + (P[3] - P[1]) * g;
+    return new THREE.Vector3().copy(m.position).addScaledVector(CAM_RIGHT, (u - 0.5) * cw).addScaledVector(CAM_UP, (0.5 - v) * cw);
+  };
+  function barrel(id, f, nx, nz, fireIn, wx, wz, armed = true, k = 0) {
+    const sx = nx * CAM_RIGHT.x + nz * CAM_RIGHT.z, sy = -(nx * vg.x + nz * vg.z) * Math.abs(CAM_UP.y), L = Math.hypot(sx, sy);   // on screen: toward the camera is down
+    const endOn = Math.abs(sx) < 0.35;   // pointing at the camera: only the muzzle shows
+    const map = barrelMap().clone(); map.needsUpdate = true;
+    const m = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false, depthTest: false, opacity: 0 }));
+    const rot = endOn ? 0 : Math.atan2(sy, sx), len = endOn ? 0 : 0.5 * Math.max(0.35, L);
+    m.material.rotation = rot; m.renderOrder = 99690; m.visible = !endOn; scene.add(m);   // seen end on, the painted port already shows the gun: only its flash
+    barrels.push({ m, id, f, nx, nz, endOn, len, dx: Math.cos(rot), dy: Math.sin(rot), fire: clock + fireIn, flashed: false, wx, wz, armed, k });
+  }
+  function barrelsUpdate(state, sprites) {
+    for (let i = barrels.length - 1; i >= 0; i--) { const b = barrels[i], f = clock - b.fire, e = state.entities[b.id], s = sprites.get(b.id);
+      if (!e || !s?.thing?.mesh || f > 2.1 || (!b.armed && f > 0.5) || !PORTS[dirOf(e)]) {   // bow on, no ports to show: the flash at the hull side
+        if (b.armed && !b.flashed && f < 2.1) later.push({ at: b.fire, fn: () => muzzle(b.wx, HULL.warship.port, b.wz, b.nx, b.nz, 1) }); scene.remove(b.m); b.m.material.map.dispose(); b.m.material.dispose(); barrels.splice(i, 1); continue; }
+      const p = portAt(s, e, b.f);
+      if (b.armed && f >= 0 && !b.flashed) { b.flashed = true; muzzle(p.x + b.nx * 0.1, p.y, p.z + b.nz * 0.1, b.nx, b.nz, 1); }
+      let out;   // how far it pokes out of the port, 0..1
+      if (f < -RUN_OUT) out = 0;
+      else if (f < 0) out = Math.min(1, (f + RUN_OUT) / 0.3);   // run out ahead of the shot
+      else if (!b.armed) out = Math.max(0, 1 - f / 0.5);   // never fired (lost its mark): hauled back in
+      else if (f < 0.08) out = 1;   // the shot, under the flash
+      else if (f < 0.2) out = 1 - (f - 0.08) / 0.12 * 0.3;   // a short kick back
+      else if (f < 0.45) out = 0.7 + (f - 0.2) / 0.25 * 0.3;   // and out again
+      else if (f < 1.4) out = 1;
+      else out = Math.max(0, 1 - (f - 1.4) / 0.5);   // hauled in
+      const ease = out * out * (3 - 2 * out);
+      if (b.endOn) { const r = 0.12 + 0.06 * ease; b.m.scale.set(r, r, 1); b.m.position.copy(p).addScaledVector(CAM_UP, -0.03 * ease); }
+      else {   // only the part outboard of the port shows: the muzzle end of the texture, as long as the gun is run out
+        const l = Math.max(0.02, b.len * ease); b.m.scale.set(l, 0.15, 1);
+        b.m.material.map.repeat.x = Math.max(0.05, ease); b.m.material.map.offset.x = 1 - Math.max(0.05, ease);
+        b.m.position.copy(p).addScaledVector(CAM_RIGHT, b.dx * l / 2).addScaledVector(CAM_UP, b.dy * l / 2); }
+      b.m.material.opacity = Math.min(0.9, ease * 4);
+    }
   }
   // the deck Gatling's shot: flash and tracer from the gun on the after deck, along its aim
   function deckShot(c) {
@@ -100,8 +175,9 @@ export function createShipFx({ scene, stages = {} }) {
     const a = rand(-0.05, 0.05), bx = fx * Math.cos(a) - fz * Math.sin(a), bz = fz * Math.cos(a) + fx * Math.sin(a), V = 70, reach = (c.reach ?? 12) + rand(-0.6, 0.8);
     for (let k = 0; k < 8; k++)   // the round: a streak, as the land Gatling's
       glow.emit({ x: mx - bx * k * 0.16, y: y - k * 0.005, z: mz - bz * k * 0.16, vx: bx * V, vz: bz * V, vy: -y / (reach / V) * 0.9, life: reach / V, size: 0.2 - k * 0.018, color: [1, 0.86 - k * 0.05, 0.55 - k * 0.05], alpha: 1 - k * 0.1, shape: SHAPE.dot });
-    later.push({ at: clock + reach / V, fn: () => { const ix = mx + bx * reach, iz = mz + bz * reach;   // a kick of dust at their feet
-      for (let i = 0; i < 3; i++) soot.emit({ x: ix + rand(-0.3, 0.3), y: 0.1, z: iz + rand(-0.3, 0.3), vx: rand(-0.5, 0.5), vz: rand(-0.5, 0.5), vy: rand(1, 2), gravity: 2, drag: 1.4, life: rand(0.5, 0.9), size: rand(0.4, 0.65), grow: 1.4, color: [0.66, 0.58, 0.45], alpha: 0.75, shape: SHAPE.puff, rot: rand(-1, 1) }); } });
+    later.push({ at: clock + reach / V, fn: () => { const ix = mx + bx * reach, iz = mz + bz * reach;
+      if (c.onDeck) { for (let i = 0; i < 3; i++) soot.emit({ x: ix + rand(-0.4, 0.4), y: H.deck + rand(0, 0.3), z: iz + rand(-0.4, 0.4), vx: rand(-1.6, 1.6), vz: rand(-1.6, 1.6), vy: rand(1, 2.4), gravity: 8, life: rand(0.35, 0.6), size: rand(0.07, 0.12), color: pick(WOOD), alpha: 0.9, shape: SHAPE.shard, spin: rand(-8, 8) }); return; }   // S8: rounds into the boarders' deck: splinters
+      for (let i = 0; i < 3; i++) soot.emit({ x: ix + rand(-0.3, 0.3), y: 0.1, z: iz + rand(-0.3, 0.3), vx: rand(-0.5, 0.5), vz: rand(-0.5, 0.5), vy: rand(1, 2), gravity: 2, drag: 1.4, life: rand(0.5, 0.9), size: rand(0.4, 0.65), grow: 1.4, color: [0.66, 0.58, 0.45], alpha: 0.75, shape: SHAPE.puff, rot: rand(-1, 1) }); } });   // a kick of dust at their feet
     soot.emit({ x: mx + rand(-0.2, 0.2), y: y + 0.05, z: mz + rand(-0.2, 0.2), vx: fx * 0.8 + 0.3, vz: fz * 0.8 - 0.1, vy: rand(0.2, 0.45), drag: 1.6, sway: 0.3, life: rand(1.6, 2.4), size: rand(0.2, 0.35), grow: 2.5, color: SMOKE[2], alpha: 0.38, shape: SHAPE.puff, spin: rand(-0.3, 0.3), rot: rand(-0.3, 0.3) });   // the burst's smoke hangs round the gun
   }
 
@@ -341,8 +417,10 @@ export function createShipFx({ scene, stages = {} }) {
   return {
     cast(c) {
       if (c.kind === 'shipBroadside') broadside(c);
+      else if (c.kind === 'shipRunOut') runOut(c);
       else if (c.kind === 'shipCannon') bow(c);
       else if (c.kind === 'gatlingShot' && c.deck) deckShot(c);
+      else if (c.kind === 'boardGatling') { const ang = Math.atan2(c.tz - c.z, c.tx - c.x); aims.set(c.a, ang); deckShot({ ...c, ang, reach: Math.max(2, Math.hypot(c.tx - c.x, c.tz - c.z) - 2.5), onDeck: true }); }   // S8: the deck Gatling sweeps the boarders
       else if (c.kind === 'shipSunk' && c.ashore && c.washed) wave(c);
     },
     update(state, sprites, dt, place) {
@@ -363,6 +441,7 @@ export function createShipFx({ scene, stages = {} }) {
       }
       for (const [id, m] of guns) if (!seen.has(id)) { scene.remove(m); m.material.dispose(); guns.delete(id); aims.delete(id); }
       for (const id of [...fires.keys()]) if (!seen.has(id)) fires.delete(id);
+      barrelsUpdate(state, sprites);
       foam.update(dt); lip.update(dt); deep.update(dt); sheet.update(dt); wreckA.update(dt); wreckB.update(dt); wreckC.update(dt); flatsUpdate(dt);
       for (const m of [taps, sunk, drown, washed]) for (const id of [...m.keys()]) if (!state.entities[id] || (m === taps && !state.entities[id].mending)) m.delete(id);
       glow.update(dt); soot.update(dt); cards.update(dt);

@@ -30,6 +30,7 @@ import { pointAt } from '../sim/frontier/rail_route.js';
 import { createFerryShips, seaSpot } from './ferry_ships.js';
 import { createShipMarks } from './ship_marks.js';
 import { createShipFx } from './ship_fx.js';
+import { createBoardFx } from './board_fx.js';
 import { createShoreLine } from './shore_line.js';   // ships S6b
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
@@ -134,6 +135,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // the ships at the city pier and the castle docks, and the one at sea (Z7, render/ferry_ships.js); ships = { bp, rules }
   const shipMarks = createShipMarks({ scene, types: units?.types, holdOf: e => e.hold ?? 0 });
   const shoreLine = world && shore ? createShoreLine({ scene, world }) : null;   // ships S6b: the landable shore while your people are afloat (src/landing_shore.js)
+  const boardFx = createBoardFx({ scene, figureSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh); return s; } });   // boarding: grappling lines, deck fight, its bar, clan sails and pennants (ships S8)
   const shipFx = createShipFx({ scene });   // ship guns and hull damage (ships S4)   // war ships: ring, plate, wake (ships S2)
   const ferryShips = worldGround && ships ? createFerryShips({ scene, ...ships, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
@@ -530,6 +532,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     shipMarks.update(state, sprites, { colourOf: e => TEAM[teamOf(e, state.entities[followId])], enemyOf: e => teamOf(e, state.entities[followId]) === 'enemy', own: e => e.owner === state.entities[followId]?.owner }, selected, fdt);
     shoreLine?.update(shore, fdt, cameraPlace(state.entities[followId]) === 'world');
     shipFx.update(state, sprites, fdt, cameraPlace(state.entities[followId]));   // after the sprites: a listing hull sits lower
+    boardFx.update(state, sprites, fdt, cameraPlace(state.entities[followId]), state.entities[followId]?.owner);
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);
     if (state.entities[followId]) markCrewDoors(rings, state, state.entities[followId].owner);
@@ -595,10 +598,11 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let hallChannelOf = () => null;   // main.js: the running hall channel of a war (sim/frontier/war_end.js view)
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null, hallChannelOf: id => hallChannelOf(id),
     unitToScreen: (x, z, y = 0.9) => { v.set(x, y + groundY(x, z), z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
-  function addCasts(casts) {
+  function addCasts(casts, castState) {
     for (const c of casts) {
       abilityFx.cast(c);
       shipFx.cast(c);   // broadsides, bow cannon, deck Gatling (ships S4)
+      boardFx.cast(c, castState, sprites);   // grapple, break off, capture (ships S8)
       if (c.ryo) abilityFx.coins(c.x, c.z);   // c.ryo: an execute that paid ryo
       // crew sent onto the boss's horse (sim/mounts.js): she shies sideways, a red ring, and a cross with the reason
       if (c.kind === 'refuseMount') { const s = sprites.get(c.a); if (s) { s.lean = 1; s.leanX = 1; s.leanZ = -0.4; } hitFx.refuse(c.x, c.z, c.text || "The boss's horse"); }

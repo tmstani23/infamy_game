@@ -24,6 +24,8 @@ const ICONS = {
   hamstring: svg('<path d="M4 20L18 6M18 6h-5M18 6v5"/><path d="M5 15l4 4"/>'),
   gatling: svg('<circle cx="7" cy="15" r="4"/><path d="M9 12l11-5M10 14l11-5M20 7v2"/>'),
   dogs: svg('<path d="M4 9l3-3 2 3h6l3-3 2 3v5a6 6 0 0 1-6 5h-4a6 6 0 0 1-6-5V9z"/><path d="M9.500 13h.010M14.500 13h.010M11 16.500h2"/>'),
+  board: svg('<path d="M12 3v13"/><path d="M5.500 9.500c0 4 3 6.500 6.500 6.500s6.500-2.500 6.500-6.500"/><path d="M5.500 9.500L4 11.500M18.500 9.500l1.500 2"/><path d="M9.500 5.500h5"/><path d="M12 16c0 2 1.500 3.500 4 4.500"/>'),   // ships S8: a grappling hook
+  breakoff: svg('<path d="M3 12h6.500M14.500 12H21"/><path d="M9.500 12c.800-1.200 1.500-1.200 2.500 0M12 12c1 1.200 1.700 1.200 2.500 0"/><path d="M8 6l8 12"/>'),   // a cut line
 };
 export const ABOUT = {
   charm: 'Then left-click near an enemy. The nearest ready geisha charms the enemy closest to the click. An enemy already charmed is skipped.',
@@ -32,6 +34,8 @@ export const ABOUT = {
   firebomb: 'Then left-click an enemy building or the ground near enemies, within his throw. The nearest ready fire-bomb thrower winds up; a ring on the ground shows where the bomb will land. It hits every enemy in the ring hard and sets a wooden building on fire; stone takes less and does not burn. A stagger, stun or knockdown breaks the wind-up. Long cooldown. His normal attack is a weak knife.',
   hamstring: 'Then left-click near an enemy. The nearest ready archer shoots a slowing arrow at the enemy closest to the click.',
   gatling: 'A cone shows where the nearest ready Gatling crew will fire; left-click to fire there. The gun stops, spins up and empties itself into the cone for a few seconds at extra damage, hitting every enemy in it. Any move order ends it. On auto it unloads into a packed group.',
+  board: 'Then left-click an enemy ship. The nearest selected warship with troops aboard sails alongside and grapples for a few seconds; if the enemy ship gets out of reach the grapple fails. Then both ships stop moving and firing while the holds fight, a bar over them showing both sides. Fighters fall one by one until one hold is empty: the strength of a fighter is what he costs, so the stronger hold wins. Defenders on a ship under half health fight at a penalty, so shell it first. A defending warship\'s deck Gatling cuts down part of the boarding party as it comes over. Win and the ship is yours, with the damage it has. An empty hold is taken at once. Another ship can join from the free side. Transports cannot board but can be boarded.',
+  breakoff: 'The boarding warship nearest the pointer breaks off and keeps who is left. Only after a few seconds of fighting; then it cannot board again for a while.',
   dogs: 'Then left-click near an enemy. The nearest ready dog handler looses his dogs at the enemy closest to the click: they bite for heavy damage and knock it down for a moment. On auto he sends them at ranged or fleeing enemies.',
 };
 // the specials' keys, left to right: Shift + the main bar's ability keys
@@ -128,7 +132,7 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
       set(s.count, a.special ? `${v.ready}/${v.have}` : `${v.have}`);
       const cooling = !v.ready;
       s.b.classList.toggle('cooling', cooling);
-      set(s.secs, cooling ? `${Math.max(1, Math.ceil((v.nextReadyAt - (game.state.tick ?? 0)) / tickRate))}` : '');
+      set(s.secs, cooling && Number.isFinite(v.nextReadyAt) ? `${Math.max(1, Math.ceil((v.nextReadyAt - (game.state.tick ?? 0)) / tickRate))}` : '');   // not able at all (Board with an empty hold): grey, no count
       const auto = !!a.auto && v.auto > 0;
       s.b.classList.toggle('auto', auto); s.auto.hidden = !auto;
       s.b.classList.toggle('armed', crewInput.targetArmed() === a.id);
@@ -143,7 +147,28 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
   coneSvg.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:4';
   const conePath = document.createElementNS(NS, 'path'); conePath.setAttribute('fill', 'rgba(255,214,150,0.18)'); conePath.setAttribute('stroke', 'rgba(255,224,170,0.75)'); conePath.setAttribute('stroke-width', '1.5'); conePath.setAttribute('stroke-dasharray', '6 4');
   coneSvg.appendChild(conePath); document.body.appendChild(coneSvg); coneSvg.style.display = 'none';
+  // Board (ships S8): while it waits for its click, over an enemy ship a label with both holds' strength (the ship that
+  // would go: the ready selected warship nearest it) and weakened when it is under half health
+  const boardTip = el('div', 'tip boardtip', document.body); boardTip.hidden = true;
+  boardTip.style.width = 'auto'; boardTip.style.pointerEvents = 'none';
+  function boardPreview(mouse) {
+    const B = game.ships?.boarding, p = crewInput.targetArmed() === 'board' && mouse && B ? view.screenToGround(mouse.x, mouse.y) : null, h = hero();
+    if (!p || !h) { boardTip.hidden = true; return; }
+    let t = null, td = Infinity;
+    for (const e of Object.values(game.state.entities)) { if (!e.ship || e.dead || e.owner === h.owner) continue; const d = Math.hypot(e.x - p.x, e.z - p.z) - (units?.types?.[e.type]?.radius ?? 4); if (d < 6 && d < td) { td = d; t = e; } }
+    let html = 'Click an enemy ship';
+    if (t) {
+      const now = game.state.tick ?? 0; let s = null, sd = Infinity;
+      for (const id of picked().units) { const e = game.state.entities[id]; if (!e?.ship || !B.canBoard(e) || (e.boardReadyAt ?? 0) > now) continue; const d = Math.hypot(e.x - t.x, e.z - t.z); if (d < sd) { sd = d; s = e; } }
+      const v = B.preview(s, t);
+      html = v ? `<div><span>Your hold</span>${v.ours}</div><div><span>Their hold</span>${v.theirs}</div>${v.weakened ? '<div><span>Their ship</span><b style="color:#f0a488;font-size:12px">weakened</b></div>' : ''}${v.gatling ? '<p style="color:#e8a07a">Their deck Gatling cuts your party as it boards</p>' : ''}${v.room ? '' : '<p>No room alongside</p>'}` : html;
+    }
+    if (boardTip.innerHTML !== html) boardTip.innerHTML = html;
+    boardTip.style.left = `${Math.min(innerWidth - 200, mouse.x + 18)}px`; boardTip.style.top = `${mouse.y + 18}px`; boardTip.style.bottom = 'auto';
+    boardTip.hidden = false;
+  }
   function aimPreview(mouse) {
+    boardPreview(mouse);
     let gun = null;
     const p = crewInput.targetArmed() === 'gatling' && mouse ? view.screenToGround(mouse.x, mouse.y) : null;
     if (p) { const now = game.state.tick ?? 0; let bd = Infinity;

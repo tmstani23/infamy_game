@@ -141,6 +141,9 @@ uniform float uClipSlope;    // screen slope of the wall's foot
 uniform vec4 uFogAt;         // w > 0: darken by the fog of war at ground point xy (scenery)
 uniform vec4 uSea;           // w > 0: a waterline through xyz (ships S6: a ship going under, a man drowning); w = the wet band
 uniform float uSeaSlope;     // its slope on screen
+uniform vec4 uFill;          // ships S8: w > 0: a flat silhouette in rgb at alpha x w (the boarding fighters' clan outline)
+uniform vec4 uSail;          // ships S8: w > 0: the sails take the clan's colour (rgb: a tint, kept to the cloth's own brightness)
+uniform vec4 uSailKey;       // which pixels are sail cloth: blue over red from x to y, brightness from z to w
 varying vec2 vUv;
 varying vec3 vWorld;
 void main() {
@@ -163,6 +166,13 @@ void main() {
     veilEdge = max(0.0, t.a - inner) * (0.35 + 0.65 * veilRipple);
   }
   t.rgb *= uTint;
+  if (uSail.w > 0.0) {
+    float l = dot(t.rgb, vec3(0.3, 0.59, 0.11));
+    float k = smoothstep(uSailKey.x, uSailKey.y, t.b / max(t.r, 0.004)) * smoothstep(uSailKey.z, uSailKey.w, l);
+    vec3 c2 = t.rgb * uSail.rgb;
+    c2 *= l * 0.9 / max(dot(c2, vec3(0.3, 0.59, 0.11)), 0.004);
+    t.rgb = mix(t.rgb, c2, k * uSail.w);
+  }
   float edge = 0.0;
   if (uClip.w > 0.0) {
     vec3 s = vWorld - uClip.xyz;
@@ -191,6 +201,7 @@ void main() {
   }
   if (uFogAt.w > 0.0) c = fogged(c, uFogAt.xy);
   if (wet > 0.0) { c = mix(c, vec3(0.08, 0.16, 0.24), wet * 0.7); }   // dark and wet just above the waterline
+  if (uFill.w > 0.0) { c = uFill.rgb; a *= uFill.w; }
   gl_FragColor = vec4(mix(c, vec3(1.0, 0.97, 0.9), uFlash), a);
 }`;
 
@@ -378,6 +389,9 @@ export function spriteMaterial(map, extra = {}, packed = false) {
       uFogAt: { value: new THREE.Vector4(0, 0, 0, 0) },
       uSea: { value: new THREE.Vector4(0, 0, 0, 0) },
       uSeaSlope: { value: 0 },
+      uFill: { value: new THREE.Vector4(0, 0, 0, 0) },
+      uSail: { value: new THREE.Vector4(1, 1, 1, 0) },
+      uSailKey: { value: new THREE.Vector4(0.6, 0.68, 0.3, 0.42) },
       ...extra,
     },
     vertexShader: SPRITE_VERT,
