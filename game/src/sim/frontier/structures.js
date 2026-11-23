@@ -596,6 +596,48 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
   }
 
+  // ---- cannon tower fire (ships S5): a built cannon tower fires one ball every fire.everyTicks at the nearest enemy in
+  // range of the kinds in fire.first (ship, siege), else the nearest enemy troop. The ball flies as a state.projectiles
+  // cannonball (tower: true, drawing only); frontier.cannonShots holds the hit until it lands, through the game's hit():
+  // a ship's hull takes it times the siege factor (sim/frontier/ships.js hullKind: siegeTower), a siege gun takes it
+  // whole, a troop fire.unitShare of it.
+  function cannonTowers() {
+    const C = data.war?.buildings?.cannon_tower?.fire, now = state.tick ?? 0, fr = f();
+    if (!C || !rt?.hit) return;
+    for (const shot of fr.cannonShots || []) {
+      if (shot.until > now) continue;
+      const t = state.entities[shot.t];
+      if (!t || t.dead || t.downed || t.jailed || t.garrison || t.aboard || t.place !== 'world') continue;
+      const big = t.ship || rt.unitOf?.(t)?.siege;
+      rt.hit({ id: `ctower:${shot.key}`, type: 'cannon_field', owner: shot.by, x: shot.x, z: shot.z, place: 'world', dir: 0, model: 'cannon_field', tower: true, siegeTower: true }, t, big ? shot.damage : shot.damage * (C.unitShare ?? 0.5), false, 'cannon');
+    }
+    if (fr.cannonShots) { fr.cannonShots = fr.cannonShots.filter(s => s.until > now); if (!fr.cannonShots.length) delete fr.cannonShots; }
+    if (now % 5 !== 2) return;
+    const first = C.first || ['ship', 'siege'], kindOf = e => e.ship ? 'ship' : rt.unitOf?.(e)?.siege ? 'siege' : 'troop';
+    for (const w of war.active()) {
+      if (w.terms) continue;   // a ceasefire: guns hold fire
+      const sides = [[campList(w), w.attacker, w.defender], [townList(town(w.town)), w.defender, w.attacker]];
+      for (const [l, mine, foe] of sides) for (const st of l) {
+        if (st.type !== 'cannon_tower' || hpOf(st) <= 0 || st.b?.stage === 'ruined' || (st.b.shotAt ?? -Infinity) + (C.everyTicks ?? 100) > now) continue;
+        let best = null, bd = Infinity, bp = Infinity;
+        const range = C.range ?? 32, from = { x: st.x, z: st.z, place: 'world' };
+        for (const e of Object.values(state.entities)) {
+          if (e.owner !== foe || e.place !== 'world' || e.dead || e.downed || e.jailed || e.garrison || e.aboard || e.type === 'civilian' || e.type === 'horse' || e.guide) continue;
+          const d = (e.x - st.x) ** 2 + (e.z - st.z) ** 2, r = range * (rt?.rangeScale?.(from, e) ?? 1);
+          if (d >= r * r) continue;
+          const p = first.indexOf(kindOf(e)), pr = p < 0 ? first.length : p;   // ships and siege guns first
+          if (pr < bp || (pr === bp && (d < bd || (d === bd && best && e.id < best.id)))) { bp = pr; bd = d; best = e; }
+        }
+        if (!best) continue;
+        st.b.shotAt = now;
+        const dist = Math.sqrt(bd), ux = (best.x - st.x) / (dist || 1), uz = (best.z - st.z) / (dist || 1), flight = Math.max(2, Math.ceil(dist / (C.speed ?? 52) * 20));
+        (fr.cannonShots ||= []).push({ key: st.key, by: mine, t: best.id, x: st.x, z: st.z, until: now + flight, damage: C.damage ?? 40 });
+        (state.projectiles ||= []).push({ kind: 'cannonball', tower: true, a: `ctower:${st.key}`, t: best.id, x: st.x + ux * 2, z: st.z + uz * 2, tx: best.x, tz: best.z, place: 'world', at: now, until: now + flight, damage: 0 });
+        (state.casts ||= []).push({ kind: 'cannonFire', tower: true, a: `ctower:${st.key}`, x: st.x + ux * 0.6, z: st.z + uz * 0.6, place: 'world', dir: rt.dirIndex ? rt.dirIndex(ux, uz) : 0 });
+      }
+    }
+  }
+
   // Tim 2026-11-13: troops shot from a garrisoned house fight back at the house (they cannot reach the shooters inside).
   // The one hit and its idle mates within 8 (no order, a finished move or an attack-move, no live fight) get a raze
   // order on it; not the hero (the player steers him), workers, gatling crews or anyone already busy.
@@ -675,7 +717,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   }
   const siteOf = (s, p) => (p.replaces && (s.buildings || []).find(b => b.id === p.replaces)) || p;   // a rebuild covers the ruin's cells
   function projectKeyAt(s, cell) { const p = (s?.projects || []).find(x => x.authorized && cellsOf(siteOf(s, x)).includes(cell)); return p ? `p|${s.id}|${p.id}` : null; }
-  const siteCap = (s, key) => townProject(s, key) ? data.rates?.maxBuilders ?? 4 : Infinity;
+  const siteCap = (s, key) => townProject(s, key) ? data.rates?.maxBuilders ?? 4 : data.war?.buildings?.[ownSt(s, key)?.type]?.menders ?? Infinity;   // ships S5: at most menders workers on one cannon tower
   function workTarget(s, key) {
     const tp = townProject(s, key);
     if (tp) return tp.progress < tp.need ? ruinSpot(s, siteOf(s, tp)) : null;
@@ -767,6 +809,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     const fr = f(); if (!fr || !R()) return;
     if ((state.tick ?? 0) % 20 === 7) botDouse();
     towers();
+    cannonTowers();   // ships S5
     garrisonFire();
     shelterTick();
     shotsTick();

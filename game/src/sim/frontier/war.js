@@ -324,7 +324,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // what a building type still needs before it can be placed: [] when nothing
   function missing(camp, type) {
     const out = [];
-    for (const n of BD()[type]?.needs || []) {
+    for (const n of BD()[type]?.campNeeds ?? BD()[type]?.needs ?? []) {   // ships S5: campNeeds, what a camp needs when it differs from a town (the cannon tower: nothing)
       if (n === 'upgrade' || n === 'tier2') { if (!upgraded(camp)) out.push('the camp hall upgrade'); }   // tier2: a camp has no tiers, the hall upgrade stands in (Tim 2026-11-15)
       else if (!builtCount(camp, n)) out.push(`a built ${nice(n)}`);
     }

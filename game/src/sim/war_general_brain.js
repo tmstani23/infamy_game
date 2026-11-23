@@ -464,7 +464,7 @@ export function createGeneralBrain(game, { clan }) {
         .sort((a, b) => dist(a, hall) - dist(b, hall) || (a.id < b.id ? -1 : 1)).slice(0, 4);
       for (const sp of spots) for (const r of [22, 32, 42]) for (let k = 0; k < 8; k++) { const a = Math.atan2(hall.z - sp.z, hall.x - sp.x) + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 4; tries.push([sp.x + Math.cos(a) * r, sp.z + Math.sin(a) * r]); }
     }
-    const front = ['barracks', 'watchtower', 'rifle_range', 'clan_hall', 'stockade'].includes(type), a0 = front ? toTown : toTown + Math.PI;
+    const front = ['barracks', 'watchtower', 'cannon_tower', 'rifle_range', 'clan_hall', 'stockade'].includes(type), a0 = front ? toTown : toTown + Math.PI;
     for (let r = 26; r <= (W().chainDistance ?? 120) - 6; r += 14) for (let k = 0; k < 12; k++) { const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 6; tries.push([hall.x + Math.cos(a) * r, hall.z + Math.sin(a) * r]); }
     for (const [x, z] of tries) { const r = War.campCheck(w.id, type, { x, z }); if (r?.ok) return { x: Math.round(x), z: Math.round(z) }; }
     return null;
@@ -634,7 +634,7 @@ export function createGeneralBrain(game, { clan }) {
         continue;
       }
       if (kind === 'wall') continue;   // walls and gates are broken only to get in (wayIn)
-      const st = near(list.filter(x => kind === 'station' ? x.type === 'station' : kind === 'tower' ? x.type === 'watchtower' : kind === 'wall' ? x.kind === 'wall' || x.kind === 'gate' : kind === 'hall' ? x.type === 'town_hall' : x.military && x.kind === 'building' && !isFort(x)));
+      const st = near(list.filter(x => kind === 'station' ? x.type === 'station' : kind === 'tower' ? x.type === 'watchtower' || x.type === 'cannon_tower' : kind === 'wall' ? x.kind === 'wall' || x.kind === 'gate' : kind === 'hall' ? x.type === 'town_hall' : x.military && x.kind === 'building' && !isFort(x)));
       if (st) return { st };
     }
     // whatever else still holds the town's morale up (a stable, an infirmary); the stockades last of all (8d-9)

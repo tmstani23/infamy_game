@@ -3071,7 +3071,12 @@ Checklist (2026-11-22):
   - Hull damage by attacker kind: siege guns, cannon towers and ship cannons x4; bombs x0.25; melee x0.02; ranged x0.01; Gatlings 0. Troops never chase a ship to melee it. Watchtowers shoot a ship only when nothing else is in range.
   - Under half health a ship sails at half speed until repaired above half. Smoke under 66%, fire under 50%, a list under 15%. At 0 it sinks; news: your ship lost (minimap and big map ping unless the hero was aboard), or "Enemy warship sunk". Firing or being hit pauses dock repair for 10 s.
   - Look: the broadside ripples bow to stern with a flame from each port and drifting powder smoke; hits throw splinters and smoke, misses a water spout and foam ring (dust on land). The transport fires one bow flash. The deck Gatling is drawn on the after deck. A listing ship leans, sits lower and churns foam with wreckage. Sounds: a rolling four-gun broadside, a single boom for the bow cannon. No new controls.
-- [ ] S5 Cannon tower: building, cap by tier, target order, morale weight, mender cap 4, general build lists.
+- [x] S5 Cannon tower: building, cap by tier, target order, morale weight, mender cap 4, general build lists.
+- S5 built 2026-11-23 (cannon tower in `sim/frontier/structures.js`; test_cannon_tower):
+  - A military building for all clans, in towns and war camps, inland too; cannon battery art. Cost 120 timber, 160 stone. A town needs the town hall war upgrade, then may have 1, 2 or 4 by hall tier (Camp, Village, Town); a war camp needs no upgrade: 1, and 2 after the camp hall upgrade.
+  - Health 6000 in a town, 3000 in a camp. On the morale bar (weight 5). At most 4 workers mend one at a time; other buildings have no cap.
+  - Fire: one ball every 5 s at the nearest enemy within 32; ships and siege guns first, even with troops nearer. A ball does 40: a hull takes it x4 (one tower sinks a warship in about 60 s), a siege gun whole, a troop half. No fire under a ceasefire. Shot uses the field cannon's flash and boom without the camera kick.
+  - The general builds it in each strategy's town list after the war upgrade and in the build tail after its lists (towns and camps); a camp puts it on the town side; an army counts it as a tower target. No new controls.
 - [ ] S6 Landing helpers and effects: repair effect, pale shore line, anchor cursor, damage look, drowning and wash-up effects.
 - [ ] S7 War end: ships land hero and crew, sail off and fade.
 - [ ] S8 Boarding.

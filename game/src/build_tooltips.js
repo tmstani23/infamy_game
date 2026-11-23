@@ -19,6 +19,7 @@ export const BUILD_DETAILS={
   barracks:['Military: trains grunts, spearmen, brutes and enforcers while a war is on this town.','Counts on the town morale bar in a war.'],
   supply_tents:['Military: raises the town troop cap in a war.','Counts toward the troop cap while built.'],
   watchtower:['Military: shoots at enemy troops in a war, lets you see round it and spots hidden units.','Counts on the town morale bar in a war.'],
+  cannon_tower:['Military: a gun battery. In a war it fires at enemy ships and siege guns first, then at troops.','Needs the town hall war upgrade. More with each town hall tier. Counts on the town morale bar.'],
   rifle_range:['Military: trains archers and riflemen while a war is on this town.','Needed for the clan hall.'],
   field_clinic:['Military: your troops near it recover faster in a war.',''],
   clan_hall:['Military: trains your clan special units while a war is on this town.','Needed for the kennel or hidden dojo.'],

@@ -17,6 +17,7 @@ export const MAJOR_BUILDINGS = {
   barracks: ['B', 'Barracks', true],
   armory: ['A', 'Armory', true],
   watchtower: ['W', 'Watchtower', true],
+  cannon_tower: ['Ct', 'Cannon tower', true],   // ships S5
   rifle_range: ['Ri', 'Rifle range', true],
   supply_tents: ['Su', 'Supply tents', true],
   field_clinic: ['Fi', 'Field clinic', true],

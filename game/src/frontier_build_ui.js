@@ -21,7 +21,7 @@ import { msArt, msConcept } from './menu_shell.js';
 import { workerCap } from './sim/frontier/tiers.js';
 import { shapeOf, stationParts } from './sim/frontier/station_layout.js';
 import { sharedKeybinds } from './keybinds.js';
-import { isMilitary, militaryFor, militaryNeeds, militaryCount, tierMax, townMilitaryTier } from './sim/frontier/town_military.js';
+import { isMilitary, militaryFor, militaryNeeds, militaryCount, tierMax, townMilitaryTier, townTierFor } from './sim/frontier/town_military.js';
 import { openMenu, placeBeside, unplace } from './card_beside.js';
 import { tiredCamps } from './tired_camps.js';
 import { campLoad, spotCounts } from './sim/frontier/camp_load.js';
@@ -801,7 +801,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     // Tim 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
     const capOf = id => {
       // 8b-1: a military building shows used / the war limit, greyed with what it still needs
-      if (isMilitary(id, data)) { const max = tierMax(data.war?.buildings?.[id], 'town', townMilitaryTier(s)), need = militaryNeeds(s, id, data); if (!max && !need.length) return null;
+      if (isMilitary(id, data)) { const max = tierMax(data.war?.buildings?.[id], 'town', townTierFor(s, data.war?.buildings?.[id])), need = militaryNeeds(s, id, data); if (!max && !need.length) return null;
         return { max: max ?? Infinity, used: militaryCount(s, id), locked: need.length > 0, unlock: need.includes('the town hall war upgrade') ? 'War upgrade' : need.length ? 'Needs ' + need[0].replace(/^a built /, '') : '' }; }
       const g = placedGroup(id, data), max = tierOf(s, data)?.placed?.[g]; if (max === undefined) return null;
       const used = placedCount(s, id, data), next = (data.tiers?.list || []).find(t => (t.placed?.[g] ?? 0) > 0);

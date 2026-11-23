@@ -603,7 +603,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (c.kind === 'dynamiteBlast' && (c.place || 'street') === heroPlace) railBlastFx.blast(c.x, c.z, 0, { scale: 0.38, shake: false });
       if (c.kind === 'chestCashed' && heroPlace === 'world') chestCashFx.cash(c);   // Tim 2026-11-21: the stolen loot flies into the hall
       if (c.kind === 'railBlast' && railBlastFx) { railBlastFx.blast(c.x, c.z, c.heading || 0); railShakeK = Math.max(0, 1 - Math.hypot(c.x - camTarget.x, c.z - camTarget.z) / 45); }   // train robbery: the charge goes off
-      if (c.kind === 'cannonFire') { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
+      if (c.kind === 'cannonFire' && !c.tower) { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
       if (c.kind === 'assassinate') { shakeT = 0.26; shakeAmp = 0.2; freezeT = Math.max(freezeT, 0.1); }   // the vicious flash hits hard
       if (c.kind === 'shadowstep' && c.crit) { shakeT = 0.24; shakeAmp = 0.18; freezeT = Math.max(freezeT, 0.08); }   // a tiny pause so it lands hard (Shadow Step crit slash)
     }
