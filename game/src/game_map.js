@@ -261,7 +261,7 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
     if (!ledgerEl) { ledgerEl = document.createElement('div'); ledgerEl.id = 'railledger'; ledgerEl.hidden = true; root.append(ledgerEl);
       ledgerEl.addEventListener('mousedown', e => e.stopPropagation());
       ledgerEl.addEventListener('click', e => { const b = e.target.closest('button[data-ledger]'); if (!b) return; const id = b.dataset.ledger;
-        if (id === 'close') { ledgerOpen = false; drawWorldSide(); } else ledger.click(id); ledgerHtml = ''; drawLedger(); worldMap?.invalidate(); b.blur(); }); }
+        if (id === 'close') { ledgerOpen = false; drawWorldSide(); } else { const r = ledger.click(id); if (r?.cancel) send({ id: heroId, type: 'frontier', action: 'ship', mode: 'cancel', order: r.cancel }); } ledgerHtml = ''; drawLedger(); worldMap?.invalidate(); b.blur(); }); }
     ledgerEl.hidden = !(ledgerOpen && tab === 'world' && isOpen());
     if (ledgerEl.hidden) return;
     // Tim 2026-11-09: sit below the map's layer buttons, not over them

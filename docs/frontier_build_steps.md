@@ -3159,7 +3159,7 @@ approach on water, so they also run when nobody is watching. Because the
 - Rail clerk: auto orders, and sells goods above 70% of storage; runs only with governor Initiative On.
 - Robbery gameplay is not built; `shipments.rob()` exists for it to call.
 - Town card: the Projects tab is now the Building plans section of the Governor tab (suggestions first); the tab label shows a badge for waiting suggestions. New Shipments tab (`src/shipments_tab.js`): Simple mode = Order 50/100 per resource; Advanced = Order / Sell / Keep / Open, typed amounts with ±10/±100 buttons, cost estimate and order cap readout; it opens the Rail ledger.
-- Rail ledger (`src/rail_ledger.js`), from the world map: Open / Delivered / Losses; picking an order highlights its train.
+- Rail ledger (`src/rail_ledger.js`), from the world map: Open / Delivered / Losses; picking an order highlights its train. Tim 2026-11-23: the town Open tab is merged into the Ledger tab. Every open row shows TRAIN n with an exact countdown, WAITING about X as an estimate (train wait plus ride, one trainload a trip), or NO SOURCE with no ETA and the clerk's next look. Read-only helper `sim/frontier/ship_eta.js`.
 - Governor: with Initiative On he starts any project waiting for an OK. With no player budget he may start one project dearer than initiativeBudget at the start of a fresh window.
 - Settings: two columns, 880px wide, Pause music button, listed in the layout-mode windows.
 Tests: `tools/test_shipments.mjs`, `test_shipments_clerk.mjs`, `test_shipments_tab.mjs`, `test_shipments_trains.mjs`, `test_rail_ledger.mjs`.

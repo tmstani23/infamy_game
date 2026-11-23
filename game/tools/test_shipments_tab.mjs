@@ -55,7 +55,7 @@ assert.ok(tab.input({ id: 'cbud' }, '40')); assert.match(tab.html(B), /data-id="
 press('order:stone');
 const o = open().find(x => x.resource === 'stone');
 assert.ok(o && o.pin === 'tA' && o.urgent && o.amount === 90, 'pinned urgent order placed');
-assert.match(tab.html(B), /Open 2/);
+press('sub:ledger'); assert.match(tab.html(B), /Open 2/); press('sub:new');
 
 // Keep tab
 press('sub:keep');
@@ -63,10 +63,10 @@ assert.match(tab.html(B), /data-id="keep:food"/);
 press('autobuy'); assert.equal(B.autoBuy, false, 'auto-buy off');
 assert.ok(tab.input({ id: 'keep:food' }, '2500', B)); assert.equal(B.keep.food, 2500, 'typed keep'); assert.ok(tab.input({ id: 'keep:goods' }, '2000', B)); assert.equal(B.marketKeep, 2000, 'typed goods keep'); assert.ok(tab.input({ id: 'bud' }, '900', B)); assert.equal(B.shipBudget, 900, 'typed budget');
 
-// Open tab: cancel
-press('sub:open');
-assert.match(tab.html(B), /Cancel order/);
-press('cancel:' + o.id);
+// Ledger tab (Tim 2026-11-23: replaces the Open tab): your own orders can be cancelled there
+press('sub:ledger');
+assert.match(tab.html(B), new RegExp(`data-id="lg~cancel:${o.id}"`)); assert.match(tab.html(B), /YOURS/);
+press('lg~cancel:' + o.id);
 assert.equal(o.state, 'cancelled');
 
 // governor on auto: the line says so
@@ -101,6 +101,7 @@ assert.match(h, /data-id="ramt" value="500"/); assert.match(h, /From Clan treasu
 assert.ok(tab.input({ id: 'ramt' }, '300')); press('ryo');
 const ro = Object.values(F.shipping.orders).find(o => o.kind === 'ryo');
 assert.ok(ro && ro.to === 'tB' && ro.amount === 300 && ro.from === 'capital', 'a ryo order from the treasury');
-press('sub:open'); assert.match(tab.html(B), /Ryo 300[\s\S]*from the Clan treasury/, 'the open row says where it comes from');
+press('sub:open'); press('lg~tab:open'); assert.match(tab.html(B), /Ryo 300[\s\S]*Treasury to tB/, 'the open row says where it comes from (old sub:open lands on the Ledger)');
+assert.match(tab.html(B), /lg~scope:all/); press('lg~scope:all'); assert.match(tab.html(B), /aria-pressed="true">All towns/);
 press('sub:new');
 console.log('test_shipments_tab: ok');

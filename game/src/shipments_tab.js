@@ -1,8 +1,8 @@
 // Town card Shipments tab (rail shipments S4, Tim 2026-11-08/09; mock project files shipments_mock/
 // shipments_menus_mock_v2.png). Menu restyle (Tim 2026-11-10): one row per resource with an icon, a stock bar to the
 // storage cap with a tick at the keep amount, a typeable amount box, one Order button and the cost as a coin chip.
-// Low rows light up red; a row that can't order says why instead of greying out. Tabs Order / Sell / Keep / Open /
-// Ledger (the Rail ledger at full size). No scrollbars: the Open list pages. Reads the snapshot only and sends
+// Low rows light up red; a row that can't order says why instead of greying out. Tabs Order / Sell / Keep / Ledger
+// (Tim 2026-11-23: the old Open tab merged into the Rail ledger, with This town / All towns and a countdown per row). Reads the snapshot only and sends
 // { type: 'frontier', action: 'ship', ... } commands (sim/frontier/shipments.js).
 // createShipmentsTab({ game, data, cmd, usage }) -> { html(s), click(dataset, s), input(dataset, value, s) }   (usage = resourceUsage)
 import { createRailLedger } from './rail_ledger.js';
@@ -10,13 +10,12 @@ import { defaultKeep } from './sim/frontier/storage.js';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const tip = t => t ? ` data-tip="${esc(t)}"` : '';
 const cap1 = r => r[0].toUpperCase() + r.slice(1);
-const PAGE = 4;
 
 export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const SH = () => data?.railways?.ship || {};
   const RES = () => SH().resources || ['food', 'timber', 'stone', 'goods'];
-  let sub = 'new', page = 0;
-  const ledger = createRailLedger({ game, inCard: true, head: false });   // the Ledger tab (Tim 2026-11-10)
+  let sub = 'new';
+  const ledger = createRailLedger({ game, data, inCard: true, head: false });   // the Ledger tab (Tim 2026-11-10; replaces Open 2026-11-23)
   const amts = {}, samts = {};   // typed amounts per resource (Order and Sell rows)
   let ryoAmt = 500;   // 8e-3: the Ryo row's typed amount (from the Clan treasury)
   const amt = r => amts[r] ?? 100, samt = r => samts[r] ?? 100;
@@ -28,7 +27,6 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const name = id => id === 'capital' ? 'the capital' : F().settlements?.[id]?.name || id;
   const keepOf = (s, r) => (r === 'goods' && data?.market ? s.marketKeep : s.keep?.[r]) ?? (data ? defaultKeep(s, data, r) : 0);   // goods = the market hold-back
   const capOf = (s, r) => { const st = data?.storage; if (!st || st.uncapped?.includes(r)) return Infinity; const c = st.caps || []; return (c[Math.min(c.length, Math.max(1, s.tier || 1)) - 1] ?? Infinity) + (st.perStorehouse || 0) * (s.buildings || []).filter(b => b.type === 'storehouse' && b.stage === 'built').length; };
-  const moving = id => { let n = 0; for (const t of Object.values(F().rail?.trains || {})) for (const c of t.freight || []) if (c.order === id) n += c.amount; return n; };
   const incoming = (s, r) => orders().filter(o => o.state === 'open' && o.to === s.id && o.resource === r).reduce((a, o) => a + o.amount - o.got, 0);
   const room = (s, r) => Math.max(0, Math.floor(capOf(s, r) - (s.stock[r] ?? 0) - incoming(s, r)));
   const price = r => SH().buyPrice?.[r] ?? 5;
@@ -88,15 +86,6 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
     if (have < keepOf(s, r)) return { text: 'below keep', low: true };
     return { text: incoming(s, r) > 0 ? 'more on the way' : 'fine', low: false };
   }
-  const bar = f => `<span class="shbar"><i style="width:${Math.round(Math.max(0, Math.min(1, f)) * 100)}%"></i></span>`;
-  function orderRow(s, o, cancel) {
-    const into = o.to === s.id, f = (o.got + moving(o.id)) / Math.max(1, o.amount);
-    const src = o.kind === 'ryo' ? (o.into === 'chest' ? `${o.from === 'capital' ? 'from the Clan treasury' : `from ${name(o.from)} coffers`} to the war chest` : into ? (o.from === 'capital' ? 'from the Clan treasury' : `from ${name(o.from)} coffers`) : `to ${name(o.to)}`)
-      : o.kind === 'sell' ? 'to the capital (sale)' : into ? (o.sources?.length ? 'from ' + [...new Set(o.sources.map(x => name(x.from)))].join(', ') : o.got || moving(o.id) ? 'on the way' : 'finding a source') : `to ${name(o.to)}`;
-    const st = moving(o.id) ? 'on the train' : o.got >= o.amount ? 'delivered' : 'waiting';
-    return `<div class="shrow"><span>${into ? '<span class="dn tri"></span>' : '<span class="up tri"></span>'} ${cap1(o.resource)} ${o.amount}${o.urgent ? ' <b class="gold">urgent</b>' : ''}${o.auto ? ' <span class="dim">auto</span>' : ''}<br><span class="dim">${esc(src)}</span></span><span>${bar(f)} <span class="dim">${st}</span>${cancel && into && !o.auto ? ` <button data-act="ship" data-id="cancel:${o.id}" title="Cancel order">Cancel</button>` : ''}</span></div>`;
-  }
-  const mine = s => orders().filter(o => o.state === 'open' && (o.to === s.id || o.sellFrom === s.id || o.sources?.some(x => x.from === s.id)));
 
   // drawn resource icons (no glyphs), in the Pack for war style
   const ICON = {
@@ -168,28 +157,22 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
       ? `<div class="shauto on"${tip('While the governor is on auto, his rail clerk orders what this town lacks (below its keep amounts), takes spare stock from your other towns first, buys the rest from the capital within the auto-buy budget, and sells goods, timber and stone above your keep amounts to the capital.')}>Auto orders <b>on</b>, the governor keeps stock at your keep amounts</div>`
       : `<div class="shauto"${tip('Turn the governor to auto (Governor tab, Initiative On) and his rail clerk orders what this town lacks by himself. Your own orders always ship.')}>Auto orders <b>off</b>, governor not on auto</div>`;
     if (!hasLine(s)) return h + '<div class="shcard off"><b>Needs a rail line</b><br><span class="dim">Lay a line from this town\'s railway station (Link to...).</span></div>';
-    const open = mine(s), T = (id, label, t) => `<button data-act="ship" data-id="sub:${id}" class="${sub === id ? 'on' : ''}"${tip(t)}>${label}</button>`;
-    h += `<div class="shtabs five">${T('new', 'Order')}${T('sell', 'Sell')}${T('keep', 'Keep')}${T('open', `Open ${open.length}`)}${T('ledger', 'Ledger', 'All your rail shipments: open, delivered and lost')}</div>`;
+    const T = (id, label, t) => `<button data-act="ship" data-id="sub:${id}" class="${sub === id ? 'on' : ''}"${tip(t)}>${label}</button>`;
+    h += `<div class="shtabs four">${T('new', 'Order')}${T('sell', 'Sell')}${T('keep', 'Keep')}${T('ledger', 'Ledger', 'Rail shipments of this town or all towns: open with countdowns, delivered and lost')}</div>`;
     if (sub === 'new') h += orderTab(s);
     else if (sub === 'sell') h += sellTab(s);
     else if (sub === 'keep') h += keepTab(s);
-    else if (sub === 'ledger') h += ledger.html().replace(/data-ledger="([^"]*)"/g, 'data-act="ship" data-id="lg~$1"');
-    else {
-      const pages = Math.max(1, Math.ceil(open.length / PAGE)); page = Math.min(page, pages - 1);
-      h += open.length ? open.slice(page * PAGE, page * PAGE + PAGE).map(o => orderRow(s, o, true)).join('') : '<div class="dim shnote">No open orders.</div>';
-      if (pages > 1) h += `<div class="shrow"><button data-act="ship" data-id="page:-1"${page ? '' : ' disabled'}>Prev</button><span class="dim">${page + 1} / ${pages}</span><button data-act="ship" data-id="page:1"${page < pages - 1 ? '' : ' disabled'}>Next</button></div>`;
-    }
+    else h += ledger.html(s.id).replace(/data-ledger="([^"]*)"/g, 'data-act="ship" data-id="lg~$1"');
     return h;
   }
 
   // returns true when it handled the click
   function click(d, s) {
     if (d.act !== 'ship' || !s) return false;
-    if (String(d.id).startsWith('lg~')) { ledger.click(d.id.slice(3)); return true; }
+    if (String(d.id).startsWith('lg~')) { const r = ledger.click(d.id.slice(3)); if (r?.cancel) cmd({ action: 'ship', mode: 'cancel', order: r.cancel }); return true; }
     const [k, a] = String(d.id).split(':');
     switch (k) {
-      case 'sub': sub = a; page = 0; break;
-      case 'page': page = Math.max(0, page + Number(a)); break;
+      case 'sub': sub = a === 'open' ? 'ledger' : a; break;
       case 'cancel': cmd({ action: 'ship', mode: 'cancel', order: a }); break;
       case 'order': { const n = amt(a); cmd({ action: 'ship', mode: 'order', town: s.id, resource: a, amount: n, pin: form.pin, urgent: form.urgent, ryo: Math.min(form.ryo ?? n * price(a), Math.floor(s.stock.ryo ?? 0)) }); break; }
       case 'sell': cmd({ action: 'ship', mode: 'sell', town: s.id, resource: a, amount: samt(a) }); break;

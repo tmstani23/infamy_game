@@ -140,7 +140,7 @@ body[data-clan="shinobi"], body[data-clan="ninja"] { --ms-accent: #8e6cc9; --ms-
 #townsoverview button:disabled { opacity: .4; cursor: default; }
 #townpanel .ms-pagefoot { margin-top: 8px; }
 /* Shipments tab rows (Tim 2026-11-10): one row per resource, icon, stock bar with a keep tick, typeable box, one button, coin chip */
-#townpanel .shtabs.five { grid-template-columns: repeat(4, 1fr) 1.15fr; gap: 4px; } #townpanel .shtabs.five button { min-height: 30px; padding: 2px; font-size: 11.5px; }
+#townpanel .shtabs.five { grid-template-columns: repeat(4, 1fr) 1.15fr; gap: 4px; } #townpanel .shtabs.four { gap: 4px; } #townpanel .shtabs.five button, #townpanel .shtabs.four button { min-height: 30px; padding: 2px; font-size: 11.5px; }
 #townpanel .shres { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 6px 6px 5px; border-left: 3px solid #3a3530; border-bottom: 1px solid #252c31; color: #b9b3a6; }
 #townpanel .shres b { color: #d6ccb4; font-weight: 600; }
 #townpanel .shres.low { border-left-color: var(--ms-accent); background: linear-gradient(90deg, color-mix(in srgb, var(--ms-accent) 11%, transparent), transparent 70%); color: #eadfc6; } #townpanel .shres.low b { color: #f3e3bd; }
@@ -642,3 +642,37 @@ body .uf .pic { background-color: #1d1a16; }
 #townpanel button .wcount { display: inline-grid; place-items: center; min-width: 15px; height: 15px; margin-left: 4px; padding: 0 3px; border-radius: 8px; background: #c4301f; color: #fff; font: 700 10px/15px system-ui, sans-serif; box-shadow: 0 0 0 1px #000; vertical-align: 1px; }
 #townpanel .wtired-r button:disabled { opacity: .6; cursor: default; }
 #townpanel .wtired-r button:active:not(:disabled) { transform: translateY(1px); filter: brightness(1.25); }
+/* Rail ledger rows with countdowns (Tim 2026-11-23, mock project files ledger_merge/mock_final.png): one look in the
+   town card's Ledger tab and on the World map. Text tabs, This town / All towns switch, status + countdown column. */
+#townpanel .lgtabs, #railledger .lgtabs { display: flex; gap: 16px; border-bottom: 1px solid #3a3530; margin: 2px 0 4px; padding: 0 2px; }
+#townpanel .lgtabs button, #railledger .lgtabs button { border: none; border-radius: 0; background: none; padding: 4px 0 5px; color: #aaa290; font: 600 12px system-ui, sans-serif; cursor: pointer; }
+#townpanel .lgtabs button[aria-pressed="true"], #railledger .lgtabs button[aria-pressed="true"] { color: var(--ms-on-text); border-bottom: 2px solid var(--ms-accent-lt); }
+#townpanel .lgtabs button:hover:not(:disabled), #railledger .lgtabs button:hover:not(:disabled) { background: none; color: #eadfc6; }
+#townpanel .lgscope, #railledger .lgscope { display: flex; justify-content: space-between; align-items: center; margin: 0 0 2px; }
+#townpanel .lgscope small, #railledger .lgscope small { color: #b8ae96; font-size: 11px; }
+#townpanel .lgscope button { border: none; background: none; padding: 0 0 2px; margin-left: 10px; color: #b8ae96; font: 600 11px system-ui, sans-serif; cursor: pointer; }
+#townpanel .lgscope button[aria-pressed="true"] { color: var(--ms-on-text); text-decoration: underline; text-decoration-color: var(--ms-accent-lt); text-underline-offset: 3px; }
+#townpanel .lgscope button:hover:not(:disabled) { background: none; color: #eadfc6; }
+#townpanel .lghdr, #railledger .lghdr { display: grid; grid-template-columns: 1fr 104px 56px; gap: 6px; padding: 0 4px 3px 9px; color: #a59c86; font: 600 9.5px system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; border-bottom: 1px solid #3a3530; }
+#townpanel .lgline, #railledger .lgline { display: grid; grid-template-columns: 1fr 56px; gap: 6px; align-items: center; border-bottom: 1px solid #252c31; }
+#townpanel .lgline .lgrow, #railledger .lgline .lgrow { display: grid; grid-template-columns: 1fr 104px; gap: 6px; align-items: center; width: 100%; margin: 0; padding: 5px 4px 5px 6px; text-align: left; border: none; border-left: 3px solid transparent; border-radius: 0; background: none; color: #e7dfce; font: 400 12px/15px system-ui, sans-serif; cursor: pointer; }
+#townpanel .lgline .lgrow.sel, #railledger .lgline .lgrow.sel { border-left-color: var(--ms-accent-lt); background: color-mix(in srgb, var(--ms-accent) 17%, transparent); }
+#townpanel .lgline .lgrow:hover:not(.sel), #railledger .lgline .lgrow:hover:not(.sel) { background: #1d2228; border-left-color: #3a3530; }
+#townpanel .lgline .lgrow b, #railledger .lgline .lgrow b { color: #eadfc6; font-weight: 600; }
+#townpanel .lgline .lgrow small, #railledger .lgline .lgrow small { color: #cfc6b0; font-size: 11.5px; }
+#townpanel .lgyours, #railledger .lgyours { font-style: normal; padding: 0 5px; border-radius: 3px; background: color-mix(in srgb, var(--ms-accent) 22%, transparent); color: var(--ms-on-text); font-size: 9.5px; font-weight: 600; letter-spacing: .04em; vertical-align: 1px; }
+#townpanel .lgcancel, #railledger .lgcancel { padding: 3px 0; font: 600 11px system-ui, sans-serif; }
+#townpanel .lgst, #railledger .lgst { display: flex; flex-direction: column; line-height: 14px; }
+#townpanel .lgst small, #railledger .lgst small { color: #9a9078 !important; font-size: 10px !important; letter-spacing: .05em; }
+#townpanel .lgst > b, #railledger .lgst > b { font: 600 13px ui-monospace, Consolas, monospace !important; font-variant-numeric: tabular-nums; color: #f0d08e !important; white-space: nowrap; }
+#townpanel .lgst.moving small, #railledger .lgst.moving small { color: #a5d8a4 !important; } #townpanel .lgst.moving > b, #railledger .lgst.moving > b { color: #f3f0e6 !important; }
+#townpanel .lgst.est small, #railledger .lgst.est small { color: #d9b864 !important; } #townpanel .lgst.est > b, #railledger .lgst.est > b { color: #a79b80 !important; }
+#townpanel .lgst.moving.est small, #railledger .lgst.moving.est small { color: #a5d8a4 !important; }
+#townpanel .lgst.stuck small, #railledger .lgst.stuck small { color: #ed8b7c !important; } #townpanel .lgst.stuck > b, #railledger .lgst.stuck > b { color: #8f8672 !important; }
+#townpanel .lgst.done small, #railledger .lgst.done small { color: #a5d8a4 !important; } #townpanel .lgst.done > b, #railledger .lgst.done > b { color: #b8ae96 !important; font-weight: 400 !important; font-size: 11.5px !important; }
+#townpanel .lgst .lgbar, #railledger .lgst .lgbar { display: block; margin-top: 3px; height: 4px; }
+#townpanel .lgcard, #railledger .lgcard { margin-top: 0; border-left-color: var(--ms-accent-lt); line-height: 17px; }
+#townpanel .lgsteps, #railledger .lgsteps { display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; margin-top: 4px; font-size: 11.5px; }
+#townpanel .lgsteps span, #railledger .lgsteps span { color: #c2b9a4; } #townpanel .lgsteps span.done, #railledger .lgsteps span.done { color: #a5d8a4; }
+#townpanel .lgsteps > b, #railledger .lgsteps > b { font: 600 12px ui-monospace, Consolas, monospace; color: #f0d08e; text-align: right; white-space: nowrap; }
+#townpanel .lgsteps > b.done, #railledger .lgsteps > b.done, #townpanel .lgsteps > b.now, #railledger .lgsteps > b.now { color: #a5d8a4; }
