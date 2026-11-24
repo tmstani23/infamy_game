@@ -9,3 +9,4 @@ Rules for Claude threads working on this project, to keep usage low (agreed with
 - **Threads:** close a thread as soon as its work is finished.
 - **Models:** every new thread runs at least Opus medium (Tim 2026-11-20).
 - **Big builds:** go in phases with a checklist in the plan file, ticked off as each phase lands, so work survives if usage runs out.
+- **Sound credits (2026-11-23):** ElevenLabs Starter (30k credits) bought 2026-11-23 for one month, renewal cancelled, ends around 2026-12-23. Batch sound generation before then.
