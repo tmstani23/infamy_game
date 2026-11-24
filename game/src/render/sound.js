@@ -323,7 +323,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (c.kind === 'intimidate') play(SOFT, 0.7 * v, 0.6);
         if (c.kind === 'rifleshot') play('rifle_shot_1', v > 0 ? 0.8 * Math.max(v, 0.3) : 0, 1);   // gunfire carries: still heard at the edge of hearing range
         if (c.kind === 'taunt') play(SOFT, (c.style === 'shinobi_enforcer' ? 0.8 : 0.6) * v, c.style === 'shinobi_enforcer' ? 0.75 : 0.5);
-        if (c.kind === 'loot') play(pickCustom('loot_coins_1'), 0.6 * v);
+        if (c.kind === 'loot' || c.kind === 'chestCashed' || c.kind === 'hidesSold') play(pickCustom('loot_coins_1'), 0.6 * v);   // a stolen chest cashed, hides sold (wildlife W5)
         if (c.kind === 'wildAlarm') variant(c.species === 'boar' ? 'boar_grunt_1' : 'deer_alarm_1', 0.4 * v, 0.94 + Math.random() * 0.12);   // wild animals (sim/wild_animals.js): a deer's bark or a boar's grunt as they bolt
         if (c.kind === 'wildCharge') variant('boar_charge_1', 0.6 * v);   // a hit boar charges
         if (c.kind === 'wildHunt') { if (c.species === 'bear') farPanned('bear_roar_1', c, me, 0.75, (me?.hear ?? HEAR) * 3); else variant('wolf_attack_1', 0.55 * v); }   // W4: a bear roars as it comes for you (heard a little farther), wolves snarl as they close in

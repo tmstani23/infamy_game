@@ -15,6 +15,9 @@
 // 'wildDrop' cast flies a hide to the hero (render/wild_drop_fx.js). 'wildAlarm', 'wildCharge' and 'wildHunt'
 // casts are for the sounds (and 'wildHunt' for the alert).
 // Each animal's state lives on the entity (e.wm), each den's on state.world.wildDens, so a save keeps them. Plain sim code, no three.js.
+import { cellToWorld } from './frontier/town_grid.js';
+import { creditRyo } from './treasury.js';
+
 export const WILDLIFE = 'wildlife';   // the owner every wild animal has (not a clan)
 const TICK_RATE = 20;
 
@@ -474,7 +477,43 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     }
   }
 
-  return { tick, provoke, killed, spawnGroup, place, flee, anchors, dens, startHunt: (denId, clan, prey) => { const d = denOf(denId); const pack = packOf(denId); if (d && pack.length) startHunt(d, pack, clan, prey, false); },
+  // Selling hides (W5, Tim 2026-11-24): what the clan has taken (clan.hides) the hero sells with Space at the built market
+  // of one of its own towns, at data.market.prices ryo each; the coins fly into the market (render/chest_cash_fx.js)
+  const M = () => data?.market || {};
+  const carried = clan => Object.entries(state.clans?.[clan]?.hides || {}).filter(([, n]) => n > 0);
+  const worth = clan => Math.round(carried(clan).reduce((v, [k, n]) => v + n * (M().prices?.[k] ?? 0), 0));
+  const itemName = (k, n) => k.replace(/_/g, ' ') + (n > 1 ? 's' : '');
+  function sellPoint(e) {
+    if (!e || e.type !== 'hero' || e.place !== 'world' || e.dead || e.downed) return null;
+    for (const s of Object.values(state.frontier?.settlements || {})) {
+      if (s.owner !== e.owner || s.ruined || s.empty || !s.grid) continue;
+      for (const b of s.buildings || []) {
+        if (b.type !== 'market' || b.stage !== 'built') continue;
+        const pts = (b.cells?.length ? b.cells : [b.cell]).filter(Number.isInteger).map(i => cellToWorld(s, i));
+        if (!pts.length) continue;
+        const x = pts.reduce((v, p) => v + p[0], 0) / pts.length, z = pts.reduce((v, p) => v + p[1], 0) / pts.length;
+        if (Math.hypot(x - e.x, z - e.z) <= (M().reach ?? 12)) return { town: s, x, z };
+      }
+    }
+    return null;
+  }
+  // Space's prompt there (main.js), or null
+  function sellPrompt(e) {
+    if (!e || !carried(e.owner).length || !sellPoint(e)) return null;
+    return { text: `Space  Sell the hides here: ${worth(e.owner)} ryo` };
+  }
+  function sell(e) {
+    const clan = state.clans?.[e?.owner], p = sellPoint(e), goods = carried(e?.owner);
+    if (!clan || !p || !goods.length) return false;
+    const ryo = worth(e.owner);
+    clan.hides = {};
+    creditRyo(state, clan, ryo, 'hides');
+    state.casts.push({ kind: 'hidesSold', x: e.x, z: e.z, tx: p.x, tz: p.z, loot: { ryo }, sold: Object.fromEntries(goods), place: 'world', by: e.owner, a: e.id });
+    clan.notice = { tick: state.tick, text: `Sold ${goods.map(([k, n]) => `${n} ${itemName(k, n)}`).join(', ')} at ${p.town.name || 'the market'} for ${ryo} ryo` };
+    return true;
+  }
+
+  return { tick, provoke, killed, spawnGroup, place, flee, anchors, dens, sellPoint, sellPrompt, sell, prices: () => M().prices || {}, startHunt: (denId, clan, prey) => { const d = denOf(denId); const pack = packOf(denId); if (d && pack.length) startHunt(d, pack, clan, prey, false); },
     saveState: () => ({ s }), loadState: d => { if (d && Number.isFinite(d.s)) s = d.s; } };
 }
 

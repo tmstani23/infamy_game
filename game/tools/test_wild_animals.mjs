@@ -132,6 +132,29 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   assert.deepEqual(b.map(e => e.wm.mode).sort(), a.map(e => e.wm.mode).sort());
 }
 
+// selling hides (W5): Space at the built market of an own town sells all the clan has taken, and the coins fly in
+{
+  const clan = S.clans[hero.owner];
+  S.frontier ||= {}; S.frontier.settlements ||= {};
+  const town = { id: 'hide_test', name: 'Test Town', owner: hero.owner, x: hero.x + 30, z: hero.z, grid: { n: 5, cell: 10 }, buildings: [{ type: 'market', stage: 'built', cell: 12 }] };
+  S.frontier.settlements.hide_test = town;
+  clan.hides = { deer_hide: 2, bear_gall: 1 };
+  const P = A.market.prices, want = 2 * P.deer_hide + P.bear_gall;
+  assert.equal(g.wildAnimals.sellPrompt(hero), null, 'no prompt away from the market');
+  Object.assign(hero, { x: town.x + 3, z: town.z });
+  assert.ok(g.wildAnimals.sellPrompt(hero)?.text.includes(`${want} ryo`), 'the prompt names the price');
+  const ryo = clan.ryo;
+  S.casts = [];
+  assert.ok(g.wildAnimals.sell(hero), 'sold');
+  assert.equal(clan.ryo, ryo + want, 'ryo to the treasury');
+  assert.deepEqual(clan.hides, {}, 'the hides are gone');
+  assert.ok(S.casts.some(c => c.kind === 'hidesSold' && c.loot.ryo === want), 'the coins fly into the market');
+  assert.ok(!g.wildAnimals.sell(hero), 'nothing left to sell');
+  town.buildings[0].stage = 'planned'; clan.hides = { wolf_pelt: 1 };
+  assert.equal(g.wildAnimals.sellPrompt(hero), null, 'only a built market buys');
+  delete S.frontier.settlements.hide_test; clan.hides = {};
+}
+
 // nobody of yours near: they go
 Object.assign(hero, { x: gx + 60, z: gz }); for (const e of crew) Object.assign(e, { x: gx + 61, z: gz, order: { kind: 'move', x: gx + 61, z: gz, arrived: true } });
 run(200);

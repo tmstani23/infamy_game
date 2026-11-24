@@ -655,7 +655,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (c.kind === 'boarded') { const s = sprites.get(c.a); if (s) s.flash = 0.7; hitFx.note(c.x, c.z, `${c.n} aboard`); }   // crew popped in (sim/omnibus.js)
       // the shakedown dynamite: a small blast of the same kind (Tim 2026-11-20); shakedownfx.js keeps its flash and ring
       if (c.kind === 'dynamiteBlast' && (c.place || 'street') === heroPlace) railBlastFx.blast(c.x, c.z, 0, { scale: 0.38, shake: false });
-      if (c.kind === 'chestCashed' && heroPlace === 'world') chestCashFx.cash(c);
+      if ((c.kind === 'chestCashed' || c.kind === 'hidesSold') && heroPlace === 'world') chestCashFx.cash(c);   // hides sold at a market (wildlife W5): koban coins fly into it
       if (c.kind === 'wildDrop' && heroPlace === 'world') wildDropFx.drop(c);   // the hide flies from the carcass to the hero   // Tim 2026-11-21: the stolen loot flies into the hall
       if (c.kind === 'railBlast' && railBlastFx) { railBlastFx.blast(c.x, c.z, c.heading || 0); railShakeK = Math.max(0, 1 - Math.hypot(c.x - camTarget.x, c.z - camTarget.z) / 45); }   // train robbery: the charge goes off
       if (c.kind === 'cannonFire' && !c.tower) { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
