@@ -22,7 +22,8 @@ import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createWeather } from './weather.js';
 import { createCrowFx } from './crow_fx.js';
-import { createWildDropFx } from './wild_drop_fx.js';   // a hunted animal's hide flies to the hero (wildlife W3)
+import { createWildDropFx } from './wild_drop_fx.js';
+import { createWildEyesFx } from './wild_eyes_fx.js';   // night eyes of wolves and bears (wildlife W4)   // a hunted animal's hide flies to the hero (wildlife W3)
 import { createRailTrack, createCityStation } from './rail_track.js';
 import { createRailBlastFx } from './rail_blast_fx.js';
 import { createStolenChests } from './stolen_chest.js';
@@ -454,6 +455,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     freezeT = Math.max(0, freezeT - dt);
     const loaded = new Set(); for (const u of Object.values(state.entities)) if (u.aboard) loaded.add(u.aboard);
     for (const [id, d] of drivers) if (!state.entities[id]) { if (d) { scene.remove(d.thing.mesh); d.dispose(); } drivers.delete(id); }
+    wildEyes.begin(); let eyesMine = null; const myOwner = state.entities[followId]?.owner;
     for (const [id, s] of sprites) {
       if (!s) continue;
       let e = state.entities[id];
@@ -503,7 +505,23 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       updateTeamRing(s, e, state.entities[followId]);
       if (e.wildlife) {   // wild animals: no bar until hurt; each its own coat shade from its seed (data/wildlife.json animals.coat)
         if (e.dead || !(e.hp < e.maxHp)) s.bar.visible = false;
-        if (!s.coat && e.coat) { s.coat = true; s.material.uniforms.uTint.value.setRGB(...coatTint(e)); s.material.uniforms.uGrey.value = wildlifeCfg?.animals?.grey?.[e.type] ?? 0; }
+        if (!s.coat && e.coat) { s.coat = coatTint(e); s.material.uniforms.uTint.value.setRGB(...s.coat); s.material.uniforms.uGrey.value = wildlifeCfg?.animals?.grey?.[e.type] ?? 0; }
+        // night eyes (render/wild_eyes_fx.js, Tim 2026-11-24): at night a wolf or bear out past your people goes near black and only its eyes show
+        const EY = wildlifeCfg?.animals?.eyes, night = shared.uNight.value;
+        if (EY?.at?.[e.type] && s.coat && (night > 0.01 || s.eyesDark)) {
+          let far = 0;
+          if (night > 0.01 && !e.dead) {
+            eyesMine ??= Object.values(state.entities).filter(u => u.owner === myOwner && !u.dead && u.place === 'world');
+            let d = Infinity; for (const u of eyesMine) d = Math.min(d, Math.hypot(u.x - e.x, u.z - e.z));
+            far = night * THREE.MathUtils.smoothstep(d, EY.near ?? 7, EY.far ?? 16);
+            const close = 1 - THREE.MathUtils.smoothstep(d, EY.near ?? 7, EY.dimTo ?? 40);
+            if ((EY.anims || ['idle', 'walk', 'run', 'graze']).includes(s.anim)) wildEyes.add(e.type, s.thing.mesh.position, s.cellWorld * (s.size || 1), ((e.dir ?? 0) % 8 + 8) % 8, night * (0.55 + 0.45 * close), (+e.id * 0.618) % 1, time);
+          }
+          const k = 1 + ((EY.body ?? 0.1) - 1) * far;
+          s.material.uniforms.uTint.value.setRGB(s.coat[0] * k, s.coat[1] * k, s.coat[2] * k);
+          gu.uOpacity.value *= 1 + ((EY.alpha ?? 0.45) - 1) * far;
+          s.eyesDark = far > 0;
+        }
       }
       updateAura(s, e);
       // Red Lantern: a pulsing red tint on the sprite and a real red light around him
@@ -586,6 +604,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       fishingFx.moor(out ? worldGround?.spotsInView() || [] : []); }
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     wildDropFx.update(fdt);
+    wildEyes.end(video.wildlife !== false);
     crowFx?.update({ state, prev, show: (heroPlace === 'world' && !cityView) || worldView, on: video.wildlife !== false, dt: fdt, cam: { x: camTarget.x, z: camTarget.z, r: camera.right }, things: worldGround?.things(), hear: Math.min(140, Math.max(24, camera.right * 0.9)) });
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
     cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);
@@ -647,6 +666,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let shakeT = 0, shakeAmp = 0, freezeT = 0;
   // train robbery (sim/frontier/rail_blast.js): the burning charge on a line and the blown gap while it is repaired
   const chestCashFx = createChestCashFx({ scene });
+  const wildEyes = createWildEyesFx({ scene, cfg: wildlifeCfg?.animals?.eyes || {} });
   const wildDropFx = createWildDropFx({ scene, posOf: id => sprites.get(id)?.pos || null });
   const fishingFx = createFishingFx({ scene });   // workers on fish spots cast lines; fish spot boats moored (Tim 2026-11-23)
   const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null;   // fx id -> 'charge' | 'crater'

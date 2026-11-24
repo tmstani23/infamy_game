@@ -225,9 +225,21 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
   function flee(e, fx, fz, herd = true) {
     const m = e.wm;
     if (!m || (m.mode === 'flee' && state.tick < m.until - secs(1))) return;
+    if (m.spent > state.tick) return;   // run down: it stands, spent, for a few seconds
+    const T = R.tire || {};
+    if (!predator(e) && (m.flights || 0) + 1 >= (T.spentAt ?? 4) && state.tick - (m.lastFlee ?? -1e9) < secs(T.window ?? 30) && state.tick - (m.spentFrom ?? -1e9) > secs(T.spentGap ?? 10)) {
+      Object.assign(m, { mode: 'idle', until: state.tick + secs(T.spentSeconds ?? 5), spent: state.tick + secs(T.spentSeconds ?? 5), spentFrom: state.tick, flights: Math.max(0, (T.spentAt ?? 4) - 2) });
+      stopPath(e);
+      return;
+    }
     const base = Math.atan2(e.z - fz, e.x - fx) + (rng() - 0.5) * 0.8, d = range(R.fleeDistance || [26, 40]);
     const p = areas.nav.nearestFree(e.x + Math.cos(base) * d, e.z + Math.sin(base) * d) || [e.x + Math.cos(base) * d, e.z + Math.sin(base) * d];
     Object.assign(m, { mode: 'flee', x: p[0], z: p[1], until: state.tick + secs(range(R.flee || [5, 9])), from: [fx, fz] });
+    if (!predator(e)) {   // a deer or boar run off again and again tires, and a hurt one runs slower (Tim 2026-11-24: a doe could never be caught)
+      m.flights = m.lastFlee != null && state.tick - m.lastFlee < secs(T.window ?? 30) ? (m.flights || 0) + 1 : 0;
+      m.lastFlee = state.tick;
+      pace(e);
+    }
     delete e.swing;
     stopPath(e);
     if (!predator(e) && (!m.alarmed || state.tick - m.alarmed > secs(4))) { m.alarmed = state.tick; state.casts.push({ kind: 'wildAlarm', species: e.species, a: e.id, x: e.x, z: e.z, place: e.place }); }
@@ -235,6 +247,12 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     for (const o of animals()) if (o !== e && alive(o) && o.species === e.species && o.wm?.mode !== 'charge' && !hunting(o) && Math.hypot(o.x - e.x, o.z - e.z) <= (R.herdRadius ?? 10)) flee(o, fx, fz, false);
   }
   const hunting = e => ['stalk', 'hunt', 'back'].includes(e.wm?.mode);
+  // how fast a deer or boar runs (sim/stats.js movement): slower each time it is chased off again within tire.window, slower still when hurt
+  function pace(e) {
+    const T = R.tire || {}, m = e.wm, fresh = m.lastFlee == null || state.tick - m.lastFlee >= secs(T.window ?? 30);
+    const k = (fresh ? 1 : Math.max(T.min ?? 0.5, 1 - (T.step ?? 0.15) * (m.flights || 0))) * (e.hp < e.maxHp ? T.wounded ?? 0.7 : 1);
+    if (k < 1) m.pace = k; else delete m.pace;
+  }
 
   // Hit by someone of a clan (sim/combat.js): a boar charges that clan, a deer runs, a wolf's pack or a bear fights it
   function provoke(t, clan) {
@@ -372,6 +390,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     }
     // looking about every few ticks (spread over the animals): anyone close, any noise in earshot
     if ((state.tick + (+e.id || 0)) % 5 === 0) {
+      if (m.pace && m.mode !== 'flee') pace(e);   // rested
       const f = fearOf(e, people) || noise.find(([x, z, r]) => Math.hypot(x - e.x, z - e.z) <= r);
       if (f) flee(e, f[0], f[1]);
     }

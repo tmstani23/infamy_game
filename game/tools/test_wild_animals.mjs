@@ -111,6 +111,18 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   assert.ok(!e.gearItem, 'no gear rolled off an animal');
 }
 
+// a deer can be run down: chased off again and again it tires, then stands spent and the hero lands his blows (Tim 2026-11-24)
+{
+  const e = animals().find(a => a.species === 'deer' && !a.dead);
+  if (e) {
+    Object.assign(hero, { x: e.x + 4, z: e.z });
+    for (const c of crew) Object.assign(c, { x: e.x + 300, z: e.z + 300, order: { kind: 'move', x: e.x + 300, z: e.z + 300, arrived: true } });
+    g.step([{ type: 'attack', id: hero.id, target: e.id }]);
+    for (let i = 0; i < 2400 && !e.dead; i++) g.step([]);
+    assert.ok(e.dead, `the hero runs a deer down (hp left ${e.hp})`);
+  }
+}
+
 // save and load keep the animals and their minds
 {
   const save = makeSave(g), g2 = createGame(options);

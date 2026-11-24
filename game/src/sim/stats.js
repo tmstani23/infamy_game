@@ -31,7 +31,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     if (e.ride) return (base(e).run || 0) * (e.ride.speed || 1) * Math.min(buff(e, 'snared')?.speed ?? 1, buff(e, 'charmSnare')?.speed ?? 1);
     const b = base(e), turf = e.type !== 'hero' && state.clans[e.owner] && territory.inOwn(e) ? territory.rules.crewSpeed : 1;
     const pursuit = e.type === 'hero' && gait === 'run' ? buff(e, 'pursuit')?.runSpeed || 1 : 1;
-    return (b[gait] || 0) * gearMultiplier(e, gait) * turf * pursuit * Math.min(buff(e, 'snared')?.speed ?? 1,buff(e, 'charmSnare')?.speed ?? 1);
+    return (b[gait] || 0) * gearMultiplier(e, gait) * turf * pursuit * (e.wm?.pace ?? 1) * Math.min(buff(e, 'snared')?.speed ?? 1,buff(e, 'charmSnare')?.speed ?? 1);   // wm.pace: a tired or hurt deer or boar (sim/wild_animals.js)
   }
   function regeneration(e) {
     const rules = units?.rules || {}, rate = rules.regenPerSecond || 0, wait = (rules.regenAfterSeconds || 0) * 20;
