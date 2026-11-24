@@ -436,10 +436,11 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     mountKey() { if (!hero()) return false; send({ id: heroId, type: 'mount' }); return true; },
     mountUpKey() { if (!hero()) return false; send({ id: heroId, type: 'mount', group: true, units: mine() }); return true; },
     omnibusKey() { const h = hero(); if (!h) return false; const sel = mine().filter(id => game.omnibus?.isVehicle(game.state.entities[id]));
-      // your ships work as the omnibus (Tim 2026-11-23): Q lets everyone off the selected ships (with nothing selected, the one the hero is in)
-      { const ships = mine().filter(id => game.state.entities[id]?.ship && game.ships?.riders(game.state.entities[id]).length), own = !mine().length && game.state.entities[h.inShip]?.ship ? [h.inShip] : [];   // Tim 2026-11-24: only the selected ships; his own only with nothing selected
-        const ids = ships.length ? ships : own; if (ids.length) { send({ id: heroId, type: 'ship', action: 'unload', ships: ids }); return true; } }
-      if (h.aboard || sel.length) { send({ id: heroId, type: 'omnibus', action: 'deploy', vehicles: sel }); return true; }
+      // your ships work as the omnibus (Tim 2026-11-23): Q lets everyone off the selected ships
+      { const ships = mine().filter(id => game.state.entities[id]?.ship && game.ships?.riders(game.state.entities[id]).length), own = [];   // Tim 2026-11-24: only the selected ships, never the hero's own unasked
+        const ids = ships.length ? ships : own; if (ids.length) { send({ id: heroId, type: 'ship', action: 'unload', ships: ids }); if (!sel.length) return true; } }   // ships and vehicles selected together: Q empties both (Tim 2026-11-24)
+      if ((h.aboard && !h.inShip) || sel.length) { send({ id: heroId, type: 'omnibus', action: 'deploy', vehicles: sel }); return true; }
+      if (h.inShip) return false;
       // on horseback Q is the ability key (Tim 2026-11-15: Q took the hero and selected riders off their horses when he
       // meant to dash); H gets the hero off, Shift+H or a right-click on the mount card the crew
       if (h.mounted) return false;

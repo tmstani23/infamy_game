@@ -46,7 +46,7 @@ export const KEY_ACTIONS = [
   A('garrisonIn', 'Send the selected into a stockade or house', 'Crew orders', [], { fixed: true, text: 'Ctrl + right-click it' }),
   A('shipSail', 'Sail the selected ships there; a click on land sails to the nearest shore they can land on', 'Crew orders', [], { fixed: true, text: 'Right-click water or shore' }),   // ships S2
   A('shipBoard', 'Send the selected aboard your ship; a ship lying off comes in to their shore. With nothing selected the hero goes', 'Crew orders', [], { fixed: true, text: 'Right-click your ship' }),
-  A('shipUnload', 'Let everyone off the selected ships; with nothing selected, the ship the hero is in; a ship on the water sails in to shore first', 'Crew orders', [], { fixed: true, text: 'Q with ships selected' }),
+  A('shipUnload', 'Let everyone off the selected ships; a ship on the water sails in to shore first', 'Crew orders', [], { fixed: true, text: 'Q with ships selected' }),
   A('talkClick', 'Talk to the old surveyor, your lieutenant or a governor, or open the Land Office, standing beside it', 'Panels and menus', [], { fixed: true, text: 'Left-click them' }),   // Tim 2026-11-20
   A('buildingMenu', 'Open the menu of your military building, stockade or war camp building', 'Panels and menus', [], { fixed: true, text: 'Left-click it' }),
   // Crew groups
