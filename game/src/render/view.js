@@ -21,6 +21,7 @@ import { createHallChannelFx } from './hall_channel_fx.js';
 import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createWeather } from './weather.js';
+import { createCrowFx } from './crow_fx.js';
 import { createRailTrack, createCityStation } from './rail_track.js';
 import { createRailBlastFx } from './rail_blast_fx.js';
 import { createStolenChests } from './stolen_chest.js';
@@ -41,7 +42,7 @@ import { groundY, maxGroundY } from '../castle_height.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
-export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null, resourceSpots = null, spotConfig = null, hallSeconds = 60, weather: weatherCfg = null, ships = null, shore = null }) {
+export async function createView({ canvas, fxLayer, district, catalog, parts, scenery, rooms = [], doors = [], zoom = 0.72, night = false, debug = false, units = null, world = null, worldChunks = null, cutouts = null, resourceSpots = null, spotConfig = null, hallSeconds = 60, weather: weatherCfg = null, wildlife: wildlifeCfg = null, ships = null, shore = null }) {
   // Use one close interior camera setting without enlarging character sprites separately.
   const INDOOR_ZOOM = 1.1;
   const minZoom = place => place === 'world' ? 0.175 : 0.35;
@@ -132,6 +133,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const railTrack = worldGround ? createRailTrack({ scene, snow: (x, z) => islandBiome(world, x, z) === 'snow', hide: (() => { const c = cityOnIsland(world, district.bounds); return (x, z) => x > c.minX && x < c.maxX + 0.6 && z > c.minZ && z < c.maxZ; })(), carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // frontier weather, purely visual (render/weather.js, Tim 2026-11-20): fog banks, rain, snow
   const weather = worldGround ? createWeather({ scene, camera, renderer, world, cfg: weatherCfg }) : null;
+  // crows out on the island (wildlife W1, Tim 2026-11-24), purely visual: render/crow_fx.js
+  const crowFx = worldGround ? createCrowFx({ scene, world, groundY, isBuilding: n => catalog?.items?.[n]?.kind === 'buildings', cfg: wildlifeCfg?.crows || {} }) : null;
   // the capital's railway station (Tim 2026-11-07): an engine with its nose out and a track off the east edge, in the city
   const cityStationAt = (district.buildings || []).find(b => b.railStation);
   const cityStation = cityStationAt ? createCityStation({ scene, station: cityStationAt, edgeX: district.bounds.maxX,
@@ -571,6 +574,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       fishingFx.update(out ? Object.values(state.entities).filter(e => e.fishing && e.anim === 'idle' && e.place === 'world' && !e.dead && sprites.get(e.id)?.thing.mesh.visible).map(e => { const s = sprites.get(e.id); return { id: e.id, x: s.pos.x, y: s.pos.y, z: s.pos.z, tx: e.fishing[0], tz: e.fishing[1], order: s.thing.mesh.renderOrder }; }) : [], dt);
       fishingFx.moor(out ? worldGround?.spotsInView() || [] : []); }
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
+    crowFx?.update({ state, prev, show: (heroPlace === 'world' && !cityView) || worldView, on: video.wildlife !== false, dt: fdt, cam: { x: camTarget.x, z: camTarget.z, r: camera.right }, things: worldGround?.things(), hear: Math.min(140, Math.max(24, camera.right * 0.9)) });
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
     cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);
     ferryShips?.update(state, (heroPlace === 'street' || cityView) && !worldView, (heroPlace === 'world' && !cityView) || worldView, dt, alpha);
@@ -581,7 +585,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
     mark('lights');
     // buildings, props and banners stand still, so only the units are re-checked each frame (render/draw_order.js)
-    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || []), ...(cityStation?.things() || []), ...(ferryShips?.things() || []), ...(mooredBoats?.things() || [])]);
+    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || []), ...(cityStation?.things() || []), ...(ferryShips?.things() || []), ...(mooredBoats?.things() || []), ...(crowFx?.things() || [])]);
     for (const d of drivers.values()) if (d?.cart) d.thing.mesh.renderOrder = d.cart.renderOrder + (d.behind ? -1 : 1);   // the coachman just before or after his rickshaw
     mark('sort');
     // effect particles are sized in world units: pixels per unit of each target drawn
@@ -609,6 +613,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null, hallChannelOf: id => hallChannelOf(id),
     unitToScreen: (x, z, y = 0.9) => { v.set(x, y + groundY(x, z), z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   function addCasts(casts, castState) {
+    crowFx?.casts(casts, castState);   // gunfire scatters the crows
     for (const c of casts) {
       abilityFx.cast(c);
       shipFx.cast(c);   // broadsides, bow cannon, deck Gatling (ships S4)
@@ -669,6 +674,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const sorter = createSorter();   // draw order of all sprites, kept between frames
   const lanternLights = new Map();   // unit id -> the light that follows it during Red Lantern
   function addHits(hits, state, followId) {
+    crowFx?.hits(hits, state);   // crows circle over fights and come down by the dead
     const me = state.entities[followId];
     for (const h of hits) {
       const a = state.entities[h.a], t = state.entities[h.t];
@@ -879,6 +885,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       return (propLights.get(prop) || []).map(l => { v.set(l.pos.x, l.pos.y, l.pos.z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; });
     },
     isNight: () => nightTarget === 1,
+    wildSounds: () => crowFx?.sounds() || [],   // crow caws and wingbeats since the last frame: [clip, volume, pitch] (render/sound.js wild)
     toggleNight() { nightTarget = nightTarget ? 0 : 1; return nightTarget === 1; },
     toggleDebug() { lines.visible = !lines.visible; },
     setVideo(v) { video = { ...video, ...v }; resize(); },

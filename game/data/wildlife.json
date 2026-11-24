@@ -1,0 +1,25 @@
+{
+  "_note": "Wildlife (Tim 2026-11-24, plan war_build/wildlife/wildlife_plan.md). Crows are only for the look: src/crow_flock.js moves them, src/render/crow_fx.js draws them. All numbers are placeholders to tune in play. Distances in world units (a person is 2 tall), times in seconds.",
+  "crows": {
+    "flockSize": [6, 15],
+    "flocksDay": 3,
+    "flocksNight": 1,
+    "maxBirds": 70,
+    "speed": [4, 6],
+    "height": [3.4, 5.8],
+    "fleeHeight": [6.5, 8.5],
+    "flap": [1.5, 3.5],
+    "glide": [0.5, 1.3],
+    "beat": [2.8, 3.4],
+    "size": [0.64, 0.8],
+    "scatter": { "person": 2.4, "rider": 7 },
+    "cawEvery": [5, 14],
+    "sit": [10, 28],
+    "wander": [6, 14],
+    "flee": [6, 9],
+    "battleReach": 120,
+    "trailCount": 12,
+    "landRoof": 0.45,
+    "landTree": 0.15
+  }
+}

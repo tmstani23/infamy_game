@@ -57,3 +57,12 @@ Cut from Tim's ElevenLabs clips arrowoosh1.wav and arrowoosh2.wav (each holds a 
 | arrow_whoosh_2.ogg | Arrow in flight (from arrowoosh2, 0.80 to 1.235 s) |
 | arrow_hit_1.ogg | Arrow hitting a unit (from arrowoosh1, 1.045 to 1.45 s) |
 | arrow_hit_2.ogg | Arrow hitting a unit (from arrowoosh2, 1.235 to 1.65 s) |
+
+## ElevenLabs crow clips (2026-11-24)
+
+Cleaned from generated takes. Used in `render/sound.js` (wild) from `render/crow_fx.js`.
+
+| File | Used for |
+|---|---|
+| crow_caw_1.ogg, crow_caw_2.ogg | Soft cawing from crow flocks near the camera |
+| crow_scatter_1.ogg to crow_scatter_3.ogg | Wingbeats of a flock bursting up at gunfire, cannon, blasts or a charging rider |

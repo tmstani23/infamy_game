@@ -272,6 +272,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       piece.foot = sc(piece.foot);
     }
     const thing = cutoutThing(piece, tex);
+    thing.art = name;   // which art it is (render/crow_fx.js: roofs, trees and walls crows sit on)
     if(p.fenceHeading)thing.mesh.scale.x*=fenceWidth;
     if (p.lightRadius) for (const light of thing.lights) light.radius = p.lightRadius;
     if (p.tint) thing.mesh.material.uniforms.uTint.value.set(p.tint);
