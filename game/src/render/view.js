@@ -23,6 +23,7 @@ import { createWorldGround } from './world_ground.js';
 import { createWeather } from './weather.js';
 import { createCrowFx } from './crow_fx.js';
 import { createWildDropFx } from './wild_drop_fx.js';
+import { createHalterFx } from './halter_fx.js';
 import { createWildEyesFx } from './wild_eyes_fx.js';   // night eyes of wolves and bears (wildlife W4)   // a hunted animal's hide flies to the hero (wildlife W3)
 import { createRailTrack, createCityStation } from './rail_track.js';
 import { createRailBlastFx } from './rail_blast_fx.js';
@@ -523,6 +524,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
           s.eyesDark = far > 0;
         }
       }
+      if (e.type === 'horse' && e.coat && !s.coat) { s.coat = coatTint(e); s.material.uniforms.uTint.value.setRGB(...s.coat); }   // a caught wild horse keeps her coat (wildlife W6)
       updateAura(s, e);
       // Red Lantern: a pulsing red tint on the sprite and a real red light around him
       const lit = e.buffs?.lantern && !e.dead && !e.downed, u = s.material.uniforms;
@@ -604,6 +606,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       fishingFx.moor(out ? worldGround?.spotsInView() || [] : []); }
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     wildDropFx.update(fdt);
+    halterFx.update(fdt, id => { const s = sprites.get(id), e = state.entities[id]; return s && e && !e.dead ? { pos: s.pos, centre: s.thing.mesh.position, cell: s.cellWorld * (s.size || 1), dir: e.dir } : null; }, (heroPlace === 'world' && !cityView) || worldView);   // a rope halter thrown over a wild horse (W6)
     wildEyes.end(video.wildlife !== false);
     crowFx?.update({ state, prev, show: (heroPlace === 'world' && !cityView) || worldView, on: video.wildlife !== false, dt: fdt, cam: { x: camTarget.x, z: camTarget.z, r: camera.right }, things: worldGround?.things(), hear: Math.min(140, Math.max(24, camera.right * 0.9)) });
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
@@ -656,6 +659,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // the shakedown dynamite: a small blast of the same kind (Tim 2026-11-20); shakedownfx.js keeps its flash and ring
       if (c.kind === 'dynamiteBlast' && (c.place || 'street') === heroPlace) railBlastFx.blast(c.x, c.z, 0, { scale: 0.38, shake: false });
       if ((c.kind === 'chestCashed' || c.kind === 'hidesSold') && heroPlace === 'world') chestCashFx.cash(c);   // hides sold at a market (wildlife W5): koban coins fly into it
+      if (c.kind === 'halterThrow' && heroPlace === 'world') halterFx.cast(c);
       if (c.kind === 'wildDrop' && heroPlace === 'world') wildDropFx.drop(c);   // the hide flies from the carcass to the hero   // Tim 2026-11-21: the stolen loot flies into the hall
       if (c.kind === 'railBlast' && railBlastFx) { railBlastFx.blast(c.x, c.z, c.heading || 0); railShakeK = Math.max(0, 1 - Math.hypot(c.x - camTarget.x, c.z - camTarget.z) / 45); }   // train robbery: the charge goes off
       if (c.kind === 'cannonFire' && !c.tower) { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
@@ -668,6 +672,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const chestCashFx = createChestCashFx({ scene });
   const wildEyes = createWildEyesFx({ scene, cfg: wildlifeCfg?.animals?.eyes || {} });
   const wildDropFx = createWildDropFx({ scene, posOf: id => sprites.get(id)?.pos || null });
+  const halterFx = createHalterFx({ scene });
   const fishingFx = createFishingFx({ scene });   // workers on fish spots cast lines; fish spot boats moored (Tim 2026-11-23)
   const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null;   // fx id -> 'charge' | 'crater'
   let railShakeK = 0;

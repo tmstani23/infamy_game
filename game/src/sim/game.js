@@ -895,7 +895,8 @@ export function createGame(options) {
   const wildAnimals = areas && options.animals ? createWildAnimals({ state, data: options.animals, areas, terrainAt: (x, z) => terrainAt(options.world, x, z), settled: wildSettled,
     ready: () => modeRules(state).island, spawn, remove: id => removeUnit(id), moveTo, stopPath: e => { delete paths[e.id]; }, fightStep, statsOf, seed: (options.seed ?? 12345) ^ 0xdee5,
     world: options.world, dayTicks: dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000,
-    attack: (e, t) => { const u = statsOf(e); if (swingStep(e, u)) return true; if (!t) return false; engage(e, u, t); return true; } }) : null;   // W4 wolves and bears: dens on the world map, hunts
+    attack: (e, t) => { const u = statsOf(e); if (swingStep(e, u)) return true; if (!t) return false; engage(e, u, t); return true; },
+    tame: (owner, horse) => mounts?.adopt(owner, horse) }) : null;   // W4 wolves and bears: dens on the world map, hunts
   worldCamps=createWorldCamps({state,world:options.world,areas,rules:banditData?.worldCamps,spawn,remove:removeUnit,ai:bandits,spriteFor:type=>statsOf(type).sprite || type,known:(clan,x,z)=>discovery.isDiscovered(clan,x,z)});
   // the Land Office, the expedition out of the gate and the new-town grace (frontier E1/E6)
   const dayTicks = dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000;
@@ -1061,6 +1062,7 @@ export function createGame(options) {
       if (!e) continue;
       if (c.by !== 'lieutenant') ownCommand.add(e.owner);
       else if (!ltNotice.has(e.owner) && state.clans?.[e.owner] && !state.clans[e.owner].bot) ltNotice.set(e.owner, state.clans[e.owner].notice);
+      if (c.type === 'catchHorse') { if (e.type === 'hero') wildAnimals?.catchHorse(e); continue; }   // Space beside a wild horse: the rope halter (wildlife W6)
       if (c.type === 'sellHides') { if (e.type === 'hero') wildAnimals?.sell(e); continue; }   // Space at an own market (sim/wild_animals.js, wildlife W5)
       if (c.type === 'watchCity') { if (c.on && e.type === 'hero') watchingCity.add(e.owner); else watchingCity.delete(e.owner); continue; }
       if (watchingCity.has(e.owner) && !c.by && (c.type === 'order' || c.type === 'deployment')) continue;   // watching only: no crew orders

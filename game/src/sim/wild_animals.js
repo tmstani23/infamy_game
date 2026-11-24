@@ -25,7 +25,7 @@ const TICK_RATE = 20;
 // terrainAt(x, z): terrain code; settled(x, z): true near towns, camps and the city, where no animal comes; ready(): island games only;
 // spawn / remove / moveTo / stopPath / fightStep / statsOf: the game's own; attack(e, t): one step of e fighting t
 // (finishes a swing it started, else closes in and swings; false when there is nothing to do); dayTicks: one day and night
-export function createWildAnimals({ state, data, world = null, areas, terrainAt, settled = () => false, ready = () => true, spawn, remove, moveTo, stopPath, fightStep, statsOf, attack = () => false, dayTicks = 12000, seed = 1 }) {
+export function createWildAnimals({ state, data, world = null, areas, terrainAt, settled = () => false, ready = () => true, spawn, remove, moveTo, stopPath, fightStep, statsOf, attack = () => false, tame = () => null, dayTicks = 12000, seed = 1 }) {
   const R = data?.rules || {}, SP = data?.species || {}, P = data?.predators || {};
   const secs = s => Math.round(s * TICK_RATE);
   const THINK = secs(R.thinkSeconds ?? 3);
@@ -322,10 +322,10 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
 
   // What scares animals this tick: people close by (farther when they run or ride, nearer when hidden), and noise
   function fearOf(e, people) {
-    const F = R.fear || {}, k = predator(e) ? P.fearScale ?? 0.6 : 1;
+    const F = { ...(R.fear || {}), ...(speciesOf(e)?.fear || {}) }, k = predator(e) ? P.fearScale ?? 0.6 : 1;   // wild horses: their own (wildlife W6)
     let best = null, bd = Infinity;
     for (const p of people) {
-      const reach = (p.hidden ? F.hidden ?? 4 : p.mounted || p.ride ? F.mounted ?? 16 : p.anim === 'run' ? F.run ?? 13 : F.walk ?? 7) * k;
+      const reach = (p.hidden ? F.hidden ?? 4 : p.mounted || p.ride ? F.mounted ?? 16 : F.crew != null && p.type !== 'hero' ? F.crew : p.anim === 'run' ? F.run ?? 13 : F.walk ?? 7) * k;
       const d = Math.hypot(p.x - e.x, p.z - e.z);
       if (d <= reach && d < bd) { bd = d; best = [p.x, p.z]; }
     }
@@ -513,7 +513,39 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     return true;
   }
 
-  return { tick, provoke, killed, spawnGroup, place, flee, anchors, dens, sellPoint, sellPrompt, sell, prices: () => M().prices || {}, startHunt: (denId, clan, prey) => { const d = denOf(denId); const pack = packOf(denId); if (d && pack.length) startHunt(d, pack, clan, prey, false); },
+  // Catching a wild horse (W6, Tim 2026-11-24): on foot the hero creeps up (Shift walks; running, riding or crew near
+  // make the herd bolt) to within catch.reach of a calm one; on horseback he rides alongside one, running or not, within
+  // catch.rideReach. Space throws a looped rope halter (no lasso: the herders' halter) and she is his (mounts.adopt).
+  const CATCH = () => data?.catch || {};
+  const NAMES = () => CATCH().names || ['Kaze'];
+  function catchTarget(e) {
+    if (!e || e.type !== 'hero' || e.place !== 'world' || e.dead || e.downed || e.aboard) return null;
+    const reach = e.mounted || e.ride ? CATCH().rideReach ?? 4.5 : CATCH().reach ?? 5;
+    let best = null, bd = Infinity;
+    for (const a of animals()) {
+      if (!alive(a) || !speciesOf(a)?.catchable || a.angry) continue;
+      if (!(e.mounted || e.ride) && a.wm?.mode === 'flee') continue;
+      const d = dist(a, e);
+      if (d <= reach && d < bd) { bd = d; best = a; }
+    }
+    return best;
+  }
+  function catchPrompt(e) { return catchTarget(e) ? { text: 'Space  Throw a rope halter' } : null; }
+  function catchHorse(e) {
+    const a = catchTarget(e), clan = state.clans?.[e?.owner];
+    if (!a || !clan) return false;
+    const T = data?.types?.[a.type] || {}, name = NAMES()[Math.floor(rng() * NAMES().length)];
+    const id = tame(e.owner, { x: a.x, z: a.z, kind: T.tamed || a.sprite || T.sprite, name, coat: a.coat });
+    if (id == null) return false;
+    state.casts.push({ kind: 'halterThrow', a: e.id, t: a.id, horse: id, x: e.x, z: e.z, tx: a.x, tz: a.z, place: 'world' });   // render/halter_fx.js
+    const h = state.entities[id];
+    if (h) h.dir = a.dir;
+    for (const o of animals()) if (o !== a && alive(o) && o.species === a.species && dist(o, a) <= (R.herdRadius ?? 10) * 1.5) flee(o, e.x, e.z, false);   // the rest of the herd bolts
+    remove(a.id);
+    return true;
+  }
+
+  return { tick, provoke, killed, spawnGroup, place, flee, anchors, dens, sellPoint, sellPrompt, sell, catchTarget, catchPrompt, catchHorse, prices: () => M().prices || {}, startHunt: (denId, clan, prey) => { const d = denOf(denId); const pack = packOf(denId); if (d && pack.length) startHunt(d, pack, clan, prey, false); },
     saveState: () => ({ s }), loadState: d => { if (d && Number.isFinite(d.s)) s = d.s; } };
 }
 

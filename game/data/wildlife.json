@@ -52,25 +52,32 @@
       "deer": { "habitat": { "f": 1, "p": 0.7, "h": 0.6, "b": 0.4, "k": 0.2 }, "weight": 2, "group": [2, 5], "lead": "stag", "leadChance": 0.6, "rest": "doe", "graze": true, "drop": "deer_hide" },
       "boar": { "habitat": { "f": 1, "b": 1, "h": 0.5, "k": 0.5 }, "weight": 1, "group": [1, 3], "lead": "boar", "rest": "boar", "graze": true, "drop": "boar_hide", "charge": { "seconds": 6, "giveUp": 10 } },
       "wolf": { "predator": "pack", "habitat": {}, "group": [3, 4], "lead": "wolf", "rest": "wolf", "drop": "wolf_pelt" },
-      "bear": { "predator": "lone", "habitat": {}, "group": [1, 1], "lead": "bear", "rest": "bear", "drop": "bear_hide", "extra": { "bear_gall": 0.35 } }
+      "bear": { "predator": "lone", "habitat": {}, "group": [1, 1], "lead": "bear", "rest": "bear", "drop": "bear_hide", "extra": { "bear_gall": 0.35 } },
+      "horse": { "habitat": { "p": 1, "h": 0.3 }, "weight": 1, "group": [3, 6], "lead": "wild_stallion", "leadChance": 0.7, "rest": "wild_mare", "graze": true, "catchable": true,
+        "fear": { "_note": "Wild horses (W6): the hero walking (Shift) can creep close; running, riding or crew near make the herd bolt", "walk": 3, "run": 14, "mounted": 14, "hidden": 2, "crew": 18 } }
     },
     "types": {
       "stag": { "sprite": "stag", "name": "Stag", "hp": 90, "damage": 0, "attackRange": 1.4, "attackSpeed": 1.2, "walk": 1.5, "run": 8, "radius": 0.45 },
       "doe": { "sprite": "doe", "name": "Doe", "hp": 70, "damage": 0, "attackRange": 1.3, "attackSpeed": 1.2, "walk": 1.5, "run": 8.2, "radius": 0.4 },
       "boar": { "sprite": "boar", "name": "Boar", "hp": 280, "damage": 16, "attackRange": 1.3, "attackSpeed": 1.1, "critChance": 0.1, "critMultiplier": 1.6, "walk": 1.2, "run": 6.5, "radius": 0.45 },
       "wolf": { "sprite": "wolf", "name": "Wolf", "hp": 150, "damage": 14, "attackRange": 1.3, "attackSpeed": 0.8, "critChance": 0.1, "critMultiplier": 1.6, "walk": 1.6, "run": 7.5, "radius": 0.4 },
-      "bear": { "sprite": "bear", "name": "Bear", "hp": 900, "damage": 24, "attackRange": 1.9, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 1.5, "walk": 1.3, "run": 6, "radius": 0.8 }
+      "bear": { "sprite": "bear", "name": "Bear", "hp": 900, "damage": 24, "attackRange": 1.9, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 1.5, "walk": 1.3, "run": 6, "radius": 0.8 },
+      "wild_mare": { "sprite": "mare", "tamed": "mare_saddled", "name": "Wild horse", "hp": 300, "damage": 0, "attackRange": 1.5, "attackSpeed": 1.2, "walk": 1.6, "run": 9, "radius": 0.6 },
+      "wild_stallion": { "sprite": "warhorse", "tamed": "warhorse_saddled", "name": "Wild stallion", "hp": 340, "damage": 0, "attackRange": 1.5, "attackSpeed": 1.2, "walk": 1.6, "run": 9.5, "radius": 0.65 }
     },
     "coatLight": 0.12,
     "coat": {
       "_note": "Each animal's coat: a multiply on its sprite between these two shades (seeded per animal), so a herd is not all one colour. Deer pale to deep chestnut and a little cooler than the raw render; boar brown to grey.",
       "stag": [[0.96, 0.95, 1.0], [0.86, 0.75, 0.7]],
+      "wild_mare": [[1.08, 1.03, 0.97], [0.52, 0.47, 0.45]], "wild_stallion": [[1.08, 1.03, 0.97], [0.52, 0.47, 0.45]], "horse": [[1.08, 1.03, 0.97], [0.52, 0.47, 0.45]],
       "doe": [[0.96, 0.95, 1.0], [0.86, 0.75, 0.7]],
       "boar": [[1.12, 1.04, 0.96], [0.92, 0.92, 0.94]],
       "wolf": [[1.04, 1.02, 1.02], [0.9, 0.84, 0.78]],
       "bear": [[1.0, 1.0, 1.0], [0.95, 0.84, 0.76]]
     },
     "grey": { "_note": "How much colour comes out of the raw sprite before the coat shade (0 none, 1 all): the deer renders read too orange (critic 2026-11-24).", "stag": 0.35, "doe": 0.35, "boar": 0.15, "wolf": 0.1, "bear": 0 },
+    "catch": { "_note": "Catching wild horses (W6): Space within reach (on foot, of a calm horse) or rideReach (riding alongside); names for the caught horses", "reach": 5, "rideReach": 4.5,
+      "names": ["Kaze", "Hayate", "Arashi", "Kumo", "Tsuki", "Hoshi", "Yuki", "Kasumi", "Shiro", "Kuro", "Hana", "Sora", "Nagi", "Raiden", "Momiji", "Asagiri"] },
     "market": {"_note": "Selling hides (W5): the hero presses Space within reach of a built market in one of his towns; ryo each, placeholders (Tim: bear pays more than wolf, wolf more than boar, boar more than deer).", "reach": 12, "prices": {"deer_hide": 25, "boar_hide": 40, "wolf_pelt": 70, "bear_hide": 180, "bear_gall": 120}},
     "eyes": {"near": 7, "far": 16, "dimTo": 40, "body": 0.1, "alpha": 0.45, "size": 0.32, "glint": 1.56, "dim": 0.15, "blink": [3, 6], "blinkSeconds": 0.14, "anims": ["idle", "walk", "run", "graze"], "gap": {"wolf": 0.11, "bear": 0.16}, "at": {"wolf": [[0.552, 0.417], [0.36, 0.4], [0.292, 0.352], null, null, null, [0.719, 0.318], [0.708, 0.378]], "bear": [[0.507, 0.513], [0.37, 0.49], [0.28, 0.45], null, null, null, [0.73, 0.43], [0.67, 0.5]]}},
     "predators": {

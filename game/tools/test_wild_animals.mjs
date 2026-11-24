@@ -155,9 +155,43 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   delete S.frontier.settlements.hide_test; clan.hides = {};
 }
 
+// wild horses (W6): creep up on foot and throw the rope halter; she joins the clan with her whistle and keeps her coat
+{
+  for (const c of crew) Object.assign(c, { x: hero.x + 200, z: hero.z + 200, order: { kind: 'move', x: hero.x + 200, z: hero.z + 200, arrived: true } });
+  Object.assign(hero, { anim: 'idle' });
+  const ids = g.wildAnimals.place('horse', hero.x + 12, hero.z);
+  assert.ok(ids.length >= 3, `a herd (${ids.length})`);
+  const mare = S.entities[ids[ids.length - 1]];
+  assert.ok(['wild_mare', 'wild_stallion'].includes(mare.type), mare.type);
+  assert.equal(g.wildAnimals.catchPrompt(hero), null, 'too far to throw');
+  for (const id of ids) S.entities[id].wm.mode = 'idle';
+  Object.assign(hero, { x: mare.x + 3, z: mare.z });
+  assert.ok(g.wildAnimals.catchPrompt(hero)?.text.includes('halter'), 'Space throws the halter');
+  const coats = Object.fromEntries(ids.map(id => [id, S.entities[id].coat])), clan = S.clans[hero.owner], had = (clan.whistles || []).length;
+  S.casts = [];
+  g.step([{ type: 'catchHorse', id: hero.id }]);
+  const caught = ids.find(id => !S.entities[id] || S.entities[id].dead);
+  assert.ok(caught, 'one of the herd is caught');
+  assert.equal(clan.whistles.length, had + 1, 'with her own whistle');
+  const mine = S.entities[clan.whistles.at(-1).horse];
+  assert.ok(mine?.type === 'horse' && mine.horseOwner === hero.owner && /_saddled$/.test(mine.horseKind), 'she is the clan\'s horse now');
+  assert.deepEqual(mine.coat, coats[caught], 'and keeps her coat');
+  assert.ok(S.casts.some(c => c.kind === 'halterThrow' && c.t === caught), 'the halter flies');
+  // a running hero on foot scares the herd off
+  const rest = ids.map(id => S.entities[id]).filter(e => e && !e.dead);
+  if (rest.length) {
+    const h = rest[0]; h.wm.mode = 'idle';
+    Object.assign(hero, { x: h.x + 10, z: h.z, anim: 'run' });
+    for (let i = 0; i < 10; i++) { hero.anim = 'run'; g.step([]); }
+    assert.equal(h.wm.mode, 'flee', 'a running hero makes the herd bolt');
+    hero.anim = 'idle';
+  }
+  for (const e of rest) Object.assign(e, { dead: true, hp: 0 });   // out of the way of the checks below
+}
+
 // nobody of yours near: they go
 Object.assign(hero, { x: gx + 60, z: gz }); for (const e of crew) Object.assign(e, { x: gx + 61, z: gz, order: { kind: 'move', x: gx + 61, z: gz, arrived: true } });
 run(200);
 assert.ok(animals().every(e => Math.hypot(e.x - hero.x, e.z - hero.z) < A.rules.despawnDistance), 'far animals are gone');
-assert.ok(animals().every(e => Math.hypot(e.x - gx, e.z - gz) > A.rules.awayFrom.gate), 'none by the city gate');
+assert.ok(animals().every(e => Math.hypot(e.x - gx, e.z - gz) > A.rules.awayFrom.gate - A.rules.wander), `none by the city gate (they may wander a little from where they came on) ${JSON.stringify(animals().filter(e => Math.hypot(e.x - gx, e.z - gz) <= A.rules.awayFrom.gate).map(e => [e.type, Math.round(Math.hypot(e.x - gx, e.z - gz)), e.wm?.mode]))}`);
 console.log('wild animals ok');

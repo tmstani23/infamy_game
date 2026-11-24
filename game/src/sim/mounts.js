@@ -61,7 +61,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     if (e.ride?.kind === 'horse' && e.ride.horse !== id) dismount(e);
     clanOf(e.owner).mount = id;
     if (!horse) {   // missing after a load: she comes back to the whistle
-      const nid = spawn('horse', R().models?.[w.kind] || w.kind, e.x + 1.5, e.z + 1, { horseOwner: e.owner, horseKind: w.kind, name: w.name, place: 'world', hp: R().hp ?? 300, maxHp: R().hp ?? 300, holdFire: true, vehicle: true });
+      const nid = spawn('horse', R().models?.[w.kind] || w.kind, e.x + 1.5, e.z + 1, { horseOwner: e.owner, horseKind: w.kind, name: w.name, place: 'world', hp: R().hp ?? 300, maxHp: R().hp ?? 300, holdFire: true, vehicle: true, ...(w.coat ? { coat: w.coat } : {}) });
       horse = state.entities[nid]; w.horse = nid; clanOf(e.owner).mount = nid; inbound(horse, e); blow(e);
       return say(e.owner, `${w.name || 'Your horse'} is on her way`);
     }
@@ -260,5 +260,14 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
       if (h && horse && h.place === 'world' && !h.ride && !h.aboard && !h.dead && !h.downed && h.hp >= (h.maxHp || 0) * 0.6 && !horse.called && !horse.rider) command(h, {});
     }
   }
-  return { command, tick, mountOf, dismount, whistlesOf };
+  // a wild horse caught with a rope halter (sim/wild_animals.js, wildlife W6): she joins the clan like a bought one and keeps her coat;
+  // kind: her model with tack (art.json, e.g. mare_saddled)
+  function adopt(owner, { x, z, kind, name, coat }) {
+    const id = spawn('horse', R().models?.[kind] || kind, x, z, { horseOwner: owner, horseKind: kind, name, place: 'world', hp: R().hp ?? 300, maxHp: R().hp ?? 300, holdFire: true, vehicle: true, coat });
+    const clan = clanOf(owner);
+    if (clan) { whistlesOf(owner).some(w => w.horse === id) || whistlesOf(owner).push({ horse: id, name, kind, coat }); if (!mountOf(owner)) clan.mount = id; }
+    say(owner, `${name} is yours, her whistle is in your Field supplies${clan?.mount === id ? ' (H to call and ride her)' : ''}`);
+    return id;
+  }
+  return { command, tick, mountOf, dismount, whistlesOf, adopt };
 }
