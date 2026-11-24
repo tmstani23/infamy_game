@@ -1,4 +1,4 @@
-import {ITEMS, SHOP_ITEM_IDS, CONSUMABLES, LOOT, SHOP} from './gear_catalog.js';
+import {ITEMS, SHOP_ITEM_IDS, CONSUMABLES, LOOT, SHOP, heirloomFor} from './gear_catalog.js';
 import {canInteract} from './interactions.js';
 import {debitRyo} from './treasury.js';
 import {noticeFor} from './util.js';
@@ -65,7 +65,15 @@ export function createItemServices({state,raidRules={},spawn,nav}) {
     if(l.recent[k]!=null&&state.tick-l.recent[k]<ticks(SHOP.lootRepeatSeconds))return;
     const rate=LOOT.accomplishments[kind][l.first[k]?'repeat':'first'];l.first[k]=true;l.recent[k]=state.tick;
     const id=roll(rate);if(!id)return;
-    if(!give(owner,id)){const v=state.clans[owner]?.inventory;if(v){v.pending||=[];if(v.pending.length<12){v.pending.push(id);say(state.clans[owner],'Gear reward waiting: free a bag slot and claim it at the shop');}else{const value=ITEMS[id].sell;state.clans[owner].ryo+=value;state.ryoGains.push({clan:owner,amount:value,reason:'Overflow gear sold'});say(state.clans[owner],`Reward storage full: gear sold for ${value} ryo`);}}}
+    grant(owner,id);
+  }
+  // into the bag, else waiting at the shop, else sold (a keepsake that cannot be sold still waits; W7 heirlooms)
+  function grant(owner,id){
+    if(give(owner,id))return true;
+    const v=state.clans[owner]?.inventory;if(!v)return false;v.pending||=[];
+    if(v.pending.length<12||!ITEMS[id].sell){v.pending.push(id);say(state.clans[owner],'Gear reward waiting: free a bag slot and claim it at the shop');}
+    else{const value=ITEMS[id].sell;state.clans[owner].ryo+=value;state.ryoGains.push({clan:owner,amount:value,reason:'Overflow gear sold'});say(state.clans[owner],`Reward storage full: gear sold for ${value} ryo`);}
+    return false;
   }
   function defeat(a,t){
     if(!state.clans[a?.owner]||a.owner===t.owner||t.shopkeeper||t.cop||t.guard||t.type==='civilian'||t.noGearLoot)return;
@@ -81,6 +89,9 @@ export function createItemServices({state,raidRules={},spawn,nav}) {
     const l=state.gearLoot||={seed:72437,first:{},recent:{},camps:{}};
     for(const c of state.banditCamps||[])if(c.clearedAt!=null&&c.gearWinner&&l.camps[c.id]!==c.clearedAt){l.camps[c.id]=c.clearedAt;accomplishment(c.gearWinner,'banditCamp',c.id);}
   }
+  // a castle falls (Z6): its clan's heirloom blade goes to the clan that took it (wildlife W7, Tim 2026-11-24).
+  // Called after the frontier tick (sim/game.js), which ends the wars.
+  function castles(){for(const n of state.news||[])if(n.kind==='warEnded'&&n.result==='fell'&&state.clans[n.attacker]){const id=heirloomFor(state.clans[n.defender]);if(ITEMS[id])grant(n.attacker,id);}}
   function claim(e){if(!near(e))return;const v=inv(e);while(v?.pending?.length&&v.bag.includes(null))give(e.owner,v.pending.shift());}
-  return {initialize,near,shop,command,interrupt,tick,defeat,collect,claim};
+  return {initialize,near,shop,command,interrupt,tick,defeat,collect,claim,grant,castles};
 }

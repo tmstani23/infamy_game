@@ -896,7 +896,7 @@ export function createGame(options) {
     ready: () => modeRules(state).island, spawn, remove: id => removeUnit(id), moveTo, stopPath: e => { delete paths[e.id]; }, fightStep, statsOf, seed: (options.seed ?? 12345) ^ 0xdee5,
     world: options.world, dayTicks: dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000,
     attack: (e, t) => { const u = statsOf(e); if (swingStep(e, u)) return true; if (!t) return false; engage(e, u, t); return true; },
-    tame: (owner, horse) => mounts?.adopt(owner, horse) }) : null;   // W4 wolves and bears: dens on the world map, hunts
+    tame: (owner, horse) => mounts?.adopt(owner, horse), gear: (owner, id) => itemServices.grant(owner, id) }) : null;   // W4 wolves and bears: dens on the world map, hunts
   worldCamps=createWorldCamps({state,world:options.world,areas,rules:banditData?.worldCamps,spawn,remove:removeUnit,ai:bandits,spriteFor:type=>statsOf(type).sprite || type,known:(clan,x,z)=>discovery.isDiscovered(clan,x,z)});
   // the Land Office, the expedition out of the gate and the new-town grace (frontier E1/E6)
   const dayTicks = dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000;
@@ -1433,6 +1433,7 @@ export function createGame(options) {
     discovery.tick();
     sightings?.tick();
     frontier?.tick();
+    itemServices.castles();   // a fallen castle's heirloom blade (wildlife W7)
     ferry?.tick();   // the ship to the castle
     for (const v of frontier?.stable?.bornVehicles?.() || []) {   // built at a station: parked there, empty (Tim 2026-11-06)
       omnibus?.park(v.owner, v.kind, v.x, v.z);

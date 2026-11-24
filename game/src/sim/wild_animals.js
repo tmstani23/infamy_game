@@ -25,7 +25,7 @@ const TICK_RATE = 20;
 // terrainAt(x, z): terrain code; settled(x, z): true near towns, camps and the city, where no animal comes; ready(): island games only;
 // spawn / remove / moveTo / stopPath / fightStep / statsOf: the game's own; attack(e, t): one step of e fighting t
 // (finishes a swing it started, else closes in and swings; false when there is nothing to do); dayTicks: one day and night
-export function createWildAnimals({ state, data, world = null, areas, terrainAt, settled = () => false, ready = () => true, spawn, remove, moveTo, stopPath, fightStep, statsOf, attack = () => false, tame = () => null, dayTicks = 12000, seed = 1 }) {
+export function createWildAnimals({ state, data, world = null, areas, terrainAt, settled = () => false, ready = () => true, spawn, remove, moveTo, stopPath, fightStep, statsOf, attack = () => false, tame = () => null, gear = () => false, dayTicks = 12000, seed = 1 }) {
   const R = data?.rules || {}, SP = data?.species || {}, P = data?.predators || {};
   const secs = s => Math.round(s * TICK_RATE);
   const THINK = secs(R.thinkSeconds ?? 3);
@@ -316,6 +316,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     };
     give(sp.drop);
     for (const [item, chance] of Object.entries(sp.extra || {})) if (rng() < chance) give(item);   // a bear's gall, sometimes
+    if (sp.gear?.items?.length && rng() < (sp.gear.chance ?? 0)) gear(a.owner, sp.gear.items[Math.floor(rng() * sp.gear.items.length)]);   // W7: sometimes a wearable (the loot notice shows it)
     // the herd runs from the kill (a pack fights on until it breaks)
     if (!sp.predator) for (const o of animals()) if (o !== t && alive(o) && !predator(o) && Math.hypot(o.x - t.x, o.z - t.z) <= (R.herdRadius ?? 10) * 1.5) flee(o, t.x, t.z, false);
   }
