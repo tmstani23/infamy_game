@@ -54,7 +54,7 @@
       "wolf": { "predator": "pack", "habitat": {}, "group": [3, 4], "lead": "wolf", "rest": "wolf", "drop": "wolf_pelt", "gear": { "_note": "W7: about 1 kill in 4 to 5 gives a wearable (src/sim/gear_catalog.js FRONTIER_GEAR)", "chance": 0.22, "items": ["wolf_fur_cloak", "wolf_fang_charm"] } },
       "bear": { "predator": "lone", "habitat": {}, "group": [1, 1], "lead": "bear", "rest": "bear", "drop": "bear_hide", "extra": { "bear_gall": 0.35 }, "gear": { "chance": 0.22, "items": ["bear_hide_coat", "bear_claw_charm"] } },
       "horse": { "habitat": { "p": 1, "h": 0.3 }, "weight": 1, "group": [3, 6], "lead": "wild_stallion", "leadChance": 0.7, "rest": "wild_mare", "graze": true, "catchable": true,
-        "fear": { "_note": "Wild horses (W6): the hero walking (Shift) can creep close; running, riding or crew near make the herd bolt", "walk": 3, "run": 14, "mounted": 14, "hidden": 2, "crew": 18 } }
+        "fear": { "_note": "Wild horses (W6): the hero walking (Shift) can creep right up to her head (catch.reach); running, riding or crew near make the herd bolt", "walk": 1.5, "run": 14, "mounted": 14, "hidden": 1, "crew": 18 } }
     },
     "types": {
       "stag": { "sprite": "stag", "name": "Stag", "hp": 90, "damage": 0, "attackRange": 1.4, "attackSpeed": 1.2, "walk": 1.5, "run": 8, "radius": 0.45 },
@@ -76,7 +76,7 @@
       "bear": [[1.0, 1.0, 1.0], [0.95, 0.84, 0.76]]
     },
     "grey": { "_note": "How much colour comes out of the raw sprite before the coat shade (0 none, 1 all): the deer renders read too orange (critic 2026-11-24).", "stag": 0.35, "doe": 0.35, "boar": 0.15, "wolf": 0.1, "bear": 0 },
-    "catch": { "_note": "Catching wild horses (W6): Space within reach (on foot, of a calm horse) or rideReach (riding alongside); names for the caught horses", "reach": 5, "rideReach": 4.5,
+    "catch": { "_note": "Catching wild horses (W6): Space within reach (on foot at her head, of a calm horse) or rideReach (riding alongside) slips a rope halter on, nothing is thrown (Tim 2026-11-24: no lasso); names for the caught horses", "reach": 3, "rideReach": 3.5,
       "names": ["Kaze", "Hayate", "Arashi", "Kumo", "Tsuki", "Hoshi", "Yuki", "Kasumi", "Shiro", "Kuro", "Hana", "Sora", "Nagi", "Raiden", "Momiji", "Asagiri"] },
     "market": {"_note": "Selling hides (W5): the hero presses Space within reach of a built market in one of his towns; ryo each, placeholders (Tim: bear pays more than wolf, wolf more than boar, boar more than deer).", "reach": 12, "prices": {"deer_hide": 25, "boar_hide": 40, "wolf_pelt": 70, "bear_hide": 180, "bear_gall": 120}},
     "eyes": {"near": 7, "far": 16, "dimTo": 40, "body": 0.1, "alpha": 0.45, "size": 0.32, "glint": 1.56, "dim": 0.15, "blink": [3, 6], "blinkSeconds": 0.14, "anims": ["idle", "walk", "run", "graze"], "gap": {"wolf": 0.11, "bear": 0.16}, "at": {"wolf": [[0.552, 0.417], [0.36, 0.4], [0.292, 0.352], null, null, null, [0.719, 0.318], [0.708, 0.378]], "bear": [[0.507, 0.513], [0.37, 0.49], [0.28, 0.45], null, null, null, [0.73, 0.43], [0.67, 0.5]]}},

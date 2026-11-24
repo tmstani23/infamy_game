@@ -165,8 +165,8 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   assert.ok(['wild_mare', 'wild_stallion'].includes(mare.type), mare.type);
   assert.equal(g.wildAnimals.catchPrompt(hero), null, 'too far to throw');
   for (const id of ids) S.entities[id].wm.mode = 'idle';
-  Object.assign(hero, { x: mare.x + 3, z: mare.z });
-  assert.ok(g.wildAnimals.catchPrompt(hero)?.text.includes('halter'), 'Space throws the halter');
+  Object.assign(hero, { x: mare.x + 2, z: mare.z });
+  assert.ok(g.wildAnimals.catchPrompt(hero)?.text.includes('halter'), 'Space slips the halter on');
   const coats = Object.fromEntries(ids.map(id => [id, S.entities[id].coat])), clan = S.clans[hero.owner], had = (clan.whistles || []).length;
   S.casts = [];
   g.step([{ type: 'catchHorse', id: hero.id }]);

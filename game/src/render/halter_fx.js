@@ -1,12 +1,13 @@
-// Catching a wild horse (wildlife W6, Tim 2026-11-24): the hero throws a looped rope halter, Misaki herder style
-// (not a cowboy lasso). A loose rope loop arcs from his hand to the horse's head, closes round the muzzle and
-// stays a moment as a noseband with a sagging lead back to his hand, then fades. Soft tan, a little see-through.
+// Catching a wild horse (wildlife W6, Tim 2026-11-24): the hero walks up to the horse's head and slips a rope
+// halter over its muzzle, Misaki herder style. Nothing is thrown (Tim 2026-11-24: a thrown loop reads as a lasso,
+// and no Wild West). The noseband slides up the muzzle and snugs on, the crown strap goes up behind the ears, and a
+// short slack lead hangs back to his hand, then it all fades. Soft tan, a little see-through.
 // Sim: a 'halterThrow' cast { a: hero id, horse: the tamed horse's id, x, z, tx, tz } (sim/wild_animals.js catchHorse).
 import * as THREE from 'three';
 import { CAM_RIGHT, CAM_UP, VIEW_DIR } from './iso.js';
 import { groundY } from '../castle_height.js';
 
-const THROW = 0.5, CLOSE = 0.22, HOLD = 1.0, FADE = 0.45, END = THROW + CLOSE + HOLD;
+const SLIP = 0.4, HOLD = 1.3, FADE = 0.45, END = SLIP + HOLD;
 const WIDTH = 0.075, ALPHA = 0.66, MAXV = 1800;
 // where the head is on a horse sprite cell, by facing (0 S .. 7 SE), as cell fractions (mare/warhorse sheets)
 const HEAD = [[0.5, 0.38], [0.34, 0.43], [0.235, 0.38], [0.34, 0.3], [0.5, 0.22], [0.67, 0.29], [0.765, 0.37], [0.66, 0.475]];
@@ -60,24 +61,18 @@ export function createHalterFx({ scene }) {
       const h = look(f.hero), m = look(f.horse);
       if (h) f.hand = h.pos.clone().add(new THREE.Vector3(0, 1.15, 0));
       else if (!f.hand) f.hand = new THREE.Vector3(f.from.x, groundY(f.from.x, f.from.z) + 1.15, f.from.z);
-      if (m) { const [u, v] = HEAD[((m.dir ?? 2) % 8 + 8) % 8]; f.head = scr(m.centre, (u - 0.5) * m.cell, (0.5 - v) * m.cell); }
+      if (m) { const [u, v] = HEAD[((m.dir ?? 2) % 8 + 8) % 8]; f.head = scr(m.centre, (u - 0.5) * m.cell, (0.5 - v) * m.cell); f.back = u > 0.55 ? -1 : u < 0.45 ? 1 : 0; }   // back: which way the ears and neck lie on screen
       else if (!f.head) f.head = new THREE.Vector3(f.to.x, groundY(f.to.x, f.to.z) + 1.6, f.to.z);
       const side = Math.sign(f.head.clone().sub(f.hand).dot(CAM_RIGHT)) || 1;
       const hand = scr(f.hand, side * 0.22, 0), head = f.head;
-      if (f.t < THROW) {   // the loop flies, the rope paying out behind it
-        const k = f.t / THROW, e = 1 - (1 - k) * (1 - k);
-        const c = hand.clone().lerp(head, e).addScaledVector(CAM_UP, Math.sin(Math.PI * e) * 1.1 + 0.25 * e);
-        const r = 0.5 - 0.15 * e, ring = loop(c, r, r * 0.7, 18, 0.9, -0.15 * side);
-        strip(sagLine(hand, ring[0], 10, 0.15 * e), WIDTH);
-        strip(ring, WIDTH);
-      } else {
-        const k = Math.min(1, (f.t - THROW) / CLOSE), e = k * k * (3 - 2 * k);
-        const nose = scr(head, side * 0.04 * e, -0.06 * e);
-        const ring = loop(nose, 0.35 - 0.2 * e, (0.35 - 0.2 * e) * (0.7 - 0.12 * e), 16, 0.9 * (1 - e), -0.15 * side * (1 - e));
-        strip(ring, WIDTH);
-        if (e > 0.5) strip([scr(nose, -side * 0.12, 0.03), scr(nose, -side * 0.2, 0.32)], WIDTH * 0.85);   // the cheek strap up behind the ears
-        strip(sagLine(hand, ring[0], 12, 0.15 + 0.4 * e), WIDTH);   // the lead hangs slack once the halter is on
-      }
+      const k = Math.min(1, f.t / SLIP), e = k * k * (3 - 2 * k);
+      const nose = scr(head, -(f.back ?? side) * 0.1 * (1 - e), -0.05 - 0.06 * (1 - e));   // slides up from the nose tip
+      const r = 0.1 + 0.06 * (1 - e);
+      strip(loop(nose, r, r * 0.62, 16), WIDTH);                                                        // the noseband
+      const back = f.back ?? side, cheek = scr(nose, back * r * 0.9, 0.02), poll = scr(nose, back * 0.26, 0.28 * e + 0.06);
+      strip([cheek, cheek.clone().lerp(poll, 0.5).addScaledVector(CAM_UP, 0.02), poll], WIDTH);   // the crown strap up behind the ears
+      const knot = scr(nose, -side * 0.02, -r * 0.62);
+      strip(sagLine(hand, knot, 12, 0.28 + 0.1 * Math.sin(Math.min(1, f.t / (SLIP + 0.3)) * Math.PI)), WIDTH);   // a short slack lead to his hand, one small tug
     }
     const fade = live.reduce((o, f) => Math.max(o, f.t > END - FADE ? (END - f.t) / FADE : 1), 0);
     mat.opacity = ALPHA * fade;

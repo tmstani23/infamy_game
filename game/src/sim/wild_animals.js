@@ -516,7 +516,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
 
   // Catching a wild horse (W6, Tim 2026-11-24): on foot the hero creeps up (Shift walks; running, riding or crew near
   // make the herd bolt) to within catch.reach of a calm one; on horseback he rides alongside one, running or not, within
-  // catch.rideReach. Space throws a looped rope halter (no lasso: the herders' halter) and she is his (mounts.adopt).
+  // catch.rideReach. Space slips a rope halter over her muzzle (the herders' halter; nothing is thrown, Tim 2026-11-24: a thrown loop reads as a lasso) and she is his (mounts.adopt).
   const CATCH = () => data?.catch || {};
   const NAMES = () => CATCH().names || ['Kaze'];
   function catchTarget(e) {
@@ -531,7 +531,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     }
     return best;
   }
-  function catchPrompt(e) { return catchTarget(e) ? { text: 'Space  Throw a rope halter' } : null; }
+  function catchPrompt(e) { return catchTarget(e) ? { text: 'Space  Slip a rope halter on' } : null; }
   function catchHorse(e) {
     const a = catchTarget(e), clan = state.clans?.[e?.owner];
     if (!a || !clan) return false;
