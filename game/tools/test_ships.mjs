@@ -31,6 +31,7 @@ assert.ok(g.ships, 'the game has ships');
 // a warship and a transport at the shore nearest the camp hall, inside the circle
 const L0 = landingFor(wg, hall.x, hall.z, 'big', { box: circle, maxR: 400 });
 assert.ok(L0?.berth, 'landable shore near the camp');
+for (const o of Object.values(S.entities)) if (o.ship && o.owner === 'player') delete S.entities[o.id];   // the save's own ships: this test brings its own to the same shore
 const ship = g.ships.spawn(rec, 'warship', L0.berth.x, L0.berth.z, 'player');
 const t2 = nearestSailable(wg, L0.berth.x + 30, L0.berth.z + 30, 'big', 80, circle);
 const transport = g.ships.spawn(rec, 'transport', t2.x, t2.z, 'player');
@@ -92,17 +93,18 @@ assert.equal(ship.sorder.kind, 'stay');
 order([ship.id, men[0].id], { kind: 'move', x: shore.land.x + 3, z: shore.land.z + 3 });
 assert.ok(!ship.order && men[0].order?.kind === 'move', 'a mixed order: the ship sails, the man walks');
 
-// --- All aboard: Space beside the ship at the shore calls a ring; everyone in it goes aboard one at a time ---
+// --- as the omnibus (Tim 2026-11-23): no ring and no Space; a right-click sends them aboard one at a time ---
 for (let i = 0; i < 100 && ship.sorder.kind !== 'stay'; i++) g.step([]);
 for (const [i, u] of men.slice(0, 4).entries()) Object.assign(u, { x: shore.land.x + 2 + i, z: shore.land.z + 1, order: { kind: 'stop' } });
 Object.assign(hero(), { x: shore.land.x + 1, z: shore.land.z + 1, place: 'world' });
-assert.ok(g.ships.prompt(hero())?.text.includes('All aboard'), 'the prompt offers All aboard');
+assert.equal(g.ships.prompt(hero()), null, 'no Space prompt beside a ship');
 g.step([{ id: hero().id, type: 'use' }]);
-assert.ok(hero().shipBoard, 'the ring is called');
+assert.ok(!hero().shipBoard, 'Space calls no ring');
+g.step([{ id: hero().id, type: 'ship', action: 'board', ship: ship.id, units: [hero().id, ...men.slice(0, 4).map(u => u.id)] }]);
 run(10 * 20 + 7 * 20);
-assert.ok(hero().inShip === ship.id && g.ships.riders(ship).length >= 5, `the hero and the men in the ring are aboard (${g.ships.riders(ship).length})`);
+assert.ok(hero().inShip === ship.id && g.ships.riders(ship).length >= 5, `the hero and the men sent are aboard (${g.ships.riders(ship).length})`);
 const sx = hero().x; g.step([{ id: hero().id, type: 'move', right: 1, down: 0 }]); assert.equal(hero().x, sx, 'the hero aboard does not walk');
-assert.ok(g.ships.prompt(hero())?.text.includes('Step off'), 'aboard at the shore: Space steps off');
+assert.equal(g.ships.prompt(hero()), null, 'aboard: no hint banner (Tim 2026-11-24)');
 
 // --- S6b: the landable shore shows while your people are afloat; the cursor marks where a click lands ---
 { const want = shoreWanted(g, 'player'); assert.equal(want.length, 1, 'the war circle your people are afloat in');
@@ -141,4 +143,36 @@ console.log('ships: ok');
 { const t = landingFor(wg, town.x, town.z, 'big', { box: circle, maxR: 600 }), s = g.ships.spawn(rec, 'transport', t.berth.x, t.berth.z, 'player'), u = crew().find(x => !x.inShip);
   Object.assign(u, { aboard: s.id, inShip: s.id, x: s.x, z: s.z }); delete S.entities[s.id]; g.step([]);
   assert.ok(!u.inShip && !u.aboard && passable(world, u.x, u.z), 'stranded rider set ashore'); }
+// as the omnibus (Tim 2026-11-23): Q on a ship out on the water brings it in to the nearest shore, then everyone steps off;
+// a right-click on a ship lying off brings it in to the shore by the men, and they board; one rider let off alone
+{ const cmd = c => g.ships.command({ owner: 'player' }, c);   // (the hero is down after the sinking above: the rule itself)
+  const t = landingFor(wg, town.x, town.z, 'big', { box: circle, maxR: 600 }), s = g.ships.spawn(rec, 'transport', t.berth.x, t.berth.z, 'player');
+  const out = nearestSailable(wg, s.x + (s.x - t.land.x) * 6, s.z + (s.z - t.land.z) * 6, 'big', 200, circle);
+  const two = crew().filter(x => !x.inShip && !x.dead && !x.downed).slice(0, 2); assert.equal(two.length, 2, 'two crew ashore');
+  for (const [i, u] of two.entries()) Object.assign(u, { x: t.land.x + 1 + i, z: t.land.z + 1, place: 'world', order: { kind: 'stop' } });
+  Object.assign(s, { x: out.x, z: out.z }); assert.ok(!g.ships.shoreOf(s), 'the ship lies off the shore');
+  cmd({ action: 'board', ship: s.id, units: two.map(u => u.id) });
+  assert.equal(s.sorder.kind, 'land', 'sent aboard a ship lying off: it comes in to their shore');
+  for (let i = 0; i < 1500 && g.ships.riders(s).length < 2; i++) g.step([]);
+  assert.equal(g.ships.riders(s).length, 2, 'and they board');
+  Object.assign(s, { x: out.x, z: out.z, sorder: { kind: 'stay' } }); for (const u of two) Object.assign(u, { x: s.x, z: s.z });
+  cmd({ action: 'unload', ships: [s.id] });
+  assert.equal(s.sorder.kind, 'land', 'Q out on the water: it sails in to the nearest shore');
+  for (let i = 0; i < 1500 && g.ships.riders(s).length; i++) g.step([]);
+  assert.ok(!g.ships.riders(s).length && two.every(u => !u.inShip && passable(world, u.x, u.z)), 'then everyone steps off');
+  cmd({ action: 'board', ship: s.id, units: two.map(u => u.id) }); for (let i = 0; i < 400 && g.ships.riders(s).length < 2; i++) g.step([]);
+  assert.equal(g.ships.riders(s).length, 2, 'aboard again at the shore');
+  cmd({ action: 'unload', ships: [s.id], only: two[0].id });
+  assert.ok(!two[0].inShip && two[1].inShip === s.id, 'one rider let off alone');
+  // Tim 2026-11-24: one seat on a ship out on the water: it comes in and only he steps off
+  Object.assign(s, { x: out.x, z: out.z, sorder: { kind: 'stay' } }); Object.assign(two[1], { x: s.x, z: s.z });
+  cmd({ action: 'unload', ships: [s.id], only: two[1].id });
+  assert.equal(s.sorder.kind, 'land', 'one seat out on the water: the ship comes in');
+  cmd({ action: 'board', ship: s.id, units: [two[0].id] });   // (a second rider, to see he stays aboard)
+  Object.assign(two[0], { aboard: s.id, inShip: s.id, place: 'world' }); delete s.loadQueue; delete two[0].boardShip;
+  Object.assign(s, { x: out.x, z: out.z }); cmd({ action: 'unload', ships: [s.id], only: two[1].id });
+  for (let i = 0; i < 1500 && two[1].inShip; i++) g.step([]);
+  for (let i = 0; i < 100; i++) g.step([]);
+  assert.ok(!two[1].inShip && passable(world, two[1].x, two[1].z) && two[0].inShip === s.id && s.sorder.kind === 'stay', 'only he steps off there'); }
+console.log('ships: omnibus rules ok');
 console.log('ships: stranded ok');

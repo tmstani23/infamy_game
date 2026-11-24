@@ -78,13 +78,45 @@ delete enemy.holdFire; mine.holdFire = true;
 { const special = c => g.step([{ id: hero.id, type: 'special', units: [mine.id], ...c }]); let shots = 0;
   delete mine.gat; special({ ability: 'deckgun', x: mine.x + 9, z: mine.z + 3 });
   for (let i = 0; i < 60; i++) { g.step([]); shots += (S.casts || []).filter(c => c.kind === 'gatlingShot' && c.a === mine.id && c.deck).length; }
-  assert.ok(shots > 3, `the deck gun fires at an empty spot (${shots})`); run(80); assert.ok(!mine.gat, 'the burst ends'); }
+  assert.ok(shots > 3, `the deck gun fires at an empty spot (${shots})`); run(80); assert.ok(!mine.gat, 'the burst ends');
+  special({ ability: 'deckgun', x: mine.x + 9, z: mine.z + 3 }); run(30); assert.ok(mine.gat, 'a second burst');
+  const back = { x: mine.x, z: mine.z }; mine.x += 60; g.step([]); g.step([]); assert.ok(!mine.gat, 'out of range of its spot it winds down'); Object.assign(mine, back); }
+// aimed, an enemy building in the circle takes buildingShot a shot as melee (Tim 2026-11-23: light, about one grunt hitting it)
+{ const special = c => g.step([{ id: hero.id, type: 'special', units: [mine.id], ...c }]), T = g.frontier.structures, keep = { near: T.near, damage: T.damage }, hits = [];
+  const spot = { x: mine.x + 20, z: mine.z + 4 }, st = { key: 'test:bld', x: spot.x + 2, z: spot.z, r: 3 };
+  T.near = (clan, x, z, r) => clan === mine.owner && Math.hypot(x - st.x, z - st.z) <= r + st.r ? st : null;
+  T.damage = (clan, s2, amount, kind) => { hits.push([s2.key, amount, kind]); return true; };
+  delete mine.gat; special({ ability: 'deckgun', ...spot }); run(150); Object.assign(T, keep);
+  const R = options().units.types.gatling_crew.gatling;
+  assert.ok(hits.length >= Math.floor(R.burstTicks / R.everyTicks) - 1 && hits.every(([k, a, kd]) => k === st.key && a === GU.deckGatling.buildingShot && kd === 'melee'), `a building in the circle takes buildingShot a shot (${hits.length})`);
+  assert.ok(GU.deckGatling.range >= 24, 'deck Gatling reach 24'); }
 // aimed at an enemy ship: its hull takes the burst at the gatling share (one hull table, Tim 2026-11-23)
 { const special = c => g.step([{ id: hero.id, type: 'special', units: [mine.id], ...c }]), at = { x: enemy.x, z: enemy.z };
-  Object.assign(enemy, { x: mine.x + 8, z: mine.z + 2 }); enemy.holdFire = true; const h = enemy.hp;
+  Object.assign(enemy, { x: mine.x + 8, z: mine.z + 2 }); enemy.holdFire = true; const gunAt0 = mine.gunAt; mine.gunAt = { broadside: S.tick + 1e6 }; const h = enemy.hp;   // the Gatling alone
   special({ ability: 'deckgun', x: enemy.x, z: enemy.z }); run(140);
   const lost = h - enemy.hp; assert.ok(lost > 0 && lost <= 140 * H.gatling + 1, `a little hull damage (${lost})`);
-  Object.assign(enemy, at); }
+  Object.assign(enemy, at); mine.gunAt = gunAt0; }
+// a right-click on an enemy (Tim 2026-11-24): in range the ship lies where it is, turns in place side on and fires;
+// out of range it sails only until it is in range
+{ enemy.hp = enemy.maxHp; const at = { x: mine.x, z: mine.z }, h0 = enemy.hp, gunAt0 = mine.gunAt; delete mine.gunAt; delete mine.gat; enemy.holdFire = true;
+  g.step([{ id: hero.id, type: 'order', units: [mine.id], place: 'world', kind: 'attack', target: enemy.id }]);
+  assert.equal(mine.sorder.kind, 'engage', 'an attack order on a ship: engage');
+  run(120);
+  assert.ok(Math.hypot(mine.x - at.x, mine.z - at.z) < 0.01, 'in range it does not move');
+  const bear = Math.atan2(enemy.x - mine.x, enemy.z - mine.z), off = Math.abs(Math.sin(bear - mine.heading));
+  assert.ok(off > 0.95, `it turns in place side on to the target (${off.toFixed(2)})`);
+  assert.ok(enemy.hp < h0, 'and fires at it');
+  const far = [0, 1, 2, 3, 4, 5, 6, 7].map(k => nearestSailable(wg, enemy.x + Math.cos(k * 0.785) * 75, enemy.z + Math.sin(k * 0.785) * 75, 'big', 15, circle)).find(p => p && Math.hypot(p.x - enemy.x, p.z - enemy.z) > GU.broadside.range + 12);
+  enemy.hp = enemy.maxHp;
+  if (far) {
+    Object.assign(mine, { x: far.x, z: far.z });
+    g.step([{ id: hero.id, type: 'order', units: [mine.id], place: 'world', kind: 'attack', target: enemy.id }]);
+    let moved = false; for (let i = 0; i < 900; i++) { const x = mine.x, z = mine.z; g.step([]); if (mine.x !== x || mine.z !== z) moved = true; else if (moved) break; }
+    const d = Math.hypot(mine.x - enemy.x, mine.z - enemy.z);
+    assert.ok(moved && d <= GU.broadside.range + 4 && d > GU.broadside.range - 14, `out of range it sails just into range and stops (${d.toFixed(1)})`);
+    assert.equal(mine.sorder.kind, 'engage', 'still on its target');
+  } else console.log('test_ship_guns: no far water for the sail-in check');
+  g.step([{ id: hero.id, type: 'order', units: [mine.id], place: 'world', kind: 'stop' }]); Object.assign(mine, at); delete mine.holdFire; mine.gunAt = gunAt0; delete mine.gunReq; delete mine.gat; enemy.hp = enemy.maxHp; }
 // sinking is news
 mine.holdFire = true;
 { S.news.length = 0; g.ships.shelter(enemy, 1e6, pseudo('field_cannon', { owner: 'player' })); assert.ok(enemy.dead, 'sunk');

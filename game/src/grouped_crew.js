@@ -40,6 +40,10 @@ const CSS=`
   #partyframes .veh .pip{margin-top:2px}
   #partyframes .veh .seats{display:flex;flex-wrap:wrap;gap:2px;margin-top:2px}
   #partyframes .veh .seat{width:13px;height:13px;border-radius:3px;background:#3b4150;color:#fff;font:700 8px/13px system-ui;text-align:center;overflow:hidden}
+  #partyframes .veh.ship::after{display:none}
+  #partyframes .veh.ship.one::after{display:block}
+  #partyframes .veh .unl{display:none;position:absolute;top:2px;right:3px;padding:1px 5px;border-radius:3px;font:700 9px/13px system-ui;color:#1a1208;background:#e9b44c;cursor:pointer}
+  #partyframes .veh.ship:hover:not(.one) .unl{display:block}
   #partyframes .veh .seat.empty{background:none;border:1px dashed #555}
   #partyframes .veh .seat.hero{background:#8a6a2a}
   #partyframes .veh .seat.settler{background:#4a6b3a}
@@ -131,7 +135,9 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     // Frontier crew (Tim 2026-11-07): each loaded rickshaw or omnibus is one card with its shared health and a seat per
     // place (2 or 8): riders show in their seats, empty seats faintly. Clicking the card selects the vehicle.
     const owner=game.state.entities[heroId]?.owner,O=game.omnibus;
-    const vehicles=O?Object.values(game.state.entities).filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length):[];
+    // your loaded ships are cards here too, as the omnibus (Tim 2026-11-23): a seat per place in the hold
+    const SH=game.ships,boats=SH?Object.values(game.state.entities).filter(v=>v.ship&&v.owner===owner&&!v.dead&&SH.riders(v).length):[];
+    const vehicles=[...(O?Object.values(game.state.entities).filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length):[]),...boats];
     // crew on horseback show here too, one Mount card each (Tim 2026-11-08): click selects the rider, right-click gets him off
     const mounts=crew.filter(e=>e.mounted&&e.ride?.kind==='horse'&&!e.dead);
     const vs=createSection('vehicles','Frontier crew');vs.count=heroNodes.length+vehicles.length+mounts.length;
@@ -145,18 +151,20 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
         const hpt=document.createElement('small');el.className='mate veh';el.dataset.out='⏏ Unload';name.className='vname';hp.className='pip';hpt.className='hpt';seats.className='seats';el.append(name,hp,hpt,seats);el.hpt=hpt;
         el.addEventListener('mousedown',e=>e.stopPropagation());el.addEventListener('click',()=>{crewInput.select([v.id]);crewInput.look?.(v.id);});el.addEventListener('dblclick',()=>crewInput.watch?.(v.id));   // like a click on it in the world: it shows in the target frame (Tim 2026-11-08)
         // right-click the card: everyone in it steps out, the same as right-clicking it in the world (Tim 2026-11-08)
-        el.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();send({id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id]});});
+        // a ship's card does not unload on a right-click (Tim 2026-11-24): only a seat (that one rider), Q, or its Unload all button
+        el.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();if(!v.ship)send({id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id]});});
+        if(v.ship){el.classList.add('ship');const b=document.createElement('span');b.className='unl';b.textContent='Unload all';b.title='Everyone steps off; a ship out on the water sails in to shore first';b.addEventListener('mousedown',e=>e.stopPropagation());b.addEventListener('click',e=>{e.stopPropagation();send({id:heroId,type:'ship',action:'unload',ships:[v.id]});});el.append(b);}
         p={el,name,hp,seats,key:''};pips.set('veh:'+v.id,p);}
-      const rs=O.riders(v),n=O.seatsOf(v),k=rs.map(r=>r.id).join(',')+'|'+n;
-      p.name.textContent=`${v.type==='rickshaw'?'Rickshaw':'Omnibus'}${v.vorder?.kind==='stay'?' · staying':v.driver?' · driving':''}`;
+      const rs=v.ship?SH.riders(v):O.riders(v),n=v.ship?SH.holdOf(v):O.seatsOf(v),k=rs.map(r=>r.id).join(',')+'|'+n;
+      p.name.textContent=v.ship?`${unitName(units,v.type)} · ${unitStatus(v,game.state).toLowerCase()}`:`${v.type==='rickshaw'?'Rickshaw':'Omnibus'}${v.vorder?.kind==='stay'?' · staying':v.driver?' · driving':''}`;
       p.hp.style.setProperty('--hp',`${Math.max(0,v.hp/v.maxHp*100)}%`);{const t=hpText(v);if(p.el.hpt.textContent!==t)p.el.hpt.textContent=t;}
       if(p.key!==k){p.key=k;p.seats.replaceChildren(...Array.from({length:n},(_,i)=>{const r=rs[i],d=document.createElement('span');
         d.className='seat'+(r?(r.type==='hero'?' hero':r.type==='settler'?' settler':''):' empty');if(r){d.textContent=unitName(units,r.type).slice(0,1);d.title=unitName(units,r.type)+(r.type==='hero'?'':' · right-click: only he steps out');
           // right-click one rider's seat: only he steps out and waits (Tim 2026-11-08); the hero's seat lets only him out (Tim 2026-11-10)
-          if(r.type==='hero'){d.title='You · right-click: only you step out';d.addEventListener('mouseenter',()=>{const c=d.closest('.veh');if(c)c.dataset.out='⏏ You out';});d.addEventListener('mouseleave',()=>{const c=d.closest('.veh');if(c)c.dataset.out='⏏ Unload';});d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();send({id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id],units:[r.id],hero:true});});}
-          if(r.type!=='hero'){const nm=unitName(units,r.type);d.addEventListener('mouseenter',()=>{const c=d.closest('.veh');if(c)c.dataset.out=`⏏ ${nm} out`;});d.addEventListener('mouseleave',()=>{const c=d.closest('.veh');if(c)c.dataset.out='⏏ Unload';});d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();send({id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id],units:[r.id]});});}}return d;}));}
+          if(r.type==='hero'){d.title='You · right-click: only you step out';d.addEventListener('mouseenter',()=>{const c=d.closest('.veh');if(c){c.dataset.out=v.ship?'You out':'⏏ You out';c.classList.add('one');}});d.addEventListener('mouseleave',()=>{const c=d.closest('.veh');if(c){c.dataset.out='⏏ Unload';c.classList.remove('one');}});d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();send(v.ship?{id:heroId,type:'ship',action:'unload',ships:[v.id],only:r.id}:{id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id],units:[r.id],hero:true});});}
+          if(r.type!=='hero'){const nm=unitName(units,r.type);d.addEventListener('mouseenter',()=>{const c=d.closest('.veh');if(c){c.dataset.out=v.ship?`${nm} out`:`⏏ ${nm} out`;c.classList.add('one');}});d.addEventListener('mouseleave',()=>{const c=d.closest('.veh');if(c){c.dataset.out='⏏ Unload';c.classList.remove('one');}});d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();send(v.ship?{id:heroId,type:'ship',action:'unload',ships:[v.id],only:r.id}:{id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id],units:[r.id]});});}}return d;}));}
       p.el.classList.toggle('picked',selected.has(v.id));
-      p.el.title=`${p.name.textContent} · ${Math.ceil(v.hp)}/${v.maxHp} health · ${rs.length} of ${n} seats. Click selects it: right-click the ground to send it, V to follow, Z to stay, Q or right-click this card to let them out; double-click: the camera follows it.`;
+      p.el.title=`${p.name.textContent} · ${Math.ceil(v.hp)}/${v.maxHp} health · ${rs.length} of ${n} seats. Click selects it: right-click the ground to send it, V to follow, Z to stay, ${v.ship?'Q or Unload all lets them out, right-click a seat lets that one out':'Q or right-click this card to let them out'}; double-click: the camera follows it.`;
       return p.el;});
     const mnodes=mounts.map(u=>{
       let p=pips.get('mnt:'+u.id);

@@ -20,6 +20,7 @@ import { steer } from '../vehicle_steer.js';
 import { waterGrid, sailable, landingFor, shipPath, nearestSailable } from './water_nav.js';
 import { yardBerth } from './shipyard.js';
 import { terrainAt } from '../world_data.js';
+import { shorelineTopology, rawTerrain } from '../shoreline.js';
 import { cellToWorld } from './town_grid.js';
 import { dirIndex } from '../geometry.js';
 import { createBoarding } from './boarding.js';
@@ -57,6 +58,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
 
   // a war ship trained or placed (S3 trains them; the dev save and tests place them)
   function spawn(w, unit, x, z, owner) {
+    [x, z] = clearSpot(x, z);   // a new ship lies on drawn water, clear of the shore (Tim 2026-11-23: one lay on the grass)
     const id = war().spawnTroop(w, unit, x, z, owner), s = state.entities[id];
     if (!s) return null;
     Object.assign(s, { ship: true, sorder: { kind: 'stay' }, heading: s.heading ?? 0 });
@@ -71,7 +73,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (!at) return null;
     const k = Object.values(state.entities).filter(s => isShip(s) && Math.hypot(s.x - at.x, s.z - at.z) < 10).length;   // a second one a little aside
     // (on drawn water: Tim 2026-11-23 saw a new ship sit on the grass by the slipway)
-    for (let j = k; j < k + 8; j++) { const x = at.x + Math.cos(j * 2.4) * 9 * Math.sign(j), z = at.z + Math.sin(j * 2.4) * 9 * Math.sign(j); if (wetNear(x, z)) return spawn(w, unit, x, z, owner); }
+    for (let j = k; j < k + 8; j++) { const x = at.x + Math.cos(j * 2.4) * 9 * Math.sign(j), z = at.z + Math.sin(j * 2.4) * 9 * Math.sign(j); if (clear(x, z)) return spawn(w, unit, x, z, owner); }
     return spawn(w, unit, at.x, at.z, owner);
   }
   // S3 dock repair: the built yards of the ship's own side in its war: the camp's slipway, the town's shipyard
@@ -113,11 +115,17 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     return { ...c, units: c.units.filter(id => !ids.has(id)) };
   }
   function give(hero, s, c, at, alone) {
-    if (c.kind === 'raze') c = { ...c, kind: c.fallback || 'move' };   // at war a right-click on the ground is a raze order: ships sail (their guns in S4)
+    // a right-click on an enemy (Tim 2026-11-24): the ship does not sail at it; in gun range it lies where it is, turns
+    // in place to bring its guns to bear and fires; out of range it sails only until it is in range (engage)
+    let foe = null;
+    if (c.kind === 'attack') { const t = state.entities[c.target]; if (t && t.owner !== s.owner && !t.dead) foe = { t: t.id }; else return; }
+    if (c.kind === 'raze') { const st = Number.isFinite(c.x) ? (c.structure ? structures?.()?.find?.(c.structure) : structures?.()?.at?.(s.owner, c.x, c.z, c.slack ?? 3)) : null;
+      if (st) foe = { key: st.key }; else c = { ...c, kind: c.fallback || 'move' }; }   // bare ground or water: ships sail there
     if (s.locked) { if (alone) say(hero.owner, s.board?.role === 'a' ? 'Locked in a boarding: Break off first' : 'Held fast by boarders'); return; }   // S8
-    if (['stop', 'move', 'station', 'attackmove'].includes(c.kind)) delete s.board;
+    if (foe || ['stop', 'move', 'station', 'attackmove'].includes(c.kind)) delete s.board;
     if (c.kind === 'stop') { s.sorder = { kind: 'stay' }; s.holdFire = true; delete s.loadQueue; return; }   // Z: hold still, hold fire
     if (c.kind === 'resume' || c.kind === 'follow') { delete s.holdFire; return; }
+    if (foe) { delete s.holdFire; delete s.loadQueue; s.sorder = { kind: 'engage', ...foe, pts: [] }; return; }
     if (!['move', 'station', 'attackmove'].includes(c.kind) || !at) return;
     delete s.holdFire;
     const g = grid(), water = waterOf(s), box = boxOf(s);
@@ -133,6 +141,18 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     const pts = shipPath(g, [s.x, s.z], [L.berth.x, L.berth.z], { water, box });
     if (!pts) { if (alone) say(hero.owner, 'No way there by water'); return; }
     s.sorder = { kind: 'land', x: L.berth.x, z: L.berth.z, land: L.land, pts: pts.slice(1), blocked: L.blocked };
+  }
+
+  // the ship sails in to the landable shore nearest a spot (to take people aboard there, or to let them off)
+  function comeIn(hero, s, x, z) {
+    const g = grid(), water = waterOf(s), box = boxOf(s);
+    const L = landingFor(g, x, z, water, { box, maxR: S().landReach ?? (data?.war?.circleRadius ?? 900) * 2 });
+    if (!L?.berth) return say(hero.owner, 'No landable shore near there'), false;
+    const pts = shipPath(g, [s.x, s.z], [L.berth.x, L.berth.z], { water, box });
+    if (!pts) return say(hero.owner, 'No way there by water'), false;
+    delete s.holdFire; delete s.board;
+    s.sorder = { kind: 'land', x: L.berth.x, z: L.berth.z, land: L.land, pts: pts.slice(1), blocked: L.blocked };
+    return true;
   }
 
   // ---- loading and unloading ----
@@ -158,8 +178,16 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
   function board(hero, c) {
     const s = state.entities[c.ship];
     if (!isShip(s) || s.owner !== hero.owner) return false;
-    const land = shoreOf(s);
-    if (!land) return say(hero.owner, 'The ship must lie still at the shore to take anyone aboard'), false;
+    // as the omnibus (Tim 2026-11-23): no ring; a ship out on the water or at another shore comes in to the shore nearest them
+    let land = shoreOf(s);
+    const want = (c.units || []).map(id => state.entities[id]).filter(u => fits(u, hero.owner));
+    if (!want.length) return false;
+    if (!land || Math.min(...want.map(u => Math.hypot(u.x - land.x, u.z - land.z))) > (S().boardWalk ?? 60)) {
+      if (s.locked) return false;
+      const cx = want.reduce((n, u) => n + u.x, 0) / want.length, cz = want.reduce((n, u) => n + u.z, 0) / want.length;
+      if (!comeIn(hero, s, cx, cz)) return false;
+      land = s.sorder.land;
+    }
     let free = room(s), sent = 0;
     const able = (c.units || []).map(id => state.entities[id]).filter(u => fits(u, hero.owner) && u.boardShip !== s.id)
       .sort((a, b) => Math.hypot(a.x - land.x, a.z - land.z) - Math.hypot(b.x - land.x, b.z - land.z));
@@ -167,18 +195,28 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       if (free <= 0) break;
       if (u.type === 'hero' && Math.hypot(u.x - land.x, u.z - land.z) > (S().unload?.ringRadius ?? 20)) { say(hero.owner, 'Walk to the shore by the ship to board it'); continue; }
       u.boardShip = s.id; free--; sent++;
+      if (u.type === 'hero') (s.loadQueue ||= []).push(u.id);   // the hero by the shore steps aboard from where he stands
       if (u.type !== 'hero') { if (u.mounted) dismount?.(u); u.order = { kind: 'move', x: land.x, z: land.z }; forget?.(u.id); }
     }
     if (free <= 0 && able.length > sent) say(hero.owner, `Room for ${sent} more aboard`);
     return sent > 0;
   }
-  function unload(hero, ids) {
+  // Q with ships selected, or Unload all on a ship's card: everyone steps off; a ship out on the water sails in to the
+  // nearest shore first. only = one rider's id: just he steps off (right-click his seat on the card, Tim 2026-11-24)
+  function unload(hero, ids, only) {
     let any = false;
     for (const s of (ids || []).map(id => state.entities[id]).filter(s => isShip(s) && s.owner === hero.owner)) {
       if (s.locked) continue;   // S8: not while a boarding holds it
-      const land = shoreOf(s);
-      if (!land) { say(hero.owner, 'Sail to the shore first: right-click the shore'); continue; }
       if (!riders(s).length) continue;
+      const land = shoreOf(s);
+      if (only != null) { const u = riders(s).find(r => r.id === only); if (!u) continue;
+        if (!land) { if (comeIn(hero, s, s.x, s.z)) { s.sorder.only = only; any = true; } continue; }   // Tim 2026-11-24: it comes in, then only he steps off
+        stepOff(u, s, 1, land); state.casts?.push({ kind: 'shipStep', a: s.id, t: u.id, x: land.x, z: land.z, place: 'world', off: true }); any = true; continue; }
+      if (!land) {
+        if (s.sorder?.kind === 'land') { any = true; continue; }   // already coming in
+        if (comeIn(hero, s, s.x, s.z)) any = true;
+        continue;
+      }
       s.sorder = { kind: 'unload', land, next: state.tick ?? 0 }; any = true;
     }
     return any;
@@ -214,26 +252,16 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     say(hero.owner, n ? `${n} going aboard${group.length > n ? ` (${group.length - n} could not fit)` : ''}` : 'Nobody in the ring');
     return true;
   }
-  // Use (Space): aboard at the shore = everyone steps off; beside your ship at the shore = All aboard. true when used
   function use(hero) {
-    const s = of(hero);
-    if (s) { if (!unload(hero, [s.id])) say(hero.owner, 'Sail to the shore first: right-click the shore'); return true; }
-    return call(hero);
+    return false;   // Tim 2026-11-23: no Space and no ring for war ships; they load and unload as the omnibus (right-click, Q)
   }
   function command(hero, c) {
     if (c.action === 'board') return board(hero, c);
-    if (c.action === 'unload') return unload(hero, c.ships);
-    if (c.action === 'call') return call(hero);
+    if (c.action === 'unload') return unload(hero, c.ships, c.only);
     return false;
   }
   // for the Use prompt (main.js)
-  function prompt(hero) {
-    const s = of(hero);
-    if (s) return { text: shoreOf(s) ? 'Space  Step off here with everyone aboard' : `Aboard the ${(types?.[s.type]?.name || 'ship').toLowerCase()}: right-click the shore to land` };
-    if (hero.shipBoard) return { calling: true, text: `Space  All aboard now: ${inRing(hero).length} in the ring, boarding in ${Math.max(0, Math.ceil((hero.shipBoard.until - (state.tick ?? 0)) / 20))} s` };
-    const b = shipBy(hero);
-    return b ? { text: `Space  All aboard the ${(types?.[b.type]?.name || 'ship').toLowerCase()}` } : null;
-  }
+  function prompt() { return null; }   // no hint banner aboard (Tim 2026-11-24)
 
   // ---- sailing ----
   function speedOf(s) {
@@ -244,7 +272,14 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     const o = s.sorder, g = grid(), water = waterOf(s);
     if (!o?.pts?.length) { s.anim = 'idle'; return; }
     const [tx, tz] = o.pts[0], dx = tx - s.x, dz = tz - s.z, d = Math.hypot(dx, dz), last = o.pts.length === 1;
-    if (d <= (last ? 0.6 : Math.min(8, radiusOf(s) * 1.5))) { o.pts.shift(); if (!o.pts.length) arrive(s); return; }
+    if (d <= (last ? 0.6 : Math.min(8, radiusOf(s) * 1.5))) {
+      o.pts.shift();
+      // a landing's last stretch (Tim 2026-11-23: as close as the shore lets it, the same everywhere): from the berth
+      // straight in toward the landing spot until the bow meets the drawn shore
+      if (!o.pts.length && o.kind === 'land' && o.land && !o.creep) { o.creep = true; o.pts = [[o.land.x, o.land.z]]; return; }
+      if (!o.pts.length) arrive(s);
+      return;
+    }
     const r = steer(s, Math.atan2(dx, dz), { turnDegrees: kindOf(s).turnDegrees ?? 90, turnSlow: 0.5 }, dt);
     const ease = last ? Math.min(1, 0.25 + d / (radiusOf(s) * 2)) : 1, step = Math.min(d, speedOf(s) * dt * r.slow * ease);
     let nx = s.x + r.hx * step, nz = s.z + r.hz * step;
@@ -253,26 +288,82 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     // still not open water: a river's steps meet corner to corner (water_nav), passed within half a cell of the water;
     // anything else (a bank swung into): look for the way again, at most once a second, and wait
     const h = g.cell / 2, nearWater = [[0, 0], [h, 0], [-h, 0], [0, h], [0, -h]].some(([a, b]) => sailable(g, nx + a, nz + b, water));
-    if (!sailable(g, nx, nz, water) && !nearWater) {
+    if (!o.creep && !sailable(g, nx, nz, water) && !nearWater) {
       if ((state.tick ?? 0) - (o.replanned ?? -99) >= 20) { o.replanned = state.tick ?? 0; const pts = shipPath(g, [s.x, s.z], [o.x, o.z], { water, box: boxOf(s) }); if (pts) o.pts = pts.slice(1); else { s.sorder = { kind: 'stay' }; } }
       s.anim = 'idle'; return;
     }
-    // the drawn shore (Tim 2026-11-23: ships sailed up onto the grass): the grid's 20 unit cells let a hull centre ride
-    // up to a cell's width onto land, so a step must also end on drawn water (within a hull's half beam); else it slides
-    // along the shore, and a way point it cannot reach is passed over after a second (the last one: it stops there)
-    if (!wetNear(nx, nz) && wetNear(s.x, s.z)) {
-      if (wetNear(nx, s.z)) nz = s.z; else if (wetNear(s.x, nz)) nx = s.x;
-      else { o.stuck = (o.stuck ?? 0) + 1; s.anim = 'idle'; if (o.stuck >= 20) { o.stuck = 0; o.pts.shift(); if (!o.pts.length) arrive(s); } return; }
+    // the drawn shore (Tim 2026-11-23: ships sailed up onto the grass): the grid's 20 unit cells let a hull ride up to a
+    // cell's width onto land, so a step must also keep the hull on drawn water: its middle and its bow (a little short of
+    // the stem, the way it moves); else it slides along the shore, and a way point it cannot reach is passed over after a
+    // second (the last one, or a landing's run in: it stops there)
+    const mx = nx - s.x, mz = nz - s.z, ml = Math.hypot(mx, mz) || 1, bow = radiusOf(s) * BOW;
+    const afloat = (x, z) => clear(x, z) && wetNear(x + mx / ml * bow, z + mz / ml * bow);
+    if (o.creep && !afloat(nx, nz)) { arrive(s); return; }   // the run in stops at the shore, wherever it began
+    // still coming about (the step points away from its way point) with the shore in the way: it turns where it lies
+    if (!o.creep && !afloat(nx, nz) && (mx * dx + mz * dz) / (ml * (d || 1)) < 0.5 && clear(s.x, s.z)) { s.anim = 'idle'; return; }
+    // (a ship too near or up on land, from before this rule, may sail off it: never deeper in)
+    if (!afloat(nx, nz) && !clear(s.x, s.z)) { if (wetCount(nx, nz) < wetCount(s.x, s.z)) { if (last) arrive(s); else { o.stuck = (o.stuck ?? 0) + 1; s.anim = 'idle'; if (o.stuck >= 20) { o.stuck = 0; o.pts.shift(); } } return; } }
+    else if (!afloat(nx, nz)) {
+      const far = (x, z) => Math.hypot(x - s.x, z - s.z) >= step * 0.3;   // a slide that barely moves is no slide
+      if (afloat(nx, s.z) && far(nx, s.z)) nz = s.z; else if (afloat(s.x, nz) && far(s.x, nz)) nx = s.x;
+      else if (last) { arrive(s); return; }   // the shore is in the way of its last way point: it is there
+      else { o.stuck = (o.stuck ?? 0) + 1; s.anim = 'idle'; if (o.stuck >= 20) { o.stuck = 0; o.pts.shift(); } return; }
     }
     o.stuck = 0; s.x = nx; s.z = nz; s.anim = 'walk';
   }
-  const WET = { w: 1, r: 1 }, BEAM = 2;
-  const wetAt = (x, z) => !world?.terrain || !!WET[terrainAt(world, x, z)];
-  const wetNear = (x, z) => wetAt(x, z) || wetAt(x + BEAM, z) || wetAt(x - BEAM, z) || wetAt(x, z + BEAM) || wetAt(x, z - BEAM);
+  // drawn water: sea or river; a river's bends meet corner to corner, so there a point within BEAM of the river counts
+  const WET = { w: 1, r: 1 }, BEAM = 2, BOW = 0.8;
+  // the shore as it is drawn (Tim 2026-11-23): beside harbours and fords the drawn shore is rounded where the walking
+  // cells stay square (sim/shoreline.js visual corners), so a ship there lay on drawn land
+  const terr = (x, z) => !world?.terrain ? 'w' : world.terrain.shoreline?.radius ? shorelineTopology(world).codeAt(x, z, rawTerrain(world, x, z), true) : terrainAt(world, x, z);
+  const wetAt = (x, z) => !!WET[terr(x, z)];
+  // clear = the hull's middle on drawn water with HULL_GAP of it on every side (a river: BEAM as before)
+  const HULL_GAP = 2.5, RING = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+  const wetCount = (x, z) => (wetAt(x, z) ? 1 : 0) + RING.filter(([a, b]) => wetAt(x + a * HULL_GAP, z + b * HULL_GAP)).length;
+  const byRiver = (x, z) => terr(x, z) === 'r' || [[BEAM, 0], [-BEAM, 0], [0, BEAM], [0, -BEAM]].some(([a, b]) => terr(x + a, z + b) === 'r');
+  const clear = (x, z) => byRiver(x, z) || wetCount(x, z) === 9;
+  function clearSpot(x, z) {
+    if (clear(x, z)) return [x, z];
+    for (let r = 2; r <= 40; r += 2) for (let a = 0; a < 16; a++) { const px = x + Math.cos(a / 16 * Math.PI * 2) * r, pz = z + Math.sin(a / 16 * Math.PI * 2) * r; if (clear(px, pz) && sailable(grid(), px, pz, 'big')) return [px, pz]; }
+    return [x, z];
+  }
+  const wetNear = (x, z) => wetAt(x, z) || [[BEAM, 0], [-BEAM, 0], [0, BEAM], [0, -BEAM]].some(([a, b]) => terr(x + a, z + b) === 'r');
+  // engage: lie still in gun range of the target, turned to bring the guns to bear (a broadside ship side on, a bow gun
+  // bow on), each gun aimed at it as it comes ready; out of range, sail the shortest way into range first. Ends when the
+  // target is gone.
+  const mainGun = s => (kindOf(s).guns || []).map(k => [k, GUN()[k]]).find(([, g]) => g && !g.from) || [];
+  function engageStep(s, dt) {
+    const o = s.sorder, now = state.tick ?? 0, t = o.t != null ? state.entities[o.t] : null, st = o.key ? structures?.()?.find?.(o.key) : null;
+    const tg = t && alive(t) && t.owner !== s.owner ? { x: t.x, z: t.z, r: types?.[t.type]?.radius ?? 0.5 } : st && (structures().hpOf?.(st) ?? 1) > 0 ? { x: st.x, z: st.z, r: st.r ?? 3 } : null;
+    if (!tg) { s.sorder = { kind: 'stay' }; s.anim = 'idle'; return; }
+    const [key, g] = mainGun(s), R = (g?.range ?? 30) - 1.5, d = Math.hypot(tg.x - s.x, tg.z - s.z) - tg.r;
+    if (d > R) {   // sail into range, no further
+      if (!o.pts.length && now - (o.planned ?? -99) >= 20) {
+        o.planned = now;
+        const grd = grid(), water = waterOf(s), box = boxOf(s), at = nearestSailable(grd, tg.x, tg.z, water, R + tg.r - 4, box);
+        const pts = at && shipPath(grd, [s.x, s.z], [at.x, at.z], { water, box });
+        if (!pts) { say(s.owner, 'No water in gun range of that'); s.sorder = { kind: 'stay' }; s.anim = 'idle'; return; }
+        Object.assign(o, { x: at.x, z: at.z, pts: pts.slice(1) });
+      }
+      if (o.pts.length) { sail(s, dt); if (s.sorder !== o) { if (s.sorder.kind !== 'stay') return; o.pts = []; s.sorder = o; } } else s.anim = 'idle';
+      return;
+    }
+    o.pts = []; s.anim = 'idle';
+    const bear = Math.atan2(tg.x - s.x, tg.z - s.z), h = s.heading ?? 0;
+    const side = key === 'broadside' ? (Math.sin(bear - h) >= 0 ? -1 : 1) * Math.PI / 2 : 0;   // side on: the nearer of its two sides
+    steer(s, bear + side, { turnDegrees: kindOf(s).turnDegrees ?? 90 }, dt);
+    if (now % 5 === 0) for (const k of kindOf(s).guns || []) { const slot = GUN_SLOT[k] || (k === 'deckGatling' ? 'deckgun' : null), gg = GUN()[k];
+      if (!slot || !gg) continue;
+      if (k === 'deckGatling') { if (s.gat || d > (gg.range ?? 13) || (!t && !gg.buildingShot)) continue; }
+      else if (now < (s.gunAt?.[k] ?? 0)) continue;
+      (s.gunReq ||= {})[slot] = { x: tg.x, z: tg.z, until: now + 10 }; }
+  }
   function arrive(s) {
     const o = s.sorder;
     s.anim = 'idle';
     if (o.kind === 'board') { o.pts = []; return; }   // S8: alongside, it keeps with the target (boarding.js)
+    if (o.kind === 'land' && o.only != null) { const u = riders(s).find(r => r.id === o.only); s.sorder = { kind: 'stay' };
+      if (u && o.land) { stepOff(u, s, 1, o.land); state.casts?.push({ kind: 'shipStep', a: s.id, t: u.id, x: o.land.x, z: o.land.z, place: 'world', off: true }); } return; }
     if (o.kind === 'land') { s.sorder = { kind: 'unload', land: o.land, next: state.tick ?? 0 }; if (!riders(s).length) s.sorder = { kind: 'stay' }; return; }
     s.sorder = { kind: 'stay' };
   }
@@ -295,6 +386,8 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       if (u.boardShip !== s.id) continue;
       if (u.dead || u.downed || u.jailed || !fits({ ...u, aboard: null }, s.owner) || !land || riders(s).length >= holdOf(s)) { delete u.boardShip; s.loadQueue = (s.loadQueue || []).filter(id => id !== u.id); continue; }
       if (!(s.loadQueue || []).includes(u.id) && Math.hypot(u.x - land.x, u.z - land.z) <= Math.min(reach, 12)) { (s.loadQueue ||= []).push(u.id); if (u.type !== 'hero') u.order = { kind: 'stop' }; }
+      // the ship came in a little way along the shore from where they were sent: they walk to where it lies now
+      else if (!(s.loadQueue || []).includes(u.id) && u.type !== 'hero' && !(u.order?.kind === 'move' && u.order.x === land.x && u.order.z === land.z)) { u.order = { kind: 'move', x: land.x, z: land.z }; forget?.(u.id); }
     }
     const q = loading(s); s.loadQueue = q;
     if (!q.length || !land || now < (s.loadNext ?? 0)) { if (!q.length) delete s.loadQueue; return; }
@@ -372,7 +465,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       delete s.runOut;
       const d = Math.sqrt(dist2(s, tg)), flight = Math.max(2, Math.ceil(d / (g.speed ?? 52) * 20));
       (state.frontier.shipShots ||= []).push({ a: s.id, by: s.owner, unit: s.warUnit, ...(a.t ? { t: a.t.id } : { key: a.st.key }), damage: (g.balls ?? 1) * (g.ballDamage ?? 0), unitShare: g.unitShare ?? 0.5, at: now + flight });
-      (s.gunAt ||= {})[key] = now + (g.reloadTicks ?? 300); s.firedAt = now;
+      (s.gunAt ||= {})[key] = now + (g.reloadTicks ?? 300); s.firedAt = now; (s.gunFired ||= {})[key] = now;   // gunFired: for the slot's flash (ability_rows)
       if (slot) gunDone(s, slot);
       const n = g.balls ?? 1, spread = n > 1 ? SPREAD.slice(0, n) : [[0, 0]], hitR = a.t ? types?.[a.t.type]?.radius ?? 1 : a.st.r ?? 3;
       state.casts?.push({ kind: key === 'broadside' ? 'shipBroadside' : 'shipCannon', gun: key, a: s.id, t: a.t?.id ?? null, key: a.st?.key ?? null, x: s.x, z: s.z, tx: tg.x, tz: tg.z, heading: s.heading ?? 0, balls: n, spread, hitR, flightTicks: flight, place: 'world' });
@@ -400,7 +493,8 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     const req = gunWanted(state, s, 'deckgun');   // aimed by the player (Tim 2026-11-23): fire toward the click
     if (!foe || (s.holdFire && !req && !s.gat?.spot)) { stop(); return; }
     const range = g.range ?? R.range ?? 13, min = R.minRange ?? 0;
-    const foes = () => Object.values(state.entities).filter(t => t.owner === foe && alive(t) && !t.ship && t.type !== 'horse' && t.type !== 'civilian' && dist2(s, t) <= range * range && dist2(s, t) >= min * min);
+    const reachOf = () => s.gat?.spot ? range + (g.spotRadius ?? 5) : range;
+    const foes = () => Object.values(state.entities).filter(t => t.owner === foe && alive(t) && !t.ship && t.type !== 'horse' && t.type !== 'civilian' && dist2(s, t) <= reachOf() ** 2 && dist2(s, t) >= min * min);
     if (req) { gunDone(s, 'deckgun'); const ang = Math.atan2(req.z - s.z, req.x - s.x), spot = { x: req.x, z: req.z };
       if (s.gat) Object.assign(s.gat, { ang, spot }); else { s.gat = { state: 'spin', until: now + (R.spinTicks ?? 20), ang, spot }; return; } }
     if (!s.gat) {
@@ -415,19 +509,26 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     const k = now - G.firing, every = R.everyTicks ?? 4;
     if (k % 2 && k % every) return;
     // aimed (Tim 2026-11-23): enemy ships in its cone take the burst too, at the hull table's gatling share
-    const l = [...foes(), ...(G.spot ? Object.values(state.entities).filter(t => t.ship && !t.dead && t.owner === foe && dist2(s, t) <= range * range) : [])];
+    const l = [...foes(), ...(G.spot ? Object.values(state.entities).filter(t => t.ship && !t.dead && t.owner === foe && dist2(s, t) <= reachOf() ** 2) : [])];
     if (!l.length && !G.spot) { stop(); return; }
     // aimed at a spot (Tim 2026-11-23, as the land Gatling's Unload): it sweeps the spot for the whole burst, enemies there or not
-    if (!G.spot && k % (R.turnTicks ?? 10) === 0) { const n = l.reduce((b, t) => !b || dist2(s, t) < dist2(s, b) ? t : b, null); G.ang = Math.atan2(n.z - s.z, n.x - s.x); }
-    const half = (R.coneDeg ?? 30) * Math.PI / 360, cx = Math.cos(G.ang), cz = Math.sin(G.ang);
-    const cone = l.filter(t => { const d = Math.sqrt(dist2(s, t)) || 1; return ((t.x - s.x) * cx + (t.z - s.z) * cz) / d >= Math.cos(half); });
+    if (G.spot) G.ang = Math.atan2(G.spot.z - s.z, G.spot.x - s.x);   // it keeps facing the spot while the ship moves (Tim 2026-11-23)
+    else if (k % (R.turnTicks ?? 10) === 0) { const n = l.reduce((b, t) => !b || dist2(s, t) < dist2(s, b) ? t : b, null); G.ang = Math.atan2(n.z - s.z, n.x - s.x); }
+    // aimed (Tim 2026-11-23): it fires into the circle cast on (spotRadius round the spot), and winds down once the ship
+    // has sailed out of range of it; on its own it sweeps a cone
+    const half = (R.coneDeg ?? 30) * Math.PI / 360, cx = Math.cos(G.ang), cz = Math.sin(G.ang), sr = g.spotRadius ?? 5;
+    if (G.spot && dist2(s, G.spot) > (range + sr) * (range + sr)) { stop(); return; }
+    const cone = G.spot ? l.filter(t => dist2(G.spot, t) <= sr * sr) : l.filter(t => { const d = Math.sqrt(dist2(s, t)) || 1; return ((t.x - s.x) * cx + (t.z - s.z) * cz) / d >= Math.cos(half); });
     if (!cone.length && !G.spot) return;
-    const reach = cone.length ? null : Math.min(range, Math.max(3, Math.hypot(G.spot.x - s.x, G.spot.z - s.z)));
-    if (k % 2 === 0) state.casts?.push({ kind: 'gatlingShot', a: s.id, x: s.x, z: s.z, place: 'world', dir: dirIndex(Math.cos(G.ang), Math.sin(G.ang)), deck: true, ang: G.ang, heading: s.heading ?? 0, reach: reach ?? Math.sqrt(Math.min(...cone.map(t => dist2(s, t)))) });
+    const reach = G.spot ? Math.max(3, Math.sqrt(dist2(s, G.spot))) : null;
+    if (k % 2 === 0) state.casts?.push({ kind: 'gatlingShot', a: s.id, x: s.x, z: s.z, place: 'world', dir: dirIndex(Math.cos(G.ang), Math.sin(G.ang)), deck: true, ang: G.ang, heading: s.heading ?? 0, reach: reach ?? Math.sqrt(Math.min(...cone.map(t => dist2(s, t)))), ...(G.spot ? { spread: sr } : {}) });
     if (k % every === 0) {
       const dmg = Math.round((R.damage ?? 0) * (g.damageMul ?? 1));
       const gunner = { id: s.id, type: g.from, owner: s.owner, x: s.x, z: s.z, place: 'world', dir: s.dir ?? 0, model: s.model };   // a hull takes it as a Gatling's
       for (const t of cone) if (t.ship) shelter(t, dmg, gunner); else hit?.(s, t, dmg, false, 'bullet');
+      // aimed (Tim 2026-11-23): an enemy building in the circle takes buildingShot a shot as melee (light: about one grunt hitting it)
+      const st = G.spot && g.buildingShot ? structures?.()?.near?.(s.owner, G.spot.x, G.spot.z, sr) : null;
+      if (st && structures().damage(s.owner, st, g.buildingShot, 'melee')) (state.structureHits ||= []).push({ a: s.id, key: st.key, x: st.x, z: st.z, kind: 'ranged', ship: true });
       s.firedAt = now;
     }
   }
@@ -537,6 +638,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       const k = s.sorder.kind;
       if (s.locked) s.anim = 'idle';   // S8: locked in a boarding: no sailing, loading, mending or firing
       else if (k === 'move' || k === 'attackmove' || k === 'land' || k === 'board') sail(s, dt);
+      else if (k === 'engage') engageStep(s, dt);
       else if (k === 'unload') { s.anim = 'idle'; unloadStep(s); }
       else s.anim = 'idle';
       if (s.leave) leaving(s);   // S7: the war is over

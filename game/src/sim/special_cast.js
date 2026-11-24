@@ -91,13 +91,14 @@ export function specialCommand({ state, units }, hero, c) {
 // counts for the ability row: { have, ready, auto, nextReadyAt } of these unit ids
 export function specialView({ state, units }, ability, ids) {
   const S = SPECIALS[ability], now = state.tick ?? 0;
-  let have = 0, ready = 0, auto = 0, next = Infinity;
+  let have = 0, ready = 0, auto = 0, firing = 0, next = Infinity;
   for (const id of ids || []) {
     const e = state.entities[id];
     if (!e || !usable(e) || !specialsOf(units, e).includes(ability)) continue;
     have++; if (S.ship ? gunAuto(e, ability) : autoOn(e)) auto++;
+    if (S.ship && (S.gun === 'deckGatling' ? e.gat?.state === 'fire' : now - (e.gunFired?.[S.gun] ?? -1e9) < 24)) firing++;   // a ship gun firing now (Tim 2026-11-23: its slot flashes red)
     const at = able(S, state, e) ? S.readyAt(e) : Infinity;
     if (at <= now) ready++; else next = Math.min(next, at);
   }
-  return { have, ready, auto, nextReadyAt: ready || !have ? 0 : next };
+  return { have, ready, auto, ...(firing ? { firing } : {}), nextReadyAt: ready || !have ? 0 : next };
 }

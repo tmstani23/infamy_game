@@ -13,6 +13,7 @@ export const unitName = (units, type) => units.types[type]?.name || units.models
 export function unitStatus(e, state) {
   if (e.prisoner) return `In jail: bail ${e.prisoner.bail} ryo at the police HQ`;
   if (e.dead) return 'Dead';
+  if (e.ship) return shipStatus(e, state);
   if (e.garrison) return e.garrison.zone && !e.garrison.fort ? 'Inside a building' : 'Garrisoned in stockade';
   if (e.jailed) return `In jail, out in ${Math.ceil((e.jailed.until - state.tick) / 20)}s`;
   if (e.downed) { const x = Object.values(state.entities).find(o => o.execute?.target === e.id)?.execute; return x ? (x.arrest ? 'Being arrested' : 'Being finished off') : 'Downed'; }
@@ -177,4 +178,20 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
     }
   }
   return { update };
+}
+
+// a ship says what it is doing (Tim 2026-11-23: a ship in a fight read Idle)
+function shipStatus(e, state) {
+  const now = state.tick ?? 0, k = e.sorder?.kind, recent = (t, n) => t != null && now - t < n;
+  if (e.board) return 'Boarding fight';
+  if (e.gat?.state === 'fire' || recent(e.firedAt, 60)) return 'Firing';
+  if (recent(e.hitAt, 80)) return 'Under fire';
+  if (e.mending) return 'Repairing';
+  if (e.loadQueue?.length) return 'Loading';
+  if (k === 'unload') return 'Unloading';
+  if (k === 'land') return 'Sailing to shore';
+  if (k === 'engage') return e.anim === 'walk' ? 'Closing to gun range' : 'Attacking';
+  if (k === 'attackmove') return 'Attack-sailing';
+  if (k === 'move') return 'Sailing';
+  return e.holdFire ? 'Holding fire' : 'Idle';
 }

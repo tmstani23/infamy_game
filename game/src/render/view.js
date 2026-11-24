@@ -140,7 +140,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const shipMarks = createShipMarks({ scene, types: units?.types, holdOf: e => e.hold ?? 0 });
   const shoreLine = world && shore ? createShoreLine({ scene, world }) : null;   // ships S6b: the landable shore while your people are afloat (src/landing_shore.js)
   const boardFx = createBoardFx({ scene, figureSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh); return s; } });   // boarding: grappling lines, deck fight, its bar, clan sails and pennants (ships S8)
-  const shipFx = createShipFx({ scene });   // ship guns and hull damage (ships S4)   // war ships: ring, plate, wake (ships S2)
+  const shipFx = createShipFx({ scene, figureSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh); return s; } });   // ship guns and hull damage (ships S4)   // war ships: ring, plate, wake (ships S2)
   const ferryShips = worldGround && ships ? createFerryShips({ scene, ...ships, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
   // boats tied up at the castle docks for the look only: a fishing boat, some days a warship (render/moored_boats.js, Tim 2026-11-23)
   const mooredBoats = worldGround && ships ? createMooredBoats({ scene, rules: ships.rules, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
@@ -537,7 +537,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     }
     shipMarks.update(state, sprites, { colourOf: e => TEAM[teamOf(e, state.entities[followId])], enemyOf: e => teamOf(e, state.entities[followId]) === 'enemy', own: e => e.owner === state.entities[followId]?.owner }, selected, fdt);
     shoreLine?.update(shore, fdt, cameraPlace(state.entities[followId]) === 'world');
-    shipFx.update(state, sprites, fdt, cameraPlace(state.entities[followId]));   // after the sprites: a listing hull sits lower
+    shipFx.update(state, sprites, fdt, cameraPlace(state.entities[followId]), state.entities[followId]?.owner);   // after the sprites: a listing hull sits lower
     boardFx.update(state, sprites, fdt, cameraPlace(state.entities[followId]), state.entities[followId]?.owner);
     for (const [id, l] of lanternLights) if (!sprites.get(id)?.lanternTint) { lights.splice(lights.indexOf(l), 1); lanternLights.delete(id); }
     const hero = sprites.get(followId);

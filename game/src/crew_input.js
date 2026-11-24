@@ -378,7 +378,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       // nothing there but a building: look at the building
       const b = mate || foe || civ || ride || !outdoors() ? null : view.buildingAt(e.clientX, e.clientY);
       building = b !== null && explored(b) ? b : null;
-      if (mate && game.omnibus?.isVehicle(mate)) setSelected([mate.id]);   // a vehicle: always selected by a click, never toggled off (Tim 2026-11-10)
+      // a click on your ship picks that ship alone; with only ships selected it adds or drops it (Tim 2026-11-23: the crew stayed in the selection)
+      if (mate?.ship) { const ships = selected.length && selected.every(id => game.state.entities[id]?.ship); setSelected(!ships ? [mate.id] : selected.includes(mate.id) ? (selected.length > 1 ? selected.filter(id => id !== mate.id) : selected) : [...selected, mate.id]); }
+      else if (mate && game.omnibus?.isVehicle(mate)) setSelected([mate.id]);   // a vehicle: always selected by a click, never toggled off (Tim 2026-11-10)
       else if (typeDbl) selectType(mate);
       else if (mate) {
         if(game.state.deployment?.restrictionsEnabled)selectUnit(mate.id, true);   // a click picks just that one (Tim 2026-11-10: it took his whole group); the group header in the crew panel picks the group
@@ -388,7 +390,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     } else {
       const [x0, x1] = [Math.min(x, e.clientX), Math.max(x, e.clientX)], [y0, y1] = [Math.min(y, e.clientY), Math.max(y, e.clientY)];
       const h0 = hero(), heroIn = h0 && h0.place === commandPlace() && !h0.dead && !h0.jailed && !h0.aboard ? [h0] : [];   // the hero is in every drag box he stands in, mounted or not (Tim 2026-11-20)
-      const boxed = [...heroIn, ...myCrew(), ...myVehicles()].filter(u => { const s = view.unitToScreen(u.x, u.z); return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1; });
+      // a ship is in the box when any of its hull is (Tim 2026-11-23: only a box over its middle picked it)
+      const hull = u => { const h = u.heading ?? 0, L = 4.4; return [-1, -0.5, 0, 0.5, 1].map(k => view.unitToScreen(u.x + Math.sin(h) * L * k, u.z + Math.cos(h) * L * k, 1)); };
+      const boxed = [...heroIn, ...myCrew(), ...myVehicles()].filter(u => (u.ship ? hull(u) : [view.unitToScreen(u.x, u.z)]).some(s => s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1));
       picked = boxed.filter(u => !u.dead).map(u => u.id);
       building = null;
       if (picked.length) { setSelected(picked); if (looked && game.omnibus?.isVehicle(game.state.entities[looked])) looked = null; }   // a drag picks exactly the crew in the box (Tim 2026-10-20); an empty box keeps the selection; a group goes to crew select only, not the target box (Tim 2026-11-07)
@@ -432,6 +436,9 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     mountKey() { if (!hero()) return false; send({ id: heroId, type: 'mount' }); return true; },
     mountUpKey() { if (!hero()) return false; send({ id: heroId, type: 'mount', group: true, units: mine() }); return true; },
     omnibusKey() { const h = hero(); if (!h) return false; const sel = mine().filter(id => game.omnibus?.isVehicle(game.state.entities[id]));
+      // your ships work as the omnibus (Tim 2026-11-23): Q lets everyone off the selected ships (with nothing selected, the one the hero is in)
+      { const ships = mine().filter(id => game.state.entities[id]?.ship && game.ships?.riders(game.state.entities[id]).length), own = !mine().length && game.state.entities[h.inShip]?.ship ? [h.inShip] : [];   // Tim 2026-11-24: only the selected ships; his own only with nothing selected
+        const ids = ships.length ? ships : own; if (ids.length) { send({ id: heroId, type: 'ship', action: 'unload', ships: ids }); return true; } }
       if (h.aboard || sel.length) { send({ id: heroId, type: 'omnibus', action: 'deploy', vehicles: sel }); return true; }
       // on horseback Q is the ability key (Tim 2026-11-15: Q took the hero and selected riders off their horses when he
       // meant to dash); H gets the hero off, Shift+H or a right-click on the mount card the crew

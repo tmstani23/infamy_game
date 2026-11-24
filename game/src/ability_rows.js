@@ -145,6 +145,7 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
       set(s.secs, cooling && Number.isFinite(v.nextReadyAt) ? `${Math.max(1, Math.ceil((v.nextReadyAt - (game.state.tick ?? 0)) / tickRate))}` : '');   // not able at all (Board with an empty hold): grey, no count
       const auto = !!a.auto && v.auto > 0;
       s.b.classList.toggle('auto', auto); s.auto.hidden = !auto;
+      s.b.classList.toggle('firing', v.firing > 0);   // a ship gun firing: the slot flashes red (Tim 2026-11-23)
       s.b.classList.toggle('armed', crewInput.targetArmed() === a.id);
     }
     updateMarks();
