@@ -124,7 +124,7 @@
     "army_rifleman": {"sprite":"mercenary","name":"Rifleman","war":true,"hp":140,"damage":30,"attackRange":11,"attackSpeed":2.5,"critChance":0.05,"critMultiplier":2,"walk":1.6,"run":5.4,"radius":0.35,"projectile":{"kind":"bullet","speed":90}},
     "sword_rider": {"sprite":"swordsman","name":"Sword rider","war":true,"hp":320,"damage":20,"attackRange":1.9,"attackSpeed":1.2,"critChance":0.1,"critMultiplier":2,"walk":1.6,"run":5.6,"radius":0.6},
     "mounted_pikeman": {"sprite":"kuroda_spearman","name":"Mounted pikeman","war":true,"hp":300,"damage":22,"attackRange":2.7,"attackSpeed":1.4,"critChance":0.1,"critMultiplier":2,"walk":1.6,"run":5.6,"radius":0.6},
-    "warship": {"sprite": "ship_war", "name": "Warship", "war": true, "ship": true, "hp": 2000, "damage": 0, "attackRange": 32, "attackSpeed": 15, "critChance": 0, "critMultiplier": 1, "walk": 5, "run": 5, "radius": 4, "_note": "Phase S placeholders, Tim to tune: hp = hull health (war.ships), walk = sailing speed; guns in frontier.json war.ships.guns"},
-    "transport": {"sprite": "ship_coastal", "name": "Transport", "war": true, "ship": true, "hp": 3000, "damage": 0, "attackRange": 32, "attackSpeed": 15, "critChance": 0, "critMultiplier": 1, "walk": 5, "run": 5, "radius": 4}
+    "warship": {"sprite": "ship_war", "name": "Warship", "war": true, "ship": true, "hp": 2000, "damage": 0, "attackRange": 32, "attackSpeed": 15, "critChance": 0, "critMultiplier": 1, "walk": 7.5, "run": 7.5, "radius": 4, "_note": "Phase S placeholders, Tim to tune: hp = hull health (war.ships), walk = sailing speed; guns in frontier.json war.ships.guns"},
+    "transport": {"sprite": "ship_coastal", "name": "Transport", "war": true, "ship": true, "hp": 3000, "damage": 0, "attackRange": 32, "attackSpeed": 15, "critChance": 0, "critMultiplier": 1, "walk": 7.5, "run": 7.5, "radius": 4}
   }
 }

@@ -35,7 +35,7 @@ const GOLD = [1, 0.76, 0.34], GOLD_RIM = [0.88, 0.69, 0.3], CREAM = [0.96, 0.93,
 // first port, port spacing] (the ports as shares along u0..u1; measured from the idle sheets; bow-on rows show no ports)
 const PORTS = [null, [0.374, 0.707, 0.753, 0.547, 1, 0.143, 0.098], [0.261, 0.648, 0.808, 0.647, 1, 0.11, 0.1], [0.317, 0.574, 0.696, 0.743, 1, 0.118, 0.1], null,
   [0.302, 0.739, 0.667, 0.584, 0, 0.093, 0.1], [0.171, 0.642, 0.698, 0.647, 0, 0.15, 0.102], [0.283, 0.563, 0.678, 0.731, 0, 0.145, 0.099]];
-const HULL = { warship: { half: 4.4, port: 0.95, out: 1.15, deck: 2.1, gun: -1.3, gunUp: 0.1, rail: 0.75, ports: 8 }, transport: { half: 3.6, port: 1.1, out: 1, deck: 2, bow: 4.4, gun: 3.1, gunUp: -0.75 } };
+const HULL = { warship: { half: 4.4, port: 0.95, out: 1.15, deck: 2.1, gun: -3.56, gunUp: -0.25, rail: 0, ports: 8 }, transport: { half: 3.6, port: 1.1, out: 1, deck: 2, bow: 4.4, gun: 3.6, gunUp: -0.75 } };
 
 export function createShipFx({ scene, stages = {}, figureSprite = null }) {
   const glow = createParticles(scene, { max: 1600 }), soot = createParticles(scene, { max: 4000, additive: false }), cards = createCards(scene);
@@ -216,10 +216,12 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
   // a ground direction as a sprite row: 0..7 = S, SW, W, NW, N, NE, E, SE on screen
   const screenDir = (ux, uz) => { const sx = ux * CAM_RIGHT.x + uz * CAM_RIGHT.z, up = -(ux * VIEW_DIR.x + uz * VIEW_DIR.z); return ((Math.round(Math.atan2(-sx, -up) / (Math.PI / 4)) % 8) + 8) % 8; };
 
-  // ---- the deck Gatling: the land Gatling's sprite on the after deck while it fires, outlined (Tim 2026-11-23) ----
-  // Tim 2026-11-23 (on the mock): greyed a bit (a flat grey wash over it, so it reads at night too) with a light grey border
-  const TURN_Q = new THREE.Quaternion(), Z_AXIS = new THREE.Vector3(0, 0, 1);
-  const DECK_GUN = 0.8, GUN_GREY = [0.6, 0.6, 0.58];
+  // ---- the deck guns: the land Gatling and the brass field cannon, small, lightly faded toward the hull's browns with softened
+  // edges, turning to their aim (Tim 2026-11-24, on the mock war_build/ships/s8d/mock/mock_real_guns_*.png)
+  // the Gatling stands in the aft gun tub on the centre line and only turns (Tim 2026-11-24, on mock_tub_warship.png)
+  const GUN = { warship: { model: 'gatling', size: 0.75, wash: 0.15, ropeR: 1, back: 0.4 }, transport: { model: 'cannon_field', size: 0.45, wash: 0.22, ropeR: 1.2, back: 0.6 } };
+  const HULL_BROWN = [0.33, 0.24, 0.17], GUN_TINT = [0.95, 0.9, 0.85];
+  const MAN = 0.55, MAN_SIDE = 0.3;   // a sailor at the breech, a little to one side, facing the aim (Tim 2026-11-24, mock_gunner_*.png)
   // Tim 2026-11-24: no border; the ship's own sails are drawn again over the gun, so a sail in front of it hides it
   const SAIL_AT = '  if (uSail.w > 0.0) {', SAIL_U = 'uniform vec4 uFill;';
   function sailCover(s) {
@@ -238,26 +240,36 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
     mu.uSailAt.value.copy(spr.thing.mesh.position).addScaledVector(CAM_UP, 0.3);
     m.geometry = mesh.geometry; m.scale.copy(mesh.scale); m.quaternion.copy(mesh.quaternion); m.position.copy(mesh.position);
   }
+  // the ship's own ropes drawn back over its gun (Tim 2026-11-24: the wheels showed in front of the rigging): near the gun, the
+  // hull's pixels that stand out from the average of their neighbours (thin lines) are drawn again on top
+  function ropeCover(s) {
+    const src = s.material?.fragmentShader; if (!src || !src.includes(SAIL_AT) || !src.includes(SAIL_U)) return null;
+    const mat = s.material.clone(); mat.depthWrite = false; mat.depthTest = false;
+    Object.assign(mat.uniforms, { uRopeAt: { value: new THREE.Vector4() }, uRopeStep: { value: new THREE.Vector2() } });
+    mat.fragmentShader = src.replace(SAIL_U, SAIL_U + '\nuniform vec4 uRopeAt;\nuniform vec2 uRopeStep;').replace(SAIL_AT, `  { vec3 rd = vWorld - uRopeAt.xyz; rd -= VIEW_DIR * dot(rd, VIEW_DIR);
+    if (length(rd) > uRopeAt.w) discard;
+    const vec3 LW = vec3(0.3, 0.59, 0.11); vec2 o = uRopeStep;
+    float av = (dot(spriteTex(vUv + vec2(o.x, 0.0)).rgb, LW) + dot(spriteTex(vUv - vec2(o.x, 0.0)).rgb, LW) + dot(spriteTex(vUv + vec2(0.0, o.y)).rgb, LW) + dot(spriteTex(vUv - vec2(0.0, o.y)).rgb, LW)
+      + dot(spriteTex(vUv + o).rgb, LW) + dot(spriteTex(vUv - o).rgb, LW) + dot(spriteTex(vUv + vec2(o.x, -o.y)).rgb, LW) + dot(spriteTex(vUv - vec2(o.x, -o.y)).rgb, LW)) / 8.0;
+    float rk = clamp((abs(dot(t.rgb, LW) - av) * 255.0 - 22.0) / 18.0, 0.0, 1.0) * step(0.5, t.a);
+    if (rk < 0.03) discard;
+    t.a *= rk * 0.9; }
+` + SAIL_AT);
+    const m = new THREE.Mesh(s.thing.mesh.geometry, mat); m.renderOrder = 99703; m.frustumCulled = false; m.visible = false; scene.add(m); return m;
+  }
+  function syncRopes(s, m, spr, r, show) {
+    const mesh = s.thing.mesh, u = s.material.uniforms, mu = m.material.uniforms;
+    m.visible = show && mesh.visible !== false; if (!m.visible) return;
+    for (const k in u) { if (!mu[k]) continue; const v = u[k].value; if (v?.isTexture || typeof v?.copy !== 'function') mu[k].value = v; else mu[k].value.copy(v); }
+    const img = u.uMap?.value?.image, f = u.uFrame?.value, w = img?.width || 2048, h = img?.height || 2048;
+    const per = f?.z ? f.z * w / (PPU * (s.cellWorld ?? 16)) : 1;   // sheet pixels per screen pixel at zoom 1: three screen pixels each way, like the mock
+    mu.uRopeStep.value.set(3 * per / w, 3 * per / h);
+    const p = spr.thing.mesh.position; mu.uRopeAt.value.set(p.x, p.y, p.z, r);
+    m.geometry = mesh.geometry; m.scale.copy(mesh.scale); m.quaternion.copy(mesh.quaternion); m.position.copy(mesh.position);
+  }
   const guns = new Map();   // ship id -> { spr, outl, gone }
   const aims = new Map();   // ship id -> last aim angle
   const bowShots = new Map();   // transport id -> { at, ang } of its last bow shot
-  // the transport's bow cannon (Tim 2026-11-24: small and quiet: just a muted brass barrel on a little wooden mount)
-  let bowTex = null;
-  const bowMaps = () => bowTex ||= (() => {
-    const mk = (w, h, draw) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; draw(cv.getContext('2d')); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; };
-    const barrel = mk(48, 16, g => { const q = g.createLinearGradient(0, 3, 0, 13); q.addColorStop(0, '#a88d57'); q.addColorStop(0.4, '#6f5a33'); q.addColorStop(1, '#2c2213');
-      g.fillStyle = q; g.beginPath(); g.moveTo(5, 3); g.lineTo(42, 4.5); g.lineTo(42, 11.5); g.lineTo(5, 13); g.closePath(); g.fill();
-      g.beginPath(); g.arc(3.5, 8, 2.6, 0, Math.PI * 2); g.fill();   // the knob at the breech
-      g.fillStyle = '#4f4024'; g.fillRect(14, 3.2, 2, 9.6); g.fillRect(41, 3.5, 4, 9);   // a band, the muzzle swell
-      g.fillStyle = '#0b0907'; g.beginPath(); g.ellipse(45.5, 8, 1.3, 3, 0, 0, Math.PI * 2); g.fill(); });
-    const mount = mk(28, 16, g => { const q = g.createLinearGradient(0, 2, 0, 15); q.addColorStop(0, '#5a4330'); q.addColorStop(1, '#22170e');
-      g.fillStyle = q; g.beginPath(); g.moveTo(6, 3); g.lineTo(22, 3); g.lineTo(27, 15); g.lineTo(1, 15); g.closePath(); g.fill();
-      g.fillStyle = '#1a120b'; g.fillRect(1, 12.5, 26, 2.5); });
-    const gat = mk(40, 16, g => { const q = g.createLinearGradient(0, 3, 0, 13); q.addColorStop(0, '#8a8a84'); q.addColorStop(0.45, '#4a4a47'); q.addColorStop(1, '#161615');
-      g.fillStyle = q; g.fillRect(3, 4, 34, 8); g.fillStyle = '#2a2a28'; g.fillRect(3, 6.4, 34, 0.9); g.fillRect(3, 9, 34, 0.9);   // the barrels of the cluster
-      g.fillStyle = '#6b5a36'; g.fillRect(1, 3, 7, 10); g.fillRect(33, 3.4, 2.5, 9.2);   // the brass breech and the muzzle band
-      g.fillStyle = '#080808'; g.beginPath(); g.ellipse(37.5, 8, 1.3, 3.6, 0, 0, Math.PI * 2); g.fill(); });
-    return { barrel, mount, gat }; })();
   // how far the painted hull has moved from its rest in this frame of its sheet (the ship's rocking is in its frames): the
   // middle of the frame's cropped box against its slow average for that facing, in world units right and up on screen.
   // The gun rides it, so it reads as part of the ship (Tim 2026-11-24)
@@ -270,30 +282,61 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
     const k = Math.min(1, dt / 2.5); B.x += (cx - B.x) * k; B.y += (cy - B.y) * k;
     return [(cx - B.x) * cw, (cy - B.y) * cw];
   }
-  // one drawn barrel per ship: war = the Gatling, over the rail on the side it aims (only while it fires); else the bow cannon
+  // one gun per ship: war = the Gatling at the rail on the side it aims (only in a fight); else the bow cannon, always
   function deckGun(s, e, place, dt) {
-    const war = e.warUnit === 'warship', H = HULL[e.warUnit];
+    const war = e.warUnit === 'warship', H = HULL[e.warUnit], K = GUN[e.warUnit];
     const show = place === 'world' && s.thing.mesh.visible !== false && (e.hp ?? 1) > 0 && !sunk.has(e.id) && (!war || !!e.gat || (!!e.fighting && aims.has(e.id)));   // between bursts it stays out, on its aim (Tim 2026-11-24)
     let G = guns.get(e.id);
-    if (!G) { if (!show) return; const T = bowMaps(), sp = (map, order) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false, depthTest: false, opacity: 0.92 })); m.renderOrder = order; scene.add(m); return m; };
-      G = { mount: war ? null : sp(T.mount, 99699), bar: sp(war ? T.gat : T.barrel, 99700), gone: false }; G.bar.center.set(0.3, 0.5); G.cover = sailCover(s); G.fake = { thing: { mesh: G.bar } }; guns.set(e.id, G); }
+    if (!G) {
+      if (!show || !figureSprite) return;
+      G = { spr: null, man: null, wash: [], edge: [], cover: null, ropes: null, gone: false }; guns.set(e.id, G);
+      figureSprite('sailor').then(man => {
+        if (G.gone) { scene.remove(man.thing.mesh); man.dispose?.(); return; }
+        man.material.depthTest = false; man.thing.mesh.frustumCulled = false; man.thing.mesh.visible = false;
+        man.material.uniforms.uTint?.value.setRGB(...GUN_TINT); G.man = man;
+      }).catch(() => {});
+      figureSprite(K.model).then(spr => {
+        if (G.gone) { scene.remove(spr.thing.mesh); spr.dispose?.(); return; }
+        spr.material.depthTest = false; spr.thing.mesh.renderOrder = 99700; spr.thing.mesh.frustumCulled = false; spr.thing.mesh.visible = false;
+        spr.material.uniforms.uTint?.value.setRGB(...GUN_TINT); if (spr.material.uniforms.uOpacity) spr.material.uniforms.uOpacity.value = 0.97;
+        G.edge = rimMeshes(spr, 99699); G.wash = rimMeshes(spr, 99701, 1); G.cover = sailCover(s); G.ropes = ropeCover(s); G.spr = spr;
+      }).catch(() => {});
+    }
     // the hull is drawn in one of 8 facings: the gun stands on the drawn deck, not on the ship's exact heading (Tim 2026-11-24: it sat off to one side)
     const ka = dirOf(e) * Math.PI / 4, hx = -Math.sin(ka) * CAM_RIGHT.x + Math.cos(ka) * vg.x, hz = -Math.sin(ka) * CAM_RIGHT.z + Math.cos(ka) * vg.z;
     const shot = bowShots.get(e.id), since = war ? 9 : shot ? clock - shot.at : 9;
     const ang = war ? e.gat?.ang ?? aims.get(e.id) ?? Math.atan2(hz, hx) : shot && (since < 1.5 || e.fighting) ? shot.ang : Math.atan2(hz, hx);   // between shots it keeps its aim while the fight lasts
     aims.set(e.id, ang);
-    const ax = Math.cos(ang), az = Math.sin(ang), sx = ax * CAM_RIGHT.x + az * CAM_RIGHT.z, sy = -(ax * vg.x + az * vg.z) * Math.abs(CAM_UP.y), L = Math.hypot(sx, sy);   // the aim on screen: toward the camera is down
-    const p = s.pos || s.thing.mesh.position, y = H.deck + H.gunUp - (s.listY || 0), rot = Math.atan2(sy, sx), kick = since < 0.25 ? 0.07 * (1 - since / 0.25) : 0;
-    const side = war ? (Math.sign(ax * -hz + az * hx) || 1) * H.rail : 0;   // the Gatling stands at the rail on the side it fires over
-    G.bar.visible = show; if (G.mount) G.mount.visible = show; if (!show) { if (G.cover) G.cover.visible = false; return; }
+    const spr = G.spr; if (!spr) return;
+    const mesh = spr.thing.mesh, ax = Math.cos(ang), az = Math.sin(ang);
+    mesh.visible = show; if (G.man) G.man.thing.mesh.visible = show;
+    if (!show) { syncRim(spr, G.edge, 0); syncRim(spr, G.wash, 0); if (G.cover) G.cover.visible = false; if (G.ropes) G.ropes.visible = false; return; }
+    const p = s.pos || s.thing.mesh.position, side = 0;
     const bx = p.x + hx * H.gun - hz * side, bz = p.z + hz * H.gun + hx * side, [ox, oy] = bobOf(s, e, dt);
-    if (G.mount) { G.mount.position.set(bx, y + 0.1, bz).addScaledVector(CAM_RIGHT, ox).addScaledVector(CAM_UP, oy); G.mount.scale.set(0.3, 0.17, 1); }
-    G.bar.position.set(bx, y + 0.2, bz).addScaledVector(CAM_RIGHT, ox).addScaledVector(CAM_UP, oy).addScaledVector(CAM_RIGHT, -Math.cos(rot) * kick).addScaledVector(CAM_UP, -Math.sin(rot) * kick);
-    G.bar.material.rotation = rot; G.bar.scale.set((war ? 0.5 : 0.62) * Math.max(0.45, L), war ? 0.17 : 0.2, 1);
+    const firing = war ? !!e.gat : since < 0.6, kick = !war && since < 0.25 ? 0.06 * (1 - since / 0.25) : 0;
+    spr.lift = H.deck + H.gunUp - (s.listY || 0);
+    spr.update(dt, bx, bz, screenDir(ax, az), firing ? 'attack' : 'idle', null, K.size);
+    mesh.position.addScaledVector(CAM_RIGHT, ox).addScaledVector(CAM_UP, oy);   // rides the hull's rocking
+    if (kick) mesh.position.addScaledVector(new THREE.Vector3(-ax, 0, -az), kick);
+    syncRim(spr, G.wash, K.wash, HULL_BROWN, 0);   // faded toward the hull, so it does not stand out
+    syncRim(spr, G.edge, 0.15, HULL_BROWN, RIM * 0.5);   // a faint brown fringe softens its outline
+    if (G.man) {   // the gunner: works the gun while the Gatling fires, flinches a moment after a cannon shot
+      const man = G.man, mx = bx - ax * K.back - az * MAN_SIDE, mz = bz - az * K.back + ax * MAN_SIDE;
+      man.lift = spr.lift; man.update(dt, mx, mz, screenDir(ax, az), (war ? !!e.gat : since < 0.8) ? 'talk' : 'idle', null, MAN);
+      man.thing.mesh.position.addScaledVector(CAM_RIGHT, ox).addScaledVector(CAM_UP, oy);
+      const nearer = (mx - bx) * VIEW_DIR.x + (mz - bz) * VIEW_DIR.z > 0;   // nearer the camera than the gun: drawn over it
+      man.thing.mesh.renderOrder = nearer ? 99701.5 : 99698;
+    }
     gunSpot.set(e.id, { x: bx, z: bz });
-    if (G.cover) syncCover(s, G.cover, G.fake, show);
+    if (G.cover) syncCover(s, G.cover, spr, true);
+    if (G.ropes) syncRopes(s, G.ropes, spr, K.ropeR, true);
   }
-  function dropGun(id) { const G = guns.get(id); if (!G) return; G.gone = true; for (const m of [G.mount, G.bar]) if (m) { scene.remove(m); m.material.dispose(); } if (G.cover) dropRim([G.cover]); guns.delete(id); aims.delete(id); bowShots.delete(id); bobs.delete(id); gunSpot.delete(id); }
+  function dropGun(id) {
+    const G = guns.get(id); if (!G) return; G.gone = true;
+    for (const f of [G.spr, G.man]) if (f) { scene.remove(f.thing.mesh); f.dispose?.(); }
+    dropRim(G.edge); dropRim(G.wash); if (G.cover) dropRim([G.cover]); if (G.ropes) dropRim([G.ropes]);
+    guns.delete(id); aims.delete(id); bowShots.delete(id); bobs.delete(id); gunSpot.delete(id);
+  }
 
   // ---- loading and unloading: your ship and the troops going on or just off it flash an outline (Tim 2026-11-23) ----
   const offAt = new Map();   // unit id -> clock until it flashes after stepping off
@@ -567,7 +610,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
         const s = sprites.get(e.id); if (!s?.thing?.mesh) continue;
         seen.add(e.id);
         stagesFor(e, s, dt);
-        if (MOUNT[e.warUnit]) deckGun(s, e, place, dt);   // shown only while it fires (Tim 2026-11-23: idle it read as a black hanging body)
+        if (e.warUnit === 'warship' || e.warUnit === 'transport') deckGun(s, e, place, dt);   // the Gatling barrel only in a fight; the bow cannon always
         if (e.mending) mending(e, s, dt);
       }
       for (const id of [...guns.keys()]) if (!seen.has(id)) dropGun(id);
