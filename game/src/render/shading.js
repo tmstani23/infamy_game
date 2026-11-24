@@ -672,7 +672,11 @@ void main() {
       // Sea look step 2: shallows near the bank are lighter and greener, open water sinks to ink, a darker wet band
       // sits just off the foam. dU: units from the bank (baked per chunk); nd: the sharper near-bank distance from the water mask.
       float dU = texture2D(uDepth, suv).r * uWaterDepth.x, nd = (over.r - 0.5) * 8.0;
-      float dB = nd < 3.8 ? nd : max(dU, 3.8), dW = dB;
+      // The mask distance nd is exact at the bank but flattens toward its 4 unit limit (2.5 unit map pixels), and the baked
+      // dU is only right away from the bank, so the two are blended over 1.5 to 3.5 units. A hard switch left a step in
+      // the distance there, which cut the foam and the shallows off along a line (Tim 2026-11-23 23:33Z).
+      // Where the mask dips with no bank near (water against a cliff: dU stays large), the baked distance wins outright.
+      float dB = mix(nd, max(dU, nd), smoothstep(1.5, 3.5, max(nd, dU - 0.7))), dW = dB;
       if (uWaterDepth.w > 0.0) {
         base = mix(base, base * 0.55 + uWaterShallow * 0.75, (1.0 - smoothstep(1.0, uWaterDepth.y, dB)) * 0.7);
         base *= 1.0 - 0.3 * smoothstep(uWaterDepth.y, uWaterDepth.z, dB);
@@ -838,7 +842,7 @@ export function coastlineMaterial({ textures, available, rows, bounds, cfg }) {
           // Tim 23:07Z: never a straight edge: the rim's reach swings with world noise and its outer edge is ragged
           float rag = 0.5 + 0.3 * sin(p.x * 1.7 + sin(p.y * 1.3) * 2.0) * sin(p.y * 1.9 + sin(p.x * 1.1) * 2.0) + 0.2 * sin(p.x * 4.3 - p.y * 3.7);
           float reach = vCoastSize.y * (0.12 + 0.5 * lap * rag + 0.25 * (0.5 + 0.5 * sin(p.x * 0.41 + sin(p.y * 0.33) * 2.0)));
-          float foam = (1.0 - smoothstep(reach * 0.55, reach, wd)) * (0.55 + 0.45 * sin(vCoastUv.x * 143.0 + uTime * 0.7));
+          float foam = (1.0 - smoothstep(reach * 0.1, reach, wd)) * (0.55 + 0.45 * sin(vCoastUv.x * 143.0 + uTime * 0.7));
           // sea look (Tim 2026-11-23): the bank rim also comes and goes along the coast instead of one even line
           foam *= smoothstep(0.35, 0.65, 0.5 + 0.25 * sin(p.x * 0.27 + sin(p.y * 0.19) * 2.0) + 0.25 * sin(p.y * 0.23 + sin(p.x * 0.17) * 2.0));
           foam = clamp(foam, 0.0, 1.0) * 0.55 * vCoastClear;
