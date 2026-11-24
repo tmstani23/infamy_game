@@ -6,6 +6,7 @@ import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
 import { terrainAt } from '../src/sim/world_data.js';
 import { makeSave, loadSave } from '../src/sim/save.js';
+import { createNewsCallouts } from '../src/news_callouts.js';
 
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const world = data('data/world.json'), W = data('data/wildlife.json');
@@ -75,6 +76,33 @@ console.log(`  pelts ${clan.hides?.wolf_pelt || 0}`);
   assert.ok((S.world.wildDens[d.id].rest ?? 0) > S.tick, 'an emptied den rests');
   run(80);
   assert.equal(wild('wolf').filter(e => e.wm.den === d.id).length, 0, 'and stays empty');
+}
+
+// a hunt far from the hero: the clan is told, with the region's name, and told again if the prey falls
+{
+  const d = wolfDen;   // its pack went to sleep when the party left; it wakes again
+  for (const c of crew) { Object.assign(c, { dead: false, hp: c.maxHp }); delete c.downed; delete c.diedAt; }   // the crew back on their feet
+  S.night = false; go(d.x + 160, d.z);
+  run(200);
+  assert.ok(wild('wolf').some(e => e.wm.den === d.id), `third pack woke ${JSON.stringify(S.world.wildDens[d.id])} ${d.id} ${wild('wolf').map(e => e.wm.den)} alive ${crew.filter(c => !c.dead).length}`);
+  const prey = crew[0];
+  Object.assign(hero, { x: hero.x + 300 });
+  S.news = [];
+  g.wildAnimals.startHunt(d.id, hero.owner, prey);
+  const told = S.news.find(n => n.kind === 'wildHunted');
+  assert.ok(told && told.clan === hero.owner && typeof told.region === 'string', `the clan hears of the hunt (${told?.region})`);
+  {   // the callout: names the region and pings both maps, even with the hero out on the island
+    const calls = [], pings = [];
+    const ui = createNewsCallouts({ game: { state: { news: [told], entities: { h: { owner: hero.owner, place: 'world' } }, clans: {}, businesses: {} } }, heroId: 'h', presentation: { map: false },
+      callout: (...x) => calls.push(x), minimap: { ping: (...p) => pings.push(p) }, gameMap: { ping: (...p) => pings.push(p) } });
+    ui.update();
+    assert.ok(calls.some(c => c[0] === `Wolves are hunting your crew in ${told.region}`), `callout: ${calls.map(c => c[0])}`);
+    assert.equal(pings.length, 2, 'map and minimap pinged');
+  }
+  prey.dead = true; prey.hp = 0;
+  const news = []; for (let i = 0; i < 120; i++) { g.step([]); news.push(...(S.news || [])); }
+  assert.ok(news.some(n => n.kind === 'wildKilled' && n.clan === hero.owner), 'and hears when the prey falls');
+  for (const e of wild('wolf').filter(e => e.wm.den === d.id)) { e.hitBy = { id: hero.id, tick: S.tick }; e.hp = 0; g.wildAnimals.killed(hero, e); e.dead = true; }
 }
 
 // a bear: hit it and it fights; killing one gives a bear hide

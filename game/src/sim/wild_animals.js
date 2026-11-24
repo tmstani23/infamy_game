@@ -47,6 +47,17 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
   const cellKey = (x, z) => { const c = R.restCell ?? 100; return `${Math.floor(x / c)}_${Math.floor(z / c)}`; };
   const activeChunk = (x, z) => { const ids = areas.activeIds(); return ids.includes(areas.chunkId(...areas.chunkOf(x, z))); };
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  // the world map's name for a spot: the region whose box holds it, else the nearest region
+  const regionName = (x, z) => {
+    let best = null, bd = Infinity;
+    for (const r of world?.regions || []) {
+      const [x0, z0, x1, z1] = r.box || [];
+      if (x >= x0 && x <= x1 && z >= z0 && z <= z1) return r.name;
+      const d = Math.hypot(x - (x0 + x1) / 2, z - (z0 + z1) / 2);
+      if (d < bd) { bd = d; best = r.name; }
+    }
+    return best;
+  };
 
   // Where animals may come: a few spread-out spots among the player's units on the island (the hero first)
   function anchors() {
@@ -197,6 +208,14 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     }
     const lead = pack[0];
     state.casts.push({ kind: 'wildHunt', species: lead.species, den: d.id, clan, x: lead.x, z: lead.z, place: 'world', a: lead.id, worker: !!prey?.worker, prey: prey?.id ?? null });
+    // the clan is told when it is not there to see it: prey far from its hero (news_callouts.js names the region and pings the map)
+    if (!provoked && prey) {
+      const hero = Object.values(state.entities).find(e => e.type === 'hero' && e.owner === clan && !e.dead);
+      if (!hero || hero.place !== 'world' || dist(hero, prey) > (H.alertFar ?? 60)) {
+        state.news?.push({ kind: 'wildHunted', clan, species: lead.species, worker: !!prey.worker, x: prey.x, z: prey.z, region: regionName(prey.x, prey.z) });
+        Object.assign(lead.wm, { alertPrey: prey.id, alertClan: clan, alertAt: [prey.x, prey.z], alertWorker: !!prey.worker });
+      }
+    }
     if (d.kind === 'wolf') howl(d, lead);
   }
   // Every think while hunting: break off at half strength (a bear when badly hurt), before a big group, or after a while
@@ -247,6 +266,14 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     for (const o of animals()) if (o !== e && alive(o) && o.species === e.species && o.wm?.mode !== 'charge' && !hunting(o) && Math.hypot(o.x - e.x, o.z - e.z) <= (R.herdRadius ?? 10)) flee(o, fx, fz, false);
   }
   const hunting = e => ['stalk', 'hunt', 'back'].includes(e.wm?.mode);
+  // the prey a clan was warned about (startHunt): tell the clan if it fell, forget it once the hunt is over
+  function watchAlert(e) {
+    const t = state.entities[e.wm.alertPrey], fell = !t || t.dead || t.downed;   // gone from the map: a dead unit is taken off
+    if (t && !fell) e.wm.alertAt = [t.x, t.z];
+    const [x, z] = e.wm.alertAt || [e.x, e.z];
+    if (fell) state.news?.push({ kind: 'wildKilled', clan: e.wm.alertClan, species: e.species, worker: !!e.wm.alertWorker, down: !!t && !t.dead, x, z, region: regionName(x, z) });
+    if (fell || !hunting(e)) for (const k of ['alertPrey', 'alertClan', 'alertAt', 'alertWorker']) delete e.wm[k];
+  }
   // how fast a deer or boar runs (sim/stats.js movement): slower each time it is chased off again within tire.window, slower still when hurt
   function pace(e) {
     const T = R.tire || {}, m = e.wm, fresh = m.lastFlee == null || state.tick - m.lastFlee >= secs(T.window ?? 30);
@@ -427,7 +454,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     if (!data || !areas || !ready()) return;
     const people = Object.values(state.entities).filter(person);
     const noise = noises();
-    for (const e of animals()) if (!e.dead) step(e, people, noise);
+    for (const e of animals()) if (!e.dead) { if (e.wm?.alertPrey != null) watchAlert(e); step(e, people, noise); }
     if (state.tick % THINK !== 0) return;
     const marks = anchors(), all = animals().filter(alive);
     // gone again when none of the player's units is near (and it is not in a fight); den animals go with their den
