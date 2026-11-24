@@ -54,6 +54,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   const sprites = new Map();    // prop key -> Thing
   const textures = new Map();   // art file -> texture (or a pending promise)
   const spotIndex = resourceSpots ? makeSpotIndex(resourceSpots) : null;
+  let shownSpots = [];   // the resource spots in view, for render/fishing_fx.js moorings
   let spotRevision = '', snapshot = null, spotAppliedAt = -Infinity, spotKey = '', lastDiscovered = undefined;
   const glowCfg = spotConfig?.glow, glow = glowCfg ? createSpotGlow({ scene, cfg: glowCfg }) : null, glowItems = [];
   const sigs = new WeakMap(), sigOf = p => { let v = sigs.get(p); if (v === undefined) sigs.set(p, v = JSON.stringify(p)); return v; };
@@ -358,6 +359,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     propAt = [x, z, R];
     const want = new Map();
     const spots = spotConfig ? visibleSpots(spotIndex, { x, z, radius: R + spotConfig.pieceReach, known: (sx, sz) => isDiscovered(world, discovered ?? '0', sx, sz) }) : [];
+    shownSpots = spots;
     if (glow) {   // resource glow: spots and nodes within a wider radius so they show at far zoom
       const known = (sx, sz) => isDiscovered(world, discovered ?? '0', sx, sz), GR = R * (glowCfg.reach ?? 1.6) + spotConfig.pieceReach;
       glowItems.length = 0;
@@ -538,5 +540,5 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       u.uTint.value.copy(white).lerp(black, GATE_FADE.dark * f);
     }
   }
-  return { update, setTowns, captureWater, thingAt, fadeGates, artThing, waterStats: () => waterEffects?.stats(), things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };
+  return { update, spotsInView: () => shownSpots, setTowns, captureWater, thingAt, fadeGates, artThing, waterStats: () => waterEffects?.stats(), things: () => list, lights: () => list.flatMap(t => t.lights), chunks: () => loaded.size };
 }

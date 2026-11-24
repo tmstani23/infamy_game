@@ -374,6 +374,13 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   // new trip per tick (defer); the next tries again a tick later. This counts trips, not uncached routes, so a
   // loaded save (empty route cache) makes the same choices. Reroutes and return trips never wait.
   let startTick=-1;
+  // Fishing poles (Tim 2026-11-23): a fish spot's cast point (world_spots.json, out on open water) spread along the shore
+  // a little per worker, so a crowd of anglers fans out instead of casting at one spot. Presentation only: the harvest
+  // itself is unchanged (render/fishing_fx.js draws the pole, line and float).
+  function castPoint(spot,w) {
+    const [cx,cz]=spot.cast,L=Math.hypot(cx,cz) || 1,k=((String(w.id).split('').reduce((h,c)=>(h*31+c.charCodeAt(0))>>>0,7)%9)-4)*0.7;
+    return [Math.round((spot.x+cx-cz/L*k)*10)/10,Math.round((spot.z+cz+cx/L*k)*10)/10];
+  }
   function start(s,w,spot,defer=false) {
     if(defer && runtime) { if(startTick===state.tick)return 'later'; startTick=state.tick; }   // without island navigation routes are free
     const drop=nearestDropoff(s,spot);if(!drop)return false;
@@ -386,6 +393,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const base=stages ? Math.ceil(R.harvestTicks*spot.pieces.length/spotYield(spot,saved,stages)) : R.harvestTicks;
     const harvest=s.camp ? Math.ceil(base/Math.max(0.01,CW().gatherSpeed ?? 1)) : base;   // camp-only gather speed (Tim 2026-11-10); town workers never change
     w.trip={origin:backPath.at(-1),destination:outPath.at(-1),outPath,backPath,out,harvest,back,total:Math.max(1,out+back+harvest),resource:R.resources[spot.kind],load:R.load,harvested:false};
+    if(spot.cast)w.trip.cast=castPoint(spot,w);   // fishing poles (Tim 2026-11-23): the water point this worker casts at
     delete w.departure;
     w.dropoff=drop.b.id;w.elapsed=0;w.phase=0;return true;
   }
@@ -615,7 +623,10 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!progress(s,w))return;
     const t=w.trip;w.elapsed++;
     const e=state.entities?.[w.entity];
-    if(e && !t.kind && !t.harvested && w.elapsed>=t.out)e.anim='hammer';   // hammer swing while collecting (Tim 2026-11-08): same ticks as before, so the harvest rate is unchanged
+    if(e && !t.kind && !t.harvested && w.elapsed>=t.out) {
+      if(t.cast) {e.anim='idle';e.fishing=t.cast;e.dir=dirIndex(t.cast[0]-e.x,t.cast[1]-e.z);}   // fishing poles (Tim 2026-11-23): stands facing the water and casts
+      else e.anim='hammer';   // hammer swing while collecting (Tim 2026-11-08): same ticks as before, so the harvest rate is unchanged
+    }
     if(!t.harvested && w.elapsed>=t.out+t.harvest) {harvest(spot);w.carrying=t.load;w.cargoResource=t.resource;t.harvested=true;if(e)e.harvestedAt=state.tick;}
     w.phase=Math.min(1,w.elapsed/t.total);
     if(w.elapsed>=t.total) {
@@ -878,6 +889,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         const p=position(w) || resting;
         const awake=enabled && near(p);
         if(w.entity!==null && !awake)suspend(w);
+        if(state.entities?.[w.entity]?.fishing)delete state.entities[w.entity].fishing;   // set again each tick while it still fishes (gather)
         if(w.order?.kind==='move' && w.trip) {
           if(progress(s,w)) {
             w.elapsed++;w.phase=Math.min(1,w.elapsed/w.trip.total);

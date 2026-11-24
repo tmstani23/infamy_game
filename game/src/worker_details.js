@@ -26,7 +26,8 @@ export function workerPresentation(w,s,data,entities={},at=null) {
   const harvesting=t && !t.kind && !returning && w.elapsed>=t.out;
   const dx=t?t.destination[0]-t.origin[0]:0,dz=t?t.destination[1]-t.origin[1]:1;
   return {id:`worker:${w.id}`,worker:w.id,workerOwner:s.owner,type:'civilian',model:data.workers.model,name:`Worker ${w.id}`,place:'world',
-    x:p[0],z:p[1],hp:w.hp ?? data.workers.hp,maxHp:data.workers.hp,carrying:w.carrying,dir:dirIndex(dx*(returning?-1:1),dz*(returning?-1:1)),anim:t?harvesting?'hammer':'walk':'idle'};
+    x:p[0],z:p[1],hp:w.hp ?? data.workers.hp,maxHp:data.workers.hp,carrying:w.carrying,dir:harvesting && t.cast?dirIndex(t.cast[0]-p[0],t.cast[1]-p[1]):dirIndex(dx*(returning?-1:1),dz*(returning?-1:1)),anim:t?harvesting?(t.cast?'idle':'hammer'):'walk':'idle',
+    ...(harvesting && t.cast ? {fishing:t.cast} : {})};   // fishing poles (Tim 2026-11-23)
 }
 // A war camp as a work site for the screen: { id: war id, camp: true, owner, x, z, workers }
 export const campSitesOf=(frontier,owner)=>Object.values(frontier?.wars?.list || {}).filter(w=>w.attacker===owner && w.camp).map(w=>({id:w.id,camp:true,owner:w.attacker,x:w.camp.x,z:w.camp.z,workers:w.camp.workers || [],war:w}));

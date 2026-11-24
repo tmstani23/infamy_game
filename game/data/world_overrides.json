@@ -18,7 +18,16 @@
     }
   ],
   "remove": [],
-  "move": [],
+  "move": [
+    {"id":"N078","x":9681,"z":6494,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 20 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N106","x":3706,"z":2351,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 28 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N069","x":10517,"z":756,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 300 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N071","x":606,"z":5002,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 180 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N073","x":11493,"z":7244,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 84 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N089","x":656,"z":2700,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 376 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N094","x":853,"z":1654,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 464 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N107","x":10554,"z":5217,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground out in the lake moved 106 units to the nearest open (walkable) shore so workers can stand and cast; pin in world_reshape_v1.json updated to match"}
+  ],
   "add": {},
   "set": [],
   "coastCliff": {

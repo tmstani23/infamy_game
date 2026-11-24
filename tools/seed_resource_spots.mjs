@@ -6,7 +6,7 @@
 // Deterministic: each random draw is seeded from (seed, kind, cell), so the same inputs give byte-identical output.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { buildable, terrainAt } from '../game/src/sim/world_data.js';
+import { buildable, terrainAt, passable } from '../game/src/sim/world_data.js';
 import { islandBiome } from '../game/src/sim/island_art.js';
 
 const WORLD = 'game/data/world.json', CONF = 'game/data/resource_spots.json', CHUNKS = 'game/data/world_chunks.json';
@@ -32,7 +32,10 @@ for (const p of world.passes || []) points.push([p.x, p.z, C.pass]);
 for (const f of world.fords || []) points.push([f.x, f.z, C.ford]);
 for (const s of world.sites || []) points.push([s.x, s.z, C.site]);
 for (const c of world.camps || []) points.push([c.x, c.z, C.camp]);
-for (const n of world.nodes || []) points.push([n.x, n.z, C.node]);
+// nodes moved after the spots were first seeded keep their old place for every spacing check (S.idAnchors), so no other
+// spot is placed differently and every id stays the same; spots that now crowd a moved node are dropped at the end (3d)
+const ANCHOR = S.idAnchors || {}, anchorOf = n => (ANCHOR[n.id] && !n.id.startsWith('_') ? ANCHOR[n.id] : [n.x, n.z]);
+for (const n of world.nodes || []) points.push([...anchorOf(n), C.node]);
 points.push([world.capital.x, world.capital.z, C.capital]);
 const roadSegs = [];
 for (const c of world.corridors || []) for (let i = 1; i < c.points.length; i++) roadSegs.push([...c.points[i - 1], ...c.points[i]]);
@@ -83,7 +86,8 @@ for (const n of nodes) {
   const dir = d.kind === 'fish' ? (() => { const w = waterNear(n.x, n.z, 2); return w ? (Math.hypot(...w) ? [w[0] / Math.hypot(...w), w[1] / Math.hypot(...w)] : null) : null; })() : null;
   const pieces = layout(rand, size, d.radius, d.minGap, S.kinds[d.kind].variants, null, dir);
   if (!buildable(world, n.x, n.z)) depositsOnRock++;
-  add({ id: n.id.replace('N', 'D'), kind: d.kind, x: n.x, z: n.z, r: d.radius, pieces, deposit: n.id, nodeKind: n.kind });
+  spots.push({ id: n.id.replace('N', 'D'), kind: d.kind, x: n.x, z: n.z, r: d.radius, pieces, deposit: n.id, nodeKind: n.kind });
+  placed.push([...anchorOf(n), d.radius]);
 }
 
 // 2. ordinary spots: one seeded try per jittered-grid cell per kind
@@ -186,6 +190,68 @@ const floorAdded = [];
   }
 }
 
+// 3d. drop any ordinary spot that crowds a node moved since the first seed (S.idAnchors); the others keep their ids
+const dropped = [];
+for (const id of Object.keys(ANCHOR)) {
+  const n = world.nodes.find(q => q.id === id); if (!n) continue;
+  const dep = spots.find(q => q.deposit === id);
+  for (let i = spots.length - 1; i >= 0; i--) { const q = spots[i];
+    if (q.deposit || Math.hypot(q.x - n.x, q.z - n.z) >= Math.max(C.node, (dep?.r || 0) + q.r + C.spot)) continue;
+    dropped.push(`${q.id} (near ${id})`); spots.splice(i, 1); }
+}
+
+// 3c. fish in the water (Tim 2026-11-23): each fish spot's rowboats (variant 0) float a few steps out on the water and
+// its bollards (variant 1) stand at the waterline, either side of a clear lane; cast = the water point workers cast at
+// (spot-relative), down that lane. Runs after every placement, so no spot's id or place changes; a spot with no water
+// within W.reach keeps its old layout and gets no cast.
+{
+  const W = S.fishWater || {}, reach = W.reach ?? 20;
+  const wet = (x, z) => { const c = code(x, z); return c === 'w' || c === 'r'; };
+  const r1p = v => Math.round(v * 10) / 10 || 0;
+  const dry = (x, z) => !wet(x, z) && passable(world, x, z);
+  for (const s of spots) {
+    if (s.kind !== 'fish') continue;
+    // the bank point the lane starts from: the spot centre, or for a ground out on the water the nearest dry bank
+    let ox = s.x, oz = s.z;
+    if (wet(ox, oz)) {
+      let hit = null;
+      for (let r = 1; r <= (W.bankReach ?? 150) && !hit; r += 1) for (let a = 0; a < 96; a++) { const t = a / 96 * Math.PI * 2, x = s.x + Math.cos(t) * r, z = s.z + Math.sin(t) * r; if (dry(x, z) && dry(x - Math.cos(t) * 3, z - Math.sin(t) * 3) === false && dry(x + Math.cos(t) * 2, z + Math.sin(t) * 2)) { hit = [x + Math.cos(t) * 2, z + Math.sin(t) * 2]; break; } }
+      if (!hit) continue;
+      [ox, oz] = hit;
+    }
+    let d = null, vx = 0, vz = 0;
+    for (let r = 0.5; r <= reach && d === null; r += 0.5) {
+      for (let a = 0; a < 72; a++) { const t = a / 72 * Math.PI * 2, cx = Math.cos(t), cz = Math.sin(t); if (wet(ox + cx * r, oz + cz * r)) { vx += cx; vz += cz; } }
+      if (vx || vz) d = r;
+    }
+    if (d === null || Math.hypot(vx, vz) < 1e-6) continue;
+    const m = Math.hypot(vx, vz), ux = vx / m, uz = vz / m, px = -uz, pz = ux;
+    while (d < reach && !wet(ox + ux * d, oz + uz * d)) d += 0.25;   // the shore straight down the lane
+    const at = (along, side) => [ox + ux * along + px * side, oz + uz * along + pz * side];
+    const boatFits = q => wet(...q) && wet(q[0] + ux, q[1] + uz) && wet(q[0] - ux * 0.8, q[1] - uz * 0.8) && wet(q[0] + px * 1.4, q[1] + pz * 1.4) && wet(q[0] - px * 1.4, q[1] - pz * 1.4);
+    const P = s.pieces;
+    if (P.length >= 2 && !P.some(p => p[2] === 0)) P[0][2] = 0;
+    if (P.length >= 2 && !P.some(p => p[2] === 1)) P[P.length - 1][2] = 1;
+    let b = 0, l = 0;
+    for (const p of P) {
+      if (p[2] === 0) {   // a boat: out on the water, kept out of the cast lane; where none fits (a narrow river) it becomes a bollard
+        const k = b, sign = k % 2 ? -1 : 1, side = sign * ((W.boatSide ?? 3.4) + Math.floor(k / 2) * (W.boatGap ?? 3.8));
+        let q = null;
+        for (const sd of [side, -side, side * 0.75, side * 1.4]) { for (const o of [W.boatOut ?? 3, 2, 1.2, 4.5, 6]) { const c = at(d + o + (k % 2) * 0.8, sd); if (boatFits(c)) { q = c; break; } } if (q) break; }
+        if (q) { b++; p[0] = r1p(q[0] - s.x); p[1] = r1p(q[1] - s.z); continue; }
+        p[2] = 1;
+      }
+      const k = l++, sign = k % 2 ? -1 : 1;   // a bollard: on the bank at the waterline
+      const side = sign * ((W.bollardSide ?? 2.6) + Math.floor(k / 2) * (W.bollardGap ?? 3.2));
+      let along = d - (W.bollardIn ?? 0.9);
+      while (along > -reach && wet(...at(along, side))) along -= 0.5;
+      const q = at(along, side); p[0] = r1p(q[0] - s.x); p[1] = r1p(q[1] - s.z);
+    }
+    const c = at(d + (W.castOut ?? 5.5), 0);
+    s.cast = [r1p(c[0] - s.x), r1p(c[1] - s.z)];
+  }
+}
+
 // 4. output (sorted, one spot per line)
 spots.sort((a, b) => (a.id < b.id ? -1 : 1));
 const byChunk = {};
@@ -216,6 +282,7 @@ for (const [b, r] of Object.entries(rows).sort()) lines.push(`  ${b.padEnd(7)} c
 const all = Object.values(rows).reduce((a, r) => ({ n: a.n + r.n, t: a.t + r.t, s: a.s + r.s, both: a.both + r.both }), { n: 0, t: 0, s: 0, both: 0 });
 lines.push(`  ${'ALL'.padEnd(7)} cells ${String(all.n).padStart(6)}  timber ${pct(all.t, all.n).padStart(6)}  stone ${pct(all.s, all.n).padStart(6)}  both ${pct(all.both, all.n).padStart(6)}`);
 const pieces = spots.reduce((a, s) => a + s.pieces.length, 0);
+lines.push(`dropped near moved nodes: ${dropped.join(', ') || 'none'}`);
 lines.push(`site floor: ${floorAdded.length ? floorAdded.join('; ') : 'nothing to add'}`);
 lines.push(`pieces: ${pieces} total; file ${(out.length / 1024).toFixed(0)} KB`);
 

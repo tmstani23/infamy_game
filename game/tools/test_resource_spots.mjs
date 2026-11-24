@@ -31,7 +31,8 @@ for (const s of data.spots) {
   assert.ok(buildable(world, s.x, s.z), `${s.id} sits on buildable ground`);
   const k = conf.spots.kinds[s.kind];
   assert.ok(s.pieces.length >= k.size[0] && s.pieces.length <= k.size[1], `${s.id} size in range`);
-  for (const [dx, dz] of s.pieces) assert.ok(buildable(world, s.x + dx, s.z + dz), `${s.id} piece on buildable ground`);
+  // fish rowboats (variant 0) float on the water (Tim 2026-11-23, checked in test_fishing.mjs); every other piece stands on land
+  for (const [dx, dz, v] of s.pieces) if (!(s.kind === 'fish' && v === 0)) assert.ok(buildable(world, s.x + dx, s.z + dz), `${s.id} piece on buildable ground`);
   if (s.kind === 'fish') {
     let near = false;
     for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) { const c = terrainAt(world, s.x + j * cell, s.z + i * cell); if (c === 'w' || c === 'r') near = true; }

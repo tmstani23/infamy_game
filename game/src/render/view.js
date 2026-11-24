@@ -33,6 +33,7 @@ import { buildCityDocks } from './city_docks.js';
 import { createShipMarks } from './ship_marks.js';
 import { createShipFx } from './ship_fx.js';
 import { createBoardFx } from './board_fx.js';
+import { createFishingFx } from './fishing_fx.js';   // fishing poles (Tim 2026-11-23)
 import { createShoreLine } from './shore_line.js';   // ships S6b
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
@@ -566,6 +567,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     chestCashFx.steal(((heroPlace === 'world' && !cityView) || worldView) ? Object.values(state.entities).filter(e => e.robbing?.until > state.tick && e.place === 'world' && !e.dead && !e.downed && sprites.get(e.id)?.thing.mesh.visible).map(e => { const t = state.frontier?.rail?.trains?.[e.robbing.train], p = sprites.get(e.id).pos; return t?.wagonSpot ? { id: e.id, from: t.wagonSpot, to: { x: p.x, y: p.y, z: p.z } } : null; }).filter(Boolean) : [], dt);
     chestCashFx.update(dt);   // cashing a stolen chest: the loot flies into the hall
     stolenChests?.update((heroPlace === 'world' && !cityView) || worldView, state.frontier?.rail?.chests, Object.values(state.entities).filter(e => e.chest && e.place === 'world' && !e.dead && sprites.get(e.id)).map(e => { const p = sprites.get(e.id).pos; return { id: e.id, x: p.x, y: p.y, z: p.z }; }), dt, Object.values(state.frontier?.rail?.trains || {}).filter(t => t.stopped && t.wagonSpot).map(t => ({ id: t.id, x: t.wagonSpot.x, z: t.wagonSpot.z, fast: !!t.robbing, robbed: !!state.frontier.rail.links?.[t.link]?.blast?.robbed })));   // train robbery: the stolen chest carried and dropped, the guard's lantern on a stopped train
+    { const out = (heroPlace === 'world' && !cityView) || worldView;   // fishing poles (Tim 2026-11-23): the sim sets e.fishing (cast point) while a worker harvests a fish spot
+      fishingFx.update(out ? Object.values(state.entities).filter(e => e.fishing && e.anim === 'idle' && e.place === 'world' && !e.dead && sprites.get(e.id)?.thing.mesh.visible).map(e => { const s = sprites.get(e.id); return { id: e.id, x: s.pos.x, y: s.pos.y, z: s.pos.z, tx: e.fishing[0], tz: e.fishing[1], order: s.thing.mesh.renderOrder }; }) : [], dt);
+      fishingFx.moor(out ? worldGround?.spotsInView() || [] : []); }
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
     cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);
@@ -625,6 +629,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let shakeT = 0, shakeAmp = 0, freezeT = 0;
   // train robbery (sim/frontier/rail_blast.js): the burning charge on a line and the blown gap while it is repaired
   const chestCashFx = createChestCashFx({ scene });
+  const fishingFx = createFishingFx({ scene });   // workers on fish spots cast lines; fish spot boats moored (Tim 2026-11-23)
   const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null;   // fx id -> 'charge' | 'crater'
   let railShakeK = 0;
   function syncRailBlast(state, show, dt) {
