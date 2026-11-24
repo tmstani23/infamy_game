@@ -48,6 +48,7 @@ export const ABOUT = {
   breakoff: 'The boarding warship nearest the pointer breaks off and keeps who is left. Only after a few seconds of fighting; then it cannot board again for a while.',
   dogs: 'Then left-click near an enemy. The nearest ready dog handler looses his dogs at the enemy closest to the click: they bite for heavy damage and knock it down for a moment. On auto he sends them at ranged or fleeing enemies.',
 };
+const SHIP_KEY = { board: 0, broadside: 1, bowcannon: 2, deckgun: 3 };
 // the specials' keys, left to right: Shift + the main bar's ability keys
 export const ABILITY_KEYS = ['Q', 'E', 'R', 'F'];
 
@@ -133,12 +134,15 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
     row.hidden = !shown.length;
     if (!shown.length && tip.hidden === false) tip.hidden = true;
     for (const [id, s] of slots) s.b.hidden = !shown.some(x => x.a.id === id);
+    // a ship ability keeps its own key whatever is selected (Tim 2026-11-24); the other specials take the keys left, in order
+    { const taken = new Set(shown.filter(x => x.a.special && SHIP_KEY[x.a.id] != null).map(x => SHIP_KEY[x.a.id])); let n = 0;
+      for (const x of shown) { if (!x.a.special) continue; if (SHIP_KEY[x.a.id] != null) x.ki = SHIP_KEY[x.a.id]; else { while (taken.has(n)) n++; x.ki = n++; } } }
     k = 0;
-    for (const { a, v } of shown) {
+    for (const { a, v, ki } of shown) {
       const s = slot(a);
-      const act = a.special ? `special${++k}` : null;
+      const act = a.special && ki < ABILITY_KEYS.length ? `special${ki + 1}` : null;
       s.v = v; s.keyText = a.keyText || keybinds.label(act);
-      set(s.key, act ? keybinds.badge(act) : 'S+RMB'); s.key.classList.toggle('unbound', !!act && keybinds.isUnbound(act));
+      set(s.key, act ? keybinds.badge(act) : a.special ? '' : 'S+RMB'); s.key.classList.toggle('unbound', !!act && keybinds.isUnbound(act));
       set(s.count, a.special ? `${v.ready}/${v.have}` : `${v.have}`);
       const cooling = !v.ready;
       s.b.classList.toggle('cooling', cooling);
@@ -198,7 +202,7 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
     update,
     aimPreview,
     // Shift + Q, E, R, F: the i-th special shown; p = the pointer's place on the ground
-    key(i, p = null) { const x = shown.filter(s => s.a.special)[i]; if (!x) return false; arm(x.a, p); return true; },
+    key(i, p = null) { const x = shown.find(s => s.a.special && s.ki === i); if (!x) return false; arm(x.a, p); return true; },
     // Shift + right-click on the ground: Torch, when the selection can
     shiftRight(p) { if (!p || !torchers()) return false; torchAt(p); return true; },
   };

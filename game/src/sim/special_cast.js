@@ -96,7 +96,8 @@ export function specialView({ state, units }, ability, ids) {
     const e = state.entities[id];
     if (!e || !usable(e) || !specialsOf(units, e).includes(ability)) continue;
     have++; if (S.ship ? gunAuto(e, ability) : autoOn(e)) auto++;
-    if (S.ship && (S.gun === 'deckGatling' ? e.gat?.state === 'fire' : now - (e.gunFired?.[S.gun] ?? -1e9) < 24)) firing++;   // a ship gun firing now (Tim 2026-11-23: its slot flashes red)
+    // a ship gun in a fight: its slot flashes red from its first shot until the ship has nothing left in reach (Tim 2026-11-24; ships.js s.fighting)
+    if (S.ship && (S.gun === 'deckGatling' ? !!e.gat : now - (e.gunFired?.[S.gun] ?? -1e9) < (e.fighting ? 500 : 24))) firing++;
     const at = able(S, state, e) ? S.readyAt(e) : Infinity;
     if (at <= now) ready++; else next = Math.min(next, at);
   }

@@ -68,13 +68,16 @@ for (const u of g.ships.riders(ship)) assert.ok(u.x === ship.x && u.z === ship.z
 // --- Z: holds still and holds fire; a new order lifts it ---
 order([ship.id], { kind: 'stop' }); assert.ok(ship.holdFire && ship.sorder.kind === 'stay');
 
-// --- a move onto land is a landing: sail to the shore, then everyone steps off, one a second, onto walkable ground ---
+// --- a move onto land is a landing: sail to the shore and wait; told to unload, everyone steps off, one a second, onto walkable ground ---
 const shore = landingFor(wg, town.x, town.z, 'big', { box: circle, maxR: 600 });
 assert.ok(shore, 'landable shore by the town');
 order([ship.id], { kind: 'move', x: shore.land.x, z: shore.land.z });
 assert.equal(ship.sorder.kind, 'land'); assert.ok(!ship.holdFire, 'a new order lifts the hold');
 for (let i = 0; i < 2400 && ship.sorder.kind === 'land'; i++) g.step([]);
-assert.equal(ship.sorder.kind, 'unload', 'reached the shore and unloads');
+assert.equal(ship.sorder.kind, 'stay', 'reached the shore: it waits, nobody steps off on their own (Tim 2026-11-24)');
+{ const n = g.ships.riders(ship).length; for (let i = 0; i < 60; i++) g.step([]); assert.ok(n > 0 && g.ships.riders(ship).length === n, 'everyone still aboard'); }
+g.ships.command({ owner: 'player' }, { action: 'unload', ships: [ship.id] });
+assert.equal(ship.sorder.kind, 'unload', 'Q at the shore unloads');
 const off = [];
 for (let i = 0; i < 400 && g.ships.riders(ship).length; i++) { const n = g.ships.riders(ship).length; g.step([]); if (g.ships.riders(ship).length < n) off.push(S.tick); }
 assert.equal(g.ships.riders(ship).length, 0, 'all stepped off');

@@ -184,7 +184,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
 function shipStatus(e, state) {
   const now = state.tick ?? 0, k = e.sorder?.kind, recent = (t, n) => t != null && now - t < n;
   if (e.board) return 'Boarding fight';
-  if (e.gat?.state === 'fire' || recent(e.firedAt, 60)) return 'Firing';
+  if (e.gat || e.fighting || recent(e.firedAt, 60)) return k === 'engage' && e.anim === 'walk' ? 'Closing to gun range' : 'Attacking';   // steady for the whole fight (Tim 2026-11-24)
   if (recent(e.hitAt, 80)) return 'Under fire';
   if (e.mending) return 'Repairing';
   if (e.loadQueue?.length) return 'Loading';

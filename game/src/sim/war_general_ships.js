@@ -261,7 +261,7 @@ export function createGeneralShips(game, { clan, memory, rules, strategy, campHa
       if (army.mode !== 'push' && !army.spent && now() - L.at < Math.round((G.landWaitSeconds ?? 120) * 20)) return;
       const to = val.land?.land || home?.land || s;   // (no landing any more: they step off at the camp shore and walk)
       L.stage = 'sail'; L.at = now(); L.to = { x: Math.round(to.x), z: Math.round(to.z) };
-      out.push(order({ kind: 'move', units: [s.id], ...L.to }));   // a spot on land: it sails to the shore there and they step off
+      out.push(order({ kind: 'move', units: [s.id], ...L.to, unload: true }));   // a spot on land: it sails to the shore there and they step off
       return;
     }
     if (L.stage === 'sail') {
@@ -269,7 +269,7 @@ export function createGeneralShips(game, { clan, memory, rules, strategy, campHa
         // too long on the way (a way that cannot be sailed): they land at the camp shore instead and walk
         const late = now() - L.at > Math.round((G.landWaitSeconds ?? 120) * 60) && home;
         if (late) { L.to = { x: Math.round(home.land.x), z: Math.round(home.land.z) }; L.at = now(); }
-        if (late || !['land', 'unload'].includes(s.sorder?.kind)) out.push(order({ kind: 'move', units: [s.id], ...L.to }));
+        if (late || !['land', 'unload'].includes(s.sorder?.kind)) out.push(order({ kind: 'move', units: [s.id], ...L.to, unload: true }));
         return;
       }
       L.stage = 'ashore'; L.ship = null;

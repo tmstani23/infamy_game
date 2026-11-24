@@ -140,7 +140,8 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (!L?.berth) { if (alone) say(hero.owner, 'No landable shore near there'); return; }
     const pts = shipPath(g, [s.x, s.z], [L.berth.x, L.berth.z], { water, box });
     if (!pts) { if (alone) say(hero.owner, 'No way there by water'); return; }
-    s.sorder = { kind: 'land', x: L.berth.x, z: L.berth.z, land: L.land, pts: pts.slice(1), blocked: L.blocked };
+    // Tim 2026-11-24: sent to the shore it lands and waits; nobody steps off until told (Q, Unload all, a seat). unload: the general's landings
+    s.sorder = { kind: 'land', x: L.berth.x, z: L.berth.z, land: L.land, pts: pts.slice(1), blocked: L.blocked, ...(c.unload === true ? { unload: true } : {}) };
   }
 
   // the ship sails in to the landable shore nearest a spot (to take people aboard there, or to let them off)
@@ -150,7 +151,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (!L?.berth) return say(hero.owner, 'No landable shore near there'), false;
     const pts = shipPath(g, [s.x, s.z], [L.berth.x, L.berth.z], { water, box });
     if (!pts) return say(hero.owner, 'No way there by water'), false;
-    delete s.holdFire; delete s.board;
+    delete s.board;   // (a ship told to hold fire keeps holding it when it comes in to load or unload, Tim 2026-11-24)
     s.sorder = { kind: 'land', x: L.berth.x, z: L.berth.z, land: L.land, pts: pts.slice(1), blocked: L.blocked };
     return true;
   }
@@ -208,13 +209,13 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     for (const s of (ids || []).map(id => state.entities[id]).filter(s => isShip(s) && s.owner === hero.owner)) {
       if (s.locked) continue;   // S8: not while a boarding holds it
       if (!riders(s).length) continue;
-      const land = shoreOf(s);
+      const land = shoreOf(s) && s.sorder?.kind === 'stay' && s.sorder.land ? s.sorder.land : shoreOf(s);
       if (only != null) { const u = riders(s).find(r => r.id === only); if (!u) continue;
         if (!land) { if (comeIn(hero, s, s.x, s.z)) { s.sorder.only = only; any = true; } continue; }   // Tim 2026-11-24: it comes in, then only he steps off
         stepOff(u, s, 1, land); state.casts?.push({ kind: 'shipStep', a: s.id, t: u.id, x: land.x, z: land.z, place: 'world', off: true }); any = true; continue; }
       if (!land) {
-        if (s.sorder?.kind === 'land') { any = true; continue; }   // already coming in
-        if (comeIn(hero, s, s.x, s.z)) any = true;
+        if (s.sorder?.kind === 'land') { s.sorder.unload = true; delete s.sorder.only; any = true; continue; }   // already coming in
+        if (comeIn(hero, s, s.x, s.z)) { s.sorder.unload = true; any = true; }
         continue;
       }
       s.sorder = { kind: 'unload', land, next: state.tick ?? 0 }; any = true;
@@ -364,8 +365,8 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (o.kind === 'board') { o.pts = []; return; }   // S8: alongside, it keeps with the target (boarding.js)
     if (o.kind === 'land' && o.only != null) { const u = riders(s).find(r => r.id === o.only); s.sorder = { kind: 'stay' };
       if (u && o.land) { stepOff(u, s, 1, o.land); state.casts?.push({ kind: 'shipStep', a: s.id, t: u.id, x: o.land.x, z: o.land.z, place: 'world', off: true }); } return; }
-    if (o.kind === 'land') { s.sorder = { kind: 'unload', land: o.land, next: state.tick ?? 0 }; if (!riders(s).length) s.sorder = { kind: 'stay' }; return; }
-    s.sorder = { kind: 'stay' };
+    if (o.kind === 'land' && o.unload) { s.sorder = { kind: 'unload', land: o.land, next: state.tick ?? 0 }; if (!riders(s).length) s.sorder = { kind: 'stay' }; return; }
+    s.sorder = o.kind === 'land' && o.land ? { kind: 'stay', land: o.land } : { kind: 'stay' };   // landed and waiting: it remembers its landing for the unload
   }
   function unloadStep(s) {
     const o = s.sorder, now = state.tick ?? 0;
@@ -449,7 +450,10 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
   const GUN_SLOT = { broadside: 'broadside', bowCannon: 'bowcannon' };   // gun key -> its slot (sim/special_cast.js)
   function cannons(s, now) {
     const foe = foeOf(s);
-    if (!foe) return;
+    if (!foe) { delete s.fighting; return; }
+    // s.fighting: a gun on auto has a target in reach, loaded or not (the ship's card says Attacking, its gun slots flash; Tim 2026-11-24)
+    if (!((now + (s.id?.length ?? 0)) % 10)) { const on = !s.holdFire && (kindOf(s).guns || []).some(key => { const g = GUN()[key], slot = GUN_SLOT[key]; return g && !g.from && (!slot || gunAuto(s, slot)) && !!aim(s, g, foe); });
+      if (on || s.gat || s.sorder?.kind === 'engage') s.fighting = true; else delete s.fighting; }
     for (const key of kindOf(s).guns || []) {
       const g = GUN()[key], slot = GUN_SLOT[key], req = slot ? gunWanted(state, s, slot) : null;
       if (!g || g.from || now < (s.gunAt?.[key] ?? 0) || (now + key.length) % 5) continue;   // look for a target every 5 ticks
@@ -592,7 +596,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       const water = waterOf(s), L = landingFor(g, p.x, p.z, water, { maxR: 2000 });
       const pts = L?.berth && shipPath(g, [s.x, s.z], [L.berth.x, L.berth.z], { water });
       if (!pts) { goOff(s); continue; }
-      s.sorder = { kind: 'land', x: L.berth.x, z: L.berth.z, land: L.land, pts: pts.slice(1), blocked: L.blocked };
+      s.sorder = { kind: 'land', x: L.berth.x, z: L.berth.z, land: L.land, pts: pts.slice(1), blocked: L.blocked, unload: true };
     }
   }
   // sail away from the town and fade (war_end.js removes it when its rout runs out; anyone still aboard is set ashore)

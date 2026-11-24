@@ -35,7 +35,7 @@ const GOLD = [1, 0.76, 0.34], GOLD_RIM = [0.88, 0.69, 0.3], CREAM = [0.96, 0.93,
 // first port, port spacing] (the ports as shares along u0..u1; measured from the idle sheets; bow-on rows show no ports)
 const PORTS = [null, [0.374, 0.707, 0.753, 0.547, 1, 0.143, 0.098], [0.261, 0.648, 0.808, 0.647, 1, 0.11, 0.1], [0.317, 0.574, 0.696, 0.743, 1, 0.118, 0.1], null,
   [0.302, 0.739, 0.667, 0.584, 0, 0.093, 0.1], [0.171, 0.642, 0.698, 0.647, 0, 0.15, 0.102], [0.283, 0.563, 0.678, 0.731, 0, 0.145, 0.099]];
-const HULL = { warship: { half: 4.4, port: 0.95, out: 1.15, deck: 2.1, gun: -1.3, gunUp: 0.2, ports: 8 }, transport: { half: 3.6, port: 1.1, out: 1, deck: 2, bow: 4.4, gun: 3.1, gunUp: -0.75 } };
+const HULL = { warship: { half: 4.4, port: 0.95, out: 1.15, deck: 2.1, gun: -1.3, gunUp: 0.1, rail: 0.75, ports: 8 }, transport: { half: 3.6, port: 1.1, out: 1, deck: 2, bow: 4.4, gun: 3.1, gunUp: -0.75 } };
 
 export function createShipFx({ scene, stages = {}, figureSprite = null }) {
   const glow = createParticles(scene, { max: 1600 }), soot = createParticles(scene, { max: 4000, additive: false }), cards = createCards(scene);
@@ -118,8 +118,8 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
     landings(c, k => k * gap);
   }
   function bow(c) {
-    const H = HULL.transport, [hx, hz] = head(c.heading), x = c.x + hx * H.bow, z = c.z + hz * H.bow, dx = c.tx - x, dz = c.tz - z, d = Math.hypot(dx, dz) || 1;
-    muzzle(x, H.port + 0.3, z, dx / d, dz / d, 1.7, 1.1);
+    const H = HULL.transport, [hx, hz] = head(c.heading), at = gunSpot.get(c.a), gx = at?.x ?? c.x + hx * H.gun, gz = at?.z ?? c.z + hz * H.gun, dx = c.tx - gx, dz = c.tz - gz, d = Math.hypot(dx, dz) || 1, x = gx + dx / d * 0.45, z = gz + dz / d * 0.45;   // from the bow gun's muzzle
+    muzzle(x, H.deck + H.gunUp + 0.2, z, dx / d, dz / d, 1.7, 1.1);
     if (c.a != null) bowShots.set(c.a, { at: clock, ang: Math.atan2(dz, dx) });
     landings(c, () => 0);
   }
@@ -175,7 +175,8 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
   // the deck Gatling's shot: flash and tracer from the gun on the after deck, along its aim
   function deckShot(c) {
     const H = HULL.warship, [hx, hz] = head(c.heading), fx = Math.cos(c.ang ?? 0), fz = Math.sin(c.ang ?? 0);
-    const mx = c.x + hx * H.gun + fx * 0.55, mz = c.z + hz * H.gun + fz * 0.55, y = H.deck + H.gunUp + 0.25;
+    const side = (Math.sign(fx * -hz + fz * hx) || 1) * H.rail;   // at the rail on the side it fires over (deckGun)
+    const at = c.onDeck ? null : gunSpot.get(c.a), mx = (at?.x ?? c.x + hx * H.gun - hz * side) + fx * 0.4, mz = (at?.z ?? c.z + hz * H.gun + hx * side) + fz * 0.4, y = H.deck + H.gunUp + 0.2;
     const rot = turnTo(fx, fz);
     glow.emit({ x: mx, y, z: mz, life: 0.07, size: rand(0.22, 0.34), grow: 0.5, color: GOLD, alpha: 0.6, shape: SHAPE.dot });   // Tim 2026-11-24: a small flash at the barrel while it fires
     soot.emit({ x: mx + fx * 0.3, y, z: mz + fz * 0.3, vx: fx * 2, vz: fz * 2, life: 0.05, size: rand(0.4, 0.55), color: FLAME[1 + (Math.random() < 0.5)], alpha: 0.9, shape: SHAPE.tongue, rot: rot + rand(-0.2, 0.2) });
@@ -240,32 +241,59 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
   const guns = new Map();   // ship id -> { spr, outl, gone }
   const aims = new Map();   // ship id -> last aim angle
   const bowShots = new Map();   // transport id -> { at, ang } of its last bow shot
-  // the gun a ship carries on deck: the warship's Gatling (while it fires) and the transport's bow cannon (always; the
-  // brass field gun, smaller and muted, Tim 2026-11-24)
-  const MOUNT = { warship: { model: 'gatling', size: DECK_GUN, wash: 0.2 }, transport: { model: 'cannon_field', size: 0.62, wash: 0.3 } };
-  function deckGun(s, e, place, dt) {
-    const M = MOUNT[e.warUnit], H = HULL[e.warUnit], war = e.warUnit === 'warship';
-    const show = place === 'world' && s.thing.mesh.visible !== false && (war ? !!e.gat : (e.hp ?? 1) > 0 && !sunk.has(e.id));
-    let G = guns.get(e.id);
-    if (!G) { if (!show || !figureSprite) return; G = { spr: null, outl: [], over: [], gone: false }; guns.set(e.id, G);
-      figureSprite(M.model).then(spr => { if (G.gone) { scene.remove(spr.thing.mesh); spr.dispose?.(); return; }
-        spr.material.depthTest = false; spr.thing.mesh.renderOrder = 99700; spr.thing.mesh.frustumCulled = false;
-        G.over = rimMeshes(spr, 99701, 1); G.cover = sailCover(s); G.spr = spr; }).catch(() => {}); }
-    if (!G.spr) return;
-    const [hx, hz] = head(e.heading), shot = bowShots.get(e.id), firing = war ? e.gat?.state === 'fire' : !!shot && clock - shot.at < 0.5;
-    const ang = war ? e.gat?.ang ?? aims.get(e.id) ?? Math.atan2(hz, hx) : shot && clock - shot.at < 1.5 ? shot.ang : Math.atan2(hz, hx);
-    aims.set(e.id, ang);
-    const p = s.pos || s.thing.mesh.position, spr = G.spr;
-    spr.lift = H.deck + H.gunUp - (s.listY || 0);
-    // its sheet has 8 facings: the nearest one, then the sprite is turned the rest of the way to the aim (Tim 2026-11-23: aim nearer the click)
-    const ax = Math.cos(ang), az = Math.sin(ang), sa = Math.atan2(-(ax * CAM_RIGHT.x + az * CAM_RIGHT.z), ax * VIEW_DIR.x + az * VIEW_DIR.z), row = Math.round(sa / (Math.PI / 4));
-    spr.update(dt, p.x + hx * H.gun, p.z + hz * H.gun, ((row % 8) + 8) % 8, firing ? 'attack' : 'idle', null, M.size);
-    spr.thing.mesh.quaternion.copy(CAM_QUAT).multiply(TURN_Q.setFromAxisAngle(Z_AXIS, -(sa - row * Math.PI / 4)));
-    spr.thing.mesh.visible = show;
-    syncRim(spr, G.over, show ? M.wash : 0, GUN_GREY, 0);
-    if (G.cover) syncCover(s, G.cover, spr, show);
+  // the transport's bow cannon (Tim 2026-11-24: small and quiet: just a muted brass barrel on a little wooden mount)
+  let bowTex = null;
+  const bowMaps = () => bowTex ||= (() => {
+    const mk = (w, h, draw) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; draw(cv.getContext('2d')); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; };
+    const barrel = mk(48, 16, g => { const q = g.createLinearGradient(0, 3, 0, 13); q.addColorStop(0, '#a88d57'); q.addColorStop(0.4, '#6f5a33'); q.addColorStop(1, '#2c2213');
+      g.fillStyle = q; g.beginPath(); g.moveTo(5, 3); g.lineTo(42, 4.5); g.lineTo(42, 11.5); g.lineTo(5, 13); g.closePath(); g.fill();
+      g.beginPath(); g.arc(3.5, 8, 2.6, 0, Math.PI * 2); g.fill();   // the knob at the breech
+      g.fillStyle = '#4f4024'; g.fillRect(14, 3.2, 2, 9.6); g.fillRect(41, 3.5, 4, 9);   // a band, the muzzle swell
+      g.fillStyle = '#0b0907'; g.beginPath(); g.ellipse(45.5, 8, 1.3, 3, 0, 0, Math.PI * 2); g.fill(); });
+    const mount = mk(28, 16, g => { const q = g.createLinearGradient(0, 2, 0, 15); q.addColorStop(0, '#5a4330'); q.addColorStop(1, '#22170e');
+      g.fillStyle = q; g.beginPath(); g.moveTo(6, 3); g.lineTo(22, 3); g.lineTo(27, 15); g.lineTo(1, 15); g.closePath(); g.fill();
+      g.fillStyle = '#1a120b'; g.fillRect(1, 12.5, 26, 2.5); });
+    const gat = mk(40, 16, g => { const q = g.createLinearGradient(0, 3, 0, 13); q.addColorStop(0, '#8a8a84'); q.addColorStop(0.45, '#4a4a47'); q.addColorStop(1, '#161615');
+      g.fillStyle = q; g.fillRect(3, 4, 34, 8); g.fillStyle = '#2a2a28'; g.fillRect(3, 6.4, 34, 0.9); g.fillRect(3, 9, 34, 0.9);   // the barrels of the cluster
+      g.fillStyle = '#6b5a36'; g.fillRect(1, 3, 7, 10); g.fillRect(33, 3.4, 2.5, 9.2);   // the brass breech and the muzzle band
+      g.fillStyle = '#080808'; g.beginPath(); g.ellipse(37.5, 8, 1.3, 3.6, 0, 0, Math.PI * 2); g.fill(); });
+    return { barrel, mount, gat }; })();
+  // how far the painted hull has moved from its rest in this frame of its sheet (the ship's rocking is in its frames): the
+  // middle of the frame's cropped box against its slow average for that facing, in world units right and up on screen.
+  // The gun rides it, so it reads as part of the ship (Tim 2026-11-24)
+  const gunSpot = new Map();   // ship id -> where its gun stands this frame (its shots start there)
+  const bobs = new Map();   // ship id -> { dir, x, y }
+  function bobOf(s, e, dt) {
+    const u = s.material?.uniforms, f = u?.uFrame?.value, b = u?.uSampleBounds?.value; if (!f || !b || !f.z || !f.w) return [0, 0];
+    const cx = ((b.x + b.z) / 2 - f.x) / f.z, cy = ((b.y + b.w) / 2 - f.y) / f.w, d = dirOf(e), cw = s.cellWorld ?? 16;
+    let B = bobs.get(e.id); if (!B || B.dir !== d) bobs.set(e.id, B = { dir: d, x: cx, y: cy });
+    const k = Math.min(1, dt / 2.5); B.x += (cx - B.x) * k; B.y += (cy - B.y) * k;
+    return [(cx - B.x) * cw, (cy - B.y) * cw];
   }
-  function dropGun(id) { const G = guns.get(id); if (!G) return; G.gone = true; if (G.spr) { scene.remove(G.spr.thing.mesh); G.spr.dispose?.(); } dropRim(G.outl); dropRim(G.over); if (G.cover) dropRim([G.cover]); guns.delete(id); aims.delete(id); bowShots.delete(id); }
+  // one drawn barrel per ship: war = the Gatling, over the rail on the side it aims (only while it fires); else the bow cannon
+  function deckGun(s, e, place, dt) {
+    const war = e.warUnit === 'warship', H = HULL[e.warUnit];
+    const show = place === 'world' && s.thing.mesh.visible !== false && (e.hp ?? 1) > 0 && !sunk.has(e.id) && (!war || !!e.gat || (!!e.fighting && aims.has(e.id)));   // between bursts it stays out, on its aim (Tim 2026-11-24)
+    let G = guns.get(e.id);
+    if (!G) { if (!show) return; const T = bowMaps(), sp = (map, order) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false, depthTest: false, opacity: 0.92 })); m.renderOrder = order; scene.add(m); return m; };
+      G = { mount: war ? null : sp(T.mount, 99699), bar: sp(war ? T.gat : T.barrel, 99700), gone: false }; G.bar.center.set(0.3, 0.5); G.cover = sailCover(s); G.fake = { thing: { mesh: G.bar } }; guns.set(e.id, G); }
+    // the hull is drawn in one of 8 facings: the gun stands on the drawn deck, not on the ship's exact heading (Tim 2026-11-24: it sat off to one side)
+    const ka = dirOf(e) * Math.PI / 4, hx = -Math.sin(ka) * CAM_RIGHT.x + Math.cos(ka) * vg.x, hz = -Math.sin(ka) * CAM_RIGHT.z + Math.cos(ka) * vg.z;
+    const shot = bowShots.get(e.id), since = war ? 9 : shot ? clock - shot.at : 9;
+    const ang = war ? e.gat?.ang ?? aims.get(e.id) ?? Math.atan2(hz, hx) : shot && (since < 1.5 || e.fighting) ? shot.ang : Math.atan2(hz, hx);   // between shots it keeps its aim while the fight lasts
+    aims.set(e.id, ang);
+    const ax = Math.cos(ang), az = Math.sin(ang), sx = ax * CAM_RIGHT.x + az * CAM_RIGHT.z, sy = -(ax * vg.x + az * vg.z) * Math.abs(CAM_UP.y), L = Math.hypot(sx, sy);   // the aim on screen: toward the camera is down
+    const p = s.pos || s.thing.mesh.position, y = H.deck + H.gunUp - (s.listY || 0), rot = Math.atan2(sy, sx), kick = since < 0.25 ? 0.07 * (1 - since / 0.25) : 0;
+    const side = war ? (Math.sign(ax * -hz + az * hx) || 1) * H.rail : 0;   // the Gatling stands at the rail on the side it fires over
+    G.bar.visible = show; if (G.mount) G.mount.visible = show; if (!show) { if (G.cover) G.cover.visible = false; return; }
+    const bx = p.x + hx * H.gun - hz * side, bz = p.z + hz * H.gun + hx * side, [ox, oy] = bobOf(s, e, dt);
+    if (G.mount) { G.mount.position.set(bx, y + 0.1, bz).addScaledVector(CAM_RIGHT, ox).addScaledVector(CAM_UP, oy); G.mount.scale.set(0.3, 0.17, 1); }
+    G.bar.position.set(bx, y + 0.2, bz).addScaledVector(CAM_RIGHT, ox).addScaledVector(CAM_UP, oy).addScaledVector(CAM_RIGHT, -Math.cos(rot) * kick).addScaledVector(CAM_UP, -Math.sin(rot) * kick);
+    G.bar.material.rotation = rot; G.bar.scale.set((war ? 0.5 : 0.62) * Math.max(0.45, L), war ? 0.17 : 0.2, 1);
+    gunSpot.set(e.id, { x: bx, z: bz });
+    if (G.cover) syncCover(s, G.cover, G.fake, show);
+  }
+  function dropGun(id) { const G = guns.get(id); if (!G) return; G.gone = true; for (const m of [G.mount, G.bar]) if (m) { scene.remove(m); m.material.dispose(); } if (G.cover) dropRim([G.cover]); guns.delete(id); aims.delete(id); bowShots.delete(id); bobs.delete(id); gunSpot.delete(id); }
 
   // ---- loading and unloading: your ship and the troops going on or just off it flash an outline (Tim 2026-11-23) ----
   const offAt = new Map();   // unit id -> clock until it flashes after stepping off
