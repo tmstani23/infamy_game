@@ -22,6 +22,7 @@ import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createWeather } from './weather.js';
 import { createCrowFx } from './crow_fx.js';
+import { createWildDropFx } from './wild_drop_fx.js';   // a hunted animal's hide flies to the hero (wildlife W3)
 import { createRailTrack, createCityStation } from './rail_track.js';
 import { createRailBlastFx } from './rail_blast_fx.js';
 import { createStolenChests } from './stolen_chest.js';
@@ -247,12 +248,18 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // health bars by side (Tim 2026-11-19): yours green, enemies red, everyone else keeps the green-to-red health shading
   const SIDE_BAR = { hero: [0.36, 0.8, 0.3], crew: [0.36, 0.8, 0.3], worker: [0.36, 0.8, 0.3], enemy: [0.86, 0.18, 0.14] };
   const TEAM_MAT = Object.fromEntries(Object.entries(TEAM).map(([k, c]) => [k, teamMaterial(c)]));
+  // a wild animal's coat: between the species' two shades (coat[0]) and a little lighter or darker (coat[1])
+  const coatTint = e => {
+    const [a, b] = wildlifeCfg?.animals?.coat?.[e.type] || [[1, 1, 1], [1, 1, 1]], k = e.coat[0], l = 1 + ((e.coat[1] ?? 0.5) - 0.5) * (wildlifeCfg?.animals?.coatLight ?? 0.12);
+    return a.map((v, i) => (v + (b[i] - v) * k) * l);
+  };
   function teamOf(e, me) {
     if (e.id === me?.id) return 'hero';
     if (e.worker) return me && e.workerOwner === me.owner ? 'worker' : 'enemy';   // workers stand out from townsfolk and crew (Tim 2026-11-12)
     if (e.type === 'civilian' || (e.guide && !e.owner)) return 'townsfolk';   // the old surveyor and other clanless guides read as townsfolk (Tim 2026-11-20)
     if (me && e.owner === me.owner) return 'crew';
     if (e.type === 'horse' && !e.owner) return me && e.horseOwner === me.owner ? 'crew' : e.horseOwner ? 'enemy' : 'townsfolk';   // a loose horse takes its owner's side, not red (Tim 2026-11-21)
+    if (e.wildlife) return e.angry && Object.keys(e.angry).length ? 'enemy' : 'bandit';   // wild animals (sim/wild_animals.js): red only while a boar charges
     if (e.owner === 'bandits') return e.angry && Object.keys(e.angry).length ? 'enemy' : 'bandit';
     // police: blue, red while after your clan
     if (e.owner === 'police') return e.angry?.[me?.owner] !== undefined ? 'enemy' : 'police';
@@ -297,7 +304,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.team.rotation.x = -Math.PI / 2;
       scene.add(s.team);
     }
-    s.team.visible = !e.dead && !e.downed && !e.jailed && !e.cannon;   // salute cannons are scenery: no ring
+    s.team.visible = !e.dead && !e.downed && !e.jailed && !e.cannon && !(e.wildlife && !(e.angry && Object.keys(e.angry).length));   // salute cannons are scenery: no ring; a calm wild animal neither
     TEAM_TIME.value = performance.now() / 1000;
     TEAM_FAR.value = THREE.MathUtils.clamp((0.6 - zoomNow) / (0.6 - minZoom('world')), 0, 1);
     s.team.children[1].material = TEAM_MAT[teamOf(e, me)];
@@ -494,6 +501,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       gu.uVeil.value = veiled ? 1 : 0;
       s.ghost = ghost;
       updateTeamRing(s, e, state.entities[followId]);
+      if (e.wildlife) {   // wild animals: no bar until hurt; each its own coat shade from its seed (data/wildlife.json animals.coat)
+        if (e.dead || !(e.hp < e.maxHp)) s.bar.visible = false;
+        if (!s.coat && e.coat) { s.coat = true; s.material.uniforms.uTint.value.setRGB(...coatTint(e)); s.material.uniforms.uGrey.value = wildlifeCfg?.animals?.grey?.[e.type] ?? 0; }
+      }
       updateAura(s, e);
       // Red Lantern: a pulsing red tint on the sprite and a real red light around him
       const lit = e.buffs?.lantern && !e.dead && !e.downed, u = s.material.uniforms;
@@ -574,6 +585,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       fishingFx.update(out ? Object.values(state.entities).filter(e => e.fishing && e.anim === 'idle' && e.place === 'world' && !e.dead && sprites.get(e.id)?.thing.mesh.visible).map(e => { const s = sprites.get(e.id); return { id: e.id, x: s.pos.x, y: s.pos.y, z: s.pos.z, tx: e.fishing[0], tz: e.fishing[1], order: s.thing.mesh.renderOrder }; }) : [], dt);
       fishingFx.moor(out ? worldGround?.spotsInView() || [] : []); }
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
+    wildDropFx.update(fdt);
     crowFx?.update({ state, prev, show: (heroPlace === 'world' && !cityView) || worldView, on: video.wildlife !== false, dt: fdt, cam: { x: camTarget.x, z: camTarget.z, r: camera.right }, things: worldGround?.things(), hear: Math.min(140, Math.max(24, camera.right * 0.9)) });
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
     cityStation?.update(state.frontier, (heroPlace === 'street' || cityView) && !worldView, dt, state.entities[followId]?.owner, shared.uNight.value);
@@ -624,7 +636,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (c.kind === 'boarded') { const s = sprites.get(c.a); if (s) s.flash = 0.7; hitFx.note(c.x, c.z, `${c.n} aboard`); }   // crew popped in (sim/omnibus.js)
       // the shakedown dynamite: a small blast of the same kind (Tim 2026-11-20); shakedownfx.js keeps its flash and ring
       if (c.kind === 'dynamiteBlast' && (c.place || 'street') === heroPlace) railBlastFx.blast(c.x, c.z, 0, { scale: 0.38, shake: false });
-      if (c.kind === 'chestCashed' && heroPlace === 'world') chestCashFx.cash(c);   // Tim 2026-11-21: the stolen loot flies into the hall
+      if (c.kind === 'chestCashed' && heroPlace === 'world') chestCashFx.cash(c);
+      if (c.kind === 'wildDrop' && heroPlace === 'world') wildDropFx.drop(c);   // the hide flies from the carcass to the hero   // Tim 2026-11-21: the stolen loot flies into the hall
       if (c.kind === 'railBlast' && railBlastFx) { railBlastFx.blast(c.x, c.z, c.heading || 0); railShakeK = Math.max(0, 1 - Math.hypot(c.x - camTarget.x, c.z - camTarget.z) / 45); }   // train robbery: the charge goes off
       if (c.kind === 'cannonFire' && !c.tower) { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
       if (c.kind === 'assassinate') { shakeT = 0.26; shakeAmp = 0.2; freezeT = Math.max(freezeT, 0.1); }   // the vicious flash hits hard
@@ -634,6 +647,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let shakeT = 0, shakeAmp = 0, freezeT = 0;
   // train robbery (sim/frontier/rail_blast.js): the burning charge on a line and the blown gap while it is repaired
   const chestCashFx = createChestCashFx({ scene });
+  const wildDropFx = createWildDropFx({ scene, posOf: id => sprites.get(id)?.pos || null });
   const fishingFx = createFishingFx({ scene });   // workers on fish spots cast lines; fish spot boats moored (Tim 2026-11-23)
   const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null;   // fx id -> 'charge' | 'crater'
   let railShakeK = 0;
@@ -840,7 +854,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const h = state.entities[followId];
       if (!h) return null;
       // hear: how far sounds carry from the middle of the view, so what is on screen is heard when zoomed out too (Tim 2026-11-15)
-      return { x: camTarget.x, z: camTarget.z, place: cameraPlace(h), hear: Math.min(140, Math.max(24, camera.right * 0.9)), hero: { x: h.x, z: h.z, place: h.place } };
+      return { x: camTarget.x, z: camTarget.z, place: cameraPlace(h), hear: Math.min(140, Math.max(24, camera.right * 0.9)), hero: { x: h.x, z: h.z, place: h.place }, right: [CAM_RIGHT.x, CAM_RIGHT.z] };
     },
     // page pixel -> ground point { x, z }
     screenToGround(px, py) {

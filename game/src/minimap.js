@@ -119,6 +119,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     if (e.owner === me) return ['#50d2c8', 2.4];
     if (e.type === 'civilian') return ['#ebe8dc', 1.5];
     if (e.cop || e.owner === 'police') return [policeMapColor(e, me, game.state), 2.4];
+    if (e.wildlife) return (e.angry?.[me] ?? -1) > game.state.tick ? ['#ff4632', 2.2] : ['#c9b48a', 1.3];   // wild animals: small tan dots, red while a boar charges you
     if (e.wild) return (e.angry?.[me] ?? -1) > game.state.tick ? ['#ff4632', 2.4] : ['#ff9a46', 2.2];
     return ['#ff4632', 2.6];
   }

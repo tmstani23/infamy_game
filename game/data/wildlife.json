@@ -2,16 +2,17 @@
   "_note": "Wildlife (Tim 2026-11-24, plan war_build/wildlife/wildlife_plan.md). Crows are only for the look: src/crow_flock.js moves them, src/render/crow_fx.js draws them. All numbers are placeholders to tune in play. Distances in world units (a person is 2 tall), times in seconds.",
   "crows": {
     "flockSize": [6, 15],
-    "flocksDay": 3,
+    "flocksDay": 2,
     "flocksNight": 1,
-    "maxBirds": 70,
+    "maxBirds": 48,
+    "follow": 0.2,
     "speed": [4, 6],
     "height": [3.4, 5.8],
     "fleeHeight": [6.5, 8.5],
     "flap": [1.5, 3.5],
     "glide": [0.5, 1.3],
     "beat": [2.8, 3.4],
-    "size": [0.64, 0.8],
+    "size": [0.54, 0.68],
     "scatter": { "person": 2.4, "rider": 7 },
     "cawEvery": [5, 14],
     "sit": [10, 28],
@@ -20,6 +21,62 @@
     "battleReach": 120,
     "trailCount": 12,
     "landRoof": 0.45,
-    "landTree": 0.15
+    "landTree": 0.15,
+    "flush": { "_note": "Birds burst out of a tree near troops or shinobi on the move (hidden ones too, so it can give them away): chance per moving unit per half second near a tree within reach; trees and units then rest (seconds); gap between bursts.", "chance": 0.05, "reach": 7, "size": [4, 8], "treeRest": 90, "unitRest": 15, "gap": 1.2 }
+  },
+  "animals": {
+    "_note": "Deer and boar (W3, sim/wild_animals.js). They come and go round the player's own units on the island, by the ground each likes (habitat: terrain code -> liking), never near towns, camps or the city gate, and go again when nobody of yours is near. Deer run from people and noise; a hit boar charges that clan, then runs. Kills put the hide in the clan's stock (clan.hides). Placeholders, tune in play. Distances in world units (a person is 2 tall), times in seconds.",
+    "rules": {
+      "thinkSeconds": 3,
+      "anchors": 4,
+      "anchorGap": 80,
+      "spawnRing": [45, 85],
+      "spawnChance": 0.3,
+      "perAnchor": 10,
+      "maxTotal": 30,
+      "keepRadius": 120,
+      "despawnDistance": 140,
+      "restCell": 100,
+      "restSeconds": 300,
+      "awayFrom": { "town": 30, "camp": 40, "gate": 120 },
+      "wander": 10,
+      "graze": [4, 10],
+      "alert": [3, 6],
+      "flee": [5, 9],
+      "fleeDistance": [26, 40],
+      "herdRadius": 10,
+      "fear": { "walk": 7, "run": 13, "mounted": 16, "hidden": 4 },
+      "noise": { "melee": 10, "shot": 30, "rifleshot": 32, "bullet": 30, "gatlingShot": 32, "gatlingFire": 32, "cannonFire": 45, "shipBroadside": 45, "shipCannon": 40, "dynamiteBlast": 40, "railBlast": 45, "firebombBurst": 25 }
+    },
+    "species": {
+      "deer": { "habitat": { "f": 1, "p": 0.7, "h": 0.6, "b": 0.4, "k": 0.2 }, "weight": 2, "group": [2, 5], "lead": "stag", "leadChance": 0.6, "rest": "doe", "graze": true, "drop": "deer_hide" },
+      "boar": { "habitat": { "f": 1, "b": 1, "h": 0.5, "k": 0.5 }, "weight": 1, "group": [1, 3], "lead": "boar", "rest": "boar", "graze": true, "drop": "boar_hide", "charge": { "seconds": 6, "giveUp": 10 } },
+      "wolf": { "predator": "pack", "habitat": {}, "group": [3, 4], "lead": "wolf", "rest": "wolf", "drop": "wolf_pelt" },
+      "bear": { "predator": "lone", "habitat": {}, "group": [1, 1], "lead": "bear", "rest": "bear", "drop": "bear_hide", "extra": { "bear_gall": 0.35 } }
+    },
+    "types": {
+      "stag": { "sprite": "stag", "name": "Stag", "hp": 90, "damage": 0, "attackRange": 1.4, "attackSpeed": 1.2, "walk": 1.5, "run": 8, "radius": 0.45 },
+      "doe": { "sprite": "doe", "name": "Doe", "hp": 70, "damage": 0, "attackRange": 1.3, "attackSpeed": 1.2, "walk": 1.5, "run": 8.2, "radius": 0.4 },
+      "boar": { "sprite": "boar", "name": "Boar", "hp": 280, "damage": 16, "attackRange": 1.3, "attackSpeed": 1.1, "critChance": 0.1, "critMultiplier": 1.6, "walk": 1.2, "run": 6.5, "radius": 0.45 },
+      "wolf": { "sprite": "wolf", "name": "Wolf", "hp": 150, "damage": 14, "attackRange": 1.3, "attackSpeed": 0.8, "critChance": 0.1, "critMultiplier": 1.6, "walk": 1.6, "run": 7.5, "radius": 0.4 },
+      "bear": { "sprite": "bear", "name": "Bear", "hp": 900, "damage": 24, "attackRange": 1.9, "attackSpeed": 1.6, "critChance": 0.1, "critMultiplier": 1.5, "walk": 1.3, "run": 6, "radius": 0.8 }
+    },
+    "coatLight": 0.12,
+    "coat": {
+      "_note": "Each animal's coat: a multiply on its sprite between these two shades (seeded per animal), so a herd is not all one colour. Deer pale to deep chestnut and a little cooler than the raw render; boar brown to grey.",
+      "stag": [[0.96, 0.95, 1.0], [0.86, 0.75, 0.7]],
+      "doe": [[0.96, 0.95, 1.0], [0.86, 0.75, 0.7]],
+      "boar": [[1.12, 1.04, 0.96], [0.92, 0.92, 0.94]],
+      "wolf": [[1.04, 1.02, 1.02], [0.9, 0.84, 0.78]],
+      "bear": [[1.0, 1.0, 1.0], [0.95, 0.84, 0.76]]
+    },
+    "grey": { "_note": "How much colour comes out of the raw sprite before the coat shade (0 none, 1 all): the deer renders read too orange (critic 2026-11-24).", "stag": 0.35, "doe": 0.35, "boar": 0.15, "wolf": 0.1, "bear": 0 },
+    "predators": {
+      "_note": "W4 placeholders (Tim to tune in play). dens: per region of world.json, the spots most surrounded by den ground (share of samples within look), awayFrom sites, camps and the capital, gap apart. A den's animals are on the map while one of the player's units is within wakeDistance (off past sleepDistance). howl: chance per think per wolf den within range, at night. hunt: chance per think at night (times dayFactor by day; loneChance for a bear) on a group of at most smallGroup within range; wolves bite and fall back (biteBack seconds, backOff units) and break off at breakAt of the pack (a bear at loneBreakAt health), when more than bigGroup are close, or after seconds.",
+      "wakeDistance": 380, "sleepDistance": 460, "spawnClear": 55, "denRestDays": 2, "roam": 30, "fearScale": 0.6, "breakDistance": 60, "calmSeconds": 60,
+      "dens": { "perRegion": { "bear": 1, "wolf": 2 }, "habitat": { "f": 1, "m": 1, "n": 0.7, "h": 0.4, "b": 0.6 }, "minShare": 0.6, "step": 125, "look": 150, "awayFrom": 400, "gap": 350, "range": 220 },
+      "howl": { "chance": 0.02, "range": 900 },
+      "hunt": { "chance": 0.35, "loneChance": 0.1, "dayFactor": 0.04, "workerChance": 0.25, "range": 260, "groupRadius": 18, "smallGroup": 4, "bigGroup": 9, "closeIn": 14, "stalkSeconds": 120, "reach": 30, "lose": 70, "seconds": 90, "biteBack": [1.5, 3], "backOff": 6, "breakAt": 0.5, "loneBreakAt": 0.3 }
+    }
   }
 }

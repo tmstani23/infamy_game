@@ -186,3 +186,13 @@ Build coordinator reports lightning/assets checks passed, offline margin check f
 
 Ninja: idle wisps, running trail, stronger cut (`render/weapon_shadow.js`). Ronin: "sonic" run trail and hum rings. Kuroda: "static" run streaks, crimson sparks, extra swing arc (`render/run_trail.js`, `weapon_glow.json` `runTrail`). Details: `combat_spec.md` "Hero visual polish".
 - 2026-11-21: ninja_leader idle re-exported with the blade held forward 45° up (idleBack.idle override in tools/export_sprites.mjs, idleOnly flag in look_tests/sprite_render_test.html; idle clips only, walks still hold it back), so the shadow-blade wisps no longer wrap his head. A one-off exception to the no-sprite-re-exports rule. Shadow-blade wisps restyled: dark translucent core with a soft pulsing violet glow rim (render/shading.js weaponShadowMaterial). Old sheets in assets/sprites_archive/2026-11-21_ninja_leader/.
+
+## Wildlife (2026-11-24)
+
+| Animal | Status |
+|---|---|
+| Wolf | In the game 2026-11-24 (dens, night hunts); 8 directions, all clips incl. howl; new death fall |
+| Bear | In the game 2026-11-24 (dens, night hunts); attack is the rear-up, old low swipe kept as `bear_swipe`; new death fall |
+| Boar | In the game (W3), spawned on the island; new death fall |
+| Stag | In the game (W3), spawned on the island; new death fall |
+| Doe | In the game (W3), spawned on the island; new death fall |

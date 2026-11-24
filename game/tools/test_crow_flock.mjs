@@ -84,4 +84,18 @@ const run = (f, e, s) => { for (let t = 0; t < s; t += 0.05) f.update(e, 0.05); 
   run(f, env({ battles: [{ x: 5, z: 5, active: true, kills: [] }] }), 40);
   assert.ok(f.flocks().some(fl => fl.goal?.kind === 'circle'), 'circling the fight');
 }
+// troops walking under a tree: a few birds burst out of it and fly off away from them, for good
+{
+  const f = createCrowFlocks(cfg, rnd);
+  const out = f.flush({ x: 10, y: 4, z: 10, fx: 6, fz: 10 });
+  const fl = f.flocks()[0];
+  assert.equal(out.scattered.length, 1);
+  assert.ok(fl.birds.length >= cfg.flush.size[0] && fl.birds.length <= cfg.flush.size[1]);
+  run(f, env({ cam: { x: 10, z: 10, r: 40 } }), 6);
+  const c = fl.birds.reduce((a, b) => a + b.x, 0) / fl.birds.length;
+  assert.ok(c > 20, `flew off away from the troops: ${c.toFixed(1)}`);
+  assert.ok(fl.birds.every(b => b.mode === 'fly'));
+  run(f, env({ cam: { x: 10, z: 10, r: 40 } }), 40);
+  assert.ok(!f.flocks().includes(fl), 'gone');
+}
 console.log('crow flock ok');

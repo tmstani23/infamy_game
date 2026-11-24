@@ -272,5 +272,216 @@
     "fps": 12,
     "cellWorld": 3,
     "feetUp": 0.552
+  },
+  "wolf_attack": {
+    "size": 192,
+    "frames": 10,
+    "fps": 12,
+    "cellWorld": 3.6,
+    "feetUp": 0.525
+  },
+  "wolf_death": {
+    "size": 192,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 3.6,
+    "feetUp": 0.525
+  },
+  "wolf_howl": {
+    "size": 192,
+    "frames": 18,
+    "fps": 12,
+    "cellWorld": 3.6,
+    "feetUp": 0.525
+  },
+  "wolf_idle": {
+    "size": 192,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 3.6,
+    "feetUp": 0.525
+  },
+  "wolf_run": {
+    "size": 192,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 3.6,
+    "feetUp": 0.525
+  },
+  "wolf_walk": {
+    "size": 192,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 3.6,
+    "feetUp": 0.525
+  },
+  "bear_attack": {
+    "size": 320,
+    "frames": 14,
+    "fps": 12,
+    "cellWorld": 6,
+    "feetUp": 1.131
+  },
+  "bear_death": {
+    "size": 320,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 6,
+    "feetUp": 1.131
+  },
+  "bear_idle": {
+    "size": 320,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 6,
+    "feetUp": 1.131
+  },
+  "bear_run": {
+    "size": 320,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 6,
+    "feetUp": 1.131
+  },
+  "bear_walk": {
+    "size": 320,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 6,
+    "feetUp": 1.131
+  },
+  "boar_attack": {
+    "size": 128,
+    "frames": 10,
+    "fps": 12,
+    "cellWorld": 2.4,
+    "feetUp": 0.329
+  },
+  "boar_death": {
+    "size": 128,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 2.4,
+    "feetUp": 0.329
+  },
+  "boar_graze": {
+    "size": 128,
+    "frames": 15,
+    "fps": 12,
+    "cellWorld": 2.4,
+    "feetUp": 0.329
+  },
+  "boar_idle": {
+    "size": 128,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 2.4,
+    "feetUp": 0.329
+  },
+  "boar_run": {
+    "size": 128,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 2.4,
+    "feetUp": 0.329
+  },
+  "boar_walk": {
+    "size": 128,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 2.4,
+    "feetUp": 0.329
+  },
+  "stag_attack": {
+    "size": 224,
+    "frames": 10,
+    "fps": 12,
+    "cellWorld": 4.2,
+    "feetUp": 0.734
+  },
+  "stag_death": {
+    "size": 224,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 4.2,
+    "feetUp": 0.734
+  },
+  "stag_graze": {
+    "size": 224,
+    "frames": 15,
+    "fps": 12,
+    "cellWorld": 4.2,
+    "feetUp": 0.734
+  },
+  "stag_idle": {
+    "size": 224,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 4.2,
+    "feetUp": 0.734
+  },
+  "stag_run": {
+    "size": 224,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 4.2,
+    "feetUp": 0.734
+  },
+  "stag_walk": {
+    "size": 224,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 4.2,
+    "feetUp": 0.734
+  },
+  "doe_attack": {
+    "size": 160,
+    "frames": 10,
+    "fps": 12,
+    "cellWorld": 3,
+    "feetUp": 0.498
+  },
+  "doe_death": {
+    "size": 160,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 3,
+    "feetUp": 0.498
+  },
+  "doe_graze": {
+    "size": 160,
+    "frames": 15,
+    "fps": 12,
+    "cellWorld": 3,
+    "feetUp": 0.498
+  },
+  "doe_idle": {
+    "size": 160,
+    "frames": 12,
+    "fps": 12,
+    "cellWorld": 3,
+    "feetUp": 0.498
+  },
+  "doe_run": {
+    "size": 160,
+    "frames": 11,
+    "fps": 12,
+    "cellWorld": 3,
+    "feetUp": 0.498
+  },
+  "doe_walk": {
+    "size": 160,
+    "frames": 21,
+    "fps": 12,
+    "cellWorld": 3,
+    "feetUp": 0.498
+  },
+  "bear_swipe": {
+    "size": 320,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 12,
+    "cellWorld": 6,
+    "feetUp": 1.131
   }
 }

@@ -11,12 +11,14 @@
 // wall or the ground: idle, peck, hop, caw) or 'takeoff' (a sprite flapping up, then a silhouette again).
 
 export const CROW_DEFAULTS = {
-  flockSize: [6, 15], flocksDay: 3, flocksNight: 1, maxBirds: 70,
+  flockSize: [6, 15], flocksDay: 2, flocksNight: 1, maxBirds: 48, follow: 0.2,
   speed: [4, 6], height: [3.4, 5.8], fleeHeight: [6.5, 8.5],
   flap: [1.5, 3.5], glide: [0.5, 1.3], beat: [2.8, 3.4], size: [0.64, 0.8],
   scatter: { person: 2.4, rider: 7 },
   cawEvery: [5, 14], sit: [10, 28], wander: [6, 14], flee: [6, 9],
   battleReach: 120, trailCount: 12, landRoof: 0.45, landTree: 0.15,
+  // birds bursting out of the trees round troops and shinobi on the move (render/crow_fx.js picks the trees)
+  flush: { chance: 0.08, reach: 7, size: [4, 8], treeRest: 90, unitRest: 15, gap: 1.2 },
 };
 const CLIP_FRAMES = { idle: 12, peck: 10, hop: 8, caw: 10, fly: 8 };
 export const CROW_FPS = 12;
@@ -59,6 +61,19 @@ export function createCrowFlocks(cfgIn = {}, rnd = Math.random) {
   }
   const centre = f => { let x = 0, z = 0, hx = 0, hz = 0; for (const b of f.birds) { x += b.x; z += b.z; if (b.mode === 'fly') { hx += Math.cos(b.h); hz += Math.sin(b.h); } } return { x: x / f.birds.length, z: z / f.birds.length, hx, hz }; };
 
+  // a few birds burst out of a tree (fl: { x, y, z } the tree top, fx, fz: who startled them) and fly off for good
+  function flush(fl, out) {
+    const F = { ...CROW_DEFAULTS.flush, ...(cfg.flush || {}) }, room = cfg.maxBirds - birdsOf().length, n = Math.min(Math.round(R(F.size)), room);
+    if (n < 2) return;
+    const d = Math.hypot(fl.x - fl.fx, fl.z - fl.fz) || 1, ax = (fl.x - fl.fx) / d, az = (fl.z - fl.fz) / d, h = Math.atan2(az, ax);
+    const f = { id: nextId++, birds: [], goal: { kind: 'flee', x: fl.x + ax * 30, z: fl.z + az * 30, until: time + R(cfg.flee) }, cawT: 1e9, sleeping: false, trail: null, flush: [ax, az] };
+    for (let i = 0; i < n; i++) {
+      const b = newBird(f, fl.x + (rnd() - 0.5) * 1.6, fl.y + (rnd() - 0.5) * 0.8, fl.z + (rnd() - 0.5) * 1.6, 'takeoff');
+      b.wait = rnd() * 0.3; b.t = 0; b.h = h + (rnd() - 0.5) * 0.9; b.alt = R(cfg.fleeHeight); b.k *= 0.85; f.birds.push(b);
+    }
+    flocks.push(f);
+    out.scattered.push({ x: fl.x, z: fl.z });
+  }
   function takeOff(f, stagger = 0.6) {
     for (const b of f.birds) if (b.mode === 'sit' || b.mode === 'land') { b.mode = 'takeoff'; b.wait = rnd() * stagger; b.t = 0; b.alt = R(cfg.height); b.spot = null; }
       else b.spot = null;
@@ -90,6 +105,7 @@ export function createCrowFlocks(cfgIn = {}, rnd = Math.random) {
   // what a flock does next, when its goal runs out
   function decide(env, f) {
     const c = centre(f), cam = env.cam;
+    if (f.flush) { f.goal = { kind: 'leave', x: c.x + f.flush[0] * 200, z: c.z + f.flush[1] * 200, until: time + 60 }; return; }   // flushed birds keep going
     if (env.night > 0.5) {   // dusk: to roost in the trees, or away out of sight
       if (!f.sleeping && !land(env, f, c.x, c.z, ['tree'])) {
         const t = env.spots('tree', c.x, c.z, 60, 1)[0];
@@ -105,7 +121,8 @@ export function createCrowFlocks(cfgIn = {}, rnd = Math.random) {
     if (fight?.kills.length && rnd() < 0.7) { const k = fight.kills[Math.floor(rnd() * fight.kills.length)]; if (land(env, f, k.x, k.z, ['ground'])) { f.goal.until = time + R(cfg.sit) * 1.5; return; } }
     // a big column on the march: one flock trails it
     const army = env.armies.find(a => Math.hypot(a.x - c.x, a.z - c.z) < cfg.battleReach && !flocks.some(o => o !== f && o.trail === a.id));
-    if (army && rnd() < 0.6) { f.trail = army.id; f.goal = { kind: 'trail', until: time + R(cfg.wander) * 2 }; return; }
+    // (Tim 2026-11-24: not all the time, just sometimes for a little bit; a flock that trailed once goes its own way after)
+    if (army && !f.trailed && rnd() < (cfg.follow ?? 0.2)) { f.trail = army.id; f.trailed = true; f.goal = { kind: 'trail', until: time + R(cfg.wander) }; return; }
     f.trail = null;
     const sitting = f.birds.some(b => b.mode === 'sit');
     if (!sitting && rnd() < 0.55) {   // come down somewhere near: roofs first in a town, else fields, walls or trees
@@ -114,8 +131,8 @@ export function createCrowFlocks(cfgIn = {}, rnd = Math.random) {
       if (land(env, f, x, z, kinds)) return;
     }
     if (sitting) takeOff(f);
-    // wander, drifting back toward the view when far from it
-    const far = Math.hypot(c.x - cam.x, c.z - cam.z) > cam.r;
+    // wander, now and then drifting back toward the view when far from it (else it drifts off and a new flock comes)
+    const far = Math.hypot(c.x - cam.x, c.z - cam.z) > cam.r && rnd() < (cfg.follow ?? 0.2);
     const gx = far ? cam.x + (rnd() - 0.5) * cam.r : c.x + (rnd() - 0.5) * 60, gz = far ? cam.z + (rnd() - 0.5) * cam.r : c.z + (rnd() - 0.5) * 60;
     f.goal = { kind: 'wander', x: gx, z: gz, until: time + R(cfg.wander) };
   }
@@ -177,6 +194,7 @@ export function createCrowFlocks(cfgIn = {}, rnd = Math.random) {
   function update(env, dt) {
     time += dt;
     const out = { scattered: [], caws: [] }, cam = env.cam;
+    for (const fl of env.flushes || []) flush(fl, out);
     // gunfire, blasts and cannon: every flock in reach bursts up and away (a riding charge and people walking up too)
     for (const s of env.scatters) for (const f of flocks) if (f.birds.some(b => Math.hypot(b.x - s.x, b.z - s.z) < s.r && (b.mode !== 'fly' || b.y - env.groundY(b.x, b.z) < 9))) {
       if (f.goal?.kind === 'flee' && f.goal.until - time > 3) continue;
@@ -212,7 +230,7 @@ export function createCrowFlocks(cfgIn = {}, rnd = Math.random) {
     if (flocks.length < want && rnd() < dt * (flocks.length ? 0.15 : 2)) spawn(env, env.night > 0.5 || rnd() < 0.5);
     return out;
   }
-  return { update, birds: birdsOf, flocks: () => flocks, clear() { flocks = []; } };
+  return { update, birds: birdsOf, flocks: () => flocks, flush: fl => { const out = { scattered: [] }; flush(fl, out); return out; }, clear() { flocks = []; } };
 }
 
 // The flying crow's outline (from crow/crow_flock_anim.py, the flock mock Tim approved 2026-11-24), in units:

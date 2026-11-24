@@ -12,6 +12,7 @@ import { createClans } from './clans.js';
 import { createNav, ROOM_NAV } from './nav.js';
 import { createCivilians } from './civilians.js';
 import { createBandits, WILD } from './bandits.js';
+import { createWildAnimals, withAnimalTypes, WILDLIFE } from './wild_animals.js';   // deer and boar on the island (wildlife W3)
 import { createWorldCamps } from './camps.js';
 import { createRewards } from './rewards.js';
 import { gearFlat, createInventory } from './inventory.js';
@@ -92,7 +93,8 @@ export function createGame(options) {
   const { district, catalog, cutouts, interiors = {}, parts = null, recipes = {} } = options;
   // options.settings (data/settings.json) is laid over the detail files; without it they are used as they are
   const S = options.settings ? applySettings(options, options.settings) : { ...options, dayNight: null };
-  const { units = null, civilians: civData = null, bandits: banditData = null, police: policeData = null, dayNight } = S;
+  const { units: unitTypes = null, civilians: civData = null, bandits: banditData = null, police: policeData = null, dayNight } = S;
+  const units = withAnimalTypes(unitTypes, options.animals);   // wild animals (data/wildlife.json animals.types) are unit types too
   const scenery = placeScenery(district, catalog, cutouts);
   registerTownArt(options.frontier, catalog, cutouts);   // town, zone and war camp buildings block the ground their art stands on
 
@@ -422,7 +424,7 @@ export function createGame(options) {
   const AGGRO = 6, LEASH = 10, CORPSE_SECONDS = 3, LOCK_RANGE = 14, RETALIATE_SECONDS = 5, BACKUP_RANGE = 6;
   const fight = {};      // per unit: { cd: seconds to next hit, target } (server-side only)
   // Bandits become hostile after spotting a clan nearby or being attacked.
-  const wild = t => t?.owner === WILD;
+  const wild = t => t?.owner === WILD || t?.owner === WILDLIFE;   // wild animals (sim/wild_animals.js) are like bandits: fair game, hostile only while angry
   // Police officers (sim/police.js) are only enemies of a clan they are after (o.angry, like bandits)
   const cop = t => t?.owner === POLICE;
   const angryAt = (w, o) => (w.angry?.[o.owner] ?? -1) > state.tick;
@@ -882,6 +884,18 @@ export function createGame(options) {
     delete state.entities[id]; delete paths[id]; delete fight[id]; delete intents[id];
     for (const u of Object.values(state.entities)) if (u.order?.target === id && u.order.kind === 'attack') endAttack(u);
   }
+  // wild deer and boar (wildlife W3), wolves and bears (W4): never in or near towns, camps or the city
+  const wildSettled = (x, z) => {
+    const rings = options.frontier?.tiers?.list || [], A = options.animals?.rules?.awayFrom || {};
+    for (const t of Object.values(state.frontier?.settlements || {})) if (Number.isFinite(t.x) && Math.hypot(x - t.x, z - t.z) <= (rings[(t.tier || 1) - 1]?.ring ?? 150) + (A.town ?? 30)) return true;
+    for (const c of options.world?.camps || []) if (Math.hypot(x - c.x, z - c.z) <= (A.camp ?? 40)) return true;
+    for (const w of Object.values(state.frontier?.wars?.list || {})) for (const b of w.camp?.buildings || []) if (Math.hypot(x - b.x, z - b.z) <= (A.camp ?? 40)) return true;
+    return !!gate?.island && Math.hypot(x - gate.island[0], z - gate.island[1]) <= (A.gate ?? 120);
+  };
+  const wildAnimals = areas && options.animals ? createWildAnimals({ state, data: options.animals, areas, terrainAt: (x, z) => terrainAt(options.world, x, z), settled: wildSettled,
+    ready: () => modeRules(state).island, spawn, remove: id => removeUnit(id), moveTo, stopPath: e => { delete paths[e.id]; }, fightStep, statsOf, seed: (options.seed ?? 12345) ^ 0xdee5,
+    world: options.world, dayTicks: dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000,
+    attack: (e, t) => { const u = statsOf(e); if (swingStep(e, u)) return true; if (!t) return false; engage(e, u, t); return true; } }) : null;   // W4 wolves and bears: dens on the world map, hunts
   worldCamps=createWorldCamps({state,world:options.world,areas,rules:banditData?.worldCamps,spawn,remove:removeUnit,ai:bandits,spriteFor:type=>statsOf(type).sprite || type,known:(clan,x,z)=>discovery.isDiscovered(clan,x,z)});
   // the Land Office, the expedition out of the gate and the new-town grace (frontier E1/E6)
   const dayTicks = dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000;
@@ -1327,6 +1341,7 @@ export function createGame(options) {
     shakedown.civilianStep();
     bandits.tick();
     worldCamps.tick();
+    wildAnimals?.tick();
     hqCamping?.tick();
     police?.tick();
     businesses?.tick();
@@ -1472,11 +1487,11 @@ export function createGame(options) {
   const lootExecute = createLootExecute({ items:itemServices, AGGRO, LOOT_REACH, addHeat, anchorOf, civ, cop, deployment, downedFoe, fight, freeSlot, heatFor, hostile, lootable, manualCrew, moveTo, paths, police, removeUnit, resumable, rewards, rng, secs, sees, state, units });
   const crewOrders = createCrewOrders({ generalOrder: (hero, u) => !!u.warTroop && !!frontier?.warGeneral?.runs(frontier.war.byId(u.warTroop), hero.owner), gateNav: e => frontier?.structures?.gateNav(e) || null, roomOf, clans, contracts, crewJobs, deployment, doors, endAttack, fair, fight, manualCrew, nav, navOf, paths, rally, resumable, rooms, rules: units?.rules, sees, state, stats, tryMove });
   const crewSteps = createCrewStep({ gatling, firebomb, assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures: () => frontier?.structures, sweep, swingStep, taunt });
-  const combat = createCombat({ decide, shelter: (t, d, a) => omnibus?.shelter(t, d) || ships?.shelter(t, d, a) || (frontier?.garrison?.shelter(t, d, a) ?? false), onDefeat:(a,t)=>{itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
+  const combat = createCombat({ decide, shelter: (t, d, a) => omnibus?.shelter(t, d) || ships?.shelter(t, d, a) || (frontier?.garrison?.shelter(t, d, a) ?? false), onDefeat:(a,t)=>{if(t.wildlife)return;itemServices.defeat(a,t);worldCamps.defeated(a,t);}, clearShot:(a,b)=>navOf(a.place)?.clearLine(a.x,a.z,b.x,b.z)??true, options, BACKUP_RANGE, LOCK_RANGE, RETALIATE_SECONDS, AGGRO, LEASH, atHome, attackAllowed, bandits: { provoke: (t, c) => t.wildlife ? wildAnimals?.provoke(t, c) : bandits.provoke(t, c), killed: (a, t) => t.wildlife ? wildAnimals?.killed(a, t) : bandits.killed(a, t) }, civ, clans, contracts, cop, diversion, fair, fight, freeSlot, heatFor, hostile, intents, kuroda, leader, moveTo, nav, paths, police, reachOf, rewards, rifleman, secs, sees, state, stats, stealth, territory, units, wild });
   if(district.buildings.some(b=>b.art==='blacksmith'))itemServices.initialize();
   // --- Save and load (sim/save.js, frontier F1; audit in to_delete/_chk/save_audit.md) ---
   // Closure state that lives outside game.state. Values are copied by the save encoder.
-  const savedModules = () => ({ combat, bandits, civilians, police, contracts, territory, vision, stealth, hqCamping });
+  const savedModules = () => ({ combat, bandits, wildAnimals, civilians, police, contracts, territory, vision, stealth, hqCamping });
   function saveState() {
     const modules = {};
     for (const [k, m] of Object.entries(savedModules())) if (m?.saveState) modules[k] = m.saveState();
@@ -1492,5 +1507,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, castles, ferry, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, ships, mounts, garage, stationTravel, governorNear, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, wildAnimals, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, castles, ferry, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, ships, mounts, garage, stationTravel, governorNear, dayTicks };
 }

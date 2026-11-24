@@ -135,6 +135,7 @@ uniform vec3 uCutCenter;
 uniform float uCutRadius;
 uniform vec3 uSelfLight;
 uniform vec3 uTint;          // multiplies the art (recolours a shared piece to match a room)
+uniform float uGrey;         // 0..1 takes some colour out before the tint (wild animals' coats, data/wildlife.json animals.grey); unset = 0
 uniform float uFlash;        // 0..1 white hit flash
 uniform vec4 uClip;          // near interior walls: ground point xyz on the wall, w = height to keep
 uniform float uClipSlope;    // screen slope of the wall's foot
@@ -165,6 +166,7 @@ void main() {
                           spriteTex(clamp(vUv - vec2(0.0, d.y), lo, hi)).a));
     veilEdge = max(0.0, t.a - inner) * (0.35 + 0.65 * veilRipple);
   }
+  t.rgb = mix(t.rgb, vec3(dot(t.rgb, vec3(0.3, 0.59, 0.11))), uGrey);
   t.rgb *= uTint;
   if (uSail.w > 0.0) {
     float l = dot(t.rgb, vec3(0.3, 0.59, 0.11));
@@ -389,6 +391,7 @@ export function spriteMaterial(map, extra = {}, packed = false) {
       uCutRadius: { value: 3.4 },
       uSelfLight: { value: new THREE.Color(0, 0, 0) },
       uTint: { value: new THREE.Color(1, 1, 1) },
+      uGrey: { value: 0 },
       uFlash: { value: 0 },
       uIndoor: { value: 0 },
       uClip: { value: new THREE.Vector4(0, 0, 0, 0) },

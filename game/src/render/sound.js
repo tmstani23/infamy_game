@@ -15,7 +15,7 @@ const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_met
 // Punch fallback for models without a dedicated weapon route; heavy impacts use a lower pitch.
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
 // Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
-const CUSTOM = { gatling_loop_1: [], gatling_end_1: [], arrow_whoosh_1: [], arrow_whoosh_2: [], arrow_hit_1: [], arrow_hit_2: [], punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [], hoof_walk_1: [], hoof_walk_2: [], hoof_gallop_1: [], hoof_gallop_2: [], horse_whistle_1: [], horse_whistle_2: [], omnibus_roll_1: [], omnibus_roll_2: [], omnibus_roll_3: [], rickshaw_roll_1: [], rickshaw_roll_2: [], gate_open_1: [], cannon_fire_1: [], cannon_fire_2: [], cannon_fire_3: [], train_run_1: [], train_approach_1: [], train_brake_1: [], train_whistle_1: [], crow_caw_1: [], crow_caw_2: [], crow_scatter_1: [], crow_scatter_2: [], crow_scatter_3: [] };
+const CUSTOM = { gatling_loop_1: [], gatling_end_1: [], arrow_whoosh_1: [], arrow_whoosh_2: [], arrow_hit_1: [], arrow_hit_2: [], punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [], hoof_walk_1: [], hoof_walk_2: [], hoof_gallop_1: [], hoof_gallop_2: [], horse_whistle_1: [], horse_whistle_2: [], omnibus_roll_1: [], omnibus_roll_2: [], omnibus_roll_3: [], rickshaw_roll_1: [], rickshaw_roll_2: [], gate_open_1: [], cannon_fire_1: [], cannon_fire_2: [], cannon_fire_3: [], train_run_1: [], train_approach_1: [], train_brake_1: [], train_whistle_1: [], crow_caw_1: [], crow_caw_2: [], crow_scatter_1: [], crow_scatter_2: [], crow_scatter_3: [], deer_alarm_1: [], deer_alarm_2: [], boar_grunt_1: [], boar_charge_1: [], wolf_pack_howl_1: [], wolf_pack_howl_2: [], wolf_attack_1: [], wolf_attack_2: [], bear_roar_1: [], bear_roar_2: [] };
 // hero ability activation cues (Tim's clips 2026-10-30), layered over each ability's own sounds; [clip, pitch].
 // Each clip used once per hero so skills don't sound alike (Tim); abilities not listed keep only their old sounds
 const ABILITY_CUE = { shadowstep: ['ability_dash_1', 1], assassinate: ['ability_finisher_1', 1],   // Shinobi
@@ -91,6 +91,21 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     const loop = ctx.createBufferSource(); loop.buffer = buffers.gatling_loop_1; loop.loop = true;
     loop.connect(g); loop.start();
     gatlings.set(c.a, { g, parts: [loop] });
+  }
+  // Wolves howling (wildlife W4, Tim 2026-11-24): heard far past the camera's normal hearing, fading with distance
+  // from the middle of the view and panned toward the pack's side of the screen (me.right: the screen's right on the ground)
+  const HOWL_REACH = 900;
+  function farPanned(family, c, me, volume, reach) {
+    if (!ctx || settings.muted || !me || me.place !== (c.place ?? 'world') || voices >= MAX_VOICES) return;
+    const dx = c.x - me.x, dz = c.z - me.z, d = Math.hypot(dx, dz), v = volume * Math.max(0, 1 - d / reach) ** 1.4;
+    if (v <= 0.01) return;
+    const pool = pickCustom(family), name = pool[Math.floor(Math.random() * pool.length)], buf = buffers[name];
+    if (!buf) return;
+    const src = ctx.createBufferSource(), g = ctx.createGain(), pan = ctx.createStereoPanner();
+    src.buffer = buf; src.playbackRate.value = 0.96 + Math.random() * 0.08;
+    g.gain.value = v; pan.pan.value = d > 1 ? Math.max(-0.85, Math.min(0.85, (dx * (me.right?.[0] ?? 1) + dz * (me.right?.[1] ?? 0)) / d)) : 0;
+    src.connect(g).connect(pan).connect(effects);
+    voices++; src.onended = () => voices--; src.start();
   }
   // loudness for something at (x, z) heard at the camera (nothing from other places)
   // heard from the middle of the camera's view, as far as the view reaches (me.hear, render/view.js audioFocus); the hero's
@@ -279,6 +294,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (h.kill) play(t?.type === 'hero' ? 'knockdown_thud_1' : ['death_thud_1', 'death_thud_2'], 0.6 * v);
       }
       for (const c of state.casts) {
+        if (c.kind === 'wolfHowl') { farPanned('wolf_pack_howl_1', c, me, 0.6, HOWL_REACH); continue; }
         if (c.kind === 'gatlingShot' || c.kind === 'gatlingStop') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0; gatling(c, Math.max(ear(me), ear(me?.hero))); continue; }
         if (c.kind === 'shipBroadside' || c.kind === 'shipCannon') {   // ships S4: a broadside rolls (four booms), the bow cannon one
           const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero));
@@ -308,6 +324,9 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (c.kind === 'rifleshot') play('rifle_shot_1', v > 0 ? 0.8 * Math.max(v, 0.3) : 0, 1);   // gunfire carries: still heard at the edge of hearing range
         if (c.kind === 'taunt') play(SOFT, (c.style === 'shinobi_enforcer' ? 0.8 : 0.6) * v, c.style === 'shinobi_enforcer' ? 0.75 : 0.5);
         if (c.kind === 'loot') play(pickCustom('loot_coins_1'), 0.6 * v);
+        if (c.kind === 'wildAlarm') variant(c.species === 'boar' ? 'boar_grunt_1' : 'deer_alarm_1', 0.4 * v, 0.94 + Math.random() * 0.12);   // wild animals (sim/wild_animals.js): a deer's bark or a boar's grunt as they bolt
+        if (c.kind === 'wildCharge') variant('boar_charge_1', 0.6 * v);   // a hit boar charges
+        if (c.kind === 'wildHunt') { if (c.species === 'bear') farPanned('bear_roar_1', c, me, 0.75, (me?.hear ?? HEAR) * 3); else variant('wolf_attack_1', 0.55 * v); }   // W4: a bear roars as it comes for you (heard a little farther), wolves snarl as they close in
         if (c.kind === 'horseWhistle') play(pickCustom('horse_whistle_1'), 0.7 * v);
         if (c.kind === 'rally') play('katana_clash_1', 0.5 * v);
         if (c.kind === 'sweep' || c.kind === 'thrust') {

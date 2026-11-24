@@ -15,7 +15,7 @@ import { CAM_RIGHT, CAM_UP, CAM_QUAT } from './iso.js';
 import { Thing } from './scenery.js';
 import { spriteMaterial, shared } from './shading.js';
 import { terrainAt } from '../sim/world_data.js';
-import { createCrowFlocks, crowOutline, CROW_FPS } from '../crow_flock.js';
+import { createCrowFlocks, crowOutline, CROW_FPS, CROW_DEFAULTS } from '../crow_flock.js';
 
 // the sheet: rows clip x 8 directions (0 = facing the camera, then SW, W, NW, N, NE, E, SE on screen), columns frames
 const CLIPS = { idle: [0, 12], peck: [1, 10], hop: [2, 8], caw: [3, 10], fly: [4, 8] };
@@ -78,25 +78,20 @@ export function createCrowFx({ scene, world, groundY = () => 0, isBuilding = () 
 
   // ---- perch spots along the top edge of a host's picture (its roof, crown, wall or fence top)
   const lineCache = new WeakMap();
-  function maskOf(t) {
-    if (t.mask) return t.mask;
-    const tex = t.mesh.material?.uniforms?.uMap?.value, img = tex?.image;
-    if (!img || !(img.width > 0) || typeof document === 'undefined' || !(img instanceof HTMLImageElement || img instanceof HTMLCanvasElement || (globalThis.ImageBitmap && img instanceof ImageBitmap))) return null;
-    const flip = (t.mesh.material.uniforms.uFrame?.value.z ?? 1) < 0;
-    const w = Math.ceil(img.width / 4), h = Math.ceil(img.height / 4), c = document.createElement('canvas'); c.width = w; c.height = h;
-    const g = c.getContext('2d', { willReadFrequently: true });
-    if (flip) { g.translate(w, 0); g.scale(-1, 1); }
-    g.drawImage(img, 0, 0, w, h);
-    const px = g.getImageData(0, 0, w, h).data, data = new Uint8Array(w * h);
-    for (let i = 0; i < w * h; i++) data[i] = px[i * 4 + 3] > 140 ? 1 : 0;
-    return { w, h, data };
-  }
+  // only a host's own mask (render/scenery.js big things); reading the picture back drew whole atlas pages per
+  // tree and froze the game on the island (Tim 2026-11-24), so a host without one gets no mask
+  function maskOf(t) { return t.mask || null; }
   // offsets [right, up] from the host's centre (world units on screen) of points along its top edge, about 0.45 apart
   function topLine(t, kind) {
     let line = lineCache.get(t);
     if (line) return line;
     const m = maskOf(t);
-    if (!m) return [];
+    if (!m) {   // no mask: a tree's crows sit along its crown, a little below the top of its picture; roofs need a mask
+      const sx = t.mesh.scale.x, sy = t.mesh.scale.y;
+      line = kind === 'tree' ? [-0.18, -0.06, 0.06, 0.18].map(k => [k * sx, sy * 0.28]) : [];
+      lineCache.set(t, line);
+      return line;
+    }
     const sx = t.mesh.scale.x, sy = t.mesh.scale.y, shear = t.shear || 0, top = t.topShear || 0;
     const step = Math.max(1, Math.round(0.45 / sx * m.w)), lo = Math.floor(m.w * (kind === 'tree' ? 0.25 : 0.12)), hi = Math.ceil(m.w * (kind === 'tree' ? 0.75 : 0.88));
     line = [];
@@ -176,6 +171,28 @@ export function createCrowFx({ scene, world, groundY = () => 0, isBuilding = () 
   }
   // big columns on the march, matched to last look's so a trailing flock keeps its column
   let armies = [], armyT = 0, armyId = 1;
+  // birds burst out of the trees round troops and shinobi on the move, hidden or not (wildlife W3: it can give
+  // a hidden army away); each tree and each unit rests a while after, and one burst at a time
+  const flushRest = new Map(), unitRest = new Map(); let flushT = 0, lastFlush = -99;
+  function findFlushes(state, prev, cam) {
+    const F = { ...CROW_DEFAULTS.flush, ...(cfg.flush || {}) }, out = [];
+    if (clock - lastFlush < F.gap) return out;
+    for (const e of Object.values(state.entities)) {
+      if (e.place !== 'world' || e.dead || e.downed || e.wildlife || e.type === 'civilian' || e.worker || e.ship || e.aboard || e.garrison || !state.clans?.[e.owner]) continue;
+      if (Math.abs(e.x - cam.x) > cam.r * 1.3 || Math.abs(e.z - cam.z) > cam.r * 1.3) continue;
+      const p = prev?.entities?.[e.id];
+      if (!p || Math.hypot(e.x - p.x, e.z - p.z) < 0.02 || (unitRest.get(e.id) ?? -99) > clock || Math.random() > F.chance) continue;
+      const tree = hosts.find(h => h.kind === 'tree' && Math.hypot(h.x - e.x, h.z - e.z) < F.reach && (flushRest.get(h.t.mesh.id) ?? -99) < clock);
+      if (!tree) continue;
+      const top = topLine(tree.t, 'tree'), c = tree.t.mesh.position, [ox, oy] = top[Math.floor(top.length / 2)] || [0, 2];
+      flushRest.set(tree.t.mesh.id, clock + F.treeRest); unitRest.set(e.id, clock + F.unitRest); lastFlush = clock;
+      out.push({ x: c.x + CAM_RIGHT.x * ox + CAM_UP.x * oy, y: c.y + CAM_UP.y * oy, z: c.z + CAM_RIGHT.z * ox + CAM_UP.z * oy, fx: e.x, fz: e.z });
+      break;
+    }
+    if (flushRest.size > 400) for (const [k, t] of flushRest) if (t < clock) flushRest.delete(k);
+    if (unitRest.size > 400) for (const [k, t] of unitRest) if (t < clock) unitRest.delete(k);
+    return out;
+  }
   function findArmies(state, prev) {
     const cells = new Map();
     for (const e of Object.values(state.entities)) {
@@ -218,7 +235,9 @@ export function createCrowFx({ scene, world, groundY = () => 0, isBuilding = () 
     }
     // crows on something that is no longer drawn (its chunk unloaded) fly off
     for (const f of flocks.flocks()) if (f.birds.some(b => b.spot?.host && !hostSet.has(b.spot.host))) for (const b of f.birds) if (b.spot?.host && !hostSet.has(b.spot.host)) { b.spot = null; if (b.mode === 'sit') { b.mode = 'takeoff'; b.t = 0; b.wait = 0; } else b.mode = 'fly'; }
-    const env = { cam, night: shared.uNight.value, groundY, spots, scatters: scares.splice(0), people,
+    let flushes = [];
+    if ((flushT -= dt) <= 0) { flushT = 0.5; flushes = findFlushes(state, prev, cam); }
+    const env = { cam, night: shared.uNight.value, groundY, spots, scatters: scares.splice(0), people, flushes,
       battles: [...fights.values()].map(f => ({ x: f.x, z: f.z, active: clock - f.last < 6 && f.n >= 3, kills: f.kills })), armies };
     const heard = flocks.update(env, Math.min(dt, 0.1));
     const loud = (x, z) => Math.max(0, 1 - Math.hypot(x - cam.x, z - cam.z) / hear);

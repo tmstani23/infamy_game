@@ -198,6 +198,13 @@ const MOUNTS = {
   boat_river: { file: 'boat_river.glb', length: 6, yaw: 90, pxPerUnit: 320 / 3 , fps: 6 },
   ship_coastal: { file: 'ship_coastal.glb', length: 12, yaw: 90, pxPerUnit: 320 / 3 , fps: 6 },   // twice people's page pixels (2026-11-23: ships drawn 1.15 to 1.7 times larger looked soft); pages load compressed (render/characters.js BIG_DRAWN)
   ship_war: { file: 'ship_war.glb', length: 16, yaw: 90, pxPerUnit: 160 / 3 , fps: 6 },
+  // Wildlife (W2, Tim 2026-11-24): the animal rigs from war_build/wildlife/rigs (quad_rig_v2.py + anim_extra.py), sized by body
+  // length nose to tail (a person is 2 tall): bear "pretty big" 3.4, wolf and stag 1.85, boar 1.5, doe 1.4
+  wolf: { file: 'wolf.glb', length: 1.85 },
+  bear: { file: 'bear.glb', length: 3.4 },
+  boar: { file: 'boar.glb', length: 1.5 },
+  stag: { file: 'stag.glb', length: 1.85 },
+  doe: { file: 'doe.glb', length: 1.4 },
 };
 
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'));
