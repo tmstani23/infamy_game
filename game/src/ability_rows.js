@@ -85,6 +85,11 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
   function tipText(a, s) {
     const v = s.v || {};
     const lines = [`<div><span>Ready</span>${v.ready || 0} of ${v.have || 0} selected</div>`];
+    if (a.id === 'board' && !v.ready) {   // Tim 2026-11-24: why Board is grey when no selected warship has anyone aboard
+      const ships = picked().units.map(id => game.state.entities[id]).filter(e => e?.ship && e.warUnit === 'warship');
+      const full = ships.some(e => Object.values(game.state.entities).some(u => u.inShip === e.id && !u.dead));
+      if (ships.length && !full) lines.push(`<div><span>Hold</span><b style="color:#f0a488">Empty: load troops first</b></div>`);
+    }
     if (a.auto) lines.push(`<div><span>Auto</span>${!v.auto ? 'off' : v.auto === v.have ? 'on' : `on for ${v.auto} of ${v.have}`}</div>`);
     const u = a.special ? picked().units.map(id => units?.types?.[game.state.entities[id]?.type]).find(d => d && specialNumbers(a.id, d)) : null;   // its numbers, from a selected caster (Tim 2026-11-18)
     return `<b>${a.name}</b><i>${s.keyText}</i>${lines.join('')}<p>${a.about}</p>${u ? `<p>${specialNumbers(a.id, u)}</p>` : ''}${a.special ? `<p>One press, one caster: press again for the next unit.${a.auto ? ' Right-click this button to switch auto-cast on or off.' : ''}</p>` : ''}`;

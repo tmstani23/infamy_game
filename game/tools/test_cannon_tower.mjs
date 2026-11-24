@@ -77,9 +77,9 @@ for (let i = 0; i < 160 && ship.hp === sh; i++) g.step([]);
 const perShot = CT.fire.damage * W.ships.hullDamage.siege;
 assert.ok(Math.abs(sh - ship.hp - perShot) < 0.5, `the ship first, hull times siege: ${sh - ship.hp}`);
 assert.equal(grunt.hp, gh, 'not the troop while a ship is in range');
-// a warship sinks in about a minute of steady fire (plan: about 60 s)
+// a warship sinks in about a minute and a half of steady fire (Tim 2026-11-24: ships and towers half again as tough)
 const shots = Math.ceil(ship.maxHp / perShot), secs = shots * CT.fire.everyTicks / 20;
-assert.ok(secs >= 45 && secs <= 75, `one tower sinks a warship in about 60 s (${secs} s)`);
+assert.ok(secs >= 75 && secs <= 115, `one tower sinks a warship in about 95 s (${secs} s)`);
 { const h = ship.hp; run(CT.fire.everyTicks - 10); assert.equal(ship.hp, h, 'one ball every everyTicks'); run(30); assert.ok(ship.hp < h, 'then the next'); }
 
 // --- a ceasefire holds fire ---
