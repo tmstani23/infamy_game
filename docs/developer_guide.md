@@ -160,7 +160,7 @@ Crows: birds burst out of a tree near troops or shinobi on the move, hidden ones
 - War Lantern warm-up: lieutenant raiders attack a unit channeling the knock-down (rules knockGuardSeconds 4); the brain ticks every 10 ticks while a lantern is up. Rival boss and crew (bot.js assault) do the same.
 - defendLantern: with the boss away and the Defend order on, the nearest street crew or the captain walks to a rival lantern and knocks; after a hit he retries after knockRetrySeconds 3.
 - Crew care: under the Hire order the city captain bails jailed crew and revives clinic crew within the budget; same for AI clans.
-- Quiet capital alerts (2026-11-25): while the hero is on the island, only short "Capital:" notices show (the captain takes a business or his War Lantern is destroyed; a rival raids your business; you lose a business or quarter, or your HQ is fired). Watching the city or being in the capital shows them all, and the raid alarm bar shows while watching.
+- Quiet capital alerts (2026-11-25): while the hero is on the island, only short "Back in the capital:" notices show (the captain takes a business or his War Lantern is destroyed; a rival raids your business; you lose a business or quarter, or your HQ is fired). Watching the city or being in the capital shows them all, and the raid alarm bar shows while watching.
 
 ### Workers and carts (data/frontier.json workers)
 - lane {min 0.5, max 1.4, sway 0.2, ease 0.12}: each worker's drawn position is offset sideways by a fixed amount from a hash of its id; trip times unchanged; Move orders ease the lane to zero.
