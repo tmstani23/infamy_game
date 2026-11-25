@@ -222,8 +222,9 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   { const r = cmd({ action: 'campUpgrade', war: rec.id }); assert.ok(r?.ok, r?.reason); }
   assert.equal(rec.camp.chest, chestU - W.hallUpgrade.cost.ryo, 'the upgrade takes ryo from the war chest');
   { const r = cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.map(w => w.id), kind: 'work', target: hall.id }); assert.ok(r?.ok, r?.reason); }   // 7c-4: sent by hand
-  for (let i = 0; i < 8000 && hall.tier !== 2; i++) g.step([]);
+  for (let i = 0; i < 8000 && hall.tier !== 2; i++) { if (hall.upgrade && hall.upgrade.need - (hall.upgrade.progress || 0) <= 8 && hall.hp == null) hall.hp = 7000; g.step([]); }
   assert.equal(hall.tier, 2, 'workers build the upgrade');
+  { const H = frontier.war.structures.campHall; assert.ok(hall.hp >= 7000 + H[1] - H[0], `the upgrade adds its extra health to a damaged hall (Tim 2026-11-25): ${hall.hp}`); }   // 7000 of 8000 -> 11000 of 12000
   assert.ok(war.upgraded(rec.camp) && war.campBuildList(rec.id).find(b => b.type === 'stable').ok, 'the upgrade unlocks stables');
   // training and the troop cap
   // the hero crew in the war circle count toward the cap (F6 phase 4); the hero does not

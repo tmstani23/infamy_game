@@ -302,7 +302,11 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     const open = shelters(s).filter(b => inside(s, b) < roomOf(s, b)).map(b => ({ b, pt: ptOf(s, b) }))
       .sort((p, q) => (toHall ? (q.b === hall) - (p.b === hall) : 0) || Math.hypot(p.pt[0] - here[0], p.pt[1] - here[1]) - Math.hypot(q.pt[0] - here[0], q.pt[1] - here[1]) || (String(p.b.id) < String(q.b.id) ? -1 : 1));
     const pick = open[0]; if (!pick) return false;
-    const cell = s.grid?.cell || 11, isHall = pick.b === hall, to = isHall && !s.camp ? { x: s.x, z: s.z + cell } : { x: pick.pt[0], z: pick.pt[1] };
+    const cell = s.grid?.cell || 11, isHall = pick.b === hall;
+    // Tim 2026-11-25: at a camp hall they gather in a short arc in front of it (as new camp workers do), clear of the
+    // hall art, not at its centre where they stood hidden behind it after Shelter
+    const campFront = () => { const r = (data.war?.buildings?.camp_hall?.radius ?? 8) + (R()?.shelter?.campFront ?? 6), a = Math.PI / 2 + ((inside(s, pick.b) % 9) - 4) * 0.16; return { x: pick.pt[0] + Math.cos(a) * r, z: pick.pt[1] + Math.sin(a) * r }; };
+    const to = isHall ? (s.camp ? campFront() : { x: s.x, z: s.z + cell }) : { x: pick.pt[0], z: pick.pt[1] };
     const keep = { spot: k.spot ?? null, dropoff: k.dropoff ?? null, by: k.by, calm: state.tick ?? 0, b: pick.b.id, pt: [to.x, to.z], ...(at ? { from: [at[0], at[1]] } : {}), ...(manual ? { manual: true } : {}) };
     const r = workers.workerOrder(s, [k.id], 'move', to);
     if (!r.ok) return false;
@@ -318,7 +322,16 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   }
   // { action: 'hallShelter', town, mode: 'enter' | 'leave', workers? } (Tim 2026-11-19): by hand, into the hall or back to
   // work; town = a town id, or a war id for that war's camp (2026-11-21)
+  // { action: 'workerPicked', picks: [[town or war id, worker id], ...] } (Tim 2026-11-25): the player's current worker
+  // selection; picked workers do not run for shelter by themselves. Every other worker of his loses the mark.
+  function pickedCommand(e, c) {
+    const fr = state.frontier, want = new Set((Array.isArray(c.picks) ? c.picks : []).map(p => Array.isArray(p) ? `${p[0]}|${p[1]}` : ''));
+    const sites = [...Object.values(fr.settlements || {}), ...Object.values(fr.wars?.list || {}).map(w => workers?.siteOf?.(w.id)).filter(Boolean)];
+    for (const s of sites) if (s.owner === e.owner) for (const w of s.workers || []) { if (want.has(`${s.id}|${w.id}`)) w.picked = true; else delete w.picked; }
+    return true;
+  }
   function shelterCommand(e, c) {
+    if (c.action === 'workerPicked') return pickedCommand(e, c);
     if (c.action !== 'hallShelter') return false;
     const fr = state.frontier, done = (ok, reason = '') => { fr.receiptSeq = (fr.receiptSeq || 0) + 1; (fr.receipts ||= []).push({ seq: fr.receiptSeq, tick: state.tick ?? 0, clan: e.owner ?? null, action: c.action, ok, reason }); return true; };
     const s = typeof c.town !== 'string' || !workers ? null : fr.wars?.list?.[c.town] ? workers.siteOf?.(c.town) : world.settlement(c.town);
@@ -332,8 +345,10 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     for (const w of list) { if (w.shelter) { w.shelter.manual = true; n++; continue; } if (shelterIn(s, w, true)) n++; }
     return done(n > 0, n ? '' : shelters(s).every(b => inside(s, b) >= roomOf(s, b)) ? (s.camp ? 'the camp is full' : 'the town hall is full') : 'nobody can go in');
   }
+  let pickedFresh = true;   // a loaded game starts with nothing selected: old picked marks go
   function shelterTick() {
     const S = R()?.shelter, now = state.tick ?? 0;
+    if (pickedFresh) { pickedFresh = false; for (const s of siteList()) for (const w of s.workers || []) delete w.picked; }
     if (!S || !workers) return;
     for (const s of siteList()) {
       const flag = flagOf(s), w = s.camp ? (f().wars?.list?.[s.id] || null) : war.warOn(s.id);
@@ -354,7 +369,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
           const at = workers.position?.(k) || k.departure || [s.x, s.z], job = spotAt(k.shelter ? k.shelter.spot : k.spot) || k.shelter?.from, pt = k.shelter?.pt || [s.x, s.z];
           const threat = foes.length && (close(at[0], at[1]) || (job && close(job[0], job[1])) || (k.shelter && close(pt[0], pt[1])));
           if (k.shelter) { if (threat) k.shelter.calm = now; else if (!k.shelter.manual && !k.shelter.wait && now - (k.shelter.calm ?? now) >= (S.calmTicks ?? 300)) releaseOne(s, k); }
-          else if (threat) shelterIn(s, k);
+          else if (threat && !k.picked) shelterIn(s, k);   // Tim 2026-11-25: workers the player has selected stay on his orders (Shelter by hand still works)
         }
         if (!sheltered(s)) { delete flag.shelter; continue; }
       }

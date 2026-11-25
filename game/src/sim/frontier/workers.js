@@ -231,7 +231,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     }
     // A new harvest assignment returns existing cargo before collecting another resource.
     for(const w of selected) {
-      if(w.wait)endWait(s,w);
+      if(w.wait)endWait(s,w);else if(w.shelter && by==='p')jobs?.leave?.(s,w);   // Tim 2026-11-25: sent to work by hand, he comes out
       w.by=by;delete w.fresh;delete w.offSpot;
       delete w.order;delete w.nextOrder;delete w.status;delete w.retryAt;
       if(w.carrying>0){setReturnTrip(w,returns.get(w));w.nextSpot=spot.id;}
@@ -419,7 +419,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!Array.isArray(ids) || !ids.length || new Set(ids).size!==ids.length)return result('workers must list each id once');
     const selected=ids.map(id=>s.workers?.find(w=>w.id===id));
     if(selected.some(w=>!w))return result('unknown worker');
-    if(kind!=='group')for(const w of selected) { delete w.fresh;if(w.wait)endWait(s,w); }   // an order by hand ends a wait for a spot
+    if(kind!=='group')for(const w of selected) { delete w.fresh;if(w.wait)endWait(s,w);else if(w.shelter)jobs?.leave?.(s,w); }   // an order by hand ends a wait for a spot, and a shelter (Tim 2026-11-25)
     if(kind==='drop') {
       if(confirm!==true)return result('Confirm: dropped resources are permanently lost');
       for(const w of selected) {
@@ -716,7 +716,14 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(crew.length)delete b.idle;else b.idle=true;
       if(!s.war?.terms)job.progress=Math.min(job.need,(job.progress || 0)+work);   // Tim 2026-11-18: no building in a ceasefire
       if(job.progress>=job.need) {
-        if(b.upgrade) {b.tier=(b.tier || 1)+1;delete b.upgrade;}
+        if(b.upgrade) {   // Tim 2026-11-25: the upgrade adds its extra health; a damaged hall (and camp stockade) keeps only the damage it took
+          const S=data.war?.structures || {},at=(l,t)=>l?.length ? l[Math.min(l.length,Math.max(1,t))-1] || 0 : 0,t0=b.tier || 1;
+          b.tier=t0+1;delete b.upgrade;
+          for(const x of s.buildings) {
+            const l=x===b ? S.campHall : x.type==='stockade' && b.type==='camp_hall' ? S.campStockade : null;
+            if(l && Number.isFinite(x.hp)) x.hp+=Math.max(0,at(l,t0+1)-at(l,t0));
+          }
+        }
         else {b.stage='built';delete b.progress;delete b.need;delete b.rebuild;delete b.hp;}   // (a site's own low health goes, Tim 2026-11-24)
         delete b.idle;
         for(const w of crew) {

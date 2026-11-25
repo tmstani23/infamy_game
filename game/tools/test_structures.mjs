@@ -191,7 +191,11 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   for (let i = 0; i < 45; i++) { g.step([]); Object.assign(raider, { x: enemy.x - 70, z: enemy.z - 70 }); }
   assert.ok(enemy.workers.every(w => !w.shelter), 'an attacker far from them: nobody shelters');
   // the attacker comes within nearRange of them: they run in
+  enemy.workers[2].picked = true;   // Tim 2026-11-25: one the player has selected stays on his orders
   for (let i = 0; i < 45; i++) { g.step([]); Object.assign(raider, { x: wx + 20, z: wz + 15 }); }
+  assert.ok(enemy.workers[0].shelter && enemy.workers[1].shelter && !enemy.workers[2].shelter, 'a selected worker does not run for shelter by himself');
+  delete enemy.workers[2].picked;
+  for (let i = 0; i < 25; i++) { g.step([]); Object.assign(raider, { x: wx + 20, z: wz + 15 }); }
   assert.ok(enemy.shelter && enemy.workers.every(w => w.shelter), 'an attacker near them: the workers head for the hall');
   const kept = enemy.workers.map(w => w.shelter.spot); assert.ok(enemy.workers.every(w => w.spot === null), 'no gathering while sheltering');
   const inTown = () => enemy.stock.timber + (enemy.fund?.timber || 0), timber = inTown();   // the safety fund takes its share of a load (Tim 2026-11-22: always)

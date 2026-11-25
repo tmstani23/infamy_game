@@ -4,6 +4,15 @@ import { drawableTowns, drawableWarSites, townPlots, garrisonCount } from './tow
 import { pointAt } from './sim/frontier/rail_route.js';
 
 // the worker icon on the small hall pill (Tim 2026-11-22)
+// Tim 2026-11-25: the camp hall shelter button is a small noren curtain hanging from a wooden bar, not a wide text pill:
+// the count of workers inside painted on it (a door mark when nobody is in); it glows red while some hide from an attack;
+// the words are in its hover
+const shelterIcon = (n, attack) => `<svg viewBox="0 0 36 42" aria-hidden="true"><defs><linearGradient id="shcloth${attack ? 'a' : ''}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${attack ? '#a3342a' : '#2c3550'}"/><stop offset="1" stop-color="${attack ? '#5a140e' : '#151a2a'}"/></linearGradient></defs>`
+  + `<rect x="1" y="2" width="34" height="5" rx="1" fill="#7a5530" stroke="#0a0604" stroke-width="1.2"/><circle cx="4" cy="4.5" r="1.1" fill="#e2b96e"/><circle cx="32" cy="4.5" r="1.1" fill="#e2b96e"/>`
+  + `<path d="M3 7h30v26l-5 3-5-3-5 3-5-3-5 3-5-3Z" fill="url(#shcloth${attack ? 'a' : ''})" stroke="#0a0604" stroke-width="1.2"/><path d="M13 9v24M23 9v24" stroke="#0a0604" stroke-width="1.4" opacity=".7"/>`
+  + `<path d="M3 9h30" stroke="${attack ? '#ff9d7d' : '#c9a04e'}" stroke-width="1" opacity=".55"/>`
+  + (n ? `<text x="18" y="27" text-anchor="middle" font-family="Lantern, Georgia, serif" font-weight="800" font-size="${n > 9 ? 15 : 17}" fill="#f6e6bf" stroke="#0a0604" stroke-width="2.4" paint-order="stroke">${n}</text>`
+    : `<rect x="12.5" y="14" width="11" height="17" fill="#ffcf7a" stroke="#0a0604" stroke-width="1.2"/><rect x="14.5" y="16" width="7" height="15" fill="#f6a24a"/><path d="M11 14h14" stroke="#7a5530" stroke-width="2"/>`) + `</svg>`;
 const HALL_PILL_ICON = '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><circle cx="7" cy="4" r="2.7" fill="#f2e6c9"/><path d="M1.6 13.5c.4-3.6 2.5-5.4 5.4-5.4s5 1.8 5.4 5.4Z" fill="#f2e6c9"/></svg>';
 
 export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null, openGarrison = null, openCamp = null, openTownWar = null }) {
@@ -258,10 +267,12 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       const hall = (w.camp.buildings || []).find(x => x.type === 'camp_hall' && x.stage === 'built'); if (!hall || !Number.isFinite(hall.x)) continue;
       const n = w.camp.workers.filter(k => k.shelter).length, bk = `${w.id}|camphall`; want.add(bk);
       let el = badges.get(bk);
-      if (!el) { el = document.createElement('button'); el.className = 'garrisonbadge'; el.addEventListener('click', ev => { ev.stopPropagation(); send({ id: heroId, type: 'frontier', action: 'hallShelter', town: w.id, mode: el.dataset.mode }); }); badgeEl.appendChild(el); badges.set(bk, el); }
+      if (!el) { el = document.createElement('button'); el.className = 'garrisonbadge shelterbadge'; el.addEventListener('click', ev => { ev.stopPropagation(); send({ id: heroId, type: 'frontier', action: 'hallShelter', town: w.id, mode: el.dataset.mode }); }); badgeEl.appendChild(el); badges.set(bk, el); }
       el.dataset.mode = n ? 'leave' : 'enter';
-      el.textContent = n ? `Workers in cover ${n} · Back to work` : 'Shelter workers';
-      el.title = n ? 'Every sheltering worker goes back to the job they had' : 'Every camp worker runs to the camp hall and waits inside, safe, until Back to work';
+      const attack = w.camp.workers.some(k => k.shelter && !k.shelter.manual), html = shelterIcon(n, attack);
+      if (el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; }
+      el.classList.toggle('attack', attack);
+      el.title = n ? `${n} worker${n > 1 ? 's' : ''} in shelter${attack ? ', some hiding from the attack' : ''}. Click: every sheltering worker goes back to the job they had. The camp hall menu has a Shelter tab` : 'Shelter workers: every camp worker runs to the camp hall and waits inside, safe, until you release them';
       const u = view.unitToScreen(hall.x, hall.z, 3); el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
     }
     for (const [id, el] of badges) if (!want.has(id)) { el.remove(); badges.delete(id); }

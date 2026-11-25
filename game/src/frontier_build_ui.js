@@ -73,7 +73,7 @@ export function buildPreview(s, request, data, {state,resourceIndex,worldData=nu
 }
 
 export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spotRules, known, send, crewInput, onBuild = () => {}, onMode = () => {}, onStable = () => {}, blocked = () => false, menuAt = () => false }) {
-  let town = null, opened = false, tool = null, drag = null, mouse = null, selected = [], inspect = null, rot = 0;   // rot: R turns a station
+  let pickedSig = '', town = null, opened = false, tool = null, drag = null, mouse = null, selected = [], inspect = null, rot = 0;   // rot: R turns a station
   let eraseConfirm = null;   // { k, until }: the station erase waiting for its second click
   // how many railway lines run from the station under these cells (0 if none or no station)
   const stationLines = (s, cells) => s.buildings.some(b => b.type === 'station' && (b.cells || [b.cell]).some(i => cells.includes(i)))
@@ -697,6 +697,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     }
     selected = selectedLive().map(p => p.w.id);
     if (crewInput.selected().length) selected = [];
+    { const live = selected.length ? selectedLive() : [], sig = live.map(p => `${p.s.id}|${p.w.id}`).join(',');   // Tim 2026-11-25: selected workers do not run for shelter by themselves
+      if (sig !== pickedSig) { pickedSig = sig; command({ action: 'workerPicked', picks: live.map(p => [p.s.id, p.w.id]) }); } }
     const s = current(), show = outdoors() && !blocked();
     if (!show && drag) { cancel(); }
     overlay.hidden = !show || (!opened && !selected.length && !drag && !pendingPlan && !workers().length);
