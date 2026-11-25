@@ -498,7 +498,8 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (!foe || (s.holdFire && !req && !s.gat?.spot)) { stop(); return; }
     const range = g.range ?? R.range ?? 13, min = R.minRange ?? 0;
     const reachOf = () => s.gat?.spot ? range + (g.spotRadius ?? 5) : range;
-    const foes = () => Object.values(state.entities).filter(t => t.owner === foe && alive(t) && !t.ship && t.type !== 'horse' && t.type !== 'civilian' && dist2(s, t) <= reachOf() ** 2 && dist2(s, t) >= min * min);
+    const wl = navOf?.('world')?.wallLine, open = t => !wl || wl(s.x, s.z, t.x, t.z, g.deckSkip ?? 3);   // Tim 2026-11-25: palisades, walls and buildings stop it, as for the land Gatling
+    const foes = () => Object.values(state.entities).filter(t => t.owner === foe && alive(t) && !t.ship && t.type !== 'horse' && t.type !== 'civilian' && dist2(s, t) <= reachOf() ** 2 && dist2(s, t) >= min * min && open(t));
     if (req) { gunDone(s, 'deckgun'); const ang = Math.atan2(req.z - s.z, req.x - s.x), spot = { x: req.x, z: req.z };
       if (s.gat) Object.assign(s.gat, { ang, spot }); else { s.gat = { state: 'spin', until: now + (R.spinTicks ?? 20), ang, spot }; return; } }
     if (!s.gat) {

@@ -6,6 +6,7 @@
 //    e.gat = { state: 'spin' | 'fire', start, until, ang, unload?, end? }   (start..until: the spin-up cast bar)   (no e.gat = idle or moving)
 //  - Firing, every everyTicks each visible enemy within range (but not nearer than minRange: weak up close) and within
 //    coneDeg of its facing takes damage. Shots show as 'gatlingShot' casts, 'gatlingStop' when it stops.
+//    Only enemies it has a clear line to (no palisade, wall or building between) count, as for archers and riflemen.
 //  - Facing: it turns to the nearest enemy in range (re-picked every turnTicks).
 //  - Unload (the ability row, sim/special_cast.js): a cast asked for at a spot stops the gun, faces the spot and fires
 //    unload.ticks there (after the spin up, unless it is already firing) at unload.damageMul damage, enemies or not.
@@ -16,10 +17,10 @@
 import { alive, dist } from './util.js';
 import { dirIndex } from './geometry.js';
 import { castWanted, autoOn } from './special_cast.js';
-export function createGatling({ state, units, vision, hit, moveTo, hostile = () => false, allowed = () => true, reveal = () => {}, paths = {} }) {
+export function createGatling({ state, units, vision, hit, moveTo, hostile = () => false, allowed = () => true, reveal = () => {}, clearLine = () => true, paths = {} }) {
   const rulesOf = e => units.types[e?.type]?.gatling || null;
   const foes = (e, R, range) => Object.values(state.entities).filter(t => alive(t) && !t.jailed && t.owner && t.owner !== e.owner && t.type !== 'civilian' && !t.animal && !t.cop
-    && t.place === e.place && !t.garrison && !t.aboard && hostile(e, t) && allowed(e, t) && vision.canSee(e.owner, t) && dist(e, t) <= range);
+    && t.place === e.place && !t.garrison && !t.aboard && hostile(e, t) && allowed(e, t) && vision.canSee(e.owner, t) && dist(e, t) <= range && clearLine(e, t));   // walls and buildings stop it, as arrows and rifles (Tim 2026-11-25)
   const nearest = (e, list) => list.reduce((b, t) => !b || dist(e, t) < dist(e, b) || (dist(e, t) === dist(e, b) && t.id < b.id) ? t : b, null);
   function stopFire(e) { if (e.gat?.firing != null) state.casts.push({ kind: 'gatlingStop', a: e.id, x: e.x, z: e.z, place: e.place, dir: e.dir || 0 }); delete e.gat; }
   function face(e, ang) { e.gat.ang = ang; e.dir = dirIndex(Math.cos(ang), Math.sin(ang)); }

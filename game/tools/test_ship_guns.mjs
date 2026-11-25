@@ -145,4 +145,12 @@ if (near.length) {
 // --- a watchtower shoots a ship only with nobody else in range (rule in structures.js towers) ---
 const src = readFileSync(new URL('../src/sim/frontier/structures.js', import.meta.url), 'utf8');
 assert.ok(src.includes('ships S4: a ship only with nobody else in range'));
+// Tim 2026-11-25: the deck Gatling does not shoot through palisades, walls or buildings (areas wallLine), water does not stop it
+{ const n = g.areas.nav, wl = n.wallLine;
+  assert.equal(wl(hall.x - 12, hall.z, hall.x + 12, hall.z), false, 'a line through the camp hall is stopped');
+  assert.equal(wl(hall.x - 12, hall.z, hall.x + 12, hall.z, 30), true, 'unless that stretch is skipped');
+  const p = nearestSailable(wg, harbour.x, harbour.z), w = p ? [p.x, p.z] : [harbour.x, harbour.z];
+  assert.equal(wl(w[0], w[1], w[0] + 0.5, w[1]), true, 'open water does not stop it');
+  const fn = readFileSync(new URL('../src/sim/frontier/ships.js', import.meta.url), 'utf8');
+  assert.ok(fn.includes("open(t));"), 'the deck gun checks the line to each troop'); }
 console.log('test_ship_guns: ok');

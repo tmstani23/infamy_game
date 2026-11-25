@@ -158,6 +158,19 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
     }
     return true;
   }
+  // Tim 2026-11-25: a shot from off the walk grid (a ship's deck Gatling, out on the water) is stopped only by town and
+  // camp blockers (palisades, walls, buildings) on its line, not by the water it starts on. skip: the first stretch from
+  // the shooter (its own dock or deck) that does not count.
+  function wallLine(ax, az, bx, bz, skip = 0) {
+    const L = Math.hypot(bx - ax, bz - az), n = Math.ceil(L / (CELL * 0.5)), pad = cfg.navPad || 0;
+    for (let k = 0; k <= n; k++) {
+      const t = n ? k / n : 0;
+      if (t * L < skip) continue;
+      const [x, z] = centre(...cellOf(ax + (bx - ax) * t, az + (bz - az) * t));
+      if (dynamicBlockers(x - pad, z - pad, x + pad, z + pad).length) return false;
+    }
+    return true;
+  }
   // bounds of the active chunks, in fine cells
   function activeBox() {
     if (planning) return [0, 0, CX * N - 1, CZ * N - 1];
@@ -529,7 +542,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
       return out;
     } finally { planning = null; planningBlocked = null; freeMemo = null; blockSet = null; dynSet = null; searchSteps = null; }
   }
-  const nav = { beginPath, findPath, workerPath, clearLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFreeCell(x, z); return c && centre(...c); } };
+  const nav = { beginPath, findPath, workerPath, clearLine, wallLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFreeCell(x, z); return c && centre(...c); } };
   // War checkpoint 6 (gates stop only the enemy): the same walk grid with extra ground closed for one side.
   // blocked(x, z) -> true where that side may not walk. Normal navigation is untouched.
   function blockedNav(blocked) {
