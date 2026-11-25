@@ -19,7 +19,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const amts = {}, samts = {};   // typed amounts per resource (Order and Sell rows)
   let ryoAmt = 500;   // 8e-3: the Ryo row's typed amount (from the Clan treasury)
   const amt = r => amts[r] ?? 100, samt = r => samts[r] ?? 100;
-  const form = { pin: null, urgent: false, ryo: null };   // shared order options; ryo null = full: enough to buy it all (Tim 2026-11-09)
+  const form = { urgent: false, ryo: null };   // shared order options (the source is picked in the order slip); ryo null = full: enough to buy it all (Tim 2026-11-09)
   const F = () => game.state.frontier || {};
   const orders = () => Object.values(F().shipping?.orders || {});
   const links = owner => Object.values(F().rail?.links || {}).filter(l => l.owner === owner && l.done && !l.closed);
@@ -40,8 +40,8 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
     const n = ryoAmt, left = treasury(s) - n, kl = keepLine(s);
     const w = !toCapital(s) ? ['Needs a line', 'Needs a rail line from the capital to this town (through any of your towns)'] : n > treasury(s) ? ['Treasury short', `The Clan treasury has only ${treasury(s)} ryo`] : null;
     const T = `Send ${n} ryo from the Clan treasury into ${s.name} coffers. It leaves the treasury now and rides the guard car of the next train from the capital (no wagon space). Cancel before it is loaded and it comes back. Robbers can take it on the way. The treasury keep line (${kl}) only holds back auto orders, never yours.`;
-    return `<div class="shres">${`<span class="shico">${RYO_ICON}</span>`}<span class="shmid"><span class="shline"><span><b>Ryo</b> ${Math.floor(s.stock.ryo ?? 0)} <span class="dim">coffers</span></span></span><span class="${left < kl ? 'red' : 'dim'} shsub"${tip(`Clan treasury ${treasury(s)}, keep line ${kl}`)}>From Clan treasury, keeps ${Math.max(0, left).toLocaleString('en-US')}</span></span>`
-      + `<span class="shact">${num('ramt', n)}${w ? blocked(w) : act('ryo', 'Send', false, T)}${w ? '' : chip(String(n), 'Paid from the Clan treasury now')}</span></div>`;
+    return `<div class="shres" data-row="ryo">${`<span class="shico">${RYO_ICON}</span>`}<span class="shmid"><span class="shline"><span><b>Ryo</b> ${Math.floor(s.stock.ryo ?? 0)} <span class="dim">coffers</span></span></span><span class="${left < kl ? 'red' : 'dim'} shsub"${tip(`Clan treasury ${treasury(s)}, keep line ${kl}`)}>From Clan treasury, keeps ${Math.max(0, left).toLocaleString('en-US')}</span></span>`
+      + `<span class="shact">${num('ramt', n)}${w ? blocked(w) : act('ryoopen', 'Send', false, T)}${w ? '' : chip(String(n), 'Paid from the Clan treasury now')}</span></div>`;
   }
   const PORT_TIP = r => `Buying from the capital: the capital keeps no stock, but its port wholesale houses (tonya) sell anything for ryo. Your towns with spare ${r} send it first, for free. Only what they can't cover is bought from the capital: the ryo is paid from this town at once, the cargo is loaded at the capital station and comes by the next train. ${cap1(r)} costs ${price(r)} ryo each there (selling there pays less). Cancel an order and the ryo for anything not loaded yet comes back. Budget 0 = never buy from the capital, wait for your towns.`;
   // linked towns of yours (for the source pin)
@@ -50,9 +50,9 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   // what the order form would cost now: own towns' spare first (free), the rest bought from the capital within budget
   function estimate(s, r, n = amt(r)) {
     const spareOf = t => Math.max(0, Math.floor((t.stock?.[r] ?? 0) - keepOf(t, r) - (t.reserved?.[r] ?? 0)));
-    const src = form.pin ? [form.pin] : peers(s);
+    const src = peers(s);
     const towns = Math.min(n, src.reduce((a, id) => a + spareOf(F().settlements?.[id] || {}), 0));
-    const can = form.pin ? 0 : Math.floor(Math.min(form.ryo ?? n * price(r), Math.floor(s.stock.ryo ?? 0)) / price(r));
+    const can = Math.floor(Math.min(form.ryo ?? n * price(r), Math.floor(s.stock.ryo ?? 0)) / price(r));
     const buy = Math.min(n - towns, can);
     return { towns, buy, ryo: buy * price(r), short: n - towns - buy };
   }
@@ -113,19 +113,118 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const act = (id, label, go, t) => `<button class="shgo${go ? ' go' : ''}" data-act="ship" data-id="${id}"${tip(t)}>${label}</button>`;
   const blocked = w => `<span class="shwhy red"${tip(w[1])}>${esc(w[0])}</span>`;
 
+  // ---- the order slip (Tim 2026-11-25, mock project files order_confirm/mock_r5.png): Order, Sell and Send ryo open
+  // a paper slip beside the row: pick the source (Nearest first / one of your towns / the capital), see what each
+  // sends, the cost and about when it arrives, then Send (Enter) or close (Esc). Nothing is sent before that.
+  let slip = null;   // { kind: 'order'|'sell'|'ryo', r, town, pin: null|townId|'capital' }
+  const T0 = () => data?.railways?.train || {};
+  // rail distance and stops from a to b over your open lines (Dijkstra on link length)
+  function railTo(owner, a, b) {
+    const L = links(owner), dist = { [a]: 0 }, hops = { [a]: 0 }, done = new Set();
+    for (;;) {
+      let u = null; for (const k in dist) if (!done.has(k) && (u == null || dist[k] < dist[u])) u = k;
+      if (u == null) return null; if (u === b) return { d: dist[u], hops: hops[u] }; done.add(u);
+      for (const l of L) { const v = l.from === u ? l.to : l.to === u ? l.from : null; if (!v || done.has(v)) continue; const nd = dist[u] + (l.length || 0); if (dist[v] == null || nd < dist[v]) { dist[v] = nd; hops[v] = hops[u] + 1; } }
+    }
+  }
+  // about how long by rail (estimate: run time plus a stop at every station on the way and one wait for the train)
+  const etaSecs = (owner, a, b) => { const p = railTo(owner, a, b); if (!p) return null; const T = T0(); return p.d / Math.max(1, T.speed ?? 36) + (p.hops + 1) * (T.stopSeconds ?? 60); };
+  const mins = sec => sec == null ? '' : `${Math.max(1, Math.round(sec / 60))} min`;
+  const spareAt = (t, r) => Math.max(0, Math.floor((t.stock?.[r] ?? 0) - keepOf(t, r) - (t.reserved?.[r] ?? 0)));
+  const coffers = s => Math.floor(s.stock.ryo ?? 0);
+  const fmt = n => Math.floor(n).toLocaleString('en-US');
+  // what each source choice would do for n of r into town s
+  function plan(s, r, n, pin) {
+    const towns = peers(s).map(id => F().settlements?.[id]).filter(Boolean).map(t => ({ t, spare: spareAt(t, r), eta: etaSecs(s.owner, t.id, s.id) })).filter(x => x.eta != null).sort((a, b) => a.eta - b.eta);
+    const capEta = etaSecs(s.owner, 'capital', s.id), p = price(r), budget = Math.min(form.ryo ?? n * p, coffers(s));
+    if (pin === 'capital') { const cost = n * p; return { sends: [], buy: n, cost, short: 0, eta: capEta, can: capEta != null && budget >= cost }; }
+    if (pin) { const x = towns.find(x => x.t.id === pin), k = Math.min(n, x?.spare ?? 0); return { sends: x && k ? [{ name: x.t.name, n: k }] : [], buy: 0, cost: 0, short: n - k, eta: x?.eta ?? null, can: !!x && k > 0 }; }
+    const sends = []; let left = n, eta = 0;
+    for (const x of towns) { if (left <= 0) break; const k = Math.min(left, x.spare); if (k > 0) { sends.push({ name: x.t.name, n: k }); left -= k; eta = Math.max(eta, x.eta); } }
+    const buy = capEta == null ? 0 : Math.min(left, Math.floor(budget / p)); if (buy > 0) eta = Math.max(eta, capEta);
+    return { sends, buy, cost: buy * p, short: left - buy, eta: sends.length || buy ? eta : null, can: true };
+  }
+  function slipHtml(s) {
+    if (!slip || slip.town !== s.id) return '';
+    const k = slip.kind, r = slip.r;
+    let h = `<div class="shslip" data-slip="${k === 'ryo' ? 'ryo' : r}"><i class="shtail"></i>`;
+    const head = (kick, n, id, what, to) => `<div class="shkick">${kick}</div><div class="shhead">${k === 'ryo' ? `<span class="shico">${RYO_ICON}</span>` : icon(r)}<span class="shamtbox">${num(id, n)}</span><b>${what}</b></div><div class="shto">${to}</div><i class="shbrush"></i>`;
+    const foot = (label, ok, why) => `<div class="shsfoot">${ok ? `<button class="shseal" data-act="ship" data-id="slipsend">${label}</button>` : `<span class="shseal off">${esc(why || label)}</span>`}<span class="shkeys">Enter sends<br>Esc closes</span></div>`;
+    if (k === 'order') {
+      const n = amt(r), q = queue(s, false), w = why(n, room(s, r), q), cur = plan(s, r, n, slip.pin);
+      h += head('Rail order', n, 'amt:' + r, cap1(r), `to ${esc(s.name)}, on the next trains`);
+      h += '<div class="shcols"><span>Ship from</span><span>Sends</span><span>Arrives</span></div>';
+      const row = (pin, title, sub, sends, small, eta, off, t) => `<button class="shsrc${slip.pin === pin ? ' on' : ''}${off ? ' off' : ''}" data-act="ship" data-id="src:${pin ?? 'near'}"${off ? ' disabled' : ''}${tip(t)}><i class="shmark"></i><span class="shsn"><b>${esc(title)}</b><small${off === 'red' ? ' class="red"' : ''}>${esc(sub)}</small></span><span class="shsv"><b>${sends}</b><small>${esc(small)}</small></span><span class="shse">${eta}</span></button>`;
+      const near = plan(s, r, n, null);
+      const nearSub = near.sends.length ? near.sends.map(x => x.name).join(', then ') + (near.buy ? ', then the capital' : '') : near.buy ? 'the capital' : 'no spare anywhere yet';
+      h += row(null, 'Nearest first', nearSub, `${fmt(n - near.short)} of ${fmt(n)}`, near.cost ? `${fmt(near.cost)} ryo` : near.short ? `${fmt(near.short)} on later trains` : 'free', mins(near.eta), false, 'Your towns with spare stock send first, nearest by rail, free. What they cannot cover is bought at the capital within the capital budget.');
+      for (const id of peers(s)) {
+        const t = F().settlements?.[id]; if (!t) continue;
+        const sp = spareAt(t, r), e = etaSecs(s.owner, id, s.id), k2 = Math.min(n, sp);
+        h += row(id, t.name, sp > 0 ? `${fmt(sp)} spare` : 'nothing spare above its keep', `${fmt(k2)} of ${fmt(n)}`, k2 < n ? `${fmt(n - k2)} on later trains` : 'free', mins(e), sp <= 0 || e == null, `Only from ${t.name}: it sends its spare ${r} above its keep amount, free. The rest follows on later trains as it gets spare. Never bought at the capital.`);
+      }
+      const cp = plan(s, r, n, 'capital'), noLine = cp.eta == null;
+      h += row('capital', 'The capital', noLine ? 'needs a rail line to the capital' : cp.can ? `buy it all, ${price(r)} ryo each` : `${fmt(cp.cost)} ryo, you have ${fmt(Math.min(form.ryo ?? Infinity, coffers(s)))}`, `${fmt(n)} of ${fmt(n)}`, `${fmt(cp.cost)} ryo`, mins(cp.eta), noLine ? true : cp.can ? false : 'red', `Buy all of it at the capital wholesale houses, ${price(r)} ryo each, paid from ${s.name} coffers now${form.ryo != null ? ` (capital budget ${form.ryo})` : ''}. Cancel and the ryo for anything not loaded comes back.`);
+      h += `<i class="shbrush"></i><div class="shtot"><b>Cost: ${cur.cost ? `${fmt(cur.cost)} ryo` : 'free'}</b><span>${cur.eta != null ? `arrives in about ${mins(cur.eta)}` : 'waits for spare stock'}</span></div>`;
+      h += `<button class="shurg${form.urgent ? ' on' : ''}" data-act="ship" data-id="urgent"${tip('Urgent orders are filled before your others.')}><i></i><b>Urgent</b> fill this before other orders</button>`;
+      h += foot('Send order', !w && (slip.pin == null || cur.can), w ? w[0] : 'Pick a source');
+    } else if (k === 'sell') {
+      const n = samt(r), sp = SH().sellPrice?.[r] ?? 2, spare = Math.max(0, Math.floor((s.stock[r] ?? 0) - (s.reserved?.[r] ?? 0))), w = why(n, null, queue(s, true), spare), e = etaSecs(s.owner, s.id, 'capital');
+      h += head('Rail sale', n, 'samt:' + r, cap1(r), `from ${esc(s.name)} to the capital`);
+      h += `<div class="shbill"><span>Spare here</span><b>${fmt(spare)}</b><span>Capital pays</span><b>${sp} ryo each</b><span>Reaches the capital</span><b>about ${mins(e)}</b></div>`;
+      h += `<i class="shbrush"></i><div class="shtot"><b>Pays about ${fmt(n * sp)} ryo</b><span>into ${esc(s.name)} coffers on arrival</span></div>`;
+      h += foot('Send sale', !w, w?.[0]);
+    } else {
+      const n = ryoAmt, have = treasury(s), kl = keepLine(s), e = etaSecs(s.owner, 'capital', s.id);
+      const w = !toCapital(s) ? 'Needs a line' : n > have ? 'Treasury short' : null;
+      h += head('Ryo by train', n, 'ramt', 'ryo', `from the Clan treasury to ${esc(s.name)} coffers`);
+      h += `<div class="shbill"><span>Clan treasury</span><b>${fmt(have)}</b><span>Left after</span><b class="${have - n < kl ? 'red' : ''}">${fmt(Math.max(0, have - n))}</b><span>Arrives</span><b>about ${mins(e)}</b></div>`;
+      h += `<i class="shbrush"></i><div class="shtot"><b>Paid from the treasury now</b><span>rides the guard car</span></div>`;
+      h += foot('Send ryo', !w, w);
+    }
+    return h + '</div>';
+  }
+  function send(s) {
+    if (!slip || slip.town !== s.id) return;
+    const r = slip.r;
+    if (slip.kind === 'order') { const n = amt(r), pin = slip.pin; cmd({ action: 'ship', mode: 'order', town: s.id, resource: r, amount: n, pin, urgent: form.urgent, ryo: pin && pin !== 'capital' ? 0 : Math.min(form.ryo ?? n * price(r), coffers(s)) }); }
+    else if (slip.kind === 'sell') cmd({ action: 'ship', mode: 'sell', town: s.id, resource: r, amount: samt(r) });
+    else cmd({ action: 'ship', mode: 'ryo', from: 'treasury', into: 'coffers', to: s.id, amount: ryoAmt });
+    slip = null; form.urgent = false;
+  }
+  // Enter sends, Esc closes while a slip is open (the panel calls this from a capture key listener)
+  function key(e, s) {
+    if (!slip || !s) return false;
+    if (e.code === 'Escape') { slip = null; return true; }
+    if (e.code !== 'Enter' && e.code !== 'NumpadEnter') return false;
+    const t = e.target;
+    if (t?.dataset?.act === 'shipinput') { if (!t.closest?.('.shslip')) return false; input(t.dataset, t.value, s); t.blur?.(); }
+    const ok = slip.kind === 'order' ? (() => { const n = amt(slip.r); return !why(n, room(s, slip.r), queue(s, false)) && (slip.pin == null || plan(s, slip.r, n, slip.pin).can); })() : true;
+    if (ok) send(s);
+    return true;
+  }
+  // place the slip beside its row (left of the buttons, inside the tab), after each draw
+  function fit(root) {
+    const el = root?.querySelector?.('.shslip'), box = el?.parentElement; if (!el || !box) return;
+    const row = box.querySelector(`[data-row="${el.dataset.slip}"]`); if (!row) return;
+    const narrow = box.clientWidth < el.offsetWidth + 170; el.classList.toggle('wide', narrow);
+    const tabs = box.querySelector('.shtabs'), floor = tabs ? tabs.offsetTop + tabs.offsetHeight + 4 : 0;   // never over the tab bar
+    const top = Math.max(floor, Math.min(row.offsetTop - 12, box.scrollHeight - el.offsetHeight - 4));
+    el.style.top = `${top}px`;
+    const tail = el.querySelector('.shtail'); if (tail) tail.style.top = `${Math.max(10, row.offsetTop + row.offsetHeight / 2 - top - 9)}px`;
+  }
+
   function orderTab(s) {
-    const q = queue(s, false), pins = peers(s); if (form.pin && !pins.includes(form.pin)) form.pin = null;
+    const q = queue(s, false);
     let h = '';
     for (const r of RES()) {
       const st = status(s, r), rm = room(s, r), n = amt(r), w = why(n, rm, q), c = estimate(s, r, n), cap = capOf(s, r);
       const cost = `~${c.ryo} ryo`, ct = `${c.towns} free from your towns${c.buy ? `, ${c.buy} bought at the capital for ${price(r)} each` : ''}${c.short ? `, ${c.short} must wait for stock` : ''}. ${PORT_TIP(r)}`;
-      h += `<div class="shres${st.low ? ' low' : ''}">${icon(r)}<span class="shmid"><span class="shline"><span><b>${cap1(r)}</b> ${Math.floor(s.stock[r] ?? 0)}${Number.isFinite(cap) ? `<span class="dim"> / ${Math.floor(cap)}</span>` : ''}</span><span class="${st.low ? 'red' : 'dim'}">${esc(st.text)}</span></span>${meter(s, r)}</span>`
-        + `<span class="shact">${num('amt:' + r, n)}${w ? blocked(w) : act('order:' + r, 'Order', st.low, `Order ${n} ${r}`)}${w ? '' : chip(cost, ct)}</span></div>`;
+      h += `<div class="shres${st.low ? ' low' : ''}${slip?.kind === 'order' && slip.r === r ? ' slipped' : ''}" data-row="${r}">${icon(r)}<span class="shmid"><span class="shline"><span><b>${cap1(r)}</b> ${Math.floor(s.stock[r] ?? 0)}${Number.isFinite(cap) ? `<span class="dim"> / ${Math.floor(cap)}</span>` : ''}</span><span class="${st.low ? 'red' : 'dim'}">${esc(st.text)}</span></span>${meter(s, r)}</span>`
+        + `<span class="shact">${num('amt:' + r, n)}${w ? blocked(w) : act('open:' + r, 'Order', st.low, `Order ${n} ${r}: pick where it comes from, then send`)}${w ? '' : chip(cost, ct)}</span></div>`;
     }
     h += ryoRow(s);
-    h += `<div class="shopts"><span${tip('Nearest: the clerk picks your town with spare stock nearest by rail, then buys from the capital. Pin one town to ship only from there.')}>Source <button data-act="ship" data-id="pin">${esc(form.pin ? name(form.pin) : 'Nearest')}</button></span>`
-      + `<span${tip('Urgent orders are filled before others.')}>Urgent <button data-act="ship" data-id="urgent" class="${form.urgent ? 'on' : ''}">${form.urgent ? 'On' : 'Off'}</button></span>`
-      + `<span${tip('The most ryo one order may spend buying from the capital. Leave it empty for Full: enough to buy all of it. 0 = never buy, wait for your towns.')}>Capital budget ${num('cbud', form.ryo ?? '', 50, ' placeholder="Full"')}</span></div>`;
+    h += `<div class="shopts"><span${tip('The most ryo one order may spend buying from the capital. Leave it empty for Full: enough to buy all of it. 0 = never buy, wait for your towns.')}>Capital budget ${num('cbud', form.ryo ?? '', 50, ' placeholder="Full"')}</span></div>`;
     h += `<div class="shnote dim"${tip(`The capital keeps no stock, but its wholesale houses sell anything for ryo, paid from this town when you order. Prices each: ${RES().map(r => `${r} ${price(r)}`).join(', ')}. Cancel and the ryo for anything not loaded yet comes back.`)}>Your other towns send spare stock free. Only the rest is bought from the capital</div>` + capLine(q, 'order');
     return h;
   }
@@ -137,8 +236,8 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
     let h = '';
     for (const r of RES()) {
       const n = samt(r), w = why(n, null, q, spare(r)), T = `Sell ${n} ${r} to the capital: the cargo leaves on the next train and the ryo comes to this town when it reaches the capital. The capital pays less than it charges (${cap1(r)}: sells for ${sp(r)}, buys for ${price(r)}). Keep amounts are not checked here: you choose.`;
-      h += `<div class="shres">${icon(r)}<span class="shmid"><span class="shline"><span><b>${cap1(r)}</b> <span class="dim">spare ${spare(r)}</span></span><span class="dim">${sp(r)} ryo each</span></span>${meter(s, r)}</span>`
-        + `<span class="shact">${num('samt:' + r, n)}${w ? blocked(w) : act('sell:' + r, 'Sell', false, T)}${w ? '' : chip(`~${Math.floor(n * sp(r))} ryo`, 'Paid when the cargo reaches the capital')}</span></div>`;
+      h += `<div class="shres" data-row="${r}">${icon(r)}<span class="shmid"><span class="shline"><span><b>${cap1(r)}</b> <span class="dim">spare ${spare(r)}</span></span><span class="dim">${sp(r)} ryo each</span></span>${meter(s, r)}</span>`
+        + `<span class="shact">${num('samt:' + r, n)}${w ? blocked(w) : act('sellopen:' + r, 'Sell', false, T)}${w ? '' : chip(`~${Math.floor(n * sp(r))} ryo`, 'Paid when the cargo reaches the capital')}</span></div>`;
     }
     return h + capLine(q, 'sell');
   }
@@ -159,8 +258,9 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
     if (!hasLine(s)) return h + '<div class="shcard off"><b>Needs a rail line</b><br><span class="dim">Lay a line from this town\'s railway station (Link to...).</span></div>';
     const T = (id, label, t) => `<button data-act="ship" data-id="sub:${id}" class="${sub === id ? 'on' : ''}"${tip(t)}>${label}</button>`;
     h += `<div class="shtabs four">${T('new', 'Order')}${T('sell', 'Sell')}${T('keep', 'Keep')}${T('ledger', 'Ledger', 'Rail shipments of this town or all towns: open with countdowns, delivered and lost')}</div>`;
-    if (sub === 'new') h += orderTab(s);
-    else if (sub === 'sell') h += sellTab(s);
+    if (slip && (slip.town !== s.id || (slip.kind === 'sell') !== (sub === 'sell') || sub === 'keep' || sub === 'ledger')) slip = null;
+    if (sub === 'new') h += orderTab(s) + slipHtml(s);
+    else if (sub === 'sell') h += sellTab(s) + slipHtml(s);
     else if (sub === 'keep') h += keepTab(s);
     else h += ledger.html(s.id).replace(/data-ledger="([^"]*)"/g, 'data-act="ship" data-id="lg~$1"');
     return h;
@@ -174,15 +274,17 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
     switch (k) {
       case 'sub': sub = a === 'open' ? 'ledger' : a; break;
       case 'cancel': cmd({ action: 'ship', mode: 'cancel', order: a }); break;
-      case 'order': { const n = amt(a); cmd({ action: 'ship', mode: 'order', town: s.id, resource: a, amount: n, pin: form.pin, urgent: form.urgent, ryo: Math.min(form.ryo ?? n * price(a), Math.floor(s.stock.ryo ?? 0)) }); break; }
-      case 'sell': cmd({ action: 'ship', mode: 'sell', town: s.id, resource: a, amount: samt(a) }); break;
-      case 'ryo': cmd({ action: 'ship', mode: 'ryo', from: 'treasury', into: 'coffers', to: s.id, amount: ryoAmt }); break;
+      case 'open': slip = slip?.kind === 'order' && slip.r === a ? null : { kind: 'order', r: a, town: s.id, pin: null }; form.urgent = false; break;
+      case 'sellopen': slip = slip?.kind === 'sell' && slip.r === a ? null : { kind: 'sell', r: a, town: s.id }; break;
+      case 'ryoopen': slip = slip?.kind === 'ryo' ? null : { kind: 'ryo', town: s.id }; break;
+      case 'src': if (slip) slip.pin = a === 'near' ? null : a; break;
+      case 'slipsend': send(s); break;
+      case 'slipclose': slip = null; break;
       case 'urgent': form.urgent = !form.urgent; break;
-      case 'pin': { const p = [null, ...peers(s)], i = p.indexOf(form.pin); form.pin = p[(i + 1) % p.length]; break; }
       case 'autobuy': cmd({ action: 'ship', mode: 'budget', town: s.id, autoBuy: s.autoBuy === false }); break;
       default: return false;
     }
     return true;
   }
-  return { html, click, input };
+  return { html, click, input, key, fit, slipOpen: () => !!slip };
 }

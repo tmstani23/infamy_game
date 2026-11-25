@@ -259,8 +259,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
         const cost = next?.upgrade ? Object.entries(next.upgrade.cost).map(([r, v]) => `${v} ${r}`).join(', ') + `, ${next.upgrade.pop} people` : '';
         const what = t => t ? `ring ${t.ring}, housing ${t.cells.housing} / farm ${t.cells.farm} / work ${t.cells.work} cells, ${t.workers} workers, storehouses ${t.placed.storehouse}, camps ${t.placed.camps}` : '';
         h += `<div class="row"><span${tip('Town hall tier limits:\n' + what(tier))}>Town hall: <b>${esc(tier.name)}</b> <span class="dim">(tier ${s.tier || 1}), workers ${workerCount(s)} / ${tier.workers}</span></span>`
-          + (up ? `<span class="dim">Upgrading to ${esc(next?.name || '')}... ${Math.max(0, up.left)}s</span>`
-            : next ? `<button data-act="upgrade"${tip(`Upgrade to ${next.name}: ${cost}.\nUnlocks ${what(next)}.${chk.ok ? '' : '\nNot yet: ' + chk.reason}`)}${chk.ok ? '' : ' class="no"'}>Upgrade to ${esc(next.name)}</button>` : '<span class="dim">Highest tier</span>') + '</div>';
+          + (next ? '' : '<span class="dim">Highest tier</span>') + '</div>'
+          + (next ? hallUpgradeHTML(s, data, game.state, { act: 'upgrade' }) : '');   // Tim 2026-11-25: the requirements block, as on the hall card
       }
       // war 8b: the town's military buildings, war chest and hall war upgrade live in the town war window
       if (onTownWar && data?.war?.town) h += `<div class="row"><span${tip('Military buildings go inside the town ring and are built by town builders. Some need the town hall war upgrade. Troops train only while a war is on this town, paid from its war chest.')}>War upgrade: <b>${s.warHall ? 'Done' : s.warUpgrade ? (s.builders ? `Building, about ${warUpgradeSeconds(s, data)} s` : 'Waiting for builders') : 'Not bought'}</b></span></div>`;
@@ -314,7 +314,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const key = h + tab;
     if (['keepinput', 'shipinput', 'fundinput'].includes(document.activeElement?.dataset?.act) && root.contains(document.activeElement)) return;   // typing a keep level
     const pk = `${mode}|${tab}|${rosterOpen}|${usageResource}`; if (pk !== pageKey) { pageKey = pk; pageState.page = 0; }
-    if (key !== lastHtml && !held()) { root.innerHTML = h; lastHtml = key; paginate(); afterRender(); }
+    if (key !== lastHtml && !held()) { root.innerHTML = h; lastHtml = key; paginate(); if (tab === 'ship') shipTab.fit(root); afterRender(); }
   }
   if (miniRoot) {
     miniRoot.addEventListener('mousedown', e => { pressedAt = performance.now(); e.stopPropagation(); });
@@ -336,6 +336,11 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const b=btnOf(e),s=pick();
     if(b && s && buildUI?.doubleClick?.(b.dataset,s)){lastHtml='';render();}
   });
+  // order slip (Tim 2026-11-25): Enter sends, Esc closes the slip (before the panel's own Esc)
+  window.addEventListener('keydown', e => {
+    if (root.hidden || mode !== 'town' || tab !== 'ship' || !shipTab.slipOpen()) return;
+    if (shipTab.key(e, pick())) { e.preventDefault(); e.stopImmediatePropagation(); lastHtml = ''; render(); }
+  }, true);
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') { sendTyped(e.target); e.target.blur(); } } });
   root.addEventListener('change', e => {
     if (sendTyped(e.target)) return;

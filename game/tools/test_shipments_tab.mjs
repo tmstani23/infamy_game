@@ -31,15 +31,23 @@ assert.match(h, /Needs a rail line/, 'greyed without a line');
 assert.match(h, /Auto orders <b>off<\/b>/, 'says auto orders are off');
 F.rail.links.r1 = { id: 'r1', owner: 'player', from: 'tA', to: 'tB', done: true, length: 100, points: [[0, 0], [100, 0]], dist: [0, 100] };
 h = tab.html(B);
-assert.match(h, /data-id="order:timber"/); assert.match(h, /data-act="shipinput" data-id="amt:timber"/);
+assert.match(h, /data-id="open:timber"/); assert.match(h, /data-act="shipinput" data-id="amt:timber"/);
 assert.ok(!/overflow|scroll/.test(h), 'no scrolling');
 assert.match(h, /class="shres low"/, 'an empty town lights up its low rows');
 assert.match(h, /class="shmeter"/); assert.match(h, /~\d+ ryo/, 'cost chip'); assert.match(h, /Order cap/);
 
-// one row, one click: type the amount, Order
+// type the amount, Order opens the slip (Tim 2026-11-25), nothing is sent until Send order
 assert.ok(tab.input({ id: 'amt:timber' }, '50'));
-press('order:timber');
-assert.equal(open().length, 1, 'one click placed an order');
+press('open:timber');
+assert.equal(open().length, 0, 'Order only opens the slip');
+h = tab.html(B);
+assert.match(h, /class="shslip"/); assert.match(h, /Nearest first/); assert.match(h, /data-id="src:tA"/); assert.match(h, /data-id="src:capital"/);
+assert.match(h, /50 of 50/, 'tA covers it'); assert.match(h, /Cost: free/);
+const kd = code => tab.key({ code, target: null }, B);
+assert.ok(kd('Escape')); assert.ok(!/class="shslip"/.test(tab.html(B)), 'Esc closes the slip'); assert.equal(open().length, 0);
+press('open:timber'); assert.ok(kd('Enter'), 'Enter sends');
+assert.ok(!/class="shslip"/.test(tab.html(B)), 'slip closes once sent');
+assert.equal(open().length, 1, 'Enter placed the order');
 assert.equal(open()[0].sources[0].from, 'tA', 'from the town with spare');
 assert.equal(open()[0].amount, 50, 'typed amount');
 // a row that can't order says why instead of greying out
@@ -49,10 +57,10 @@ tab.input({ id: 'amt:food' }, '100');
 
 // options: source pin, urgent, capital budget box
 assert.ok(tab.input({ id: 'amt:stone' }, '230')); assert.match(tab.html(B), /data-id="amt:stone" value="230"/);
-tab.input({ id: 'amt:stone' }, '90'); press('pin'); press('urgent');
-assert.match(tab.html(B), />tA</, 'source pin cycles to tA');
+tab.input({ id: 'amt:stone' }, '90'); press('open:stone'); press('src:tA'); press('urgent');
+assert.match(tab.html(B), /shsrc on[^>]*data-id="src:tA"/, 'tA picked in the slip');
 assert.ok(tab.input({ id: 'cbud' }, '40')); assert.match(tab.html(B), /data-id="cbud" value="40"/); tab.input({ id: 'cbud' }, '');
-press('order:stone');
+press('slipsend');
 const o = open().find(x => x.resource === 'stone');
 assert.ok(o && o.pin === 'tA' && o.urgent && o.amount === 90, 'pinned urgent order placed');
 press('sub:ledger'); assert.match(tab.html(B), /Open 2/); press('sub:new');
@@ -81,7 +89,7 @@ const TA = createShipmentsTab({ game: g, data: g.frontier.data, cmd: c => g.step
 const pa = id => assert.ok(TA.click({ act: 'ship', id }, A));
 pa('sub:sell'); assert.ok(TA.input({ id: 'samt:goods' }, '50'));
 assert.match(TA.html(A), /Sell 50 goods/);
-pa('sell:goods');
+pa('sellopen:goods'); assert.match(TA.html(A), /Pays about/); pa('slipsend');
 const sale = Object.values(F.shipping.orders).find(o => o.kind === 'sell' && !o.auto);
 assert.ok(sale && sale.amount === 50 && sale.sellFrom === 'tA', 'sale placed');
 assert.equal(A.reserved.goods, 50, 'reserved until the train loads it');
@@ -93,15 +101,21 @@ press('sub:ledger');
 assert.match(tab.html(B), /data-id="lg~tab:done"/); assert.ok(!/Back to Shipments/.test(tab.html(B)), 'a tab, no Back button');
 press('lg~tab:done'); assert.match(tab.html(B), /Delivered/);
 press('sub:new');
-assert.match(tab.html(B), /data-id="order:timber"/, 'back on the Order tab');
+assert.match(tab.html(B), /data-id="open:timber"/, 'back on the Order tab');
 // 8e-3: the Ryo row: from the Clan treasury into these coffers, by train from the capital
 S.clans.player.ryo = 3000; g.frontier.world.syncCapital();
 h = tab.html(B);
 assert.match(h, /data-id="ramt" value="500"/); assert.match(h, /From Clan treasury, keeps 2,500/);
-assert.ok(tab.input({ id: 'ramt' }, '300')); press('ryo');
+assert.ok(tab.input({ id: 'ramt' }, '300')); press('ryoopen'); assert.match(tab.html(B), /Ryo by train/); press('slipsend');
 const ro = Object.values(F.shipping.orders).find(o => o.kind === 'ryo');
 assert.ok(ro && ro.to === 'tB' && ro.amount === 300 && ro.from === 'capital', 'a ryo order from the treasury');
 press('sub:open'); press('lg~tab:open'); assert.match(tab.html(B), /Ryo 300[\s\S]*Treasury to tB/, 'the open row says where it comes from (old sub:open lands on the Ledger)');
 assert.match(tab.html(B), /lg~scope:all/); press('lg~scope:all'); assert.match(tab.html(B), /aria-pressed="true">All towns/);
 press('sub:new');
+// capital-only in the slip: greyed when the coffers can't pay, picked and paid when they can
+B.stock.ryo = 0; tab.input({ id: 'amt:food' }, '40'); press('open:food');
+assert.match(tab.html(B), /shsrc off[^>]*data-id="src:capital"/, 'capital greyed: coffers hold 0');
+B.stock.ryo = 1000; press('src:capital'); press('slipsend');
+const co = open().find(x => x.resource === 'food' && x.pin === 'capital');
+assert.ok(co && co.sources.every(x => x.from === 'capital'), 'capital-only order placed');
 console.log('test_shipments_tab: ok');

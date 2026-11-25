@@ -20,6 +20,7 @@
 //  "tonya", paid from the town's ryo within its auto-buy budget s.shipBudget, buying costs more than selling pays),
 //  and sells spare goods to the capital (kind 'sell'). Manual orders are covered first. Prices: railways.ship.
 // Command { type: 'frontier', action: 'ship', mode: 'order', town, resource, amount, [pin, urgent, ryo, auto] }
+//   (pin: a town of yours, or 'capital' = buy it all there, Tim 2026-11-25)
 //   | { mode: 'cancel', order } | { mode: 'keep', town, resource, keep } | { mode: 'budget', town, ryo, [autoBuy] }
 // createShipments({ state, data, world }) -> { command, linked, keepOf, reservedOf, free, openIncoming, accept, release }
 import { storageCap, defaultKeep } from './storage.js';
@@ -256,7 +257,9 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       const open = orders().filter(o => o.state === 'open' && o.to === s.id && o.auto).length;
       if (open >= (S().maxAuto ?? 4)) return receipt(e, false, 'Too many open auto orders');
     }
-    if (c.pin != null) {
+    if (c.pin === 'capital') {   // Tim 2026-11-25: capital only, buy it all (order slip)
+      if (!route(e.owner, 'capital', s.id)) return receipt(e, false, 'Needs a rail line to the capital');
+    } else if (c.pin != null) {
       const p = town(c.pin);
       if (!p || p.owner !== e.owner || p.id === s.id) return receipt(e, false, 'Pinned source must be another of your towns');
       if (!linked(e.owner, p.id, s.id)) return receipt(e, false, 'No rail line to that source');
@@ -488,10 +491,10 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
   function cover(s, o) {
     const need = () => o.amount - o.got - inFlight(o.id) - o.sources.reduce((a, x) => a + x.amount, 0);
     if (need() <= 0) return;
-    const peers = o.pin ? [town(o.pin)] : Object.values(state.frontier.settlements).filter(t => t.owner === s.owner && !t.capital && t.id !== s.id);
+    const peers = o.pin === 'capital' ? [] : o.pin ? [town(o.pin)] : Object.values(state.frontier.settlements).filter(t => t.owner === s.owner && !t.capital && t.id !== s.id);
     const cand = peers.filter(t => t && free(t, o.resource, o) > 0).map(t => [routeLen(s.owner, t.id, s.id), t]).filter(([d]) => d < Infinity).sort((a, b) => a[0] - b[0]);
     for (const [, t] of cand) { if (need() <= 0) return; accept(o.id, t.id, need()); }
-    if (need() <= 0 || o.pin || (s.camp && !(o.ryo > 0))) return;   // a camp buys only with a ryo offer (Tim 2026-11-17)
+    if (need() <= 0 || (o.pin && o.pin !== 'capital') || (s.camp && !(o.ryo > 0))) return;   // a camp buys only with a ryo offer (Tim 2026-11-17)
     if (o.auto && (S().noCapitalBuy || ['goods']).includes(o.resource)) return;   // Tim 2026-11-22: goods refills come from your own towns only
     const price = S().buyPrice?.[o.resource] ?? 5, left = o.auto ? (s.autoBuy === false ? 0 : budgetOf(s, o.resource) - spentOf(s)) : (o.ryo || 0) - (o.ryoPaid || 0);
     const n = Math.min(need(), Math.floor(left / price));

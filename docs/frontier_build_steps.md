@@ -2671,6 +2671,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - Before 8e: ryo was not freight, there was no camp station or spur, the ryo badge showed the Clan treasury only, and the armory menu said Troop upgrades come later.
    - **8e-1 Ryo by train (ryo orders)**
      - A ryo order is a normal shipment order whose cargo is ryo. Source: the Clan treasury (capital station). Destinations: an own town's coffers, a defending town's war chest (only while its war is on), a war camp's war chest (needs a linked camp station). Needs an open rail route from the capital.
+     - Order source pin (2026-11-25): a manual shipment order's source can be pinned to the capital, which buys it all there; a town pin still never buys.
      - Placed from the town Shipments tab (Order, Ryo) and from the war chest screens (town war window, camp hall War chest tab): typeable box "Send from Clan treasury".
      - The ryo leaves the treasury when the order is placed and shows as on the way in the Rail ledger and the war chest sources list. Cancel before loading refunds it.
      - Route: the fewest stops over the clan's connected lines, the same as every shipment today (shipments.js `route`); a train may pass through several own towns.

@@ -117,3 +117,21 @@ B.autoBuild = true;
 B.stock.food = 0;
 assert.ok(run(4000, () => open().some(x => x.auto && x.to === 'tB' && x.resource === 'food')), 'governor review on auto runs the clerk');
 console.log('test_shipments_clerk: ok');
+
+// order slip (Tim 2026-11-25): source 'capital' buys it all there, even when one of your towns has spare
+{
+  for (const o of open()) cmd({ mode: 'cancel', order: o.id });
+  A.stock.food = 300; B.stock.ryo = 1000; B.autoBuild = false;
+  const before = new Set(Object.keys(F.shipping.orders));
+  cmd({ mode: 'order', town: 'tB', resource: 'food', amount: 40, pin: 'capital', ryo: 40 * price.food });
+  const o = Object.values(F.shipping.orders).find(x => !before.has(x.id));
+  assert.ok(o, 'capital-only order placed');
+  assert.deepEqual(o.sources.map(x => x.from), ['capital'], 'capital only: nothing from tA');
+  assert.equal(B.stock.ryo, 1000 - 40 * price.food, 'paid at once');
+  // a pinned town still never buys
+  const b2 = new Set(Object.keys(F.shipping.orders));
+  cmd({ mode: 'order', town: 'tB', resource: 'stone', amount: 20, pin: 'tA', ryo: 100 });
+  const o2 = Object.values(F.shipping.orders).find(x => !b2.has(x.id));
+  assert.ok(!o2.sources.some(x => x.from === 'capital'), 'pinned to a town: never bought at the capital');
+}
+console.log('capital pin ok');

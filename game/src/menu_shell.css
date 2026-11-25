@@ -676,3 +676,60 @@ body .uf .pic { background-color: #1d1a16; }
 #townpanel .lgsteps span, #railledger .lgsteps span { color: #c2b9a4; } #townpanel .lgsteps span.done, #railledger .lgsteps span.done { color: #a5d8a4; }
 #townpanel .lgsteps > b, #railledger .lgsteps > b { font: 600 12px ui-monospace, Consolas, monospace; color: #f0d08e; text-align: right; white-space: nowrap; }
 #townpanel .lgsteps > b.done, #railledger .lgsteps > b.done, #townpanel .lgsteps > b.now, #railledger .lgsteps > b.now { color: #a5d8a4; }
+
+/* ---- order slip (Tim 2026-11-25, mock project files order_confirm/mock_r5.png): a washi waybill beside the row ---- */
+#townpanel .shiptab { position: relative; }
+#townpanel .shres.slipped { background: linear-gradient(90deg, transparent, rgba(233,196,106,.10)); }
+#townpanel .shslip { position: absolute; right: 150px; top: 0; width: 330px; z-index: 5; box-sizing: border-box; padding: 15px 18px 14px; font-family: "Lantern", Georgia, serif; color: #24170d;
+  filter: drop-shadow(0 0 1px #000) drop-shadow(0 12px 20px rgba(0,0,0,.8)); }
+#townpanel .shslip::before { content: ""; position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(ellipse at 10% 0%, rgba(255,190,100,.30), transparent 50%), radial-gradient(ellipse at 45% 40%, transparent 38%, rgba(40,20,6,.62) 100%), linear-gradient(#cfc5ad, #bdb194);
+  clip-path: polygon(0 2px, 8% 0, 17% 1px, 29% 0, 41% 2px, 55% 0, 68% 1px, 81% 0, 93% 2px, 100% 0, calc(100% - 1px) 12%, 100% 27%, calc(100% - 2px) 44%, 100% 61%, calc(100% - 1px) 79%, 100% 100%, 88% calc(100% - 2px), 74% 100%, 60% calc(100% - 1px), 46% 100%, 31% calc(100% - 2px), 18% 100%, 6% calc(100% - 1px), 0 100%, 1px 83%, 0 66%, 2px 48%, 0 31%, 1px 15%); }
+#townpanel .shslip.wide { right: 0; left: 0; width: auto; }
+#townpanel .shslip .shtail { position: absolute; right: -12px; top: 20px; width: 0; height: 0; border-top: 9px solid transparent; border-bottom: 9px solid transparent; border-left: 12px solid #b9ad90; }
+#townpanel .shslip.wide .shtail { display: none; }
+#townpanel .shkick { font: 700 12px "Lantern", serif; font-variant: small-caps; color: #7e2412; }
+#townpanel .shhead { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+#townpanel .shhead .shico { width: 30px; height: 24px; }
+#townpanel .shhead b { font: 800 25px "Lantern", serif; color: #24170d; }
+#townpanel .shslip .shamtbox input.shnum { width: 78px !important; height: 32px !important; padding: 0 8px !important; font: 800 24px "Lantern", serif !important; color: #24170d !important; text-align: center; background: rgba(255,250,235,.28) !important; border: 2px solid rgba(36,23,13,.75) !important; border-radius: 2px; box-shadow: none !important; }
+#townpanel .shto { font-size: 12.5px; color: #3e2a18; margin-top: 3px; }
+#townpanel .shbrush { display: block; height: 5px; margin: 9px -4px 8px; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 10' preserveAspectRatio='none'><path d='M2 6 C80 1 200 8 320 4 S520 2 598 6 L595 9 C480 9 300 6 160 9 S40 9 3 8Z' fill='%2324170d' opacity='.8'/></svg>") 0 0/100% 100%; }
+#townpanel .shcols, #townpanel .shsrc { display: grid; grid-template-columns: 24px minmax(0,1fr) 98px 46px; align-items: center; column-gap: 4px; }
+#townpanel .shcols { font: 700 11.5px "Lantern", serif; font-variant: small-caps; color: #5a3e22; }
+#townpanel .shcols span:first-child { grid-column: 2; } #townpanel .shcols span { text-align: right; } #townpanel .shcols span:first-child { text-align: left; }
+#townpanel .shsrc { width: 100%; padding: 5px 0; margin: 0; background: none; border: 0; border-radius: 0; box-shadow: none; color: #24170d; font-family: "Lantern", serif; text-align: left; cursor: pointer; min-height: 0; }
+#townpanel .shsrc:hover:not(.off) { background: radial-gradient(ellipse 60% 70% at 35% 50%, rgba(40,22,8,.15), transparent); }
+#townpanel .shsrc b { display: block; font-weight: 800; font-size: 14px; }
+#townpanel .shsrc small { display: block; font-size: 11.5px; color: #3a2614; }
+#townpanel .shsrc small.red { color: #8e1e10; }
+#townpanel .shsv { text-align: right; } #townpanel .shsv b { font-size: 13px; } #townpanel .shsv small { color: #5a2a14; }
+#townpanel .shse { text-align: right; font-size: 12px; color: #3a2818; }
+#townpanel .shsrc.off { opacity: .5; cursor: default; }
+#townpanel .shmark { width: 20px; height: 20px; }
+#townpanel .shsrc.on .shmark { background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 42'><g transform='rotate(-8 21 21)'><rect x='4' y='4' width='34' height='34' rx='3' fill='%239e2714'/><rect x='8.5' y='8.5' width='25' height='25' fill='none' stroke='%23efc4a2' stroke-width='2'/><path d='M21 12 L30 21 L21 30 L12 21 Z' fill='none' stroke='%23efc4a2' stroke-width='2.2'/><circle cx='21' cy='21' r='2.6' fill='%23efc4a2'/></g></svg>") center/contain no-repeat; }
+#townpanel .shtot { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+#townpanel .shtot b { font: 800 16px "Lantern", serif; } #townpanel .shtot span { font-size: 12px; color: #3e2a18; }
+#townpanel .shbill { display: grid; grid-template-columns: 1fr auto; row-gap: 3px; font-size: 13px; color: #3a2614; }
+#townpanel .shbill b { text-align: right; color: #24170d; } #townpanel .shbill b.red { color: #8e1e10; }
+#townpanel .shurg { display: flex; align-items: center; gap: 7px; margin: 9px 0 0; padding: 0; background: none; border: 0; box-shadow: none; color: #3a2818; font: 600 12.5px "Lantern", serif; cursor: pointer; min-height: 0; }
+#townpanel .shurg b { color: #7e2412; }
+#townpanel .shurg i { width: 18px; height: 18px; border: 1.5px solid rgba(126,36,18,.65); border-radius: 2px; transform: rotate(-8deg); }
+#townpanel .shurg.on i { background: #9e2714; box-shadow: inset 0 0 0 3px #9e2714, inset 0 0 0 4.5px #efc4a2; }
+#townpanel .shsfoot { display: flex; align-items: center; gap: 12px; margin-top: 11px; }
+#townpanel .shseal { flex: 0 0 auto; min-width: 150px; height: 44px; padding: 0 16px; background: #9a2614; color: #f0d6ae; font: 800 16px "Lantern", serif; border: 0; border-radius: 2px; cursor: pointer; transform: rotate(-1deg);
+  box-shadow: inset 0 0 0 2px #9a2614, inset 0 0 0 4px #f0c8a0, inset 0 0 0 6px #9a2614, inset 0 0 0 7px rgba(240,200,160,.55), 0 2px 0 #3a0c04; display: inline-flex; align-items: center; justify-content: center; }
+#townpanel .shseal:hover { background: #ad2e18; }
+#townpanel .shseal.off { background: #6a4a3a; color: #e6d2b8; cursor: default; font-size: 13px; }
+#townpanel .shkeys { font: italic 600 11px "Lantern", serif; color: #4e3824; line-height: 1.4; }
+/* the slip's own buttons are ink on paper: none of the panel's lacquer button looks (lantern.css loads after this file) */
+#townpanel .shslip button:not(.shseal), #townpanel .shslip button:not(.shseal).on, #townpanel .shslip button:not(.shseal):hover, #townpanel .shslip button:not(.shseal):disabled { background: none; border: 0 !important; box-shadow: none !important; outline: none; text-shadow: none; color: #24170d; opacity: 1; }
+#townpanel .shslip button.shsrc:not(.off):hover { background: radial-gradient(ellipse 60% 70% at 35% 50%, rgba(40,22,8,.15), transparent); }
+#townpanel .shslip button.shsrc.off, #townpanel .shslip button.shsrc:disabled { opacity: .5; }
+#townpanel .shslip button.shurg { color: #3a2818; }
+#townpanel .shslip button.shseal { text-shadow: none; border: 0; }
+#townpanel .shiptab:has(.shslip) .shres:not(.slipped), #townpanel .shiptab:has(.shslip) .shopts, #townpanel .shiptab:has(.shslip) .shnote { opacity: .4; transition: opacity .15s; }
+#townpanel .shslip button.shsrc.on { background: linear-gradient(90deg, rgba(142,30,16,.16), rgba(142,30,16,.04) 80%, transparent); }
+#townpanel .shslip .shmark { width: 22px; height: 22px; }
+#townpanel .shsrc small, #townpanel .shto, #townpanel .shse { font-size: 12.5px; }
+#townpanel .shcols { font-size: 12.5px; color: #4a3018; }
