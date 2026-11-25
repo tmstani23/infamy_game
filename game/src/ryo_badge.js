@@ -42,7 +42,48 @@ export function rewardPopups(state, clanId) {
     ({ ...l, amount: -l.amount, renown: 0, reason: lossLabel(state, l) })));
 }
 
-export function createRyoBadge({ root, game, heroId }) {
+// Stolen chest cashed at a war camp (Tim 2026-11-25, mock loot_turnin): koban coins arc from the camp up and down into
+// the badge, a few at a time and a little see-through; when they land the badge blooms gold with embers, the number
+// counts up, and "+N ryo / stolen chest" sits beside the badge on an ink stroke, drifting up as it fades.
+const KOBAN = '<svg viewBox="0 0 22 22"><defs><radialGradient id="kobanG" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#fff0b0"/>'
+  + '<stop offset=".45" stop-color="#e8b83a"/><stop offset="1" stop-color="#8a5a12"/></radialGradient></defs>'
+  + '<ellipse cx="11" cy="11" rx="7" ry="9" fill="url(#kobanG)" stroke="#3a250c" stroke-width="1"/>'
+  + '<path d="M8 6.5h6M8 9.5h6M8 12.5h6M8 15.5h6" stroke="#a87a1c" stroke-width=".7"/>'
+  + '<ellipse cx="8.2" cy="6.2" rx="1.2" ry="1.9" fill="#fff6d0" transform="rotate(-23 8.2 6.2)"/></svg>';
+const FLY_MS = 1000, STAGGER_MS = 55;
+function flyCoins(from, to, amount) {
+  const n = Math.min(18, 6 + Math.round(amount / 80)), ctrl = { x: (from.x + to.x) / 2 + 120, y: Math.min(from.y, to.y) - 260 };
+  const at = (t, jx, jy) => { const u = 1 - t, k = Math.sin(Math.PI * t);
+    return { x: u * u * from.x + 2 * u * t * ctrl.x + t * t * to.x + jx * k, y: u * u * from.y + 2 * u * t * ctrl.y + t * t * to.y + jy * k }; };
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('div');
+    el.className = 'kobanfly'; el.innerHTML = KOBAN; document.body.appendChild(el);
+    const size = 20 + Math.random() * 16, jx = (Math.random() - .5) * 40, jy = (Math.random() - .5) * 30, spin = (Math.random() - .5) * 90, flips = 1 + Math.random() * 2;
+    el.style.width = `${size}px`; el.style.height = `${size * 1.24}px`;
+    const frames = [];
+    for (let f = 0; f <= 12; f++) {
+      const t = f / 12, p = at(t, jx, jy), burst = t < .15 ? (1 - t / .15) * 24 : 0;   // a little upward pop out of the camp
+      frames.push({ transform: `translate(${p.x - size / 2}px, ${p.y - size * .62 - burst}px) rotate(${spin * t}deg) scaleX(${.2 + .8 * Math.abs(Math.cos(Math.PI * flips * t))})`,
+        opacity: t === 0 ? 0 : t > .94 ? .4 : .5 + .32 * t * t });
+    }
+    const anim = el.animate(frames, { duration: FLY_MS * (.9 + Math.random() * .25), delay: i * STAGGER_MS * (.6 + Math.random() * .8), easing: 'cubic-bezier(.35,.05,.55,1)', fill: 'both' });
+    anim.onfinish = () => el.remove();
+    setTimeout(() => el.remove(), 4000);
+  }
+  return FLY_MS * .9 + n * STAGGER_MS * .7;   // about when the bulk has landed
+}
+function embers(root) {
+  const r = root.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  for (let i = 0; i < 12; i++) {
+    const el = document.createElement('i'), a = Math.random() * Math.PI * 2, d0 = 52 + Math.random() * 10, d1 = d0 + 18 + Math.random() * 26, s = 3 + Math.random() * 4;
+    el.className = 'ryoember'; el.style.width = el.style.height = `${s}px`; document.body.appendChild(el);
+    el.animate([{ transform: `translate(${cx + Math.cos(a) * d0}px, ${cy + Math.sin(a) * d0}px)`, opacity: .85 },
+      { transform: `translate(${cx + Math.cos(a) * d1}px, ${cy + Math.sin(a) * d1 - 22}px)`, opacity: 0 }],
+      { duration: 700 + Math.random() * 500, easing: 'ease-out', fill: 'both' }).onfinish = () => el.remove();
+  }
+}
+
+export function createRyoBadge({ root, game, heroId, toScreen = null }) {
   root.innerHTML = `<svg viewBox="-60 -60 120 120">
       <defs><linearGradient id="ryoRing" x1="0" y1="-1" x2="0" y2="1">
         <stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#c8901e"/></linearGradient>
@@ -54,7 +95,8 @@ export function createRyoBadge({ root, game, heroId }) {
         <circle r="9.5" fill="none" stroke="#a87414" stroke-width="1.2"/><rect x="-4" y="-4" width="8" height="8" fill="#1a1410"/></g>
     </svg><b class="num">0</b><i class="lvl">RYO</i>`;
   const num = root.querySelector('.num'), lvl = root.querySelector('.lvl');
-  let shown = null, live = [], lastKind = '';
+  root.addEventListener('animationend', e => { if (e.animationName === 'ryobloom') root.classList.remove('bloom'); });
+  let shown = null, live = [], lastKind = '', holdUntil = 0;
   let observedTick = null, pending = [];
   function observe() {
     if (observedTick === game.state.tick) return;
@@ -65,6 +107,7 @@ export function createRyoBadge({ root, game, heroId }) {
 
   // one notice per gain; several at once stack upward instead of overlapping
   function notify(g) {
+    if (g.pot === 'chest' && g.amount > 0) return chestGain(g);
     live = live.filter(p => p.isConnected);
     const pop = document.createElement('div');
     pop.className = `heatgain ryogain${g.amount < 0 ? ' loss' : ''}`;
@@ -85,13 +128,37 @@ export function createRyoBadge({ root, game, heroId }) {
     live.push(pop);
   }
 
+  // a stolen chest cashed at your war camp: coins fly in, then the badge blooms and the notice shows beside it
+  function chestGain(g) {
+    const r = root.getBoundingClientRect(), to = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    let from = g.from && toScreen ? toScreen(g.from.x, g.from.z) : null;
+    if (!from || !(from.x > -50 && from.x < innerWidth + 50 && from.y > -50 && from.y < innerHeight + 50)) from = { x: innerWidth / 2, y: innerHeight / 2 };
+    const land = flyCoins(from, to, g.amount);
+    holdUntil = performance.now() + land;   // the number waits for the coins
+    setTimeout(() => {
+      root.classList.remove('bloom'); void root.offsetWidth; root.classList.add('bloom');
+      embers(root);
+      const pop = document.createElement('div');
+      pop.className = 'chestgain';
+      pop.innerHTML = '<b></b><span></span>';
+      pop.querySelector('b').textContent = `+${g.amount} ryo`;
+      pop.querySelector('span').textContent = (g.reason || 'Stolen chest').toLowerCase();
+      const rr = root.getBoundingClientRect();
+      pop.style.right = `${Math.max(0, innerWidth - rr.left - 4)}px`;
+      pop.style.bottom = `${Math.max(0, innerHeight - rr.bottom + rr.height * .2)}px`;
+      pop.addEventListener('animationend', () => pop.remove());
+      setTimeout(() => pop.remove(), 6000);
+      document.body.appendChild(pop);
+    }, land);
+  }
+
   function update() {
     const clan = game.state.clans?.[game.state.entities[heroId]?.owner];
     if (!clan) return;
     observe();
     const gains = pending; pending = [];
     for (const g of gains) notify(g);
-    if (gains.some(g => g.amount > 0 || g.renown > 0)) { root.classList.remove('flare'); void root.offsetWidth; root.classList.add('flare'); }
+    if (gains.some(g => (g.amount > 0 && g.pot !== 'chest') || g.renown > 0)) { root.classList.remove('flare'); void root.offsetWidth; root.classList.add('flare'); }
     const pot = potAt(game, heroId), me = game.state.entities[heroId]?.owner, F = game.state.frontier || {};
     // the hover: all three pots, the ryo on the train, then the treasury's recent spending
     const near = pot.town || Object.values(F.settlements || {}).filter(t => t.owner === me && !t.capital).sort((a, b) => (b.stock?.ryo || 0) - (a.stock?.ryo || 0))[0];
@@ -109,7 +176,8 @@ export function createRyoBadge({ root, game, heroId }) {
     if (lvl.textContent !== pot.label.toUpperCase()) lvl.textContent = pot.label.toUpperCase();
     if (kind !== lastKind) { lastKind = kind; shown = null; }   // another pot: no count-up from the old one
     const ryo = Math.round(pot.ryo || 0);
-    shown = shown === null || ryo < shown ? ryo : Math.min(ryo, shown + Math.max(1, Math.ceil((ryo - shown) * 0.15)));
+    if (shown !== null && ryo > shown && performance.now() < holdUntil) { num.textContent = shown.toLocaleString('en-US'); return; }   // coins still in the air
+    shown = shown === null || ryo < shown ? ryo : Math.min(ryo, shown + Math.max(1, Math.ceil((ryo - shown) * (root.classList.contains('bloom') ? 0.06 : 0.15))));
     num.textContent = shown.toLocaleString('en-US');
   }
   return { update, observe };

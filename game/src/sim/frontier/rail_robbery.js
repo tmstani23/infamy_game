@@ -148,7 +148,11 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
     const world = refs.world?.();
     for (const [r, n] of Object.entries(loot)) {
       if (!(n > 0)) continue;
-      if (r === 'ryo' && p.war) p.war.camp.chest = Math.round(((p.war.camp.chest || 0) + n) * 100) / 100;
+      if (r === 'ryo' && p.war) {
+        p.war.camp.chest = Math.round(((p.war.camp.chest || 0) + n) * 100) / 100;
+        // Tim 2026-11-25: the war chest badge shows it (coins fly from the camp into it, ryo_badge.js)
+        (state.ryoGains ||= []).push({ clan: e.owner, amount: Math.round(n), reason: 'Stolen chest', pot: 'chest', from: { x: p.war.x, z: p.war.z } });
+      }
       else if (r === 'ryo') { if (clan) creditRyo(state, clan, n, 'stolen chest'); }
       else if (p.war) addCampStock(p.war.camp, r, n);
       else if (world?.change) world.change(p.town.id, r, n, 'stolen chest');

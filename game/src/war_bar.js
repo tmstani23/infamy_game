@@ -4,6 +4,8 @@
 // seconds. Hovering a side lists what still stands and what is down. A side at 0 shows that its hall can be taken, and
 // a running channel (8a-3) shows its countdown in the middle with a strip under the bar.
 // With several wars it shows the one whose town is nearest to the hero.
+// The capture moment (Tim 2026-11-25): for a few seconds after your hero captures a town the bar shows only
+// "<Town> captured" in big gold between the two seals (the town fireworks and the hall's gold flare go off with it).
 // warBarHtml(model) is pure (the mock page uses it too); warBarModel(game, heroId) reads the state only.
 export const WAR_BAR_CSS = `
 #warbar{position:fixed;left:50%;top:104px;transform:translateX(-50%);z-index:18;width:620px;max-width:calc(100vw - 40px);color:#eadfc6;font:12px/1.3 system-ui,sans-serif;pointer-events:none}
@@ -51,6 +53,12 @@ export const WAR_BAR_CSS = `
 #warbar .wb-hov h4{margin:0 0 7px;font:600 16px system-ui;color:#f6e6bf}
 #warbar .wb-hov .hb{height:9px;border-radius:5px;background:#22262e;overflow:hidden;margin-bottom:8px}#warbar .wb-hov .hb i{display:block;height:100%;background:linear-gradient(90deg,#a8322a,#e0645a)}
 #warbar .wb-hov .hl{display:flex;justify-content:space-between;font-size:15px;color:#ee8a7c;line-height:1.55}
+#warbar .wb.wb-cap{grid-template-columns:auto 1fr auto;border-top-color:#d4aa5a;padding:9px 14px 10px}
+#warbar .wb-cap .wb-crest{width:24px;height:24px}
+#warbar .wb-capt{text-align:center;white-space:nowrap}
+#warbar .wb-capt b{display:block;font:700 28px/1.1 Georgia,serif;color:#ffd462;letter-spacing:.01em;text-shadow:0 0 14px #e0a83a99,0 2px 0 #1a0e06;animation:wbcap 1.4s ease-out both}
+#warbar .wb-capt span{display:block;margin-top:3px;font:15px Georgia,serif;color:#ecd6a6}
+@keyframes wbcap{0%{transform:scale(1.18);filter:brightness(1.9);opacity:0}25%{opacity:1}100%{transform:scale(1);filter:brightness(1)}}
 #warbar .wb-hov .hleft{font-size:15px;color:#eadfc6;margin-top:3px;line-height:1.4}
 `;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -58,6 +66,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 // side = { name, pct, color, ready, readyText, hit, tip }
 export function warBarHtml(m) {
   if (!m) return '';
+  if (m.captured) { const C = m.captured, crest = `<span class="wb-crest" style="--c:${esc(C.color || '#888')}"${C.faction ? ` data-faction="${esc(C.faction)}"` : ''}></span>`;
+    return `<div class="wb wb-cap">${crest}<div class="wb-capt"><b>${esc(C.town)} captured</b><span>The town is now yours</span></div>${crest}</div>`; }
   const side = (s, cls) => {
     const crest = `<span class="wb-crest"${s.faction ? ` data-faction="${esc(s.faction)}"` : ''}></span>`, pct = `<b class="wb-pct">${Math.round(s.pct)}</b>`;
     const col = `<div class="wb-col"><div class="wb-name">${esc(s.name)}</div><div class="wb-track"><i style="width:${Math.max(0, Math.min(100, s.pct))}%"></i>${s.ready ? `<span class="wb-ready">${esc(s.readyText || '')}</span>` : ''}</div></div>`;
@@ -71,9 +81,12 @@ export function warBarHtml(m) {
       : m.line ? `<div class="wb-line${m.line.good ? ' good' : ''}">${esc(m.line.text)}</div>` : '');
 }
 const nice = t => String(t || 'building').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
-const LINE_TICKS = 6 * 20, HIT_TICKS = 20;
+const LINE_TICKS = 6 * 20, HIT_TICKS = 20, CAPTURED_TICKS = 8 * 20;
 export function warBarModel(game, heroId, prefer = null) {
   const st = game.state, hero = st.entities?.[heroId], me = hero?.owner, MO = game.frontier?.warMorale;
+  // just captured a town: its title for CAPTURED_TICKS
+  const won = (st.frontier?.wars?.history || []).filter(w => w.result === 'captured' && w.attacker === me && (st.tick ?? 0) - (w.ended ?? -1e9) < CAPTURED_TICKS).pop();
+  if (won && !prefer) { const c = st.clans?.[me]; return { captured: { town: st.frontier.settlements?.[won.town]?.name || 'The town', color: c?.color, faction: c?.faction }, war: won.id }; }
   const wars = Object.values(st.frontier?.wars?.list || {}).filter(w => w.attacker === me || w.defender === me);
   if (!wars.length || !MO) return null;
   const townOf = w => st.frontier.settlements?.[w.town];
@@ -121,8 +134,9 @@ export function createWarBar({ game, heroId, channelOf = () => null, watch = nul
   function update() {
     const m = warBarModel(game, heroId, watch?.watching() || null);
     if (!m) { if (!root.hidden) { root.hidden = true; shown = ''; } return; }
+ if (!m.captured) {
     m.channel = channelOf(m.war) || null;
-    m.watch = watch ? (watch.watching() === m.war ? 'back' : watch.canWatch(m.war) ? 'watch' : null) : null;
+    m.watch = watch ? (watch.watching() === m.war ? 'back' : watch.canWatch(m.war) ? 'watch' : null) : null; }
     const html = warBarHtml(m);
     if (html !== shown) { root.innerHTML = html; shown = html; }
     root.hidden = false;

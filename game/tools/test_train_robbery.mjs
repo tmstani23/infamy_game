@@ -101,4 +101,16 @@ assert.ok(!hero.chest, 'chest cashed');
 { const c = (S.casts || []).find(x => x.kind === 'chestCashed'); assert.ok(c && c.tx === P.x && c.tz === P.z && c.loot.ryo > 0, 'the loot flies into the hall (cast)'); }
 assert.equal(Math.round(S.clans.player.ryo - ryo0), 200, 'ryo to the treasury');
 assert.equal(Math.round((P.stock.timber || 0) - tim0), 100, 'timber into the town');
+// at your war camp (Tim 2026-11-25): ryo into the war chest, and a chest gain for the badge (coins fly in from the camp)
+{
+  const wx = P.x + 4000, wz = P.z;
+  (F.wars ||= {}).list ||= {};
+  F.wars.list.wTest = { id: 'wTest', state: 'active', attacker: hero.owner, defender: 'rivalX', town: 'none', x: wx, z: wz, camp: { chest: 0, stock: { timber: 0, stone: 0 }, workers: [] } };
+  hero.chest = { loot: { ryo: 150 } }; Object.assign(hero, { x: wx + 2, z: wz + 2 }); cmd('cashChest');
+  assert.ok(!hero.chest, 'chest cashed at the camp');
+  assert.equal(Math.round(F.wars.list.wTest.camp.chest), 150, 'ryo into the war chest');
+  const g = (S.ryoGains || []).find(x => x.pot === 'chest');
+  assert.ok(g && g.amount === 150 && g.clan === hero.owner && g.from.x === wx, 'war chest gain for the badge');
+  delete F.wars.list.wTest;
+}
 console.log('test_train_robbery: ok');

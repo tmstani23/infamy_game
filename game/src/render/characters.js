@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { healthBar } from './health.js';
 import { CAM_QUAT, CAM_RIGHT, CAM_UP, VIEW_DIR } from './iso.js';
-import { spriteMaterial, shadowMaterial, footShadowMaterial, hiddenMaterial, weaponGlowMaterial } from './shading.js';
+import { spriteMaterial, shadowMaterial, footShadowMaterial, hiddenMaterial, weaponGlowMaterial, outlineMaterial } from './shading.js';
 import { Thing, loadTex } from './scenery.js';
 import { drawCrest } from './banners.js';
 import { createWeaponLightning, readBladeAxes } from './weapon_lightning.js';
@@ -483,7 +483,16 @@ export class CharacterSprite {
   }
 
   // free the GPU copies when the unit leaves the map (townsfolk come and go, bandits each night)
+  // a thin glowing edge round the figure, drawn just after it (shares its frame, so it follows every pose)
+  addOutline(color) {
+    if (this.outline) return;
+    this.outline = new THREE.Mesh(this.thing.mesh.geometry, outlineMaterial(this.material.uniforms, color, !!this.sheets.packing));
+    this.outline.frustumCulled = false;
+    this.thing.mesh.add(this.outline);
+    this.thing.extras.push(this.outline);
+  }
   dispose() {
+    this.outline?.material.dispose();
     if (!this.disposed) { this.disposed = true; releaseSheets(this.sheets); }
     this.thing.mesh.geometry.dispose();
     this.shadow.geometry.dispose();

@@ -159,6 +159,8 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     news({ kind: 'warEnded', war: w.id, town: w.town, townName: s?.name || note?.townName || '', result, attacker: w.attacker, defender: w.defender, by, x: cx, z: cz, ...(note || {}), chest, ...(w.spoilsStock ? { stock: w.spoilsStock } : {}),
       ...(w.terms ? { surrender: w.terms.by, ...(w.ransom ? { ransom: w.ransom.amount } : {}) } : {}) });
     war.end(w.id, result, opts.days ?? null);
+    // a captured town celebrates: the town fireworks (town_growth_fx.js) in the victor's colour (Tim 2026-11-25)
+    if (result === 'captured' && s) (s.fx ||= []).push({ kind: 'fireworks', capture: true, clan: by ?? w.attacker, tick: state.tick ?? 0 });
     // Z6: a fallen castle takes its clan out: its other wars end too (the towns it fought over are empty now)
     if (result === 'fell') for (const o of war.active()) if (o.attacker === w.defender || o.defender === w.defender) finish(o, 'clanOut');
     return true;

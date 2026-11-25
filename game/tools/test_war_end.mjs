@@ -132,6 +132,7 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   let end = null; for (let i = 0; i < 60 && !end; i++) { s.run(1); end = s.newsOf('warEnded'); }
   assert.equal(end?.result, 'captured');
   assert.equal(town.owner, 'player'); assert.deepEqual(town.captured, { tick: s.ended().ended, from: rival });
+  assert.ok((town.fx || []).some(f => f.kind === 'fireworks' && f.capture && f.clan === 'player'), 'a capture sets off the town fireworks in the victor colour');
   assert.ok(Math.abs(town.stock.ryo - 1000) < 3, 'the stores come with it'); assert.equal(S.clans.player.ryo, ryo0 + 800, 'the war chest comes home');
   assert.ok(!S.entities[worker.id], 'its people on the map are taken off');
   if (limit0 != null) assert.equal(g.landOffice.townsOf('player').length, limit0, 'a captured town does not count toward the founding limit');

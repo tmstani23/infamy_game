@@ -248,6 +248,35 @@ export function hiddenMaterial(uniforms, packed = false) {
   });
 }
 
+// A thin glowing edge round a sprite's silhouette (Tim 2026-11-25: the dog handler's loosed dogs, easy to spot): every
+// screen pixel just outside the picture (1 px, fwidth) takes the colour, a little see-through; shares the frame uniforms.
+// spread widens it (the capturable hall's soft gold edge uses about 2.5)
+export function outlineMaterial(uniforms, color, packed = false, alpha = 0.6, spread = 1) {
+  return new THREE.ShaderMaterial({
+    defines: packed ? {PACKED_SPRITE: 1} : {},
+    uniforms: { ...uniforms, uEdge: { value: new THREE.Color(color) }, uEdgeAlpha: { value: alpha }, uSpread: { value: spread } },
+    vertexShader: SPRITE_VERT,
+    fragmentShader: /* glsl */`
+      ${SPRITE_SAMPLE}
+      uniform vec3 uEdge; uniform float uEdgeAlpha, uOpacity, uSpread;
+      varying vec2 vUv;
+      void main() {
+        if (spriteTex(vUv).a >= 0.4) discard;
+        vec2 px = fwidth(vUv);
+        float m1 = 0.0, m2 = 0.0;
+        for (int i = 0; i < 8; i++) {
+          vec2 d = vec2(cos(float(i) * 0.7853982), sin(float(i) * 0.7853982)) * px * uSpread;
+          m1 = max(m1, spriteTex(vUv + d * 1.2).a);
+          m2 = max(m2, spriteTex(vUv + d * 2.6).a);
+        }
+        float k = m1 >= 0.4 ? 1.0 : m2 >= 0.4 ? 0.35 : 0.0;   // a 1 px edge and a fainter halo just outside it
+        if (k <= 0.0) discard;
+        gl_FragColor = vec4(uEdge, k * uEdgeAlpha * uOpacity);
+      }`,
+    transparent: true, depthTest: true, depthWrite: false,
+  });
+}
+
 // Faint weapon glow over a character: the exporter's _glow sheet (weapon alone, white halo)
 // tinted per weapon type and added on top; shares the sprite's frame, depth and opacity uniforms
 // shimmerColor: hero weapons only (Tim 2026-10-28): a band of light that sweeps up the blade (uShimmer = band position, < -0.5 off)

@@ -222,14 +222,15 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   // zoomed out (Tim 2026-11-19): 0 at normal zoom, 1 at the furthest; rings get thicker and brighter so enemies read in a war
   const TEAM_FAR = { value: 0 };
   const TEAM_GEO = new THREE.PlaneGeometry(1.4, 1.4);
-  const teamMaterial = c => new THREE.ShaderMaterial({
+  // rim: a thin pale brass ring all the way round, just outside the arcs, kept apart by a dark gap (workers, Tim 2026-11-25: easy to spot zoomed out)
+  const teamMaterial = (c, rim) => new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
-    uniforms: { uColor: { value: new THREE.Color(c) }, uTime: TEAM_TIME, uOpacity: { value: 0.6 }, uFar: TEAM_FAR },
+    uniforms: { uColor: { value: new THREE.Color(c) }, uTime: TEAM_TIME, uOpacity: { value: 0.6 }, uFar: TEAM_FAR, uRim: { value: new THREE.Color(rim ?? 0) }, uRimK: { value: rim == null ? 0 : 0.6 } },
     vertexShader: `varying vec2 vP; varying float vPhase;
       void main() { vP = (uv - 0.5) * 1.4;
         vec2 c = modelMatrix[3].xz; vPhase = fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453) * 6.2832;
         gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `uniform vec3 uColor; uniform float uTime, uOpacity, uFar; varying vec2 vP; varying float vPhase;
+    fragmentShader: `uniform vec3 uColor, uRim; uniform float uTime, uOpacity, uFar, uRimK; varying vec2 vP; varying float vPhase;
       const float TAU = 6.2831853, R = 0.53;
       void main() {
         float r = length(vP), a = atan(vP.y, vP.x) + uTime * 0.35 + vPhase;
@@ -242,14 +243,23 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
         float bead = exp(-dot(vP - R * vec2(cos(bp), sin(bp)), vP - R * vec2(cos(bp), sin(bp))) / 0.00035);
         float light = (core * 0.85 + glow * 0.35) * arc + inner + bead * 0.9;
         float shade = exp(-d * d / 0.004) * 0.22;                     // dark under-shadow for light ground
+        vec3 lit = uColor * light;
+        if (uRimK > 0.0) {
+          float rr = 0.635 + 0.03 * uFar, dr = r - rr, ww = 0.00007 * (1.0 + 1.5 * uFar);
+          float g = (exp(-dr * dr / ww) + 0.25 * exp(-dr * dr / (ww * 8.0))) * uRimK * (1.0 + 0.5 * uFar);   // brighter zoomed out
+          lit += uRim * g; light += g;
+          float gm = r - (R + rr) * 0.5;
+          shade = max(shade, exp(-gm * gm / ww) * 0.5);
+        }
         float alpha = clamp(light + shade * (1.0 - light), 0.0, 1.0) * mix(uOpacity, 1.0, uFar);
-        vec3 col = uColor * light / max(light + shade * (1.0 - light), 1e-4);
+        vec3 col = lit / max(light + shade * (1.0 - light), 1e-4);
         if (alpha < 0.004) discard;
         gl_FragColor = vec4(col, alpha);
       }` });
   // health bars by side (Tim 2026-11-19): yours green, enemies red, everyone else keeps the green-to-red health shading
   const SIDE_BAR = { hero: [0.36, 0.8, 0.3], crew: [0.36, 0.8, 0.3], worker: [0.36, 0.8, 0.3], enemy: [0.86, 0.18, 0.14] };
-  const TEAM_MAT = Object.fromEntries(Object.entries(TEAM).map(([k, c]) => [k, teamMaterial(c)]));
+  const TEAM_RIM = { worker: 0xe8d9a0 };   // pale brass edge on your workers' rings, town and camp (Tim 2026-11-25)
+  const TEAM_MAT = Object.fromEntries(Object.entries(TEAM).map(([k, c]) => [k, teamMaterial(c, TEAM_RIM[k])]));
   // a wild animal's coat: between the species' two shades (coat[0]) and a little lighter or darker (coat[1])
   const coatTint = e => {
     const [a, b] = wildlifeCfg?.animals?.coat?.[e.type] || [[1, 1, 1], [1, 1, 1]], k = e.coat[0], l = 1 + ((e.coat[1] ?? 0.5) - 0.5) * (wildlifeCfg?.animals?.coatLight ?? 0.12);
@@ -325,6 +335,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     scene.add(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate);
     for (const o of [s.ring, s.bar, s.nameplate]) o.traverse(c => c.layers.set(UI_LAYER));
     s.ring.visible = selected.has(e.id);
+    if (e.type === 'war_dog') s.addOutline(0xd9a24a);   // loosed dogs: a thin lamp-gold glowing edge (Tim 2026-11-25)
     return s;
   }
   // A frontier rickshaw with anyone in it gets a seated coachman on the seat (Tim 2026-11-08: no empty seat, but not
@@ -799,6 +810,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let resumingPresentation=false;
   return {
     render, renderer, scene, addHits, addCasts, updateCamera,
+    setHallTakeable: fn => hallFx.setTakeable(fn),   // the capture moment: halls the player's hero can take pulse gold
     setTowns: list => {
       structureFire.setRuins(list.filter(p => p.ruinSmoke).map(p => ({ x: p.x, z: p.z, w: Math.min(8, (p.maxFootprint || 11) * 0.4) })));   // 7c: moving smoke over ruins
       worldGround?.setTowns(list);

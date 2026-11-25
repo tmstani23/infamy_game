@@ -3,7 +3,7 @@
 //   level  - a thin isometric scaffold round the house plus a muted dust cloud, and the new house's name
 //            rising in small gold letters (combat-text style)
 //   arrive - a small "+1" rising over the house a newcomer walked into
-//   fireworks - a town hall tier-up celebration: rockets from the hall for fireworksTicks (Tim 2026-11-05)
+//   fireworks - a town hall tier-up or a capture: rockets from the hall for fireworksTicks (Tim 2026-11-05, restyled 2026-11-25)
 // Positions are world points projected with view.unitToScreen(x, z, height), so the scaffold follows the
 // ground diamond of the cell. No glow, no textures. fxTicks (data.arrivals) sets how long each shows.
 import { cellToWorld, centreCell } from './sim/frontier/town_grid.js';
@@ -67,47 +67,67 @@ export function createTownGrowthFx({ view, data }) {
     ctx.lineWidth = 3; ctx.strokeStyle = `rgba(30,24,18,${0.85 * alpha})`; ctx.fillStyle = gold ? `rgba(242,196,84,${alpha})` : `rgba(240,226,180,${alpha})`;
     ctx.strokeText(text, p.x, p.y - rise); ctx.fillText(text, p.x, p.y - rise);
   }
-  // Fireworks: rocket n launches every `every` ticks from the hall, climbs for `climb` ticks, then bursts.
-  // Everything derives from (f.tick, n), so every client draws the same show with no stored particles.
-  const FW = { every: 3, climb: 18, burst: 40, sparks: 52, colors: ['255,214,120', '255,120,96', '140,220,255', '200,150,255', '160,255,170', '255,255,230'] };
+  // Fireworks (restyled Tim 2026-11-25, capture mock /mnt/project-files/capture_moment/): chrysanthemum bursts, mostly
+  // gold with some in the town owner's colour (the victor's on a capture). Streaks shoot out from a hot core, droop,
+  // end in a bright pearl and shed falling sparks; everything a little see-through. Rocket n launches every `every`
+  // ticks from the hall, climbs for `climb` ticks, then bursts for `burst`. All derives from (f.tick, n), so every
+  // client draws the same show with no stored particles. A tier-up also names the new tier over the hall.
+  const FW = { every: 13, climb: 20, burst: 52, sparks: 44, gold: '255,200,96', see: 0.85 };
   const rnd = (a, b) => { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
-  function fireworks(s, f, t, life) {
+  const rgbOf = hex => { const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null; const v = parseInt(m[1], 16); return `${v >> 16},${(v >> 8) & 255},${v & 255}`; };
+  function fireworks(s, f, t, life, clans) {
     const hx = s.x, hz = s.z, base = s.grid.cell * 0.9, age = t - f.tick;
+    const accent = rgbOf(clans?.[f.clan ?? s.owner]?.color) || '255,150,90';
     const unit = (x, z, y) => { const a = P(x, z, y), b = P(x, z, y + 1); return Math.max(0.5, Math.hypot(a.x - b.x, a.y - b.y)); };
-    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
     for (let n = 0; n * FW.every <= Math.min(age, life - FW.climb - FW.burst); n++) {
-      const t0 = n * FW.every, k = age - t0;
+      const t0 = n * FW.every + Math.floor(rnd(n, 9) * 5), k = age - t0;
       if (k < 0 || k > FW.climb + FW.burst) continue;
-      const big = n % 4 === 3, peak = base + 24 + rnd(n, 1) * 34 + (big ? 14 : 0);
+      const size = n % 3 === 0 ? 1.35 : 0.7 + rnd(n, 1) * 0.45, peak = base + 26 + rnd(n, 5) * 34 + size * 8;
       const dx = (rnd(n, 2) - 0.5) * s.grid.cell * 5, dz = (rnd(n, 3) - 0.5) * s.grid.cell * 5;
-      const color = FW.colors[Math.floor(rnd(n, 4) * FW.colors.length)];
-      if (k < FW.climb) {   // rising rocket with a short spark trail
+      const color = rnd(n, 4) < 0.34 ? accent : FW.gold;
+      if (k < FW.climb) {   // the rising rocket: a fading spark trail
         const u = k / FW.climb, e = 1 - (1 - u) * (1 - u);
-        for (let j = 0; j < 5; j++) {
-          const v = Math.max(0, e - j * 0.04), p = P(hx + dx * v, hz + dz * v, base + (peak - base) * v);
-          ctx.fillStyle = `rgba(255,220,160,${0.9 - j * 0.17})`; ctx.beginPath(); ctx.arc(p.x, p.y, 2.2 - j * 0.3, 0, Math.PI * 2); ctx.fill();
+        for (let j = 0; j < 9; j++) {
+          const v = Math.max(0, e - j * 0.035), p = P(hx + dx * v, hz + dz * v, base + (peak - base) * v);
+          ctx.fillStyle = `rgba(255,214,150,${(0.85 - j * 0.09) * FW.see})`; ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.6, 2 - j * 0.18), 0, Math.PI * 2); ctx.fill();
         }
         continue;
       }
       const u = (k - FW.climb) / FW.burst, c = P(hx + dx, hz + dz, peak), px = unit(hx + dx, hz + dz, peak);
-      const reach = (big ? 34 : 22) * px * (1 - Math.pow(1 - u, 3)), drop = 6 * px * u * u, fade = u < 0.1 ? 1 : 1 - (u - 0.1) / 0.9;
-      if (u < 0.12) { ctx.fillStyle = `rgba(255,250,220,${0.6 * (1 - u / 0.12)})`; ctx.beginPath(); ctx.arc(c.x, c.y, reach * 0.9 + 6, 0, Math.PI * 2); ctx.fill(); }
-      const count = big ? FW.sparks * 1.6 : FW.sparks;
+      const reach = 26 * size * px, fade = (u < 0.65 ? 1 : 1 - (u - 0.65) / 0.35) * FW.see;
+      const at = (a, w) => { const r = reach * (1 - Math.pow(1 - w, 3)); return [c.x + Math.cos(a) * r, c.y + Math.sin(a) * r * 0.85 + 7 * px * w * w]; };
+      if (u < 0.15) {   // the flash at the core
+        const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, reach * 0.7 + 8);
+        g.addColorStop(0, `rgba(255,246,220,${0.55 * (1 - u / 0.15)})`); g.addColorStop(1, 'rgba(255,200,120,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c.x, c.y, reach * 0.7 + 8, 0, Math.PI * 2); ctx.fill();
+      }
+      const count = Math.round(FW.sparks * (0.7 + 0.5 * size));
       for (let j = 0; j < count; j++) {
-        const a = j / count * Math.PI * 2 + rnd(n, j), r = reach * (0.75 + rnd(j, n) * 0.3);
-        const x = c.x + Math.cos(a) * r, y = c.y + Math.sin(a) * r * 0.85 + drop, tw = 0.65 + 0.35 * Math.sin(t * 1.7 + j);
-        const rr = (big ? 3 : 2.3) * (1 - u * 0.5);
-        ctx.fillStyle = `rgba(${color},${0.22 * fade * tw})`; ctx.beginPath(); ctx.arc(x, y, rr * 3, 0, Math.PI * 2); ctx.fill();   // soft halo
-        ctx.fillStyle = `rgba(${color},${fade * tw})`; ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2); ctx.fill();
+        const a = j / count * Math.PI * 2 + (rnd(n, j) - 0.5) * 0.08, tw = 0.75 + 0.25 * Math.sin(t * 1.3 + j * 2.1);
+        // the streak: from a bit behind the head to the head, brighter toward the head
+        const head = Math.min(1, u * 1.15), tail = Math.max(0, head - 0.35);
+        for (let q = 0; q < 3; q++) {
+          const w0 = tail + (head - tail) * q / 3, w1 = tail + (head - tail) * (q + 1) / 3, [x0, y0] = at(a, w0), [x1, y1] = at(a, w1);
+          ctx.strokeStyle = `rgba(${color},${(0.12 + 0.28 * q) * fade * tw})`; ctx.lineWidth = 1.2 + 0.4 * size;
+          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        }
+        const [x, y] = at(a, head);
+        ctx.fillStyle = `rgba(255,240,205,${0.9 * fade * tw})`; ctx.beginPath(); ctx.arc(x, y, 1.1 + 0.6 * size, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(${color},${0.16 * fade * tw})`; ctx.beginPath(); ctx.arc(x, y, 4 * size, 0, Math.PI * 2); ctx.fill();   // soft halo
+        if (j % 3 === 0 && u > 0.45) for (let d = 1; d <= 3; d++) {   // falling sparks shed from the tips
+          const fall = (u - 0.45) * 26 * px * d / 3, sa = fade * (1 - d / 4) * 0.8;
+          ctx.fillStyle = `rgba(255,${190 - d * 25},${110 - d * 25},${sa})`; ctx.beginPath(); ctx.arc(x + Math.sin(j + d) * 1.5, y + fall, 1, 0, Math.PI * 2); ctx.fill();
+        }
       }
     }
     ctx.restore();
-    // the new tier's name over the hall for the first few seconds
-    const name = data?.tiers?.list?.[(f.tier || 2) - 1]?.name;
+    // a tier-up names the new tier over the hall for the first few seconds (a capture names the town in the war bar)
+    const name = !f.capture && data?.tiers?.list?.[(f.tier || 2) - 1]?.name;
     if (name && age < 120) { const a = age < 10 ? age / 10 : age > 90 ? (120 - age) / 30 : 1; label(P(hx, hz, base + 8), `${name}!`, a, age * 0.15, 26, true); }
   }
   let lastTick = -1, lastAt = 0;
-  function update(towns, tick, show = true) {
+  function update(towns, tick, show = true, clans = null) {
     // fractional ticks between 20 Hz sim steps keep the rockets smooth at any frame rate
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
     if (tick !== lastTick) { lastTick = tick; lastAt = now; }
@@ -124,7 +144,7 @@ export function createTownGrowthFx({ view, data }) {
     }
     for (const s of towns || []) for (const f of s.fx || []) {
       if (!s.grid) continue;
-      if (f.kind === 'fireworks') { const fl = data?.arrivals?.fireworksTicks || 400; if (smooth - f.tick >= 0 && smooth - f.tick <= fl) fireworks(s, f, smooth, fl); continue; }
+      if (f.kind === 'fireworks') { const fl = data?.arrivals?.fireworksTicks || 400; if (smooth - f.tick >= 0 && smooth - f.tick <= fl) fireworks(s, f, smooth, fl, clans); continue; }
       const k = (tick - f.tick) / life;
       if (k < 0 || k > 1) continue;
       if (f.kind === 'level') scaffold(s, f, k);

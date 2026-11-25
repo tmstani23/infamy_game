@@ -478,7 +478,7 @@ async function start() {
   const policeMenu = createPoliceMenu({ panel: $('police'), game, heroId, catalog, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const contractMenu = createContractMenu({ panel: $('contracts'), tracker: $('contract'), game, heroId, view, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const heatBadge = createHeatBadge({ root: $('heat'), game, heroId });
-  const ryoBadge = createRyoBadge({ root: $('ryo'), game, heroId });
+  const ryoBadge = createRyoBadge({ root: $('ryo'), game, heroId, toScreen: (x, z) => view.unitToScreen(x, z, 3) });
   // your clan's crest and name in the top bar (picked at the start later, Tim 2026-10-19)
   {
     const clan = game.state.clans.player, cv = $('clan').querySelector('canvas'), g = cv.getContext('2d');
@@ -634,6 +634,10 @@ async function start() {
   const warWatch=createWarWatch({game,view,heroId,catalog,frontierData:simOptions.frontier,notify:(...a)=>callout(...a),sound:{clip:(...a)=>sound.clip(...a),bell:()=>sound.bell()},ping:(x,z)=>{minimap.ping(x,z);gameMap.ping(x,z);},showOnMap:(x,z)=>gameMap.showAt(x,z),
     busy:()=>warTerms.isOpen()||townWar.isOpen()||warCamp.isOpen()||gameMap.isOpen()||warBlocked(),onStart:()=>{cityWatch.end();frontierBuildUI?.cancel();deploymentPanel.close();gameMap.close();crewInput.clear();warCamp.close();townWar.close();}});
   const warBar=createWarBar({game,heroId,channelOf:id=>warOutcome?.channelOf(id)||null,watch:warWatch,openTerms:id=>warTerms.show(id)});   // war 8a-2: both sides' morale at the top of the screen
+  // the capture moment (Tim 2026-11-25): a ruined hall your hero can take now pulses gold (render/hall_channel_fx.js)
+  view.setHallTakeable?.(()=>{const me=game.state.entities[heroId]?.owner,MO=game.frontier?.warMorale,out=[];if(!MO||me==null)return out;
+    for(const w of Object.values(game.state.frontier?.wars?.list||{})){if(w.channel||w.terms)continue;const side=w.attacker===me?'town':w.defender===me?'camp':null;if(side&&MO.ready(w.id,side))out.push({war:w.id,side});}
+    return out;});
   const warTerms=createWarTermsPanel({game,heroId,send:c=>pending.push(c),blocked:warBlocked,onStart:()=>{frontierBuildUI?.cancel();warCamp.close();townWar.close();warOutcome.close();}});   // war 8c-3: the surrender terms window
   const warOutcome=createWarOutcomeMenu({game,heroId,send:c=>pending.push(c),blocked:warBlocked});   // war 8a-3: Use at a ruined hall takes it (the outcome picker for a town)
   const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warCamp.cancel();},blocked:warBlocked,openCamp:id=>warCamp.show(id),defending:()=>townWar.defendingHere(),openDefense:id=>townWar.show(id)});
@@ -934,7 +938,7 @@ async function start() {
         return gatesOpen = open; };
       { const towns = drawableTowns(game.state.frontier, game.state.entities[heroId]?.owner), shown = towns.concat(drawableWarSites(game.state.frontier, game.state.entities[heroId]?.owner)), sig = townSignature(shown) + '|' + [...openGates(shown)].join(',');   // E5: founded towns follow their records; F6: rival towns on discovered ground and war camps
         if (sig !== townSig) { townSig = sig; view.setTowns(townProps(shown, simOptions.frontier?.townArt || {}, simOptions.frontier?.townLights || {}, gatesOpen)); }
-        if (simOptions.frontier) { townGrowthFx ||= createTownGrowthFx({ view, data: simOptions.frontier }); townGrowthFx.update(towns, game.state.tick, game.state.entities[heroId]?.place === 'world'); } }   // B7 growth effects
+        if (simOptions.frontier) { townGrowthFx ||= createTownGrowthFx({ view, data: simOptions.frontier }); townGrowthFx.update(towns, game.state.tick, game.state.entities[heroId]?.place === 'world', game.state.clans); } }   // B7 growth effects
       clinicMenu.update();
       policeMenu.update();
       landOfficeMenu.update(); lieutenantTalk.update(); surveyorTalk.update(); stationMenu.update(); stableMenu.update(); vehiclesPanel?.update(); standingsPanel.update(); siteMenu.update();
