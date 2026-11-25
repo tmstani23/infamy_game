@@ -52,7 +52,8 @@ import { createStructureBars } from './structure_bars.js';
 import { createAbilityRows } from './ability_rows.js';
 import { createSiteFlash } from './site_flash.js';   // war 7c-4: a camp building site with no workers flashes
 import { createGarrisonCard } from './garrison_card.js';
-import { createStructureCard } from './structure_card.js';   // 7c-3b: town building card, house garrisons
+import { createStructureCard } from './structure_card.js';
+import { installDamageTip } from './damage_tip.js';   // Tim 2026-11-25: damage taken hover on ship and building health bars   // 7c-3b: town building card, house garrisons
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
 import { isDiscovered } from './world_map.js';
@@ -724,6 +725,7 @@ async function start() {
     for (const [id, f] of [['townbtn', () => townPanel.toggle()], ['townsbtn', () => overview.toggle()], ['vehiclesbtn', () => vehiclesPanel.toggle()]]) { $(id).hidden = false; $(id).addEventListener('click', e => { f(); e.currentTarget.blur(); }); }   // utility menu icons for the frontier windows
     openTownHook = id => townPanel.open(id);
     townTalk = id => townPanel.talk(id);
+    installDamageTip(simOptions.frontier);
     createStructureCard({ game, view, heroId, frontierData: simOptions.frontier, send: c => pending.push(c), selected: () => crewInput.selected(), menuAt: (x, y) => townMenuAt(x, y), badgeRoot: $('garrisonbadges') });   // before the town hover: its right-click on a house wins
     const garrisonCard = createGarrisonCard({ game, heroId, frontierData: simOptions.frontier, units, catalog, send: c => pending.push(c), select: ids => crewInput.select(ids), selected: () => crewInput.selected() });
     const townHover = createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier,

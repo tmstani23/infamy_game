@@ -678,11 +678,18 @@ export function createGeneralBrain(game, { clan }) {
   // the camp's ranged troops that are not on a push go into its stockade (8d-9) and shoot from it: ids sent this look
   function campGarrison(out, cmd, w, list) {
     const GA = F().garrison, S = F().structures; if (!cmd || !GA?.capOf || !list.length) return [];
-    const st = S.list().find(x => x.camp && x.war === w.id && isFort(x) && S.hpOf(x) > 0); if (!st) return [];
-    const ranged = gen().rules().rangedUnits || ['archer', 'rifleman'], room = GA.capOf(st) - (heldIn()[st.key] || 0);
-    const ids = list.filter(e => ranged.includes(e.warUnit) && !e.order?.garrisonKey).sort((a, b) => a.id < b.id ? -1 : 1).slice(0, Math.max(0, room)).map(e => e.id);
-    if (ids.length) out.push(cmd({ action: 'garrison', mode: 'enter', structure: st.key, units: ids, walk: true }));
-    return ids;
+    // Tim 2026-11-25: the stockade first, then the camp's watchtowers (by key)
+    const holds = S.list().filter(x => x.camp && x.war === w.id && (isFort(x) || x.type === 'watchtower') && S.hpOf(x) > 0 && GA.capOf(x) > 0).sort((a, b) => (isFort(b) ? 1 : 0) - (isFort(a) ? 1 : 0) || (a.key < b.key ? -1 : 1));
+    if (!holds.length) return [];
+    const ranged = gen().rules().rangedUnits || ['archer', 'rifleman'], inside = heldIn();
+    let left = list.filter(e => ranged.includes(e.warUnit) && !e.order?.garrisonKey).sort((a, b) => a.id < b.id ? -1 : 1).map(e => e.id);
+    const sent = [];
+    for (const st of holds) {
+      if (!left.length) break;
+      const ids = left.slice(0, Math.max(0, GA.capOf(st) - (inside[st.key] || 0))); left = left.slice(ids.length);
+      if (ids.length) { out.push(cmd({ action: 'garrison', mode: 'enter', structure: st.key, units: ids, walk: true })); sent.push(...ids); }
+    }
+    return sent;
   }
   function campArmy(out, order, w, A, cmd = null) {
     const G = gen().rules(), m = memory(w, 'attacker'), hall = campHall(w), t = town(w.town);

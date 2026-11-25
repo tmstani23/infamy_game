@@ -368,6 +368,7 @@ Menu look (2026-11-11, lantern style 2026-11-23):
 - Season end: a "Season over" line above the title; New game is the highlighted button.
 - Edit layout: every panel shows a plain name.
 - Town cards (click a town building, zone, resource spot or worker) use the same look; the town hall card shows Tier, People and Workers coins with Build, Train worker and Upgrade buttons.
+- Hover the health bar of a ship, building, wall or gate card: a panel shows Damage it takes (100% = normal) per weapon, read live from war.ships.hullDamage and war.structures.damage (stone types: fire-bombs x war.structures.stone.bomb) (Tim 2026-11-25).
 
 War camp (2026-11-10, campaign):
 - The red war coin shows Camp (Defend on your own town) and the worker count; the war chest number is on the money badge (Tim 2026-11-24). Click the red war coin, or right-click the camp hall: opens the hall menu with tabs Build (click a building card to place it; locked cards say what they need in their hover), War chest and Hall. Right-click any other camp building: its own menu with art, health, chest and troop coins. Training buildings show a card per unit (still, health, damage a second, range, speed, price, seconds each, abilities, count box, Train), queue pips with a countdown, Cancel last and the troop cap. Other buildings say what they do.

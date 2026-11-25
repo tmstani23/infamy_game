@@ -167,6 +167,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       const { frac, color } = healthBar(e.hp, e.maxHp);
       k.fill.style.width = `${frac * 100}%`;
       k.fill.style.background = css(color);
+      { const bar = k.fill.parentNode; if (e.ship) bar.dataset.dmg = 'ship'; else delete bar.dataset.dmg; }   // damage taken hover (damage_tip.js)
       const st = e.status ?? unitStatus(e, game.state);
       if (k.status.textContent !== st) k.status.textContent = st;
       const at = where(e);

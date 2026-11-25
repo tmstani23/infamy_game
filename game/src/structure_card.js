@@ -8,6 +8,7 @@
 import { healthBar } from './render/health.js';
 import { cellToWorld } from './sim/frontier/town_grid.js';
 import { openMenu, placeBeside, unplace } from './card_beside.js';
+import { structureDmgKind } from './damage_tip.js';
 
 const CSS = `
 #structcard{position:fixed;right:560px;bottom:175px;width:200px;box-sizing:border-box;padding:7px 9px 9px;z-index:34;background:linear-gradient(180deg,#171c21,#0f1317);border:1px solid #4d3b2a;border-top:2px solid #c9473d;border-radius:8px;box-shadow:0 8px 30px #000a;color:#eadfc6;font:13px/1.35 system-ui,sans-serif}
@@ -125,7 +126,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     const supply = st.type === 'rail_section' ? `Camp supply line, section ${st.b?.n || 1} of ${st.b?.of || 1}.` : st.type === 'camp_station' ? 'Camp station.' : '';   // 8e-6
     const hint = supply ? `${supply} ${own ? 'Defend it: if the camp station or any red rail section goes down, the camp is cut off until all are rebuilt (camp station menu).' : 'Destroy the camp station or any red rail section to cut the camp off from the rail network.'}` : own ? (st.type === 'stockade' ? 'Ctrl + right-click it with crew or troops selected to send them in. In a war, ranged units inside shoot out.' : '') : atWar ? 'Right-click it with troops selected to attack it.' : '';
     root.innerHTML = `<button class="x" data-x="1">Esc</button><div class="sub">${esc(sub)}</div><h1>${esc(st.type === 'rail_section' ? `Rail section ${st.b?.n || 1} of ${st.b?.of || 1}` : nice(st.type))}</h1>
-      <div class="bar" title="Health ${hp} of ${st.max}"><i style="width:${Math.round(frac * 100)}%;background:rgb(${color.map(c => Math.round(c * 255)).join(',')})"></i></div>
+      <div class="bar" data-dmg="${structureDmgKind(frontierData, st)}"><i style="width:${Math.round(frac * 100)}%;background:rgb(${color.map(c => Math.round(c * 255)).join(',')})"></i></div>
       <div class="stat">${esc(stat)}</div>
       ${stores ? `<div class="dim" style="margin:-2px 0 6px">${esc(stores)}</div>` : ''}
       ${up ? `<div class="bar build" title="${up.pct}% upgraded"><i style="width:${up.pct}%"></i></div><div class="dim" style="margin:4px 0 2px"${up.tip ? ` title="${esc(up.tip)}"` : ''}>${esc(up.text)}</div>` : ''}

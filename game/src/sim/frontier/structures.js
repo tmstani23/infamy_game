@@ -615,21 +615,24 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       for (const [l, mine, foe] of sides) for (const st of l) {
         if (st.type !== 'watchtower' || (st.b.shotAt ?? -Infinity) + (T.everyTicks ?? 30) > now) continue;
         // nearest foe in range; a tower on a castle terrace reaches further down (high ground, Z4h: rt.rangeScale)
-        let best = null, bd = Infinity;
-        const range = T.range ?? 16, from = { x: st.x, z: st.z, place: 'world' };
+        // Tim 2026-11-25: a volley of T.arrows arrows, one at each of the nearest foes (round again when fewer are in range)
+        const range = T.range ?? 16, from = { x: st.x, z: st.z, place: 'world' }, inRange = [];
         for (const e of Object.values(state.entities)) {
           if (e.owner !== foe || e.place !== 'world' || e.dead || e.downed || e.jailed || e.garrison || e.aboard || e.type === 'civilian' || e.type === 'horse' || e.guide) continue;
           const d = (e.x - st.x) ** 2 + (e.z - st.z) ** 2, r = range * (rt?.rangeScale?.(from, e) ?? 1);
-          if (d >= r * r) continue;
-          if (best && !!e.ship !== !!best.ship) { if (e.ship) continue; bd = d; best = e; continue; }   // ships S4: a ship only with nobody else in range
-          if (d < bd || (d === bd && best && e.id < best.id)) { bd = d; best = e; }
+          if (d < r * r) inRange.push({ e, d });
         }
-        if (!best) continue;
+        if (!inRange.length) continue;
+        const onLand = inRange.filter(x => !x.e.ship), pool = (onLand.length ? onLand : inRange).sort((a, b) => a.d - b.d || (a.e.id < b.e.id ? -1 : 1));   // ships S4: a ship only with nobody else in range
         st.b.shotAt = now;
-        const flight = Math.max(2, Math.ceil(Math.sqrt(bd) / (T.speed ?? 30) * 20));
-        (fr.towerShots ||= []).push({ key: st.key, by: mine, t: best.id, x: st.x, z: st.z, until: now + flight, damage: T.damage ?? 10 });
-        (state.projectiles ||= []).push({ kind: 'arrow', tower: true, a: `tower:${st.key}`, t: best.id, x: st.x, z: st.z, tx: best.x, tz: best.z, place: 'world', at: now, until: now + flight, damage: 0 });
-        (state.casts ||= []).push({ kind: 'arrow', tower: true, a: `tower:${st.key}`, t: best.id, x: st.x, z: st.z, tx: best.x, tz: best.z, place: 'world', flightTicks: flight });
+        const arrows = Math.max(1, T.arrows ?? 1);
+        for (let i = 0; i < arrows; i++) {
+          const { e: best, d: bd } = pool[i % pool.length];
+          const flight = Math.max(2, Math.ceil(Math.sqrt(bd) / (T.speed ?? 30) * 20)) + Math.min(i, 2);   // a tick apart, so a volley reads as several arrows
+          (fr.towerShots ||= []).push({ key: st.key, by: mine, t: best.id, x: st.x, z: st.z, until: now + flight, damage: T.damage ?? 10 });
+          (state.projectiles ||= []).push({ kind: 'arrow', tower: true, a: `tower:${st.key}`, t: best.id, x: st.x, z: st.z, tx: best.x, tz: best.z, place: 'world', at: now, until: now + flight, damage: 0 });
+          (state.casts ||= []).push({ kind: 'arrow', tower: true, a: `tower:${st.key}`, t: best.id, x: st.x, z: st.z, tx: best.x, tz: best.z, place: 'world', flightTicks: flight });
+        }
       }
     }
   }
@@ -760,10 +763,10 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     const tp = townProject(s, key);
     if (tp) return tp.progress < tp.need ? ruinSpot(s, siteOf(s, tp)) : null;
     const st = ownSt(s, key);
+    if (st?.kind === 'site') return null;   // a site is built, not mended
     if (st) return hpOf(st) > 0 && (burning(st) || hpOf(st) < st.max) ? { x: st.x, z: st.z, r: (st.r || 4) + 1 } : null;
     const b = hallRuin(s, key);
     return b && !hallTaken(s) ? ruinSpot(s, b) : null;
-    if (st?.kind === 'site') return null;   // a site is built, not mended
   }
   const workWhy = (s, key) => hallRuin(s, key) && hallTaken(s) ? 'The hall is being taken: stop the enemy hero first' : ownSt(s, key) ? 'It is not damaged or burning' : find(key) ? 'Not one of your buildings' : 'Nothing to build, repair or put out there';
   // pay for `hp` health points of repair from the site's stock; false when it is short (whole units, the rest is kept as a debt)
@@ -853,13 +856,13 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   function tick() {
     const fr = f(); if (!fr || !R()) return;
     if ((state.tick ?? 0) % 20 === 7) botDouse();
-    towers();
-    cannonTowers();   // ships S5
-    garrisonFire();
     if ((state.tick ?? 0) % 20 === 0 && spendPops.size) {   // what each repair took this second
       for (const p of spendPops.values()) (state.casts ||= []).push({ kind: 'repairSpend', x: p.x, z: p.z, h: p.h, owner: p.owner, spent: p.spent, place: 'world' });
       spendPops.clear();
     }
+    towers();
+    cannonTowers();   // ships S5
+    garrisonFire();
     shelterTick();
     shotsTick();
     const fires = fr.fires;

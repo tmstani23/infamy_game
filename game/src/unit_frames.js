@@ -132,6 +132,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     f.c.style.setProperty('--bar', bar);
     const hp = Math.max(0, Math.ceil(e.hp));
     f.fill.style.width = `${Math.min(100, Math.max(0, e.hp / e.maxHp * 100))}%`;
+    { const bar = f.fill.parentNode; if (e.ship) bar.dataset.dmg = 'ship'; else delete bar.dataset.dmg; }   // damage taken hover (damage_tip.js)
     set(f.hp, 'textContent', `${hp} / ${e.maxHp}`);
     set(f.status, 'textContent', frameStatus(e, game.state, heroId));
     if (f === target) {
