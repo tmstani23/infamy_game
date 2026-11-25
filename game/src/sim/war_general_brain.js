@@ -695,7 +695,7 @@ export function createGeneralBrain(game, { clan }) {
     const G = gen().rules(), m = memory(w, 'attacker'), hall = campHall(w), t = town(w.town);
     const all = troops(w).filter(e => !e.garrison && !e.downed), held = troops(w).filter(e => (e.garrison?.fort || e.garrison?.zone) && !e.downed), count = all.length + held.length;
     const comeOut = () => { if (cmd) for (const key of new Set(held.map(e => e.garrison.key))) out.push(cmd({ action: 'garrison', mode: 'leave', structure: key })); };
-    if (!count) { if (m.mode === 'push') m.beaten = (m.beaten || 0) + 1; m.mode = 'hold'; delete m.wave; return; }
+    if (!count) { if (m.mode === 'push') m.beaten = (m.beaten || 0) + 1; m.mode = 'hold'; delete m.wave; delete m.leg; return; }
     const far = (e, x, z, r) => Math.hypot((e.order?.x ?? 1e9) - x, (e.order?.z ?? 1e9) - z) > r;
     const foe = e => e.owner === w.defender && e.place === 'world' && !e.dead && !e.downed && !e.rout && !e.hidden && !e.garrison && !e.worker && e.type !== 'civilian' && e.type !== 'hero' && e.type !== 'horse';
     const meet = (list, x, z, r) => {
@@ -713,6 +713,23 @@ export function createGeneralBrain(game, { clan }) {
       const ids = list.filter(e => Math.hypot(e.x - hx, e.z - hz) > (G.holdRadius ?? 35) && (e.order?.kind !== 'station' || far(e, hx, hz, 5))).map(e => e.id);
       if (ids.length) out.push(order({ kind: 'station', units: ids, x: hx, z: hz }));
     };
+    // Tim 2026-11-25: the wave marches up as one army. It forms up at the rally point, then moves in legs of
+    // attack.march.leg units toward the town and waits at each until share of it is there (or waitSeconds pass), so
+    // riders do not run ahead. Within near of the town it goes for its targets as before. true while marching.
+    const march = (mine, m) => {
+      const MR = G.attack?.march || {}; if (MR.leg === 0) return false;
+      if (!m.leg) { const d = dist(t, hall) || 1; m.leg = { x: Math.round(hall.x + (t.x - hall.x) / d * (A.rallyOut ?? 32)), z: Math.round(hall.z + (t.z - hall.z) / d * (A.rallyOut ?? 32)), at: state.tick }; }
+      if (m.leg.done) return false;
+      const r = MR.gather ?? 20, there = mine.filter(e => Math.hypot(e.x - m.leg.x, e.z - m.leg.z) <= r || (e.order?.kind === 'attackmove' && e.order.arrived && !far(e, m.leg.x, m.leg.z, 5))).length;   // (or stopped as near as the ground lets it)
+      if (there >= Math.ceil(mine.length * (MR.share ?? 0.8)) || state.tick - m.leg.at >= (MR.waitSeconds ?? 40) * 20) {
+        const left = Math.hypot(t.x - m.leg.x, t.z - m.leg.z);
+        if (left <= (MR.near ?? 80) + (MR.leg ?? 60)) { m.leg.done = true; return false; }   // the last leg: on to the targets
+        const step = MR.leg ?? 60; m.leg = { x: Math.round(m.leg.x + (t.x - m.leg.x) / left * step), z: Math.round(m.leg.z + (t.z - m.leg.z) / left * step), at: state.tick };
+      }
+      const ids = mine.filter(e => e.order?.kind !== 'attack' && Math.hypot(e.x - m.leg.x, e.z - m.leg.z) > r * 0.6 && (e.order?.kind !== 'attackmove' || far(e, m.leg.x, m.leg.z, 5))).map(e => e.id);
+      if (ids.length) out.push(order({ kind: 'attackmove', units: ids, x: m.leg.x, z: m.leg.z }));
+      return true;
+    };
     // it pushes at pushAt troops, or with what it has once it cannot grow any more. A push is one wave (8d-8): troops
     // trained meanwhile gather at the camp for the next. The wave is given up at fallBack of its size; after each
     // push given up the next waits for regroup times more troops (up to the troop cap). Once it cannot grow, all go.
@@ -729,25 +746,35 @@ export function createGeneralBrain(game, { clan }) {
     // the defenders it can see near the town. Never into a town with a stockade before it has siege guns (8d-10).
     const UD = F().data.war?.units || {}, BR = A.boldReady || G.attack?.boldReady || {}, groupOf = e => UD[e.warUnit]?.group;
     const worth = l => l.reduce((n, e) => n + (F().war.ryoOf(e.owner, e.warUnit) || 60), 0);
-    const seen = Object.values(state.entities).filter(e => foe(e) && Math.hypot(e.x - t.x, e.z - t.z) <= (A.scout ?? G.attack?.scout ?? 600));
+    // Tim 2026-11-25: every defender counts for the edge, those in houses, stockades and towers too, and the town's
+    // standing towers by attack.towerWorth (they shoot by themselves)
+    const scoutR = A.scout ?? G.attack?.scout ?? 600, inTown = e => Math.hypot(e.x - t.x, e.z - t.z) <= scoutR;
+    const seen = Object.values(state.entities).filter(e => (foe(e) || (e.garrison && e.warUnit && e.owner === w.defender && !e.dead && !e.downed && !e.hidden)) && inTown(e));
+    const TW = G.attack?.towerWorth || {}, towers = F().structures.list().filter(st => st.town === w.town && !st.camp && TW[st.type] && F().structures.hpOf(st) > 0).reduce((n, st) => n + TW[st.type], 0);
     const stockadeShut = !!siegeUp(w, m) && ![...all, ...held].some(e => groupOf(e) === 'siege');
     const bold = gen().temper?.(w, 'attacker') === 'bold' && count >= (BR.troops ?? 10) && [...all, ...held].filter(e => groupOf(e) === 'ranged').length >= (BR.ranged ?? 2);
-    const edge = seen.length > 0 && worth([...all, ...held]) >= (A.edgePush ?? G.attack?.edgePush ?? 1.5) * worth(seen);
+    const edge = seen.length + towers > 0 && worth([...all, ...held]) >= (A.edgePush ?? G.attack?.edgePush ?? 1.5) * (worth(seen) + towers);
     const early = !stockadeShut && (bold || edge);
     m.early = early ? (bold ? 'bold' : 'edge') : undefined;
     const ready = m.left === 0 || early || state.tick - (w.started ?? w.at ?? state.tick) >= (A.buildWaitSeconds ?? G.attack?.buildWaitSeconds ?? 1200) * 20;
     const may = ready || (m.probes || 0) < (A.probes ?? G.attack?.probes ?? 1);
-    const strong = m.mode === 'push' ? waveSize >= Math.max(1, Math.ceil((m.pushed || pushAt) * (A.fallBack ?? 0.35))) || (m.spent && waveSize > 0) : may && (count >= need || (early && count >= (A.pushLeast ?? 3)) || (m.spent && count >= (A.pushLeast ?? 3)));
-    if (strong && m.mode !== 'push') { comeOut(); m.pushed = count; m.wave = everyone; if (!ready) m.probes = (m.probes || 0) + 1;
+    // Tim 2026-11-25 (an army, not waves): an early push still needs the strategy's least force (attack.pushLeast), and
+    // after a beaten push regroup times more like a full one; with no money left to train he goes with what he has
+    // only from spentShare of that least force (else he waits for ryo by rail). All capped at the troop cap.
+    const least = Math.max(1, Math.min(cap, Math.round((A.pushLeast ?? G.attack?.pushLeast ?? 8) * (A.regroup ?? G.attack?.regroup ?? 1.5) ** Math.min(m.beaten || 0, G.attack?.regroupMost ?? 3))));
+    const spentLeast = Math.max(1, Math.min(cap, Math.ceil(least * (G.attack?.spentShare ?? 0.5))));
+    const strong = m.mode === 'push' ? waveSize >= Math.max(1, Math.ceil((m.pushed || pushAt) * (A.fallBack ?? 0.35))) || (m.spent && waveSize > 0) : may && (count >= need || (early && count >= least) || (m.spent && count >= spentLeast));
+    if (strong && m.mode !== 'push') { comeOut(); delete m.leg; m.pushed = count; m.wave = everyone; if (!ready) m.probes = (m.probes || 0) + 1;
       logAct(state, F().data, w, 'general', 'war', `${ready ? 'Pushed' : 'Probed'} at ${t.name || 'the town'} with ${count} troops`, ready ? (m.early ? `He went early: ${m.early === 'bold' ? 'a bold general with his core troops up' : 'his army is clearly the stronger near the town'}.` : 'His camp list is built, or he has waited long enough.') : 'A probe before his camp list is built, to test the defence.'); }
     if (!strong && m.mode === 'push') { m.beaten = (m.beaten || 0) + 1; logAct(state, F().data, w, 'general', 'bad', `Push beaten back at ${t.name || 'the town'}`, `He regroups and waits for more troops before the next push (beaten ${m.beaten} times).`); }   // a push given up: the camp digs in (campBuild)
-    if (!strong) { m.mode = 'hold'; delete m.wave; gather(all); return; }
+    if (!strong) { m.mode = 'hold'; delete m.wave; delete m.leg; gather(all); return; }
     if (m.wave) { m.wave = m.wave.filter(id => everyone.includes(id)); gather(all.filter(e => !m.wave.includes(e.id))); }
     m.mode = 'push';
     if (!mine.length) return;   // the wave is still coming out of the stockade
     const cx = mine.reduce((n, e) => n + e.x, 0) / mine.length, cz = mine.reduce((n, e) => n + e.z, 0) / mine.length;
     m.mode = 'push';
     if (meet(mine, cx, cz, A.engage ?? 45)) return;   // troops in the way first
+    if (march(mine, m)) return;   // still marching up together
     let tg = pickTarget(w, A, { x: cx, z: cz });
     tg = wayIn(w, tg, mine, cx, cz, m) || tg;
     if (!tg) {   // nothing left to break: the army stands at the hall while the hero takes it
