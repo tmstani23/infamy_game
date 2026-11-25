@@ -68,7 +68,7 @@ const CSS = `
 #warcamp .ucard:hover{border-color:#ffe0a1}#warcamp .ucard .uhead{display:grid;grid-template-columns:62px 1fr;gap:7px}
 #warcamp .ustill{height:84px;border:1px solid #826f4c;border-radius:6px;background:#2a2620 center 20%/cover no-repeat}#warcamp .ustill.concept{background-size:140%;background-position:center 18%}
 #warcamp .un{font-weight:700;color:#f3e3bd;font-size:13px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#warcamp .sr{display:flex;justify-content:space-between;font-size:11px;color:#9aa3a6;line-height:1.45}#warcamp .sr b{color:#eadfc6}
+#warcamp .sr{display:flex;justify-content:space-between;gap:6px;font-size:11px;color:#9aa3a6;line-height:1.45;white-space:nowrap;overflow-wrap:normal}#warcamp .sr b{color:#eadfc6;flex:none}
 #warcamp .ab{min-height:14px;margin-top:3px;color:#d8b56c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #warcamp .chestbox{display:grid;grid-template-columns:150px 1fr;gap:16px;margin-top:14px;align-items:start}
 #warcamp .chestcoin{border-radius:50%;width:140px;height:140px;display:grid;place-content:center;text-align:center;background:radial-gradient(#5a2a20,#1a0c0a 72%);box-shadow:0 0 0 3px #c9473d,0 0 0 5px #2a0f0d,0 0 24px #c9473d77;cursor:help}
@@ -178,6 +178,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0, workersH, stab, ypage, mineV.map(v => [v.e.id, v.status, v.where]), chestSendSig(game, w, w.attacker), armorySig(game, w, w.attacker), stOrder, stSell, logOpen, lpage, w.log?.general?.length || 0, w.log?.general?.[0]?.tick, Math.floor((game.state.tick || 0) / 1200), JSON.stringify(c.station || null), (() => { const l = game.state.frontier?.rail?.links?.[c.station?.link]; return l ? [Math.floor(100 * l.built / Math.max(1, l.length)), l.waiting, l.done, l.closed] : null; })(),
       Object.values(game.state.frontier?.shipping?.orders || {}).filter(o => o.camp && o.war === w.id && o.state === 'open').map(o => [o.id, o.got])]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
     if (next === sig) return;
+    if (held) return;   // keep the old buttons while a mouse button is down; the redraw comes on the next frame after release
     sig = next;
     // a count box being typed in keeps its focus and text across the redraw (it used to block the redraw instead)
     const typing = root.contains(document.activeElement) && document.activeElement.tagName === 'INPUT' ? { n: document.activeElement.dataset.n, a: document.activeElement.selectionStart, b: document.activeElement.selectionEnd } : null;
@@ -210,7 +211,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         const S = stats(u), price = ryoOf(u), pic = face(S.model);
         const tip = `${S.name}. Health ${S.hp}, damage a second ${S.dps.toFixed(1)}, range ${S.range}, speed ${S.speed}. ${price} ryo from the war chest, ${U[u]?.timber ? `${U[u].timber} timber from the camp stock, ` : ''}${Math.round(ticksOf(u) / 20)} s to train.${(U[u]?.slots ?? 1) > 1 ? ` Takes ${U[u].slots} troop places.` : ''}${S.abil.length ? ' ' + S.abil.join(' ') : ''}`;
         return `<div class="ucard" title="${esc(tip)}"><div class="uhead"><div class="ustill${pic.includes('/stills/') ? ' concept' : ''}"${pic ? ` style="background-image:url('${esc(pic)}')"` : ''}></div><div class="ustats"><div class="un">${esc(S.name)}</div>
-          <div class="sr"><span>Health</span><b>${S.hp}</b></div><div class="sr"><span>Damage a sec</span><b>${S.dps.toFixed(S.dps < 10 ? 1 : 0)}</b></div><div class="sr"><span>Range</span><b>${S.range}</b></div><div class="sr"><span>Speed</span><b>${S.speed}</b></div></div></div>
+          <div class="sr"><span>Health</span><b>${S.hp}</b></div><div class="sr" title="Damage a second"><span>Damage</span><b>${S.dps.toFixed(S.dps < 10 ? 1 : 0)}</b></div><div class="sr"><span>Range</span><b>${S.range}</b></div><div class="sr"><span>Speed</span><b>${S.speed}</b></div></div></div>
           <div class="cost" style="justify-content:flex-start;margin-top:6px"><span class="chip ryo${(c.chest || 0) < price ? ' short' : ''}"><i></i>${price}</span>${U[u]?.timber ? `<span class="chip timber${(c.stock?.timber || 0) < U[u].timber ? ' short' : ''}"><i></i>${U[u].timber}</span>` : ''}<span class="small">${Math.round(ticksOf(u) / 20)} s each</span></div>
           <div class="small ab">${S.abil.length ? S.abil.map(x => `<span title="${esc(x)}">${esc(x.split(':')[0].split('.')[0])}</span>`).join(', ') : '&nbsp;'}</div>
           <div style="display:flex;gap:6px;margin-top:6px">${num(`t:${b.id}:${u}`)}<button class="go" data-train="${esc(b.id)}" data-unit="${esc(u)}">Train</button></div></div>`;
@@ -335,6 +336,10 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   root.addEventListener('input', e => { const k = e.target?.dataset?.n; if (k) counts[k] = e.target.value; });
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
   for (const ev of ['keyup', 'pointerdown', 'mousedown', 'wheel']) root.addEventListener(ev, e => e.stopPropagation());
+  // Tim 2026-11-25: a redraw between mouse down and up (the queue countdown redraws every second) swapped the Train button out, so the click was lost
+  let held = false;
+  root.addEventListener('pointerdown', () => { held = true; });
+  for (const ev of ['pointerup', 'pointercancel', 'blur']) addEventListener(ev, () => { held = false; }, { capture: true });
   const count = key => { const n = Math.floor(Number(counts[key] ?? 1)); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
   // 7c-4: the Workers tab's buttons and group boxes belong to the worker pane (frontier_build_ui.js)
   // Tim 2026-11-25: a click anywhere on a worker card selects it (not only the portrait); the group box and buttons keep their own clicks

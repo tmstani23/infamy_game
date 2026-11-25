@@ -73,6 +73,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
     const next = JSON.stringify([open, bid, tab, page, tpage, why, confirm, !!w?.terms, v, strat, s.warKeep, Math.floor(s.stock?.ryo || 0), Math.floor(s.stock?.timber || 0), Math.floor(s.stock?.stone || 0), s.warHall, s.warUpgrade?.left, s.builders, Math.floor(clan?.ryo ?? 0), clan?.treasuryKeep,
       s.buildings.map(b => [b.id, b.stage, b.queue?.length || 0, b.queue?.[0] ? Math.ceil(b.queue[0].left / 20) : 0]), sites.map(p => [p.id, Math.floor(100 * p.progress / Math.max(1, p.need)), p.paid]), hallSt ? Math.ceil(ST.hpOf(hallSt)) : 0, bld && stOf(bld) ? Math.ceil(ST.hpOf(stOf(bld))) : 0, w && defending ? chestSendSig(game, w, me) : '', w && defending ? armorySig(game, w, me) : '', logOpen, lpage, s.log?.general?.length || 0, s.log?.general?.[0]?.tick, Math.floor((game.state.tick || 0) / 1200)]);
     if (next === sig) return;
+    if (held) return;   // keep the old buttons while a mouse button is down; the redraw comes on the next frame after release
     sig = next;
     const typing = root.contains(document.activeElement) && document.activeElement.tagName === 'INPUT' ? { n: document.activeElement.dataset.n, a: document.activeElement.selectionStart, b: document.activeElement.selectionEnd } : null;
     const musterBox = v?.muster > 0 ? `<div class="muster"><b>Mustering</b><span>Training opens in ${mmss(v.muster)}${bld ? '' : '. You can fill the war chest now.'}</span></div>` : '';
@@ -104,7 +105,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
           const S = stats(unit), pic = face(S.model);
           const tip = `${S.name}. Health ${S.hp}, damage a second ${S.dps.toFixed(1)}, range ${S.range}, speed ${S.speed}. ${ryo} ryo from the war chest, ${U[unit]?.timber ? `${U[unit].timber} timber from town stock, ` : ''}${Math.round(seconds)} s to train.${(U[unit]?.slots ?? 1) > 1 ? ` Takes ${U[unit].slots} troop places.` : ''}${S.abil.length ? ' ' + S.abil.join(' ') : ''}`;
           return `<div class="ucard" title="${esc(tip)}"><div class="uhead"><div class="ustill${pic.includes('/stills/') ? ' concept' : ''}"${pic ? ` style="background-image:url('${esc(pic)}')"` : ''}></div><div class="ustats"><div class="un">${esc(S.name)}</div>
-            <div class="sr"><span>Health</span><b>${S.hp}</b></div><div class="sr"><span>Damage a sec</span><b>${S.dps.toFixed(S.dps < 10 ? 1 : 0)}</b></div><div class="sr"><span>Range</span><b>${S.range}</b></div><div class="sr"><span>Speed</span><b>${S.speed}</b></div></div></div>
+            <div class="sr"><span>Health</span><b>${S.hp}</b></div><div class="sr" title="Damage a second"><span>Damage</span><b>${S.dps.toFixed(S.dps < 10 ? 1 : 0)}</b></div><div class="sr"><span>Range</span><b>${S.range}</b></div><div class="sr"><span>Speed</span><b>${S.speed}</b></div></div></div>
             <div class="cost" style="justify-content:flex-start;margin-top:6px"><span class="chip ryo${v.chest < ryo ? ' short' : ''}"><i></i>${ryo}</span>${U[unit]?.timber ? `<span class="chip timber${(s.stock?.timber || 0) < U[unit].timber ? ' short' : ''}"><i></i>${U[unit].timber}</span>` : ''}<span class="small">${Math.round(seconds)} s each</span></div>
             <div class="small ab">${S.abil.length ? S.abil.map(x => `<span title="${esc(x)}">${esc(x.split(':')[0].split('.')[0])}</span>`).join(', ') : '&nbsp;'}</div>
             <div style="display:flex;gap:6px;margin-top:6px">${num(`t:${bld.id}:${unit}`)}<button class="go" data-train="${esc(bld.id)}" data-unit="${esc(unit)}"${locked ? ' disabled' : ''}>Train</button></div></div>`;
@@ -174,6 +175,10 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
   root.addEventListener('change', e => { if (!e.target?.dataset?.fund || !open) return; const v = String(e.target.value).trim(), n = Number(v); sig = ''; if (v === '' || !Number.isFinite(n)) { why = 'Type a number from 0 to 100'; delete counts.fund; } else { why = ''; sendFund(n); } fill(); });
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
   for (const ev of ['keyup', 'pointerdown', 'mousedown', 'wheel']) root.addEventListener(ev, e => e.stopPropagation());
+  // Tim 2026-11-25: a redraw between mouse down and up (the queue countdown redraws every second) swapped the Train button out, so the click was lost
+  let held = false;
+  root.addEventListener('pointerdown', () => { held = true; });
+  for (const ev of ['pointerup', 'pointercancel', 'blur']) addEventListener(ev, () => { held = false; }, { capture: true });
   const count = (key, d = 1) => { const n = Math.floor(Number(counts[key] ?? d)); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
   root.addEventListener('click', e => {
     const b = e.target.closest?.('[data-close],[data-tab],[data-page],[data-tpage],[data-build],[data-cancel],[data-armcancel],[data-train],[data-untrain],[data-upgrade],[data-put],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-fundstep],[data-logopen],[data-logback],[data-lpage]'); if (!b || !open) return;

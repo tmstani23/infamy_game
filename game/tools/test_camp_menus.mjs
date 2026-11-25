@@ -39,7 +39,7 @@ g.step([]);
 // ---- a tiny DOM: enough for the panel to build its HTML ----------------------------------------------------
 const made = [], el = tag => { const n = { tag, style: {}, dataset: {}, hidden: false, innerHTML: '', append() {}, addEventListener(ev, fn) { (n.on ||= {})[ev] = fn; }, contains: () => false, querySelector: () => null, getContext: () => ({}) }; made.push(n); return n; };
 globalThis.document = { createElement: el, head: el('head'), body: el('body'), activeElement: null };
-globalThis.addEventListener = () => {}; globalThis.Image = class { set src(v) {} }; globalThis.innerWidth = 1200; globalThis.innerHeight = 800;
+const winOn = {}; globalThis.addEventListener = (ev, fn) => { (winOn[ev] ||= []).push(fn); }; globalThis.Image = class { set src(v) {} }; globalThis.innerWidth = 1200; globalThis.innerHeight = 800;
 const { createWarCampPanel } = await import('../src/war_camp_panel.js');
 const sent = [], P = createWarCampPanel({ game: g, heroId: hero.id, view: {}, catalog: null, frontierData: frontier, units: data('data/units.json'), send: x => sent.push(x) });
 const root = made.find(n => n.id === 'warcamp'); assert.ok(root, 'panel root');
@@ -54,6 +54,9 @@ assert.ok(!h.includes('data-build='), 'no build cards here');
 click({ train: rr.id, unit: 'archer' }); g.step(sent.splice(0));
 assert.equal(rr.queue.length, 1, 'Train on the card queues one at this building');
 P.update(); h = root.innerHTML; assert.ok(h.includes('next in') && h.includes('Cancel last'), 'the queue shows');
+// Tim 2026-11-25: a mouse button held on the panel holds the redraw, so the countdown can't swap a Train button out mid-click
+root.on.pointerdown({ stopPropagation() {} }); for (let i = 0; i < 40; i++) g.step([]); P.update(); assert.equal(root.innerHTML, h, 'no redraw while the mouse is down');
+for (const fn of winOn.pointerup || []) fn({}); P.update(); assert.notEqual(root.innerHTML, h, 'the redraw comes after release');
 
 assert.ok(P.show(rec.id, hall.id) && root.innerHTML.includes('data-build=') && root.innerHTML.includes('data-tab="chest"'), 'the hall: build cards and tabs');
 assert.ok(!root.innerHTML.includes('data-train='), 'no training in the hall');
