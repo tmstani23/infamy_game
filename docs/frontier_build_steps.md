@@ -433,6 +433,8 @@ Not chosen yet: food spoilage, big stockpiles drawing raids, export carts (left 
 | Upgrade to this tier | at founding | pop 20; timber 300, stone 150, goods 40 | pop 60; timber 1,200, stone 800, goods 250 |
 
 Camp tier allows 3 work camps (Tim 2026-11-21; was 2), one each for timber, stone and food; Village 4 and Town 8 unchanged.
+
+Work camp caps by tier are now Camp 3 / Village 6 / Town 8 (2026-11-25). The build menu shows "Camps used/max" on the Camps row, with a bare count on each camp button (replaces the 2026-11-22 display).
 Camp tier has 6 work cells (Tim 2026-11-22; was 4).
 Town tier worker cap 60 (Tim 2026-11-22; was 90).
 

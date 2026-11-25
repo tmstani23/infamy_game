@@ -964,6 +964,7 @@ body .uf .fill { background-color: var(--bar); background-image: linear-gradient
 #buildmini .bmexit { color: #2a1b10; background: linear-gradient(180deg, #ecca86, #b6873f); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), 0 2px 0 #2b1c0c; }
 .buildtools .blab { font: 700 13px var(--ln-font); letter-spacing: 0; text-transform: none; color: var(--ln-dim); padding-top: 3px; }
 .buildtools button small { font: 600 11px var(--ln-font); }
+.buildtools .blab small { font: 600 12px var(--ln-font); color: var(--ln-num); margin-left: 3px; }
 .buildtools button.locked { color: #7a6a52 !important; background: linear-gradient(180deg, #1c130d, #120b07) !important; border: none !important; box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 3px rgba(0,0,0,.7) !important; }
 .buildtools button.eraser { color: #e08a78; }
 #buildmini .hint { font: 500 12.5px var(--ln-font); color: var(--ln-dim); }

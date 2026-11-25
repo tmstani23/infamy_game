@@ -32,7 +32,7 @@
     "camps": ["lumber_camp", "quarry", "food_camp"], "outsideRing": { "_note": "Tim 2026-11-21: these may stand outside the town ring only beside one of the town's own built work camps (within near world units of it), perCamp of them for each work camp; work camps stay within the town's worker range, so never near a rival town", "watchtower": { "near": 55, "perCamp": 1 } },
     "list": [
       { "name": "Camp", "ring": 150, "cells": { "housing": 24, "farm": 16, "work": 6 }, "placed": { "storehouse": 1, "camps": 3, "stockade": 0, "market": 0, "infirmary": 1, "stable": 1, "station": 1 }, "workers": 12 },
-      { "name": "Village", "ring": 300, "cells": { "housing": 60, "farm": 40, "work": 24 }, "placed": { "storehouse": 2, "camps": 4, "stockade": 1, "market": 1, "infirmary": 1, "stable": 1, "station": 1 }, "workers": 35,
+      { "name": "Village", "ring": 300, "cells": { "housing": 60, "farm": 40, "work": 24 }, "placed": { "storehouse": 2, "camps": 6, "stockade": 1, "market": 1, "infirmary": 1, "stable": 1, "station": 1 }, "workers": 35,
         "upgrade": { "pop": 20, "cost": { "timber": 750, "stone": 750, "goods": 750 }, "ticks": 120 } },
       { "name": "Town", "ring": 600, "cells": { "housing": 120, "farm": 80, "work": 60 }, "placed": { "storehouse": 4, "camps": 8, "stockade": 3, "market": 1, "infirmary": 2, "stable": 2, "station": 1 }, "workers": 60,
         "upgrade": { "pop": 60, "cost": { "timber": 2250, "stone": 2250, "goods": 2250 }, "ticks": 300 } }
