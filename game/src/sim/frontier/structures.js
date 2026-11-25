@@ -723,8 +723,18 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       fr.garrisonShots = fr.garrisonShots.filter(s => s.until > now); if (!fr.garrisonShots.length) delete fr.garrisonShots;
     }
     if (now % 2) return;
+    // Tim 2026-11-25: a stockade still holds garrison.capacity, but only garrison.firingSlots of the ranged units inside
+    // shoot (the first by id); the rest shelter and heal. Houses and towers are not limited here.
+    const slots = data.buildings?.stockade?.garrison?.firingSlots, firing = new Map();
+    if (slots > 0) for (const u of Object.values(state.entities)) {
+      const g = u.garrison; if (!g || g.hall || !(g.fort || g.building) || u.dead) continue;
+      const unit = rt.unitOf(u); if (!unit?.projectile && !unit?.rifle) continue;
+      (firing.get(g.key) || firing.set(g.key, []).get(g.key)).push(u.id);
+    }
+    for (const [key, ids] of firing) firing.set(key, new Set(ids.sort().slice(0, slots)));
     for (const u of Object.values(state.entities)) {
       const g = u.garrison; if (!g || g.hall || !(g.zone || g.building) || u.dead || u.owner == null || (g.next ?? 0) > now) continue;   // a house, or a stockade (8d-9: everyone ranged inside one)
+      if ((g.fort || g.building) && firing.has(g.key) && !firing.get(g.key).has(u.id)) continue;   // no free firing slot
       const unit = rt.unitOf(u); if (!unit?.projectile && !unit?.rifle) continue;
       const w = g.war ? war.byId(g.war) : war.warOn(g.town); if (!w || w.terms || (u.owner !== w.defender && u.owner !== w.attacker)) continue;
       const foe = u.owner === w.defender ? w.attacker : w.defender, reach = (unit.rifle?.range ?? unit.attackRange ?? 6) + 3 + (g.fort || g.building ? data.buildings?.stockade?.garrison?.reach ?? 0 : 0) + (g.reach || 0);   // g.reach: from a watchtower (Z4e)

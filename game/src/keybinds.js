@@ -44,6 +44,7 @@ export const KEY_ACTIONS = [
   A('workerWork', 'Send workers to build a camp site, repair or put out a fire, or order a ruin rebuilt', 'Crew orders', [], { fixed: true, text: 'Right-click it with workers selected' }),
   A('evacuate', 'Evacuate garrison', 'Crew orders', 'Shift+KeyK'),
   A('garrisonIn', 'Send the selected into a stockade or house', 'Crew orders', [], { fixed: true, text: 'Ctrl + right-click it' }),
+  A('garrisonOut', 'Send one unit out of a stockade, tower or house', 'Crew orders', [], { fixed: true, text: 'Right-click its garrison slot' }),   // Tim 2026-11-25
   A('shipSail', 'Sail the selected ships there; a click on land sails to the nearest shore they can land on', 'Crew orders', [], { fixed: true, text: 'Right-click water or shore' }),   // ships S2
   A('shipBoard', 'Send the selected aboard your ship; a ship lying off comes in to their shore. With nothing selected the hero goes', 'Crew orders', [], { fixed: true, text: 'Right-click your ship' }),
   A('shipUnload', 'Let everyone off the selected ships; a ship on the water sails in to shore first', 'Crew orders', [], { fixed: true, text: 'Q with ships selected' }),

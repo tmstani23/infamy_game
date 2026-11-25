@@ -73,7 +73,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   modules.push({ name: 'placement', placement }, { name: 'zones', zones });
   const commandHooks = {};   // .rail once it exists (a removed station tears up its lines)
   const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones, workers, hooks: commandHooks });
-  const garrison = createGarrison({ state, data, world: live, atWar: (clan, s) => { const w = war.warOn(s.id); return !!w && w.attacker === clan; } });
+  const garrison = createGarrison({ state, data, world: live, dismount: e => runtime?.dismount?.(e), atWar: (clan, s) => { const w = war.warOn(s.id); return !!w && w.attacker === clan; } });
   const infirmary = createInfirmary({ state, data });   // Tim 2026-11-06: heals nearby units, revives the island's fallen
   const stable = createStable({ state, data, world: live, capitalYard });   // capitalYard: the island side of the city gate (the capital stable)   // Tim 2026-11-06: horses and omnibuses, made by hand
   modules.push({ name: 'garrison', command: (e, c) => garrison.command(e, c) });

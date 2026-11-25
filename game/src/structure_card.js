@@ -9,6 +9,7 @@ import { healthBar } from './render/health.js';
 import { cellToWorld } from './sim/frontier/town_grid.js';
 import { openMenu, placeBeside, unplace } from './card_beside.js';
 import { structureDmgKind } from './damage_tip.js';
+import { GARRISON_SLOTS_CSS, garrisonSlotsHtml, garrisonSlotOut } from './garrison_slots.js';
 
 const CSS = `
 #structcard{position:fixed;right:560px;bottom:175px;width:200px;box-sizing:border-box;padding:7px 9px 9px;z-index:34;background:linear-gradient(180deg,#171c21,#0f1317);border:1px solid #4d3b2a;border-top:2px solid #c9473d;border-radius:8px;box-shadow:0 8px 30px #000a;color:#eadfc6;font:13px/1.35 system-ui,sans-serif}
@@ -27,12 +28,14 @@ const CSS = `
 .zonegar.foe{border-color:#e0786c}
 #garhint{position:fixed;z-index:60;pointer-events:none;padding:3px 8px;border-radius:5px;background:rgba(12,14,18,.92);border:1px solid #d8b56c;color:#f6e6bf;font:600 11px/14px system-ui,sans-serif;white-space:nowrap}
 #garhint[hidden]{display:none}
-#structcard .bar.build i{background:#d8b56c}`;
+#structcard .bar.build i{background:#d8b56c}
+#structcard.slotted{width:auto}
+${GARRISON_SLOTS_CSS}`;
 const NAMES = { town_hall: 'Town hall', housing: 'House', work: 'Workshop', farm: 'Farmhouse', wall: 'Wall', gate: 'Gate', camp_hall: 'Camp hall' };
 const nice = t => NAMES[t] || (t || 'building').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export function createStructureCard({ game, view, heroId, frontierData, send, selected = () => [], badgeRoot = null, menuAt = () => false }) {
+export function createStructureCard({ game, view, heroId, frontierData, send, selected = () => [], badgeRoot = null, menuAt = () => false, catalog = null, units = null }) {
   const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
   // the pane is a layout panel (Edit layout: Building pane), so index.html holds its element; small, above the action bar
   const root = document.getElementById('structcard') || Object.assign(document.createElement('div'), { id: 'structcard', hidden: true }); if (!root.parentNode) document.body.append(root);
@@ -40,7 +43,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   const onIsland = () => game.state.entities[heroId]?.place === 'world';
   const ST = () => game.frontier?.structures, GA = () => game.frontier?.garrison;
   const Z = () => frontierData?.war?.structures?.zoneGarrison || {};
-  let key = null, sig = '', pinned = false, withMenu = false;   // pinned: opened by a click (stays); withMenu: beside the building's menu (Tim 2026-11-20)
+  let key = null, sig = '', pinned = false, withMenu = false, page = 0;   // page: of the garrison slots   // pinned: opened by a click (stays); withMenu: beside the building's menu (Tim 2026-11-20)
   const wars = () => Object.values(game.state.frontier?.wars?.list || {});
   // structures you may look at: your own towns, and the town or camp of a war you are in
   function visible() { return ST()?.list?.() || []; }   // Tim 2026-11-12: any building, yours or the enemy's
@@ -119,7 +122,9 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     const hp = Math.ceil(ST().hpOf(st)), n = inside(st), own = st.owner === owner(), canG = own && zoneOk(st), cap = capOf(st);
     const up = st.war && st.b?.upgrade ? buildInfo({ ...st, job: st.b.upgrade, id: st.b.id, workers: (wars().find(w => w.id === st.war)?.camp?.workers) || [] }) : null;   // the camp hall upgrade
     const town = st.town ? game.state.frontier?.settlements?.[st.town] : null, stores = !own && st.type === 'town_hall' && town ? rivalStores(town) : '';
-    const stat = status(st, hp), next = [key, hp, n, troopsSelected().length, stat, up?.pct, up?.text, stores].join('|'); if (next === sig) return; sig = next;
+    // your own garrison building's slots (Tim 2026-11-25): who is inside; right-click one to send it out
+    const slots = canG ? garrisonSlotsHtml({ game, heroId, catalog, units, frontierData, st, cap, page, perPage: 12, cols: 4, size: 40, names: false, onPortrait: () => { sig = ''; } }) : null; if (slots) page = slots.page;
+    const stat = status(st, hp), next = [key, hp, n, troopsSelected().length, stat, up?.pct, up?.text, stores, slots?.sig].join('|'); if (next === sig) return; sig = next;
     const { frac, color } = healthBar(hp, st.max);
     const atWar = st.town ? wars().some(w => w.town === st.town) : true;
     const sub = st.war ? (own ? 'Your war camp' : 'Enemy war camp') : own ? (town?.name || 'Your town') : `${town?.name || 'Enemy town'}${atWar ? ', at war' : ''}`;
@@ -131,9 +136,10 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
       ${stores ? `<div class="dim" style="margin:-2px 0 6px">${esc(stores)}</div>` : ''}
       ${up ? `<div class="bar build" title="${up.pct}% upgraded"><i style="width:${up.pct}%"></i></div><div class="dim" style="margin:4px 0 2px"${up.tip ? ` title="${esc(up.tip)}"` : ''}>${esc(up.text)}</div>` : ''}
       <div class="row"><span class="dim">Health ${hp} of ${st.max}</span><span title="${esc(zoneOk(st) || st.type === 'stockade' ? 'Troops inside' : 'Nobody can garrison this')}"><span class="gar">${n}</span>${canG ? `<span class="dim"> of ${cap}</span>` : ''}</span></div>
+      ${slots ? `<div class="dim" style="margin-top:6px">Garrison, ${esc(slots.label)}</div>${slots.html}` : ''}
       ${canG ? `<div class="row"><button data-in="1"${troopsSelected().length ? '' : ' disabled'} title="Your selected troops walk over and go in. Melee troops inside cannot fight; ranged troops shoot out. Hits on them go to the building.${st.type === 'stockade' ? ' Troops inside a stockade recover faster.' : st.type === 'watchtower' ? ' Ranged troops in a watchtower reach further.' : ''}">Garrison selected</button><button data-out="1"${n ? '' : ' disabled'}>Send all out</button></div>
         <div class="dim" style="margin-top:6px">Ctrl + right-click it with troops selected to send them in.</div>` : ''}${hint ? `<div class="dim" style="margin-top:6px">${esc(hint)}</div>` : ''}`;
-    root.hidden = false;
+    root.classList.toggle('slotted', !!slots); root.hidden = false;
   }
   // a rival town hall's people and stores, once you have been close (were in the hover tooltip, town_props.js rivalPlotInfo)
   function rivalStores(t) {
@@ -156,13 +162,15 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     else if (hp < st.max) parts.push('Damaged');
     return parts.join('. ') || 'Standing';
   }
-  function open(st, pin = true, menu = false) { if (key !== st.key || pin) sig = ''; key = st.key; pinned = pin || (pinned && key === st.key); withMenu = menu; if (!menu) unplace(root); draw(); beside(); }
+  function open(st, pin = true, menu = false) { if (key !== st.key) page = 0; if (key !== st.key || pin) sig = ''; key = st.key; pinned = pin || (pinned && key === st.key); withMenu = menu; if (!menu) unplace(root); draw(); beside(); }
   function close() { key = null; pinned = false; withMenu = false; root.hidden = true; unplace(root); }
   // beside its menu: follows the menu, goes when the menu closes
   function beside() { if (!key || !withMenu) return; const m = openMenu(); if (!m) close(); else placeBeside(root, m); }
-  root.addEventListener('mousedown', e => e.stopPropagation());
+  root.addEventListener('mousedown', e => { e.stopPropagation(); if (garrisonSlotOut(e, { heroId, st: key && ST()?.find?.(key), send })) sig = ''; });
+  root.addEventListener('contextmenu', e => e.preventDefault());
   root.addEventListener('click', e => {
-    const b = e.target.closest?.('[data-x],[data-in],[data-out]'); if (!b) return;
+    const b = e.target.closest?.('[data-x],[data-in],[data-out],[data-gpage]'); if (!b) return;
+    if (b.dataset.gpage) { page = Math.max(0, page + Number(b.dataset.gpage)); sig = ''; draw(); return; }
     const st = key && ST()?.find?.(key);
     if (b.dataset.x) return close();
     if (!st) return;

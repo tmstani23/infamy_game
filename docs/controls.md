@@ -229,6 +229,7 @@ War bar default position: top 104 px, below the standings bar.
 | Drag box | A drag box never opens a unit's or worker's card, even round one; only a left-click (or double-click / card click) does (2026-11-25). |
 | Big selections | When a selection is too big for single cards even at the smallest size, the pane shows one tile per unit type with a brass count plate on each portrait (2026-11-25). |
 | Hero dead | War troops take orders (right-click, X, Z) and cast their specials while the hero is dead, down or jailed, wherever he is (2026-11-25). |
+| Garrison slots | Every building troops can hold (town stockade card, town war panel buildings, war camp watchtower and stockade, house Building pane) shows one slot per place with portrait and health; empty places are dark slots. In a stockade a gold dot marks units holding a firing slot. Right-click a unit's slot: that one unit walks out (Controls row garrisonOut). Pages when there are more places than fit. The camp hall shelter is unchanged (2026-11-25). |
 | F3 | Frame time breakdown. |
 | Shift+H (island) | Mount up: selected crew, else the hero crew following, get on horses (hero crew only; not settlers or workers). |
 | Fighting on horseback (island) | The hero and mounted crew attack and use every ability from the saddle; attack-move works as on foot; shooters stop to shoot. Riders stay on when hit and until they fall. Getting off is only Q, a right-click on the Mount card, or Mount up again. |

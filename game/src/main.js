@@ -737,7 +737,7 @@ async function start() {
     openTownHook = id => townPanel.open(id);
     townTalk = id => townPanel.talk(id);
     installDamageTip(simOptions.frontier);
-    createStructureCard({ game, view, heroId, frontierData: simOptions.frontier, send: c => pending.push(c), selected: () => crewInput.selected(), menuAt: (x, y) => townMenuAt(x, y), badgeRoot: $('garrisonbadges') });   // before the town hover: its right-click on a house wins
+    createStructureCard({ game, view, heroId, frontierData: simOptions.frontier, catalog, units, send: c => pending.push(c), selected: () => crewInput.selected(), menuAt: (x, y) => townMenuAt(x, y), badgeRoot: $('garrisonbadges') });   // before the town hover: its right-click on a house wins
     const garrisonCard = createGarrisonCard({ game, heroId, frontierData: simOptions.frontier, units, catalog, send: c => pending.push(c), select: ids => crewInput.select(ids), selected: () => crewInput.selected() });
     const townHover = createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier,
       send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges'),

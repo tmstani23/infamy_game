@@ -24,7 +24,7 @@ import { cellToWorld, townBlockersIn } from './town_grid.js';
 // full health of a town's stockade at a town hall tier
 export const stockadeHp = (data, tier) => { const G = data?.buildings?.stockade?.garrison, t = G?.hpByTier; return (t?.length ? t[Math.min(t.length, Math.max(1, tier || 1)) - 1] : 0) || G?.hp || 0; };
 
-export function createGarrison({ state, data, world, atWar = () => false }) {
+export function createGarrison({ state, data, world, atWar = () => false, dismount = () => {} }) {
   const rules = () => data.buildings?.stockade?.garrison || null;
   const finished = (s, b) => b.type === 'stockade' && b.stage === 'built';
   const forts = s => (s?.buildings || []).filter(b => finished(s, b));
@@ -71,12 +71,14 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
     return true;
   }
   function admitZone(u, st) {
+    if (u.mounted || u.ride?.kind === 'horse') dismount(u);   // Tim 2026-11-25: a rider (the hero on his horse) gets off and goes in
     u.garrison = { ...(st.town ? { town: st.town } : {}), ...(st.war ? { war: st.war } : {}), key: st.key, zone: true, x: st.x, z: st.z, ...(fort(st) ? { fort: true, heal: rules().healFactor || 1 } : {}), ...(byType(st)?.reach ? { reach: byType(st).reach } : {}) };
     delete u.order; delete u.swing; delete u.attackTarget; u.x = st.x; u.z = st.z;
   }
   // who may hold a house or a stockade the structure way: troops, crew and the hero (Tim 2026-11-19: the hero may garrison any
-  // garrisonable building; was troops and crew only, 2026-11-12); never workers, animals, guns on wheels
-  const troopOk = (u, owner) => !!u && u.owner === owner && !u.worker && !u.garrison && !u.dead && !u.downed && !u.jailed && u.place === 'world' && !u.aboard && !u.mounted
+  // garrisonable building; was troops and crew only, 2026-11-12); never workers, animals, guns on wheels. Riders may (Tim
+  // 2026-11-25: the hero on his horse could not go in): they ride over and get off at the door.
+  const troopOk = (u, owner) => !!u && u.owner === owner && !u.worker && !u.garrison && !u.dead && !u.downed && !u.jailed && u.place === 'world' && !u.aboard && !u.cavalry
     && u.type !== 'civilian' && u.type !== 'horse' && !u.wild && !u.cop && !u.guide && !u.gatling;
   function zoneCommand(e, c) {
     const st = zoneSt(c.structure);
@@ -155,7 +157,7 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
     for (const id of Array.isArray(c.units) ? c.units : []) {
       const u = state.entities[id];
       if (!u || (u.owner ?? u.workerOwner) !== e.owner || u.garrison || u.dead || u.downed || u.jailed || u.place !== 'world') continue;
-      if ((u.type === 'civilian' && !u.worker) || u.wild || u.cop) continue;
+      if ((u.type === 'civilian' && !u.worker) || u.wild || u.cop || u.cavalry) continue;
       // war troops hold it the structure way (they shoot out, 8d-9); the hero, crew and workers shelter as before
       const troop = !!u.warTroop && !!structs;
       if (troop && !troopOk(u, e.owner)) continue;
@@ -165,7 +167,7 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
       if (troop && !st) continue;
       if (near.d > R.range) {
         // right-click on the stockade (Tim 2026-11-07): far units walk over and go in when they arrive
-        if (c.walk && !u.worker && !u.aboard && !u.mounted) { u.order = { kind: 'move', x: cx, z: cz, garrisonGo: s.id, ...(troop ? { garrisonKey: st.key } : { garrisonB: b.id }) }; delete u.attackTarget; walking++; } else far++;
+        if (c.walk && !u.worker && !u.aboard) { u.order = { kind: 'move', x: cx, z: cz, garrisonGo: s.id, ...(troop ? { garrisonKey: st.key } : { garrisonB: b.id }) }; delete u.attackTarget; walking++; } else far++;
         continue;
       }
       if (room.get(b.id) <= 0) { full = true; continue; }
@@ -178,6 +180,7 @@ export function createGarrison({ state, data, world, atWar = () => false }) {
   }
 
   function admit(s, b, u, [cx, cz]) {
+    if (u.mounted || u.ride?.kind === 'horse') dismount(u);
     u.garrison = { town: s.id, building: b.id, key: keyOf(s, b), heal: rules().healFactor };
     delete u.order; delete u.swing; delete u.attackTarget;
     const w = workerOf(s, u);

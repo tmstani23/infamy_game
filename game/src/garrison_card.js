@@ -53,6 +53,7 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
     const fr = game.state.frontier, s = fr?.settlements?.[site.town], b = s?.buildings?.find(x => x.id === site.building);
     if (!isGarrisonable(s, b) || game.state.entities[heroId]?.place !== 'world') { close(); return; }
     const R = rulesOf(b.type), cap = R.capacity || 0, mem = members(s, b), max = maxOf(s, b, R);
+    firing = firingOf(mem, R);
     const pages = Math.max(1, Math.ceil(cap / PER_PAGE)); page = Math.min(page, pages - 1);
     // rebuild the grid only when who is inside, the page or the capacity changes; health just updates in place,
     // so the native tooltip under the cursor is not destroyed every time someone heals (Tim 2026-11-10)
@@ -66,13 +67,13 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
     for (let i = page * PER_PAGE; i < Math.min(cap, (page + 1) * PER_PAGE); i++) {
       const m = mem[i];
       if (!m) { slots += '<div class="s e" title="Empty slot"></div>'; continue; }
-      if (m.rest) { slots += `<div class="s rest" data-id="${m.id}" title="Worker, resting inside. Click: walk out"><b class="ini">W</b></div>`; continue; }
+      if (m.rest) { slots += `<div class="s rest" data-id="${m.id}" title="Worker, resting inside. Click or right-click: walk out"><b class="ini">W</b></div>`; continue; }
       const e = m.e, { frac, color } = healthBar(e.hp, e.maxHp), url = portrait(catalog, e.model, () => { sig = ''; });   // null while the picture loads: the next render fills it
       const name = (e.cannon || e.surveyor) && e.name || entityName(units, e, e.civ || e.type);
-      slots += `<div class="s${e.id === heroId ? ' hero' : ''}" data-id="${m.id}" style="${url ? `background-image:url(${url})` : ''}" title="${name}: ${Math.ceil(e.hp)} / ${e.maxHp}, healing ${R.healFactor ?? 1}x. Click: walk out">${url ? '' : `<b class="ini">${initial(e)}</b>`}<div class="h"><i style="width:${frac * 100}%;background:${css(color)}"></i></div></div>`;
+      slots += `<div class="s${e.id === heroId ? ' hero' : ''}" data-id="${m.id}" style="${url ? `background-image:url(${url})` : ''}" title="${name}: ${Math.ceil(e.hp)} / ${e.maxHp}, healing ${R.healFactor ?? 1}x${shoots(e)}. Click or right-click: walk out">${url ? '' : `<b class="ini">${initial(e)}</b>`}<div class="h"><i style="width:${frac * 100}%;background:${css(color)}"></i></div></div>`;
     }
     root.innerHTML = `<button class="x" data-act="close" title="Close">Close</button><div class="sub">${s.name || 'Your town'}, garrison</div><h1>${nice(b.type)}</h1>${hpLine}
-      <div class="lab"><span>Inside ${mem.length} / ${cap}</span><span>${pages > 1 ? `Page ${page + 1} of ${pages}` : ''}</span></div>
+      <div class="lab"><span>Inside ${mem.length} / ${cap}${firing ? `, ${firing.size} of ${R.firingSlots} shooting` : ''}</span><span>${pages > 1 ? `Page ${page + 1} of ${pages}` : ''}</span></div>
       <div class="grid">${slots}</div>
       <div class="row"><span class="dim"${tip(`Units must stand within ${R.range ?? ''} of the building to go in.`)}>Send in</span><span><button data-act="in-sel"${tip('Send your selected units inside')}>Selected</button> <button data-act="in-crew"${tip('Send your hero and crew inside')}>Hero and crew</button></span></div>
       <div class="row"><span class="dim"${tip(`Units inside heal ${R.healFactor ?? 1}x faster and cannot be attacked.`)}>Heal ${R.healFactor ?? 1}x inside</span><span>${pages > 1 ? `<button data-act="prev"${page ? '' : ' disabled'}>Prev</button> <button data-act="next"${page < pages - 1 ? '' : ' disabled'}>Next</button> ` : ''}<button data-act="out"${mem.length ? '' : ' disabled'}${tip('Everyone inside walks out (Shift+K)')}>Evacuate</button></span></div>`;
@@ -87,19 +88,29 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
       const e = m.e, { frac, color } = healthBar(e.hp, e.maxHp), i = el.querySelector('.h i');
       if (!el.style.backgroundImage) { const u = portrait(catalog, e.model, () => { sig = ''; }); if (u) { el.style.backgroundImage = `url(${u})`; el.querySelector('.ini')?.remove(); } }
       if (i) { i.style.width = `${frac * 100}%`; i.style.background = css(color); }
-      const name = (e.cannon || e.surveyor) && e.name || entityName(units, e, e.civ || e.type), t = `${name}: ${Math.ceil(e.hp)} / ${e.maxHp}, healing ${R.healFactor ?? 1}x. Click: walk out`;
+      const name = (e.cannon || e.surveyor) && e.name || entityName(units, e, e.civ || e.type), t = `${name}: ${Math.ceil(e.hp)} / ${e.maxHp}, healing ${R.healFactor ?? 1}x${shoots(e)}. Click or right-click: walk out`;
       if (el.title !== t) el.title = t;
     }
+  }
+  // a stockade's firing slots (Tim 2026-11-25): the first garrison.firingSlots ranged units by id shoot (sim/frontier/structures.js)
+  let firing = null;
+  const shoots = e => !firing ? '' : firing.has(e.id) ? ', shooting' : (units?.types?.[e.type] || units?.[e.type])?.projectile || (units?.types?.[e.type] || units?.[e.type])?.rifle ? ', waiting for a firing slot' : '';
+  function firingOf(mem, R) {
+    if (!(R.firingSlots > 0)) return null;
+    return new Set(mem.filter(m => m.e && ((units?.types?.[m.e.type] || units?.[m.e.type])?.projectile || (units?.types?.[m.e.type] || units?.[m.e.type])?.rifle)).map(m => m.id).sort().slice(0, R.firingSlots));
   }
   const initial = e => String(e.civ || e.type || '?').charAt(0).toUpperCase();   // a chip with no portrait shows its type's initial
   function tip(t) { return ` title="${t.replace(/"/g, '&quot;')}"`; }
 
   // act on mousedown: the card redraws as units heal, which would swallow a click between press and release
   root.addEventListener('click', ev => ev.stopPropagation());
+  root.addEventListener('contextmenu', ev => ev.preventDefault());
   root.addEventListener('mousedown', ev => {
     ev.stopPropagation();
+    const slot = ev.target.closest('.s[data-id]');
+    if (ev.button === 2 && slot) { send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town, building: site.building, units: [slot.dataset.id] }); sig = ''; render(); return; }   // right-click a unit: it walks out (Tim 2026-11-25, as on every garrison building)
     if (ev.button !== 0) return;
-    const a = ev.target.closest('[data-act]')?.dataset.act, slot = ev.target.closest('.s[data-id]');
+    const a = ev.target.closest('[data-act]')?.dataset.act;
     if (a === 'close') return close();
     if (a === 'prev') page--; else if (a === 'next') page++;
     else if (a === 'in-sel' || a === 'in-crew') {   // Tim 2026-11-11: moved here from the Governor tab
