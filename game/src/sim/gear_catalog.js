@@ -87,8 +87,10 @@ for (const id of SHOP_ITEM_IDS) for (const rarity of ['common','green']) {
 // at load from the gear above, so the ladder holds whatever the shop numbers become:
 //   shop item < city drop (Fine) < frontier gear < heirloom.
 // Frontier: for each stat the item gives, the best shop item or city drop with that stat (same slot first, else any
-// slot; a stat no shop item or drop gives, such as less incoming damage, starts from the starter gear) plus 2 points
-// (a flat stat such as maximum HP: plus 2%). Heirloom: the best shop weapon for its stat plus 5 points.
+// slot; a stat no shop item or drop gives, such as less incoming damage, starts from the starter gear) plus FRONTIER_PLUS
+// points (a flat stat such as maximum HP: plus that share). Heirloom: the best shop weapon for its stat plus HEIRLOOM_PLUS points.
+// Tim 2026-11-24 (hero frontier thread): raised from 2 and 5 so they are felt, in the city too.
+export const FRONTIER_PLUS = 0.10, HEIRLOOM_PLUS = 0.25;
 // `fixed` keeps a drawback as it is (the bear coat is heavy). Wolves and bears drop them (sim/wild_animals.js
 // killed, data/wildlife.json species gear); a castle's heirloom goes to whoever takes it (sim/item_services.js).
 export const FRONTIER_GEAR = {
@@ -116,14 +118,14 @@ export const heirloomFor = clan => clan ? `heirloom_${HEIRLOOMS[clan.faction] ? 
     const b = {};
     for (const k of g.stats) {
       const base = best(k, g.slot, tiered) ?? best(k, null, tiered) ?? Math.max(0, ...CURRENT_ITEM_IDS.map(s => starterB[k]?.(s) || 0));
-      b[k] = k === 'maxHpFlat' ? Math.round(base * 1.02 + 0.5) : +(base + 0.02).toFixed(4);
+      b[k] = k === 'maxHpFlat' ? Math.round(base * (1 + FRONTIER_PLUS) + 0.5) : +(base + FRONTIER_PLUS).toFixed(4);
     }
     const modifiers = { ...toModifiers(b), ...(g.fixed || {}) };
     const about = [aboutOf(b), g.fixed?.run ? `${Math.round((1 - g.fixed.run) * 100)}% slower running` : ''].filter(Boolean).join('; ');
     ITEMS[id] = { ...g, id, rarity: 'frontier', bonuses: b, modifiers, about, visual: { ...g.visual, strength: RARITIES.frontier.visualStrength } };
   }
   for (const [f, h] of Object.entries(HEIRLOOMS)) {
-    const b = { [h.stat]: +(best(h.stat, 'weapon', SHOP_ITEM_IDS) + 0.05).toFixed(4) };
+    const b = { [h.stat]: +(best(h.stat, 'weapon', SHOP_ITEM_IDS) + HEIRLOOM_PLUS).toFixed(4) };
     ITEMS[`heirloom_${f}`] = { name: h.name, slot: 'weapon', id: `heirloom_${f}`, icon: h.stat === 'normalAttackRate' ? 'balanced_weapon' : 'honed_weapon', rarity: 'heirloom', heirloom: true, faction: f, bonuses: b,
       modifiers: toModifiers(b), about: `${aboutOf(b)}. ${h.about0}`, visual: { ...h.visual, strength: RARITIES.heirloom.visualStrength }, glow: h.visual.color };
   }

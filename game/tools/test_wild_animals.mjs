@@ -91,7 +91,7 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   run(60);
   assert.ok(hero.hp < hp || crew.some(c => c.hp < c.maxHp), 'the boar bites');
   run(A.species.boar.charge.seconds * 20 + 20);
-  assert.notEqual(boar.wm.mode, 'charge', 'then it gives up');
+  assert.ok(boar.dead || boar.wm.mode !== 'charge', 'then it gives up');   // the hero's Frontier effect (2026-11-24) may kill it first
 }
 
 // a kill: the hide goes to the clan, news flies it to the hero

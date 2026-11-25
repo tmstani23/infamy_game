@@ -350,3 +350,8 @@ Coordinator reports the Kuroda visual-pose, lightning, chain and sprite-pair che
 
 - The hero and hero crew fight mounted with all attacks and abilities, melee and ranged, at the same range and reload as on foot. No thrown rule (units.json rules.mount.throwShare unused). Stun, stagger and slow apply. Mounted melee units may be given Torch. War cavalry unchanged.
 - Cannons (field_cannon, wooden_cannon) unitShare 0.5: a cannonball hits a unit for half its damage; buildings take the whole hit. Single target.
+
+## Balance
+
+- Heroes on the frontier (2026-11-24): heroes, the player's and rivals', deal double damage on the frontier (the island), abilities, buildings and animals included (units.json types.hero.frontierDamage 2, sim/stats.js). City and crew damage are unchanged. The stats sheet shows it as "Frontier x2". Test: game/tools/test_frontier_damage.mjs.
+- Rival hero gear (2026-11-24): rival heroes wear the best gear they win (shop < city drop < frontier < heirloom); the old piece goes to the bag (sim/item_services.js botWear).

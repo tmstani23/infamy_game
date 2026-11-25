@@ -14,7 +14,12 @@ export function createItemServices({state,raidRules={},spawn,nav}) {
   }
   const near=e=>!!e&&canInteract(e)&&e.type==='hero'&&e.place==='street'&&!!shop()&&Math.hypot(e.x-shop().x,e.z-shop().z)<=SHOP.reach;
   const inv=e=>state.clans[e?.owner]?.inventory;
-  function give(owner,id){const c=state.clans[owner],v=c?.inventory;if(!v||!ITEMS[id])return false;
+  // rival bots wear what they win (Tim 2026-11-24): an item better than the one in its slot goes straight on (by rarity:
+  // shop < city drop < frontier < heirloom), the old one into the bag if there is room.
+  const RANK={green:1,frontier:2,heirloom:3}, rank=id=>RANK[ITEMS[id]?.rarity]||0;
+  function botWear(owner,v,id){const slot=ITEMS[id].slot,cur=v.equipment?.[slot];if(!(slot in(v.equipment||{}))||(cur&&rank(id)<=rank(cur)))return false;
+    if(cur){const i=v.bag.indexOf(null);if(i>=0)v.bag[i]=cur;}v.equipment[slot]=id;state.itemGains?.push({clan:owner,id});return true;}
+  function give(owner,id){const c=state.clans[owner],v=c?.inventory;if(!v||!ITEMS[id])return false;if(c.bot&&botWear(owner,v,id))return true;
     const i=v.bag.indexOf(null);if(i<0)return false;v.bag[i]=id;state.itemGains?.push({clan:owner,id});say(c,`Found ${ITEMS[id].name}`);return true;}
   function command(e,c){
     const clan=state.clans[e?.owner],v=inv(e);if(!clan||!v||e.type!=='hero'||!canInteract(e))return;

@@ -16,7 +16,8 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
   const base = e => baseStats(units, e, roamers);
   const buff = (e, id) => { const b = e?.buffs?.[id]; return b && (b.until == null || b.until > state.tick) ? b : null; };
   const clamp = n => Math.max(0, Math.min(1, n));
-  function damageMultiplier(e) { return (buff(e, 'lantern')?.damage || 1) * (buff(e, 'intimidated')?.damage || 1) * (buff(e, 'ambush')?.damage || 1) * (e.warDamage || 1) * (e.warUp?.damage || 1); }   // warDamage: war clan bonus (frontier.json war.clanBonus); warUp: armory upgrades (8e-9)
+  const frontierDamage = e => e?.place === 'world' && e.type === 'hero' ? base(e).frontierDamage || 1 : 1;   // Frontier effect (Tim 2026-11-24): heroes hit harder on the island
+  function damageMultiplier(e) { return (buff(e, 'lantern')?.damage || 1) * (buff(e, 'intimidated')?.damage || 1) * (buff(e, 'ambush')?.damage || 1) * (e.warDamage || 1) * (e.warUp?.damage || 1) * frontierDamage(e); }   // warDamage: war clan bonus (frontier.json war.clanBonus); warUp: armory upgrades (8e-9)
   function damage(e) { return (base(e).damage || 0) * gearMultiplier(e, 'damage') * damageMultiplier(e); }
   function attackInterval(e) { return (base(e).attackSpeed || 1) * gearMultiplier(e, 'attackInterval') / (buff(e, 'rally')?.boost || 1); }
   function criticalChance(e) {
@@ -70,6 +71,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     const damageSources = gearSources(e, 'damage');
     if (buff(e, 'lantern')?.damage) damageSources.push(`Red Lantern ×${buff(e, 'lantern').damage}`);
     if (buff(e, 'intimidated')?.damage) damageSources.push(`Intimidate ×${buff(e, 'intimidated').damage}`);
+    if (frontierDamage(e) !== 1) damageSources.push(`Frontier ×${frontierDamage(e)}`);
     add('health', 'Maximum health', 'Vitality', b.hp || 0, e.maxHp ?? b.hp ?? 0, 'hp', gearSources(e,'maxHpFlat').length ? gearSources(e,'maxHpFlat') : e.maxHp !== b.hp ? ['Unit health override'] : []);
     add('regen', 'Passive recovery', 'Vitality', regen.base, regen.current, 'hp/s', [
       ...(regen.turf !== 1 ? [`Home territory ×${regen.turf}`] : []), ...(regen.clan !== 1 ? [`Battle Hardened ×${regen.clan}`] : []),

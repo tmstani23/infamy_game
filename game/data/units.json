@@ -84,7 +84,7 @@
       } }
   },
   "types": {
-    "hero":      { "sprite": "ronin",     "hp": 560, "damage": 22.5, "attackRange": 2.5, "attackSpeed": 0.9, "critChance": 0.1, "critMultiplier": 2, "_note": "hero speeds and size live in sim/game.js UNITS; not for hire; 2026-10-21: damage -25%, health -30%; fractional base damage rounds when a hit lands",
+    "hero":      { "sprite": "ronin",     "hp": 560, "damage": 22.5, "attackRange": 2.5, "attackSpeed": 0.9, "critChance": 0.1, "critMultiplier": 2, "frontierDamage": 2, "_frontierDamage": "Frontier effect (Tim 2026-11-24): every hero hits this many times harder while on the island (place world), on troops, buildings and animals, abilities included; city fights unchanged. Shown as Frontier in the stats sheet.", "_note": "hero speeds and size live in sim/game.js UNITS; not for hire; 2026-10-21: damage -25%, health -30%; fractional base damage rounds when a hit lands",
       "abilities": {
         "Q": { "name": "Iaido Dash",  "kind": "dash",       "cooldown": 8,  "range": 6.5, "seconds": 0.3, "damageMultiplier": 1.5, "about": "Dash toward the mouse, cutting every enemy passed for 150% damage" },
         "E": { "name": "Intimidate",  "kind": "intimidate", "cooldown": 14, "radius": 4, "seconds": 5, "enemyDamage": 0.7, "snareSeconds": 3, "snareSpeed": 0.5, "about": "Enemies within 4 steps deal 30% less damage for 5 s and move 50% slower for 3 s" },
