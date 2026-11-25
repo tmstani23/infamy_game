@@ -4,7 +4,8 @@
 // lieutenant's orders, but no orders reach the crew (filterCommands). The sim is told with { type: 'watchCity', on }
 // so the capital thinks at full speed meanwhile (sim/game.js). Home, the big banner button, or the boss
 // being hurt end it.
-const BLOCKED = new Set(['order', 'deployment', 'attack', 'stopattack', 'cancel', 'execute', 'loot', 'mount', 'omnibus', 'garage', 'rickshaw', 'business', 'hire', 'contract', 'clinic', 'police']);
+export const WATCH_BLOCKED = new Set(['order', 'deployment', 'attack', 'stopattack', 'cancel', 'execute', 'loot', 'mount', 'omnibus', 'garage', 'rickshaw', 'business', 'hire', 'contract', 'clinic', 'police']);
+const BLOCKED = WATCH_BLOCKED;   // shared with View a town (town_view.js)
 export function createCityWatch({ game, view, heroId, send, notify = () => {}, sound = null, onStart = () => {} }) {
   let on = false, lastHp = null;
   const hero = () => game.state.entities[heroId];

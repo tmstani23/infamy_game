@@ -24,7 +24,7 @@ const NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_brewery: 'Sak
   police_hq: 'Police HQ', moneylender: "Moneylender's house", hideout: 'Hideout', dojo: 'Village dojo', contract_board: 'Contract board' };
 const LAYERS = [['deployment', 'Sectors'], ['territory', 'Territory'], ['businesses', 'Businesses'], ['police', 'Police'], ['units', 'Units']];
 
-export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, deploymentRoot, game, district, world = null, resourceSpots = null, spotConfig = null, paintConfig = null, atlasConfig = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, devTravel = false, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
+export function createGameMap({ openTown = () => {}, viewTown = null, openGoal = () => {}, root, deploymentRoot, game, district, world = null, resourceSpots = null, spotConfig = null, paintConfig = null, atlasConfig = null, view, fog, heroId, clan = 'player', units, catalog, selected, send, devTravel = false, onManageSector, onSelectSector = () => {}, onSelectCrew = () => {}, onSelectTarget = () => {}, onReturnToDuty = null, onClose = () => {} }) {
   if(deploymentRoot)root.appendChild(deploymentRoot);
   const canvas = root.querySelector('canvas'), tip = root.querySelector('.maptip'), bar = root.querySelector('.maplayers'), side = root.querySelector('.mapside');
   const layers = { deployment: true, territory: true, businesses: true, police: true, units: true };
@@ -415,7 +415,8 @@ export function createGameMap({ openTown = () => {}, openGoal = () => {}, root, 
       const p=canvasToWorldPoint(...local(e));
       // clicking a marked place travels to it, landing about half a screen (26 units) away on the screen-lower side, never on top
       travelTo = !canTravel() ? null : picked?.kind === 'capital' ? { city: true } : !picked ? p : (Number.isFinite(picked.x) && Number.isFinite(picked.z) ? { x: Math.round(picked.x + 18), z: Math.round(picked.z + 18) } : null);
-      if (picked?.kind === 'town' && picked.owner === clan && picked.stock) { card.hidden = true; openTown(picked.id); return; }   // your town: the full panel (F4.4d)
+      // your town: a small View / Cancel confirm beside it (Tim 2026-11-25); if it cannot be viewed, the full panel (F4.4d)
+      if (picked?.kind === 'town' && picked.owner === (game.state.entities[heroId]?.owner ?? clan) && picked.stock) { card.hidden = true; if (viewTown?.(picked.id, e.clientX, e.clientY)) { picked = null; return; } openTown(picked.id); return; }
       drawWorldSide();
     });
     worldCanvas.addEventListener('contextmenu', e => {

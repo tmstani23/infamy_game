@@ -36,6 +36,7 @@ import { createGoalCard } from './goal_card.js';
 import { createSiteMenu } from './site_menu.js';
 import { createLieutenantPanel } from './lieutenant_panel.js';
 import { createCityWatch } from './city_watch.js';
+import { createTownView } from './town_view.js';
 import { createInteriorPeek } from './interior_peek.js';
 import { createContractMenu } from './contract_menu.js';
 import { createHeatBadge } from './heat_badge.js';
@@ -503,7 +504,7 @@ async function start() {
     onOpen: id => gameMap.dock(true, id), onClose: () => { gameMap.dock(false); gameMap.close(); }, onFocus: id => gameMap.focusSector(id), onInspect:id=>unitFrames.inspect(id),
     onViewCrew:ids=>{gameMap.close();if(ids.length===1)jump(game.state.entities[ids[0]]);else watchGroup(null,ids);} });
   // Watch the city (Tim 2026-11-08): camera to the capital while the boss stays on the island; Home or the banner button return (Esc only closes menus, Tim 2026-11-10)
-  const cityWatch = createCityWatch({ game, view, heroId, send: c => pending.push(c), notify: (...a) => callout(...a), sound: { clip: (...a) => sound.clip(...a), bell: () => sound.bell() }, onStart: () => { warWatch.end(); deploymentPanel.close(); gameMap.close(); crewInput.clear(); } });
+  const cityWatch = createCityWatch({ game, view, heroId, send: c => pending.push(c), notify: (...a) => callout(...a), sound: { clip: (...a) => sound.clip(...a), bell: () => sound.bell() }, onStart: () => { warWatch.end(); townView.end(); deploymentPanel.close(); gameMap.close(); crewInput.clear(); } });
   // Interior view (Tim 2026-11-10): Inside / Outside button, End key, double-click a building with your crew inside
   const interiorPeek = createInteriorPeek({ game, view, heroId, crewInput, canvas: $('view') });
   onAction('interiorPeek', () => interiorPeek.toggle());
@@ -632,7 +633,10 @@ async function start() {
   const townWar=createTownWarPanel({game,heroId,catalog,frontierData:simOptions.frontier,units,send:c=>pending.push(c),blocked:warBlocked,openTerms:id=>warTerms.show(id),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warBanner?.cancel();warCamp.close();stableMenu.close();closeTown();},placeTool:(id,k)=>!!frontierBuildUI?.placeTool(id,k)});
   // war 8d-4: the war-declared alert and Watch a war from afar (no orders while watching)
   const warWatch=createWarWatch({game,view,heroId,catalog,frontierData:simOptions.frontier,notify:(...a)=>callout(...a),sound:{clip:(...a)=>sound.clip(...a),bell:()=>sound.bell()},ping:(x,z)=>{minimap.ping(x,z);gameMap.ping(x,z);},showOnMap:(x,z)=>gameMap.showAt(x,z),
-    busy:()=>warTerms.isOpen()||townWar.isOpen()||warCamp.isOpen()||gameMap.isOpen()||warBlocked(),onStart:()=>{cityWatch.end();frontierBuildUI?.cancel();deploymentPanel.close();gameMap.close();crewInput.clear();warCamp.close();townWar.close();}});
+    busy:()=>warTerms.isOpen()||townWar.isOpen()||warCamp.isOpen()||gameMap.isOpen()||warBlocked(),onStart:()=>{cityWatch.end();townView.end();frontierBuildUI?.cancel();deploymentPanel.close();gameMap.close();crewInput.clear();warCamp.close();townWar.close();}});
+  // View a town (Tim 2026-11-25): camera to one of your own towns from Your towns (Y) or a World map click, hero stays put
+  const townView=createTownView({game,view,heroId,sites:simOptions.world?.sites,askHost:()=>gameMap.isOpen(),notify:(...a)=>callout(...a),sound:{clip:(...a)=>sound.clip(...a),bell:()=>sound.bell()},
+    onStart:()=>{cityWatch.end();warWatch.end();frontierBuildUI?.cancel();deploymentPanel.close();gameMap.close();crewInput.clear();warCamp.close();townWar.close();}});
   const warBar=createWarBar({game,heroId,channelOf:id=>warOutcome?.channelOf(id)||null,watch:warWatch,openTerms:id=>warTerms.show(id)});   // war 8a-2: both sides' morale at the top of the screen
   // the capture moment (Tim 2026-11-25): a ruined hall your hero can take now pulses gold (render/hall_channel_fx.js)
   view.setHallTakeable?.(()=>{const me=game.state.entities[heroId]?.owner,MO=game.frontier?.warMorale,out=[];if(!MO||me==null)return out;
@@ -670,7 +674,7 @@ async function start() {
   mapWatchBtn.addEventListener('click', e => { cityWatch.start(); e.currentTarget.blur(); });
   $('gamemap').querySelector('.mapcol').insertBefore(mapWatchBtn, $('gamemap').querySelector('.mapclose'));
   // the full game map (M or the button): territory, businesses, police, units, the season score (src/game_map.js)
-  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, openGoal: () => goalCard.show(), root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world: simOptions.world, resourceSpots: simOptions.resourceSpots, spotConfig, paintConfig:worldPaint, atlasConfig:worldAtlas, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
+  const gameMap = createGameMap({ openTown: id => { gameMap.close(); openTownHook(id); }, viewTown: (id, x, y) => townView.canView(id) && townView.ask(id, x, y), openGoal: () => goalCard.show(), root: $('gamemap'), deploymentRoot:$('deploymentpanel'), game, district, world: simOptions.world, resourceSpots: simOptions.resourceSpots, spotConfig, paintConfig:worldPaint, atlasConfig:worldAtlas, view, fog, heroId, units, catalog, selected: () => crewInput.selected(), send: c => pending.push(c), devTravel: DEV,
     onSelectCrew: id => {crewInput.selectUnit(id);unitFrames.inspect(id);},
     onSelectTarget: id => unitFrames.showKnown(id),
     onReturnToDuty: ids => crewInput.returnToDutyAndSelectHero(ids),
@@ -727,7 +731,7 @@ async function start() {
     };
     townPanel = createFrontierPanel({ afterRender: () => applyTownFlash(), root: $('townpanel'), game, heroId, selected: () => crewInput.selected(), send: c => pending.push(c), buildUI: frontierBuildUI, miniRoot: $('buildmini'), focus:(x,z)=>view.jumpTo(x,z),
       nearbyTown: () => nearTown(), onStable: id => stableMenu.openFor(id), onTownWar: (id, tab) => townWar.show(id, null, tab) });
-    const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id) });
+    const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id), viewButton: id => townView.rowButton(id), viewTown: id => townView.start(id) });
     onAction('townPanel', () => townPanel.toggle());
     // the Vehicles panel (Tim 2026-11-07): Shift+Y or its icon
     vehiclesPanel = createVehiclesPanel({ root: $('vehiclespanel'), game, heroId, send: c => pending.push(c), view, crewInput });
@@ -822,7 +826,7 @@ async function start() {
   });
   // Input publication is small and independent of render cadence. Movement is
   // latest-value; discrete commands stay ordered and are consumed exactly once.
-  const inputTimer=setInterval(()=>simClient.input({movement:warWatch.movement(moveCommand(heroId)),commands:warWatch.filterCommands(cityWatch.filterCommands(pending.splice(0))),
+  const inputTimer=setInterval(()=>simClient.input({movement:townView.movement(warWatch.movement(moveCommand(heroId))),commands:townView.filterCommands(warWatch.filterCommands(cityWatch.filterCommands(pending.splice(0)))),
     paused,map:gameMap.isOpen(),selected:[...crewInput.selected(),crewInput.looked?.(),crewInput.tabbed?.()].filter(Boolean)}),50);
   addEventListener('pagehide',()=>clearInterval(inputTimer),{once:true});
   let frameAt = 0;
@@ -958,9 +962,9 @@ async function start() {
     // (not in hero follow; Home goes back to it), and not with the game map open
     const edge = !hudLayout.isEditing() && !gameSettings.isOpen() && !characterPanel.isOpen() && !hqStash.isOpen() && !shop.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
-    $('snap').hidden = !view.isPanned() || cityWatch.isOn() || warWatch.isOn();
+    $('snap').hidden = !view.isPanned() || cityWatch.isOn() || warWatch.isOn() || townView.isOn();
     interiorPeek.update();
-    cityWatch.update(); warWatch.update(); mapWatchBtn.hidden = !cityWatch.canWatch();
+    cityWatch.update(); warWatch.update(); townView.update(); mapWatchBtn.hidden = !cityWatch.canWatch();
     fog.update(dt);
     // through the island gate (W3.5): a one-second fade from black
     { const place = game.state.entities[heroId]?.place;
