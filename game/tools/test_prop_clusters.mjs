@@ -39,7 +39,7 @@ for (const [cx, cz] of samples) {
   assert.deepEqual(a, b, `chunks ${cx},${cz}: four chunks match one combined chunk`);
   assert.equal(new Set(a).size, a.length, `chunks ${cx},${cz}: no duplicate props`);
   // member checks
-  const x0 = cx * S, z0 = cz * S, segs = trailSegments(world, x0, z0, x0 + 2 * S, z0 + 2 * S, cfg.paint.trail.clearFull, cfg.paint.paths?.list);
+  const x0 = cx * S, z0 = cz * S, segs = trailSegments(world, x0, z0, x0 + 2 * S, z0 + 2 * S, cfg.paint.trail.clearFull, cfg.paint.paths?.list, cfg.paint.trail.strips);
   const C = cfg.clear || {}, sites = world.sites || [];
   for (const p of big.props) if (famKinds.has(p.kind) && !P.biomes[P.gridAt(p.x, p.z)].startsWith('top_')) {   // mountain-top props are art-only on blocked tops
     clustered++;

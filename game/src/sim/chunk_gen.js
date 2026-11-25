@@ -119,8 +119,9 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = n
   const near = (list, r) => (list || []).filter(p => p.x > x0 - r && p.x < x0 + size + r && p.z > z0 - r && p.z < z0 + size + r);
   const sites = near(world.sites, C.site || 0), nodes = near(world.nodes, C.node || 0);
   const castles = (world.castleClear || []).filter(b => b.maxX > x0 - 10 && b.minX < x0 + size + 10 && b.maxZ > z0 - 10 && b.minZ < z0 + size + 10);
-  const segs = [];
-  for (const c of world.corridors || []) for (let k = 1; k < c.points.length; k++) {
+  const shaped = cfg.paint?.enabled && cfg.paint.trail?.strips?.network;   // natural roads: keep clear of the drawn shape (src/road_strips.js)
+  const segs = shaped ? trailSegments(world, x0, z0, x0 + size, z0 + size, C.corridor || 0, cfg.paint.paths?.list, cfg.paint.trail.strips) : [];
+  if (!shaped) for (const c of world.corridors || []) for (let k = 1; k < c.points.length; k++) {
     const [a, b] = [c.points[k - 1], c.points[k]], r = C.corridor || 0;
     if (Math.max(a[0], b[0]) < x0 - r || Math.min(a[0], b[0]) > x0 + size + r || Math.max(a[1], b[1]) < z0 - r || Math.min(a[1], b[1]) > z0 + size + r) continue;
     segs.push([a, b]);
@@ -179,7 +180,7 @@ function scalePaintedProps(props, blockers, ps) {
 function paintProps(world, cfg, x0, z0, size, seed, blockers, clearAt) {
   const pc = cfg.paint, P = createPaint(world, pc), g = pc.grid, area = g * g / 1000, ps = P.seed;
   const F = new Float32Array(P.NB), props = [], biomeProps = cfg.biomeProps || {};
-  const segs = trailSegments(world, x0, z0, x0 + size, z0 + size, pc.trail.clearFull, pc.paths?.list), stamps = P.stampsIn(x0, z0, x0 + size, z0 + size);
+  const segs = trailSegments(world, x0, z0, x0 + size, z0 + size, pc.trail.clearFull, pc.paths?.list, pc.trail.strips), stamps = P.stampsIn(x0, z0, x0 + size, z0 + size);
   const coastPoints = world.coast || [], coastSegments = coastPoints.map((p, i) => [p, coastPoints[(i + 1) % coastPoints.length]]);
   const bamboo = pc.bamboo, E = pc.edgeTrees, fo = P.B.forest;
   // Each candidate draws ONE number u and walks the rules' best-case chances (per1000 x area) end to end;

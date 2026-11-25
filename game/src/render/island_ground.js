@@ -42,7 +42,7 @@ export function createIslandPainter({ world, cfg, renderer, groundTex, waterEffe
     // ground mesh of a generated chunk (gen from sim/chunk_gen.js)
     mesh(gen) {
       const S = gen.size, margin = pc.trail.verge + pc.trail.wMax;
-      const near = { segs: trailSegments(world, gen.x0, gen.z0, gen.x0 + S, gen.z0 + S, margin, pc.paths?.list), stamps: paint.stampsIn(gen.x0, gen.z0, gen.x0 + S, gen.z0 + S) };
+      const near = { segs: trailSegments(world, gen.x0, gen.z0, gen.x0 + S, gen.z0 + S, margin, pc.paths?.list, pc.trail.strips), stamps: paint.stampsIn(gen.x0, gen.z0, gen.x0 + S, gen.z0 + S) };
       const c = paint.paintChunk(gen.x0, gen.z0, S, near);
       const layers = Array.from({ length: 24 }, (_, i) => c.mats[i] != null ? paint.M[c.mats[i]] : 0);
       const tiles = Array.from({ length: 24 }, (_, i) => c.mats[i] != null ? pc.materials[c.mats[i]].tile : 8);

@@ -69,6 +69,7 @@ edges.
 
 **5. Lines on the land.**
 - Roads (2026-11-21): built-in roads are drawn as strip meshes (src/road_strips.js) from the road strip atlas
+- Natural roads (2026-11-25): road_strips.js joins corridor pieces into whole roads (the straightest pair carries through a junction, a near-straight second pair crosses, otherwise it branches), adds a slow wander that calms near junctions and ends, and curves branches in (Y, not T), ending on the road with a slight bend. buildFillets draws rounded corners at junctions (verge arc plus outer rut, radius up to network.filletR, varied), drawn by world_ground.js. Loose ends fade, and prop clearance follows the shaped roads. Movement and world data are unchanged. Tuning keys (bend, armLen, filletR, filletRag and others) are in the network _note of data/world_paint.json.
   (art/ground/island/road_strips.png), 6 types picked by biome and blended where biomes meet, faded over water.
   Settings in data/world_paint.json trail.strips; art rebuilt with tools/build_road_strips.py.
 - Rivers get muddy_bank along their sides. Lakes get the narrow bank pieces (lake_edge_1 to 8),

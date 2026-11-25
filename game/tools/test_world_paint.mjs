@@ -73,7 +73,7 @@ assert.ok(worstSeam < 0.03, `ground weights agree across chunk borders (worst ${
 // 3. no prop on a corridor, a blocked cell, within clearNone of a trail, or inside a clearing stamp's core
 const tr = paintCfg.trail;
 for (const { cx, cz } of sample) {
-  const g = buildChunk(world, cfg, cx, cz, 7), segs = trailSegments(world, g.x0, g.z0, g.x0 + S, g.z0 + S, 20, paintCfg.paths?.list), st = P.stampsIn(g.x0, g.z0, g.x0 + S, g.z0 + S);
+  const g = buildChunk(world, cfg, cx, cz, 7), segs = trailSegments(world, g.x0, g.z0, g.x0 + S, g.z0 + S, 20, paintCfg.paths?.list, tr.strips), st = P.stampsIn(g.x0, g.z0, g.x0 + S, g.z0 + S);
   for (const p of g.props) {
     assert.ok(passable(world, p.x, p.z), `prop ${p.kind} at ${p.x},${p.z} on a blocked cell`);
     assert.ok(P.trailDist(segs, p.x, p.z) >= tr.clearNone, `prop ${p.kind} at ${p.x},${p.z} within ${tr.clearNone} of a trail`);

@@ -27,7 +27,7 @@ import { spotPiecesToProps, visibleSpots, coveredBySpot } from '../resource_spot
 import { isDiscovered } from '../world_map.js';
 import { createSpotGlow } from './spot_glow.js';
 import { terraceMaterial, roadStripMaterial } from './shading.js';
-import { roadLines, buildStrip, linesNear } from '../road_strips.js';
+import { roadLines, buildStrip, buildFillets, linesNear } from '../road_strips.js';
 import { createHeightField, setHeightField, terrainPieces, groundY, nearCastle } from '../castle_height.js';
 
 // world prop kind -> art in data/art.json and a size factor (placeholders until the forest and
@@ -90,26 +90,48 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   if (cityFog) { cityFog.rotation.x = -Math.PI / 2; cityFog.position.set((city.minX + city.maxX) / 2, 0.04, (city.minZ + city.maxZ) / 2); cityFog.renderOrder = -0.3; cityFog.visible = false; scene.add(cityFog); }
   // built-in roads as textured strips (src/road_strips.js, Tim 2026-11-21): built per road when the camera comes near
   const RS = cfg.paint?.enabled ? cfg.paint.trail?.strips : null, roadMeshes = new Map();
-  const roads = RS ? roadLines(world, cfg.paint.paths?.list) : [];
+  const roads = RS ? roadLines(world, cfg.paint.paths?.list, RS) : [];
   let roadMat = null, roadAt = null;
   if (RS) loadTex(RS.art).then(t => { t.wrapS = THREE.ClampToEdgeWrapping; t.wrapT = THREE.RepeatWrapping; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); roadMat = roadStripMaterial(t, RS.tone); }).catch(e => console.error('Road strips:', e));
+  // a road as up to three meshes: its body; its branch / crossing ends drawn over every road body (tip), so a branch
+  // lies over the road it meets and fades into it; and the rounded corners of the junctions it owns (src/road_strips.js)
   function roadMesh(line) {
-    const r = buildStrip(line, createPaint(world, cfg.paint), RS), p = new Float32Array(r.n * 6), wA = new Float32Array(r.n * 6), wB = new Float32Array(r.n * 6), f = new Float32Array(r.n * 2), idx = [];
+    const paint = createPaint(world, cfg.paint), r = buildStrip(line, paint, RS), p = new Float32Array(r.n * 6), wA = new Float32Array(r.n * 6), wB = new Float32Array(r.n * 6), f = new Float32Array(r.n * 2), body = [], tips = [];
     for (let i = 0; i < r.n; i++) {
       for (let s = 0; s < 2; s++) {
         const x = r.pos[i * 4 + s * 2], z = r.pos[i * 4 + s * 2 + 1], v = i * 2 + s;
         p.set([x, groundY(x, z) + RS.lift, z], v * 3);
-        wA.set(r.types.subarray(i * 6, i * 6 + 3), v * 3); wB.set(r.types.subarray(i * 6 + 3, i * 6 + 6), v * 3); f[v] = r.fade[i];
+        wA.set(r.types.subarray(i * 6, i * 6 + 3), v * 3); wB.set(r.types.subarray(i * 6 + 3, i * 6 + 6), v * 3); f[v] = r.fade[i] * r.side[v];
       }
-      if (i) idx.push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i - 1, 2 * i + 1, 2 * i);
+      if (i) (r.tip[i] || r.tip[i - 1] ? tips : body).push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i - 1, 2 * i + 1, 2 * i);
     }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(p, 3)); g.setAttribute('uv', new THREE.BufferAttribute(r.uv, 2));
-    g.setAttribute('wA', new THREE.BufferAttribute(wA, 3)); g.setAttribute('wB', new THREE.BufferAttribute(wB, 3)); g.setAttribute('fade', new THREE.BufferAttribute(f, 1));
-    g.setIndex(idx); g.computeBoundingSphere();
-    const mesh = new THREE.Mesh(g, roadMat);
-    mesh.renderOrder = -0.9;   // over the island ground (-1), under town dirt patches and fields (-0.45 .. -0.4)
-    return mesh;
+    const attrs = { position: new THREE.BufferAttribute(p, 3), uv: new THREE.BufferAttribute(r.uv, 2), wA: new THREE.BufferAttribute(wA, 3), wB: new THREE.BufferAttribute(wB, 3), fade: new THREE.BufferAttribute(f, 1) };
+    const group = new THREE.Group();
+    for (const [idx, order] of [[body, -0.9], [tips, -0.89]]) {   // over the island ground (-1), under town dirt patches and fields (-0.45 .. -0.4)
+      if (!idx.length) continue;
+      const g = new THREE.BufferGeometry();
+      for (const [k, a] of Object.entries(attrs)) g.setAttribute(k, a);
+      g.setIndex(idx); g.computeBoundingSphere();
+      const mesh = new THREE.Mesh(g, roadMat);
+      mesh.renderOrder = order;
+      group.add(mesh);
+    }
+    const fl = buildFillets(line, paint, RS);
+    if (fl.n) {
+      const fp = new Float32Array(fl.n * 3), fA = new Float32Array(fl.n * 3), fB = new Float32Array(fl.n * 3);
+      for (let v = 0; v < fl.n; v++) {
+        const x = fl.pos[v * 2], z = fl.pos[v * 2 + 1];
+        fp.set([x, groundY(x, z) + RS.lift, z], v * 3); fA.set(fl.types.subarray(v * 6, v * 6 + 3), v * 3); fB.set(fl.types.subarray(v * 6 + 3, v * 6 + 6), v * 3);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(fp, 3)); g.setAttribute('uv', new THREE.BufferAttribute(fl.uv, 2));
+      g.setAttribute('wA', new THREE.BufferAttribute(fA, 3)); g.setAttribute('wB', new THREE.BufferAttribute(fB, 3)); g.setAttribute('fade', new THREE.BufferAttribute(fl.fade, 1));
+      g.setIndex(fl.idx); g.computeBoundingSphere();
+      const mesh = new THREE.Mesh(g, roadMat);
+      mesh.renderOrder = -0.88;   // the corners over both road ends
+      group.add(mesh);
+    }
+    return group;
   }
   function updateRoads(x, z, show) {
     if (!roadMat) return;
@@ -117,7 +139,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     if (roadAt && Math.hypot(x - roadAt[0], z - roadAt[1]) < 40) return;
     roadAt = [x, z];
     const want = new Set(linesNear(roads, x, z, RS.drawRadius).map(l => l.id));
-    for (const [id, m] of roadMeshes) if (!want.has(id) && !linesNear([roads.find(l => l.id === id)], x, z, RS.drawRadius * 2).length) { scene.remove(m); m.geometry.dispose(); roadMeshes.delete(id); }
+    for (const [id, m] of roadMeshes) if (!want.has(id) && !linesNear([roads.find(l => l.id === id)], x, z, RS.drawRadius * 2).length) { scene.remove(m); m.children.forEach(c => c.geometry.dispose()); roadMeshes.delete(id); }
     let built = 0;
     for (const l of roads) {
       if (!want.has(l.id)) continue;

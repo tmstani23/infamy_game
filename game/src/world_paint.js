@@ -7,6 +7,7 @@
 import { islandBiome } from './sim/island_art.js';
 import { shorelineTopology } from './sim/shoreline.js';
 import { riverDirection } from './world_features.js';
+import { roadClearSegments } from './road_strips.js';
 
 // ---------- seeded value noise (no tables, so it is the same in every chunk) ----------
 export function hash2(ix, iz, seed) {
@@ -334,8 +335,10 @@ export function createPaint(world, cfg) {
 }
 
 // The trail segments (corridors, plus the extra `paths` polylines of world_paint.json) near a box,
-// for ground and props: [[[x, z], [x, z]], ...]
-export function trailSegments(world, x0, z0, x1, z1, margin, paths = []) {
+// for ground and props: [[[x, z], [x, z]], ...]. With road strips shaped as a network (strips.network,
+// src/road_strips.js) these follow the shaped roads, so props keep clear of the drawn bends and junctions.
+export function trailSegments(world, x0, z0, x1, z1, margin, paths = [], strips = null) {
+  if (strips?.network) return roadClearSegments(world, paths, strips, x0, z0, x1, z1, margin);
   const out = [];
   for (const pts of [...(world.corridors || []).map(c => c.points), ...paths]) for (let k = 1; k < pts.length; k++) {
     const a = pts[k - 1], b = pts[k];
