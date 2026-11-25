@@ -93,7 +93,7 @@ export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds
       ctx.beginPath(); ctx.arc(u, v, width * 1.4, 0, Math.PI * 2); ctx.fillStyle = inked ? '#dcae5c' : '#ffd27a'; ctx.fill();
       ctx.shadowBlur = 0; ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(40,24,10,.9)'; ctx.stroke();
       if (label) {
-        const share = built / l.length, mins = Math.max(1, Math.ceil((1 - share) * seconds / 60));
+        const share = built / l.length, mins = Math.max(1, Math.ceil((1 - share) * (l.seconds ?? seconds) / 60));
         const text = `${Math.floor(share * 100)}% · ${mins} min${l.waiting ? ` · waiting for ${l.waiting}` : ''}`;
         ctx.font = '600 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
         ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,28,.9)'; ctx.strokeText(text, u + 9, v);

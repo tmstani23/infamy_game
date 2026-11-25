@@ -60,7 +60,14 @@ for (const fn of winOn.pointerup || []) fn({}); P.update(); assert.notEqual(root
 
 assert.ok(P.show(rec.id, hall.id) && root.innerHTML.includes('data-build=') && root.innerHTML.includes('data-tab="chest"'), 'the hall: build cards and tabs');
 assert.ok(!root.innerHTML.includes('data-train='), 'no training in the hall');
-click({ tab: 'chest' }); assert.ok(root.innerHTML.includes('Send ryo by train') && root.innerHTML.includes('data-rsend="capital"') && root.innerHTML.includes(String(Math.floor(c.chest))), 'the war chest tab');
+click({ tab: 'chest' }); assert.ok(root.innerHTML.includes('send it from the camp station') && !root.innerHTML.includes('data-rsend=') && root.innerHTML.includes(String(Math.floor(c.chest))), 'the war chest tab: the chest and a pointer (Tim 2026-11-25)');
+// Tim 2026-11-25: the camp station menu has Spur, Ryo (send ryo by train) and Orders (the rail ledger for this camp)
+{ const st = { id: `${rec.id}:st`, type: 'camp_station', stage: 'built', x: hall.x + 20, z: hall.z }; c.buildings.push(st);
+  assert.ok(P.show(rec.id, st.id) && root.innerHTML.includes('data-sttab="ryo"') && root.innerHTML.includes('data-sttab="orders"') && root.innerHTML.includes('Camp spur'), 'the camp station: Spur tab first');
+  click({ sttab: 'ryo' }); assert.ok(root.innerHTML.includes('Send ryo by train') && root.innerHTML.includes('data-rsend="capital"'), 'the Ryo tab sends ryo');
+  click({ sttab: 'orders' }); assert.ok(root.innerHTML.includes('Delivered') && root.innerHTML.includes('This camp') && root.innerHTML.includes('data-campledger="tab:done"'), 'the Orders tab is the rail ledger');
+  click({ campledger: 'tab:done' }); assert.ok(root.innerHTML.includes('Nothing delivered yet'), 'its Delivered tab');
+  c.buildings.splice(c.buildings.indexOf(st), 1); }
 assert.ok(P.show(rec.id) && root.innerHTML.includes('data-build='), 'the war coin opens the hall');
 assert.ok(P.show(rec.id, site.id) && root.innerHTML.includes('Under construction') && root.innerHTML.includes('data-cancel'), 'a site shows its progress');
 assert.ok(P.show(rec.id, tents.id) && root.innerHTML.includes('troop cap'), 'supply tents say what they do');

@@ -15,7 +15,7 @@
 //   of fights, like the omnibus) and e.railRide = { train, since }; they get off at the train's next station.
 // 8e-4 (2026-11-16) camp spur: a war camp with a built camp station (war.buildings.camp_station) gets a line of its
 //  own, ordered by itself, from the station (node 'camp:<war id>') to the station of the nearest own town that has
-//  one. It lays like any line (rail gang, link.seconds, costPer100 a stretch) but is paid from the camp stores. When
+//  one. It lays like any line (rail gang, link.campSeconds since 2026-11-25, costPer100 a stretch) but is paid from the camp stores. When
 //  it opens, war.camp.station.linked is set; the train then serves the camp like a town (shipments.js).
 // 8e-6 the supply line in war: when the spur opens, the stretch inside the war circle gets war.supply.sections marked
 //  rail sections (camp buildings of type 'rail_section', on the camp's morale bar, hit like any camp building). With
@@ -51,6 +51,8 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
   const hubReach = t => t.castle ? (Math.hypot(...(data.castleBlueprint?.size || [36, 43])) / 2 + 4) * t.grid.cell : undefined;
   const secs = () => Math.max(1, data.cadenceTicks || 20) / 20;
   const isCamp = id => typeof id === 'string' && id.startsWith('camp:');
+  // Tim 2026-11-25: a camp spur lays in link.campSeconds (town lines in link.seconds)
+  const layFor = l => l?.seconds ?? (isCamp(l?.from) ? L().campSeconds ?? L().seconds ?? 600 : L().seconds ?? 600);
   const warOfNode = id => state.frontier.wars?.list?.[String(id).slice(5)] || null;
   const campStation = w => w?.camp?.buildings?.find(b => b.type === 'camp_station' && b.stage === 'built' && !(b.hp <= 0)) || null;
 
@@ -156,7 +158,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     line.cost = coarse.cost;
     const cost = {};
     for (const [r, n] of Object.entries((camp ? L().campCostPer100 : null) || L().costPer100 || {})) cost[r] = Math.ceil(n * line.length / 100);
-    return { line, seconds: L().seconds ?? 600, cost };
+    return { line, seconds: camp ? L().campSeconds ?? L().seconds ?? 600 : L().seconds ?? 600, cost };
   }
 
   function command(e, c) {
@@ -209,7 +211,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       const camp = isCamp(l.payer) ? warOfNode(l.payer)?.camp || null : null, s = camp ? null : town(l.payer);
       if (camp ? !campStation(warOfNode(l.payer)) : (!s || s.owner !== l.owner)) { dropGang(l); unreserve(l); delete rec().links[l.id]; if (camp?.station?.link === l.id) delete camp.station; continue; }   // the town was lost, or the camp station is down
       const stock = camp ? camp.stock : s.stock;
-      const step = l.length / Math.max(1, L().seconds ?? 600) * secs();
+      const step = l.length / Math.max(1, layFor(l)) * secs();
       if (l.built + step > l.paid + 1e-6 && l.paid < l.length) {
         const stretch = Math.min(L().stretch ?? 100, l.length - l.paid), cost = Object.entries((camp ? L().campCostPer100 : null) || L().costPer100 || {}).map(([r, n]) => [r, n * stretch / 100]);
         const short = cost.find(([r, n]) => (stock[r] || 0) < n);
@@ -245,7 +247,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
         if (p.error) { why ||= p.error; continue; }
         const id = `r${++rec().seq}`, { points, dist, length, bridges } = p.line;
         rec().links[id] = { id, owner: w.attacker, from: node, to: t.id, payer: node, camp: w.id, points, dist, length, bridges,
-          built: 0, paid: 0, started: state.tick ?? 0, done: false, waiting: null, gang: [] };
+          built: 0, paid: 0, started: state.tick ?? 0, done: false, waiting: null, gang: [], seconds: L().campSeconds ?? L().seconds ?? 600 };
         reserve(rec().links[id]);
         c.station = { node, link: id, linked: false, to: t.id };
         const clan = state.clans?.[w.attacker];
@@ -614,7 +616,8 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     const anchors = enabled ? Object.values(state.entities).filter(e => e.place === 'world' && !e.worker && !e.railGang && e.type !== 'civilian' && e.owner && !e.dead && !e.downed) : [];
     for (const l of Object.values(rec().links)) {
       if (l.done) continue;
-      l.shown = Math.min(l.built, (l.shown ?? l.built) + walkPace() / 20);   // lines begun before 2026-11-22 show what is laid
+      // lines begun before 2026-11-22 show what is laid; a camp spur's drawn track keeps up with the true progress (Tim 2026-11-25)
+      l.shown = isCamp(l.from) ? l.built : Math.min(l.built, (l.shown ?? l.built) + walkPace() / 20);
       l.gang = (l.gang || []).filter(id => { const e = state.entities?.[id]; return e && !e.dead; });
       laidStretches(l).forEach(([, d], c) => {
         const head = pointAt(l, d), near = anchors.some(e => Math.hypot(e.x - head.x, e.z - head.z) <= (g.spawnRadius ?? 160));
@@ -642,7 +645,9 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       const spot = gangSpot(l, k, e.railSpot), dx = spot.x - e.x, dz = spot.z - e.z, d = Math.hypot(dx, dz);
       // they walk at gang.speed (below the hero's run, Tim 2026-11-07); the drawn railhead moves at walkPace, so they
       // keep up between swings (Tim 2026-11-22); a long gap (spawning in) closes at once
-      const v = (g.speed ?? 4.5) / 20;
+      // a camp spur's railhead moves faster than a walk (Tim 2026-11-25): its gang moves fast enough to keep up between swings
+      const pace = isCamp(l.from) ? l.length / Math.max(1, layFor(l)) * cycle / Math.max(1, cycle - (g.hammerSeconds ?? 3) * 20) * 1.1 : 0;
+      const v = Math.max(g.speed ?? 4.5, pace) / 20;
       if (d > 40) { e.x = spot.x; e.z = spot.z; }
       else if (d > 0.05) { const m = Math.min(1, v / d); e.x += dx * m; e.z += dz * m; e.dir = dirIndex(dx, dz); }
       e.anim = d > 0.3 ? (g.anim?.move || 'run') : (g.anim?.work || 'bow');

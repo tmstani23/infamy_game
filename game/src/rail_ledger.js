@@ -13,7 +13,7 @@ const cap1 = r => r[0].toUpperCase() + r.slice(1);
 // 42s, 2m 05s, 1h 04m
 export const clock = s => s == null ? '' : s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${Math.floor(s / 3600)}h ${String(Math.floor(s / 60) % 60).padStart(2, '0')}m`;
 
-export function createRailLedger({ game, data = null, inCard = false, head = true }) {   // inCard: inside the town card (no map glow); head false: no title line
+export function createRailLedger({ game, data = null, inCard = false, head = true, here = 'This town' }) {   // inCard: inside the town card (no map glow); head false: no title line; here: the scope button's label (the camp station: This camp, Tim 2026-11-25)
   let tab = 'open', page = 0, sel = null, scope = 'town';
   const PAGE = inCard ? 5 : 6;
   const F = () => game.state.frontier || {};
@@ -74,7 +74,7 @@ export function createRailLedger({ game, data = null, inCard = false, head = tru
     const T = (id, label) => `<button data-ledger="tab:${id}" aria-pressed="${tab === id}">${label}</button>`;
     let h = head ? (inCard ? '<div class="lghead"><button data-ledger="close">Back to Shipments</button><b class="gold">RAIL LEDGER</b></div>' : '<header><h3>RAIL LEDGER</h3><button data-ledger="close">Close</button></header>') : '';
     h += `<div class="lgtabs">${T('open', `Open ${L.open.length}`)}${T('done', 'Delivered')}${T('lost', L.lost.length ? `Losses ${L.lost.length}` : 'Losses')}</div>`;
-    h += `<div class="lgscope"><small>${tab === 'open' ? 'Soonest first' : 'Newest first'}${inCard ? '' : ', all towns'}</small>${inCard ? `<span><button data-ledger="scope:town" aria-pressed="${scope === 'town'}">This town</button><button data-ledger="scope:all" aria-pressed="${scope === 'all'}">All towns</button></span>` : ''}</div>`;
+    h += `<div class="lgscope"><small>${tab === 'open' ? 'Soonest first' : 'Newest first'}${inCard ? '' : ', all towns'}</small>${inCard ? `<span><button data-ledger="scope:town" aria-pressed="${scope === 'town'}">${esc(here)}</button><button data-ledger="scope:all" aria-pressed="${scope === 'all'}">All towns</button></span>` : ''}</div>`;
     if (list.length) h += `<div class="lghdr"><span>Shipment</span><span>${tab === 'open' ? 'Arrives in' : tab === 'done' ? 'Delivered' : 'Lost'}</span><span></span></div>`;
     h += list.length ? list.slice(page * PAGE, page * PAGE + PAGE).map(row).join('') : `<div class="lgnote">${tab === 'open' ? 'No shipments on the way.' : tab === 'done' ? 'Nothing delivered yet.' : 'No cargo lost.'}</div>`;
     const o = sel && orders().find(x => x.id === sel);

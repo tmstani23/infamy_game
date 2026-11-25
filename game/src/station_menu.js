@@ -94,7 +94,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
     if (r) {
       body += msSec('Railway', '', "The game picks the route. Paid a stretch at a time from this town's stock.");
       if (r.building) {
-        const b = r.building, pct = Math.floor(100 * b.built / b.length), mins = Math.ceil((1 - b.built / b.length) * (game.frontier.data?.railways?.link?.seconds ?? 600) / 60);
+        const b = r.building, pct = Math.floor(100 * b.built / b.length), mins = Math.ceil((1 - b.built / b.length) * (b.seconds ?? game.frontier.data?.railways?.link?.seconds ?? 600) / 60);
         body += msRow({ name: `Laying track: ${esc(r.name(b.from))} to ${esc(r.name(b.to))}`, sub: `${pct} percent, about ${mins} min left${b.waiting ? `, <span class="ms-bad">waiting for ${esc(b.waiting)}</span>` : ''}${msProg(b.built / b.length)}`,
           right: msBtn({ label: 'Stop', data: `data-to="railcancel:${esc(b.id)}"`, hover: 'Stop laying. The track so far is lost.' }) });
       } else if (r.offers.length) {

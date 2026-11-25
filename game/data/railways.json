@@ -34,7 +34,7 @@
       "timber": 8,
       "goods": 3
     },
-    "campCostPer100": { "timber": 8, "stone": 3 }, "_campCostNote": "8e-4 (2026-11-16), placeholder: a war camp's spur is paid from the camp stores, which hold no goods, so stone stands in for the goods share.",
+    "campCostPer100": { "timber": 8, "stone": 3 }, "campSeconds": 240, "_campSecondsNote": "Tim 2026-11-25: a war camp spur takes campSeconds to lay (town lines keep seconds), and its drawn track and rail gang keep up with the true progress (no walking-pace cap for spurs).", "_campCostNote": "8e-4 (2026-11-16), placeholder: a war camp's spur is paid from the camp stores, which hold no goods, so stone stands in for the goods share.",
     "minTier": 2,
     "maxBuilding": 1
   },
