@@ -802,7 +802,7 @@ async function start() {
   const clock = {alpha:()=>simClient.alpha(),diagnostics:()=>simClient.diagnostics()};
   if(DEV)window.infamy.mapPerformance=()=>({...presentation.diagnostics(),...gameMap.diagnostics(),clock:clock.diagnostics(),worldResources:{...view.renderer.info.memory}});
   const campaignEnd = createCampaignEnd({ game, view, hero: () => game.state.entities[heroId], root: document.body.appendChild(document.createElement('div')) });   // Z6
-  const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults, townAlert: n => townAlertHook(n), warAlert: () => sound.bell() });
+  const newsCallouts = createNewsCallouts({ game, heroId, $, TICK_RATE, callout, contractCallout, minimap, gameMap, view, presentation, showResults, townAlert: n => townAlertHook(n), warAlert: () => sound.bell(), watching: () => cityWatch.isOn() });
   const topBar = createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, onClan: id => standingsPanel.open(id) });
   let last = performance.now() / 1000, labelTick = -Infinity, lostCops = false;
   function observeRaidAlarms() {
@@ -845,7 +845,8 @@ async function start() {
       // your attack on a business (sim/businesses.js): waves left, then the hold timer
       {
         const a = Object.values(game.state.attacks || {}).find(a => a.clan === game.state.entities[heroId]?.owner && a.phase !== 'over'), bar = $('attackbar');
-        bar.hidden = !a;
+        // the captain's raid on the island: no play-by-play unless watching the city (Tim 2026-11-25)
+        bar.hidden = !a || (a.mode === 'raid' && game.state.entities[heroId]?.place === 'world' && !cityWatch.isOn());
         if (a) {
           const where = a.hq ? 'Shinobi HQ' : a.kind.replace(/_/g, ' ');
           bar.classList.toggle('hold', a.phase === 'hold');
@@ -884,7 +885,7 @@ async function start() {
       }
       // your business is being raided: bell once, red banner, a channel bar while knocking the lantern down
       {
-        const a = game.state.entities[heroId]?.place === 'world' ? null : raidOnMe(), el = $('raidalarm');   // quiet on the island (Tim 2026-11-06): the lieutenant defends
+        const a = game.state.entities[heroId]?.place === 'world' && !cityWatch.isOn() ? null : raidOnMe(), el = $('raidalarm');   // quiet on the island (Tim 2026-11-06): the lieutenant defends; shown while watching the city
         el.hidden = !a;
         if (a) {
           const where = a.hq ? 'Shinobi HQ' : a.kind.replace(/_/g, ' '), who = game.state.clans[a.clan]?.name || 'A rival clan';
