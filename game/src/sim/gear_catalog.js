@@ -91,11 +91,11 @@ for (const id of SHOP_ITEM_IDS) for (const rarity of ['common','green']) {
 // points (a flat stat such as maximum HP: plus that share). Heirloom: the best shop weapon for its stat plus HEIRLOOM_PLUS points.
 // Tim 2026-11-24 (hero frontier thread): raised from 2 and 5 so they are felt, in the city too.
 export const FRONTIER_PLUS = 0.10, HEIRLOOM_PLUS = 0.25;
-// `fixed` keeps a drawback as it is (the bear coat is heavy). Wolves and bears drop them (sim/wild_animals.js
+// `fixed` keeps a drawback as it is (none now: Tim 2026-11-24 took the bear coat's slower running off). Wolves and bears drop them (sim/wild_animals.js
 // killed, data/wildlife.json species gear); a castle's heirloom goes to whoever takes it (sim/item_services.js).
 export const FRONTIER_GEAR = {
   wolf_fur_cloak: { name: 'Wolf fur cloak', slot: 'armor', stats: ['maxHpFlat', 'movement'], sell: 90, icon: 'lightweight_wraps', visual: { kind: 'movementWisps', color: [.78,.8,.84] } },
-  bear_hide_coat: { name: 'Bear hide coat', slot: 'armor', stats: ['damageReduction'], fixed: { run: .95 }, sell: 120, icon: 'reinforced_coat', visual: { kind: 'armorShimmer', color: [.62,.46,.3] } },
+  bear_hide_coat: { name: 'Bear hide coat', slot: 'armor', stats: ['damageReduction'], sell: 120, icon: 'reinforced_coat', visual: { kind: 'armorShimmer', color: [.62,.46,.3] } },
   wolf_fang_charm: { name: 'Wolf fang charm', slot: 'accessory', stats: ['dodgeChanceFlat'], sell: 90, icon: 'travelers_charm', visual: { kind: 'fangDodge', color: [.72,.78,.86] } },
   bear_claw_charm: { name: 'Bear claw charm', slot: 'accessory', stats: ['normalDamage'], sell: 120, icon: 'focus_charm', visual: { kind: 'clawStrike', color: [.7,.4,.2] } },
 };

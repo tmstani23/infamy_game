@@ -2,13 +2,15 @@ import { ITEMS, INVENTORY_SLOTS, EQUIPMENT_SLOTS } from './sim/inventory.js';
 
 import { ICONS, effectOf } from './item_detail.js';
 export { ICONS };
-export function createItemGrid(root, { equipment = false, activate }) {
+export function createItemGrid(root, { equipment = false, activate, hover = null }) {   // hover(key, button | null): item card (item_card.js) instead of the browser title tip
   const keys = equipment ? EQUIPMENT_SLOTS : Array.from({length:INVENTORY_SLOTS}, (_, i) => i);
   const buttons = keys.map(key => {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'inventory-slot';
     button.innerHTML = '<small></small><span class="item-icon"></span><span class="item-name"></span>';
     const use = event => { event.preventDefault(); event.stopPropagation(); activate(key); };
     button.addEventListener('click', use); button.addEventListener('contextmenu', use);
+    if (hover) { button.addEventListener('mouseenter', () => hover(key, button)); button.addEventListener('mouseleave', () => hover(key, null));
+      button.addEventListener('focus', () => hover(key, button)); button.addEventListener('blur', () => hover(key, null)); }
     root.appendChild(button); return button;
   });
   return function update(values = [], available = true, verb = 'Equip') {
@@ -23,7 +25,7 @@ export function createItemGrid(root, { equipment = false, activate }) {
         button.querySelector('.item-name').textContent = item?.name || (equipment ? 'Empty' : '');
       }
       const fx = effectOf(item), detail = item ? `${item.name}: ${item.about}${/\.$/.test(item.about) ? '' : '.'} Visual effect: ${fx ? fx.text.toLowerCase() : 'none'}.${item.sell ? ` Sell value: ${item.sell} ryo.` : ''} ${verb}.` : `${equipment ? key : `Slot ${i + 1}`}: Empty`;
-      button.title = detail; button.setAttribute('aria-label', detail);
+      if (!hover) button.title = detail; button.setAttribute('aria-label', detail);
     });
   };
 }

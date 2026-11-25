@@ -1,12 +1,14 @@
 import { createItemGrid } from './inventory_ui.js';
 import { createHeroPreview } from './render/hero_preview.js';
 import { effectOf } from './item_detail.js';
+import { createItemCard, gearPreview, itemCardHtml } from './item_card.js';
 import { hudIcon } from './hud_icons.js';
 import { ITEMS, EQUIPMENT_SLOTS } from './sim/inventory.js';
 // Character page formats authoritative snapshots; it owns no stat formulas.
 import { formatStat, modifierDisplay } from './character_stat_format.js';
 import { sharedKeybinds, SLOT_ACTION } from './keybinds.js';
-const keybinds = sharedKeybinds();   // J / I (or their new keys) close the page
+const keybinds = sharedKeybinds();
+const MAIN_ROWS = ['normalHit', 'attackInterval', 'damageTaken', 'run'];   // the rest sit under More attributes   // J / I (or their new keys) close the page
 export { formatStat, modifierDisplay };
 
 export function createCharacterPanel({ game, heroId, catalog, button, send, onOpen = () => {}, onClose = () => {} }) {
@@ -15,8 +17,11 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
   document.body.appendChild(root);
   const $ = s => root.querySelector(s), rows = new Map(), abilities = new Map(), passiveRows = new Map();
   const command = (action, detail) => send({id:heroId, type:'inventory', action, ...detail});
-  const bag = createItemGrid($('.gear-grid'), {activate:index => command('equip', {index})});
-  const equipment = createItemGrid($('.equipment-grid'), {equipment:true, activate:slot => command('unequip', {slot})});
+  // hovering an item: the item card beside it and the Attributes rows show what wearing it (or taking it off) would change (Tim 2026-11-24)
+  const card = createItemCard(); let hovered = null;   // { key, button, worn }
+  const hover = worn => (key, button) => { hovered = button ? { key, button, worn } : null; if (!button) card.hide(); update(); };
+  const bag = createItemGrid($('.gear-grid'), {activate:index => command('equip', {index}), hover: hover(false)});
+  const equipment = createItemGrid($('.equipment-grid'), {equipment:true, activate:slot => command('unequip', {slot}), hover: hover(true)});
   let open = false, previousFocus = null;
   // animated front view with the real weapon glow and gear auras (render/hero_preview.js)
   const preview = createHeroPreview({ canvas: $('.hero-preview'), catalog });
@@ -32,7 +37,7 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
     if (open === on) return;
     open = on; root.hidden = !on; button?.setAttribute('aria-expanded', String(on));
     if (on) { previousFocus = document.activeElement; onOpen(); update(); $('.character-close').focus(); }
-    else { preview.focus(null); preview.pause(); onClose(); previousFocus?.focus?.(); }
+    else { hovered = null; card.hide(); preview.focus(null); preview.pause(); onClose(); previousFocus?.focus?.(); }
   }
   $('.character-close').addEventListener('click', () => setOpen(false));
   root.addEventListener('click', e => { if (e.target === root) setOpen(false); });
@@ -83,18 +88,37 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
       const fx = effectOf(ITEMS[inv.equipment?.[EQUIPMENT_SLOTS[i]]]), el = button.querySelector('.slot-effect'), text = fx ? fx.short : '';
       if (el.textContent !== text) { el.textContent = text; el.style.setProperty('--fx', fx?.color || 'transparent'); }
     });
+    // the hovered item: what it would change, for the card and the Attributes rows
+    let changes = new Map();
+    if (hovered) {
+      const id = hovered.worn ? inv.equipment?.[hovered.key] : inv.bag?.[hovered.key], item = ITEMS[id];
+      if (!item || !inv.available) card.hide();
+      else {
+        const slot = item.slot, rows = gearPreview(game, hero, slot, hovered.worn ? null : id), now = ITEMS[inv.equipment?.[slot]];
+        changes = new Map(rows.map(r => [r.key, r]));
+        card.show(hovered.button, itemCardHtml(id, { worn: hovered.worn, rows, replaces: !hovered.worn && now ? now.name : null,
+          action: hovered.worn ? (inv.bag?.includes(null) ? 'Right-click to take off' : 'Bag full') : 'Right-click to wear' }));
+      }
+    }
     for (const row of snapshot.rows) {
       let record = rows.get(row.key);
       if (!record) {
         const el = document.createElement('div'); el.className = 'character-stat'; el.tabIndex = 0;
         const label = document.createElement('span'), base = document.createElement('span'), modifier = document.createElement('span'), current = document.createElement('strong');
-        modifier.className = 'stat-modifier'; el.append(label, base, modifier, current); $(['normalHit','attackInterval','damageTaken','run'].includes(row.key) ? '.character-stats' : '.character-extra-stats').appendChild(el);
+        modifier.className = 'stat-modifier'; el.append(label, base, modifier, current); $(MAIN_ROWS.includes(row.key) ? '.character-stats' : '.character-extra-stats').appendChild(el);
         record = { el, label, base, modifier, current }; rows.set(row.key, record);
       }
       const change = modifierDisplay(row);
       record.label.textContent = row.label; record.base.textContent = formatStat(row, row.base); record.modifier.textContent = change.text; record.current.textContent = formatStat(row, row.value);
       record.el.dataset.group = row.group; record.modifier.className = `stat-modifier ${change.kind}`;
       record.current.className = change.changed ? `modified ${change.kind}` : '';
+      const next = changes.get(row.key); record.el.classList.toggle('item-preview', !!next);
+      record.el.classList.toggle('item-worse', next?.kind === 'bad');   // stats under More attributes preview there (the card lists every change)
+      if (next) {   // the row as it would read wearing the item, and the change it makes beside the new value
+        record.modifier.textContent = modifierDisplay(next.row).text; record.modifier.className = `stat-modifier preview ${next.kind}`;   // the new total, so Base plus Modifier still gives Current
+        record.current.textContent = next.to; record.current.className = `preview ${next.kind}`;
+        const was = document.createElement('small'); was.className = 'stat-was'; was.textContent = next.from; record.current.prepend(was, document.createElement('i'));
+      }
       const detail = [...row.sources, row.note].filter(Boolean).join(', ') || 'Base value; no active modifiers.';
       record.el.title = detail; record.modifier.title = detail;
       record.el.setAttribute('aria-label', `${row.label}: base ${formatStat(row, row.base)}, modifier ${change.text}, current ${formatStat(row, row.value)}. ${detail}`);
