@@ -404,8 +404,10 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   function torchers(ids) { return (ids || []).filter(id => { const u = state.entities[id]; return u && !u.dead && !u.downed && u.place === 'world' && !u.garrison && !u.aboard && rt?.unitOf && canTorch(u, rt.unitOf(u)); }).length; }
 
   // ---- units attacking a structure -----------------------------------------------------------------
+  // an order given while viewing one of the hero's own towns from elsewhere (c.view; src/town_view.js)
+  const viewsOwn = (hero, c) => { const t = c.view && state.frontier?.settlements?.[c.view]; return !!t && !t.capital && t.owner === hero.owner; };
   function order(hero, c) {
-    const st = hero && (c.structure ? find(c.structure) : Number.isFinite(c.x) && Number.isFinite(c.z) && hero.place === 'world' ? at(hero.owner, c.x, c.z, c.slack ?? 1.5) : null);
+    const st = hero && (c.structure ? find(c.structure) : Number.isFinite(c.x) && Number.isFinite(c.z) && (hero.place === 'world' || viewsOwn(hero, c)) ? at(hero.owner, c.x, c.z, c.slack ?? 1.5) : null);
     if (!st || !canDamage(hero.owner, st)) return false;
     const set = u => {
       delete u.swing; delete u.execute; delete u.attackTarget; delete u.holdFire;

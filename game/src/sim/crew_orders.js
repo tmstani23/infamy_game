@@ -88,6 +88,8 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
 
   // order command from a hero for some of its own crew in the same place (street or room):
   // follow (the hero), move (go there and wait) or station (go there and hold it; defends later)
+  // an order given while viewing one of the hero's own frontier towns (c.view = its id; src/town_view.js)
+  const viewsOwnTown = (hero, c) => { const t = c.view && state.frontier?.settlements?.[c.view]; return !!t && !t.capital && t.owner === hero.owner; };
   function giveOrder(hero, c) {
     if (hero.type !== 'hero' || !Array.isArray(c.units) || !['follow', 'move', 'station', 'attack', 'attackmove', 'heal', 'stop', 'enter', 'resume'].includes(c.kind)) return;
     // enter (right-click your own business, checkpoint 5): walk to its door, go in and hold the room
@@ -109,7 +111,8 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
           || (c.kind==='attack'&&c.place===u.place&&state.entities[c.target]?.place===u.place)
           || (c.by === 'general' && u.place === 'world' && generalOrder(hero, u))   // 8d: the bot general orders the war troops of a side it runs, wherever the hero is
           || ((hero.dead || hero.downed || hero.jailed) && c.kind === 'attack' && state.entities[c.target]?.place === u.place)
-          || (u.warTroop && u.place === 'world' && c.place === 'world' && c.kind !== 'follow'))   // Tim 2026-11-25: war troops take orders wherever the hero is (dead, respawned elsewhere)
+          || (u.warTroop && u.place === 'world' && c.place === 'world' && c.kind !== 'follow')   // Tim 2026-11-25: war troops take orders wherever the hero is (dead, respawned elsewhere)
+          || (u.place === 'world' && c.place === 'world' && c.kind !== 'follow' && viewsOwnTown(hero, c)))   // Tim 2026-11-25: viewing one of your towns (town_view.js), island units take orders as if he were there
         && !(u.place !== 'street' && ['heal', 'enter'].includes(c.kind))
         && (c.kind === 'follow' || !c.place || u.place === c.place || (c.place === 'street' && c.kind === 'move' && u.place !== 'street'))
         && deployment.allowsOrder(u, c, hero, door));

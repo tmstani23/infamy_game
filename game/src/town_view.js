@@ -1,11 +1,16 @@
 // View a town (Tim 2026-11-25): look at one of your own frontier towns from wherever your hero is, like Watch the
 // city. Presentation only, per player: each client looks at its own hero's towns (owner = the hero's clan), so every
 // human player has it. The camera goes to the town (render/view.js setWarWatch: the island at x, z), the hero stays
-// put and takes no orders or movement meanwhile (filterCommands, movement, the same blocked list as Watch the city).
+// put and takes no orders or movement meanwhile (movement, viewCommands).
+// Tim 2026-11-25 (later): while viewing you run the town as if your hero were there: its town menu, building menus,
+// building, workers and orders to your troops and crew out on the island. Orders carry view: <town id> so the sim lets
+// island units take them with the hero elsewhere (sim/crew_orders.js, sim/frontier/structures.js); the hero is taken
+// out of every command, and his own actions (attack, mount, loot...) and city orders stay blocked. The capital rule
+// (Tim 2026-11-08: boss on the island, no city crew orders) is unchanged.
 // Opened from the View button on a row of Your towns (Y), or by clicking your town on the World map and confirming.
 // Home, the banner button, the hero being hurt, falling or the town being lost end it. Rival towns cannot be viewed
 // (Tim 2026-11-25: free viewing would scout them).
-// viewableTown, confirmHtml and bannerHtml are pure (the Node test uses them).
+// viewableTown, viewCommands, confirmHtml and bannerHtml are pure (the Node test uses them).
 import { WATCH_BLOCKED } from './city_watch.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -18,10 +23,28 @@ export function viewableTown(state, sites, owner, id) {
   const x = Number.isFinite(t.x) ? t.x : s?.x, z = Number.isFinite(t.z) ? t.z : s?.z;
   return Number.isFinite(x) && Number.isFinite(z) ? { id, name: t.name || 'your town', x, z } : null;
 }
+// while viewing: city and hero-only commands are dropped (as Watch the city, but orders pass); every command loses the
+// hero (he waits where he stands) and orders are stamped with the viewed town
+const VIEW_BLOCKED = new Set([...WATCH_BLOCKED, 'attackmode'].filter(t => t !== 'order'));
+export function viewCommands(list, heroId, townId) {
+  const out = [];
+  for (const c of list) {
+    if (VIEW_BLOCKED.has(c.type)) continue;
+    let d = c;
+    if (Array.isArray(c.units) && c.units.includes(heroId)) d = { ...d, units: c.units.filter(id => id !== heroId) };
+    if (d.hero) d = { ...d, hero: false };
+    if (c.type === 'order') {
+      if (d.kind === 'follow' || !d.units?.length) continue;   // nothing left to send, or "follow the hero" (he is not here)
+      d = { ...d, place: 'world', view: townId };
+    }
+    out.push(d);
+  }
+  return out;
+}
 export const confirmHtml = name => `<div class="tv-head"><b>View ${esc(name)}?</b></div>`
-  + '<div class="tv-sub">The camera goes there. Your boss waits where he stands, taking no orders until you return.</div>'
+  + '<div class="tv-sub">The camera goes there and you run the town as if your boss were there. He waits where he stands until you return.</div>'
   + '<div class="tv-acts"><button type="button" class="tv-go" data-tv="view">View</button><button type="button" class="tv-x" data-tv="cancel">Cancel</button></div>';
-export const bannerHtml = name => `<span><b>Viewing ${esc(name)}</b><i>your boss stays put</i></span><button type="button" data-back="1" title="Home also returns">Return to hero</button>`;
+export const bannerHtml = name => `<span><b>Viewing ${esc(name)}</b><i>run it from here, your boss stays put</i></span><button type="button" data-back="1" title="Home also returns">Return to hero</button>`;
 
 // lantern style (Tim 2026-11-23): lacquered wood plaques with brass corners, warm light from above, no web pills
 const GRAIN = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.11' numOctaves='3' seed='7'/><feColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.12  0 0 0 0 0.06  0 0 0 .55 0'/></filter><rect width='400' height='160' filter='url(%23g)'/></svg>\")";
@@ -56,7 +79,7 @@ body.town-viewing::after{content:"";position:fixed;inset:0;z-index:55;pointer-ev
 `;
 
 export function createTownView({ game, view, heroId, sites = null, notify = () => {}, sound = null, askHost = () => true, onStart = () => {} }) {
-  const off = { start: () => false, end() {}, ask() {}, canView: () => false, isOn: () => false, update() {}, filterCommands: l => l, movement: m => m, rowButton: () => '' };
+  const off = { viewing: () => null, start: () => false, end() {}, ask() {}, canView: () => false, isOn: () => false, update() {}, filterCommands: l => l, movement: m => m, rowButton: () => '' };
   if (typeof document === 'undefined') return off;
   const siteOf = Object.fromEntries((Array.isArray(sites) ? sites : []).map(s => [s.id, s]));
   const style = document.createElement('style'); style.textContent = TOWN_VIEW_CSS; document.head.append(style);
@@ -121,8 +144,8 @@ export function createTownView({ game, view, heroId, sites = null, notify = () =
       if (h.hp < lastHp - 0.5) { end(); notify('Your boss is under attack! Back to the hero.', 'alert', 5000); sound?.bell?.(); return; }
       lastHp = h.hp;
     },
-    // viewing only: no crew or hero orders and no hero movement leave this client (as Watch the city)
-    filterCommands: list => on ? list.filter(c => !WATCH_BLOCKED.has(c.type)) : list,
+    // viewing: town, building and island orders go through without the hero; no hero movement (viewCommands)
+    filterCommands: list => on ? viewCommands(list, heroId, on) : list,
     movement: m => on && m ? { ...m, right: 0, down: 0 } : m,
   };
 }

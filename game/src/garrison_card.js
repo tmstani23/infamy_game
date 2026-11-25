@@ -27,7 +27,7 @@ const CSS = `
 #garrisoncard button:disabled{opacity:.4;cursor:default}
 #garrisoncard .x{position:absolute;top:8px;right:10px}`;
 
-export function createGarrisonCard({ game, heroId, frontierData, units, catalog, send, select, selected = () => [] }) {
+export function createGarrisonCard({ game, heroId, frontierData, units, catalog, send, select, selected = () => [], viewing = () => null }) {
   const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
   const root = document.createElement('div'); root.id = 'garrisoncard'; root.hidden = true; document.body.appendChild(root);
   let site = null, page = 0, sig = '';   // site = { town, building id }
@@ -51,7 +51,7 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
   function render() {
     if (!site) return;
     const fr = game.state.frontier, s = fr?.settlements?.[site.town], b = s?.buildings?.find(x => x.id === site.building);
-    if (!isGarrisonable(s, b) || game.state.entities[heroId]?.place !== 'world') { close(); return; }
+    if (!isGarrisonable(s, b) || (game.state.entities[heroId]?.place !== 'world' && !viewing())) { close(); return; }
     const R = rulesOf(b.type), cap = R.capacity || 0, mem = members(s, b), max = maxOf(s, b, R);
     firing = firingOf(mem, R);
     const pages = Math.max(1, Math.ceil(cap / PER_PAGE)); page = Math.min(page, pages - 1);

@@ -724,6 +724,7 @@ async function start() {
       send: c => pending.push(c), crewInput, onBuild: id => townPanel.open(id), onMode: () => townPanel?.render(), onStable: id => stableMenu.openFor(id),
       menuAt: (x, y) => townMenuAt(x, y), blocked: () => foundButton.isPlacing() || gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() || characterPanel.isOpen() || hqStash.isOpen() || shop.isOpen() });
     const nearTown = () => {
+      if (townView.viewing()) return townView.viewing();   // viewing one of your towns: that town, as if the hero stood there
       const h = game.state.entities[heroId];
       if (h?.place !== 'world') return null;
       return Object.values(game.state.frontier.settlements).filter(s => s.owner === h.owner && !s.capital && Math.hypot(s.x-h.x,s.z-h.z) <= frontier.workers.range)
@@ -741,10 +742,10 @@ async function start() {
     openTownHook = id => townPanel.open(id);
     townTalk = id => townPanel.talk(id);
     installDamageTip(simOptions.frontier);
-    createStructureCard({ game, view, heroId, frontierData: simOptions.frontier, catalog, units, send: c => pending.push(c), selected: () => crewInput.selected(), menuAt: (x, y) => townMenuAt(x, y), badgeRoot: $('garrisonbadges') });   // before the town hover: its right-click on a house wins
-    const garrisonCard = createGarrisonCard({ game, heroId, frontierData: simOptions.frontier, units, catalog, send: c => pending.push(c), select: ids => crewInput.select(ids), selected: () => crewInput.selected() });
+    createStructureCard({ game, view, heroId, frontierData: simOptions.frontier, catalog, units, send: c => pending.push(c), selected: () => crewInput.selected(), menuAt: (x, y) => townMenuAt(x, y), badgeRoot: $('garrisonbadges'), viewing: () => townView.viewing() });   // before the town hover: its right-click on a house wins
+    const garrisonCard = createGarrisonCard({ game, heroId, frontierData: simOptions.frontier, units, catalog, send: c => pending.push(c), select: ids => crewInput.select(ids), selected: () => crewInput.selected(), viewing: () => townView.viewing() });
     const townHover = createTownHover({ game, view, heroId, tipEl: $('townhover'), flashEl: $('townflash'), openTown: id => townPanel.open(id), frontierData: simOptions.frontier,
-      send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges'),
+      send: c => pending.push(c), selected: () => crewInput.selected(), badgeEl: $('garrisonbadges'), viewing: () => townView.viewing(),
       openCamp: (id, b) => warCamp.show(id, b),   // 7c-3: the clicked building's own menu
       openTownWar: (town, b) => townWar.show(town, b),   // 8b: your military buildings, and the hall or stable during a war on the town
       openGarrison: (town, id) => { const s = game.state.frontier?.settlements?.[town]; if (!garrisonCard.isGarrisonable(s, s?.buildings?.find(x => x.id === id))) return false; garrisonCard.open(town, id); return true; } });

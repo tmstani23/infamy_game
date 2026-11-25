@@ -35,12 +35,12 @@ const NAMES = { town_hall: 'Town hall', housing: 'House', work: 'Workshop', farm
 const nice = t => NAMES[t] || (t || 'building').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export function createStructureCard({ game, view, heroId, frontierData, send, selected = () => [], badgeRoot = null, menuAt = () => false, catalog = null, units = null }) {
+export function createStructureCard({ game, view, heroId, frontierData, send, selected = () => [], badgeRoot = null, menuAt = () => false, catalog = null, units = null, viewing = () => null }) {
   const style = document.createElement('style'); style.textContent = CSS; document.head.append(style);
   // the pane is a layout panel (Edit layout: Building pane), so index.html holds its element; small, above the action bar
   const root = document.getElementById('structcard') || Object.assign(document.createElement('div'), { id: 'structcard', hidden: true }); if (!root.parentNode) document.body.append(root);
   const owner = () => game.state.entities[heroId]?.owner;
-  const onIsland = () => game.state.entities[heroId]?.place === 'world';
+  const onIsland = () => game.state.entities[heroId]?.place === 'world' || !!viewing();   // or viewing one of your towns (town_view.js)
   const ST = () => game.frontier?.structures, GA = () => game.frontier?.garrison;
   const Z = () => frontierData?.war?.structures?.zoneGarrison || {};
   let key = null, sig = '', pinned = false, withMenu = false, page = 0;   // page: of the garrison slots   // pinned: opened by a click (stays); withMenu: beside the building's menu (Tim 2026-11-20)

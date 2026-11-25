@@ -15,10 +15,10 @@ const shelterIcon = (n, attack) => `<svg viewBox="0 0 36 42" aria-hidden="true">
     : `<rect x="12.5" y="14" width="11" height="17" fill="#ffcf7a" stroke="#0a0604" stroke-width="1.2"/><rect x="14.5" y="16" width="7" height="15" fill="#f6a24a"/><path d="M11 14h14" stroke="#7a5530" stroke-width="2"/>`) + `</svg>`;
 const HALL_PILL_ICON = '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><circle cx="7" cy="4" r="2.7" fill="#f2e6c9"/><path d="M1.6 13.5c.4-3.6 2.5-5.4 5.4-5.4s5 1.8 5.4 5.4Z" fill="#f2e6c9"/></svg>';
 
-export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null, openGarrison = null, openCamp = null, openTownWar = null }) {
+export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, frontierData, send = () => {}, selected = () => [], badgeEl = null, openGarrison = null, openCamp = null, openTownWar = null, viewing = () => null }) {
   let plots = [], sig = '', mouse = { x: -1, y: -1 };
   const owner = () => game.state.entities[heroId]?.owner;
-  const onIsland = () => game.state.entities[heroId]?.place === 'world';
+  const onIsland = () => game.state.entities[heroId]?.place === 'world' || !!viewing();   // or viewing one of your towns (town_view.js)
   function refresh() {
     // own towns plus rival towns you have seen (their hover shows stores once you walk up; F6 war)
     const towns = drawableTowns(game.state.frontier, owner()).concat(drawableWarSites(game.state.frontier, owner()).filter(s => s.camp || s.grid && game.state.frontier?.settlements?.[s.id]));   // war camps too (checkpoint 4)
