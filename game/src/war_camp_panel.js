@@ -337,8 +337,10 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   for (const ev of ['keyup', 'pointerdown', 'mousedown', 'wheel']) root.addEventListener(ev, e => e.stopPropagation());
   const count = key => { const n = Math.floor(Number(counts[key] ?? 1)); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
   // 7c-4: the Workers tab's buttons and group boxes belong to the worker pane (frontier_build_ui.js)
-  root.addEventListener('click', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.click(a.dataset, s, e)) { sig = ''; fill(); } });
-  root.addEventListener('dblclick', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s) ui.doubleClick?.(a.dataset, s); });
+  // Tim 2026-11-25: a click anywhere on a worker card selects it (not only the portrait); the group box and buttons keep their own clicks
+  const actOf = e => e.target.closest?.('[data-act]') || (e.target.closest?.('select, input, button, a') ? null : e.target.closest?.('.campworkers .wcard')?.querySelector('button.wface'));
+  root.addEventListener('click', e => { const a = actOf(e); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.click(a.dataset, s, e)) { sig = ''; fill(); } });
+  root.addEventListener('dblclick', e => { const a = actOf(e); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s) ui.doubleClick?.(a.dataset, s); });
   root.addEventListener('change', e => { if (!e.target?.dataset?.tkeep || !open) return; const n = Math.floor(Number(e.target.value)); delete counts.tkeep; sig = ''; if (!Number.isSafeInteger(n) || n < 0) why = 'Type 0 or more'; else { why = ''; send({ id: heroId, type: 'frontier', action: 'ship', mode: 'treasuryKeep', ryo: n }); } fill(); });   // 8e-2
   root.addEventListener('change', e => { const a = e.target.closest?.('[data-act]'); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.change?.(a.dataset, e.target.value, s)) { sig = ''; fill(); } });
   root.addEventListener('click', e => {

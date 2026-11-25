@@ -1347,3 +1347,18 @@ body #utarget .effect small, body #bar .buff small { z-index: 2; left: 0; right:
 #characterpage .character-stat strong.preview .stat-was { font-size: 12px; font-weight: 500; color: #a08c70; }
 #characterpage .character-stat strong.preview i { display: inline-block; width: 0; height: 0; margin: 0 7px 1px; border-left: 6px solid var(--ln-faint); border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
 #itemcard .ic-row > span:first-child { white-space: nowrap; }
+/* Tim 2026-11-25: a selected worker card is a cream paper slip like the open tab, with dark ink; easy to spot, no red on brown.
+   Every card keeps 6px side room so the slip edge never touches the portrait or the group box; selecting changes no sizes. */
+#townpanel .workerroster .wcard { padding-left: 6px; padding-right: 6px; }
+#townpanel .workerroster .wcard:hover:not(.sel) { background: linear-gradient(180deg, rgba(255,205,150,.06), rgba(255,205,150,.02)); }
+#townpanel .workerroster .wcard.sel { border-radius: 2px;
+  background: linear-gradient(175deg, rgba(255,250,235,.16), transparent 45%), var(--ln-fiber), linear-gradient(175deg, #e6d7b2, #d8c497 70%, #c9b283);
+  box-shadow: inset 0 0 0 1px #8a6a3a, inset 0 0 18px rgba(120,80,30,.22), 0 0 0 1px #0a0604, 0 2px 0 rgba(0,0,0,.5), 0 0 14px rgba(255,170,60,.16); }
+#townpanel .workerroster .wcard.sel button.wface { box-shadow: 0 0 0 2px #6a4c2c, 0 0 0 3px #d8c497, inset 0 0 10px rgba(0,0,0,.6); }
+#townpanel .workerroster .wcard.sel .wtop b { color: #2b1d12; text-shadow: none; }
+#townpanel .workerroster .wcard.sel .wjob, #townpanel .workerroster .wcard.sel .harvestline { color: #4a3624; }
+#townpanel .workerroster .wcard.sel .wprog { background: rgba(90,60,30,.2); box-shadow: inset 0 1px 2px rgba(0,0,0,.35); }
+/* Tim 2026-11-25: the camp window is narrow, so a worker's group box sits under the name and job instead of beside them (names were cut to "Wor...") */
+body #warcamp .campworkers .workerroster .wcard .wmain { display: flex; flex-direction: column; gap: 2px; }
+body #warcamp .campworkers .workerroster .wcard .wjob { min-height: 0; }
+body #warcamp .campworkers .workerroster .wcard .wmain > select.wgrp { align-self: flex-start; margin: 2px 0 0; min-width: 118px; width: auto; max-width: 100%; }
