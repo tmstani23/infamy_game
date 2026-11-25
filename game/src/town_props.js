@@ -277,7 +277,8 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
       // placed buildings go through the same build phases as zone houses (Tim 2026-11-05): site, then frame, then the building
       if (p.paid && p.progress > 0 && art) { const half = p.progress * 2 >= p.need, phases = townArt._buildPhases || ['house_construction_1', 'house_construction_2'];
         out.push({ key: `${s.id}:${p.id}:frame${half ? 2 : 1}`, art: phases[half ? 1 : 0], x, z }); }
-      else if (p.phase !== 'clearing') {
+      // the dirt site stays on the ground under the frames until the building stands (Tim 2026-11-25)
+      if (p.phase !== 'clearing') {
         const offsets = p.cells?.map(c => cellOffset(s, c));
         const width = offsets ? Math.max(...offsets.map(p => p[0])) - Math.min(...offsets.map(p => p[0])) + s.grid.cell : 8;
         const height = offsets ? Math.max(...offsets.map(p => p[1])) - Math.min(...offsets.map(p => p[1])) + s.grid.cell : 6;
