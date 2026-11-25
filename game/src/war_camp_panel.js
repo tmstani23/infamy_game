@@ -107,6 +107,7 @@ import { specialHover } from './special_stats.js';
 import { listVehicles } from './vehicles_panel.js';
 import { sharedKeybinds } from './keybinds.js';
 import { drawBuildArea } from './camp_build_area.js';
+import { campWorkerCap } from './sim/frontier/camp_worker_cap.js';
 import { shelterTabHtml, shelterTabSig, SHELTER_CSS } from './camp_shelter_tab.js';   // Tim 2026-11-25: the camp hall's Shelter tab
 import { createRailLedger } from './rail_ledger.js';   // the camp station's Orders tab (Tim 2026-11-25)
 import { chestSendHtml, chestSendSig, chestSendClick, CHEST_SEND_CSS } from './war_chest_send.js';   // 8e-3
@@ -364,7 +365,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         <div class="coins">${coin('red', Math.floor(c.chest || 0), 'War chest', 'Ryo for troops and workers. Only this war can spend it.')}${coin('', `${v.troops + v.queued}/${v.cap}`, 'Troops', 'Troops out and in training, of the troop cap')}
           ${coin('', Math.floor(c.stock.timber || 0), 'Timber', 'Camp stores: pays for camp buildings. Camp workers gather more.')}${coin('', Math.floor(c.stock.stone || 0), 'Stone', 'Camp stores: pays for camp buildings. Camp workers gather more.')}${coin('', STRATEGY_NAMES[strat] || strat, 'General', 'How your general fights while your hero is away from a war. Change it on the General tab.')}</div>
         ${c.station?.cut ? '<div class="small" style="color:#ee8a7c;margin-top:6px">Cut off from the rail network: orders wait until it is mended</div>' : c.station?.linked ? `<div class="small" style="color:#9ad48f;margin-top:6px">Linked by rail to ${esc(game.state.frontier?.settlements?.[c.station.to]?.name || '')}</div>` : ''}
-        <div class="upg" title="${esc(`Hire camp workers for ${C.workerCost ?? '?'} ryo each from the war chest, up to ${C.workerCap ?? '?'} in all. They gather timber and stone anywhere in the war circle outside the town ring and build your camp.`)}"><b>Workers ${(c.workers || []).length + (c.workerTraining || []).length} of ${C.workerCap ?? '?'}</b>
+        <div class="upg" title="${esc(`Hire camp workers for ${C.workerCost ?? '?'} ryo each from the war chest, up to ${campWorkerCap(c, frontierData)} in all (${(frontierData?.war?.camp?.workerCapByTier || []).join(' before, ')} after the camp hall upgrade). They gather timber and stone anywhere in the war circle outside the town ring and build your camp.`)}"><b>Workers ${(c.workers || []).length + (c.workerTraining || []).length} of ${campWorkerCap(c, frontierData)}</b>
           <div style="display:flex;gap:6px;justify-content:center;margin-top:5px">${num('hire')}<button class="go" data-hire="1">Hire</button></div><div class="small" style="margin-top:3px">${C.workerCost ?? '?'} ryo each</div>${workerQueueHtml(c)}</div></aside>`}
       <main>${bld ? '' : `<div class="tabs">${[['build', 'Build'], ['workers', 'Workers'], ['shelter', 'Shelter'], ['chest', 'War chest'], ['hall', 'Hall'], ['general', 'General']].map(([t, n]) => `<button class="tab${tab === t ? ' on' : ''}" data-tab="${t}">${n}</button>`).join('')}</div>`}${body}<div class="why">${esc(why)}</div></main></div></div>`;
     if (typing?.n) { const el = [...root.querySelectorAll('input')].find(x => x.dataset.n === typing.n); if (el) { el.focus(); try { el.setSelectionRange(typing.a, typing.b); } catch {} } }

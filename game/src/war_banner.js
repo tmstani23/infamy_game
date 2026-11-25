@@ -5,6 +5,7 @@
 // Also the red war coin above the ryo coin while a pack is carried, and the War declared splash.
 // No special characters in game text (Tim 2026-11-10); long text lives in hover titles.
 import { modeRules } from './sim/modes/index.js';
+import { campWorkerCap } from './sim/frontier/camp_worker_cap.js';
 const FLAG = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M5 2v20" stroke="#3a2614" stroke-width="2.4"/><path d="M5 2v20" stroke="#c9a46a" stroke-width="1.2"/>
   <path d="M6 3h12v12l-3-2-3 2-3-2-3 2z" fill="#b8372e" stroke="#2a0d0a" stroke-width="1"/><path d="M4 2h9" stroke="#3a2614" stroke-width="2"/></svg>`;
 const ICON = {
@@ -280,7 +281,7 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
         coinSig = csig; coin.hidden = false;
         const k = camp.camp, n = k.workers.length, tr = (k.workerTraining || []).length;
         coin.innerHTML = `<div><b>Camp</b><small>WAR CAMP</small>${n} workers</div>`;   // the camp button; its ryo is on the money badge (Tim 2026-11-24)
-        coin.title = `Your war camp: ${Math.floor(k.chest)} ryo in the war chest, ${Math.floor(k.stock.timber)} timber and ${Math.floor(k.stock.stone)} stone in the camp stores, ${n} workers${tr ? ` (${tr} in training)` : ''}. With a linked camp station, ryo, timber and stone come in by train (War chest tab and station). Camp workers gather timber and stone anywhere in the war circle outside the town ring and drop it at the camp hall. A camp holds at most ${C.workerCap ?? '?'} workers. Click to open the camp panel.`;
+        coin.title = `Your war camp: ${Math.floor(k.chest)} ryo in the war chest, ${Math.floor(k.stock.timber)} timber and ${Math.floor(k.stock.stone)} stone in the camp stores, ${n} workers${tr ? ` (${tr} in training)` : ''}. With a linked camp station, ryo, timber and stone come in by train (War chest tab and station). Camp workers gather timber and stone anywhere in the war circle outside the town ring and drop it at the camp hall. A camp holds at most ${campWorkerCap(k, { war: W() })} workers. Click to open the camp panel.`;
       }
     } else if (sig !== coinSig) {
       coinSig = sig; coin.hidden = !pack;

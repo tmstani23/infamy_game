@@ -1,4 +1,5 @@
 import { addCampStock } from './camp_stock.js';
+import { campWorkerCap } from './camp_worker_cap.js';
 import { modeRules } from '../modes/index.js';
 // Saved worker records, integer-tick trips, ground clearing and nearby civilian units.
 // Stock/population still have one writer (world.js); no camera, DOM or Math.random.
@@ -211,7 +212,8 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!s.buildings.some(b=>b.type==='camp_hall' && b.stage==='built' && !(b.hp===0)))return result('the camp hall is down');
     const cost=(C.workerCost ?? 0)*count;
     if((c.chest || 0)<cost)return result('the war chest cannot afford workers');
-    if(s.workers.length+s.workerTraining.length+count>(C.workerCap ?? Infinity))return result(`a war camp holds at most ${C.workerCap} workers`);
+    const cap=campWorkerCap(s,data);   // Tim 2026-11-25: 24 before the camp hall upgrade, 40 after
+    if(s.workers.length+s.workerTraining.length+count>cap)return result(`a war camp holds at most ${cap} workers${cap<campWorkerCap({buildings:[{type:'camp_hall',tier:9}]},data) ? ' before the camp hall upgrade' : ''}`);
     c.chest=Math.round(((c.chest || 0)-cost)*100)/100;
     let readyAt=Math.max(state.tick || 0,s.workerTraining.at(-1)?.readyAt || 0);
     for(let i=0;i<count;i++)s.workerTraining.push({id:world.newId('w'),readyAt:readyAt+=R.trainTicks});
