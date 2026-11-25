@@ -8,7 +8,8 @@ import {resourceUsage} from './sim/frontier/resource_usage.js';
 const STOCK_ART = { food: 'art/props/sake_barrels.png', timber: 'art/props/firewood.png', stone: 'art/props/sandstone_stones.png', goods: 'art/props/crates.png', ryo: 'art/props/iron_chest.png', fish: 'art/props/barrels.png', people: 'art/buildings/tenements.png' };
 import { usageView, housingView, flowFocus } from './sim/frontier/usage_view.js';
 import { reportRows, peopleRows, governorSays, talkCommand } from './frontier_report.js';
-import { tierOf, nextTier, upgradeCheck } from './sim/frontier/tiers.js';
+import { tierOf, nextTier } from './sim/frontier/tiers.js';
+import { hallUpgradeHTML } from './hall_upgrade.js';
 import { warUpgradeSeconds } from './sim/frontier/town_military.js';
 import { defaultKeep } from './sim/frontier/storage.js';
 import { workerCount } from './sim/frontier/people.js';
@@ -255,8 +256,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       h += `<div><h1>${esc(rows.title)}</h1><div class="sub">Yours, mood <b${tip(mood.tip)}>${mood.value}</b> / 100</div></div>`;
       // B3: town hall tier and its upgrade
       if (data?.tiers?.list) {
-        const tier = tierOf(s, data), next = nextTier(s, data), up = s.tierUpgrade, chk = upgradeCheck(s, data, game.state);
-        const cost = next?.upgrade ? Object.entries(next.upgrade.cost).map(([r, v]) => `${v} ${r}`).join(', ') + `, ${next.upgrade.pop} people` : '';
+        const tier = tierOf(s, data), next = nextTier(s, data);
         const what = t => t ? `ring ${t.ring}, housing ${t.cells.housing} / farm ${t.cells.farm} / work ${t.cells.work} cells, ${t.workers} workers, storehouses ${t.placed.storehouse}, camps ${t.placed.camps}` : '';
         h += `<div class="row"><span${tip('Town hall tier limits:\n' + what(tier))}>Town hall: <b>${esc(tier.name)}</b> <span class="dim">(tier ${s.tier || 1}), workers ${workerCount(s)} / ${tier.workers}</span></span>`
           + (next ? '' : '<span class="dim">Highest tier</span>') + '</div>'

@@ -1404,3 +1404,44 @@ body .garrisonbadge.shelterbadge svg { display: block; width: 36px; height: 42px
 body .garrisonbadge.shelterbadge:hover { opacity: 1; background: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.8)) drop-shadow(0 0 10px rgba(255,190,100,.75)); transform: translate(-50%, -100%) translateY(-2px); }
 body .garrisonbadge.shelterbadge.attack { animation: shelterbadgepulse 1.6s ease-in-out infinite; }
 @keyframes shelterbadgepulse { 0%, 100% { filter: drop-shadow(0 0 1px #000) drop-shadow(0 2px 3px rgba(0,0,0,.8)) drop-shadow(0 0 5px rgba(255,120,50,.7)); } 50% { filter: drop-shadow(0 0 1px #000) drop-shadow(0 2px 3px rgba(0,0,0,.8)) drop-shadow(0 0 14px rgba(255,100,50,1)); } }
+
+/* Town hall upgrade block (Tim 2026-11-25, hall_upgrade.js): hall card and town panel. A lacquer header band, one line per requirement with a framed bar, a red seal on met lines */
+:is(#towninspect, #townpanel) .tg { margin-top: 10px; padding: 0 9px 9px; box-shadow: inset 0 3px 9px #000; background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255,160,70,.08), transparent 70%), var(--ln-fiber), linear-gradient(180deg, #120b07, #1a110b); font-family: var(--ln-font); }
+:is(#towninspect, #townpanel) .tg.ready { box-shadow: inset 0 3px 9px #000, 0 0 0 1px #a8732c, 0 0 18px rgba(250,170,70,.35); }
+:is(#towninspect, #townpanel) .tg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 -9px 6px; padding: 7px 10px 6px; background: linear-gradient(180deg, #4a1a12, #2a0f0a); box-shadow: inset 0 1px 0 rgba(255,190,150,.2), 0 2px 0 #0a0503, 0 3px 0 rgba(150,110,60,.35); }
+:is(#towninspect, #townpanel) .tg-head span { font: 800 15px/1.2 var(--ln-font); color: var(--ln-gold); text-shadow: 0 1px 0 #000, 0 0 10px rgba(240,170,80,.25); }
+:is(#towninspect, #townpanel) .tg-head em { font: 700 13.5px var(--ln-font); font-style: normal; color: #f2c88a; white-space: nowrap; }
+:is(#towninspect, #townpanel) .tg.ready .tg-head { background: linear-gradient(180deg, #b8862f, #7a531a); }
+:is(#towninspect, #townpanel) .tg.ready .tg-head span { color: #2a1708; text-shadow: 0 1px 0 rgba(255,235,190,.5); }
+:is(#towninspect, #townpanel) .tg-req { display: flex; gap: 8px; align-items: flex-start; padding: 5px 2px; }
+:is(#towninspect, #townpanel) .tg-ic { position: relative; flex: none; width: 42px; margin-top: 2px; display: flex; justify-content: center; }
+:is(#towninspect, #townpanel) .tg-ic img { width: 40px; height: 32px; object-fit: contain; filter: drop-shadow(0 2px 3px #000) brightness(.75) saturate(.7); }
+:is(#towninspect, #townpanel) .tg-req.ok .tg-ic img { filter: drop-shadow(0 0 6px rgba(240,180,90,.45)) brightness(1.1) saturate(1.05); }
+:is(#towninspect, #townpanel) .tg-ic img[src*="laborer"] { width: 34px; height: 34px; object-fit: cover; object-position: 50% 15%; border-radius: 50%; -webkit-mask-image: radial-gradient(circle, #000 55%, transparent 72%); mask-image: radial-gradient(circle, #000 55%, transparent 72%); filter: brightness(.8); }
+:is(#towninspect, #townpanel) .tg-req.ok .tg-ic img[src*="laborer"] { filter: brightness(1.15); }
+:is(#towninspect, #townpanel) .tg-hanko { position: absolute; right: -2px; bottom: -4px; width: 18px; height: 18px; border-radius: 50%; transform: rotate(-12deg); background: radial-gradient(circle at 45% 40%, #c8402a, #8a1c10 80%); box-shadow: inset 0 0 0 1.5px #8a1c10, inset 0 0 0 3px rgba(246,226,194,.85), inset 0 0 0 4.5px #a52818, 0 1px 2px #000; }
+:is(#towninspect, #townpanel) .tg-hanko::after { content: ""; position: absolute; left: 7px; top: 3.5px; width: 3px; height: 7px; border: solid #f6e2c2; border-width: 0 2px 2px 0; transform: rotate(40deg); }
+:is(#towninspect, #townpanel) .tg-mid { flex: 1; min-width: 0; }
+:is(#towninspect, #townpanel) .tg-line { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+:is(#towninspect, #townpanel) .tg-name { font: 700 14px/1.2 var(--ln-font); color: var(--ln-text); }
+:is(#towninspect, #townpanel) .tg-num { font: 500 13.5px/1.2 var(--ln-font); color: #d4bf98; white-space: nowrap; }
+:is(#towninspect, #townpanel) .tg-num b { font: 800 15px var(--ln-font); color: #f08a6a; }
+:is(#towninspect, #townpanel) .tg-req.ok .tg-num b { color: #f4c463; }
+:is(#towninspect, #townpanel) .tg-bar { height: 12px; margin: 4px 0 3px; border-radius: 1px; overflow: hidden; background: linear-gradient(180deg, #1a0f08, #2a1a0e); box-shadow: inset 0 2px 3px #000, 0 0 0 1px #0a0604, 0 0 0 2.5px #8a6a3a, 0 0 0 3.5px #2a1a0e; }
+:is(#towninspect, #townpanel) .tg-bar.big { height: 14px; margin: 8px 0 2px; }
+:is(#towninspect, #townpanel) .tg-bar i { display: block; height: 100%; background: linear-gradient(180deg, #b83a2a, #761c12); box-shadow: inset 0 1px 0 rgba(255,190,150,.25); }
+:is(#towninspect, #townpanel) .tg-req.ok .tg-bar i, :is(#towninspect, #townpanel) .tg-work .tg-bar i { background: linear-gradient(180deg, #f4c463, #c07a26); box-shadow: inset 0 1px 0 rgba(255,240,200,.55), 0 0 9px rgba(250,170,70,.5); }
+:is(#towninspect, #townpanel) .tg-note { font: 600 13.5px/1.25 var(--ln-font); color: #f4a07c; }
+:is(#towninspect, #townpanel) .tg-note.dim { color: #c9b38c; font-weight: 500; }
+:is(#towninspect, #townpanel) .tg-work { padding: 2px; }
+:is(#towninspect, #townpanel) .tg-wtop { display: flex; gap: 10px; align-items: center; }
+:is(#towninspect, #townpanel) .tg-wtop img { flex: none; width: 70px; height: 54px; object-fit: contain; filter: drop-shadow(0 3px 5px #000) sepia(.5) brightness(.8); opacity: .85; }
+:is(#towninspect, #townpanel) .tg-time { font: 800 18px/1.2 var(--ln-font); color: var(--ln-gold); }
+:is(#towninspect, #townpanel) .tg-unlock { margin: 7px 2px 0; font: 500 13.5px/1.35 var(--ln-font); color: #e6d4b0; }
+:is(#towninspect, #townpanel) .tg-unlock span { display: block; font: 800 12.5px var(--ln-font); color: #e9b968; margin: 0 0 1px; }
+:is(#towninspect, #townpanel) button.tg-btn { display: flex; flex-direction: column; align-items: center; gap: 1px; width: 100%; margin-top: 8px; padding: 7px 6px 8px; font: 700 15px/1.2 var(--ln-font); }
+:is(#towninspect, #townpanel) button.tg-btn small { font: 600 12px/14px var(--ln-font); color: var(--ln-dim); }
+:is(#towninspect, #townpanel) button.tg-btn.ti-go { color: #2a1b10; background: linear-gradient(180deg, #ecca86, #b6873f); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,245,215,.6), 0 2px 0 #2b1c0c; }
+:is(#towninspect, #townpanel) button.tg-btn.ti-go small { color: #4a3420; }
+:is(#towninspect, #townpanel) button.tg-btn.no { opacity: 1; color: #e2cfa6; background: linear-gradient(180deg, #3a291a, #1e140c); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,220,170,.12), inset 0 0 0 1px #5e4529; }
+:is(#towninspect, #townpanel) button.tg-btn.no small { color: #f0a46e; font-size: 12.5px; }

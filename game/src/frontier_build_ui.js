@@ -19,6 +19,7 @@ import { cellCap, zoneCells, nextTier, upgradeCheck } from './sim/frontier/tiers
 import { residents, workerCount } from './sim/frontier/people.js';
 import { msArt, msConcept } from './menu_shell.js';
 import { workerCap } from './sim/frontier/tiers.js';
+import { hallUpgradeHTML } from './hall_upgrade.js';
 import { shapeOf, stationParts } from './sim/frontier/station_layout.js';
 import { sharedKeybinds } from './keybinds.js';
 import { isMilitary, militaryFor, militaryNeeds, militaryCount, tierMax, townMilitaryTier, townTierFor } from './sim/frontier/town_military.js';
@@ -394,13 +395,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     cancel();pendingPlan={at:{...pointer},drop:workSites().map(s=>({town:s.id,workers:(s.workers || []).filter(w=>selected.includes(w.id) && w.carrying>0).map(w=>w.id)})).filter(p=>p.workers.length)};
   }
   // Tim 2026-11-05: the town hall card can also upgrade the hall (same upgradeHall command as the town panel)
-  function hallUpgradeButton(s) {
-    const next = nextTier(s, data);
-    if (s.tierUpgrade) return `<div class="hint">Upgrading to ${esc(next?.name || '')}, ${Math.max(0, s.tierUpgrade.left)} s</div>`;
-    if (!next?.upgrade) return '';
-    const chk = upgradeCheck(s, data, game.state), cost = Object.entries(next.upgrade.cost).map(([r, v]) => `${v} ${r}`).join(', ') + `, ${next.upgrade.pop} people`;
-    return `<button data-upgrade="${esc(s.id)}" class="ti-up${chk.ok ? '' : ' no'}" title="${esc(`Upgrade the town hall to ${next.name}: ${cost}.${chk.ok ? '' : '\nNot yet: ' + chk.reason}`)}">Upgrade to ${esc(next.name)}</button>`;
-  }
+  // Tim 2026-11-25: the requirements block (hall_upgrade.js) with have / need per requirement and the Upgrade button
+  const hallUpgradeButton = s => hallUpgradeHTML(s, data, game.state);
   const trainingTip = s => resourceRequirements(s,{ryo:data.workers.cost,...(data.workers.goodsCost?{goods:data.workers.goodsCost}:{})},data.workers.personCost)
     + `\nTrains a selectable worker for harvesting and ground clearing.\nRequires a finished town hall. Training: ${data.workers.trainTicks / 20} seconds. Keep ${data.opening?.reservePeople || 0} townsperson for food/building.\nTechnology: none.\nEnables manual move, stop, group and resource orders.`;
   // card look (menu restyle, Tim 2026-11-11): a header with art, eyebrow and title, label / value rows, plain text
