@@ -142,7 +142,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
         const remaining = Math.max(0, Math.min(100, (b.until - now) / effectStarts.get(key).total * 100));
         const fullName = b.hamstring ? 'Hamstring' : EFFECT_NAMES[name] || name;
         const seconds = Math.ceil((b.until - now) / 20);
-        return `<span class="effect ${DEBUFFS.has(name) ? 'debuff' : ''}" style="--remaining:${remaining}%" tabindex="0" role="img" aria-label="${fullName}, ${seconds} seconds remaining" title="${fullName}">${hudIcon(name)}<small>${seconds}s</small></span>`;
+        return `<span class="effect ${DEBUFFS.has(name) ? 'debuff' : ''}" style="--remaining:${remaining}%" tabindex="0" role="img" aria-label="${fullName}, ${seconds} seconds remaining" title="${fullName}">${hudIcon(name)}<small>${seconds}</small></span>`;
       }).join('');
       if (f.effects._html !== html) { f.effects._html = html; f.effects.innerHTML = html; }   // last string, not innerHTML (SVG re-serialises)
     }

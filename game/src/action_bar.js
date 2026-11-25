@@ -210,7 +210,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     const html = passiveHtml + Object.entries(shown).map(([n, { until, total }]) => {
       const left = Math.max(0, (until - t) / tickRate), pct = Math.max(0, Math.min(1, left / total));
       const name = BUFFS[n] || n;
-      return `<span class="buff ${n}" style="--remaining:${pct * 100}%" tabindex="0" role="img" aria-label="${name}, ${Math.ceil(left)} seconds remaining" title="${name}"><i></i><b aria-hidden="true">${hudIcon(n)}</b><small>${Math.ceil(left)}s</small></span>`;
+      return `<span class="buff ${n}" style="--remaining:${pct * 100}%" tabindex="0" role="img" aria-label="${name}, ${Math.ceil(left)} seconds remaining" title="${name}"><i></i><b aria-hidden="true">${hudIcon(n)}</b><small>${Math.ceil(left)}</small></span>`;
     }).join('');
     // compare with the last string written: the browser re-serialises the SVG icons, so an innerHTML compare never matched (rebuilt every frame)
     if (buffs._html !== html) { buffs._html = html; buffs.innerHTML = html; }
