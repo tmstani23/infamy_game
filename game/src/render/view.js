@@ -23,7 +23,7 @@ import { createWorldGround } from './world_ground.js';
 import { createWeather } from './weather.js';
 import { createCrowFx } from './crow_fx.js';
 import { createWildDropFx } from './wild_drop_fx.js';
-import { createHalterFx } from './halter_fx.js';
+import { createTameFx } from './tame_fx.js';
 import { createWildEyesFx } from './wild_eyes_fx.js';   // night eyes of wolves and bears (wildlife W4)   // a hunted animal's hide flies to the hero (wildlife W3)
 import { createRailTrack, createCityStation } from './rail_track.js';
 import { createRailBlastFx } from './rail_blast_fx.js';
@@ -357,7 +357,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   }
   function syncSprites(state) {
     for (const e of Object.values(state.entities)) if (!sprites.has(e.id)) { sprites.set(e.id, null); addSprite(e); }
-    for (const [id, s] of sprites) if (!state.entities[id] && s) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate); if (s.team) scene.remove(s.team); if (s.aura) scene.remove(s.aura); s.dispose(); sprites.delete(id); trickle.delete(id); }
+    for (const [id, s] of sprites) if (!state.entities[id] && s && !tameFx.holds(id)) { scene.remove(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate); if (s.team) scene.remove(s.team); if (s.aura) scene.remove(s.aura); s.dispose(); sprites.delete(id); trickle.delete(id); }
   }
 
   function updateLights(time) {
@@ -458,7 +458,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const [id, d] of drivers) if (!state.entities[id]) { if (d) { scene.remove(d.thing.mesh); d.dispose(); } drivers.delete(id); }
     wildEyes.begin(); let eyesMine = null; const myOwner = state.entities[followId]?.owner;
     for (const [id, s] of sprites) {
-      if (!s) continue;
+      if (!s || !state.entities[id]) continue;   // a caught wild horse's sprite, held while the light passes (render/tame_fx.js)
       let e = state.entities[id];
       let p = prev.entities[id] || e;
       if (Math.hypot(e.x - p.x, e.z - p.z) > 3) p = e;    // went through a door: no sliding
@@ -606,7 +606,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       fishingFx.moor(out ? worldGround?.spotsInView() || [] : []); }
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     wildDropFx.update(fdt);
-    halterFx.update(fdt, id => { const s = sprites.get(id), e = state.entities[id]; return s && e && !e.dead ? { pos: s.pos, centre: s.thing.mesh.position, cell: s.cellWorld * (s.size || 1), dir: e.dir } : null; }, (heroPlace === 'world' && !cityView) || worldView);   // a rope halter thrown over a wild horse (W6)
+    tameFx.update(fdt, id => sprites.get(id), (heroPlace === 'world' && !cityView) || worldView);   // a wild horse caught: warm light passes over her and she is saddled (W6)
     wildEyes.end(video.wildlife !== false);
     crowFx?.update({ state, prev, show: (heroPlace === 'world' && !cityView) || worldView, on: video.wildlife !== false, dt: fdt, cam: { x: camTarget.x, z: camTarget.z, r: camera.right }, things: worldGround?.things(), hear: Math.min(140, Math.max(24, camera.right * 0.9)) });
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark
@@ -659,7 +659,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // the shakedown dynamite: a small blast of the same kind (Tim 2026-11-20); shakedownfx.js keeps its flash and ring
       if (c.kind === 'dynamiteBlast' && (c.place || 'street') === heroPlace) railBlastFx.blast(c.x, c.z, 0, { scale: 0.38, shake: false });
       if ((c.kind === 'chestCashed' || c.kind === 'hidesSold') && heroPlace === 'world') chestCashFx.cash(c);   // hides sold at a market (wildlife W5): koban coins fly into it
-      if (c.kind === 'halterThrow' && heroPlace === 'world') halterFx.cast(c);
+      if (c.kind === 'horseCaught' && heroPlace === 'world') tameFx.cast(c);
       if (c.kind === 'wildDrop' && heroPlace === 'world') wildDropFx.drop(c);   // the hide flies from the carcass to the hero   // Tim 2026-11-21: the stolen loot flies into the hall
       if (c.kind === 'railBlast' && railBlastFx) { railBlastFx.blast(c.x, c.z, c.heading || 0); railShakeK = Math.max(0, 1 - Math.hypot(c.x - camTarget.x, c.z - camTarget.z) / 45); }   // train robbery: the charge goes off
       if (c.kind === 'cannonFire' && !c.tower) { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
@@ -672,7 +672,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const chestCashFx = createChestCashFx({ scene });
   const wildEyes = createWildEyesFx({ scene, cfg: wildlifeCfg?.animals?.eyes || {} });
   const wildDropFx = createWildDropFx({ scene, posOf: id => sprites.get(id)?.pos || null });
-  const halterFx = createHalterFx({ scene });
+  const tameFx = createTameFx({ scene });
   const fishingFx = createFishingFx({ scene });   // workers on fish spots cast lines; fish spot boats moored (Tim 2026-11-23)
   const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null;   // fx id -> 'charge' | 'crater'
   let railShakeK = 0;
@@ -722,6 +722,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       hitFx.hit(h, a, t?.owner === me?.owner, me?.place === 'world', !dry);   // no damage numbers on the frontier (Tim 2026-11-12)
       const s = sprites.get(h.t);
       if (s && a) { const d = Math.hypot(h.x - a.x, h.z - a.z) || 1; s.struck((h.x - a.x) / d, (h.z - a.z) / d, h.crit || h.kill); }
+      if (a && t) sprites.get(h.a)?.gearFx?.hit(t.x - a.x, t.z - a.z, h.crit);   // a claw charm's rakes on the one struck (render/gear_fx.js)
       if (h.kind === 'dash') { abilityFx.cut(h, a); freezeT = Math.max(freezeT, 0.07); }
       else if (h.a === followId && (h.crit || h.kill)) freezeT = Math.max(freezeT, 0.05);
       if (a?.buffs?.lantern) abilityFx.lanternHit(h);
@@ -817,7 +818,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       resumingPresentation=active;
       if(!active){hitFx.update(100);abilityFx.clear();updateFlashes(100);shakeT=freezeT=0;trickle.clear();}
     },
-    addDodges(dodges) { for (const d of dodges) hitFx.dodge(d); },
+    addDodges(dodges) { for (const d of dodges) { hitFx.dodge(d); sprites.get(d.t)?.gearFx?.dodge(); } },   // a fang charm's rips (render/gear_fx.js)
     // arrow-key panning (right, up from -1 to 1 on screen); the camera stays there until snapBack
     pan(right, up, dt) {
       if (!right && !up) return;

@@ -516,7 +516,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
 
   // Catching a wild horse (W6, Tim 2026-11-24): on foot the hero creeps up (Shift walks; running, riding or crew near
   // make the herd bolt) to within catch.reach of a calm one; on horseback he rides alongside one, running or not, within
-  // catch.rideReach. Space slips a rope halter over her muzzle (the herders' halter; nothing is thrown, Tim 2026-11-24: a thrown loop reads as a lasso) and she is his (mounts.adopt).
+  // catch.rideReach. Space catches her (nothing is thrown, Tim 2026-11-24: no lasso, no rope; warm light passes over her and she is saddled, render/tame_fx.js) and she is his (mounts.adopt).
   const CATCH = () => data?.catch || {};
   const NAMES = () => CATCH().names || ['Kaze'];
   function catchTarget(e) {
@@ -531,14 +531,14 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     }
     return best;
   }
-  function catchPrompt(e) { return catchTarget(e) ? { text: 'Space  Slip a rope halter on' } : null; }
+  function catchPrompt(e) { return catchTarget(e) ? { text: 'Space  Catch her' } : null; }
   function catchHorse(e) {
     const a = catchTarget(e), clan = state.clans?.[e?.owner];
     if (!a || !clan) return false;
     const T = data?.types?.[a.type] || {}, name = NAMES()[Math.floor(rng() * NAMES().length)];
     const id = tame(e.owner, { x: a.x, z: a.z, kind: T.tamed || a.sprite || T.sprite, name, coat: a.coat });
     if (id == null) return false;
-    state.casts.push({ kind: 'halterThrow', a: e.id, t: a.id, horse: id, x: e.x, z: e.z, tx: a.x, tz: a.z, place: 'world' });   // render/halter_fx.js
+    state.casts.push({ kind: 'horseCaught', a: e.id, t: a.id, horse: id, dir: a.dir, x: e.x, z: e.z, tx: a.x, tz: a.z, place: 'world' });   // render/tame_fx.js
     const h = state.entities[id];
     if (h) h.dir = a.dir;
     for (const o of animals()) if (o !== a && alive(o) && o.species === a.species && dist(o, a) <= (R.herdRadius ?? 10) * 1.5) flee(o, e.x, e.z, false);   // the rest of the herd bolts

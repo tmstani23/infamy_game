@@ -145,6 +145,9 @@ uniform float uSeaSlope;     // its slope on screen
 uniform vec4 uFill;          // ships S8: w > 0: a flat silhouette in rgb at alpha x w (the boarding fighters' clan outline)
 uniform vec4 uSail;          // ships S8: w > 0: the sails take the clan's colour (rgb: a tint, kept to the cloth's own brightness)
 uniform vec4 uSailKey;       // which pixels are sail cloth: blue over red from x to y, brightness from z to w
+uniform vec4 uWipe;          // a caught wild horse (render/tame_fx.js): w != 0 keeps only one side of a line through xyz across uWipeAxis (w > 0 the side ahead, w < 0 behind; |w| = soft edge)
+uniform vec3 uWipeAxis;
+uniform vec4 uSweep;         // its band of warm light at that line: rgb colour, w = band length (0 = off)
 varying vec2 vUv;
 varying vec3 vWorld;
 void main() {
@@ -197,6 +200,8 @@ void main() {
     float l = hw / 0.09; lip = exp(-l * l) * (0.55 + 0.45 * sin(sx * 4.7 + uTime * 1.3 + sin(sx * 1.9) * 2.0));
   }
   float a = t.a * uOpacity;
+  float sweepS = uWipe.w != 0.0 || uSweep.w > 0.0 ? dot(vWorld - uWipe.xyz, uWipeAxis) : 0.0;
+  if (uWipe.w != 0.0) { a *= smoothstep(-abs(uWipe.w), abs(uWipe.w), sign(uWipe.w) * sweepS); if (a < 0.01) discard; }
   if (uCut > 0.0) {
     vec3 d = vWorld - uCutCenter;
     d -= VIEW_DIR * dot(d, VIEW_DIR);
@@ -204,6 +209,14 @@ void main() {
     a *= mix(1.0, mix(0.12, 0.88, k), uCut);
   }
   vec3 c = grade(t.rgb, vWorld, true, uSelfLight) * (1.0 - edge * 0.7);
+  if (uSweep.w > 0.0) {   // light leading sharp, trailing long; strongest on the silhouette's edge, and on lighter coat more than black
+    float band = sweepS > 0.0 ? exp(-pow(sweepS / (0.3 * uSweep.w), 2.0)) : exp(-pow(-sweepS / (1.3 * uSweep.w), 1.5));
+    vec2 lo = uFrame.xy + uFrame.zw * 0.001, hi = uFrame.xy + uFrame.zw * 0.999, d = uFrame.zw * 0.012;
+    float inner = min(min(spriteTex(clamp(vUv + vec2(d.x, 0.0), lo, hi)).a, spriteTex(clamp(vUv - vec2(d.x, 0.0), lo, hi)).a),
+                      min(spriteTex(clamp(vUv + vec2(0.0, d.y), lo, hi)).a, spriteTex(clamp(vUv - vec2(0.0, d.y), lo, hi)).a));
+    float rim = clamp(t.a - inner, 0.0, 1.0), lum = dot(t.rgb, vec3(0.333));
+    c += uSweep.rgb * clamp(band * (0.12 + 0.55 * rim), 0.0, 0.45) * (0.35 + 1.6 * lum);
+  }
   if (uVeil > 0.0) {
     c = mix(c, vec3(0.09, 0.16, 0.3), 0.5) + vec3(0.3, 0.46, 0.68) * veilEdge;
     a = max(a * (0.65 + 0.5 * veilRipple), veilEdge * 0.36);
@@ -403,6 +416,9 @@ export function spriteMaterial(map, extra = {}, packed = false) {
       uFill: { value: new THREE.Vector4(0, 0, 0, 0) },
       uSail: { value: new THREE.Vector4(1, 1, 1, 0) },
       uSailKey: { value: new THREE.Vector4(0.6, 0.68, 0.3, 0.42) },
+      uWipe: { value: new THREE.Vector4(0, 0, 0, 0) },
+      uWipeAxis: { value: new THREE.Vector3(1, 0, 0) },
+      uSweep: { value: new THREE.Vector4(0, 0, 0, 0) },
       ...extra,
     },
     vertexShader: SPRITE_VERT,

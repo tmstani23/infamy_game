@@ -16,9 +16,12 @@ const EFFECT = { weaponGlint: 'A small glint slides along your blade every few s
   armorShimmer: 'A thin line of light sweeps down your outline',
   bodyOutline: 'Faint afterimages trail you while you move',
   accessoryAura: 'Tiny spirit motes rise around you',
-  movementWisps: 'Wind curls on the ground behind you while you run' };
+  movementWisps: 'Wind curls on the ground behind you while you run',
+  heirloomArc: 'Your swings leave a short arc in the clan colour',
+  fangDodge: 'A cold afterimage and fang rips where you dodge',
+  clawStrike: 'Your hands glow amber and your hits leave claw rakes' };
 const SHORT = { weaponGlint: 'edge glint', weaponEmbers: 'embers', weaponTrail: 'swing trail', armorShimmer: 'rim sheen',
-  bodyOutline: 'afterimage', accessoryAura: 'spirit motes', movementWisps: 'wind wisps' };
+  bodyOutline: 'afterimage', accessoryAura: 'spirit motes', movementWisps: 'wind wisps', heirloomArc: 'swing arc', fangDodge: 'dodge rips', clawStrike: 'claw rakes' };
 const css = c => c ? `rgb(${c.map(v => Math.round(v * 255)).join(',')})` : '#d8b56c';
 export const itemOf = id => ITEMS[id] || CONSUMABLES[id] || null;
 export function effectOf(item) {

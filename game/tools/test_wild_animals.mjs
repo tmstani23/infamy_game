@@ -155,7 +155,7 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   delete S.frontier.settlements.hide_test; clan.hides = {};
 }
 
-// wild horses (W6): creep up on foot and throw the rope halter; she joins the clan with her whistle and keeps her coat
+// wild horses (W6): creep up on foot and catch her (no rope); she joins the clan with her whistle and keeps her coat
 {
   for (const c of crew) Object.assign(c, { x: hero.x + 200, z: hero.z + 200, order: { kind: 'move', x: hero.x + 200, z: hero.z + 200, arrived: true } });
   Object.assign(hero, { anim: 'idle' });
@@ -166,7 +166,7 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   assert.equal(g.wildAnimals.catchPrompt(hero), null, 'too far to throw');
   for (const id of ids) S.entities[id].wm.mode = 'idle';
   Object.assign(hero, { x: mare.x + 2, z: mare.z });
-  assert.ok(g.wildAnimals.catchPrompt(hero)?.text.includes('halter'), 'Space slips the halter on');
+  assert.ok(g.wildAnimals.catchPrompt(hero)?.text.includes('Catch'), 'Space catches her');
   const coats = Object.fromEntries(ids.map(id => [id, S.entities[id].coat])), clan = S.clans[hero.owner], had = (clan.whistles || []).length;
   S.casts = [];
   g.step([{ type: 'catchHorse', id: hero.id }]);
@@ -176,7 +176,7 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   const mine = S.entities[clan.whistles.at(-1).horse];
   assert.ok(mine?.type === 'horse' && mine.horseOwner === hero.owner && /_saddled$/.test(mine.horseKind), 'she is the clan\'s horse now');
   assert.deepEqual(mine.coat, coats[caught], 'and keeps her coat');
-  assert.ok(S.casts.some(c => c.kind === 'halterThrow' && c.t === caught), 'the halter flies');
+  assert.ok(S.casts.some(c => c.kind === 'horseCaught' && c.t === caught), 'the catch shows');
   // a running hero on foot scares the herd off
   const rest = ids.map(id => S.entities[id]).filter(e => e && !e.dead);
   if (rest.length) {

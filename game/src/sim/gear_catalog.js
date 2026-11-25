@@ -94,14 +94,14 @@ for (const id of SHOP_ITEM_IDS) for (const rarity of ['common','green']) {
 export const FRONTIER_GEAR = {
   wolf_fur_cloak: { name: 'Wolf fur cloak', slot: 'armor', stats: ['maxHpFlat', 'movement'], sell: 90, icon: 'lightweight_wraps', visual: { kind: 'movementWisps', color: [.78,.8,.84] } },
   bear_hide_coat: { name: 'Bear hide coat', slot: 'armor', stats: ['damageReduction'], fixed: { run: .95 }, sell: 120, icon: 'reinforced_coat', visual: { kind: 'armorShimmer', color: [.62,.46,.3] } },
-  wolf_fang_charm: { name: 'Wolf fang charm', slot: 'accessory', stats: ['dodgeChanceFlat'], sell: 90, icon: 'travelers_charm', visual: { kind: 'accessoryAura', color: [.82,.88,.95] } },
-  bear_claw_charm: { name: 'Bear claw charm', slot: 'accessory', stats: ['normalDamage'], sell: 120, icon: 'focus_charm', visual: { kind: 'accessoryAura', color: [1,.62,.22] } },
+  wolf_fang_charm: { name: 'Wolf fang charm', slot: 'accessory', stats: ['dodgeChanceFlat'], sell: 90, icon: 'travelers_charm', visual: { kind: 'fangDodge', color: [.72,.78,.86] } },
+  bear_claw_charm: { name: 'Bear claw charm', slot: 'accessory', stats: ['normalDamage'], sell: 120, icon: 'focus_charm', visual: { kind: 'clawStrike', color: [.7,.4,.2] } },
 };
-// one per castle clan, by faction; never sold (a keepsake). Glow colours are placeholders until the heirloom effect is built.
+// one per castle clan, by faction; never sold (a keepsake). Each swing leaves its own arc (render/gear_fx.js heirloomArc, Tim 2026-11-25).
 export const HEIRLOOMS = {
-  yakuza: { name: 'Benikiri', about0: 'The Yakuza boss blade, taken with their castle.', stat: 'normalDamage', visual: { kind: 'weaponEmbers', color: [.95,.3,.18] } },
-  kuroda: { name: 'Shimotsuki', about0: 'The Kuroda lord blade, taken with their castle.', stat: 'normalAttackRate', visual: { kind: 'weaponTrail', color: [.62,.84,1] } },
-  shinobi: { name: 'Kagenui', about0: 'The Shinobi master blade, taken with their castle.', stat: 'normalDamage', visual: { kind: 'weaponTrail', color: [.62,.42,.92] } },
+  yakuza: { name: 'Benikiri', about0: 'The Yakuza boss blade, taken with their castle.', stat: 'normalDamage', visual: { kind: 'heirloomArc', style: 'benikiri', color: [.62,.08,.08] } },
+  kuroda: { name: 'Shimotsuki', about0: 'The Kuroda lord blade, taken with their castle.', stat: 'normalAttackRate', visual: { kind: 'heirloomArc', style: 'shimotsuki', color: [.6,.78,.96] } },
+  shinobi: { name: 'Kagenui', about0: 'The Shinobi master blade, taken with their castle.', stat: 'normalDamage', visual: { kind: 'heirloomArc', style: 'kagenui', color: [.5,.46,.66] } },
 };
 export const heirloomFor = clan => clan ? `heirloom_${HEIRLOOMS[clan.faction] ? clan.faction : clan.kind === 'ninja' ? 'shinobi' : 'yakuza'}` : null;
 {
