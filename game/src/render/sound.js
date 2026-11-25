@@ -282,7 +282,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       }
       for (const h of state.hits) {
         const t = state.entities[h.t], v = near(me, h.x, h.z, t?.place);
-        if(h.kind==='dynamite'||h.kind==='fire'){if(h.kill)play('knockdown_thud_1',.4*v);continue;}
+        if(h.kind==='dynamite'||h.kind==='fire'||h.kind==='train'){if(h.kill)play('knockdown_thud_1',.4*v);continue;}
         if(h.kind==='arrow'){ if(buffers.arrow_hit_1)variant('arrow_hit_1',.5*v,.95+Math.random()*.1); }   // Tim's arrow clips 2026-11-12: a thud where it lands
         else if(h.kind==='geishabolt'||h.kind==='bullet'){ /* flight and ability cues supply the ranged sound */ }
         else if (SPEARS.has(h.weapon)) { /* Complete spear clip already includes impact. Keep crit/KO layers below. */ }

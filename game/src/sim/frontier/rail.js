@@ -402,6 +402,10 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       const k = Math.max(0, Math.min(1, ((u.x - a.x) * dx + (u.z - a.z) * dz) / len2));
       if (Math.hypot(a.x + dx * k - u.x, a.z + dz * k - u.z) > r) continue;
       u.anim = 'death'; delete u.order; runtime?.forget?.(u.id);
+      // Tim 2026-11-25: a train death looks like any other: health to nothing (the bar shows red) and a killing hit, so
+      // the renderer sprays the usual blood (render/view.js addHits) and the death thud plays
+      const hp = u.hp || 0; u.hp = 0;
+      (state.hits ||= []).push({ a: null, t: u.id, damage: Math.round(hp), crit: true, kill: true, x: u.x, z: u.z, dir: 0, kind: 'train' });
       if (u.type === 'hero') { u.dead = true; u.diedAt = state.tick ?? 0; (state.news ||= []).push({ kind: 'bossDown', clan: u.owner, hero: u.id, by: null, x: u.x, z: u.z }); }
       else if (u.warTroop || u.settler || u.type === 'settler') { u.dead = true; u.diedAt = state.tick ?? 0; }
       else { u.downed = true; u.downedAt = state.tick ?? 0; }

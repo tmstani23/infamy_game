@@ -601,9 +601,9 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!U || !hall || hall.stage !== 'built') return { ok: false, reason: 'No camp hall' };
     if (upgraded(war.camp)) return { ok: false, reason: 'The camp hall is already upgraded' };
     if (hall.upgrade) return { ok: false, reason: 'The upgrade is already under way' };
-    const why = canPay(war.camp, U.cost);
+    const cost = U.campCost || U.cost, why = canPay(war.camp, cost);   // Tim 2026-11-25: the camp hall upgrade has its own (cheaper) cost
     if (why) return { ok: false, reason: why };
-    pay(war.camp, U.cost);
+    pay(war.camp, cost);
     hall.upgrade = { progress: 0, need: U.buildTicks || 1 };
     return { ok: true };
   }

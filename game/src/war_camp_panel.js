@@ -352,7 +352,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         <div><div style="font-size:16px;color:#f3e3bd">${tier >= 2 ? 'Camp hall upgraded' : hall?.upgrade ? 'Upgrade under way' : 'Upgrade the camp hall'}</div>
           <div class="small">Workers build it like a site</div>
           ${tier >= 2 ? '' : hall?.upgrade ? `<div class="prog" style="margin-top:8px"><i style="width:${Math.round(100 * hall.upgrade.progress / Math.max(1, hall.upgrade.need))}%"></i></div>`
-            : `<div class="cost" style="justify-content:flex-start;margin-top:8px">${chips(H.cost, c)}</div><div style="margin-top:10px"><button class="go" data-upgrade="1">Upgrade hall</button></div>`}</div>
+            : `<div class="cost" style="justify-content:flex-start;margin-top:8px">${chips(H.campCost || H.cost, c)}</div><div style="margin-top:10px"><button class="go" data-upgrade="1">Upgrade hall</button></div>`}</div>
         <div><div class="sec" style="padding-top:0"><span>Unlocks</span></div><div class="unl">${unlocks.map(t => `<div class="thumb" title="${esc(nice(t))}"><img src="${esc(artUrl(t))}" alt=""></div>`).join('')}</div>
           <div class="small" style="margin-top:4px">${esc(unlocks.map(nice).join(', '))}</div></div></div>`;
     }

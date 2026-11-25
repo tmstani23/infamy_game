@@ -1088,7 +1088,7 @@ export function createGame(options) {
       if (c.type === 'lieutenant') { lieutenant?.command(e, c); continue; }
       itemServices.interrupt(e,c);
       // a hero lying down or in jail can still order his crew, nothing else
-      if ((e.dead || e.downed || e.jailed) && !['order', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment', 'world', 'frontier'].includes(c.type)) continue;
+      if ((e.dead || e.downed || e.jailed) && !['order', 'special', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment', 'world', 'frontier'].includes(c.type)) continue;   // special: the troops' own abilities (Tim 2026-11-25)
       // inside the omnibus (sim/omnibus.js): no fighting or looting; a door (the gate) steps everyone out first
       // on horseback everything works (Tim 2026-11-14: attacks and abilities from the saddle); only a vehicle seat blocks
       if (ferry?.riding(e) && c.type !== 'frontier') continue;   // at sea: nothing but skipping the crossing
@@ -1168,8 +1168,10 @@ export function createGame(options) {
       if (c.type === 'business' && businesses) businesses.command(e, c);
       // war checkpoint 6: right-click on an enemy structure of a war (sim/frontier/structures.js)
       // ships in a raze order (a right-click on the ground at war) sail there instead (sim/frontier/ships.js, ships S2)
-      if (c.type === 'order' && c.kind === 'raze' && ships && e.type === 'hero' && !e.dead) { const rc = ships.order(e, c); if (rc !== c) c.units = rc.units; }
-      if (c.type === 'order' && c.kind === 'raze') { if (e.type === 'hero' && !e.dead && !e.downed && !e.jailed) { for (const id of c.units || []) { const u = state.entities[id]; if (u?.owner === e.owner && u.type !== 'hero') manualCrew(u); } const razed = frontier?.structures?.order(e, c); if (razed && e.order?.kind === 'raze' && heroMode(e)) e.attackMode = true; if (!razed && (c.fallback === 'move' || c.fallback === 'station') && c.units?.length) { omnibus?.orderVehicles(e, { ...c, kind: c.fallback }); giveOrder(e, { ...c, kind: c.fallback }); } } continue; }
+      // Tim 2026-11-25: the war troops still take orders while the hero is dead, down or jailed (a right-click at war comes as
+      // a raze with a move fallback); the hero himself only joins when he is up (structures.order checks him)
+      if (c.type === 'order' && c.kind === 'raze' && ships && e.type === 'hero') { const rc = ships.order(e, c); if (rc !== c) c.units = rc.units; }
+      if (c.type === 'order' && c.kind === 'raze') { if (e.type === 'hero') { for (const id of c.units || []) { const u = state.entities[id]; if (u?.owner === e.owner && u.type !== 'hero') manualCrew(u); } const razed = frontier?.structures?.order(e, c); if (razed && e.order?.kind === 'raze' && heroMode(e)) e.attackMode = true; if (!razed && (c.fallback === 'move' || c.fallback === 'station') && c.units?.length) { omnibus?.orderVehicles(e, { ...c, kind: c.fallback }); giveOrder(e, { ...c, kind: c.fallback }); } } continue; }
       if (c.type === 'order') { const cc = ships ? ships.order(e, c) : c; omnibus?.orderVehicles(e, cc); giveOrder(e, cc); }   // ships take their own (sim/frontier/ships.js)
       // X with the hero in the selection on the frontier: he attack-moves too, in attack mode (Tim 2026-11-15); a plain move
       // order to the selection does not move him (WASD does)
@@ -1177,7 +1179,7 @@ export function createGame(options) {
       if (c.type === 'deployment') { if(shakedown.command(e,c)||sweep.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }
       if (c.type === 'ability') useAbility(e, c);
       // war checkpoint 7-1: a special ability of selected crew or troops cast by the player, or its auto switch (sim/special_cast.js)
-      if (c.type === 'special' && e.type === 'hero' && !e.dead && !e.downed && !e.jailed) {
+      if (c.type === 'special' && e.type === 'hero') {   // Tim 2026-11-25: troops cast their specials while the hero is dead or down too
         specialCommand({ state, units }, e, c);
         // the slowing arrow rides on the archer's next shot: send the asked ones at the enemy nearest the spot
         if (c.ability === 'hamstring' && typeof c.auto !== 'boolean' && Number.isFinite(c.x) && Number.isFinite(c.z)) {

@@ -227,6 +227,8 @@ War bar default position: top 104 px, below the standings bar.
 | Found a town (campaign) | Settlers still aboard an omnibus or rickshaw step out first (the hero stays aboard), then hall placement opens (2026-11-20). |
 | Selection panel | Shows every selected unit: the cards shrink in steps (full, no place line, compact two-line, picture tiles, small tiles, smallest tiles) until all fit in the pane; one card per unit type only when even the smallest tiles do not fit. No scrolling. A ridden horse shows no overhead health bar (its health is on its Mount card). |
 | Drag box | A drag box never opens a unit's or worker's card, even round one; only a left-click (or double-click / card click) does (2026-11-25). |
+| Big selections | When a selection is too big for single cards even at the smallest size, the pane shows one tile per unit type with a brass count plate on each portrait (2026-11-25). |
+| Hero dead | War troops take orders (right-click, X, Z) and cast their specials while the hero is dead, down or jailed, wherever he is (2026-11-25). |
 | F3 | Frame time breakdown. |
 | Shift+H (island) | Mount up: selected crew, else the hero crew following, get on horses (hero crew only; not settlers or workers). |
 | Fighting on horseback (island) | The hero and mounted crew attack and use every ability from the saddle; attack-move works as on foot; shooters stop to shoot. Riders stay on when hit and until they fall. Getting off is only Q, a right-click on the Mount card, or Mount up again. |

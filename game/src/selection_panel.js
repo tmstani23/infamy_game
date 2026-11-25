@@ -103,8 +103,10 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       for (const g of groups) {
         const e = game.state.entities[g.ids[0]], c = document.createElement('div');
         c.className = 'card'; c.dataset.ids = g.ids.join(',');
-        c.innerHTML = '<div class="pic"><em class="grp"></em></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
+        // the count sits on the picture so it shows at every size (Tim 2026-11-25: a big army read as 7 units)
+        c.innerHTML = '<div class="pic"><em class="grp"></em><em class="cnt"></em></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
         c.querySelector('b').textContent = `${entityName(units, e, e.civ || e.type)} x${g.ids.length}`;
+        c.querySelector('.cnt').textContent = g.ids.length;
         root.appendChild(c);
         cards['g:' + g.t] = { c, pic: c.querySelector('.pic'), grp: c.querySelector('.grp'), fill: c.querySelector('.fill'), status: c.querySelector('i'), where: c.querySelector('s'), model: e.model, hasPic: false };
       }

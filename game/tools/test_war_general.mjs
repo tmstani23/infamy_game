@@ -383,8 +383,8 @@ function scene(seed = 47, tune = null) {
     const has = type => w2.camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length;
     for (k2 = 0; k2 < 400 && War2.warOn('tP') && !has('supply_tents'); k2++) t2.run(20);
     assert.ok(has('supply_tents') >= 1 && !has('stockade'), `supply tents jump the plan at the troop cap (tents ${has('supply_tents')}, stockade ${has('stockade')}, troops ${JSON.stringify(War2.troopView(w2.id))})`);
-    for (k2 = 0; k2 < 40 && x2.brain.view().wars[w2.id]?.attacker.want?.timber !== 400; k2++) t2.run(20);
-    assert.equal(x2.brain.view().wars[w2.id].attacker.want?.timber, 400, 'it saves for the stockade (ordered by train once linked)'); }
+    for (k2 = 0; k2 < 40 && x2.brain.view().wars[w2.id]?.attacker.want?.timber !== t2.o.frontier.war.buildings.stockade.cost.timber; k2++) t2.run(20);
+    assert.equal(x2.brain.view().wars[w2.id].attacker.want?.timber, t2.o.frontier.war.buildings.stockade.cost.timber, 'it saves for the stockade (ordered by train once linked)'); }
   console.log('ok supply tents on demand');
 }
 // ---- 8d-9: the stockade as a fortress (Tim 2026-11-16): generals build it, ranged troops hold it and shoot out ----
@@ -601,7 +601,7 @@ function scene(seed = 47, tune = null) {
   assert.ok(w.camp.buildings.filter(b => b.type === 'supply_tents' && b.stage !== 'ruined').length > 1, 'more supply tents after its list');
   // Tim 2026-11-17: it counts as needed only what the next attack.supply.planAhead buildings of its plan cost, and sells the rest
   const brain = t.bots.find(b => b.config.clan === rival), am = () => brain.view().wars[w.id]?.attacker || {};
-  const list = War.campBuildList(w.id), ahead = t.o.frontier.war.general.attack.supply.planAhead, up = t.o.frontier.war.hallUpgrade?.cost || {};
+  const list = War.campBuildList(w.id), ahead = t.o.frontier.war.general.attack.supply.planAhead, up = t.o.frontier.war.hallUpgrade?.campCost || t.o.frontier.war.hallUpgrade?.cost || {};
   const most = r => list.map(x => x.cost?.[r] || 0).sort((a, b) => b - a).slice(0, ahead).reduce((a, b) => a + b, 0) + (up[r] || 0);
   w.camp.stock.timber = 3000; w.camp.stock.stone = 3000; let sold = false;
   for (k = 0; k < 20; k++) { t.run(20); sold ||= orders().some(o => o.kind === 'sell' && o.sellFrom === node); }

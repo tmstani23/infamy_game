@@ -108,7 +108,8 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
           || (c.place === 'street' && (u.place === 'street' || (c.kind === 'move' && u.place !== 'street')))
           || (c.kind==='attack'&&c.place===u.place&&state.entities[c.target]?.place===u.place)
           || (c.by === 'general' && u.place === 'world' && generalOrder(hero, u))   // 8d: the bot general orders the war troops of a side it runs, wherever the hero is
-          || ((hero.dead || hero.downed || hero.jailed) && c.kind === 'attack' && state.entities[c.target]?.place === u.place))
+          || ((hero.dead || hero.downed || hero.jailed) && c.kind === 'attack' && state.entities[c.target]?.place === u.place)
+          || (u.warTroop && u.place === 'world' && c.place === 'world' && c.kind !== 'follow'))   // Tim 2026-11-25: war troops take orders wherever the hero is (dead, respawned elsewhere)
         && !(u.place !== 'street' && ['heal', 'enter'].includes(c.kind))
         && (c.kind === 'follow' || !c.place || u.place === c.place || (c.place === 'street' && c.kind === 'move' && u.place !== 'street'))
         && deployment.allowsOrder(u, c, hero, door));

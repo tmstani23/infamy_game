@@ -527,7 +527,7 @@ export function createGeneralBrain(game, { clan }) {
         cnt[type] = (cnt[type] || 0) + 1;
         const e = list.find(x => x.type === type); if (!e) continue;
         if (camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length >= Math.min(cnt[type], e.max || Infinity)) continue;
-        if (upNeed(type) && !upCounted) { for (const r of Object.keys(need)) need[r] += W().hallUpgrade?.cost?.[r] || 0; upCounted = true; }
+        if (upNeed(type) && !upCounted) { for (const r of Object.keys(need)) need[r] += (W().hallUpgrade?.campCost || W().hallUpgrade?.cost)?.[r] || 0; upCounted = true; }
         for (const r of Object.keys(need)) need[r] += e.cost?.[r] || 0;
         taken++;
       }
@@ -559,7 +559,7 @@ export function createGeneralBrain(game, { clan }) {
       if (e.need.length) {
         const hall = campHall(w);
         if ((BD[type]?.needs || []).some(n => n === 'upgrade' || n === 'tier2') && !War.upgraded(camp)) {
-          const U = W().hallUpgrade?.cost || {};
+          const U = W().hallUpgrade?.campCost || W().hallUpgrade?.cost || {};
           if (!hall.upgrade && (camp.chest || 0) >= (U.ryo || 0) && (camp.stock?.timber || 0) >= (U.timber || 0) && (camp.stock?.stone || 0) >= (U.stone || 0)) out.push(cmd({ action: 'campUpgrade', war: w.id }));
           else if (!hall.upgrade) m.want = U;
           return;   // saving for the upgrade

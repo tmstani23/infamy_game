@@ -57,4 +57,15 @@ assert.ok(!duel('spearman', 3, () => ({ kind: 'stop', z: true })).hurt, 'Z stays
   assert.ok(flips <= 2, `cannons hold still once there (${flips} run/idle switches)`);
   const P = ids.map(id => S.entities[id]);
   for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) assert.ok(Math.hypot(P[i].x - P[j].x, P[i].z - P[j].z) > 1.2, 'not stacked'); }
+// Tim 2026-11-25: with the hero dead the war troops still take orders (a right-click at war is a raze with a move fallback)
+{ const g = createGame(options()), S = g.state; loadSave(g, JSON.parse(file));
+  const rec = Object.values(S.frontier.wars.list)[0], hall = rec.camp.buildings.find(x => x.type === 'camp_hall');
+  const hero = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === 'player');
+  const ids = [0, 1].map(i => g.frontier.war.spawnTroop(rec, 'grunt', hall.x + 30, hall.z + i * 2, rec.attacker));
+  Object.assign(hero, { hp: 0, dead: true, diedAt: S.tick, anim: 'death' });
+  g.step([]);
+  g.step([{ id: hero.id, type: 'order', place: 'world', kind: 'raze', units: ids, x: hall.x + 60, z: hall.z + 10, slack: 3, fallback: 'move' }]);
+  assert.ok(ids.every(id => S.entities[id].order?.kind === 'move' && Math.abs(S.entities[id].order.x - (hall.x + 60)) < 6), 'troops move while the hero is dead');
+  g.step([{ id: hero.id, type: 'order', place: 'world', kind: 'attackmove', units: ids, x: hall.x + 70, z: hall.z }]);
+  assert.ok(ids.every(id => S.entities[id].order?.kind === 'attackmove'), 'and attack-move'); }
 console.log('war spot ok');
