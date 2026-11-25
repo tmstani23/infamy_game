@@ -123,10 +123,11 @@ brute.dead = enf.dead = true;
   const hpLow = ST.hpOf(sc), t0 = rec.camp.stock.timber = 500;
   { const r = cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.map(w => w.id), kind: 'work', target: sc.key }); assert.ok(r?.ok, r?.reason); }
   assert.ok(rec.camp.workers.every(w => w.job?.key === sc.key), 'the workers take the job');
-  let out = null, t = 0; for (; t < 4000 && ST.hpOf(sc) < sc.max; t++) { g.step([]); if (out == null && !fireOn(sc)) out = t; }
+  let out = null, t = 0, spent = {}; for (; t < 4000 && ST.hpOf(sc) < sc.max; t++) { g.step([]); if (out == null && !fireOn(sc)) out = t; for (const c of g.state.casts || []) if (c.kind === 'repairSpend') for (const [r, n] of Object.entries(c.spent)) spent[r] = (spent[r] || 0) + n; }
   assert.ok(out != null, `they put the fire out (${out} ticks)`);
   assert.equal(ST.hpOf(sc), sc.max, `and repair it to full (${t} ticks, from ${hpLow})`);
   assert.ok(rec.camp.stock.timber < t0, 'repairs are paid from the camp stock');
+  assert.ok(spent.timber > 0 && spent.timber <= t0 - rec.camp.stock.timber, 'the spend pops show what it took (Tim 2026-11-24): ' + JSON.stringify(spent));
   run(5); assert.ok(rec.camp.workers.every(w => !w.job), 'the job ends when it is done');
   assert.match(war.campCheck(rec.id, 'barracks', { x: campHall.x + W.chainDistance + 60, z: campHall.z }).reason || '', /Outside the build area/);
   assert.match(war.campCheck(rec.id, 'lumber_camp', { x: campHall.x + W.chainDistance + 60, z: campHall.z }).reason || 'ok', /must stand by|ok|circle|ring|close/, 'a lumber camp out there only needs its resource'); }

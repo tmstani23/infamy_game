@@ -70,6 +70,12 @@
   .dmg.refuse b { color: #ff4a32; font-size: 20px; margin-right: 2px; }
   .dmg.boarded { color: #fff3c4; font-size: 15px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; text-shadow: 0 0 6px rgba(255,190,40,.9), 0 2px 0 #2a1a00, 1px 1px 0 #2a1a00, -1px -1px 0 #2a1a00; }
   .dmg.boarded b { color: #ffd34d; font-size: 14px; margin-right: 2px; }
+  .dmg.spend { font: 800 16px/1 "Lantern", Georgia, serif; color: #e0aa5c; letter-spacing: .01em; padding: 7px 14px;
+    text-shadow: 0 1px 2px rgba(20,14,8,.75), 0 0 2px #140e08, 0 0 4px #000; background: radial-gradient(closest-side, rgba(12,9,6,.42), rgba(12,9,6,.22) 55%, rgba(12,9,6,0)); }
+  .dmg.spend span { display: inline-flex; align-items: center; gap: 3px; }
+  .dmg.spend span + span { margin-left: 10px; }
+  .dmg.spend img { width: 22px; height: 18px; filter: brightness(.85) sepia(.25) drop-shadow(0 0 1px #1a120c) drop-shadow(0 1px 0 #1a120c); }
+  .dmg.spend img[alt=timber] { filter: brightness(1.1) sepia(.15) drop-shadow(0 0 1px #1a120c) drop-shadow(0 1px 0 #1a120c); }
   .dmg.dodge { color: #a9c8e0; font-size: 14px; font-weight: 600; letter-spacing: .06em; }
   .dmg.crit { color: #ffd34d; font-size: 28px; text-shadow: 0 0 8px rgba(255,170,40,.8), 0 2px 0 #3a1a00, 1px 1px 0 #3a1a00, -1px -1px 0 #3a1a00; }
   .dmg.kill:not(.crit) { color: #ffb070; font-size: 24px; }

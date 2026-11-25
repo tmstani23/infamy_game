@@ -33,9 +33,10 @@ export function militaryFor(s, data, state, world = null) {
   return militaryTypes(data).filter(t => { const c = data.war?.buildings?.[t]?.clan; return (!c || !f || c === f) && (!data.buildings[t]?.shore || !world || yardWater(world, s, data.war?.buildings?.[t])); });
 }
 
-// how many of a type the town has or has under way (ruins count, like a camp's sites and ruins)
+// how many of a type the town has or has under way (Tim 2026-11-24: ruins no longer count, so a razed one can be
+// placed new in a war; a rebuild under way counts, its ruin does not)
 export function militaryCount(s, type) {
-  return (s?.buildings || []).filter(b => b.type === type).length + (s?.projects || []).filter(p => p.type === type && !p.replaces).length;
+  return (s?.buildings || []).filter(b => b.type === type && b.stage !== 'ruined').length + (s?.projects || []).filter(p => p.type === type).length;
 }
 
 // what a military type still needs: ['the town hall war upgrade', 'a built barracks'], [] when nothing

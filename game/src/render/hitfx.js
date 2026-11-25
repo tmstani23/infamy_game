@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { CAM_QUAT, CAM_RIGHT } from './iso.js';
 import { onFxLayer } from './bloom.js';
 import { groundY } from '../castle_height.js';
+import { cargoIcon } from '../cargo_icons.js';
 
 const BLADES = new Set(['ronin', 'swordsman', 'rival_yakuza', 'kuroda_spearman', 'ninja_leader', 'ninja_grunt', 'ninja_tanto']);
 const MAX_NUMBERS = 40, NUMBER_LIFE = 0.85, TRAIL_LIFE = 0.16, SPARK_LIFE = 0.32, MAX_SPARKS = 400;
@@ -37,6 +38,20 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     numbers.push({ el, x: h.x, z: h.z, age: 0, drift: (Math.random() - 0.5) * 18, big: 0.85, subtle: true });
     while (numbers.length > MAX_NUMBERS) numbers.shift().el.remove();
   }
+  // what a repair took this second, over the building (Tim 2026-11-24: "-6 stone" with the stone icon): the load
+  // icons the workers carry (cargo_icons.js), parchment figures on a soft dark haze, starting just over the building's
+  // health bar (h = its height, structure_bars.js), held a moment then fading as it rises (critic round 2)
+  const iconUrl = new Map(), icon = r => { if (!iconUrl.has(r)) iconUrl.set(r, cargoIcon(r).toDataURL()); return iconUrl.get(r); };
+  function addSpend(x, z, spent, h = 7) {
+    const parts = Object.entries(spent || {}).filter(([, n]) => n >= 1);
+    if (!parts.length) return;
+    const el = document.createElement('div');
+    el.className = 'dmg spend';
+    el.innerHTML = parts.map(([r, n]) => `<span>\u2212${Math.round(n)}<img src="${icon(r)}" alt="${r}"></span>`).join('');
+    overlay.appendChild(el);
+    numbers.push({ el, x, z, h, age: 0, drift: 0, big: 1, slow: true, life: 1.4 });
+    while (numbers.length > MAX_NUMBERS) numbers.shift().el.remove();
+  }
   // a refused order over the unit (Tim 2026-11-08: crew sent onto the boss's horse): a red cross and a short word
   function addRefuse(x, z, text, cls = 'refuse', mark = '✕') {
     const el = document.createElement('div');
@@ -49,14 +64,14 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     for (let i = numbers.length - 1; i >= 0; i--) {
       const n = numbers[i];
       n.age += dt;
-      const k = n.age / NUMBER_LIFE;
+      const k = n.age / (n.life || NUMBER_LIFE);
       if (k >= 1) { n.el.remove(); numbers.splice(i, 1); continue; }
-      const s = unitToScreen(n.x, n.z);
+      const s = unitToScreen(n.x, n.z, n.h);
       // pop in big, settle, then rise and fade
-      const pop = !n.subtle && n.age < 0.12 ? 1.7 - 0.7 * (n.age / 0.12) : 1;
-      const rise = n.low ? 6 + 30 * k : 38 + 70 * (1 - (1 - k) * (1 - k));
+      const pop = !n.subtle && !n.slow && n.age < 0.12 ? 1.7 - 0.7 * (n.age / 0.12) : 1;
+      const rise = n.slow ? 22 + 16 * k : n.low ? 6 + 30 * k : 38 + 70 * (1 - (1 - k) * (1 - k));
       n.el.style.transform = `translate(${s.x + (n.ox || 0) + n.drift * k}px, ${s.y - rise}px) translate(-50%, -50%) scale(${pop * n.big})`;
-      n.el.style.opacity = (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4) * (n.subtle ? 0.85 : 1);
+      n.el.style.opacity = n.slow ? 0.85 * (n.age < 0.5 ? 1 : Math.max(0, 1 - ((n.age - 0.5) / (n.life - 0.5)) ** 2)) : (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4) * (n.subtle ? 0.85 : 1);
     }
   }
 
@@ -164,6 +179,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
 
   return {
     heal: addHeal,
+    spend: addSpend,
     dodge: addDodge,
     refuse: addRefuse,
     note: (x, z, text) => addRefuse(x, z, text, 'boarded', '▲'),   // a gold confirmation over a unit (crew popped into a vehicle)

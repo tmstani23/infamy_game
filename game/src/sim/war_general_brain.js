@@ -246,7 +246,6 @@ export function createGeneralBrain(game, { clan }) {
       for (const [key, units] of by) out.push(cmd({ action: 'garrison', mode: 'leave', structure: key, units }));
     } else garrisonRanged(out, cmd, w);
     mend(out, cmd, town(w.town), w.town, `t|${w.town}|`, st => st.town === w.town && !st.camp);
-    rebuildTown(out, cmd, w);
     army(out, order, w);
     fleet.use(out, cmd, order, w, 'defender', mem);   // S9
     // a bot's hero comes to take the camp hall once the camp's morale is 0 (a player does that himself)
@@ -336,10 +335,8 @@ export function createGeneralBrain(game, { clan }) {
     }
     // (a town at peace: only the supply tents of the tail; the rest of it, general.buildOn, once a war is on the town)
     const seen = {}, full = [...list, ...(zoneOnly ? [] : buildTail(list, !!wOn))];
-    const ruinAt = wOn ? townRuins(s)[0]?.at ?? Infinity : Infinity;   // a ruin of the plan is rebuilt before anything later in it is placed (rebuildTown)
     for (const [i, type] of full.entries()) {
       const tail = i >= list.length;
-      if (i >= ruinAt) return;
       if (type === 'upgrade') {   // the town hall war upgrade itself (cavalry at the stable need it)
         if (zoneOnly || warHallDone(s)) continue;
         if (can(data.war?.hallUpgrade?.cost) && pay(data.war?.hallUpgrade?.cost)) { out.push(cmd({ action: 'warUpgradeHall', settlement: s.id })); return; }
@@ -689,7 +686,7 @@ export function createGeneralBrain(game, { clan }) {
   }
   function campArmy(out, order, w, A, cmd = null) {
     const G = gen().rules(), m = memory(w, 'attacker'), hall = campHall(w), t = town(w.town);
-    const all = troops(w).filter(e => !e.garrison && !e.downed), held = troops(w).filter(e => e.garrison?.fort && !e.downed), count = all.length + held.length;
+    const all = troops(w).filter(e => !e.garrison && !e.downed), held = troops(w).filter(e => (e.garrison?.fort || e.garrison?.zone) && !e.downed), count = all.length + held.length;
     const comeOut = () => { if (cmd) for (const key of new Set(held.map(e => e.garrison.key))) out.push(cmd({ action: 'garrison', mode: 'leave', structure: key })); };
     if (!count) { if (m.mode === 'push') m.beaten = (m.beaten || 0) + 1; m.mode = 'hold'; delete m.wave; return; }
     const far = (e, x, z, r) => Math.hypot((e.order?.x ?? 1e9) - x, (e.order?.z ?? 1e9) - z) > r;
@@ -809,22 +806,9 @@ export function createGeneralBrain(game, { clan }) {
     const pick = list.map(r => ({ r, n: Math.floor(Math.min(SH.free(s, r), load)), pay: RS.sellPrice?.[r] ?? 2 })).filter(x => x.n >= (RS.minOrder ?? 10)).sort((a, b) => b.n * b.pay - a.n * a.pay || (a.r < b.r ? -1 : 1))[0];
     if (pick) out.push(cmd({ action: 'ship', mode: 'sell', town: s.id, resource: pick.r, amount: pick.n }));
   }
-  // Tim 2026-11-17: towns rebuild ruins during a war. The general rebuilds a ruined station, stockade or military
-  // building of the town in plan order (the station first, then by its place in defend.build, the tail last), one at
-  // a time, when the stores hold its cost above general.buildReserve; never all at once
-  function townRuins(s) {
-    const data = F().data, list = strat().defend?.build || [], at = t => t === 'station' ? -1 : list.indexOf(t) < 0 ? list.length : list.indexOf(t);
-    return (s.buildings || []).filter(b => b.stage === 'ruined' && (b.type === 'station' || b.type === 'stockade' || isMilitary(b.type, data)))
-      .map(b => ({ b, at: at(b.type) })).sort((x, y) => x.at - y.at || (x.b.id < y.b.id ? -1 : 1));
-  }
-  function rebuildTown(out, cmd, w) {
-    const s = town(w.town), data = F().data;
-    if (!s || s.owner !== clan || (s.buildings || []).some(b => b.type === 'town_hall' && b.stage === 'ruined')) return;
-    if ((s.projects || []).some(p => p.replaces) || s.warUpgrade) return;
-    const b = townRuins(s)[0]?.b; if (!b) return;
-    const R = gen().rules().buildReserve || {}, cost = buildingCost(data, b.type, s) || {};
-    if (Object.entries(cost).every(([r, v]) => (s.stock?.[r] ?? 0) >= v + (R[r] ?? 0))) out.push(cmd({ action: 'rebuild', settlement: s.id, building: b.id }));
-  }
+  // Tim 2026-11-24 (replaces 2026-11-17 rebuilding in war): no Rebuild while a war is on the town. A ruin no longer
+  // counts toward its type (town_military.js militaryCount), so the plan below places a fresh one from scratch where
+  // it fits (on the ruin or anywhere in the build area); ruins left over are the governor's to rebuild after the war.
   function mendLine(out, cmd, w) {
     const c = w.camp;
     if (!c || !c.buildings.some(b => (b.type === 'camp_station' || b.type === 'rail_section') && b.stage === 'ruined')) return;

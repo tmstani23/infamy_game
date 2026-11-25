@@ -717,7 +717,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(!s.war?.terms)job.progress=Math.min(job.need,(job.progress || 0)+work);   // Tim 2026-11-18: no building in a ceasefire
       if(job.progress>=job.need) {
         if(b.upgrade) {b.tier=(b.tier || 1)+1;delete b.upgrade;}
-        else {b.stage='built';delete b.progress;delete b.need;delete b.rebuild;}
+        else {b.stage='built';delete b.progress;delete b.need;delete b.rebuild;delete b.hp;}   // (a site's own low health goes, Tim 2026-11-24)
         delete b.idle;
         for(const w of crew) {
           delete w.project;delete w.buildAt;

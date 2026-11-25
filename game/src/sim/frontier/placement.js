@@ -115,8 +115,26 @@ export function createPlacement({ state, data, world, construction, resourceInde
 
   const bad = (reason, cells = []) => ({ ok: false, reason, cost: {}, cells });
 
-  // Validates without changing anything. Returns a receipt; ok:true means place() would succeed.
-  function check(s, { kind, cells, rot = 0 }) {
+  // Tim 2026-11-24: a new building may go up on a ruin (any placed building's ruin but the town hall's and a
+  // station's, whose railway lines hang on it); placing it clears the ruins under it for nothing. check() judges the
+  // town as if those ruins were gone: their cells free, out of every count.
+  const cellsOf = b => b.cells || [b.cell];
+  function ruinsUnder(s, kind, cells, rot) {
+    if (LINES[kind] || !Array.isArray(cells) || !s?.grid || !(s.buildings || []).some(b => b.stage === 'ruined')) return [];
+    const cover = footprint(s, kind, cells, rot);
+    return cover ? s.buildings.filter(b => b.stage === 'ruined' && b.type !== 'town_hall' && b.type !== 'station' && cellsOf(b).some(i => cover.includes(i))) : [];
+  }
+  // Validates without changing anything. Returns a receipt; ok:true means place() would succeed (ruins: ids it clears).
+  function check(s, args) {
+    const under = ruinsUnder(s, args.kind, args.cells, args.rot || 0);
+    if (!under.length) return checkClear(s, args);
+    const keepB = s.buildings, keepUse = s.grid.use;
+    let use = keepUse; for (const b of under) for (const i of cellsOf(b)) use = put(use, i, '.');
+    s.buildings = keepB.filter(b => !under.includes(b)); s.grid.use = use;
+    try { const r = checkClear(s, args); return r.ok ? { ...r, ruins: under.map(b => b.id) } : r; }
+    finally { s.buildings = keepB; s.grid.use = keepUse; }
+  }
+  function checkClear(s, { kind, cells, rot = 0 }) {
     if (!s?.grid) return bad('no grid');
     // Tim 2026-11-18: while surrender terms are on the table for this town's war, nobody builds in it
     if (Object.values(state?.frontier?.wars?.list || {}).some(w => w.town === s.id && w.terms)) return bad('A ceasefire is on: nobody builds while terms are on the table', Array.isArray(cells) ? cells : []);
@@ -187,6 +205,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
   function place(s, { kind, cells, by = 'p', rot = 0 }) {
     const r = check(s, { kind, cells, rot });
     if (!r.ok) return r;
+    if (r.ruins) remove(s, { cells: s.buildings.filter(b => r.ruins.includes(b.id)).flatMap(cellsOf), by });   // built over: the ruins go, nothing back
     if (s.breaches) { s.breaches = s.breaches.filter(b => !r.cells.includes(b.cell)); if (!s.breaches.length) delete s.breaches; }   // built over: the rubble goes
     const g = s.grid, mark = by === 'g' ? 'g' : 'p';
     const stamp = i => { g.by = put(g.by, i, mark); };
@@ -226,7 +245,8 @@ export function createPlacement({ state, data, world, construction, resourceInde
     }
     if(!plan.size)return bad('nothing there',cells);
     for(const p of plan.values()) {
-      if(p.building) {addRefund(p.building.paidCost || data.buildings[p.building.type]?.cost);for(const i of p.building.cells || [p.building.cell])covered.add(i);}
+      if(p.building) {if(p.building.stage!=='ruined')addRefund(p.building.paidCost || data.buildings[p.building.type]?.cost);   // a ruin is cleared for nothing (Tim 2026-11-24, as camps)
+        for(const i of p.building.cells || [p.building.cell])covered.add(i);}
       else if(p.proj) {if(p.proj.paid)addRefund(p.proj.cost);for(const i of p.proj.cells || [p.proj.cell])covered.add(i);}
       else if(p.line!==undefined) {addRefund(s.lineCosts?.[p.line] || data.placeCosts[({r:'road',w:'wall',g:'gate'})[g.use[p.line]]]);covered.add(p.line);}
       else covered.add(p.zone);

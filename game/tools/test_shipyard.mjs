@@ -124,8 +124,8 @@ const ship0 = Object.values(S.entities).find(e => e.ship && before.has(e.id) && 
   assert.ok(away); Object.assign(ship0, { x: away.x, z: away.z, sorder: { kind: 'stay' } }); }
 ship0.holdFire = true; ship0.hp = ship0.maxHp * 0.5; run(100); assert.equal(ship0.hp, ship0.maxHp * 0.5, 'away from a yard it does not mend');
 sb.stage = 'ruined'; made.hp = made.maxHp * 0.4; run(100); assert.equal(made.hp, made.maxHp * 0.4, 'a ruined slipway mends nothing');
-assert.ok(war.campRebuildCheck(rec.id, sb.id).ok !== false || /afford|Needs|has/.test(war.campRebuildCheck(rec.id, sb.id).reason), 'a ruined slipway is rebuilt in place');
-assert.notEqual(war.campRebuildCheck(rec.id, sb.id).reason, 'Erase the ruin, then build a new one');
+// Tim 2026-11-24: no rebuilding buildings in a war; a ruined slipway is erased and placed new, as every camp building
+assert.equal(war.campRebuildCheck(rec.id, sb.id).reason, 'Erase the ruin, then build a new one', 'a ruined slipway is not rebuilt in place');
 
 // --- the town shipyard trains for the defender, from his war chest and town timber ---
 const rival = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === rec.defender) || { id: null };

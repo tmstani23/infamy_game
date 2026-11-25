@@ -197,16 +197,20 @@ function scene(seed = 47, tune = null) {
   while (g.frontier.war.warOn('tR') && (tents() <= listed || g.frontier.war.defense.troopCap(w.id) <= cap0) && n++ < 300) { t.run(100); w.defense.chest = Math.max(w.defense.chest, 2000); town.stock.timber = Math.max(town.stock.timber, 600); }
   assert.ok(tents() > listed, `supply tents beyond its list (${tents()} of ${listed} listed)`);
   assert.ok(g.frontier.war.defense.troopCap(w.id) > cap0, 'and a bigger troop cap');
-  // Tim 2026-11-17: towns rebuild ruins during a war; the general rebuilds a ruined military building of its plan
+  // a ruined military building of its plan is replaced by a new one during the war
   if (g.frontier.war.warOn('tR')) {
     const wt = g.frontier.structures.list().find(x => x.town === 'tR' && x.type === 'watchtower');
+    const towers = () => town.buildings.filter(b => b.type === 'watchtower' && b.stage === 'built').length, before = towers();
     g.frontier.structures.damage('player', wt, wt.max * 2, 'test');
     const ruin = town.buildings.find(b => b.type === 'watchtower' && b.stage === 'ruined');
     assert.ok(ruin, 'a watchtower is knocked down');
     for (const r of ['timber', 'stone', 'goods']) town.stock[r] = Math.max(town.stock[r] || 0, 900);
+    // Tim 2026-11-24 (replaces 2026-11-17): no Rebuild in a war; the general places a new one from scratch instead
+    const fresh = () => (town.projects || []).some(p => p.type === 'watchtower' && !p.replaces) || towers() >= before;
     n = 0;
-    while (!(town.projects || []).some(p => p.replaces === ruin.id) && ruin.stage === 'ruined' && n++ < 60) t.run(20);
-    assert.ok((town.projects || []).some(p => p.replaces === ruin.id) || ruin.stage !== 'ruined', `the general rebuilds it during the war (${n * 20} ticks)`);
+    while (!fresh() && n++ < 60) t.run(20);
+    assert.ok(!(town.projects || []).some(p => p.replaces === ruin.id), 'never rebuilt during the war');
+    assert.ok(fresh(), `the general places a new one during the war (${n * 20} ticks)`);
   } else console.log('  (the war is over: rebuild in war not checked)');
   console.log('ok bot defence');
 }

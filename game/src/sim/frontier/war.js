@@ -519,7 +519,9 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   }
   // Tim 2026-11-17: a ruined camp station or rail section is rebuilt where it stood (a site again, built by camp
   // workers like any site). Cost: the station's build cost; a section war.supply.sectionCost, sectionBuildTicks.
-  const REBUILD = new Set(['camp_station', 'rail_section', 'slipway']);   // ships S3: the slipway too
+  // the camp's rail line only (Tim 2026-11-24: no rebuilding buildings in a war; the slipway, as every other camp
+  // building, is erased and placed new; a station or section has no other way back)
+  const REBUILD = new Set(['camp_station', 'rail_section']);
   const rebuildCost = b => b.type === 'rail_section' ? W.supply?.sectionCost || { timber: 60, stone: 20 } : BD()[b.type]?.cost || {};
   function campRebuildCheck(warId, id) {
     const war = byId(warId), b = war?.camp?.buildings.find(x => x.id === id);

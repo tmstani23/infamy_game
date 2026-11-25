@@ -5,7 +5,7 @@
 // A rejected command changes nothing but the receipt list. Receipts of earlier ticks are dropped
 // by clearOldReceipts(), which the hub calls at the start of every frontier tick.
 // createCommands({ state, data, world, economy, construction, governor }) -> { command, clearOldReceipts }
-import { startUpgrade } from './tiers.js';
+import { startUpgrade, placedRoom } from './tiers.js';
 import { militaryWhy, startWarUpgrade } from './town_military.js';
 import { setFundPct } from './fund.js';
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
@@ -143,12 +143,15 @@ export function createCommands({ state, data, world, economy, construction, gove
         return r.ok ? receipt(e, c, true) : reject(e, c, r.reason);
       }
       case 'rebuild': {   // 7c-4 (Tim 2026-11-12): a ruined placed building comes back only by this order; the town's builders then rebuild it at the normal cost
-        // (Tim 2026-11-17: during a war on the town too; before, ruins stayed as they were until it ended)
+        // Tim 2026-11-24 (replaces 2026-11-17 "during a war too"): never while a war is on the town, for the player, bots and
+        // the general alike, so a razed building stays down; mid-war a new one is placed from scratch at full cost
         const b = (s.buildings || []).find(x => x.id === c.building);
         if (!b || b.stage !== 'ruined') return reject(e, c, 'no ruin there');
+        if (b.type !== 'town_hall' && Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id)) return reject(e, c, 'No rebuilding during a war: place a new one, on the ruin or anywhere you can build, or rebuild it once the war ends');
         if (b.type === 'town_hall') return reject(e, c, 'send workers to repair the town hall (select them, right-click the ruin)');
         if (s.buildings.some(x => x.type === 'town_hall' && x.stage === 'ruined')) return reject(e, c, 'the town hall is a ruin: send workers to repair it first');
         if (s.projects.some(p => p.replaces === b.id)) return reject(e, c, 'already being rebuilt');
+        { const why = militaryWhy(s, b.type, data, state) || (placedRoom(s, b.type, data) < 1 && 'town hall tier limit'); if (why) return reject(e, c, `${why}: a new one stands in its place, erase the ruin`); }   // ruins do not count (Tim 2026-11-24)
         const pid = construction.queue(s.id, b.type, b.cell, { replaces: b.id });
         if (!pid) return reject(e, c, 'could not queue it');
         construction.authorize(pid);

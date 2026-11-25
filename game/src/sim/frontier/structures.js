@@ -5,6 +5,8 @@
 //   a town wall or gate cell                    key 't|<town id>|<cell>'
 //   a grown zone cell (house, workshop)         key 't|<town id>|<cell>'
 //   a built war camp building                   key 'c|<war id>|<building id>'
+//   a building site (Tim 2026-11-24)            key 't|<town id>|site:<project id>' or 'c|<war id>|<building id>', kind 'site':
+//     war.structures.site health, easy to knock down; at 0 the site is gone and what was paid for it is lost
 // Health is kept only once something is damaged: on the building (b.hp), or in settlement.cellHp[cell]
 // for walls, gates and zone cells. The stockade keeps its own health: by town hall tier in a town
 // (buildings.stockade.garrison.hpByTier), by camp hall tier in a war camp (war.structures.campStockade).
@@ -103,13 +105,36 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     campCache.set(c, { sig, list });
     return list;
   }
-  const hpOf = st => st.b ? st.b.hp ?? st.max : st.s.cellHp?.[st.cell] ?? st.max;
+  const siteMax = () => R()?.site ?? 0;
+  // Building sites (Tim 2026-11-24): kept out of list() (towers, morale, the general's lists go by built buildings);
+  // only attacks (targetsOf, find) and health bars (viewFor) see them. A town site: an authorized placed-building
+  // project; a camp site: a camp building at stage 'site' (rail sections excepted).
+  function townSites(s) {
+    const out = [];
+    if (!s?.grid || !Number.isFinite(s.x) || !siteMax()) return out;
+    for (const p of s.projects || []) {
+      const at = p.replaces ? s.buildings.find(b => b.id === p.replaces) : p, cs = at && (at.cells?.length ? at.cells : Number.isInteger(at.cell) ? [at.cell] : null);
+      if (!p.authorized || !cs) continue;
+      const pts = cs.map(i => cellToWorld(s, i));
+      const x = pts.reduce((n, q) => n + q[0], 0) / pts.length, z = pts.reduce((n, q) => n + q[1], 0) / pts.length;
+      out.push({ key: `t|${s.id}|site:${p.id}`, kind: 'site', type: p.type, town: s.id, owner: s.owner, p, s, x, z, r: Math.sqrt(cs.length) * s.grid.cell / 2, boxes: [], max: siteMax() });
+    }
+    return out;
+  }
+  function campSites(w) {
+    if (!w?.camp || !siteMax()) return [];
+    return w.camp.buildings.filter(b => b.stage === 'site' && b.type !== 'rail_section' && Number.isFinite(b.x))
+      .map(b => ({ key: `c|${w.id}|${b.id}`, kind: 'site', type: b.type, war: w.id, owner: w.attacker, b, x: b.x, z: b.z, r: data.war?.buildings?.[b.type]?.radius ?? 8, boxes: [], max: siteMax(), camp: true }));
+  }
+  const hpOf = st => st.p ? st.p.hp ?? st.max : st.b ? st.b.hp ?? st.max : st.s.cellHp?.[st.cell] ?? st.max;
   function setHp(st, hp) {
-    if (st.b) st.b.hp = hp;
+    if (st.p) st.p.hp = hp;
+    else if (st.b) st.b.hp = hp;
     else (st.s.cellHp ||= {})[st.cell] = hp;
   }
   function clearHp(st) {
-    if (st.b) delete st.b.hp;
+    if (st.p) delete st.p.hp;
+    else if (st.b) delete st.b.hp;
     else if (st.s.cellHp) { delete st.s.cellHp[st.cell]; if (!Object.keys(st.s.cellHp).length) delete st.s.cellHp; }
   }
 
@@ -122,7 +147,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   function find(key) {
     if (typeof key !== 'string') return null;
     const [side, id] = key.split('|');
-    const l = side === 't' ? townList(town(id)) : side === 'c' ? campList(war.byId(id)) : [];
+    const l = side === 't' ? (key.includes('|site:') ? townSites(town(id)) : townList(town(id))) : side === 'c' ? [...campList(war.byId(id)), ...campSites(war.byId(id))] : [];
     return l.find(st => st.key === key) || null;
   }
   // the war in which `clan` may damage this structure, or null
@@ -137,7 +162,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // what a clan may attack: the town of each war it attacks, the camp of each war it defends
   function targetsOf(clan) {
     const out = [];
-    for (const w of war.warsOf(clan)) if (!w.terms) out.push(...(w.attacker === clan ? townList(town(w.town)) : campList(w)));
+    for (const w of war.warsOf(clan)) if (!w.terms) out.push(...(w.attacker === clan ? [...townList(town(w.town)), ...townSites(town(w.town))] : [...campList(w), ...campSites(w)]));
     return out;
   }
   // distance from a point to the solid part of a structure (its boxes; a circle when it has none)
@@ -158,7 +183,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     return best;
   }
   // attack-move: the nearest structure in reach; military buildings first, then other buildings, walls and gates, then houses
-  const RANK = st => st.kind === 'building' ? (st.military || st.camp || st.type === 'town_hall' ? 0 : 1) : st.kind === 'zone' ? 3 : 2;
+  const RANK = st => st.kind === 'site' ? 1 : st.kind === 'building' ? (st.military || st.camp || st.type === 'town_hall' ? 0 : 1) : st.kind === 'zone' ? 3 : 2;
   function near(clan, x, z, range) {
     let best = null, bk = Infinity, bd = Infinity;
     for (const st of targetsOf(clan)) {
@@ -181,9 +206,22 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   }
   const NAMES = { town_hall: 'Town hall', camp_hall: 'Camp hall', wall: 'Wall', gate: 'Gate', palisade: 'Palisade', housing: 'House', work: 'Workshop' };
   const nameOf = st => NAMES[st.type] || (st.type || 'building').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+  // a site knocked down (Tim 2026-11-24): gone, and what was paid for it with it; a rebuild site leaves its ruin
+  function razeSite(st) {
+    if (st.p) {
+      const s = st.s, i = s.projects.indexOf(st.p); if (i >= 0) s.projects.splice(i, 1);
+      if (!st.p.replaces) for (const c of st.p.cells || [st.p.cell]) if (!s.buildings.some(b => cellsOf(b).includes(c))) setUse(s, c, '.');
+      world.recount?.(s.id);
+    } else {
+      const c = war.byId(st.war)?.camp, b = st.b;
+      if (b.rebuild) { b.stage = 'ruined'; delete b.progress; delete b.need; delete b.rebuild; delete b.hp; }
+      else if (c) { const i = c.buildings.indexOf(b); if (i >= 0) c.buildings.splice(i, 1); }
+    }
+  }
   function ruin(st, by) {
     delete f().fires?.[st.key];
-    if (st.b) {
+    if (st.kind === 'site') razeSite(st);
+    else if (st.b) {
       const b = st.b;
       b.stage = 'ruined'; delete b.hp; delete b.queue; delete b.upgrade;
       if (st.type === 'stockade' && garrison && st.s) garrison.breakOut(st.s, b);   // (a camp stockade holds only troops: breakOutKey below)
@@ -201,7 +239,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
     garrison?.breakOutKey?.(st.key);   // 7c-3b: troops in a fallen house pile out
     (state.news ||= []).push({ kind: 'structureDown', key: st.key, type: st.type, what: st.kind, x: st.x, z: st.z, owner: st.owner, by: by ?? null, ...(st.camp ? { war: st.war } : { town: st.town }) });
-    if (st.kind !== 'zone') note(st, `${nameOf(st)} destroyed`);
+    if (st.kind !== 'zone') note(st, `${nameOf(st)}${st.kind === 'site' ? ' site' : ''} destroyed`);
   }
   // amount of raw damage from a clan; false when that clan may not damage it
   function damage(clan, st, amount, kind = 'melee') {
@@ -725,17 +763,24 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     if (st) return hpOf(st) > 0 && (burning(st) || hpOf(st) < st.max) ? { x: st.x, z: st.z, r: (st.r || 4) + 1 } : null;
     const b = hallRuin(s, key);
     return b && !hallTaken(s) ? ruinSpot(s, b) : null;
+    if (st?.kind === 'site') return null;   // a site is built, not mended
   }
   const workWhy = (s, key) => hallRuin(s, key) && hallTaken(s) ? 'The hall is being taken: stop the enemy hero first' : ownSt(s, key) ? 'It is not damaged or burning' : find(key) ? 'Not one of your buildings' : 'Nothing to build, repair or put out there';
   // pay for `hp` health points of repair from the site's stock; false when it is short (whole units, the rest is kept as a debt)
-  function payRepair(s, hp) {
+  // at = { key, x, z } of what is mended: what it took is summed there and shown once a second (a 'repairSpend' cast
+  // { x, z, h, owner, spent: { timber, stone } }, h = the height of its health bar (structure_bars.js), Tim 2026-11-24: "-6 stone" pops over the building)
+  const spendPops = new Map();
+  function payRepair(s, hp, at = null) {
     const cost = REP().cost || {}, debt = s.camp ? (s.war.camp.repairDebt ||= {}) : (s.repairDebt ||= {});
     const stock = s.camp ? s.war.camp.stock || {} : s.stock || {};
     const due = {};
     for (const [r, v] of Object.entries(cost)) { const d = (debt[r] || 0) + hp * v; due[r] = d; if (Math.floor(d) > (stock[r] || 0)) return false; }
     for (const [r, d] of Object.entries(due)) {
       const whole = Math.floor(d); debt[r] = d - whole;
-      if (whole > 0) { if (s.camp) addCampStock(s.war.camp, r, -whole); else world.change(s.id, r, -whole, 'repair'); }
+      if (whole > 0) {
+        if (s.camp) addCampStock(s.war.camp, r, -whole); else world.change(s.id, r, -whole, 'repair');
+        if (at) { let p = spendPops.get(at.key); if (!p) spendPops.set(at.key, p = { x: at.x, z: at.z, h: at.kind && at.kind !== 'building' ? 3.5 : 7, owner: s.owner ?? null, spent: {} }); p.spent[r] = (p.spent[r] || 0) + whole; }
+      }
     }
     return true;
   }
@@ -748,7 +793,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       if (hp <= 0 || hp >= st.max) return 'done';
       if (s.camp ? s.war?.terms : Object.values(f().wars?.list || {}).some(w => w.town === s.id && w.terms)) return 'waiting';   // Tim 2026-11-18: no repairs in a ceasefire
       const gain = Math.min(st.max - hp, per);
-      if (!payRepair(s, gain)) return 'waiting';
+      if (!payRepair(s, gain, st)) return 'waiting';
       if (hp + gain >= st.max - 1e-6) { clearHp(st); return 'done'; }
       setHp(st, hp + gain);
       return 'working';
@@ -765,7 +810,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     if (!b) return 'done';
     if (hallTaken(s)) return 'waiting';
     const max = townMax(s, b) || 1, need = max * (REP().ruinShare ?? 0.5);
-    if (!payRepair(s, per)) return 'waiting';
+    if (!payRepair(s, per, { key, ...ruinSpot(s, b) })) return 'waiting';
     b.repair = (b.repair || 0) + per;
     if (b.repair >= need) {
       b.stage = 'built'; b.hp = Math.min(max, Math.round(b.repair)); delete b.repair;
@@ -811,6 +856,10 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     towers();
     cannonTowers();   // ships S5
     garrisonFire();
+    if ((state.tick ?? 0) % 20 === 0 && spendPops.size) {   // what each repair took this second
+      for (const p of spendPops.values()) (state.casts ||= []).push({ kind: 'repairSpend', x: p.x, z: p.z, h: p.h, owner: p.owner, spent: p.spent, place: 'world' });
+      spendPops.clear();
+    }
     shelterTick();
     shotsTick();
     const fires = fr.fires;
@@ -827,7 +876,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // read-only: what the screen shows a clan: the damaged or burning structures of its wars (both sides)
   function viewFor(clan) {
     const fires = f()?.fires || {}, out = [];
-    for (const w of war.warsOf(clan)) for (const st of [...townList(town(w.town)), ...campList(w)]) {
+    for (const w of war.warsOf(clan)) for (const st of [...townList(town(w.town)), ...campList(w), ...townSites(town(w.town)), ...campSites(w)]) {
       const hp = hpOf(st), fire = !!fires[st.key];
       if (hp < st.max || fire) out.push({ key: st.key, kind: st.kind, type: st.type, x: Math.round(st.x * 10) / 10, z: Math.round(st.z * 10) / 10, r: st.r, owner: st.owner, hp: Math.round(hp), max: st.max, ...(fire ? { fire: true } : {}) });
     }

@@ -420,7 +420,8 @@ War camp (2026-11-10, campaign):
 - Select camp workers, right-click a building site: they build it; more workers build faster. A site with no workers flashes Needs workers. Finished builders go back to gathering.
 - Select workers, right-click a town building site: the townspeople build placed buildings at half speed by themselves; each worker you send adds a full builder, up to 4 on one site. Zone buildings grow by themselves. When it is done the workers wait by it.
 - Select workers, right-click your damaged or burning building: they put the fire out, then repair it, paid in timber and stone from the town or camp stock.
-- Rebuild (button on a ruin's card, or right-click the ruin with workers selected): the town's builders rebuild it at normal cost, also during a war.
+- Rebuild (button on a ruin's card, or right-click the ruin with workers selected): the town's builders rebuild it at normal cost. Not while a war is on the town (Tim 2026-11-24): then place a new one, on the ruin or anywhere you can build, at full cost and build time.
+- Right-click a damaged building of yours with workers selected: they repair it. The hover hint at the mouse says what will happen (or why nothing can) and the repair cost, paid from stock as they work. Over the building, the materials each second of repair takes pop up ("-10 timber -5 stone", amber, with the load icons).
 - A breached wall or gate in your own town can be built over during a war: place a wall or gate piece on the rubble (normal cost).
 - Town panel, Overview, Ox carts: Recall and Send out for the town's carts.
 - Camp menu, Workers tab: task coins (timber, stone, building, repair) and Spots listing every timber and stone spot in reach, paged.

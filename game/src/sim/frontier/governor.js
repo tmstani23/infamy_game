@@ -23,6 +23,7 @@ const TAX_STEPS = ['low', 'normal', 'high'];
 const ONCE_FLOW = new Set(['build', 'train', 'upgrade', 'refund', 'market', 'test']);
 
 import { logAct, aName } from './action_log.js';
+import { militaryWhy } from './town_military.js';
 export function createGovernor({ state, data, world, economy, construction, zones = null, workers = null, placement = () => null, ship = {}, spotRules = null }) {
   // the governor's log (action_log.js): what he placed himself
   const gPlace = (s, o) => {
@@ -517,7 +518,8 @@ export function createGovernor({ state, data, world, economy, construction, zone
     // not while a war is on the town: there ruins come back by the owner's Rebuild order or the general's plan
     // (Tim 2026-11-17, war_general_brain.js rebuildTown), never all at once
     if (Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id)) return;
-    const b = s.buildings.find(x => x.stage !== 'built' && !s.projects.some(p => p.replaces === x.id));
+    // (a ruin whose type is at its limit again, a new one placed in the war, stays a ruin: Tim 2026-11-24)
+    const b = s.buildings.find(x => x.stage !== 'built' && !s.projects.some(p => p.replaces === x.id) && !militaryWhy(s, x.type, data, state) && placedRoom(s, x.type, data) >= 1);
     if (!b) return;
     construction.authorize(construction.queue(s.id, b.type, b.cell, { replaces: b.id }));
   }

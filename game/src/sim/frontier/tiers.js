@@ -18,7 +18,7 @@ export const placedGroup = (type, data) => data.tiers?.camps?.includes(type) ? '
 export function placedCount(s, type, data) {
   const group = placedGroup(type, data), same = t => placedGroup(t, data) === group;
   const built = (s.buildings || []).filter(b => same(b.type) && b.stage !== 'ruined').length;
-  const queued = (s.projects || []).filter(p => same(p.type) && !p.replaces).length;   // buildings appear only when a project finishes
+  const queued = (s.projects || []).filter(p => same(p.type)).length;   // buildings appear only when a project finishes (a rebuild too: its ruin is not counted)
   return built + queued;
 }
 // room left for one more of this placed type (Infinity when the tier does not limit it)

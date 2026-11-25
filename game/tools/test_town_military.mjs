@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
 import { makeSave, loadSave } from '../src/sim/save.js';
-import { militaryTypes, militaryWhy, militaryFor, warUpgradeCheck, warUpgradeTick } from '../src/sim/frontier/town_military.js';
+import { militaryTypes, militaryWhy, militaryFor, warUpgradeCheck, warUpgradeTick, militaryCount } from '../src/sim/frontier/town_military.js';
 import { upgradeCheck } from '../src/sim/frontier/tiers.js';
 import { buildTooltip } from '../src/build_tooltips.js';
 import { createPlacement } from '../src/sim/frontier/placement.js';
@@ -156,8 +156,24 @@ const finish = (s, max = 4000) => { for (let i = 0; i < max && s.town.projects.l
     assert.equal(b.b.stage, 'ruined', 'a ruin');
     const mv = s.g.frontier.warMorale.view('w9').town;
     assert.ok(mv.pct < 100 && mv.down.some(d => d.type === 'barracks' && d.n === 1), 'the bar drops: ' + JSON.stringify(mv));
-    const r2 = cmd({ action: 'rebuild', settlement: 'tM', building: b.b.id }); assert.ok(r2.ok, r2.reason);
-    finish(s); assert.equal(b.b.stage, 'built', 'rebuilt during the war');
+    // Tim 2026-11-24: no Rebuild during the war (replaces 2026-11-17); a new one goes up on the ruin, from scratch
+    const r2 = cmd({ action: 'rebuild', settlement: 'tM', building: b.b.id }); assert.ok(!r2.ok && /No rebuilding during a war/.test(r2.reason), r2.reason);
+    assert.equal(militaryCount(town, 'barracks'), 2, 'a ruin does not count toward the limit');
+    const timber1 = town.stock.timber, place2 = () => cmd({ action: 'place', town: 'tM', kind: 'barracks', cells: [b.b.cell], ...(Number.isInteger(b.b.rot) ? { rot: b.b.rot } : {}) });
+    let r3 = place2(); assert.ok(r3.ok, r3.reason);
+    assert.ok(!town.buildings.includes(b.b), 'the ruin under it is cleared');
+    assert.ok(town.stock.timber <= timber1, 'nothing back for the ruin');
+    // the site is easy to knock down (war.structures.site), and what was paid for it is lost
+    s.run(2);
+    const pj = town.projects.find(p => p.type === 'barracks' && p.authorized), site = pj && ST.find(`t|tM|site:${pj.id}`);
+    assert.ok(!ST.list().some(st => st.kind === 'site'), 'sites stay out of list() (towers, morale)');
+    assert.ok(site && site.max === frontier.war.structures.site, 'a site in the war: ' + JSON.stringify(site && site.max));
+    const n0 = town.projects.length, t2 = town.stock.timber;
+    assert.ok(ST.damage(s.rival, site, frontier.war.structures.site + 1, 'melee')); s.run(1);
+    assert.equal(town.projects.length, n0 - 1, 'the site is gone');
+    assert.equal(town.stock.timber, t2, 'nothing back');
+    r3 = place2(); assert.ok(r3.ok, r3.reason);
+    finish(s); assert.equal(built(s, 'barracks'), 3, 'a new one built during the war');
     s.run(2); assert.ok(s.g.frontier.warMorale.view('w9').town.pct > mv.pct, 'the bar rises again: ' + JSON.stringify(s.g.frontier.warMorale.view('w9').town.pct));
     delete S.frontier.wars.list.w9; s.run(1); }
   // a ruined hall pauses a running war upgrade

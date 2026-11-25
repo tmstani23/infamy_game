@@ -642,11 +642,11 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const hqFire = createHQFire({ scene, things, lights });
   const structureFire = createStructureFire({ scene });
   const hallFx = createHallChannelFx({ scene, lights, thingAt: k => worldGround?.thingAt(k) || null, artThing: p => worldGround?.artThing(p) || null, seconds: () => hallSeconds });   // war 8a: taking a hall
-  const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z) => { v.set(x, 0.9 + groundY(x, z), z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
+  const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z, h = 0.9) => { v.set(x, h + groundY(x, z), z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   let hallChannelOf = () => null;   // main.js: the running hall channel of a war (sim/frontier/war_end.js view)
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null, hallChannelOf: id => hallChannelOf(id),
     unitToScreen: (x, z, y = 0.9) => { v.set(x, y + groundY(x, z), z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
-  function addCasts(casts, castState) {
+  function addCasts(casts, castState, heroId = null) {
     crowFx?.casts(casts, castState);   // gunfire scatters the crows
     for (const c of casts) {
       abilityFx.cast(c);
@@ -660,6 +660,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (c.kind === 'dynamiteBlast' && (c.place || 'street') === heroPlace) railBlastFx.blast(c.x, c.z, 0, { scale: 0.38, shake: false });
       if ((c.kind === 'chestCashed' || c.kind === 'hidesSold') && heroPlace === 'world') chestCashFx.cash(c);   // hides sold at a market (wildlife W5): koban coins fly into it
       if (c.kind === 'horseCaught' && heroPlace === 'world') tameFx.cast(c);
+      if (c.kind === 'repairSpend' && heroPlace === 'world' && c.owner != null && c.owner === castState?.entities?.[heroId]?.owner) hitFx.spend(c.x, c.z, c.spent, c.h);   // what a repair of yours took (Tim 2026-11-24)
       if (c.kind === 'wildDrop' && heroPlace === 'world') wildDropFx.drop(c);   // the hide flies from the carcass to the hero   // Tim 2026-11-21: the stolen loot flies into the hall
       if (c.kind === 'railBlast' && railBlastFx) { railBlastFx.blast(c.x, c.z, c.heading || 0); railShakeK = Math.max(0, 1 - Math.hypot(c.x - camTarget.x, c.z - camTarget.z) / 45); }   // train robbery: the charge goes off
       if (c.kind === 'cannonFire' && !c.tower) { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)

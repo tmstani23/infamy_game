@@ -313,32 +313,71 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   // pointer: a camp building site or the camp hall while it is upgraded (build), one of their site's damaged or
   // burning structures or a ruined town hall (douse, repair), or a ruined placed building of their town (the Rebuild
   // order). Sends the order and returns true when there was something.
-  function workAt(x, y) {
-    const p = view.screenToGround(x, y), ST = game.frontier?.structures;
-    if (!p) return false;
-    let sent = false;
+  // A camp building under the pointer by its drawn shape (as the Building pane picks it, structure_card.js), not by the
+  // ground point: a tall watchtower's top is far from its base on the ground (Tim 2026-11-24: right-click repair missed).
+  // `want` buildings (a site, or one with work to do) win over others standing in the same spot.
+  function campBuildingAt(s, x, y, want) {
+    let best = null, bd = Infinity;
+    for (const b of s.war?.camp?.buildings || []) {
+      const r = data.war?.buildings?.[b.type]?.radius ?? 5, u = view.unitToScreen(b.x, b.z, 0), a = view.unitToScreen(b.x + 1, b.z, 0);
+      const k = Math.hypot(a.x - u.x, a.y - u.y) || 1, big = Math.max(1, r / 5.5), dx = Math.abs(x - u.x), dy = y - u.y;
+      if (dx > 5 * k * big || dy < -7 * k * big || dy > 3 * k * big) continue;
+      const d = dx + Math.abs(dy) - (want(b) ? 1e6 : 0);
+      if (d < bd) { best = b; bd = d; }
+    }
+    return best;
+  }
+  // What the selected workers would do on a right-click here: orders to send, and a label for the pointer hint
+  // (Tim 2026-11-24: show whether it works before and after the click). fail = your own building with nothing to do.
+  // what mending the rest of it costs: paid bit by bit from the town or camp stock while they work (war.structures.repair.cost per health point)
+  function repairCost(s, key) {
+    const st = game.frontier?.structures?.find?.(key), hp = st ? Math.max(0, (st.max || 0) - (game.frontier.structures.hpOf(st) || 0)) : 0;
+    const cost = data.war?.structures?.repair?.cost || {}, stock = s.camp ? s.war?.camp?.stock || {} : s.stock || {};
+    const parts = Object.entries(cost).map(([r, v]) => ({ r, n: Math.ceil(hp * v) })).filter(q => q.n > 0);
+    if (!parts.length) return '';
+    const short = parts.some(q => (stock[q.r] || 0) < q.n);
+    return `\n${parts.map(q => `${q.n} ${q.r}`).join(', ')}, paid as they work${short ? ' (not enough in stock to finish)' : ''}`;
+  }
+  const atWar = s => Object.values(game.state?.frontier?.wars?.list || {}).some(w => w.town === s?.id);
+  function workPlan(x, y) {
+    const p = view.screenToGround(x, y), ST = game.frontier?.structures, orders = [];
+    if (!p) return { orders };
+    let fail = null;
     for (const s of workSites()) {
       const ids = selectedLive().filter(q => q.s.id === s.id).map(q => q.w.id);
       if (!ids.length) continue;
-      let target = null, what = '';
       if (s.camp) {
-        const bs = s.war?.camp?.buildings || [], hit = b => Math.hypot(b.x - p.x, b.z - p.z) <= (data.war?.buildings?.[b.type]?.radius ?? 8);
-        const site = bs.find(b => (b.stage === 'site' || b.upgrade) && hit(b));
-        if (site) { target = site.id; what = 'Workers: build'; }
-        else { const b = bs.find(b => b.stage === 'built' && hit(b)), key = b && `c|${s.id}|${b.id}`; if (key && ST?.workTarget?.(s, key)) { target = key; what = 'Workers: put out the fire and repair'; } }
+        const key = b => `c|${s.id}|${b.id}`, isSite = b => b.stage === 'site' || !!b.upgrade, work = b => b.stage === 'built' && !!ST?.workTarget?.(s, key(b));
+        const b = campBuildingAt(s, x, y, b => isSite(b) || work(b));
+        if (b && isSite(b)) orders.push({ s, ids, target: b.id, what: 'Workers: build', label: `Right-click: build the ${townName(b.type).toLowerCase()}` });
+        else if (b && work(b)) { const fire = game.state.frontier?.fires?.[key(b)]; orders.push({ s, ids, target: key(b), what: 'Workers: put out the fire and repair', label: `Right-click: ${fire ? 'put out the fire and repair' : 'repair'} the ${townName(b.type).toLowerCase()}${repairCost(s, key(b))}` }); }
+        else if (b) fail = `${townName(b.type)}: ${b.stage === 'built' ? 'not damaged, nothing to repair' : 'nothing to do yet'}`;
       } else if (s.grid) {
         const cell = worldToCell(s, p.x, p.z), b = cell >= 0 ? (s.buildings || []).find(q => (q.cells || [q.cell]).includes(cell)) : null;
         const pk = cell >= 0 ? ST?.projectKeyAt?.(s, cell) : null;   // a town building site (Tim 2026-11-15): workers speed it up
-        if (pk && ST?.workTarget?.(s, pk)) { command({ action: 'workerOrder', town: s.id, workers: ids, kind: 'work', target: pk }); say('Workers: build'); sent = true; continue; }
-        if (b?.stage === 'ruined' && b.type !== 'town_hall') { command({ action: 'rebuild', settlement: s.id, building: b.id }); say('Rebuild order given'); sent = true; continue; }
+        if (pk && ST?.workTarget?.(s, pk)) { orders.push({ s, ids, target: pk, what: 'Workers: build', label: 'Right-click: help build' }); continue; }
+        if (b?.stage === 'ruined' && b.type !== 'town_hall') {   // Tim 2026-11-24: no rebuilding during a war on the town
+          if (atWar(s)) fail = `${townName(b.type)} (ruin): no rebuilding during a war. Place a new one, on it or anywhere you can build, or rebuild it after the war`;
+          else orders.push({ s, rebuild: b.id, what: 'Rebuild order given', label: 'Right-click: order it rebuilt' });
+          continue;
+        }
         const key = cell >= 0 ? `t|${s.id}|${b ? (b.cells || [b.cell])[0] : cell}` : null;
-        if (key && ST?.workTarget?.(s, key)) { target = key; what = b?.stage === 'ruined' ? 'Workers: repair the town hall' : 'Workers: put out the fire and repair'; }
+        if (key && ST?.workTarget?.(s, key)) orders.push({ s, ids, target: key, what: b?.stage === 'ruined' ? 'Workers: repair the town hall' : 'Workers: put out the fire and repair', label: (b?.stage === 'ruined' ? 'Right-click: repair the town hall' : 'Right-click: repair') + repairCost(s, key) });
       }
-      if (!target) continue;
-      command({ action: 'workerOrder', town: s.id, workers: ids, kind: 'work', target });
-      say(what); sent = true;
     }
-    return sent;
+    return { orders, fail, label: orders[0]?.label || fail, ok: !!orders.length };
+  }
+  // 7c-4 (Tim 2026-11-12: builders, repair and douse are manual): sends what workPlan found; true when the click was used.
+  // Your own camp building with nothing to do takes the click too and says so, instead of sending the workers off to it.
+  function workAt(x, y) {
+    const plan = workPlan(x, y);
+    for (const o of plan.orders) {
+      if (o.rebuild) command({ action: 'rebuild', settlement: o.s.id, building: o.rebuild });
+      else command({ action: 'workerOrder', town: o.s.id, workers: o.ids, kind: 'work', target: o.target });
+    }
+    if (plan.orders.length) { say(plan.orders[0].what); return true; }
+    if (plan.fail) { say(plan.fail); hint.dataset.ok = 'false'; return true; }
+    return false;
   }
   function orderSelected(kind,position={}) {
     for(const s of workSites()) {
@@ -401,17 +440,18 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const ruin = !inspect.spot && trainTown ? trainTown.buildings?.find(b => (b.cells || [b.cell]).includes(inspect.cell) && b.stage === 'ruined') : null;
     if (ruin) {
       const rebuilding = (trainTown.projects || []).some(p => p.replaces === ruin.id), cost = Object.entries(data.buildings?.[ruin.type]?.cost || {}).filter(([, v]) => v).map(([r, v]) => `${v} ${r}`).join(', ');
-      info = { title: `${townName(ruin.type)} (ruin)`, lines: [ruin.type === 'town_hall' ? 'Select workers and right-click it to repair it' : rebuilding ? 'Being rebuilt' : 'Stays a ruin until you order it rebuilt'] };
+      const warNow = ruin.type !== 'town_hall' && !rebuilding && atWar(trainTown);   // Tim 2026-11-24: no rebuilding during a war on the town
+      info = { title: `${townName(ruin.type)} (ruin)`, lines: [ruin.type === 'town_hall' ? 'Select workers and right-click it to repair it' : rebuilding ? 'Being rebuilt' : warNow ? 'No rebuilding during a war: place a new one, on it or anywhere you can build, or rebuild it once the war ends' : 'Stays a ruin until you order it rebuilt'] };
       if (ruin.type === 'station') info.lines.push('No trains run here until it is rebuilt');   // Tim 2026-11-17
       // the rebuild cost in plain sight (Tim 2026-11-16), paid from this town's stores; what the stores lack is named
       if (ruin.type !== 'town_hall' && cost) {
         const short = Object.entries(data.buildings?.[ruin.type]?.cost || {}).filter(([r, v]) => v && (trainTown.stock?.[r] || 0) < v).map(([r]) => r);
-        if (!rebuilding) info.lines.push(`Rebuild cost: ${cost}, from the town stores`);
-        if (!rebuilding && short.length) info.lines.push(`The town is short of ${short.join(' and ')}`);
+        if (!rebuilding && !warNow) info.lines.push(`Rebuild cost: ${cost}, from the town stores`);
+        if (!rebuilding && !warNow && short.length) info.lines.push(`The town is short of ${short.join(' and ')}`);
       }
       const rp = rebuilding && trainTown.projects.find(p => p.replaces === ruin.id);
       if (rp) info.lines.push(...siteBuilders(trainTown, rp, data, game.state?.clans));
-      if (ruin.type !== 'town_hall' && !rebuilding) info.work = `<div class="ti-acts"><button class="ti-go" data-rebuild="${esc(ruin.id)}" data-rebuild-town="${esc(trainTown.id)}" title="The townspeople rebuild it on the same spot at the normal cost (${esc(cost)}). Not while a war is on this town. You can also right-click the ruin with workers selected; right-click again to send them to build it faster.">Rebuild</button></div>`;
+      if (ruin.type !== 'town_hall' && !rebuilding && !warNow) info.work = `<div class="ti-acts"><button class="ti-go" data-rebuild="${esc(ruin.id)}" data-rebuild-town="${esc(trainTown.id)}" title="The townspeople rebuild it on the same spot at the normal cost (${esc(cost)}). Not while a war is on this town. You can also right-click the ruin with workers selected; right-click again to send them to build it faster.">Rebuild</button></div>`;
     }
     if (!info) { card.hidden = true; return; }
     const bt = !inspect.spot && trainTown ? trainTown.buildings?.find(b => (b.cells || [b.cell]).includes(inspect.cell))?.type : null;
@@ -680,7 +720,11 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (show && pendingPlan) placeReview();
     if (!show) { hint.hidden = true; return; }
     if (!s && opened) close();
-    if ((!tool || !mouse) && Date.now() > messageUntil) hint.hidden = true;
+    // workers selected, no build tool: the pointer hint says what a right-click on the building under it would do
+    const wp = !tool && mouse && !pendingPlan && Date.now() > messageUntil && selectedLive().length ? workPlan(mouse.x, mouse.y) : null;
+    if (wp?.label) { hint.textContent = wp.label; hint.dataset.ok = String(wp.ok); hint.hidden = false;
+      hint.style.left = `${Math.max(8, Math.min(innerWidth - 280, mouse.x + 16))}px`; hint.style.top = `${Math.min(innerHeight - 65, mouse.y + 20)}px`; }
+    else if ((!tool || !mouse) && Date.now() > messageUntil) hint.hidden = true;
     if (overlay.hidden) return;
     if (overlay.width !== innerWidth || overlay.height !== innerHeight) { overlay.width = innerWidth; overlay.height = innerHeight; }
     const ctx = overlay.getContext('2d'); ctx.clearRect(0,0,overlay.width,overlay.height);
