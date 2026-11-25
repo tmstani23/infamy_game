@@ -116,9 +116,11 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     tipEl.hidden = false;
     tipEl.style.left = `${Math.min(innerWidth - 260, x + 16)}px`; tipEl.style.top = `${Math.min(innerHeight - 110, y + 16)}px`;
   }
-  const overUi = t => t?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp, #townwar');
+  // #gamemap (Tim 2026-11-25): the World map covers the town, so no cannon hover or salute click through it
+  const UI = 'button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp, #townwar, #gamemap';
+  const overUi = t => t?.closest?.(UI);
   // keeps the cooldown counting down while the pointer rests on a gun
-  setInterval(() => { if (hoverCannon) { const c = cannonAt(mouse.x, mouse.y); showCannon(c, mouse.x, mouse.y); if (!c) tipEl.hidden = true; } }, 250);
+  setInterval(() => { if (hoverCannon) { const c = document.getElementById('gamemap')?.hidden === false ? null : cannonAt(mouse.x, mouse.y); showCannon(c, mouse.x, mouse.y); if (!c) tipEl.hidden = true; } }, 250);
 
   function flash(p) {
     const u = view.unitToScreen(p.x, p.z, 1.5);
@@ -127,7 +129,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   }
   addEventListener('mousemove', e => {
     mouse = { x: e.clientX, y: e.clientY };
-    const blocked = e.target?.closest?.('button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp, #townwar');
+    const blocked = overUi(e.target);
     const cn = blocked ? null : cannonAt(e.clientX, e.clientY);
     if (cn || hoverCannon) { showCannon(cn, e.clientX, e.clientY); if (cn) return; }
     // trains only: buildings have no hover tooltip any more (Tim 2026-11-20: it got in the way of moving units); a left-click shows their card

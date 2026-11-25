@@ -170,10 +170,15 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
       if (e.trainGuard && !rec().trains[e.trainGuard]?.stopped && (now() % 20 === 0)) runtime()?.remove?.(e.id);   // its train is gone
       if (e.robbing) holdTick(e);
       if (e.chest && (e.dead || e.downed)) dropChest(e);
-      // the hero's last down spot on the island (maps and minimap show it to its clan until the next one)
+      // the hero's last down spot on the island (maps and minimap show it to its clan until he returns to it, a day passes or he goes down again)
       if (e.type === 'hero' && e.place === 'world' && (e.dead || e.downed)) { if (!e.downMarked) { e.downMarked = true; const c = state.clans?.[e.owner]; if (c) c.lastDown = { x: Math.round(e.x), z: Math.round(e.z), at: now() }; } }
       else if (e.downMarked) delete e.downMarked;
+      // Tim 2026-11-25: the mark clears once the hero, back on his feet, walks away and then returns to it
+      const d = e.type === 'hero' && !e.dead && !e.downed && e.place === 'world' && state.clans?.[e.owner]?.lastDown;
+      if (d) { const far = Math.hypot(d.x - e.x, d.z - e.z); if (far > 20) d.left = true; else if (d.left && far <= 6) delete state.clans[e.owner].lastDown; }
     }
+    // ... or one game day after he went down, whichever is first
+    for (const c of Object.values(state.clans || {})) if (c?.lastDown && now() - c.lastDown.at > dayTicks) delete c.lastDown;
     const life = Math.round((B().chestDays ?? 2) * dayTicks);
     for (const c of Object.values(chests())) {
       if (now() - c.at > life) { delete chests()[c.id]; continue; }

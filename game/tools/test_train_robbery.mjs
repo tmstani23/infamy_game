@@ -84,6 +84,12 @@ assert.ok(!hero.chest && ground.length === 1, 'chest dropped');
 assert.ok(S.clans[hero.owner].lastDown && Math.abs(S.clans[hero.owner].lastDown.x - hero.x) < 1, 'last down spot kept for the maps');
 hero.downed = false; Object.assign(hero, { x: ground[0].x + 0.5, z: ground[0].z }); run(1);
 assert.ok(hero.chest && !Object.keys(F.rail.chests).length, 'picked back up');
+assert.ok(S.clans[hero.owner].lastDown, 'down mark stays while the hero never left it');
+{ const d = S.clans[hero.owner].lastDown, at = { x: hero.x, z: hero.z };   // Tim 2026-11-25: walk away and back clears it
+  Object.assign(hero, { x: d.x + 30 }); run(1); assert.ok(S.clans[hero.owner].lastDown, 'still marked while away');
+  Object.assign(hero, { x: d.x + 2, z: d.z }); run(1); assert.ok(!S.clans[hero.owner].lastDown, 'cleared on return');
+  S.clans[hero.owner].lastDown = { x: d.x, z: d.z, at: S.tick - 13000 }; run(1); assert.ok(!S.clans[hero.owner].lastDown, 'cleared after a game day');
+  Object.assign(hero, at); }
 Object.assign(hero, { z: hero.z + 15 });   // off the track before the train backs out
 
 // guards back aboard after the stop; the fallen are missing next time
