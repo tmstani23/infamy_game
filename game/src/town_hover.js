@@ -181,13 +181,15 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   function menuAt(x, y) {
     if (unitNear(x, y)) return false;
     const p = plotAt(x, y);
-    if (!p || p.foreign || p.kind !== 'building') return false;
+    // your own war camp's plots are tagged foreign too (town_props.js drawableWarSites), so the camp check comes first (Tim 2026-11-25)
+    if (!p || p.kind !== 'building') return false;
     if (p.camp) {
       const w = game.state.frontier?.wars?.list?.[p.camp], b = w?.camp?.buildings?.find(x => x.id === p.id);
       if (!openCamp || w?.attacker !== owner() || b?.stage === 'ruined') return false;
       if (openCamp(p.camp, p.id)) { flash(p); return true; }
       return false;
     }
+    if (p.foreign) return false;
     const s = game.state.frontier?.settlements?.[p.town], b = s?.buildings?.find(x => x.id === p.id);
     if (!s || s.owner !== owner() || !b || b.stage === 'ruined') return false;
     if (openTownWar) {

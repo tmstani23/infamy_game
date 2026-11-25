@@ -62,7 +62,7 @@ const CSS = `
 #warcamp .pips{display:flex;gap:4px;margin-top:6px;align-items:center}#warcamp .pips i{width:16px;height:16px;border-radius:50%;border:1px solid #826f4c;background:#14130f;display:inline-block}#warcamp .pips i.q{background:#5e1c18;border-color:#c9473d}
 #warcamp .capbar{display:flex;gap:2px;margin-top:4px}#warcamp .capbar i{flex:1;height:10px;background:#22262e;border-radius:2px}#warcamp .capbar i.u{background:#c9473d}#warcamp .capbar i.w{background:#7e5a28}
 #warcamp .why{color:#ed8b7c;font-size:12px;min-height:16px;margin-top:6px}
-#warcamp .unl{display:flex;gap:8px;margin-top:6px}#warcamp .unl .thumb{width:60px;height:46px}#warcamp .unl .thumb img{max-width:56px;max-height:42px;opacity:1}
+#warcamp .unl{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}#warcamp .unl .thumb{width:60px;height:46px}#warcamp .unl .thumb img{max-width:56px;max-height:42px;opacity:1}
 #warcamp .ugrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
 #warcamp .ucard{min-width:0;border:1px solid #3d352a;border-radius:7px;background:radial-gradient(ellipse at 50% 30%,#2a2620,#121314 80%);padding:7px;cursor:help}
 #warcamp .ucard:hover{border-color:#ffe0a1}#warcamp .ucard .uhead{display:grid;grid-template-columns:62px 1fr;gap:7px}
@@ -310,7 +310,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         ${chestSendHtml({ game, war: w, owner: w.attacker, counts, data: game.frontier?.data || {} })}${surrenderFoot({ side: 'attacker', town: town?.name || 'the town', terms: !!w.terms, confirm })}`;
     } else {
       const H = W().hallUpgrade || {}, unlocks = Object.entries(B).filter(([, d]) => (d?.needs || []).some(n => n === 'upgrade' || n === 'tier2')).map(([t]) => t);
-      body = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+      body = `<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:10px">
         <div><div style="font-size:16px;color:#f3e3bd">${tier >= 2 ? 'Camp hall upgraded' : hall?.upgrade ? 'Upgrade under way' : 'Upgrade the camp hall'}</div>
           <div class="small">Workers build it like a site</div>
           ${tier >= 2 ? '' : hall?.upgrade ? `<div class="prog" style="margin-top:8px"><i style="width:${Math.round(100 * hall.upgrade.progress / Math.max(1, hall.upgrade.need))}%"></i></div>`
