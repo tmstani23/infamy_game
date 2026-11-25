@@ -4,7 +4,7 @@
 import { sharedKeybinds } from './keybinds.js';
 
 const BUTTONS = [['characterbtn', 'Character', 'character'], ['inventorybtn', 'Inventory', 'inventory'], ['townbtn', 'Town', 'townPanel'],
-  ['townsbtn', 'Towns', 'overview'], ['ctlbtn', 'Controls', 'controls']];
+  ['townsbtn', 'Towns', 'overview'], ['ctlbtn', 'Controls', 'controls'], ['fieldguidebtn', 'Field guide', 'fieldGuide']];
 
 export function fillKeyTemplate(tpl, keybinds = sharedKeybinds()) {
   let unbound = false;

@@ -53,6 +53,7 @@ import { createAbilityRows } from './ability_rows.js';
 import { createSiteFlash } from './site_flash.js';   // war 7c-4: a camp building site with no workers flashes
 import { createGarrisonCard } from './garrison_card.js';
 import { createStructureCard } from './structure_card.js';
+import { createFieldGuide } from './field_guide.js';   // Tim 2026-11-25: weapons x targets page from the live tables
 import { installDamageTip } from './damage_tip.js';   // Tim 2026-11-25: damage taken hover on ship and building health bars   // 7c-3b: town building card, house garrisons
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
@@ -457,6 +458,7 @@ async function start() {
     townStepFn = step || null;
     const target = applyTownFlash();
     // war goals (goals pass, Tim 2026-11-19): the War banner on the action bar flashes while packing, and at a rival town
+    $('fieldguidebtn').classList.toggle('goal-flash', goal?.key === 'fieldguide' && !fieldGuide.isOpen());   // Tim 2026-11-25
     document.getElementById('warbannerbtn')?.classList.toggle('goal-flash', goal?.key === 'warpack' || (goal?.key === 'war' && !(document.getElementById('warbannerbtn')?.disabled)));
     $('townbtn').classList.toggle('goal-flash', !!step && !target && h?.place === 'world' && !document.querySelector('#buildmini:not([hidden])') && !$('townpanel').getClientRects().length);
     if (leave && !gateCallout) { gateCallout = true; callout('Your settlers are all at your HQ (gold): they will join you outside the island gate. Walk to the gate (G on the minimap) and press Space', 'news', 7000); }
@@ -528,7 +530,10 @@ async function start() {
   let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
-  onKey('Escape', () => { warOutcome.close(); crewInput.cancelTarget(); crewInput.endAttackMode(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
+  // opening it counts for the Learn what beats what goal
+  const fieldGuide = createFieldGuide({ frontierData: simOptions.frontier, unitsFile: simOptions.units,
+    onOpen: () => { const o = game.state.entities[heroId]?.owner; if (o && game.goals?.current(o)?.key === 'fieldguide') pending.push({ id: heroId, type: 'guide', read: 'fieldGuide' }); } });
+  onKey('Escape', () => { fieldGuide.close(); warOutcome.close(); crewInput.cancelTarget(); crewInput.endAttackMode(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   let abilityRows = null;   // war checkpoint 7: made after the action bar
   // left-click a quest figure (the old surveyor, your lieutenant, a town governor) or the Land Office to open its talk or
   // menu, as Space there does (Tim 2026-11-20). Out of reach: a callout to walk up first. Capture phase, so the
@@ -585,6 +590,8 @@ async function start() {
   // Controls panel: the button or ? opens it, Esc closes it
   const toggleControls = () => { controlTips.hide(); $('controls').hidden = !$('controls').hidden; };
   onAction('controls', toggleControls);
+  onAction('fieldGuide', () => fieldGuide.toggle());
+  $('fieldguidebtn').addEventListener('click', e => { fieldGuide.toggle(); e.currentTarget.blur(); });
   // key text on buttons and in the Controls panel follows rebinding (Tim 2026-11-12)
   const refreshKeys = () => { refreshKeyHints(); updateMute(sound.getSettings()); $('pausebtn').textContent = (paused ? 'Resume' : 'Pause') + keybinds.hint('pause'); };
   refreshKeys(); keybinds.subscribe(refreshKeys);
@@ -630,7 +637,7 @@ async function start() {
   const warTerms=createWarTermsPanel({game,heroId,send:c=>pending.push(c),blocked:warBlocked,onStart:()=>{frontierBuildUI?.cancel();warCamp.close();townWar.close();warOutcome.close();}});   // war 8c-3: the surrender terms window
   const warOutcome=createWarOutcomeMenu({game,heroId,send:c=>pending.push(c),blocked:warBlocked});   // war 8a-3: Use at a ruined hall takes it (the outcome picker for a town)
   const warBanner=createWarBanner({button:warBannerButton,game,heroId,view,catalog,send:c=>pending.push(c),onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();foundButton.cancel();warCamp.cancel();},blocked:warBlocked,openCamp:id=>warCamp.show(id),defending:()=>townWar.defendingHere(),openDefense:id=>townWar.show(id)});
-  const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','vehiclesbtn','goalbtn','ctlbtn','daynight'].map($)});
+  const utilityMenu=createUtilityMenu({root:$('utilitymenu'),anchor:$('ryo'),buttons:['deploymentbtn','characterbtn','inventorybtn','settingsbtn','unstuckbtn','pausebtn','mutebtn','fullscreenbtn','townbtn','townsbtn','vehiclesbtn','goalbtn','ctlbtn','fieldguidebtn','daynight'].map($)});
   const crewCommands=document.createElement('div');crewCommands.id='crewcommands';document.body.appendChild(crewCommands);
   const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput, catalog, jump, send: c => pending.push(c) });   // send: the Mount panel's Stay here / Send to stable
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card

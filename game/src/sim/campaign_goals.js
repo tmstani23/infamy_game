@@ -15,7 +15,7 @@ import { cellToWorld } from './frontier/town_grid.js';
 // current(id) -> null | { key, title, step, steps, rows: [{ icon, label, have, need, done, how, where }] }
 // where (Tim 2026-11-06): { x, z, place } of the spot an unfinished row points to (the Goal ping on the minimap
 // and the gold blink in the street), or null; read-only, from the state the clan can see.
-export const MAIN_STEPS = ['permit', 'settlers', 'surveyor', 'lieutenant', 'orders', 'leave', 'mount', 'castleOut', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'fund', 'strategy', 'quarter', 'barracks', 'foodcamp', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'warpack', 'war'];   // after the clan's starter goals
+export const MAIN_STEPS = ['permit', 'settlers', 'surveyor', 'lieutenant', 'orders', 'leave', 'mount', 'castleOut', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'fund', 'strategy', 'quarter', 'barracks', 'foodcamp', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'fieldguide', 'warpack', 'war'];   // after the clan's starter goals
 const ORDINAL = ['', '2nd ', '3rd ', '4th '];
 
 export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, foodSpotNear = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null, zones = null, harbourAt = () => null, hasCastle = () => false, castleApproach = () => null }) {
@@ -296,6 +296,9 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
     if (!m.warTalk) { const d = surveyorAt();
       return { key: 'registrar', title: 'News of rival towns', step: step('registrar'), steps, rows: [{ ...row('office', 'Talk at the Land Office', 0, 1,
         'Back in the capital, the old surveyor outside the Land Office (telegraph office, gold mark) has news of the rival towns: stand beside him and press Space'), at: d ? spot(d.x, d.z) : null }] }; }
+    // Field guide (Tim 2026-11-25): before the first war, open the Field guide to learn what beats what (its button flashes)
+    if (!m.fieldGuide && !m.warDeclared) return { key: 'fieldguide', title: 'Learn what beats what', step: step('fieldguide'), steps, rows: [
+      pin(row('office', 'Field guide read', 0, 1, 'Open the Field guide (the gold book button beside Ryo, or Shift+G): how much damage troops, buildings, stone walls and ships take from each weapon'))] };
     // the 2nd town by war (goals pass): pack a war chest while the first town keeps coffers for its defence
     if (towns !== 1) return null;
     const coffers = row('ryo', 'Town coffers for defence', Math.floor(town.stock?.ryo || 0), G.war?.defendCoffers ?? 600,

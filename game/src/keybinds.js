@@ -70,6 +70,7 @@ export const KEY_ACTIONS = [
   A('overview', 'Overview', 'Panels and menus', 'KeyY'),
   A('vehicles', 'Vehicles', 'Panels and menus', 'Shift+KeyY'),
   A('controls', 'Controls panel', 'Panels and menus', 'Slash'),
+  A('fieldGuide', 'Field guide', 'Panels and menus', 'Shift+KeyG'),   // Tim 2026-11-25: what is good against what
   A('close', 'Close or cancel', 'Panels and menus', [], { fixed: true, text: 'Esc' }),
   // Interface
   A('pause', 'Pause', 'Interface', ['Backquote', 'Pause']),

@@ -289,7 +289,11 @@ console.log('campaign goals ok');
     const d = Math.hypot(h.x - si.x, h.z - si.z); assert.ok(d >= H.offsetMin - 1 && d <= H.offsetMax + 1);
   }
   assert.equal(clan.milestones.warTalk, 1);
-  assert.equal(cur().key, 'warpack', 'talk done: shown once; the 2nd town is taken by war');
+  // Field guide (Tim 2026-11-25): open it before the first war
+  assert.equal(cur().key, 'fieldguide', 'talk done: read the field guide first');
+  assert.deepEqual(cur().rows.map(r => r.label), ['Field guide read']);
+  clan.milestones.fieldGuide = 1;
+  assert.equal(cur().key, 'warpack', 'guide read: shown once; the 2nd town is taken by war');
   // the 2nd town goals (goals pass): pack a war chest, keep coffers for defence, then declare war
   const W = frontier.goals.war;
   assert.deepEqual(cur().rows.map(r => r.label), ['Ryo packed', 'Timber packed', 'Stone packed', 'Town coffers for defence']);

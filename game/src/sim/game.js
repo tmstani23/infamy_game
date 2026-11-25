@@ -1064,6 +1064,7 @@ export function createGame(options) {
       else if (!ltNotice.has(e.owner) && state.clans?.[e.owner] && !state.clans[e.owner].bot) ltNotice.set(e.owner, state.clans[e.owner].notice);
       if (c.type === 'catchHorse') { if (e.type === 'hero') wildAnimals?.catchHorse(e); continue; }   // Space beside a wild horse: catch her (wildlife W6)
       if (c.type === 'sellHides') { if (e.type === 'hero') wildAnimals?.sell(e); continue; }   // Space at an own market (sim/wild_animals.js, wildlife W5)
+      if (c.type === 'guide') { if (c.read === 'fieldGuide' && e.type === 'hero' && state.clans?.[e.owner]) (state.clans[e.owner].milestones ||= {}).fieldGuide = 1; continue; }   // Field guide goal (Tim 2026-11-25): he opened it
       if (c.type === 'watchCity') { if (c.on && e.type === 'hero') watchingCity.add(e.owner); else watchingCity.delete(e.owner); continue; }
       if (watchingCity.has(e.owner) && !c.by && (c.type === 'order' || c.type === 'deployment')) continue;   // watching only: no crew orders
       // the boss out on the island gives the city no orders (Tim 2026-11-08): the lieutenant runs it (his commands carry
