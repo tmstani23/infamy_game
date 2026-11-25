@@ -198,7 +198,7 @@ async function start() {
     // train robbery (sim/frontier/rail.js prompt): cash the stolen chest, rob a stopped train, or set a charge on the line
     { const rp = game.frontier?.rail?.prompt?.(game.state.entities[heroId]); if (rp?.mode) { pending.push({ id: heroId, type: 'frontier', action: 'rail', mode: rp.mode }); return; } }
     if (game.wildAnimals?.sellPrompt(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'sellHides' }); return; }   // sell the clan's hides at an own market (wildlife W5)
-    if (game.wildAnimals?.catchPrompt(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'catchHorse' }); return; }   // throw the rope halter over a wild horse (wildlife W6)
+    if (game.wildAnimals?.catchPrompt(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'catchHorse' }); return; }   // catch a wild horse (wildlife W6)
     // the ship between the city harbour pier and your castle dock (Tim 2026-11-19): board here, or skip the crossing
     { const sp = game.ferry?.prompt(game.state.entities[heroId]); if (sp) { pending.push({ id: heroId, type: 'frontier', action: 'ferry', mode: sp.riding ? 'skip' : 'board' }); return; } }
     // your war ship (sim/frontier/ships.js, ships S2): beside it at the shore All aboard, aboard at the shore everyone steps off

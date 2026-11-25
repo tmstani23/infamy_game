@@ -1,5 +1,5 @@
 // Rebuilds the dev test saves from the current code, so they never go stale (frontier F0.5).
-//   node game/tools/make_dev_save.mjs            -> saves/war_test_yakuza.json, war_defend_yakuza.json, rail_rob_shinobi.json, ship_test.json
+//   node game/tools/make_dev_save.mjs            -> saves/war_test_yakuza.json, war_defend_yakuza.json, rail_rob_shinobi.json, ship_test.json, gear_test.json
 //   node game/tools/make_dev_save.mjs war_test_yakuza   -> only the saves named
 // Load them from the start screen (Load game) or Settings. Add a save only with Tim's OK (max 5).
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
@@ -14,6 +14,7 @@ import { storageCap } from '../src/sim/frontier/storage.js';
 import { addCastle } from '../src/sim/frontier/castle.js';
 import { waterGrid, landingFor, nearestSailable } from '../src/sim/frontier/water_nav.js';
 import { circleShore } from '../src/sim/frontier/shipyard.js';
+import { ITEMS, FRONTIER_GEAR, HEIRLOOMS } from '../src/sim/gear_catalog.js';
 
 const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
 const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
@@ -53,6 +54,9 @@ const SAVES = {
   // Village at a harbour site, both sides with a war chest (shipTest below).
   ship_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, shipTest: true },
   rail_rob_shinobi: { clan: 'shinobi', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, robTest: true },
+  // Gear test (Tim 2026-11-25, 5th of 6): the war test (camp, rival town to fight) with one of each frontier item and
+  // castle heirloom in the hero's bag, to try their effects in a fight (render/gear_fx.js heirloomArc, fangDodge, clawStrike).
+  gear_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, warTest: true, gearTest: true },
 };
 
 // A grown tier-2 town for the railway test: founded with the real command, then roads, buildings and zones are
@@ -526,6 +530,9 @@ export function build(name, spec) {
   if (spec.warDefend) warDefend(game, m.heroId);
   if (spec.robTest) robTest(game, m.heroId);
   if (spec.shipTest) shipTest(game, m.heroId);
+  if (spec.gearTest) { const bag = game.state.clans.player?.inventory?.bag; if (!bag) throw new Error('gear_test: no inventory');
+    const ids = Object.keys(FRONTIER_GEAR).concat(Object.keys(HEIRLOOMS).map(f => `heirloom_${f}`));
+    ids.forEach((id, i) => { if (!ITEMS[id]) throw new Error('gear_test: no item ' + id); bag[i] = id; }); }
   if (spec.castleTest) { const h = game.state.entities[m.heroId], p = game.castles?.approach('player'); if (!h || !p) throw new Error('castle_test: no castle');
     // Z4f (Tim 2026-11-19): the rail hub is the castle; a town with a station and a finished line to it, to see and ride
     { const t = Object.values(game.state.frontier.settlements).find(x => x.owner === h.owner && x.founded !== undefined); if (t) layLine(game, h, t.id, 'capital'); }

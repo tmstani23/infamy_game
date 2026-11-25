@@ -66,7 +66,7 @@ Cleaned from generated takes. Used in `render/sound.js` (wild) from `render/crow
 |---|---|
 | crow_caw_1.ogg, crow_caw_2.ogg | Soft cawing from crow flocks near the camera |
 | crow_scatter_1.ogg to crow_scatter_3.ogg | Wingbeats of a flock bursting up at gunfire, cannon, blasts or a charging rider |
-| deer_alarm_1.ogg, deer_alarm_2.ogg | Deer startled and running (wildlife W3) |
+| deer_alarm_1.ogg, deer_alarm_2.ogg | Deer startled and running (wildlife W3); softened 2026-11-24: lowpass-filtered, played at volume 0.22 and pitch 0.86 to 0.94 (render/sound.js) |
 | boar_grunt_1.ogg, boar_charge_1.ogg | Boar grunting and charging (wildlife W3) |
 | wolf_pack_howl_1.ogg, wolf_pack_howl_2.ogg | Wolf pack howling at night (wildlife W4) |
 | wolf_attack_1.ogg, wolf_attack_2.ogg | Wolves snarling as they attack (wildlife W4) |

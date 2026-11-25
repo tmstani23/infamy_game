@@ -260,7 +260,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
       if (h && horse && h.place === 'world' && !h.ride && !h.aboard && !h.dead && !h.downed && h.hp >= (h.maxHp || 0) * 0.6 && !horse.called && !horse.rider) command(h, {});
     }
   }
-  // a wild horse caught with a rope halter (sim/wild_animals.js, wildlife W6): she joins the clan like a bought one and keeps her coat;
+  // a wild horse caught (sim/wild_animals.js, wildlife W6): she joins the clan like a bought one and keeps her coat;
   // kind: her model with tack (art.json, e.g. mare_saddled)
   function adopt(owner, { x, z, kind, name, coat }) {
     const id = spawn('horse', R().models?.[kind] || kind, x, z, { horseOwner: owner, horseKind: kind, name, place: 'world', hp: R().hp ?? 300, maxHp: R().hp ?? 300, holdFire: true, vehicle: true, coat });
