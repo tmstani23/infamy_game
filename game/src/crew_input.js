@@ -395,7 +395,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       const boxed = [...heroIn, ...myCrew(), ...myVehicles()].filter(u => (u.ship ? hull(u) : [view.unitToScreen(u.x, u.z)]).some(s => s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1));
       picked = boxed.filter(u => !u.dead).map(u => u.id);
       building = null;
-      if (picked.length) { setSelected(picked); if (looked && game.omnibus?.isVehicle(game.state.entities[looked])) looked = null; }   // a drag picks exactly the crew in the box (Tim 2026-10-20); an empty box keeps the selection; a group goes to crew select only, not the target box (Tim 2026-11-07)
+      if (picked.length) { setSelected(picked); looked = null; }   // Tim 2026-11-25: a drag box never opens a unit's card, even round one unit (only a left-click does)   // a drag picks exactly the crew in the box (Tim 2026-10-20); an empty box keeps the selection; a group goes to crew select only, not the target box (Tim 2026-11-07)
     }
     // a left-click (or drag) anywhere but the hero's locked target drops it and cancels his auto
     // attack (Tim 2026-10-18); clicking the target itself keeps it

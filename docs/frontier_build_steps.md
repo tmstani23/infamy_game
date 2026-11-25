@@ -2826,6 +2826,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - 8e-8 Ryo badge by location:
        - ryo_badge.js: city = Clan treasury; inside an own town's ring = "<Town> coffers" (chest look); inside a war circle = War chest (red-banner look). Hover lists all three.
      - 8e-9 Armory upgrades:
+      - Condensed (Tim 2026-11-25) to two tracks for all troops: Weapons (+5% damage a level) and Armor (5% less damage taken a level), 3 levels each; ryo halved to 50/100/150, timber and stone 100/100 unchanged. Old saves fold per-group levels into one (best level of each track).
        - Bought at a built armory (camp, or town during a war on it), war only: reset when the war ends.
        - Troops only; hero and crew unaffected.
        - Groups: melee (grunt, spearman, brute, enforcer, irezumi, kunoichi, dog handler), ranged (archer, rifleman, teppo, yumi, geisha), mounted (sword rider, mounted pikeman), siege (cannon, wooden cannon, gatling, fire bomber). `war.units.*.group` in data.

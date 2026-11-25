@@ -147,7 +147,7 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
       // until the next order of any kind replaces this one
       // resume (a second T, Tim 2026-10-19): call off the T attack, back to the order before it
       if (c.kind === 'resume') { if (u.order?.kind === 'attack') { delete u.swing; endAttack(u, true); } return; }
-      if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop' }; u.anim = 'idle'; return; }
+      if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop', z: true }; u.anim = 'idle'; return; }   // z: the player's own Z (Tim 2026-11-25: on the island only this one is passive)
       if (recalling) delete u.swing;
       if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id, regrouping: true, ...(hero.place !== 'street' ? { exitWithHero: true } : {}) }; u.order.slot = freeSlot(hero.id, u.id); return; }
       // resume (T, Tim 2026-10-19): when the attack ends they go back to what they were doing
@@ -173,7 +173,9 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
       // riders need a horse length each (Tim 2026-11-10: a mounted group clustered on one spot and ran in place)
       const place = c.place || hero.place;
       if (grouped) {
-        const G = GM(), riders = crew.some(m => m.mounted), spacing = riders ? G.mountedSpacing : G.spacing;
+        // big bodies (field cannons, Gatlings) get room for their width (Tim 2026-11-25: cannons sent to one spot bunched and ran in place)
+        const G = GM(), riders = crew.some(m => m.mounted), wide = Math.max(0, ...crew.map(m => stats?.base?.(m)?.radius || 0)) * 2 + 0.3;
+        const spacing = Math.max(riders ? G.mountedSpacing : G.spacing, wide);
         // the unit's place in the spread; a place another unit already took (two snapped onto one free cell) moves on round the spiral
         let x = c.x, z = c.z;
         for (let t = 0; t < 12; t++) {
@@ -240,7 +242,8 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
     // 7c (Tim 2026-11-12: units ran in place after a fight): a unit that is there keeps the spot the spacing push
     // gives it instead of walking back into the crowd (only one shoved further than 1.5 walks back), and one
     // that gets no closer to its last step for half a second, with others in the way, stops where it is. On the island only.
-    if (o.kind === 'move' && !o.patrol && e.place === 'world') {   // the island only: city raids hold their exact spots
+    // (Tim 2026-11-25: an attack-move that got there holds its pushed spot the same way; cannons ran in place)
+    if ((o.kind === 'move' || o.kind === 'attackmove') && !o.patrol && e.place === 'world') {   // the island only: city raids hold their exact spots
       const d = Math.hypot(o.x - e.x, o.z - e.z);
       if (o.arrived && d <= 1.5) { o.x = e.x; o.z = e.z; return { x: e.x, z: e.z, near: Infinity }; }
       if (!o.arrived && d < 1.2) {

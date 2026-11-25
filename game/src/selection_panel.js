@@ -45,7 +45,7 @@ export function unitStatus(e, state) {
   const task=state.deployment?.clans[e.owner]?.sectors[e.deployment?.group];
   if(!e.deployment?.duty?.manual){if(task?.recovery)return task.recovery.state;if(task?.operation?.units?.includes(e.id))return task.operation.kind.replaceAll('_',' ')+', '+task.operation.state;if(e.deployment?.duty?.status)return e.deployment.duty.status;}
   const k = e.order?.kind, moving = e.anim === 'walk' || e.anim === 'run';
-  if (k === 'stop') return 'Passive (stopped)';
+  if (k === 'stop') return e.place !== 'world' || e.order.z ? 'Passive (stopped)' : 'Holding';
   if (e.order?.garrison) return 'Patrolling';
   if (k === 'follow') return 'Following';
   if (k === 'attack') return 'Attacking';

@@ -1,10 +1,11 @@
-// 8e-9 (mock G, Tim 2026-11-16): the armory's menu, at the war camp and in a defending town. Four groups by row
-// (melee, ranged, mounted, siege), weapons and armor cards with level pips, the next level's cost as chips and a
+// 8e-9 (mock G, Tim 2026-11-16): the armory's menu, at the war camp and in a defending town. One row for all troops
+// (Tim 2026-11-25, was four groups), weapons and armor cards with level pips, the next level's cost as chips and a
 // Buy button; the one in the work shows its countdown. Reads war.armory.view (sim/frontier/war_armory.js).
 // armoryHtml({ game, war, owner, artUrl }) -> html; armorySig(game, war, owner) -> string; click: data-armup="<group>:<track>", data-armcancel="<queue index>" (Tim 2026-11-18)
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const cap1 = s => s[0].toUpperCase() + s.slice(1);
-const ART = { melee: 'barracks', ranged: 'rifle_range', mounted: 'stable', siege: 'foundry' };
+const ART = { all: 'armory' };
+const NAME = { all: 'Troop' };
 const nice = u => u.replace(/_/g, ' ');
 
 export const ARMORY_CSS = sel => `
@@ -33,11 +34,11 @@ export function armoryHtml({ game, war: w, owner, artUrl = () => '', chip = (r, 
   const v = game.frontier?.war?.armory?.view?.(w.id, owner);
   if (!v) return '<div class="small" style="padding:8px 0">Armory upgrades are not ready yet.</div>';
   const pct = Math.round(v.step * 100);
-  let h = `<div class="sec"><span>Troop upgrades, this war only</span><b title="Upgrades count for your troops of that group, those already out too. The hero and crew are never changed. They end with the war.">Hero and crew not affected</b></div>`;
+  let h = `<div class="sec"><span>Troop upgrades, this war only</span><b title="Upgrades count for all your troops, those already out too. The hero and crew are never changed. They end with the war.">Hero and crew not affected</b></div>`;
   if (!v.has) h += '<div class="small" style="padding:6px 0;color:#ee8a7c">Needs a built armory.</div>';
   // the queue (Tim 2026-11-18): waiting upgrades, paid, each can be cancelled for its full price back
   const queue = v.queue || [];
-  if (queue.length) h += `<div class="aqueue"><span class="small">Queued (${queue.length + (v.work ? 1 : 0)} of ${v.queueMax}):</span>${queue.map(x => `<span class="aq">${esc(cap1(x.group))} ${x.track} ${x.level}<button data-armcancel="${x.index}" title="${esc('Cancel: its full price comes back to the war chest and stock. Later levels of the same upgrade in the queue are cancelled too.')}">Cancel</button></span>`).join('')}</div>`;
+  if (queue.length) h += `<div class="aqueue"><span class="small">Queued (${queue.length + (v.work ? 1 : 0)} of ${v.queueMax}):</span>${queue.map(x => `<span class="aq">${esc(cap1(x.track))} ${x.level}<button data-armcancel="${x.index}" title="${esc('Cancel: its full price comes back to the war chest and stock. Later levels of the same upgrade in the queue are cancelled too.')}">Cancel</button></span>`).join('')}</div>`;
   for (const g of v.groups) {
     const card = t => {
       const lvl = t.level, q = t.queued || 0, top = lvl + q, work = v.work && v.work.group === g.group && v.work.track === t.track, max = top >= v.max;
@@ -46,11 +47,11 @@ export function armoryHtml({ game, war: w, owner, artUrl = () => '', chip = (r, 
       const status = work ? `Level ${lvl + 1}, ${v.work.seconds} s left${q > 1 ? `, ${q - 1} more queued` : ''}` : q ? `${now ? now + ', ' : ''}${q} queued` : '';
       let foot;
       if (max) foot = `<span>${status || `${now}, maxed`}</span>`;
-      else foot = `<span>${status || (now ? `${now}, next +${(lvl + 1) * pct}%` : `Next +${pct}% ${what}`)}</span><span class="chips">${['ryo', 'timber', 'stone'].filter(r => t.cost?.[r]).map(r => chip(r, t.cost[r])).join('')}<button class="go" data-armup="${esc(`${g.group}:${t.track}`)}"${t.why ? ` disabled title="${esc(t.why)}"` : ` title="${esc(`${cap1(g.group)} ${t.track} level ${top + 1}: ${t.cost.ryo || 0} ryo from the war chest${t.cost.timber ? `, ${t.cost.timber} timber` : ''}${t.cost.stone ? `, ${t.cost.stone} stone` : ''}, paid now. ${v.seconds} s at the armory${v.work ? ', after the upgrades already queued' : ''}.`)}"`}>${v.work ? 'Queue' : 'Buy'}</button></span>`;
-      return `<div class="acard"><div class="at"><span>${esc(cap1(g.group))} ${t.track}</span>${pips}</div><div class="ab">${foot}</div>${work ? `<div class="prog"><i style="width:${Math.round(100 * (1 - v.work.seconds / Math.max(1, v.seconds)))}%"></i></div>` : ''}</div>`;
+      else foot = `<span>${status || (now ? `${now}, next +${(lvl + 1) * pct}%` : `Next +${pct}% ${what}`)}</span><span class="chips">${['ryo', 'timber', 'stone'].filter(r => t.cost?.[r]).map(r => chip(r, t.cost[r])).join('')}<button class="go" data-armup="${esc(`${g.group}:${t.track}`)}"${t.why ? ` disabled title="${esc(t.why)}"` : ` title="${esc(`${cap1(t.track)} level ${top + 1}, all troops: ${t.cost.ryo || 0} ryo from the war chest${t.cost.timber ? `, ${t.cost.timber} timber` : ''}${t.cost.stone ? `, ${t.cost.stone} stone` : ''}, paid now. ${v.seconds} s at the armory${v.work ? ', after the upgrades already queued' : ''}.`)}"`}>${v.work ? 'Queue' : 'Buy'}</button></span>`;
+      return `<div class="acard"><div class="at"><span>${esc(cap1(t.track))}</span>${pips}</div><div class="ab">${foot}</div>${work ? `<div class="prog"><i style="width:${Math.round(100 * (1 - v.work.seconds / Math.max(1, v.seconds)))}%"></i></div>` : ''}</div>`;
     };
-    h += `<div class="arow"><div class="athumb" title="${esc(`${cap1(g.group)}: ${g.units.map(nice).join(', ')}`)}"><img src="${esc(artUrl(ART[g.group]))}" alt=""></div>${g.tracks.map(card).join('')}</div>`;
+    h += `<div class="arow"><div class="athumb" title="${esc(`${NAME[g.group] || cap1(g.group)} upgrades count for every troop: ${g.units.map(nice).join(', ')}`)}"><img src="${esc(artUrl(ART[g.group]))}" alt=""></div>${g.tracks.map(card).join('')}</div>`;
   }
-  h += '<div class="small" style="margin-top:6px">Hover a group to see its units. Weapons: more damage. Armor: less damage taken.</div>';
+  h += '<div class="small" style="margin-top:6px">Every troop gets them. Weapons: more damage. Armor: less damage taken.</div>';
   return h;
 }

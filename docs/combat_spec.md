@@ -351,6 +351,11 @@ Coordinator reports the Kuroda visual-pose, lightning, chain and sprite-pair che
 - The hero and hero crew fight mounted with all attacks and abilities, melee and ranged, at the same range and reload as on foot. No thrown rule (units.json rules.mount.throwShare unused). Stun, stagger and slow apply. Mounted melee units may be given Torch. War cavalry unchanged.
 - Cannons (field_cannon, wooden_cannon) unitShare 0.5: a cannonball hits a unit for half its damage; buildings take the whole hit. Single target.
 
+## War: spotting enemies on the island (2026-11-25)
+Replaces the 2026-11-13 fixed reach of 6. On the island a unit standing, holding, on a post, following or attack-moving runs at the nearest enemy of its war within war.spot.range (20, frontier.json) and keeps the chase until that enemy is more than war.spot.leash (30) from where it stood (or from its hero), then walks back. Ranged units shoot from their full weapon range. Only the player's own Z (order stop with z) is passive; a stop the game gives (pulled back at the war circle edge, a ceasefire ending, off an omnibus) is a plain hold that still fights. A unit queued to board a ship stays passive. A move still being walked ignores enemies. City rules unchanged. Code: sim/combat.js searchTarget, crew_orders.js Z, test tools/test_war_spot.mjs.
+
+A group sent by attack-move gets spread room for its widest body (cannons, Gatlings) and, once there, holds the spot it was pushed to (same as a move).
+
 ## Balance
 
 - Heroes on the frontier (2026-11-24): heroes, the player's and rivals', deal double damage on the frontier (the island), abilities, buildings and animals included (units.json types.hero.frontierDamage 2, sim/stats.js). City and crew damage are unchanged. The stats sheet shows it as "Frontier x2". Test: game/tools/test_frontier_damage.mjs.

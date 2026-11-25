@@ -126,7 +126,7 @@ export const TRAITS = {
 export const DOES = {
   supply_tents: d => `Adds ${d.cap ?? 0} to the troop cap.`, watchtower: () => 'Shoots arrows at enemies in range and lets you see the ground round it, day and night.',
   cannon_tower: () => 'A gun battery: fires a cannonball every few seconds at enemy ships and siege guns first, then at troops. At most 4 workers mend it at once.',
-  field_clinic: () => 'Your troops, hero and crew near it recover much faster once they are out of the fight.', armory: () => 'Troop upgrades for this war: more damage and less damage taken by unit group. Troops only.',
+  field_clinic: () => 'Your troops, hero and crew near it recover much faster once they are out of the fight.', armory: () => 'Troop upgrades for this war: more damage and less damage taken for all troops. Troops only.',
   camp_station: () => 'Links the camp to your rail network: a spur is laid to your nearest town with a railway station. Then ryo, timber and stone come by train.',
   rail_section: () => 'Camp supply line: the camp station or any red section down cuts the camp off from the rail network until all are rebuilt (from the camp station menu).',
   stockade: () => 'A fortress, very hard to break. Your troops go in with Ctrl + right-click on it: they recover faster, hits on them go to the building, and ranged troops shoot out.',

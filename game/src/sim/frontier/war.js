@@ -674,7 +674,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // (owner: the attacker's camp trains them; the Node benchmark and later the defender give their own side)
   function spawnTroop(war, unit, x, z, owner = war.attacker) {
     const u = UD()[unit], faction = factionOf(owner), type = typeof u.type === 'string' ? u.type : u.type?.[faction] || Object.values(u.type || {})[0];
-    const extra = { owner, place: 'world', area: 'world', warTroop: war.id, warUnit: unit, order: { kind: 'stop' } };
+    const extra = { owner, place: 'world', area: 'world', warTroop: war.id, warUnit: unit, order: { kind: 'stop', z: true } };   // placed passive until its first order (the camp gives a gather move at once)
     const hpMul = bonus(owner, unit, 'hp'), dmgMul = bonus(owner, unit, 'damage');
     if (dmgMul !== 1) extra.warDamage = dmgMul;
     const id = runtime.spawn(type, u.model?.[faction] || type, x, z, extra), e = state.entities[id];

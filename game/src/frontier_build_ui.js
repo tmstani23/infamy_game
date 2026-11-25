@@ -288,14 +288,17 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       && !s.projects.some(p => (p.cells || [p.cell]).includes(c)) && !Object.values(data.zones.kinds).some(k => k.char === s.grid.zone[c]);
     return towns().map(s => ({ s, cell: cellAt(x,y,s) })).find(p => townCellTip(p.s,p.cell,data) && !bare(p.s,p.cell));
   }
-  function select(ids) {
+  // byClick: only a real left-click on one worker opens its card; a drag box over one does not (Tim 2026-11-25)
+  let clickPicked = false;
+  function select(ids, byClick = false) {
     selected = ids;
     if (ids.length) { cancel(); crewInput.clear(); }
-    if(ids.length===1)crewInput.inspect?.(selectedLive()[0]?.w.entity);
+    clickPicked = byClick && ids.length === 1;
+    if(clickPicked)crewInput.inspect?.(selectedLive()[0]?.w.entity);
     inspect = null; card.hidden = true;
   }
   function focusWorkers(ids) {
-    select(ids);
+    select(ids, true);   // a double-click or a card: a click, so one worker shows its card
     const follow=()=>{
       const entities=selectedLive().filter(p=>ids.includes(p.w.id)).map(p=>({...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),owner:p.s.owner}));
       return watchCrewGroup({entities:Object.fromEntries(entities.map(e=>[e.id,e]))},hero()?.owner,null,entities.map(e=>e.id));
@@ -411,7 +414,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const menu = inspect?.menu ? openMenu() : null;
     if (inspect?.menu && !menu) inspect = null;
     if (!inspect?.menu) unplace(card);
-    if(!inspect && selected.length===1 && outdoors() && !blocked()) {
+    if(!inspect && selected.length===1 && clickPicked && outdoors() && !blocked()) {
       const p=selectedLive()[0];if(!p){card.hidden=true;return;}
       const d=workerDetails(p.w,spotIndex),html=tiHead(p.w.spot?`Worker, ${p.w.spot}`:'Worker',/^w\d+$/.test(p.w.id)?`Worker ${p.w.id.slice(1)}`:`Worker ${p.w.id}`)
         +`<div class="ti-row"><span class="ti-txt">${d.harvesting?`Harvesting ${esc(d.resource)}, ${d.left} s left, load ${d.gathered.toFixed(1)} of ${p.w.trip.load}`:d.cargo?`Carrying ${d.cargo} ${esc(d.resource)}`:esc(p.w.status || 'Ready for orders')}</span></div>`
@@ -601,7 +604,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     });
     if (picked.length) {
       const ids = click ? [picked.sort((a, b) => bodyDistance(view, a.e, e.clientX, e.clientY) - bodyDistance(view, b.e, e.clientX, e.clientY))[0].w.id] : picked.map(p => p.w.id);
-      select(click ? selected.includes(ids[0]) ? selected.filter(id => id !== ids[0]) : [...selected, ...ids] : ids);
+      select(click ? selected.includes(ids[0]) ? selected.filter(id => id !== ids[0]) : [...selected, ...ids] : ids, click);
       crewInput.cancelPointer(); consume(e); return;
     }
     if (!click) return;   // Tim 2026-11-19: a drag box with no workers in it is the crew's (crew_input.js); the worker selection stays
@@ -913,8 +916,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     placeTool(id, kind) { town = id; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = kind; return true; },
     // two or more workers picked: one small card each in the selection panel (Tim 2026-11-08); a click picks just that one
     selectedWorkers:()=>selected.length>1?selectedLive().map(p=>({...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),id:`worker:${p.w.id}`,wid:p.w.id,worker:true,status:workerStatus(p.w,spotIndex)})):[],
-    pickWorker:wid=>{const p=selectedLive().find(p=>String(p.w.id)===String(wid));if(p)select([p.w.id]);},
-    workerTarget:()=>{const p=selected.length===1 && selectedLive()[0];return p?{...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),workerDetail:workerDetails(p.w,spotIndex)}:null;},
+    pickWorker:wid=>{const p=selectedLive().find(p=>String(p.w.id)===String(wid));if(p)select([p.w.id],true);},
+    workerTarget:()=>{const p=selected.length===1 && clickPicked && selectedLive()[0];return p?{...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),workerDetail:workerDetails(p.w,spotIndex)}:null;},
     doubleClick(ds,s) {
       if(ds.act==='build-worker-select'){focusWorkers([ds.id]);return true;}
       if(ds.act==='build-worker-group'){focusWorkers((s.workers || []).filter(w=>w.group===Number(ds.id)).map(w=>w.id));return true;}
@@ -937,7 +940,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       }
       if (ds.act === 'build-train') requestTraining(s.id);
       if (ds.act === 'build-workers') {cancel();opened=false;workersOpen=!workersOpen;}
-      if (ds.act === 'build-worker-select')select(selected.includes(ds.id)?selected.filter(id=>id!==ds.id):[...selected,ds.id]);
+      if (ds.act === 'build-worker-select')select(selected.includes(ds.id)?selected.filter(id=>id!==ds.id):[...selected,ds.id],true);
       if (ds.act === 'build-worker-all'){select((s.workers || []).map(w=>w.id));workerFilter=null;if(workerTab==='idle')workerTab='roster';workerPage=0;}
       if (ds.act === 'build-worker-job') {workerFilter=ds.id;if(workerTab==='idle')workerTab='roster';workerPage=0;const ids=(s.workers || []).filter(w=>workerTask(w,spotIndex)===ds.id).map(w=>w.id);select(e?.ctrlKey || e?.shiftKey?[...new Set([...selected,...ids])]:ids);}
       if (ds.act === 'build-worker-group')select((s.workers || []).filter(w=>w.group===Number(ds.id)).map(w=>w.id));

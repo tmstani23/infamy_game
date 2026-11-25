@@ -234,14 +234,14 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       m.classList.toggle('hurt', f < 0.5);
       m.classList.toggle('down', !!e.downed);
       m.classList.remove('away', 'jailed');
-      m.classList.toggle('passive', e.order?.kind === 'stop');   // Z: stopped and passive
+      m.classList.toggle('passive', e.order?.kind === 'stop' && (e.place !== 'world' || !!e.order.z));   // Z: stopped and passive
       const group = crewInput?.groupOf(e.id);
       m.children[2].textContent = group ? `${group}` : '';
       m.children[2].title = group ? `Group ${group}: press ${group} to select; Ctrl+${group} with this group selected dissolves it` : '';
       m.dataset.id = e.id;
       m.draggable = false;
       m.classList.toggle('picked', crewInput?.selected().includes(e.id) || false);
-      m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${group ? ` (group ${group})` : ''}${e.downed ? ' (downed)' : ''}${e.order?.kind === 'stop' ? ' (passive: Z)' : ''}, ${where(e)}; double-click to select only this crew member`;
+      m.title = `${name} ${Math.ceil(e.hp)} / ${e.maxHp}${group ? ` (group ${group})` : ''}${e.downed ? ' (downed)' : ''}${e.order?.kind === 'stop' && (e.place !== 'world' || e.order.z) ? ' (passive: Z)' : ''}, ${where(e)}; double-click to select only this crew member`;
     });
     clinic.forEach((c, i) => {
       const m = crew.children[crewList.length + i];

@@ -34,7 +34,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
   }
   const mates = ownerIndex(state);
   const where = spatialIndex(state);   // who is where, once a tick (speed pass 5b-5)   // units (all, or a clan's), listed once a tick (lag 2026-11-08)
-  function nearestEnemy(e, x, z, range) {
+  function nearestEnemy(e, x, z, range, only = null) {
     // speed pass (war collision checkpoint 5b-5): the same pick as before (the nearest that passes every check, the
     // earlier unit on a tie), but the dear hostile and sight checks now run nearest first and stop at the first pass,
     // in place of running for every unit that was nearer than the best so far. Own units, the fallen and units in
@@ -55,7 +55,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     }
     if (!first) return null;
     // (ships S4: a ship on the water is a target only for units that reach it from where they stand: no melee chases it)
-    const ok = t => state.entities[t.id] === t && hostile(e, t) && sees(e, t) && !(cop(t) && !cop(e) && !t.wave) && !(t.ship && reachOf(e, t) < 8);
+    const ok = t => state.entities[t.id] === t && (!only || only(t)) && hostile(e, t) && sees(e, t) && !(cop(t) && !cop(e) && !t.wave) && !(t.ship && reachOf(e, t) < 8);
     if (ok(first)) return first;
     const near = [];
     for (let n = 0; n < count; n++) {
@@ -142,7 +142,9 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
   // Who this crew member should be fighting right now, if anyone
   function crewTarget(e) {
     const o = e.order || {};
-    if (o.kind === 'stop') return null;                  // passive (Z): never picks a fight
+    // passive (Z): never picks a fight. On the island only a real Z is passive (Tim 2026-11-25): a stop the game itself
+    // gives (pulled back at the war circle edge, a ceasefire, off an omnibus, queued to board a ship) is a plain hold
+    if (o.kind === 'stop' && (e.place !== 'world' || o.z || e.boardShip)) return null;
     if (e.holdFire || e.smokePassive) return null;        // smoke escort stays passive until an explicit combat order
     if (o.kind === 'attack') {
       const t = state.entities[o.target];
@@ -190,7 +192,8 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     // on the island (Tim 2026-11-13) a unit standing or following attacks any enemy that comes in range unless told Z (stop);
     // only a move it is still walking (and heal, enter, loot) keeps it from turning off its way
     // (only against the other side of a war its clan is in: rival clans out on the island are not picked on sight)
-    const islandReady = e.place === 'world' && (!o.kind || o.kind === 'follow' || (o.kind === 'move' && o.arrived));
+    // Tim 2026-11-25: within war.spot.range (not the 6 step AGGRO), and it keeps the chase out to war.spot.leash
+    const islandReady = e.place === 'world' && (!o.kind || o.kind === 'follow' || o.kind === 'stop' || (o.kind === 'move' && o.arrived));
     if (!e.guard && o.kind !== 'attackmove' && o.kind !== 'station' && !raidRoom && !islandReady) {
       // the first mate (in unit order) near enough who was hit lately by someone this unit may fight
       const all = where.all(), ks = where.near(e.x, e.z, BACKUP_RANGE), count = ks ? ks.length : all.length;
@@ -207,13 +210,13 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     const old = f && state.entities[f.target];
     // e.aggro / e.leash: a unit's own, wider ranges (train guards, sim/frontier/rail_robbery.js); a train guard drops a
     // target that went into hiding and takes the next one it can see (Tim 2026-11-21)
-    if (hostile(e, old) && (!cop(old) || old.wave) && Math.hypot(old.x - ax, old.z - az) < (e.leash ?? LEASH) && (!e.trainGuard || sees(e, old))) return old;
-    const near = nearestEnemy(e, e.x, e.z, e.aggro ?? AGGRO);
-    if (islandReady && !e.guard && near) {
-      const foe = near.owner || near.workerOwner;
-      return Object.values(state.frontier?.wars?.list || {}).some(w => (w.attacker === e.owner && w.defender === foe) || (w.defender === e.owner && w.attacker === foe)) ? near : null;
-    }
-    return near;
+    // the wider spot range also for a post (station) and an attack-move out on the island
+    const island = e.place === 'world' && !e.guard && (islandReady || o.kind === 'station' || o.kind === 'attackmove'), SPOT = options?.frontier?.war?.spot || {};
+    const atWar = t => { const foe = t.owner || t.workerOwner; return Object.values(state.frontier?.wars?.list || {}).some(w => (w.attacker === e.owner && w.defender === foe) || (w.defender === e.owner && w.attacker === foe)); };
+    if (hostile(e, old) && (!cop(old) || old.wave) && Math.hypot(old.x - ax, old.z - az) < (e.leash ?? (island ? SPOT.leash ?? LEASH : LEASH)) && (!e.trainGuard || sees(e, old))) return old;
+    // (only enemies of a war its clan is in: rival clans out on the island are not picked on sight)
+    if (island) return nearestEnemy(e, e.x, e.z, e.aggro ?? Math.max(AGGRO, SPOT.range ?? AGGRO), islandReady ? atWar : null);
+    return nearestEnemy(e, e.x, e.z, e.aggro ?? AGGRO);
   }
 
   // Close in on the target, then swing at it every attackSpeed seconds. A swing has a

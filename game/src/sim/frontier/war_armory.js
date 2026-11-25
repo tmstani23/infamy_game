@@ -1,32 +1,43 @@
 // War step 8e-9 (Tim 2026-11-16): armory upgrades. Bought at a built armory (the war camp's, or the defending town's
 // during its war), for that side of that war only: they end with the war, like the troops. Troops only; the hero and
-// crew are never changed. Four unit groups (war.units.<unit>.group: melee, ranged, mounted, siege), two tracks each:
+// crew are never changed. Tim 2026-11-25: one group for all troops (was four: melee, ranged, mounted, siege), two tracks:
 // weapons (+war.armory.step damage a level) and armor (war.armory.step less damage taken a level), war.armory.levels
 // levels. A level costs war.armory.cost[level] (ryo from that side's war chest, timber and stone from the camp stock
 // or the town's stock) and takes war.armory.seconds while the armory stands; one in the work per side. Tim 2026-11-18:
 // more can wait in a queue (war.armory.queue, work included), each paid when queued; a waiting one can be cancelled
 // for its full price back (command armoryCancel { war, index }), the one in the work cannot. A finished level
-// counts at once for every troop of that side and group, those on the field too (entity.warUp, read by stats.js).
+// counts at once for every troop of that side, those on the field too (entity.warUp, read by stats.js).
 // No iron for now (revisit when iron exists).
 // w.armory = { attacker|defender: { levels: { <group>: { weapons, armor } }, work: { group, track, left } | null,
 //   queue: [{ group, track, paid: { ryo, timber, stone } }] } }
 // createWarArmory({ state, data, war, world }) -> { command, tick, view, applyTo, groupOf }
 import { addCampStock } from './camp_stock.js';
 import { debitRyo, creditRyo } from '../treasury.js';
-export const ARMORY_GROUPS = ['melee', 'ranged', 'mounted', 'siege'];
+export const ARMORY_GROUPS = ['all'];   // Tim 2026-11-25: condensed to one group, all troops
 export const ARMORY_TRACKS = ['weapons', 'armor'];
 
 export function createWarArmory({ state, data, war, world }) {
   const W = () => data.war || {}, A = () => W().armory || {};
   const town = id => state.frontier?.settlements?.[id] || null;
-  const groupOf = unit => W().units?.[unit]?.group || null;
+  const groupOf = unit => (W().units?.[unit] ? 'all' : null);   // every roster troop
+  // an older save's per-group levels, work and queue fold into 'all' (best level of each track; the rest stays queued)
+  function fold(r) {
+    if (!r || r.folded) return r;
+    const L = r.levels || {}, all = { weapons: 0, armor: 0 };
+    for (const g of Object.values(L)) for (const t of ARMORY_TRACKS) all[t] = Math.max(all[t], g?.[t] || 0);
+    r.levels = { all };
+    if (r.work) r.work.group = 'all';
+    for (const q of r.queue || []) q.group = 'all';
+    r.folded = true;
+    return r;
+  }
   const maxLevel = () => A().levels ?? 3;
   const sideOf = (w, owner) => w?.attacker === owner ? 'attacker' : w?.defender === owner ? 'defender' : null;
-  const rec = (w, side) => { const r = ((w.armory ||= {})[side] ||= { levels: {}, work: null }); r.queue ||= []; return r; };
+  const rec = (w, side) => { const r = fold((w.armory ||= {})[side] ||= { levels: {}, work: null, folded: true }); r.queue ||= []; return r; };
   const queueMax = () => A().queue ?? 5;
   // levels bought but not done yet (in the work or waiting) for one track
-  const pending = (w, side, group, track) => { const r = w?.armory?.[side]; if (!r) return 0; return (r.work?.group === group && r.work?.track === track ? 1 : 0) + (r.queue || []).filter(q => q.group === group && q.track === track).length; };
-  const level = (w, side, group, track) => w?.armory?.[side]?.levels?.[group]?.[track] || 0;
+  const pending = (w, side, group, track) => { const r = fold(w?.armory?.[side]); if (!r) return 0; return (r.work?.group === group && r.work?.track === track ? 1 : 0) + (r.queue || []).filter(q => q.group === group && q.track === track).length; };
+  const level = (w, side, group, track) => fold(w?.armory?.[side])?.levels?.[group]?.[track] || 0;
   // the side's armory, built and standing
   function armoryOf(w, side) {
     if (side === 'attacker') return (w.camp?.buildings || []).find(b => b.type === 'armory' && b.stage === 'built') || null;
@@ -41,7 +52,7 @@ export function createWarArmory({ state, data, war, world }) {
   function why(w, side, group, track) {
     if (!w || !side) return 'Not your war';
     if (w.terms) return 'A ceasefire is on: the war is ending';
-    if (!ARMORY_GROUPS.includes(group) || !ARMORY_TRACKS.includes(track)) return 'Pick a group and weapons or armor';
+    if (!ARMORY_GROUPS.includes(group) || !ARMORY_TRACKS.includes(track)) return 'Pick weapons or armor';
     if (!armoryOf(w, side)) return 'Needs a built armory';
     const r = rec(w, side);
     if ((r.work ? 1 : 0) + r.queue.length >= queueMax()) return `The armory queue is full (${queueMax()})`;
@@ -104,7 +115,7 @@ export function createWarArmory({ state, data, war, world }) {
   function tick() {
     for (const w of war.active()) {
       for (const side of ['attacker', 'defender']) {
-        const r = w.armory?.[side], k = r?.work;
+        const r = fold(w.armory?.[side]), k = r?.work;
         if (!k || !armoryOf(w, side)) continue;   // the work stops while the armory is down
         if (--k.left > 0) continue;
         const g = (r.levels[k.group] ||= { weapons: 0, armor: 0 });
@@ -114,14 +125,14 @@ export function createWarArmory({ state, data, war, world }) {
         const owner = side === 'attacker' ? w.attacker : w.defender;
         for (const e of Object.values(state.entities || {})) if (e.warTroop === w.id && e.owner === owner && !e.dead && groupOf(e.warUnit) === k.group) applyTo(e);
         const clan = state.clans?.[owner];
-        if (clan) clan.notice = { tick: state.tick, text: `Armory: ${k.group} ${k.track} level ${g[k.track]} done` };
+        if (clan) clan.notice = { tick: state.tick, text: `Armory: troop ${k.track} level ${g[k.track]} done` };
       }
     }
   }
   function view(warId, owner) {
     const w = war.byId(warId), side = sideOf(w, owner);
     if (!w || !side) return null;
-    const r = w.armory?.[side] || { levels: {}, work: null }, has = !!armoryOf(w, side), sec = A().seconds ?? 60;
+    const r = fold(w.armory?.[side]) || { levels: {}, work: null }, has = !!armoryOf(w, side), sec = A().seconds ?? 60;
     return { side, has, max: maxLevel(), step: A().step ?? 0.05, seconds: sec, queueMax: queueMax(),
       work: r.work ? { ...r.work, seconds: Math.ceil(r.work.left / 20) } : null,
       queue: (r.queue || []).map((q, i) => ({ index: i, group: q.group, track: q.track, paid: q.paid,
