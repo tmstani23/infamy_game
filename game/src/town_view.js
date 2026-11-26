@@ -25,7 +25,8 @@ export function viewableTown(state, sites, owner, id) {
 }
 // while viewing: city and hero-only commands are dropped (as Watch the city, but orders pass); every command loses the
 // hero (he waits where he stands) and orders are stamped with the viewed town
-const VIEW_BLOCKED = new Set([...WATCH_BLOCKED, 'attackmode'].filter(t => t !== 'order'));
+// Recall and Take out (garage) work too (Tim 2026-11-26: the stable tab's Recall did nothing while viewing)
+const VIEW_BLOCKED = new Set([...WATCH_BLOCKED, 'attackmode'].filter(t => t !== 'order' && t !== 'garage'));
 export function viewCommands(list, heroId, townId) {
   const out = [];
   for (const c of list) {

@@ -105,8 +105,20 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
     }
     if (c.action !== 'recall') return;
     if (e.stored) return say(hero.owner, 'Already in the stable');
+    if (takesSlot(e)) { const { room, used } = horseRoom(hero.owner); if (used >= room) return say(hero.owner, `Stable full, ${used} of ${room} horses: she stays out`); }
     const r = recall(hero, e);
     say(hero.owner, !r ? 'Build a stable first' : r.stored ? `Sent back to the stable in ${r.name}` : `On its way back to the stable in ${r.name}`);
+  }
+  // Stable room for recalls (Tim 2026-11-26: catching wild horses and recalling them all overfilled the stable):
+  // your horses stored or on their way take a slot each, up to the horse room of your town and capital stables
+  // (frontier/stable.js room); the hero's own mount has a stall of its own and never takes a slot. Only the
+  // player's Recall and Recall all are capped; a war camp packing up or a lost town still store what they must.
+  const mountId = owner => state.clans?.[owner]?.mount;
+  const takesSlot = e => e?.type === 'horse' && !e.cavalry && e.id !== mountId(e.horseOwner);
+  function horseRoom(owner) {
+    const room = stable()?.room?.(owner, 'horse');
+    const used = Object.values(state.entities).filter(h => takesSlot(h) && !h.dead && h.horseOwner === owner && (h.stored || h.recall)).length;
+    return { room: room ?? Infinity, used };
   }
   // one horse or vehicle back to the nearest stable: stored at once when far or off the map, else it goes there
   function recall(hero, e) {
@@ -122,9 +134,14 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
   function recallAll(hero) {
     const list = Object.values(state.entities).filter(e => kindOf(e) && !e.dead && !e.stored && !e.recall && ownerOf(e) === hero.owner);
     if (!list.length) return say(hero.owner, 'Everything is already in a stable');
-    let n = 0;
-    for (const e of list) if (recall(hero, e)) n++;
-    say(hero.owner, n ? `${n} sent back to the stables` : 'Build a stable first');
+    let n = 0, out = 0;
+    const { room } = horseRoom(hero.owner);
+    let { used } = horseRoom(hero.owner);
+    for (const e of list) {
+      if (takesSlot(e)) { if (used >= room) { out++; continue; } if (stableOf(hero.owner, e.x, e.z)) used++; }
+      if (recall(hero, e)) n++;
+    }
+    say(hero.owner, n ? `${n} sent back to the stables${out ? `, ${out} stay out: stable full (${room} horses)` : ''}` : out ? `Stable full, ${room} horses: none sent back` : 'Build a stable first');
   }
   // the war camp packs up (Tim 2026-11-14): once a second, a war that has ended sends home what is stored at its
   // camp and what stands empty in its area; an old ended war (before this rule) is only marked

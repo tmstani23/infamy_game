@@ -96,4 +96,18 @@ assert.ok(horse.stored, 'single recall stores her');
     for (const o of all) if (o !== v) assert.ok(Math.hypot(o.x - v.x, o.z - v.z) >= 4, `not stacked (${Math.hypot(o.x - v.x, o.z - v.z).toFixed(1)})`);
   }
 }
+// recall is capped at the stable's horse room; the hero's own mount has its own stall (Tim 2026-11-26)
+{
+  for (const e of Object.values(S.entities)) if (e.type === 'horse' && e.horseOwner === 'player' && e.id !== S.clans.player.mount) e.dead = true;
+  const room = g.frontier.stable.room('player', 'horse');
+  const wild = [];
+  for (let i = 0; i < room + 2; i++) wild.push(S.entities[g.spawn('horse', 'mare_saddled', sx + 30 + i * 3, sz + 30, { horseOwner: 'player', place: 'world', hp: 300, maxHp: 300, vehicle: true })]);
+  g.step([{ id: hero.id, type: 'garage', action: 'recallAll' }]);
+  const slotted = Object.values(S.entities).filter(h => h.type === 'horse' && !h.dead && h.horseOwner === 'player' && h.id !== S.clans.player.mount && (h.stored || h.recall)).length;
+  assert.equal(slotted, room, `only ${room} go back (${slotted})`);
+  const left = wild.find(h => !h.stored && !h.recall);
+  g.step([{ id: hero.id, type: 'garage', action: 'recall', unit: left.id }]);
+  assert.ok(!left.stored && !left.recall, 'a full stable takes no more');
+  assert.ok(/Stable full/.test(S.clans.player.notice?.text || ''), S.clans.player.notice?.text);
+}
 console.log('test_vehicle_garage: ok');

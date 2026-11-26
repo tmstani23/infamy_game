@@ -171,6 +171,7 @@ Crows: birds burst out of a tree near troops or shinobi on the move, hidden ones
 ### Horses and vehicles
 - Stored units (e.stored, place 'stable') are not drawn.
 - Recall all stores every horse and vehicle: a rider id with no entity is cleared; remaining vehicle riders are set outside.
+- Recall only stores horses up to your stable horse room (town tiers 5/12/25 plus the capital's); your own mount has its own stall and never counts (2026-11-26). Recall and Take out also work while viewing a town (town_view.js).
 - A 'mounted' flag with no horse under it is dropped every second. An empty vehicle is idle.
 - Take out (vehicle_garage.js parkSpot): rings around the stable from rules.garage.parkRing 9, step parkStep 4, clear of town buildings and at least a length plus parkGap 1 from other horses and vehicles.
 - Whistle summon: H, the Mount menu button, the Vehicles panel button. Sound: custom clip horse_whistle_1 (cast 'horseWhistle').
