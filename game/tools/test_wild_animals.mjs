@@ -168,8 +168,22 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   Object.assign(hero, { x: mare.x + 2, z: mare.z });
   assert.ok(g.wildAnimals.catchPrompt(hero)?.text.includes('Catch'), 'Space catches her');
   const coats = Object.fromEntries(ids.map(id => [id, S.entities[id].coat])), clan = S.clans[hero.owner], had = (clan.whistles || []).length;
+  // Space starts a short catch (Tim 2026-11-26): moving ends it and she bolts
   S.casts = [];
   g.step([{ type: 'catchHorse', id: hero.id }]);
+  assert.ok(hero.catchCast, 'the catch has started');
+  const held = S.entities[hero.catchCast.horse];
+  assert.equal(held.wm.held, hero.id, 'she stands for him');
+  hero.x += 1; g.step([]);
+  assert.ok(!hero.catchCast && !held.wm.held && held.wm.mode === 'flee', 'he moved: she bolts');
+  hero.x -= 1;
+  for (const id of ids) if (S.entities[id]) S.entities[id].wm.mode = 'idle';
+  Object.assign(held, { x: hero.x - 2, z: hero.z }); held.wm.mode = 'idle'; delete held.wm.from;
+  S.casts = [];
+  g.step([{ type: 'catchHorse', id: hero.id }]);
+  assert.ok(hero.catchCast, 'a second try');
+  for (let i = 0; i < 20 * (A.catch.castSeconds ?? 1.5) + 2 && hero.catchCast; i++) g.step([]);
+  assert.ok(!hero.catchCast, 'the catch is done');
   const caught = ids.find(id => !S.entities[id] || S.entities[id].dead);
   assert.ok(caught, 'one of the herd is caught');
   assert.equal(clan.whistles.length, had + 1, 'with her own whistle');

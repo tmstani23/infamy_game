@@ -622,7 +622,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       fishingFx.moor(out ? worldGround?.spotsInView() || [] : []); }
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     wildDropFx.update(fdt);
-    tameFx.update(fdt, id => sprites.get(id), (heroPlace === 'world' && !cityView) || worldView);   // a wild horse caught: warm light passes over her and she is saddled (W6)
+    tameFx.update(fdt, id => sprites.get(id), (heroPlace === 'world' && !cityView) || worldView, state);   // a wild horse caught: warm light passes over her and she is saddled (W6)
     wildEyes.end(video.wildlife !== false);
     crowFx?.update({ state, prev, show: (heroPlace === 'world' && !cityView) || worldView, on: video.wildlife !== false, dt: fdt, cam: { x: camTarget.x, z: camTarget.z, r: camera.right }, things: worldGround?.things(), hear: Math.min(140, Math.max(24, camera.right * 0.9)) });
     worldGround?.fadeGates(railTrack?.carSpots?.() || [], dt);   // a gatehouse a train runs through goes see-through dark

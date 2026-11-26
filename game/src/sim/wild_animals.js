@@ -17,6 +17,7 @@
 // Each animal's state lives on the entity (e.wm), each den's on state.world.wildDens, so a save keeps them. Plain sim code, no three.js.
 import { cellToWorld } from './frontier/town_grid.js';
 import { creditRyo } from './treasury.js';
+import { dirIndex } from './geometry.js';
 
 export const WILDLIFE = 'wildlife';   // the owner every wild animal has (not a clan)
 const TICK_RATE = 20;
@@ -409,6 +410,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     const m = e.wm, unit = statsOf(e);
     if (!m || !alive(e)) return;
     if (hunting(e)) { huntStep(e, people); return; }
+    if (m.held) { if (state.entities[m.held]?.catchCast?.horse === e.id) { e.anim = 'idle'; return; } delete m.held; }   // standing for the hero's catch (catchHorse)
     if (m.mode === 'charge') {
       for (const [clan, until] of Object.entries(e.angry || {})) if (state.tick >= until) delete e.angry[clan];
       if (e.angry && !Object.keys(e.angry).length) delete e.angry;
@@ -456,6 +458,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
   // Called once per tick after the units moved
   function tick() {
     if (!data || !areas || !ready()) return;
+    catchTick();
     const people = Object.values(state.entities).filter(person);
     const noise = noises();
     for (const e of animals()) if (!e.dead) { if (e.wm?.alertPrey != null) watchAlert(e); step(e, people, noise); }
@@ -531,10 +534,47 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     }
     return best;
   }
-  function catchPrompt(e) { return catchTarget(e) ? { text: 'Space  Catch her' } : null; }
+  function catchPrompt(e) { return e?.catchCast ? { text: 'Space  Let her go' } : catchTarget(e) ? { text: 'Space  Catch her' } : null; }
+  // Space starts a short catch (Tim 2026-11-26: so the hero is seen doing something, not a saddle just appearing):
+  // catch.castSeconds with a cast bar, the hero holding a plain pole to her neck (render/tame_fx.js; never a rope or
+  // loop) while she stands calm and glows. On foot he stands still (catch.standRange); riding he stays within
+  // rideReach + 1. A hit, going down, her being hurt, or Space again ends it, and she bolts. Then she is saddled and his.
+  // e.catchCast = { start, until, horse, x, z } (the cast bar and the pole read it); her e.wm.held = the hero's id.
+  const say = (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; };
   function catchHorse(e) {
-    const a = catchTarget(e), clan = state.clans?.[e?.owner];
-    if (!a || !clan) return false;
+    if (e?.catchCast) { stopCatch(e, 'You let her go'); return false; }
+    const a = catchTarget(e);
+    if (!a || !state.clans?.[e?.owner]) return false;
+    const n = secs(CATCH().castSeconds ?? 1.5);
+    if (n <= 0) return caught(e, a);
+    e.catchCast = { start: state.tick, until: state.tick + n, horse: a.id, x: e.x, z: e.z };
+    (state.catchCasts ||= {})[e.id] = 1;
+    if (!(e.mounted || e.ride)) e.dir = dirIndex(a.x - e.x, a.z - e.z);   // he turns to her
+    stopPath(a);
+    Object.assign(a.wm, { held: e.id, mode: 'idle', until: state.tick + n + secs(2) });
+    delete a.wm.from;
+    a.anim = 'idle';
+    return true;
+  }
+  function stopCatch(e, why) {
+    const k = e?.catchCast, a = k && state.entities[k.horse];
+    if (e) { delete e.catchCast; delete state.catchCasts?.[e.id]; }
+    if (a?.wm?.held === e?.id) { delete a.wm.held; if (why && alive(a)) flee(a, e.x, e.z); }
+    if (why && e) say(e.owner, why);
+  }
+  function catchTick() {
+    for (const id of Object.keys(state.catchCasts || {})) {
+      const e = state.entities[id], k = e?.catchCast, a = k && state.entities[k.horse];
+      if (!k) { delete state.catchCasts[id]; continue; }
+      if (e.dead || e.downed || e.jailed || e.place !== 'world' || e.aboard) { stopCatch(e, 'She got away'); continue; }
+      if (!alive(a) || a.angry) { stopCatch(e, 'She got away'); continue; }
+      if ((e.hitAt ?? -Infinity) > k.start || (a.hitAt ?? -Infinity) > k.start) { stopCatch(e, 'She bolts'); continue; }
+      const riding = e.mounted || e.ride;
+      if (riding ? dist(a, e) > (CATCH().rideReach ?? 4.5) + 1 : Math.hypot(e.x - k.x, e.z - k.z) > (CATCH().standRange ?? 0.6)) { stopCatch(e, 'You moved: she bolts'); continue; }
+      if (state.tick >= k.until) { stopCatch(e); caught(e, a); }
+    }
+  }
+  function caught(e, a) {
     const T = data?.types?.[a.type] || {}, name = NAMES()[Math.floor(rng() * NAMES().length)];
     const id = tame(e.owner, { x: a.x, z: a.z, kind: T.tamed || a.sprite || T.sprite, name, coat: a.coat });
     if (id == null) return false;

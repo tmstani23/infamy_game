@@ -776,6 +776,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         // the hero preparing a camp fire (sim/campfire.js, Tim 2026-11-26): embers rise where the fire will be
         const cc = e.campCast;
         if (!x && visible && cc?.until > state.tick) x = { start: cc.start, len: Math.max(1, cc.until - cc.start), camping: true };
+        const kc = e.catchCast;   // the hero catching a wild horse (sim/wild_animals.js catchHorse, Tim 2026-11-26)
+        if (!x && visible && kc?.until > state.tick) x = { start: kc.start, len: Math.max(1, kc.until - kc.start), catching: true };
         if (!x && visible && e.hallChannel) { const v = hallChannelOf(e.hallChannel); if (v?.by === e.id) x = { start: 0, hall: v }; }
         if (!x && visible) {
           const aim = e.rifle?.aim, tauntStart = e.taunt?.startedAt ?? e.taunt?.castUntil - 15;
@@ -788,11 +790,11 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         busy.add(e.id);
         let el = bars.get(e.id);
         const hall = x.hall, hallKind = hall ? (hall.side === 'camp' ? 'camp' : hall.outcome || 'burn') : null;
-        const mode=hall?`hall ${hallKind}`:x.camping?'camping':x.robbing?'robbing':x.torching?'torching':x.scrubbing?'scrubbing':x.charming?'charming':x.aiming?'aiming':x.spinning?(x.unload?'aiming unloading':'aiming spinning'):x.taunting?'taunting':x.arrest?'arrest':'execute';
+        const mode=hall?`hall ${hallKind}`:x.camping?'camping':x.catching?'catching':x.robbing?'robbing':x.torching?'torching':x.scrubbing?'scrubbing':x.charming?'charming':x.aiming?'aiming':x.spinning?(x.unload?'aiming unloading':'aiming spinning'):x.taunting?'taunting':x.arrest?'arrest':'execute';
         if (el && el.channelMode !== mode) { removeBar(el); el = null; }
         if (!el) {
           el = document.createElement('div'); el.className = `channel ${mode}`; el.channelMode=mode;
-          const label = hall ? HALL_LABEL[hallKind] || 'TAKING HALL' : x.camping ? 'PREPARING FIRE' : x.robbing ? 'ROBBING' : x.torching ? 'TORCHING' : x.scrubbing?'REMOVING MARK':x.charming?'CHARMING':x.aiming?'AIMING':x.spinning?(x.unload?'UNLOADING':'SPINNING UP'):x.taunting?'TAUNT':x.arrest ? 'ARRESTING' : 'EXECUTING';
+          const label = hall ? HALL_LABEL[hallKind] || 'TAKING HALL' : x.camping ? 'PREPARING FIRE' : x.catching ? 'CATCHING' : x.robbing ? 'ROBBING' : x.torching ? 'TORCHING' : x.scrubbing?'REMOVING MARK':x.charming?'CHARMING':x.aiming?'AIMING':x.spinning?(x.unload?'UNLOADING':'SPINNING UP'):x.taunting?'TAUNT':x.arrest ? 'ARRESTING' : 'EXECUTING';
           el.innerHTML = `<i></i><span>${label}</span>` + (hall ? `<b></b><em class="sparks">${SPARKS}</em>` : ''); overlay.appendChild(el); bars.set(e.id, el);
           if (hall || x.camping) { el.heroSparks = document.createElement('div'); el.heroSparks.className = hall ? `hall-sparks ${hallKind}` : 'hall-sparks camping'; el.heroSparks.innerHTML = SPARKS; overlay.appendChild(el.heroSparks); }
         }

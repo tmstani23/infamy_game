@@ -186,6 +186,8 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     hover.c.hidden = !h || !id || targeted.includes(id);
     if (hover.c.hidden) return;
     fill(hover, game.state.entities[id], h);
+    { const e = game.state.entities[id];   // a free horse of yours (a caught wild one too, Tim 2026-11-26): say how to get on
+      if (e?.type === 'horse' && e.horseOwner === h.owner && !e.rider && !e.dead && !h.mounted) set(hover.status, 'textContent', 'Right-click to mount'); }
     const x = pointer.x + 18, y = pointer.y + 18;
     hover.c.style.left = `${Math.max(4, Math.min(x, innerWidth - hover.c.offsetWidth - 4))}px`;
     hover.c.style.top = `${Math.max(4, Math.min(y, innerHeight - hover.c.offsetHeight - 4))}px`;
