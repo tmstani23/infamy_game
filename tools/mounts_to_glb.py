@@ -8,7 +8,7 @@ args = sys.argv[sys.argv.index('--')+1:]
 src, out, mode = args[0], args[1], args[2]
 TEX = os.environ.get('TEX', os.path.expanduser('~/work/tex'))
 bpy.ops.wm.open_mainfile(filepath=src)
-# Muzzle flash and smoke are separate effects in the game (Tim 2026-11-06): leave them out
+# Muzzle flash and smoke are separate effects in the game (2026-11-06): leave them out
 for o in [o for o in bpy.data.objects if re.search(r'_(flash|smoke\d*)$', o.name)]:
     bpy.data.objects.remove(o, do_unlink=True)
 for img in bpy.data.images:

@@ -1,4 +1,4 @@
-// Little load icons over a worker carrying a harvest (Tim 2026-11-08): a pile of logs, a stone block, a net with a
+// Little load icons over a worker carrying a harvest (2026-11-08): a pile of logs, a stone block, a net with a
 // fish, a forage basket, or a rice sack. Each is drawn once into a small canvas and then only blitted (drawImage),
 // so the per-frame cost is one image copy per carrying worker. Plain shapes, no textures.
 const W = 22, H = 18, S = 3;   // icon size in page pixels, drawn at S times for sharp edges
@@ -46,7 +46,7 @@ function paint(kind) {
     g.beginPath(); g.moveTo(3, 9); g.lineTo(19, 9); g.lineTo(16.5, 16.5); g.lineTo(5.5, 16.5); g.closePath(); g.fill(); g.stroke();
     g.strokeStyle = '#8a6430'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(4.2, 12); g.lineTo(17.8, 12); g.moveTo(5, 14.5); g.lineTo(17, 14.5); g.stroke();
   } else if (kind === 'coin') {
-    // a gold koban (oval ryo coin) with its stamped lines and a bright rim (Tim 2026-11-21: ryo flies as little coins)
+    // a gold koban (oval ryo coin) with its stamped lines and a bright rim (2026-11-21: ryo flies as little coins)
     g.fillStyle = '#d9a92e'; g.strokeStyle = ink; g.lineWidth = 1;
     g.beginPath(); g.ellipse(11, 9, 6, 7.5, 0, 0, Math.PI * 2); g.fill(); g.stroke();
     g.fillStyle = '#f4d46a'; g.beginPath(); g.ellipse(10, 8, 4.2, 5.6, 0, 0, Math.PI * 2); g.fill();

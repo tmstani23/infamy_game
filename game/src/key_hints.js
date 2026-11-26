@@ -1,4 +1,4 @@
-// Key text on HUD buttons and in the Controls panel follows rebinding (Tim 2026-11-12).
+// Key text on HUD buttons and in the Controls panel follows rebinding (2026-11-12).
 // Buttons: 'Character (J)'. Controls panel rows: a kbd with data-k="{character} or Character button" shows the
 // bound keys in place of each {action}; a row with any unbound action shows Unbound there and turns red.
 import { sharedKeybinds } from './keybinds.js';

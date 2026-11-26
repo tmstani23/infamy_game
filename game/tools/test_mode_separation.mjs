@@ -1,4 +1,4 @@
-// Mode split guard (Tim 2026-11-05): Classic and Campaign share one core; only sim/modes/ knows the mode names.
+// Mode split guard (2026-11-05): Classic and Campaign share one core; only sim/modes/ knows the mode names.
 //  1. nothing outside sim/modes/ and sim/match_options.js compares a match mode (match?.mode ===, 'campaign' literal);
 //  2. the Classic rule set (and anything it imports) never reaches sim/frontier/ or sim/influence/;
 //  3. every capability the code asks for exists on both rule sets.

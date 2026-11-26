@@ -2,11 +2,11 @@
 // phase 7 split, 2026-10-29). Reads the state only; never sends commands.
 import { sweepArrivalVisible } from './render/sweep_trail.js';
 export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: calloutRaw, contractCallout: contractRaw, minimap: mini, gameMap: bigMap, view, presentation, showResults, townAlert = () => {}, warAlert = () => {}, watching = () => false }) {
-  // Out on the island (Tim 2026-11-06) the lieutenant has the city: city alerts stay quiet, only major capital
+  // Out on the island (2026-11-06) the lieutenant has the city: city alerts stay quiet, only major capital
   // losses show, marked "Capital:", plus one warning when the clan falls below half the businesses it held on leaving
   const AWAY_OK = new Set(['wildHunted', 'wildKilled', 'town', 'shipSunk', 'shipCaptured', 'boardWashed', 'worldCampCleared', 'renown', 'leaderBounty', 'unstuck', 'seasonEnd', 'hallChannel', 'hallChannelReset', 'hallChannelStop', 'warEnded', 'warSurrender', 'warOffer', 'warAnswer', 'warNoTerms', 'buildSiteTip', 'supplyLineTip', 'campMoved']);
   let hallResetAt = -1e9;   // "starts over" shows at most once every 3 s while he is being hit
-  // Tim 2026-11-25: the captain's play-by-play stays quiet too; only how his raids end, and rival raids on the
+  // 2026-11-25: the captain's play-by-play stays quiet too; only how his raids end, and rival raids on the
   // city, get a short "Back in the capital:" notice. Watching the city (city_watch.js) shows everything, as if home.
   const major = (n, me) => (n.kind === 'raidWon' && (n.defender === me || n.raider === me)) || (n.kind === 'quarterLost' && n.clan === me) || (n.kind === 'hqSuppressed' && n.defender === me)
     || (n.kind === 'businessAttack' && n.clan === me) || (n.kind === 'lanternDown' && n.raider === me);
@@ -97,7 +97,7 @@ export function createNewsCallouts({ game, heroId, $, TICK_RATE, callout: callou
       if (n.kind === 'businessAttack' && n.clan === me) callout(`Your ${n.name} is under attack!`, 'loss');
       if (n.kind === 'hqSuppressed' && n.defender === me) callout(`HQ on fire! Contracts cancelled · reopen in ${Math.max(0, Math.ceil((n.suppressedUntil - game.state.tick) / TICK_RATE))} s`, 'loss');
       if (n.kind === 'hqSuppressed' && n.raider === me) callout(`Shinobi HQ defeated! +${n.points} points · +${n.bounty + n.stolen} ryo`, 'win');
-      if (n.kind === 'raidWon') {   // every clan sees it (Tim 2026-10-26)
+      if (n.kind === 'raidWon') {   // every clan sees it (2026-10-26)
         const clanName = id => id === me ? 'Your clan' : game.state.clans[id]?.name || 'A rival clan';
         const whose = n.defender === me ? 'your' : `${game.state.clans[n.defender]?.name || 'a rival clan'}'s`;
         callout(`${clanName(n.raider)} successfully raided ${whose} ${n.hq ? 'HQ' : n.name.replace(/^The /, '')}!`, n.raider === me ? 'win' : n.defender === me ? 'loss' : 'news');

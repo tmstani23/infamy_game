@@ -1,4 +1,4 @@
-// Warships and transports as RTS units (ships plan S2, Tim 2026-11-22). A ship is a war troop (war.units warship or
+// Warships and transports as RTS units (ships plan S2, 2026-11-22). A ship is a war troop (war.units warship or
 // transport: e.warTroop, e.warUnit, troop places by slots) with e.ship = true, sailing on the water grid
 // (sim/frontier/water_nav.js: big water, inside its war circle). It takes the crew order kinds (move, station,
 // attack-move; stop = Z holds it still and holds fire) through the normal 'order' command: order() takes the ships out
@@ -58,7 +58,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
 
   // a war ship trained or placed (S3 trains them; the dev save and tests place them)
   function spawn(w, unit, x, z, owner) {
-    [x, z] = clearSpot(x, z);   // a new ship lies on drawn water, clear of the shore (Tim 2026-11-23: one lay on the grass)
+    [x, z] = clearSpot(x, z);   // a new ship lies on drawn water, clear of the shore (2026-11-23: one lay on the grass)
     const id = war().spawnTroop(w, unit, x, z, owner), s = state.entities[id];
     if (!s) return null;
     Object.assign(s, { ship: true, sorder: { kind: 'stay' }, heading: s.heading ?? 0 });
@@ -72,7 +72,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     const at = world?.terrain ? yardBerth(world, x, z, S().launchReach ?? 80) : { x, z };
     if (!at) return null;
     const k = Object.values(state.entities).filter(s => isShip(s) && Math.hypot(s.x - at.x, s.z - at.z) < 10).length;   // a second one a little aside
-    // (on drawn water: Tim 2026-11-23 saw a new ship sit on the grass by the slipway)
+    // (on drawn water: 2026-11-23 saw a new ship sit on the grass by the slipway)
     for (let j = k; j < k + 8; j++) { const x = at.x + Math.cos(j * 2.4) * 9 * Math.sign(j), z = at.z + Math.sin(j * 2.4) * 9 * Math.sign(j); if (clear(x, z)) return spawn(w, unit, x, z, owner); }
     return spawn(w, unit, at.x, at.z, owner);
   }
@@ -104,7 +104,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     const list = c.units.map(id => state.entities[id]).filter(s => isShip(s) && s.owner === hero.owner);
     if (!list.length) return c;
     const ids = new Set(list.map(s => s.id));
-    // several to one spot: a row across the way there, each its own room (as vehicles, Tim 2026-11-07)
+    // several to one spot: a row across the way there, each its own room (as vehicles, 2026-11-07)
     const cx = list.reduce((n, s) => n + s.x, 0) / list.length, cz = list.reduce((n, s) => n + s.z, 0) / list.length;
     list.sort((a, b) => Math.hypot(a.x - c.x, a.z - c.z) - Math.hypot(b.x - c.x, b.z - c.z) || (a.id < b.id ? -1 : 1));
     let ux = c.x - cx, uz = c.z - cz; const L = Math.hypot(ux, uz) || 1; ux /= L; uz /= L;
@@ -115,7 +115,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     return { ...c, units: c.units.filter(id => !ids.has(id)) };
   }
   function give(hero, s, c, at, alone) {
-    // a right-click on an enemy (Tim 2026-11-24): the ship does not sail at it; in gun range it lies where it is, turns
+    // a right-click on an enemy (2026-11-24): the ship does not sail at it; in gun range it lies where it is, turns
     // in place to bring its guns to bear and fires; out of range it sails only until it is in range (engage)
     let foe = null;
     if (c.kind === 'attack') { const t = state.entities[c.target]; if (t && t.owner !== s.owner && !t.dead) foe = { t: t.id }; else return; }
@@ -140,7 +140,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (!L?.berth) { if (alone) say(hero.owner, 'No landable shore near there'); return; }
     const pts = shipPath(g, [s.x, s.z], [L.berth.x, L.berth.z], { water, box });
     if (!pts) { if (alone) say(hero.owner, 'No way there by water'); return; }
-    // Tim 2026-11-24: sent to the shore it lands and waits; nobody steps off until told (Q, Unload all, a seat). unload: the general's landings
+    // 2026-11-24: sent to the shore it lands and waits; nobody steps off until told (Q, Unload all, a seat). unload: the general's landings
     s.sorder = { kind: 'land', x: L.berth.x, z: L.berth.z, land: L.land, pts: pts.slice(1), blocked: L.blocked, ...(c.unload === true ? { unload: true } : {}) };
   }
 
@@ -151,7 +151,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (!L?.berth) return say(hero.owner, 'No landable shore near there'), false;
     const pts = shipPath(g, [s.x, s.z], [L.berth.x, L.berth.z], { water, box });
     if (!pts) return say(hero.owner, 'No way there by water'), false;
-    delete s.board;   // (a ship told to hold fire keeps holding it when it comes in to load or unload, Tim 2026-11-24)
+    delete s.board;   // (a ship told to hold fire keeps holding it when it comes in to load or unload, 2026-11-24)
     s.sorder = { kind: 'land', x: L.berth.x, z: L.berth.z, land: L.land, pts: pts.slice(1), blocked: L.blocked };
     return true;
   }
@@ -179,7 +179,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
   function board(hero, c) {
     const s = state.entities[c.ship];
     if (!isShip(s) || s.owner !== hero.owner) return false;
-    // as the omnibus (Tim 2026-11-23): no ring; a ship out on the water or at another shore comes in to the shore nearest them
+    // as the omnibus (2026-11-23): no ring; a ship out on the water or at another shore comes in to the shore nearest them
     let land = shoreOf(s);
     const want = (c.units || []).map(id => state.entities[id]).filter(u => fits(u, hero.owner));
     if (!want.length) return false;
@@ -203,7 +203,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     return sent > 0;
   }
   // Q with ships selected, or Unload all on a ship's card: everyone steps off; a ship out on the water sails in to the
-  // nearest shore first. only = one rider's id: just he steps off (right-click his seat on the card, Tim 2026-11-24)
+  // nearest shore first. only = one rider's id: just he steps off (right-click his seat on the card, 2026-11-24)
   function unload(hero, ids, only) {
     let any = false;
     for (const s of (ids || []).map(id => state.entities[id]).filter(s => isShip(s) && s.owner === hero.owner)) {
@@ -211,7 +211,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       if (!riders(s).length) continue;
       const land = shoreOf(s) && s.sorder?.kind === 'stay' && s.sorder.land ? s.sorder.land : shoreOf(s);
       if (only != null) { const u = riders(s).find(r => r.id === only); if (!u) continue;
-        if (!land) { if (comeIn(hero, s, s.x, s.z)) { s.sorder.only = only; any = true; } continue; }   // Tim 2026-11-24: it comes in, then only he steps off
+        if (!land) { if (comeIn(hero, s, s.x, s.z)) { s.sorder.only = only; any = true; } continue; }   // 2026-11-24: it comes in, then only he steps off
         stepOff(u, s, 1, land); state.casts?.push({ kind: 'shipStep', a: s.id, t: u.id, x: land.x, z: land.z, place: 'world', off: true }); any = true; continue; }
       if (!land) {
         if (s.sorder?.kind === 'land') { s.sorder.unload = true; delete s.sorder.only; any = true; continue; }   // already coming in
@@ -254,7 +254,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     return true;
   }
   function use(hero) {
-    return false;   // Tim 2026-11-23: no Space and no ring for war ships; they load and unload as the omnibus (right-click, Q)
+    return false;   // 2026-11-23: no Space and no ring for war ships; they load and unload as the omnibus (right-click, Q)
   }
   function command(hero, c) {
     if (c.action === 'board') return board(hero, c);
@@ -262,7 +262,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     return false;
   }
   // for the Use prompt (main.js)
-  function prompt() { return null; }   // no hint banner aboard (Tim 2026-11-24)
+  function prompt() { return null; }   // no hint banner aboard (2026-11-24)
 
   // ---- sailing ----
   function speedOf(s) {
@@ -275,7 +275,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     const [tx, tz] = o.pts[0], dx = tx - s.x, dz = tz - s.z, d = Math.hypot(dx, dz), last = o.pts.length === 1;
     if (d <= (last ? 0.6 : Math.min(8, radiusOf(s) * 1.5))) {
       o.pts.shift();
-      // a landing's last stretch (Tim 2026-11-23: as close as the shore lets it, the same everywhere): from the berth
+      // a landing's last stretch (2026-11-23: as close as the shore lets it, the same everywhere): from the berth
       // straight in toward the landing spot until the bow meets the drawn shore
       if (!o.pts.length && o.kind === 'land' && o.land && !o.creep) { o.creep = true; o.pts = [[o.land.x, o.land.z]]; return; }
       if (!o.pts.length) arrive(s);
@@ -293,7 +293,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       if ((state.tick ?? 0) - (o.replanned ?? -99) >= 20) { o.replanned = state.tick ?? 0; const pts = shipPath(g, [s.x, s.z], [o.x, o.z], { water, box: boxOf(s) }); if (pts) o.pts = pts.slice(1); else { s.sorder = { kind: 'stay' }; } }
       s.anim = 'idle'; return;
     }
-    // the drawn shore (Tim 2026-11-23: ships sailed up onto the grass): the grid's 20 unit cells let a hull ride up to a
+    // the drawn shore (2026-11-23: ships sailed up onto the grass): the grid's 20 unit cells let a hull ride up to a
     // cell's width onto land, so a step must also keep the hull on drawn water: its middle and its bow (a little short of
     // the stem, the way it moves); else it slides along the shore, and a way point it cannot reach is passed over after a
     // second (the last one, or a landing's run in: it stops there)
@@ -314,7 +314,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
   }
   // drawn water: sea or river; a river's bends meet corner to corner, so there a point within BEAM of the river counts
   const WET = { w: 1, r: 1 }, BEAM = 2, BOW = 0.8;
-  // the shore as it is drawn (Tim 2026-11-23): beside harbours and fords the drawn shore is rounded where the walking
+  // the shore as it is drawn (2026-11-23): beside harbours and fords the drawn shore is rounded where the walking
   // cells stay square (sim/shoreline.js visual corners), so a ship there lay on drawn land
   const terr = (x, z) => !world?.terrain ? 'w' : world.terrain.shoreline?.radius ? shorelineTopology(world).codeAt(x, z, rawTerrain(world, x, z), true) : terrainAt(world, x, z);
   const wetAt = (x, z) => !!WET[terr(x, z)];
@@ -433,7 +433,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (list.includes('building')) { const st = structures?.()?.near?.(s.owner, s.x, s.z, R); if (st) return { st }; }
     return null;
   }
-  // a gun aimed by the player (Tim 2026-11-23): the enemy ship, siege gun or troop nearest the click (within 6), else the
+  // a gun aimed by the player (2026-11-23): the enemy ship, siege gun or troop nearest the click (within 6), else the
   // enemy building under it, if within the gun's range; null = keep waiting for it
   function aimAt(s, g, foe, req) {
     const R = g.range ?? 30, ents = Object.values(state.entities), list = g.targets || [];
@@ -451,7 +451,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
   function cannons(s, now) {
     const foe = foeOf(s);
     if (!foe) { delete s.fighting; return; }
-    // s.fighting: a gun on auto has a target in reach, loaded or not (the ship's card says Attacking, its gun slots flash; Tim 2026-11-24)
+    // s.fighting: a gun on auto has a target in reach, loaded or not (the ship's card says Attacking, its gun slots flash; 2026-11-24)
     if (!((now + (s.id?.length ?? 0)) % 10)) { const on = !s.holdFire && (kindOf(s).guns || []).some(key => { const g = GUN()[key], slot = GUN_SLOT[key]; return g && !g.from && (!slot || gunAuto(s, slot)) && !!aim(s, g, foe); });
       if (on || s.gat || s.sorder?.kind === 'engage') s.fighting = true; else delete s.fighting; }
     for (const key of kindOf(s).guns || []) {
@@ -460,7 +460,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       if (!req && (s.holdFire || (slot && !gunAuto(s, slot)))) continue;   // Z or auto off: only an aimed shot
       const a = req ? aimAt(s, g, foe, req) : aim(s, g, foe); if (!a) continue;
       const tg = a.t || a.st;
-      if (g.runOutTicks && (s.runOut?.key !== key || now > s.runOut.at + 20)) {   // S8 (Tim 2026-11-23): the guns run out first, then the broadside fires
+      if (g.runOutTicks && (s.runOut?.key !== key || now > s.runOut.at + 20)) {   // S8 (2026-11-23): the guns run out first, then the broadside fires
         s.runOut = { key, at: now + g.runOutTicks };
         state.casts?.push({ kind: 'shipRunOut', gun: key, a: s.id, x: s.x, z: s.z, tx: tg.x, tz: tg.z, heading: s.heading ?? 0, balls: g.balls ?? 1, place: 'world' });
         continue;
@@ -494,11 +494,11 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (!(kindOf(s).guns || []).includes('deckGatling')) return;
     const g = GUN().deckGatling || {}, R = types?.[g.from]?.gatling; if (!R) return;
     const foe = foeOf(s), stop = () => { if (s.gat?.firing != null) state.casts?.push({ kind: 'gatlingStop', a: s.id, x: s.x, z: s.z, place: 'world', deck: true }); delete s.gat; };
-    const req = gunWanted(state, s, 'deckgun');   // aimed by the player (Tim 2026-11-23): fire toward the click
+    const req = gunWanted(state, s, 'deckgun');   // aimed by the player (2026-11-23): fire toward the click
     if (!foe || (s.holdFire && !req && !s.gat?.spot)) { stop(); return; }
     const range = g.range ?? R.range ?? 13, min = R.minRange ?? 0;
     const reachOf = () => s.gat?.spot ? range + (g.spotRadius ?? 5) : range;
-    const wl = navOf?.('world')?.wallLine, open = t => !wl || wl(s.x, s.z, t.x, t.z, g.deckSkip ?? 3);   // Tim 2026-11-25: palisades, walls and buildings stop it, as for the land Gatling
+    const wl = navOf?.('world')?.wallLine, open = t => !wl || wl(s.x, s.z, t.x, t.z, g.deckSkip ?? 3);   // 2026-11-25: palisades, walls and buildings stop it, as for the land Gatling
     const foes = () => Object.values(state.entities).filter(t => t.owner === foe && alive(t) && !t.ship && t.type !== 'horse' && t.type !== 'civilian' && dist2(s, t) <= reachOf() ** 2 && dist2(s, t) >= min * min && open(t));
     if (req) { gunDone(s, 'deckgun'); const ang = Math.atan2(req.z - s.z, req.x - s.x), spot = { x: req.x, z: req.z };
       if (s.gat) Object.assign(s.gat, { ang, spot }); else { s.gat = { state: 'spin', until: now + (R.spinTicks ?? 20), ang, spot }; return; } }
@@ -513,13 +513,13 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
     if (now >= G.end) { stop(); return; }
     const k = now - G.firing, every = R.everyTicks ?? 4;
     if (k % 2 && k % every) return;
-    // aimed (Tim 2026-11-23): enemy ships in its cone take the burst too, at the hull table's gatling share
+    // aimed (2026-11-23): enemy ships in its cone take the burst too, at the hull table's gatling share
     const l = [...foes(), ...(G.spot ? Object.values(state.entities).filter(t => t.ship && !t.dead && t.owner === foe && dist2(s, t) <= reachOf() ** 2) : [])];
     if (!l.length && !G.spot) { stop(); return; }
-    // aimed at a spot (Tim 2026-11-23, as the land Gatling's Unload): it sweeps the spot for the whole burst, enemies there or not
-    if (G.spot) G.ang = Math.atan2(G.spot.z - s.z, G.spot.x - s.x);   // it keeps facing the spot while the ship moves (Tim 2026-11-23)
+    // aimed at a spot (2026-11-23, as the land Gatling's Unload): it sweeps the spot for the whole burst, enemies there or not
+    if (G.spot) G.ang = Math.atan2(G.spot.z - s.z, G.spot.x - s.x);   // it keeps facing the spot while the ship moves (2026-11-23)
     else if (k % (R.turnTicks ?? 10) === 0) { const n = l.reduce((b, t) => !b || dist2(s, t) < dist2(s, b) ? t : b, null); G.ang = Math.atan2(n.z - s.z, n.x - s.x); }
-    // aimed (Tim 2026-11-23): it fires into the circle cast on (spotRadius round the spot), and winds down once the ship
+    // aimed (2026-11-23): it fires into the circle cast on (spotRadius round the spot), and winds down once the ship
     // has sailed out of range of it; on its own it sweeps a cone
     const half = (R.coneDeg ?? 30) * Math.PI / 360, cx = Math.cos(G.ang), cz = Math.sin(G.ang), sr = g.spotRadius ?? 5;
     if (G.spot && dist2(s, G.spot) > (range + sr) * (range + sr)) { stop(); return; }
@@ -531,7 +531,7 @@ export function createShips({ state, data, types, world, war, navOf, followOffse
       const dmg = Math.round((R.damage ?? 0) * (g.damageMul ?? 1));
       const gunner = { id: s.id, type: g.from, owner: s.owner, x: s.x, z: s.z, place: 'world', dir: s.dir ?? 0, model: s.model };   // a hull takes it as a Gatling's
       for (const t of cone) if (t.ship) shelter(t, dmg, gunner); else hit?.(s, t, dmg, false, 'bullet');
-      // aimed (Tim 2026-11-23): an enemy building in the circle takes buildingShot a shot as melee (light: about one grunt hitting it)
+      // aimed (2026-11-23): an enemy building in the circle takes buildingShot a shot as melee (light: about one grunt hitting it)
       const st = G.spot && g.buildingShot ? structures?.()?.near?.(s.owner, G.spot.x, G.spot.z, sr) : null;
       if (st && structures().damage(s.owner, st, g.buildingShot, 'melee')) (state.structureHits ||= []).push({ a: s.id, key: st.key, x: st.x, z: st.z, kind: 'ranged', ship: true });
       s.firedAt = now;

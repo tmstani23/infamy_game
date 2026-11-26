@@ -2,7 +2,7 @@ import { ITEMS, INVENTORY_SLOTS, EQUIPMENT_SLOTS } from './sim/inventory.js';
 
 import { ICONS, effectOf } from './item_detail.js';
 export { ICONS };
-// menu(key, button, event): right-click opens a slip instead of activating (the bag's Wear / Drop slip, Tim 2026-11-26).
+// menu(key, button, event): right-click opens a slip instead of activating (the bag's Wear / Drop slip, 2026-11-26).
 // dragOut(key): an item dragged out of the window `frame` (a CSS selector) and let go there (drops it on the ground).
 export function createItemGrid(root, { equipment = false, activate, hover = null, menu = null, dragOut = null, frame = null }) {   // hover(key, button | null): item card (item_card.js) instead of the browser title tip
   let drag = null, dragged = 0;   // drag: { key, button, x, y, ghost }; dragged: when the last drag ended (a click right after it is ignored)
@@ -58,7 +58,7 @@ export function createHQStash({ game, heroId, send, onOpen = () => {}, onClose =
   root.innerHTML = '<div class="stash-window"><header><div><small>CLAN STORAGE</small><h2>HQ stash</h2></div><span><button class="stash-back" type="button" hidden title="Back to the hire menu">Back</button> <button class="stash-close" type="button" aria-label="Close stash" title="Close (Esc)">Esc</button></span></header><div class="stash-columns"><section><h3>Stash <span class="stash-count"></span></h3><div class="gear-grid stash-items"></div></section><section><h3>Carried <span class="bag-count"></span></h3><div class="gear-grid carried-items"></div></section></div><footer>Right-click or click to transfer, Equipment stays on your character, Esc closes<div class="inventory-notice" role="status"></div></footer></div>';
   document.body.appendChild(root);
   const $ = s => root.querySelector(s);
-  let open = false, previousFocus, back = null;   // back: reopens the menu the stash was opened from (Hire, Tim 2026-11-10)
+  let open = false, previousFocus, back = null;   // back: reopens the menu the stash was opened from (Hire, 2026-11-10)
   const command = (action, index) => send({id:heroId, type:'inventory', action, index});
   const stash = createItemGrid($('.stash-items'), {activate:index => command('withdraw', index)});
   const carried = createItemGrid($('.carried-items'), {activate:index => command('deposit', index)});

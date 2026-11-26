@@ -7,8 +7,8 @@
 //  - Bow cannon ('shipCannon', the transport): one bigger flash, flame and smoke from the bow, one ball.
 //  - Deck Gatling ('gatlingShot' with deck: true): the land Gatling's own sprite on the warship's after deck while it
 //    fires, turned to its aim, with a thin cream outline so it reads over the sails; each shot a spray of small burning
-//    pellets that land all over the circle it was cast on (c.spread) with little sparks (Tim 2026-11-23).
-//  - Loading and unloading (Tim 2026-11-23): your ship and the troops going on or just stepped off it flash a thin cream
+//    pellets that land all over the circle it was cast on (c.spread) with little sparks (2026-11-23).
+//  - Loading and unloading (2026-11-23): your ship and the troops going on or just stepped off it flash a thin cream
 //    outline about twice a second.
 //  - Damage stages (war.ships.stages): under smoke a thin dark smoke from the deck, under fire small flames and thick
 //    smoke, under list the hull leans and sits lower.
@@ -51,8 +51,8 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
   function muzzle(x, y, z, nx, nz, big = 1, flash = 1) {
     const along = (sp, spread) => { const a = rand(-spread, spread); return [(nx * Math.cos(a) - nz * Math.sin(a)) * sp, (nz * Math.cos(a) + nx * Math.sin(a)) * sp]; };
     const rot = turnTo(nx, nz);
-    // S8 (Tim 2026-11-23): sparky, not blobby: a small see-through glow core, a glint, and a spray of sparks thrown outboard
-    // Tim 2026-11-23 (later): a fiery burst you can see: a hot fireball punched outboard, flame tongues, then the sparks
+    // S8 (2026-11-23): sparky, not blobby: a small see-through glow core, a glint, and a spray of sparks thrown outboard
+    // 2026-11-23 (later): a fiery burst you can see: a hot fireball punched outboard, flame tongues, then the sparks
     glow.emit({ x: x + nx * 0.6, y: y + 0.05, z: z + nz * 0.6, vx: nx * 3, vz: nz * 3, life: 0.16, size: 1.5 * flash, grow: 0.9, color: FLAME[1], alpha: 0.7, shape: SHAPE.dot });
     glow.emit({ x: x + nx * 0.35, y, z: z + nz * 0.35, life: 0.09, size: 0.9 * flash, grow: 0.4, color: FLAME[0], alpha: 0.8, shape: SHAPE.dot });
     for (let i = 0; i < 3; i++) { const a = rand(-0.35, 0.35), tx = nx * Math.cos(a) - nz * Math.sin(a), tz = nz * Math.cos(a) + nx * Math.sin(a);
@@ -94,7 +94,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
       later.push({ at: clock + delay(k) + (c.flightTicks ?? 10) / 20, fn: () => hit ? impact(x, c.key ? 1.2 : 1.4, z, !c.key) : c.key ? dust(x, z) : splash(x, z) });
     });
   }
-  // S8 (Tim 2026-11-23): the guns run out first (sim cast shipRunOut, runOutTicks before the shot), then the broadside fires;
+  // S8 (2026-11-23): the guns run out first (sim cast shipRunOut, runOutTicks before the shot), then the broadside fires;
   // only on a side turned toward the camera
   const RUN_OUT = 0.5;
   function gunSide(c) {
@@ -123,7 +123,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
     if (c.a != null) bowShots.set(c.a, { at: clock, ang: Math.atan2(dz, dx) });
     landings(c, () => 0);
   }
-  // a broadside gun at its port (S8, Tim 2026-11-23): short and dark, run out as it fires (under the flash), kicked back,
+  // a broadside gun at its port (S8, 2026-11-23): short and dark, run out as it fires (under the flash), kicked back,
   // run out again by its crew as the smoke clears, then hauled in
   let barrelTex = null;
   const barrelMap = () => barrelTex ||= (() => { const cv = document.createElement('canvas'); cv.width = 32; cv.height = 12; const g = cv.getContext('2d');
@@ -178,9 +178,9 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
     const side = (Math.sign(fx * -hz + fz * hx) || 1) * H.rail;   // at the rail on the side it fires over (deckGun)
     const at = c.onDeck ? null : gunSpot.get(c.a), mx = (at?.x ?? c.x + hx * H.gun - hz * side) + fx * 0.4, mz = (at?.z ?? c.z + hz * H.gun + hx * side) + fz * 0.4, y = H.deck + H.gunUp + 0.2;
     const rot = turnTo(fx, fz);
-    glow.emit({ x: mx, y, z: mz, life: 0.07, size: rand(0.22, 0.34), grow: 0.5, color: GOLD, alpha: 0.6, shape: SHAPE.dot });   // Tim 2026-11-24: a small flash at the barrel while it fires
+    glow.emit({ x: mx, y, z: mz, life: 0.07, size: rand(0.22, 0.34), grow: 0.5, color: GOLD, alpha: 0.6, shape: SHAPE.dot });   // 2026-11-24: a small flash at the barrel while it fires
     soot.emit({ x: mx + fx * 0.3, y, z: mz + fz * 0.3, vx: fx * 2, vz: fz * 2, life: 0.05, size: rand(0.4, 0.55), color: FLAME[1 + (Math.random() < 0.5)], alpha: 0.9, shape: SHAPE.tongue, rot: rot + rand(-0.2, 0.2) });
-    // Tim 2026-11-23: a spray of small burning pellets, not a few tracer balls; aimed they land all over the cast circle
+    // 2026-11-23: a spray of small burning pellets, not a few tracer balls; aimed they land all over the cast circle
     const reach = c.reach ?? 12, spread = c.onDeck ? 0.8 : c.spread ?? 1.5, V = 55;
     for (let k = 0; k < 9; k++) {
       const rr = Math.sqrt(Math.random()) * spread, th = rand(0, Math.PI * 2), tx = mx + fx * reach + Math.cos(th) * rr, tz = mz + fz * reach + Math.sin(th) * rr;
@@ -217,12 +217,12 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
   const screenDir = (ux, uz) => { const sx = ux * CAM_RIGHT.x + uz * CAM_RIGHT.z, up = -(ux * VIEW_DIR.x + uz * VIEW_DIR.z); return ((Math.round(Math.atan2(-sx, -up) / (Math.PI / 4)) % 8) + 8) % 8; };
 
   // ---- the deck guns: the land Gatling and the brass field cannon, small, lightly faded toward the hull's browns with softened
-  // edges, turning to their aim (Tim 2026-11-24, on the mock war_build/ships/s8d/mock/mock_real_guns_*.png)
-  // the Gatling stands in the aft gun tub on the centre line and only turns (Tim 2026-11-24, on mock_tub_warship.png)
+  // edges, turning to their aim (2026-11-24, on the mock war_build/ships/s8d/mock/mock_real_guns_*.png)
+  // the Gatling stands in the aft gun tub on the centre line and only turns (2026-11-24, on mock_tub_warship.png)
   const GUN = { warship: { model: 'gatling', size: 0.75, wash: 0.15, ropeR: 1, back: 0.4 }, transport: { model: 'cannon_field', size: 0.45, wash: 0.22, ropeR: 1.2, back: 0.6 } };
   const HULL_BROWN = [0.33, 0.24, 0.17], GUN_TINT = [0.95, 0.9, 0.85];
-  const MAN = 0.55, MAN_SIDE = 0.3;   // a sailor at the breech, a little to one side, facing the aim (Tim 2026-11-24, mock_gunner_*.png)
-  // Tim 2026-11-24: no border; the ship's own sails are drawn again over the gun, so a sail in front of it hides it
+  const MAN = 0.55, MAN_SIDE = 0.3;   // a sailor at the breech, a little to one side, facing the aim (2026-11-24, mock_gunner_*.png)
+  // 2026-11-24: no border; the ship's own sails are drawn again over the gun, so a sail in front of it hides it
   const SAIL_AT = '  if (uSail.w > 0.0) {', SAIL_U = 'uniform vec4 uFill;';
   function sailCover(s) {
     const src = s.material?.fragmentShader; if (!src || !src.includes(SAIL_AT) || !src.includes(SAIL_U) || !s.material.uniforms?.uSailKey) return null;
@@ -240,7 +240,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
     mu.uSailAt.value.copy(spr.thing.mesh.position).addScaledVector(CAM_UP, 0.3);
     m.geometry = mesh.geometry; m.scale.copy(mesh.scale); m.quaternion.copy(mesh.quaternion); m.position.copy(mesh.position);
   }
-  // the ship's own ropes drawn back over its gun (Tim 2026-11-24: the wheels showed in front of the rigging): near the gun, the
+  // the ship's own ropes drawn back over its gun (2026-11-24: the wheels showed in front of the rigging): near the gun, the
   // hull's pixels that stand out from the average of their neighbours (thin lines) are drawn again on top
   function ropeCover(s) {
     const src = s.material?.fragmentShader; if (!src || !src.includes(SAIL_AT) || !src.includes(SAIL_U)) return null;
@@ -272,7 +272,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
   const bowShots = new Map();   // transport id -> { at, ang } of its last bow shot
   // how far the painted hull has moved from its rest in this frame of its sheet (the ship's rocking is in its frames): the
   // middle of the frame's cropped box against its slow average for that facing, in world units right and up on screen.
-  // The gun rides it, so it reads as part of the ship (Tim 2026-11-24)
+  // The gun rides it, so it reads as part of the ship (2026-11-24)
   const gunSpot = new Map();   // ship id -> where its gun stands this frame (its shots start there)
   const bobs = new Map();   // ship id -> { dir, x, y }
   function bobOf(s, e, dt) {
@@ -285,7 +285,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
   // one gun per ship: war = the Gatling at the rail on the side it aims (only in a fight); else the bow cannon, always
   function deckGun(s, e, place, dt) {
     const war = e.warUnit === 'warship', H = HULL[e.warUnit], K = GUN[e.warUnit];
-    const show = place === 'world' && s.thing.mesh.visible !== false && (e.hp ?? 1) > 0 && !sunk.has(e.id) && (!war || !!e.gat || (!!e.fighting && aims.has(e.id)));   // between bursts it stays out, on its aim (Tim 2026-11-24)
+    const show = place === 'world' && s.thing.mesh.visible !== false && (e.hp ?? 1) > 0 && !sunk.has(e.id) && (!war || !!e.gat || (!!e.fighting && aims.has(e.id)));   // between bursts it stays out, on its aim (2026-11-24)
     let G = guns.get(e.id);
     if (!G) {
       if (!show || !figureSprite) return;
@@ -302,7 +302,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
         G.edge = rimMeshes(spr, 99699); G.wash = rimMeshes(spr, 99701, 1); G.cover = sailCover(s); G.ropes = ropeCover(s); G.spr = spr;
       }).catch(() => {});
     }
-    // the hull is drawn in one of 8 facings: the gun stands on the drawn deck, not on the ship's exact heading (Tim 2026-11-24: it sat off to one side)
+    // the hull is drawn in one of 8 facings: the gun stands on the drawn deck, not on the ship's exact heading (2026-11-24: it sat off to one side)
     const ka = dirOf(e) * Math.PI / 4, hx = -Math.sin(ka) * CAM_RIGHT.x + Math.cos(ka) * vg.x, hz = -Math.sin(ka) * CAM_RIGHT.z + Math.cos(ka) * vg.z;
     const shot = bowShots.get(e.id), since = war ? 9 : shot ? clock - shot.at : 9;
     const ang = war ? e.gat?.ang ?? aims.get(e.id) ?? Math.atan2(hz, hx) : shot && (since < 1.5 || e.fighting) ? shot.ang : Math.atan2(hz, hx);   // between shots it keeps its aim while the fight lasts
@@ -338,7 +338,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
     guns.delete(id); aims.delete(id); bowShots.delete(id); bobs.delete(id); gunSpot.delete(id);
   }
 
-  // ---- loading and unloading: your ship and the troops going on or just off it flash an outline (Tim 2026-11-23) ----
+  // ---- loading and unloading: your ship and the troops going on or just off it flash an outline (2026-11-23) ----
   const offAt = new Map();   // unit id -> clock until it flashes after stepping off
   const rims = new Map();   // sprite -> outline meshes
   function loadingFlash(state, sprites, me) {
@@ -354,7 +354,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
       const spr = sprites.get(id); if (!spr?.thing?.mesh || !spr.material?.uniforms?.uFill) continue;
       seen.add(spr);
       let outl = rims.get(spr); if (!outl) rims.set(spr, outl = rimMeshes(spr, (spr.thing.mesh.renderOrder || 0) - 0.5));
-      syncRim(spr, outl, a * 0.8, GOLD_RIM);   // Tim 2026-11-24: gold, not a bright white flash
+      syncRim(spr, outl, a * 0.8, GOLD_RIM);   // 2026-11-24: gold, not a bright white flash
     }
     for (const [spr, outl] of rims) if (!seen.has(spr)) { dropRim(outl); rims.delete(spr); }
   }
@@ -384,7 +384,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
     s.listK = (s.listK ?? 0) + (want - (s.listK ?? 0)) * Math.min(1, dt * 1.5);
     s.roll = -0.2 * s.listK; s.listRoll = s.roll; s.listY = 1.1 * s.listK;   // roll: the sprite turns about its waterline (render/characters.js)
     if (s.listY > 0.001) { s.thing.mesh.position.y -= s.listY; sea(s, p.x, p.z, keel(e.heading, s.roll), 0.4); }   // after the sprite's own update this frame; S6: the sea hides the low hull
-    else afloat(s, e, p);   // Tim 2026-11-23: the low hull sits in the sea, not cut out on top of it
+    else afloat(s, e, p);   // 2026-11-23: the low hull sits in the sea, not cut out on top of it
     if (s.listK > 0.3) {   // foam washing along the low side, wreckage spreading on the water
       const near = Math.sign(hz * vg.x - hx * vg.z) || 1;   // the hull side toward the camera: a broken line of churned foam hides where it meets the water
       for (let n = Math.floor(dt * 160 + Math.random()); n > 0; n--) { const t = rand(-1, 1) * H.half * (1 - Math.random() * 0.15), off = rand(0.8, 1.2), x = p.x + hx * t + hz * near * off, z = p.z + hz * t - hx * near * off;
@@ -423,7 +423,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
       blot(g, x, y, 5 + Math.random() * 6, 2 + Math.random() * 2.5, (0.55 + Math.random() * 0.4) * e, Math.random() * 0.4 - 0.2); } });
   const EDGE = paint(256, 32, g => { for (let x = 4; x < 252; x += 2 + Math.random() * 5) { if (Math.sin(x * 0.05) + Math.random() * 0.8 < -0.2) { x += 6; continue; }   // gaps
       blot(g, x, 16 + Math.sin(x * 0.09) * 4, 3 + Math.random() * 7, 1 + Math.random() * 3, 0.4 + Math.random() * 0.5, Math.random() * 0.5 - 0.25); } });
-  // shallow water running in, and the wet sand it leaves (Tim 2026-11-23: no square edges): a lumpy band of soft blots whose
+  // shallow water running in, and the wet sand it leaves (2026-11-23: no square edges): a lumpy band of soft blots whose
   // edges undulate all the way round, three variants so the patches of one wave differ
   const lumpy = (rgb, a) => paint(128, 64, g => { const ph = Math.random() * 6.3, ph2 = Math.random() * 6.3;
       for (let k = 0; k < 46; k++) { const x = 14 + Math.random() * 100, end = Math.min(1, (x - 8) / 26, (120 - x) / 26), y = 32 + Math.sin(x * 0.07 + ph) * 6 + Math.sin(x * 0.19 + ph2) * 3 + (Math.random() - 0.5) * 10 * end;
@@ -468,7 +468,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
     const hx = Math.cos(t) * vg.x / gl - Math.sin(t) * CAM_RIGHT.x / rl, hz = Math.cos(t) * vg.z / gl - Math.sin(t) * CAM_RIGHT.z / rl;
     const side = Math.sign(hz * vg.x - hx * vg.z) || 1;   // the hull side toward the camera
     const sx = hx * CAM_RIGHT.x + hz * CAM_RIGHT.z, sy = hx * CAM_UP.x + hz * CAM_UP.z;
-    // bow or stern toward the camera (Tim 2026-11-23: end on, half the hull looked sunk): the line moves along the keel to the
+    // bow or stern toward the camera (2026-11-23: end on, half the hull looked sunk): the line moves along the keel to the
     // near end, so the whole drawn hull stays above it; on a side view that slides along the line itself and changes nothing
     const c = (hx * vg.x + hz * vg.z) / gl * (HULL[e.warUnit] || HULL.warship).half * F.end;
     u.uSea.value.set(p.x + hz * side * F.near + hx * c, F.rise, p.z - hx * side * F.near + hz * c, -F.band); u.uSeaSlope.value = Math.abs(sx) < 0.05 ? 0 : Math.max(-0.7, Math.min(0.7, sy / sx));
@@ -559,7 +559,7 @@ export function createShipFx({ scene, stages = {}, figureSprite = null }) {
   // back, the sand dark where it reached
   const WASH_AT = 2.1;   // seconds after the sinking, as the camera arrives (render/view.js panTo)
   function wave(c) {
-    // the wave that brings them ashore (Tim 2026-11-23: wide, broken and see-through, not one even band like a wiper):
+    // the wave that brings them ashore (2026-11-23: wide, broken and see-through, not one even band like a wiper):
     // overlapping patches of shallow water and ragged stretches of foam, each its own size, lag and pace
     const L = c.ashore, B = c.berth || { x: c.x, z: c.z }, d = Math.hypot(L.x - B.x, L.z - B.z) || 1, ux = (L.x - B.x) / d, uz = (L.z - B.z) / d, sx = -uz, sz = ux;
     const at = clock + WASH_AT - 1.25, W = 11.5, rot = Math.atan2(-sz, sx);   // a flat mark's long side along the shore

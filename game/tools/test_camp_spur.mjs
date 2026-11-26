@@ -95,14 +95,14 @@ assert.equal(secs.length, frontier.war.supply.sections, 'sections made');
 const R0 = frontier.war.circleRadius ?? 900;
 for (const b of secs) assert.ok(Math.hypot(b.x - other.x, b.z - other.z) <= R0 + 1, 'section inside the circle');
 assert.ok(g.frontier.warMorale.view?.(w)?.camp?.weights?.rail_section || frontier.war.morale.weights.rail_section, 'counted on the morale bar');
-// Tim 2026-11-17: short pieces in a row just outside the camp station, hit anywhere along the red
+// 2026-11-17: short pieces in a row just outside the camp station, hit anywhere along the red
 { const SP = frontier.war.supply;
   secs.forEach((b, k) => { assert.equal(b.rail.d0, SP.sectionStart + k * (SP.sectionLength + SP.sectionGap), 'in a row from the station'); assert.equal(Math.round(b.rail.d1 - b.rail.d0), SP.sectionLength, 'short piece'); assert.ok(b.hitBoxes.length >= 5, 'hit boxes along it'); });
   const sl = g.frontier.structures.list?.().find?.(x => x.b === secs[0]);
   if (sl) assert.equal(sl.boxes, secs[0].hitBoxes, 'the structure is hit by its red piece');
   assert.ok(!(S.news || []).some(n => n.kind === 'supplyLineTip'), 'no tip for a bot defender'); }
 // the auto refill from the treasury (generals): a chest at or above chestLow gets none, unless the general holds that
-// ryo back for the camp hall upgrade (`held`, Tim 2026-11-17)
+// ryo back for the camp hall upgrade (`held`, 2026-11-17)
 { const autos = () => Object.values(F.shipping.orders).filter(x => x.kind === 'ryo' && x.auto && x.state === 'open' && x.war === 'w1');
   clan.ryo = 5000; g.frontier.world.syncCapital(); w.camp.chest = frontier.war.supply.chestLow + 20;
   g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'autoChest', war: 'w1' }]);
@@ -111,7 +111,7 @@ assert.ok(g.frontier.warMorale.view?.(w)?.camp?.weights?.rail_section || frontie
   assert.equal(autos().length, 1, 'held back for the hall upgrade: the refill is ordered');
   assert.equal(autos()[0].amount, Math.min(frontier.war.supply.refill, Math.floor((5000 - frontier.war.supply.treasuryKeep) * frontier.war.supply.autoShare)));
   for (const x of autos()) { x.sources = []; x.state = 'cancelled'; } }
-// a cut line (Tim 2026-11-17): orders into the camp wait and carry on when the line is whole again; nothing goes back
+// a cut line (2026-11-17): orders into the camp wait and carry on when the line is whole again; nothing goes back
 clan.ryo = 5000; g.frontier.world.syncCapital();
 g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'ryo', from: 'treasury', into: 'chest', war: 'w1', amount: 400 }]);
 const oc2 = Object.values(F.shipping.orders).find(x => x.kind === 'ryo' && x.state === 'open');
@@ -120,7 +120,7 @@ assert.equal(clan.ryo, 4600);
 const stn = w.camp.buildings.find(b => b.type === 'camp_station');
 stn.stage = 'ruined';
 run(20 * 5);
-assert.ok(l.closed && l.cutBy === 'war', 'the station down cuts it off (Tim 2026-11-17: any break)');
+assert.ok(l.closed && l.cutBy === 'war', 'the station down cuts it off (2026-11-17: any break)');
 assert.equal(w.camp.station.cut, true);
 assert.match(clan.notice?.text || '', /cut off/i);
 assert.equal(oc2.state, 'open', 'the order into the cut camp waits');
@@ -129,7 +129,7 @@ const chestCut = w.camp.chest || 0;
 run(20 * 240);
 assert.equal(oc2.state, 'open', 'still waiting while the line is cut');
 assert.equal(w.camp.chest || 0, chestCut, 'nothing reaches the camp over a cut line');
-// rebuilt in place from the station menu (Tim 2026-11-17); a ruined station or section cannot be erased
+// rebuilt in place from the station menu (2026-11-17); a ruined station or section cannot be erased
 assert.equal(g.frontier.war.campEraseCheck('w1', stn.id).ok, false, 'a ruined station is not erased');
 w.camp.stock.timber = 1000; w.camp.stock.stone = 1000;
 g.step([{ id: hero.id, type: 'frontier', action: 'campRebuild', war: 'w1', building: stn.id }]);
@@ -155,7 +155,7 @@ assert.ok(!l.closed, 'open again once all stand');
 assert.equal(run(20 * 600, () => oc2.state === 'done'), true, 'the waiting order arrives once the line is mended: ' + JSON.stringify([oc2.state, oc2.got, oc2.amount]));
 assert.equal(Math.round((w.camp.chest || 0) - chestCut), 400, 'its ryo is in the war chest');
 assert.ok(clan.ryo <= 4600, 'nothing refunded to the treasury (lieutenant wages may go out)');
-// Tim 2026-11-17: a camp sells its stores at the capital (the ryo into its war chest) and buys there from its war chest
+// 2026-11-17: a camp sells its stores at the capital (the ryo into its war chest) and buys there from its war chest
 { const sale = () => Object.values(F.shipping.orders).filter(x => x.kind === 'sell' && x.camp && x.war === 'w1').at(-1);
   w.camp.stock.stone = 500; const ch0 = w.camp.chest || 0, price = railways.ship.sellPrice.stone;
   g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'sell', town: node, resource: 'stone', amount: 200 }]);
@@ -188,7 +188,7 @@ assert.ok(clan.ryo <= 4600, 'nothing refunded to the treasury (lieutenant wages 
   g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'offer', order: oo.id, ryo: 300 }]);
   assert.ok(oo.ryo === 300 && oo.sources.some(x => x.from === 'capital'), 'offer: bought at the capital');
   run(20 * 900, () => oo.state === 'done'); town.stock.timber = timber0; }
-// Tim 2026-11-17: a bot's town fills its own camp's orders down to war.supply.botCampKeepShare of its storage
+// 2026-11-17: a bot's town fills its own camp's orders down to war.supply.botCampKeepShare of its storage
 { const tX = F.settlements.tX, cap = storageCap(tX, frontier, 'timber'), bot0 = S.clans[tX.owner]; if (!bot0) S.clans[tX.owner] = { id: tX.owner, bot: true, ryo: 0 }; const wasBot = S.clans[tX.owner].bot; S.clans[tX.owner].bot = true;
   if (Number.isFinite(cap) && cap > 0) {
     tX.stock.timber = Math.floor(cap * 0.4); tX.reserved = {};

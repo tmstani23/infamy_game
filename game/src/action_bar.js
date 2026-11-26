@@ -11,9 +11,9 @@ import { CONSUMABLES } from './sim/gear_catalog.js';
 import { itemArt } from './item_detail.js';
 import { hudIcon } from './hud_icons.js';
 import { sharedKeybinds, SLOT_ACTION } from './keybinds.js';
-const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
+const keybinds = sharedKeybinds();   // key text follows rebinding (2026-11-12)
 
-// Usable items share ONE action-bar slot (key B, Tim 2026-11-01): the first one carried shows
+// Usable items share ONE action-bar slot (key B, 2026-11-01): the first one carried shows
 // there with its count and cooldown sweep; nothing carried = empty frame. Add new usables here.
 export const USABLE_ITEMS = [
   { id: 'bandage', action: 'bandage', def: CONSUMABLES.bandage, count: inv => inv.bandages || 0, readyAt: inv => inv.bandageReadyAt || 0,
@@ -57,7 +57,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const koNotice = el('div', 'ko-notice', root);
   const crew = el('div', 'crew', crewRoot || row);
   const grouped = createGroupedCrew({root:crew,game,heroId,units,crewInput,send,watchGroup,where});
-  // Tim 2026-10-30: click = only this crew member, shown in the target frame; Shift+click adds or removes.
+  // 2026-10-30: click = only this crew member, shown in the target frame; Shift+click adds or removes.
   // A click on a member of a bigger selection waits for mouseup, so dragging it still moves the whole selection.
   let pendingPick = null;
   const pickOne = id => { crewInput.selectUnit(id, true); if (game.state.entities[id]) onInspect(id); };
@@ -85,17 +85,17 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   });
   const portrait = el('div', 'portrait', row);
   portrait.addEventListener('mousedown',e=>{if(e.button===0)crewInput?.selectAll();});
-  portrait.addEventListener('dblclick',e=>{if(e.button===0)onHeroFocus();});   // Tim 2026-10-30: camera back to the hero
+  portrait.addEventListener('dblclick',e=>{if(e.button===0)onHeroFocus();});   // 2026-10-30: camera back to the hero
   const face = el('div', 'face', portrait);
   el('span', 'glyph', face, 'R');
   const hpBar = el('div', 'hp', portrait), hpFill = el('div', 'fill', hpBar), hpText = el('div', 'txt', hpBar);
-  // frontier attack mode (Tim 2026-11-15): shown under the health bar while it is on
+  // frontier attack mode (2026-11-15): shown under the health bar while it is on
   const modeTag = el('div', 'attack-mode', portrait, 'Attack mode');
   modeTag.title = 'Attack mode: your hero chases his target and then goes for the nearest war enemy in range. A building that falls ends it there. Moving him yourself only breaks the chase. Esc or Stop ends it.';
   Object.assign(modeTag.style, { font: '700 11px sans-serif', color: '#f0d9a0', background: '#7a1f1a', border: '1px solid #c9a15a', borderRadius: '3px', padding: '1px 6px', visibility: 'hidden' });
 
   const slots = [];
-  // the key text on each slot: the slot's bound key, RMB stays (Tim 2026-11-12: Unbound in red when it has none)
+  // the key text on each slot: the slot's bound key, RMB stays (2026-11-12: Unbound in red when it has none)
   const keyShown = k => SLOT_ACTION[k] ? keybinds.badge(SLOT_ACTION[k]) : k === 'B' ? keybinds.badge('useItem') : k;
   const keyEls = [];
   const paintKeys = () => { for (const [n, k] of keyEls) { const t = keyShown(k); n.textContent = t; n.classList.toggle('unbound', t === 'Unbound'); } };
@@ -103,7 +103,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
   const buffTimers = new Map();
   const addSlot = (key, kind, a) => {
     const s = el('div', 'slot', row);
-    // drawn icon with the name under it (Tim 2026-11-11: icons, and the name stays readable)
+    // drawn icon with the name under it (2026-11-11: icons, and the name stays readable)
     el('div', 'icon', s).innerHTML = `<span class="ab-ico">${hudIcon(a ? a.kind : 'attack')}</span><span class="ab-name">${a ? a.name : 'Auto attack'}</span>`;
     s.addEventListener('mouseenter', () => {
       const current = game.stats?.effective(hero()) || stats;
@@ -217,10 +217,10 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
 
     // crew: a small name over a health bar each; crew in the clinic or in jail show greyed out
     // (jailed ones can be picked: the selection panel says they are in jail)
-    // Tim 2026-11-07: out on the island the bar lists only the crew out there with you; crew left in the capital are not shown
+    // 2026-11-07: out on the island the bar lists only the crew out there with you; crew left in the capital are not shown
     // or tracked (also not its clinic / jail lines). One predicate, so a per-town split can replace it later.
     const listed = e => h.place !== 'world' || e.place === 'world';
-    const crewList = mine.filter(e => e.type !== 'hero' && !e.guard && !e.warTroop && e.maxHp && listed(e));   // war troops show only in the selection panel (Tim 2026-11-12)
+    const crewList = mine.filter(e => e.type !== 'hero' && !e.guard && !e.warTroop && e.maxHp && listed(e));   // war troops show only in the selection panel (2026-11-12)
     const clinic = h.place === 'world' ? [] : game.state.clans?.[h.owner]?.clinic || [];
     const jail = h.place === 'world' ? [] : game.state.clans?.[h.owner]?.jail || [];
     if(game.state.deployment?.restrictionsEnabled){grouped.update(crewList,clinic,jail);return;}

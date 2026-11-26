@@ -75,7 +75,7 @@ for (const bot of [false, true]) {
   assert.ok(g.state.news.some(n => n.kind === 'raidWon' && n.hq && n.raider === 'player' && n.defender === 'shinobi'), 'every clan hears the raid was won');
   const wasInside = h.place === b.room;
   assert.equal(b.hideout, 'shinobi');
-  assert.equal(clan.ryo, beforeRyo + 804, '600 bounty plus the unburned half of a third of the treasury (Tim 2026-11-11)');
+  assert.equal(clan.ryo, beforeRyo + 804, '600 bounty plus the unburned half of a third of the treasury (2026-11-11)');
   assert.equal(g.state.clans.shinobi.ryo, 827, 'the defender loses a third, burned half included');
   assert.equal(g.state.clans.shinobi.renown, 0, 'cancelled contract grants no Renown');
   assert.equal(g.state.contracts.active.shinobi, undefined, 'active contract cancelled before completion');
@@ -133,7 +133,7 @@ for (const bot of [false, true]) {
   assert.equal(g.state.clans.player.raidPoints || 0, 0, 'failure grants no points');
 }
 
-// burnShare and no cap (units.json hqRaid, Tim 2026-11-11): the defender loses the whole share, the raider gets the unburned part
+// burnShare and no cap (units.json hqRaid, 2026-11-11): the defender loses the whole share, the raider gets the unburned part
 {
   const state = { tick: 50, businesses: { h: { id: 'h', owner: 's', hideout: 's' } }, clans: { a: { ryo: 0 }, s: { kind: 'ninja', ryo: 9000 } }, ryoGains: [],
     news: [{ kind: 'hqRaidWon', at: 50, business: 'h', raider: 'a', defender: 's' }] };
@@ -225,7 +225,7 @@ for (const [treasury, stolen] of [[0, 0], [9, 0], [1234, 123], [10000, 400]]) {
 console.log('Shinobi HQ: eligibility, warmup, entry isolation/caps, contested hold, no takeover, camping exemption and defense passed');
 
 {
-  // a Shinobi knocking the lantern down is seen even in its smoke or Vanish; attacking in smoke shows it too (Tim 2026-10-26)
+  // a Shinobi knocking the lantern down is seen even in its smoke or Vanish; attacking in smoke shows it too (2026-10-26)
   const { g, b, h, d, raid, run } = fixture({ warmup: 40 });
   g.step([{ type: 'time', night: true }]);
   raid();

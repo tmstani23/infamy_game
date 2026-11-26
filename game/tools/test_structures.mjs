@@ -58,7 +58,7 @@ const kinds = ST.list().reduce((o, s) => { o[s.kind] = (o[s.kind] || 0) + 1; ret
 assert.ok(kinds.building >= 4 && kinds.wall === 1 && kinds.gate === 1 && kinds.zone >= 1, 'town and camp structures listed: ' + JSON.stringify(kinds));
 const sHall = ST.find(key(hall.cell)), sWall = ST.find(key(WALL)), sGate = ST.find(key(GATE)), sHouse = ST.find(key(HOUSE)), sStore = ST.find(key(STORE)), sStk = ST.find(key(stockadeCells[0]));
 assert.ok(sHall && sWall && sGate && sHouse && sStore && sStk);
-assert.equal(sWall.max, S.wall); assert.equal(sGate.max, S.gate); assert.equal(sHouse.max, S.zone[1]); assert.equal(sStore.max, S.town.storehouse); assert.equal(sStk.max, frontier.buildings.stockade.garrison.hpByTier[0]);   // by town hall tier (Tim 2026-11-18: 32,000 at tiers 1 and 2)
+assert.equal(sWall.max, S.wall); assert.equal(sGate.max, S.gate); assert.equal(sHouse.max, S.zone[1]); assert.equal(sStore.max, S.town.storehouse); assert.equal(sStk.max, frontier.buildings.stockade.garrison.hpByTier[0]);   // by town hall tier (2026-11-18: 32,000 at tiers 1 and 2)
 const campHall = rec.camp.buildings.find(b => b.type === 'camp_hall'), sCamp = ST.find(`c|${rec.id}|${campHall.id}`);
 assert.ok(sCamp && sCamp.max === S.campHall[0], 'camp hall health');
 assert.ok(ST.canDamage('player', sHall) && !ST.canDamage(rival, sHall) && !ST.canDamage(third, sHall), 'only the attacker damages the town');
@@ -119,7 +119,7 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   const pl = g.frontier.modules.find(m => m.name === 'placement').placement;
   fw.change('enemyTown', 'timber', 500, 'test'); fw.change('enemyTown', 'stone', 500, 'test');
   const r = pl.check(enemy, { kind: 'wall', cells: [WALL] }); assert.ok(!r.ok && /breached/.test(r.reason), r.reason);
-  // Tim 2026-11-17: a player's own town may build its breach over during the war (a bot's still waits)
+  // 2026-11-17: a player's own town may build its breach over during the war (a bot's still waits)
   assert.ok(g.state.clans[enemy.owner].bot, 'the enemy town is a bot clan\'s');
   const own0 = enemy.owner; enemy.owner = 'player';
   const r2 = pl.check(enemy, { kind: 'wall', cells: [WALL] }); assert.ok(!/breached/.test(r2.reason || ''), 'a player rebuilds the breach in the war: ' + r2.reason);
@@ -128,7 +128,7 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
 // ---- a house drops to an empty plot ---------------------------------------------------------------
 { house(); const st = ST.find(key(HOUSE)); assert.ok(st);
   assert.ok(ST.damage('player', st, st.max + 1, 'siege')); assert.equal(G.stage[HOUSE], '0'); assert.equal(G.zone[HOUSE], 'h', 'still zoned: it regrows by the zone rules'); assert.equal(ST.find(key(HOUSE)), null);
-  // 7c: it does not grow back while the war is on the town (Tim 2026-11-12); it does once the war is over
+  // 7c: it does not grow back while the war is on the town (2026-11-12); it does once the war is over
   const Z = g.frontier.modules.find(m => m.name === "zones").zones, grow = () => { enemy.zoneGrow = { [HOUSE]: 1e9 }; Z.tick(enemy); return G.stage[HOUSE]; };
   const use0 = G.use; for (let c = 1; c <= 5; c++) G.use = put(G.use, HOUSE + c, 'r');   // a road from the hall, so only the war holds it back
   assert.ok(war.warOn(enemy.id), 'war is on the town'); assert.ok(Z.roadNear(enemy, HOUSE, 2), 'road reaches the plot'); assert.equal(grow(), '0', 'no regrowth during the war');
@@ -162,7 +162,7 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
 
 // ---- stockade: only the attacker's hits reach it ---------------------------------------------------
 { const stk = enemy.buildings.find(b => b.type === 'stockade');
-  const gar = g.frontier.garrison, max = frontier.buildings.stockade.garrison.hpByTier[0];   // by town hall tier (Tim 2026-11-18)
+  const gar = g.frontier.garrison, max = frontier.buildings.stockade.garrison.hpByTier[0];   // by town hall tier (2026-11-18)
   const inside = { garrison: { town: 'enemyTown', building: 'stk' } };
   assert.ok(gar.shelter(inside, 100, { owner: third }) && stk.hp === undefined, 'a clan not at war does not chip the stockade');
   assert.ok(gar.shelter(inside, 100, { owner: 'player' }) && stk.hp === max - 100, 'the attacker does');
@@ -176,7 +176,7 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   assert.equal(ST.damage('player', st, 10), false, 'not your own camp');
   assert.ok(ST.damage(rival, st, st.max, 'melee')); assert.equal(b.stage, 'ruined'); assert.equal(b.queue, undefined, 'the queue is lost'); assert.equal(wk.chest, chest, 'no refund'); }
 
-// ---- town hall shelter (per worker, Tim 2026-11-19): a worker with an attacker near him runs in; the others keep working -----
+// ---- town hall shelter (per worker, 2026-11-19): a worker with an attacker near him runs in; the others keep working -----
 { const wk = g.frontier.modules.find(m => m.name === 'workers').workers, SH = S.shelter;
   for (const id of [...troops, archer]) delete g.state.entities[id];
   Object.assign(hero, { x: enemy.x + 600, z: enemy.z });
@@ -191,14 +191,14 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   for (let i = 0; i < 45; i++) { g.step([]); Object.assign(raider, { x: enemy.x - 70, z: enemy.z - 70 }); }
   assert.ok(enemy.workers.every(w => !w.shelter), 'an attacker far from them: nobody shelters');
   // the attacker comes within nearRange of them: they run in
-  enemy.workers[2].picked = true;   // Tim 2026-11-25: one the player has selected stays on his orders
+  enemy.workers[2].picked = true;   // 2026-11-25: one the player has selected stays on his orders
   for (let i = 0; i < 45; i++) { g.step([]); Object.assign(raider, { x: wx + 20, z: wz + 15 }); }
   assert.ok(enemy.workers[0].shelter && enemy.workers[1].shelter && !enemy.workers[2].shelter, 'a selected worker does not run for shelter by himself');
   delete enemy.workers[2].picked;
   for (let i = 0; i < 25; i++) { g.step([]); Object.assign(raider, { x: wx + 20, z: wz + 15 }); }
   assert.ok(enemy.shelter && enemy.workers.every(w => w.shelter), 'an attacker near them: the workers head for the hall');
   const kept = enemy.workers.map(w => w.shelter.spot); assert.ok(enemy.workers.every(w => w.spot === null), 'no gathering while sheltering');
-  const inTown = () => enemy.stock.timber + (enemy.fund?.timber || 0), timber = inTown();   // the safety fund takes its share of a load (Tim 2026-11-22: always)
+  const inTown = () => enemy.stock.timber + (enemy.fund?.timber || 0), timber = inTown();   // the safety fund takes its share of a load (2026-11-22: always)
   for (let i = 0; i < 900 && !enemy.workers.every(w => w.shelter?.in); i++) { g.step([]); Object.assign(raider, { x: wx + 20, z: wz + 15 }); }
   assert.ok(enemy.workers.every(w => w.shelter.in), 'they reach the hall and go in');
   assert.ok(enemy.workers.every(w => !w.carrying) && inTown() >= timber + 2.4, 'the load is handed in as they go in');
@@ -238,7 +238,7 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   assert.equal(hall.stage, 'ruined', 'the governor does not rebuild a ruin while the war is on'); assert.ok(!enemy.projects.some(p => p.replaces === hall.id));
   delete g.state.entities[r2.id]; hall.stage = 'built'; }
 
-// ---- cover in a work camp and in a war camp (Tim 2026-11-21) ---------------------------------------------------------
+// ---- cover in a work camp and in a war camp (2026-11-21) ---------------------------------------------------------
 { const wk = g.frontier.modules.find(m => m.name === 'workers').workers, SH = S.shelter;
   for (let i = 0; i < SH.calmTicks + 60; i++) g.step([]);
   // a worker out by his town's lumber camp runs into the lumber camp, not the far hall
@@ -280,7 +280,7 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
 { const T = S.tower, tw = { id: 'tw', type: 'watchtower', stage: 'built', x: campHall.x - 40, z: campHall.z + 40 }; rec.camp.buildings.push(tw);
   const spawn = (owner, dx) => { const id = g.spawn('swordsman', 'swordsman', tw.x + dx, tw.z, { owner, place: 'world', area: 'world', order: { kind: 'stop' } }); return g.state.entities[typeof id === 'object' ? id.id : id]; };
   const foe = spawn(rival, T.range - 4), far = spawn(rival, T.range + 6), other = spawn(third, 6), own = spawn('player', 5);
-  // all four hold fire: on the island an idle or following unit attacks war enemies in range by itself (Tim 2026-11-13)
+  // all four hold fire: on the island an idle or following unit attacks war enemies in range by itself (2026-11-13)
   for (const e of [foe, far, other, own]) e.holdFire = true;
   const hp = [foe, far, other, own].map(e => e.hp);
   let arrows = 0;

@@ -1,4 +1,4 @@
-// War alert and "Watch a war" (war 8d-4, mock OK'd by Tim 2026-11-16): presentation only.
+// War alert and "Watch a war" (war 8d-4, mock OK'd by 2026-11-16): presentation only.
 // Alert: when a war is declared on one of your towns a card shows at the top of the screen wherever your hero is (the
 // city too), with a bell and a map ping. Its buttons: Watch and Show on map.
 // Watch: the camera goes to a war of yours that your hero is not in (render/view.js setWarWatch), like Watch the

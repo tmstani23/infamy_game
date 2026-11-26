@@ -1,4 +1,4 @@
-// Crew care by the lieutenant (Tim 2026-11-10): while the boss is out on the island the city captain bails jailed
+// Crew care by the lieutenant (2026-11-10): while the boss is out on the island the city captain bails jailed
 // crew out at the police HQ and fetches recovered patients at the clinic, under the Hire order, inside the day's
 // budget. Freed crew go back to their own group, never after the absent boss. The same for a rival clan.
 // Run from the repo root: node game/tools/test_lieutenant_care.mjs
@@ -62,7 +62,7 @@ function scenario(id, leave) {
 
 // the player: the boss walks out through the gate
 scenario('player', hero => { g.state.clans.player.permit = true; Object.assign(hero, { place: 'street', x: gate.x, z: gate.z }); g.step([{ id: hero.id, type: 'expedition', action: 'walk', units: [] }]); });
-// the player's lieutenant bribes the police from heat 40 (Tim 2026-11-20), not below
+// the player's lieutenant bribes the police from heat 40 (2026-11-20), not below
 {
   const clan = g.state.clans.player, mine = brainOf('player'), r = L.record('player');
   for (const o of Object.keys(r.orders)) r.orders[o] = o === 'hire';

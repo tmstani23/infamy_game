@@ -1,4 +1,4 @@
-// The ship's way round the island (Tim 2026-11-20: it sailed over land to the Northern Thaw castle). The island's
+// The ship's way round the island (2026-11-20: it sailed over land to the Northern Thaw castle). The island's
 // coastline (world.json coast, and its islets) is laid on a coarse sea grid (cells margin / 3, a cell is sea only with
 // open water round it, so no river mouth or shore); the crossing is the shortest way over it, straightened.
 // Pure functions, used by the rules (sim/frontier/ferry.js) and the drawing (render/ferry_ships.js).
@@ -69,7 +69,7 @@ export function seaRoute(world, from, dest, { margin = 400 } = {}) {
   if (!tries.length) return [from, dest];
   const best = Math.min(...tries.map(t => t.length)), { cells } = tries.find(t => t.length <= best * 1.25);
   // pull the string: from each point, the furthest point still in open water
-  // (Tim 2026-11-20: it cut corners over headlands and islets) every straight keeps `room` of open water each side
+  // (2026-11-20: it cut corners over headlands and islets) every straight keeps `room` of open water each side
   const room = margin * 0.4, pts = [from, ...cells, dest], out = [from];
   for (let i = 0; i < pts.length - 1;) { let j = pts.length - 1; while (j > i + 1 && !clear(world, pts[i], pts[j], i === 0 || j === pts.length - 1 ? 80 : 0, room)) j--; out.push(pts[j]); i = j; }
   // round the corners (Chaikin, three passes) so the ship turns smoothly; a pass that would touch land is dropped

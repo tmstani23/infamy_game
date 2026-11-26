@@ -1,7 +1,7 @@
-// Building pane (war 7c-3b, Tim 2026-11-12): left-click any building on the island, yours or an enemy's, town or
+// Building pane (war 7c-3b, 2026-11-12): left-click any building on the island, yours or an enemy's, town or
 // war camp (away from any unit) and a small pane shows its name, its health, what it is doing (building, training,
 // burning, ruined) and a garrison icon with the number of troops inside. A building with a menu (town_hover.js menuAt)
-// opens it with this pane beside it (Tim 2026-11-20; no hover pane). Right-click is an order. On your own houses, workshops and farmhouses
+// opens it with this pane beside it (2026-11-20; no hover pane). Right-click is an order. On your own houses, workshops and farmhouses
 // the pane also has Garrison selected and Send all out; Ctrl + right-click one with troops selected sends them in.
 // Small number badges float over every garrisoned house you can see. Presentation only: it reads the game's
 // structures (sim/frontier/structures.js) and sends the frontier 'garrison' command with a structure key.
@@ -43,10 +43,10 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   const onIsland = () => game.state.entities[heroId]?.place === 'world' || !!viewing();   // or viewing one of your towns (town_view.js)
   const ST = () => game.frontier?.structures, GA = () => game.frontier?.garrison;
   const Z = () => frontierData?.war?.structures?.zoneGarrison || {};
-  let key = null, sig = '', pinned = false, withMenu = false, page = 0;   // page: of the garrison slots   // pinned: opened by a click (stays); withMenu: beside the building's menu (Tim 2026-11-20)
+  let key = null, sig = '', pinned = false, withMenu = false, page = 0;   // page: of the garrison slots   // pinned: opened by a click (stays); withMenu: beside the building's menu (2026-11-20)
   const wars = () => Object.values(game.state.frontier?.wars?.list || {});
   // structures you may look at: your own towns, and the town or camp of a war you are in
-  function visible() { return ST()?.list?.() || []; }   // Tim 2026-11-12: any building, yours or the enemy's
+  function visible() { return ST()?.list?.() || []; }   // 2026-11-12: any building, yours or the enemy's
   const inside = st => Object.values(game.state.entities || {}).filter(e => !e.dead && !!e.garrison && !e.garrison.hall && (e.garrison.key === st.key || (st.b && !e.garrison.zone && e.garrison.town === st.town && e.garrison.building === st.b.id))).length;
   // troops go in from this card: houses, workshops and farmhouses, and a war camp's stockade (a town stockade has its own garrison card)
   const campFort = st => !!st.war && st.kind === 'building' && st.type === 'stockade' && !!frontierData?.buildings?.stockade?.garrison;
@@ -64,9 +64,9 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
   }
   // a unit under the pointer wins over the building behind it
   const unitNear = (x, y) => Object.values(game.state.entities || {}).some(e => e.place === 'world' && !e.dead && !e.garrison && !e.hidden && (() => { const u = view.unitToScreen(e.x, e.z, 1); return Math.hypot(u.x - x, u.y - y) < 26; })());
-  // the selected troops and crew, and the hero when he is selected (Tim 2026-11-19: he may garrison too); nothing selected: the hero
+  // the selected troops and crew, and the hero when he is selected (2026-11-19: he may garrison too); nothing selected: the hero
   const troopsSelected = () => { const sel = selected(); return (sel.length ? sel : [heroId]).filter(id => { const e = game.state.entities[id]; return e && e.owner === owner() && !e.worker && !e.garrison; }); };
-  // Tim 2026-11-13: a building being built gets the pane too (it is not a structure until it stands): its builders,
+  // 2026-11-13: a building being built gets the pane too (it is not a structure until it stands): its builders,
   // how much faster they make it and a build bar. Camp sites and camp hall upgrades gain one point of work per builder
   // at the site each tick (sim/frontier/workers.js campBuild); a town's project gains the town's builders each
   // economy tick, one project at a time (sim/frontier/construction.js).
@@ -122,7 +122,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     const hp = Math.ceil(ST().hpOf(st)), n = inside(st), own = st.owner === owner(), canG = own && zoneOk(st), cap = capOf(st);
     const up = st.war && st.b?.upgrade ? buildInfo({ ...st, job: st.b.upgrade, id: st.b.id, workers: (wars().find(w => w.id === st.war)?.camp?.workers) || [] }) : null;   // the camp hall upgrade
     const town = st.town ? game.state.frontier?.settlements?.[st.town] : null, stores = !own && st.type === 'town_hall' && town ? rivalStores(town) : '';
-    // your own garrison building's slots (Tim 2026-11-25): who is inside; right-click one to send it out
+    // your own garrison building's slots (2026-11-25): who is inside; right-click one to send it out
     const slots = canG ? garrisonSlotsHtml({ game, heroId, catalog, units, frontierData, st, cap, page, perPage: 12, cols: 4, size: 40, names: false, onPortrait: () => { sig = ''; } }) : null; if (slots) page = slots.page;
     const stat = status(st, hp), next = [key, hp, n, troopsSelected().length, stat, up?.pct, up?.text, stores, slots?.sig].join('|'); if (next === sig) return; sig = next;
     const { frac, color } = healthBar(hp, st.max);
@@ -179,7 +179,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     sig = '';
   });
   addEventListener('keydown', e => { if (key && e.code === 'Escape') { close(); } });
-  // left-click (no drag) on a building with no unit there (Tim 2026-11-19): your building's menu (town_hover.js menuAt);
+  // left-click (no drag) on a building with no unit there (2026-11-19): your building's menu (town_hover.js menuAt);
   // houses, workshops, farmhouses and enemy buildings have no menu: this pane, pinned (it has the garrison buttons)
   let down = null;
   // capture phase: other click handlers (crew selection, town tools) must not keep it from seeing the click
@@ -188,12 +188,12 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     if (e.button !== 0 || !down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
     if (e.target?.closest?.('button, #structcard, #townpanel, #townsoverview, #bar, #selpanel, #controls, #garrisoncard, #warcamp, #townwar, #crewcommands')) return;
     if (unitNear(e.clientX, e.clientY)) return;   // a unit: the crew's click (selection); the pane stays as it is
-    // a menu opened: the Building pane beside it (Tim 2026-11-20); your own town's buildings get their town card instead (frontier_build_ui.js)
+    // a menu opened: the Building pane beside it (2026-11-20); your own town's buildings get their town card instead (frontier_build_ui.js)
     if (menuAt(e.clientX, e.clientY)) { const m = at(e.clientX, e.clientY); if (m && !(m.town && m.owner === owner())) open(m, true, true); else close(); return; }
     const st = at(e.clientX, e.clientY);
     if (st) open(st); else if (pinned && !withMenu) close();   // beside a menu it stays until the menu closes   // a click on open ground puts a pinned pane away; another building swaps to it
   }, { capture: true });
-  // no pane on hover any more (Tim 2026-11-20, was 2026-11-19: it got in the way of moving units): a left-click shows it
+  // no pane on hover any more (2026-11-20, was 2026-11-19: it got in the way of moving units): a left-click shows it
   // Ctrl + right-click your own house, workshop or farmhouse with troops selected: they go in (capture: before move orders)
   addEventListener('mousedown', e => {
     if (e.button !== 2 || !e.ctrlKey || e.target?.closest?.('button, #structcard, #townpanel, #bar, #selpanel, #warcamp, #townwar')) return;
@@ -203,7 +203,7 @@ export function createStructureCard({ game, view, heroId, frontierData, send, se
     e.stopImmediatePropagation(); e.preventDefault();
     send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', structure: st.key, walk: true, units: ids });
   }, { capture: true });
-  // a nudge (Tim 2026-11-12): with troops selected, pointing at your own house, workshop or farmhouse shows how to garrison
+  // a nudge (2026-11-12): with troops selected, pointing at your own house, workshop or farmhouse shows how to garrison
   const nudge = Object.assign(document.createElement('div'), { id: 'garhint', hidden: true, textContent: 'Ctrl + right-click to garrison' }); document.body.append(nudge);
   let nudgeAt = 0;
   addEventListener('mousemove', e => {

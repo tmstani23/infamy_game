@@ -31,7 +31,7 @@ clans.setOwner(tea.id, 'player');
 clans.setOwner(den.id, 'kuroda');
 assert.equal(clans.crewCap('player'), R.baseCap + R.capPerBusiness.teahouse);
 assert.equal(clans.crewCap('kuroda'), R.baseCap + R.capPerBusiness.gambling_den);
-// Every dawn of the season adds capPerDawn (Tim 2026-10-28)
+// Every dawn of the season adds capPerDawn (2026-10-28)
 state.season = { day: 4 };
 assert.equal(clans.crewCap('player'), R.baseCap + 3 * R.capPerDawn + R.capPerBusiness.teahouse);
 delete state.season;

@@ -1,4 +1,4 @@
-// A rival knocking down your War Lantern (Tim 2026-10-20): the channel carries its length for the
+// A rival knocking down your War Lantern (2026-10-20): the channel carries its length for the
 // bars, Tab picks the knocker first, and a hit on him stops it. Run: node tools/test_knock_target.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';

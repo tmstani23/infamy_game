@@ -1,4 +1,4 @@
-// Town builders (Tim 2026-11-15): the townspeople build a player's placed building at rates.townBuildRate each,
+// Town builders (2026-11-15): the townspeople build a player's placed building at rates.townBuildRate each,
 // workers sent to the site add rates.workerBuildRate each (at most rates.maxBuilders), a one-time tip, the site card
 // line, and the townspeople shown hammering at the site (townsfolk.js). Run: node game/tools/test_town_builders.mjs
 import assert from 'node:assert/strict';

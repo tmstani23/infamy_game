@@ -1,8 +1,8 @@
-// Land Office panel (frontier E1, Tim 2026-11-05), opened with Space at the telegraph office's door ring.
+// Land Office panel (frontier E1, 2026-11-05), opened with Space at the telegraph office's door ring.
 // Same look as the police and clinic menus (the shared menu shell, menu restyle 2026-11-10). Reads the state and sends
 // commands only: 'landOffice' { action: 'permit' } and 'hire' { business: <Land Office>, unit: 'settler', count }; the rules
 // are in sim/frontier/land_office.js and sim/clans.js. Keys: 1 = buy the permit, 2 = hire all the settlers
-// a town still needs (Tim 2026-11-20: the full amount is the only choice).
+// a town still needs (2026-11-20: the full amount is the only choice).
 import { msInstall, msShell, msAside, msArt, msSec, msRow, msBtn, msNote, msConcept, msEsc } from './menu_shell.js';
 export function createLandOfficeMenu({ panel, game, heroId, units, send }) {
   let open = false, shown = '';
@@ -44,7 +44,7 @@ export function createLandOfficeMenu({ panel, game, heroId, units, send }) {
         : msRow({ key: 1, name: 'Buy a founding permit', sub: `Founding itself costs ${F.cost ?? 0} ryo`, hover: st.reason || '',
           right: msBtn({ label: st.ryo ? `${st.ryo} ryo` : 'Buy', data: 'data-pick="0"', go: st.ok, off: !st.ok, hover: st.reason || '' }) })
           + `<div class="ms-chips">${reqs}</div>` + (st.reason && st.reason !== 'Requirements not met' ? msNote(st.reason) : ''));
-    const cap = units.rules.settlers?.max ?? Infinity, full = have + queued >= cap;   // Tim 2026-11-06: 5 is all a new town takes
+    const cap = units.rules.settlers?.max ?? Infinity, full = have + queued >= cap;   // 2026-11-06: 5 is all a new town takes
     const canHire = n => price !== null && c.ryo >= price * n && queued + n <= maxQ && have + queued + n <= cap;
     const face = msConcept('laborer') || '';
     const settlers = msSec('Settlers', `${have}${queued ? ` and ${queued} signing up` : ''}${full ? `, ${cap} is the most` : ''}`,

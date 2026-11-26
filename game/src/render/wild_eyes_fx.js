@@ -1,4 +1,4 @@
-// Night eyes (wildlife W4, Tim 2026-11-24): at night a wolf or bear out past your people is drawn near black
+// Night eyes (wildlife W4, 2026-11-24): at night a wolf or bear out past your people is drawn near black
 // (render/view.js) and only its eyes show: two tiny green-gold slits that catch the light now and then and blink.
 // Where the eyes sit in each facing's picture, and the numbers: data/wildlife.json animals.eyes.
 import * as THREE from 'three';

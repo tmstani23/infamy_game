@@ -1,4 +1,4 @@
-// Frontier E1 (Tim 2026-11-05): the Land Office sells a founding permit (Renown, crew, businesses for players)
+// Frontier E1 (2026-11-05): the Land Office sells a founding permit (Renown, crew, businesses for players)
 // and hires settlers, who wait outside; the island gate opens a Choose site menu (site or Walk out) that
 // takes the hero and settlers only; a new town has a 2-day grace from camp bandits; E6b: real games have no
 // fixture towns. Classic has none of it.
@@ -56,7 +56,7 @@ assert.ok(clan.permit, `permit bought: ${clan.notice?.text}`);
 assert.equal(clan.ryo, ryo0 - (P.ryo || 0));
 assert.equal(L.permitStatus('player').ok, false, 'one permit at a time');
 
-// --- the old surveyor (Tim 2026-11-06 20:45): talk after the permit, the nearest 3 open sites become known ----------
+// --- the old surveyor (2026-11-06 20:45): talk after the permit, the nearest 3 open sites become known ----------
 assert.equal(clan.surveyPending, true, 'the permit comes with a report waiting');
 assert.equal((clan.knownSites || []).length, 0, 'no site known before talking to him');
 const sv = g.doors.find(d => d.menu === 'surveyor');
@@ -77,15 +77,15 @@ assert.match(clan.notice?.text || '', /already/, 'once per permit');
 assert.equal(clan.knownSites.length, 3);
 atOffice();
 
-// --- settlers: hired here, then wait safely at the HQ as a count (Tim 2026-11-06), not as units -------
+// --- settlers: hired here, then wait safely at the HQ as a count (2026-11-06), not as units -------
 g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler', count: 5 }]);
-assert.equal(clan.settlersWaiting, 5, 'five settlers wait at the HQ at once (Tim 2026-11-20), no queue');
+assert.equal(clan.settlersWaiting, 5, 'five settlers wait at the HQ at once (2026-11-20), no queue');
 assert.equal(clan.queue.length, 0);
 g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'thug' }]);
 assert.equal(clan.queue.length, 0, 'the Land Office hires settlers only');
 assert.equal(g.clans.settlersOf('player').length, 0, 'no settler units in the city streets');
 g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler', count: 1 }]);
-assert.equal(clan.queue.length, 0, `no 6th settler (Tim 2026-11-06): ${clan.notice?.text}`);
+assert.equal(clan.queue.length, 0, `no 6th settler (2026-11-06): ${clan.notice?.text}`);
 
 // --- the island gate: Choose site takes the hero and the settlers only ---------------------------------
 const gate = g.doors.find(d => d.gate && d.place === 'world');
@@ -96,7 +96,7 @@ toGate();
 const crew = g.clans.crewOf('player').filter(u => u.type === 'thug');
 crew.forEach((u, i) => Object.assign(u, { place: 'street', x: gate.x - 0.6 * (i + 1), z: gate.z - 0.6, order: { kind: 'follow', target: hero.id } }));
 crew.forEach((u, i) => { u.deployment = { ...(u.deployment || {}), group: i < 3 ? 'hero' : 'home' }; if (i >= 3) u.order = { kind: 'move', x: u.x, z: u.z, arrived: true }; });
-crew[2].downed = true;   // Tim 2026-11-06: a downed Hero-group member stays behind
+crew[2].downed = true;   // 2026-11-06: a downed Hero-group member stays behind
 const sites = L.sites('player'), open = sites.filter(s => s.open);
 assert.ok(sites.length === world.sites.length && open.length > 10, 'sites listed with traits');
 assert.ok(sites.every(s => s.traits.soil >= 1 && s.traits.water >= 1 && s.traits.defense >= 1 && typeof s.campWarn === 'boolean'));
@@ -169,7 +169,7 @@ assert.equal(L.permitStatus('player').ok, false, 'maxTowns: no second permit unt
   const gate = g.doors.find(d => d.gate && d.place === 'world');
   Object.assign(hero, { place: 'street', x: gate.x, z: gate.z });
   const s = g.spawn('settler', 'laborer', gate.x + 1, gate.z + 1, { owner: 'player', holdFire: true, order: { kind: 'follow', target: hero.id } });
-  // no permit, no town: the gate stays shut (Tim 2026-11-10), by expedition and by Space at the gate alike
+  // no permit, no town: the gate stays shut (2026-11-10), by expedition and by Space at the gate alike
   g.step([{ id: hero.id, type: 'expedition', action: 'walk', units: [] }]);
   assert.equal(hero.place, 'street'); assert.match(g.state.clans.player.notice?.text || '', /founding permit/);
   g.step([{ id: hero.id, type: 'use', units: [] }]);
@@ -195,7 +195,7 @@ assert.equal(L.permitStatus('player').ok, false, 'maxTowns: no second permit unt
   assert.deepEqual(Object.keys(real.roads), [], 'no fixture roads');
   assert.ok(Object.keys(g.state.frontier.settlements).includes('s_frontier_1'), 'tests keep the fixture towns');
 }
-// Space by the old surveyor talks to him, not the Land Office (Tim 2026-11-20): his spot is clear of the office ring
+// Space by the old surveyor talks to him, not the Land Office (2026-11-20): his spot is clear of the office ring
 // and the closest door in reach wins
 {
   const { g, hero } = match('campaign');

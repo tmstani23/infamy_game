@@ -19,7 +19,7 @@ const options = { district: data('data/port_town.json'), catalog: data('data/art
 const g = createGame(options);
 const m = setupMatch(g, { clan: 'yakuza', difficulty: 'easy', mode: 'campaign', bots: data('data/bots.json'), spawns: options.district.spawns, test: { playerRyo: 5000 }, seed: 41 });
 const S = g.state, hero = S.entities[m.heroId], clan = S.clans.player;
-// the capital end of the line (Tim 2026-11-10): level with the city railway station, not the gate; the track comes
+// the capital end of the line (2026-11-10): level with the city railway station, not the gate; the track comes
 // straight in from railApproach, through the wall, and ends inside the city's box
 const [gx, gz] = g.gate.railApproach, [ex, ez] = g.gate.rail;
 assert.ok(Math.abs(gz - g.gate.island[1]) > 5 && ez === gz, 'north of the gate, level with the station');
@@ -74,7 +74,7 @@ assert.ok(town.stock.timber < timber0, 'timber paid');
 const per100 = railways.link.costPer100.timber, paid = timber0 - town.stock.timber;
 assert.ok(paid <= per100 * (l.built + railways.link.stretch) / 100 + 1, 'paid only as it goes');
 const gang = l.gang.map(id => S.entities[id]).filter(Boolean);
-// Tim 2026-11-22: the drawn railhead (link.shown) moves at the gang's walking pace, behind the true progress on a
+// 2026-11-22: the drawn railhead (link.shown) moves at the gang's walking pace, behind the true progress on a
 // line this quick; the gang works beside it
 assert.ok(l.shown > 0 && l.shown < l.built && l.shown <= railways.gang.speed * SECONDS / 3 + 1, `drawn at a walk (${Math.round(l.shown)} of ${Math.round(l.built)})`);
 assert.equal(gang.length, railways.gang.size, 'the gang is out');
@@ -110,7 +110,7 @@ const T = railways.train, trains = rail.trains();
 assert.equal(trains.length, 1, 'one train on the open line');
 const tr = trains[0];
 Object.assign(tr, { d: 0, dir: 1, wait: T.stopSeconds * 20 });   // it has been running while the test waited; start it over
-// with nobody near it runs at full speed (Tim 2026-11-07: slower only on screen); park the hero in the city
+// with nobody near it runs at full speed (2026-11-07: slower only on screen); park the hero in the city
 const parked = { place: hero.place, x: hero.x, z: hero.z };
 Object.assign(hero, { place: 'street', x: g.gate.inside[0], z: g.gate.inside[1] });
 assert.equal(rail.stationOf(tr), 'tR', 'standing at the first station');
@@ -142,10 +142,10 @@ const st = rail.endpoint('player', 'tR');
 Object.assign(tr, { d: 0, dir: 1, wait: T.stopSeconds * 20 });
 Object.assign(hero, { place: 'world', x: st.x + 3, z: st.z + 3 }); hero.hitAt = -1e9;
 Object.assign(mate, { place: 'world', x: st.x + 5, z: st.z + 3, order: { kind: 'follow', target: hero.id } });
-// boarding zone (Tim 2026-11-08): anyone of yours standing in it comes, following or not; one outside it stays
+// boarding zone (2026-11-08): anyone of yours standing in it comes, following or not; one outside it stays
 const pal = S.entities[g.spawn(mate.type, mate.model, st.x + 12, st.z + 10, { owner: 'player', place: 'world', hp: mate.maxHp, maxHp: mate.maxHp, deployment: { ...(mate.deployment || {}), group: 'hero' } })];
 const far = S.entities[g.spawn(mate.type, mate.model, st.x + 30, st.z - 20, { owner: 'player', place: 'world', hp: mate.maxHp, maxHp: mate.maxHp, deployment: { ...(mate.deployment || {}), group: 'hero' } })];
-// a crewman sitting in a parked rickshaw in the zone climbs out and boards; the rickshaw stays, empty (Tim 2026-11-08)
+// a crewman sitting in a parked rickshaw in the zone climbs out and boards; the rickshaw stays, empty (2026-11-08)
 const rk = S.entities[g.spawn('rickshaw', 'rickshaw', st.x + 8, st.z - 6, { omnibusOwner: 'player', place: 'world', vehicle: true, hp: 300, maxHp: 300 })];
 const sitter = S.entities[g.spawn(mate.type, mate.model, rk.x, rk.z, { owner: 'player', place: 'world', hp: mate.maxHp, maxHp: mate.maxHp })];
 sitter.aboard = rk.id;
@@ -177,14 +177,14 @@ assert.equal(hero.place, 'street', 'into the city');
 assert.ok(g.gate.station && Math.hypot(hero.x - g.gate.station[0], hero.z - g.gate.station[1]) < 12, 'at the city railway station by the gate');
 assert.equal(mate.place, 'street', 'the follower came too');
 assert.equal(rail.stationOf(tr), 'capital', 'the train stands at the capital');
-// from the city railway station (Tim 2026-11-07): ride along all the way, no Skip; the gate itself is no station
+// from the city railway station (2026-11-07): ride along all the way, no Skip; the gate itself is no station
 Object.assign(hero, { x: g.gate.city[0] + 1, z: g.gate.city[1] });
 assert.equal(rail.service(hero).length, 0, 'no trains at the gate itself');
 Object.assign(hero, { x: g.gate.station[0] + 1, z: g.gate.station[1] });
 const sc = rail.service(hero);
 assert.ok(sc.length && sc[0].at === 'capital' && sc[0].eta === 0, 'the train shows at the city station');
 assert.ok(g.doors.some(d => d.menu === 'rail_station'), 'the station door ring opens the station menu');
-// no boarding at the capital while a Rally is up (Tim 2026-11-10)
+// no boarding at the capital while a Rally is up (2026-11-10)
 {
   const D = g.state.deployment.clans[hero.owner];
   if (D) {
@@ -203,7 +203,7 @@ assert.ok(!hero.aboard && hero.place === 'world', 'got off on the island');
 assert.ok(Math.hypot(hero.x - st.x, hero.z - st.z) < 25, 'at Railton station');
 assert.match(clan.notice?.text || '', /Arrived at Railton/);
 console.log('rail ride OK (board, Skip after 5 s, ride along, both ends)');
-// --- through town (Tim 2026-11-07: track ran through buildings): never on a building or house, its cells reserved ----
+// --- through town (2026-11-07: track ran through buildings): never on a building or house, its cells reserved ----
 {
   const { worldToCell } = await import('../src/sim/frontier/town_grid.js');
   const stCells = new Set(town.buildings.filter(b => b.type === 'station').flatMap(b => b.cells || [b.cell]));
@@ -219,7 +219,7 @@ console.log('rail ride OK (board, Skip after 5 s, ride along, both ends)');
   console.log(`rail through town OK (${reserved.length} cells kept clear)`);
 }
 
-// --- a line laid to the old end at the gate (an older save) is routed again to the station end, once (Tim 2026-11-10) ---
+// --- a line laid to the old end at the gate (an older save) is routed again to the station end, once (2026-11-10) ---
 {
   const l = Object.values(S.frontier.rail.links).find(x => x.to === 'capital' && x.done);
   assert.ok(l, 'a finished capital line');

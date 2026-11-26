@@ -1,10 +1,10 @@
-// "While I'm away" page in the Deployment window (frontier C3, Tim 2026-11-02/05). Campaign only.
-// Standing order toggles, a daily budget slider and the lieutenant's log (paged, like the general's: Tim 2026-11-22). Sends only
+// "While I'm away" page in the Deployment window (frontier C3, 2026-11-02/05). Campaign only.
+// Standing order toggles, a daily budget slider and the lieutenant's log (paged, like the general's: 2026-11-22). Sends only
 // { type: 'lieutenant', orders | budget | defendAtHome }; the rules are in sim/lieutenant.js.
 const LABELS = { defend: 'Defend raids', retake: 'Buy back lost businesses', shakedown: 'Shakedowns', sweep: 'Sweeps', contracts: 'Ambush contracts', hire: 'Hire crew',
   buy: 'Buy free businesses (one a day)', jobs: 'Shinobi jobs: Scout, Sabotage or Thin out the bandits (one a day)', steal: 'Steal contracts (one a night)',
   raid: 'Raid rival businesses at night (War Lantern from the treasury, with a Rally)' };
-// Tim 2026-11-06: Buy is for clans that own businesses; Jobs and Steal for the Shinobi
+// 2026-11-06: Buy is for clans that own businesses; Jobs and Steal for the Shinobi
 const FOR_NINJA = { buy: false, jobs: true, steal: true, raid: false };
 import { lieutenantPortrait } from './lieutenant_portrait.js';
 import { logRowHtml, logPageHtml, logHover, logTurn, LOG_CSS } from './action_log_ui.js';
@@ -16,7 +16,7 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
   const tab = document.createElement('button'); tab.type = 'button'; tab.className = 'show-away'; tab.textContent = "While I'm away";
   const pane = document.createElement('section'); pane.className = 'pane-away';
   pane.innerHTML = '<div class="lt-head"><img class="lt-portrait" alt=""><h4>While I&#39;m away</h4></div><p class="away-status"></p><button type="button" class="away-watch">Watch the city</button><div class="away-orders"></div>'
-    // a typeable box and Set (Tim 2026-11-10: no sliders; Set also completes the goal step when the number is unchanged)
+    // a typeable box and Set (2026-11-10: no sliders; Set also completes the goal step when the number is unchanged)
     + '<div class="away-budget-row">Budget <input class="away-budget" type="text" inputmode="numeric" maxlength="5" autocomplete="off" title="What your lieutenant may spend each day"> ryo a day <button type="button" class="away-budget-set" title="Set the daily budget">Set</button><span class="away-budget-tip">800 a day is a good start</span><span class="away-budget-value" hidden></span></div>'
     + '<label title="While your clan is in a war on the island your lieutenant holds what you have. He buys no new businesses and raids only to win back a business a rival took since the war began. Shakedowns, Sweeps, hiring, bail, the clinic and defence go on as usual."><input class="away-war" type="checkbox"> War Mode during a war</label><p class="away-war-status" hidden>War Mode is on. Your lieutenant is holding what you have.</p>'
     + '<label><input class="away-home" type="checkbox"> Keep defending when I&#39;m back</label><div class="away-logbox"></div>';
@@ -41,7 +41,7 @@ export function createLieutenantPanel({ root, game, heroId, send, cityWatch = nu
   const setBudget = () => { const max = Number(budget.dataset.max) || 2000, v = Math.max(0, Math.min(max, Math.round(Number(budget.value) || 0))); budget.value = String(v); send({ id: heroId, type: 'lieutenant', budget: v }); budget.blur(); };
   pane.querySelector('.away-budget-set').addEventListener('click', setBudget);
   budget.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') setBudget(); });
-  budget.addEventListener('input', () => { const d = budget.value.replace(/[^0-9]/g, ''); if (d !== budget.value) budget.value = d; pane.querySelector('.away-budget-value').textContent = budget.value; });   // digits only (typed box, Tim 2026-11-20)
+  budget.addEventListener('input', () => { const d = budget.value.replace(/[^0-9]/g, ''); if (d !== budget.value) budget.value = d; pane.querySelector('.away-budget-value').textContent = budget.value; });   // digits only (typed box, 2026-11-20)
   const warBox = pane.querySelector('.away-war');
   warBox.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', warMode: warBox.checked }));
   home.addEventListener('change', () => send({ id: heroId, type: 'lieutenant', defendAtHome: home.checked }));

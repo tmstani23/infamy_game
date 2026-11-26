@@ -1,7 +1,7 @@
 {
   "version": 1,
   "date": "2026-11-03",
-  "status": "MR1 candidate for Tim review only; not a world build or approved runtime geometry",
+  "status": "MR1 candidate for review only; not a world build or approved runtime geometry",
   "coordinates": "World x east, z south; range knots [x,z,halfWidth]. Smooth interpolated corridors with explicit taper; lake outline control points.",
   "baseline": "reshape_baseline_v1.json",
   "preservation": "All source/mouth/ford/pass anchors and authored locations remain fixed in this proposal. Mountain clearances reserved around protected points; final terrain/routes/nav verification belongs to MR2-MR4.",

@@ -1,4 +1,4 @@
-// The camp hall's Shelter tab (Tim 2026-11-25): who is inside the camp hall and why, the room left, Release all and
+// The camp hall's Shelter tab (2026-11-25): who is inside the camp hall and why, the room left, Release all and
 // Send all in; a click on a worker's name tag sends that one back to work. A board of up to 14 hanging name tags
 // (nafuda), hiding ones first: a vermilion seal for those who fled an attack, an ink mark for those sent in by hand.
 // Rules live in sim/frontier/structures.js (hallShelter).

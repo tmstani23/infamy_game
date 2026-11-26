@@ -1,7 +1,7 @@
 {
   "version": 1,
   "date": "2026-11-03",
-  "status": "Tim approved style; pre-reshape geography is superseded. Preserve as historical style trial, not current runtime map art.",
+  "status": "approved style; pre-reshape geography is superseded. Preserve as historical style trial, not current runtime map art.",
   "tool": "Built-in image_gen; edit using exact blueprint",
   "prompt": "atlas_illustration_prompt_v1.txt",
   "reference": "atlas_blueprint_v1.png",

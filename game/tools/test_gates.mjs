@@ -99,13 +99,13 @@ assert.equal(ST.gatesAgainst('player').length, 1, 'one gate stands against the a
   const pieces = camp.buildings.filter(b => b.type === 'palisade');
   assert.equal(pieces.length, N); assert.equal(camp.stock.timber, t0 - N * P.cost.timber, 'paid at once'); assert.ok(pieces.every(b => b.stage === 'site' && b.rot === 0));
   assert.ok(!war.campLineCheck(rec.id, line.a, line.b).ok, 'not twice on the same ground');
-  // Tim 2026-11-15: a run snaps to world x or z (the two diagonals the art is drawn for), and is one job
+  // 2026-11-15: a run snaps to world x or z (the two diagonals the art is drawn for), and is one job
   { const slant = war.campLineCheck(rec.id, { x: line.a.x, z: line.a.z + 40 }, { x: line.a.x + 30, z: line.a.z + 52 });
     assert.ok(slant.points.length === N && slant.points.every(p => p.z === line.a.z + 40) && slant.rot === 0, 'a slanted drag runs along x');
     const steep = war.campLineCheck(rec.id, { x: line.a.x, z: line.a.z + 40 }, { x: line.a.x + 12, z: line.a.z + 70 });
     assert.ok(steep.points.every(p => p.x === line.a.x) && Math.abs(Math.abs(steep.rot) - 1.571) < 0.01, 'a steep one along z'); }
   assert.ok(pieces[0].line && pieces.every(b => b.line === pieces[0].line), 'the pieces of a run share its line id');
-  // Tim 2026-11-15: pieces stand exactly one length apart; a new run locks onto the end of the wall and meets it square
+  // 2026-11-15: pieces stand exactly one length apart; a new run locks onto the end of the wall and meets it square
   const near = (a, b, e = 0.02) => Math.abs(a - b) <= e, GL = frontier.war.buildings.gate.length;
   assert.ok(pieces.every((b, i) => !i || near(b.x - pieces[i - 1].x, P.length)), 'a piece every length, no gaps');
   assert.equal(GL, 2 * P.length, 'a gate is two palisade pieces long');
@@ -136,7 +136,7 @@ assert.equal(ST.gatesAgainst('player').length, 1, 'one gate stands against the a
   { const r = cmd({ action: 'campPlace', war: rec.id, kind: 'gate', x: mid.x + 1, z: mid.z + 3 }); assert.ok(r?.ok, r?.reason); }
   const gate = camp.buildings.find(b => b.type === 'gate');
   assert.ok(gate && near(gate.x, (mid.x + pieces[4].x) / 2) && !camp.buildings.includes(mid) && !camp.buildings.includes(pieces[4]) && camp.buildings.filter(b => b.type === 'palisade').length === N - 2, 'the gate replaced two pieces');
-  // the Eraser (Tim 2026-11-15): everything a building cost comes back; the hall stays
+  // the Eraser (2026-11-15): everything a building cost comes back; the hall stays
   { const t1 = camp.stock.timber, far = { x: endJ.x + 12, z: endJ.z + 20 };
     { const r = cmd({ action: 'campLine', war: rec.id, x0: far.x, z0: far.z, x1: far.x, z1: far.z + 6 }); assert.ok(r?.ok, r?.reason); }
     const extra = camp.buildings.filter(b => b.type === 'palisade' && near(b.x, far.x, 0.1));

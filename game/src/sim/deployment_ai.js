@@ -34,7 +34,7 @@ export function createDeploymentAI(game, { clan, hero }) {
       const follow = members.filter(e=>inHeroParty(game,e)&&!e.deployment.transfer&&idle(e)&&e.place===h.place).map(e=>e.id);
       if (follow.length && !raid) out.push({id:hero,type:'order',kind:'follow',units:follow});
     }
-    // Guard duty (Tim 2026-11-10): every day half the sectors where the clan holds a business guard their most
+    // Guard duty (2026-11-10): every day half the sectors where the clan holds a business guard their most
     // expensive one and the other half patrol; the halves swap each day. A business being raided or shaken down is
     // guarded at once by its sector while the hit is on. A duty set by hand (a guard this brain did not set) is left alone.
     if (st.clans[clan].kind !== 'ninja') {

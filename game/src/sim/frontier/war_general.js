@@ -1,4 +1,4 @@
-// War checkpoint 8d-1 (Tim 2026-11-15): the bot general, rules side.
+// War checkpoint 8d-1 (2026-11-15): the bot general, rules side.
 // A general runs every side of a war that nobody is watching: a bot clan's side always, and a player's side while
 // his hero is away (not inside that war's circle). The orders themselves come from the general's brain
 // (sim/war_general_brain.js), a client like the bots and the lieutenant: it only reads the state and sends the
@@ -32,7 +32,7 @@ export function createWarGeneral({ state, data, war, dayTicks = 12000, seed = ()
     return c.warStrategy;
   }
   const sideOf = (w, clan) => w.attacker === clan ? 'attacker' : w.defender === clan ? 'defender' : null;
-  // Tim 2026-11-17: a general's temperament in one war, rolled once from the game seed and kept on the war: 'bold'
+  // 2026-11-17: a general's temperament in one war, rolled once from the game seed and kept on the war: 'bold'
   // pushes in full once its core troops are up, 'patient' builds its list first. Odds: the strategy's attack.bold
   function temper(w, side) {
     const t = (w.temper ||= {}), clan = side === 'attacker' ? w.attacker : w.defender;

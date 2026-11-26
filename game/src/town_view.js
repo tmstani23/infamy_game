@@ -1,15 +1,15 @@
-// View a town (Tim 2026-11-25): look at one of your own frontier towns from wherever your hero is, like Watch the
+// View a town (2026-11-25): look at one of your own frontier towns from wherever your hero is, like Watch the
 // city. Presentation only, per player: each client looks at its own hero's towns (owner = the hero's clan), so every
 // human player has it. The camera goes to the town (render/view.js setWarWatch: the island at x, z), the hero stays
 // put and takes no orders or movement meanwhile (movement, viewCommands).
-// Tim 2026-11-25 (later): while viewing you run the town as if your hero were there: its town menu, building menus,
+// 2026-11-25 (later): while viewing you run the town as if your hero were there: its town menu, building menus,
 // building, workers and orders to your troops and crew out on the island. Orders carry view: <town id> so the sim lets
 // island units take them with the hero elsewhere (sim/crew_orders.js, sim/frontier/structures.js); the hero is taken
 // out of every command, and his own actions (attack, mount, loot...) and city orders stay blocked. The capital rule
-// (Tim 2026-11-08: boss on the island, no city crew orders) is unchanged.
+// (2026-11-08: boss on the island, no city crew orders) is unchanged.
 // Opened from the View button on a row of Your towns (Y), or by clicking your town on the World map and confirming.
 // Home, the banner button, the hero being hurt, falling or the town being lost end it. Rival towns cannot be viewed
-// (Tim 2026-11-25: free viewing would scout them).
+// (2026-11-25: free viewing would scout them).
 // viewableTown, viewCommands, confirmHtml and bannerHtml are pure (the Node test uses them).
 import { WATCH_BLOCKED } from './city_watch.js';
 
@@ -25,7 +25,7 @@ export function viewableTown(state, sites, owner, id) {
 }
 // while viewing: city and hero-only commands are dropped (as Watch the city, but orders pass); every command loses the
 // hero (he waits where he stands) and orders are stamped with the viewed town
-// Recall and Take out (garage) work too (Tim 2026-11-26: the stable tab's Recall did nothing while viewing)
+// Recall and Take out (garage) work too (2026-11-26: the stable tab's Recall did nothing while viewing)
 const VIEW_BLOCKED = new Set([...WATCH_BLOCKED, 'attackmode'].filter(t => t !== 'order' && t !== 'garage'));
 export function viewCommands(list, heroId, townId) {
   const out = [];
@@ -47,7 +47,7 @@ export const confirmHtml = name => `<div class="tv-head"><b>View ${esc(name)}?</
   + '<div class="tv-acts"><button type="button" class="tv-go" data-tv="view">View</button><button type="button" class="tv-x" data-tv="cancel">Cancel</button></div>';
 export const bannerHtml = name => `<span><b>Viewing ${esc(name)}</b><i>run it from here, your boss stays put</i></span><button type="button" data-back="1" title="Home also returns">Return to hero</button>`;
 
-// lantern style (Tim 2026-11-23): lacquered wood plaques with brass corners, warm light from above, no web pills
+// lantern style (2026-11-23): lacquered wood plaques with brass corners, warm light from above, no web pills
 const GRAIN = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.11' numOctaves='3' seed='7'/><feColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.12  0 0 0 0 0.06  0 0 0 .55 0'/></filter><rect width='400' height='160' filter='url(%23g)'/></svg>\")";
 const FIBER = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.35  0 0 0 0 0.2  0 0 0 .22 0'/></filter><rect width='200' height='200' filter='url(%23p)'/></svg>\")";
 export const TOWN_VIEW_CSS = `

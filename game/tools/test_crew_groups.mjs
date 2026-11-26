@@ -56,7 +56,7 @@ try {
   assert.deepEqual(input.selected(), ['c']); assert.equal(sent.length, 0, 'indoor selection issues no orders');
   assert.equal(input.groupOf('c'), 3, 'drag selection keeps membership');
   input.selectAll(); assert.deepEqual(input.selected(), ['h', 'a', 'b', 'c'], 'C includes the hero and indoor and outdoor crew');
-  // A drag box always takes the hero standing in it, alone or with crew (Tim 2026-11-20); mounted or not, but not while aboard a vehicle.
+  // A drag box always takes the hero standing in it, alone or with crew (2026-11-20); mounted or not, but not while aboard a vehicle.
   const drag = (x0, y0, x1, y1) => { handlers.mousedown.forEach(fn => fn({ ...pointer, clientX: x0, clientY: y0 })); handlers.mouseup.forEach(fn => fn({ ...pointer, clientX: x1, clientY: y1 })); };
   h.place = 'street'; h.x = 100; h.z = 100; a.x = 110; a.z = 110;
   drag(90, 90, 120, 120); assert.deepEqual(input.selected().sort(), ['a', 'h'], 'box over hero and crew takes both');
@@ -64,7 +64,7 @@ try {
   h.mounted = true; drag(95, 95, 105, 105); assert.deepEqual(input.selected(), ['h'], 'mounted hero too'); h.mounted = false;
   h.aboard = 'bus'; input.clear(); drag(95, 95, 105, 105); assert.deepEqual(input.selected(), [], 'a hero aboard a vehicle is not boxed'); delete h.aboard;
 
-  // number keys go through the rebindable key table (Tim 2026-11-12): menus first, then group actions
+  // number keys go through the rebindable key table (2026-11-12): menus first, then group actions
   const acts = {}, firsts = [], menus = [0, 1, 2, 3].map(() => ({ open: false, picks: [], isOpen() { return this.open; }, pick(i) { this.picks.push(i); } }));
   bindCrewNumberKeys({ onAction: (id, fn) => acts[id] = fn, onKeyFirst: f => firsts.push(f), crewInput: input, menus });
   const { createKeybinds } = await import('../src/keybinds.js'), kb = createKeybinds(null);
@@ -136,7 +136,7 @@ try {
   input.select(['b','d']);assert.deepEqual(input.selected(),['b'],'mixed-group box/number selection never creates a mini Rally');
   game.state.deployment.clans.player.rally={active:true,endsAt:100,participants:[{id:'b'}]};
   input.selectAll();assert.deepEqual(input.selected(),['h','a','b'],'C includes actual active Rally participants');
-  // C and Shift+C take the hero too, first, on the island and in the city (Tim 2026-11-20)
+  // C and Shift+C take the hero too, first, on the island and in the city (2026-11-20)
   for (const u of [h, a, b]) u.place = 'world';
   game.state.entities.t1 = { ...a, id: 't1', warTroop: true, place: 'world' };
   input.selectAll(); assert.equal(input.selected()[0], 'h', 'C on the island: hero first'); assert.ok(input.selected().includes('a') && !input.selected().includes('t1'), 'C: crew, no war troops');

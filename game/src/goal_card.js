@@ -1,8 +1,8 @@
-// Goal card (quest log, Tim 2026-11-06): the campaign's current goal under the top bar. Reads
+// Goal card (quest log, 2026-11-06): the campaign's current goal under the top bar. Reads
 // game.goals.current() only (rules in sim/campaign_goals.js). Each requirement is a wax seal with a filling
 // bar and its count; a finished one stamps gold. When the whole goal is done a "New goal" callout follows.
 // Click the banner to fold or unfold the rows. Hidden outside campaign games.
-// drawn seal icons (menu restyle, Tim 2026-11-10: no kanji or glyphs in the UI)
+// drawn seal icons (menu restyle, 2026-11-10: no kanji or glyphs in the UI)
 const GLYPH = {
   renown: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l1.9 4 4.4.5-3.3 3 .9 4.4L8 11.2l-3.9 2.2.9-4.4-3.3-3 4.4-.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>',
   crew: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M3 14c0-3 2.2-5 5-5s5 2 5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>',
@@ -19,7 +19,7 @@ const FOLD_KEY = 'infamy.goalCard.folded', HIDE_KEY = 'infamy.goalCard.hidden';
 export function createGoalCard({ root, button = null, game, heroId, callout = () => {}, stamp = () => {} }) {
   let at = 0, shown = '', lastKey = null, doneSeen = new Set();
   let folded = false; try { folded = localStorage.getItem(FOLD_KEY) === '1'; } catch {}
-  // utility-menu icon (Tim 2026-11-06): shows or hides the whole card
+  // utility-menu icon (2026-11-06): shows or hides the whole card
   let off = false; try { off = localStorage.getItem(HIDE_KEY) === '1'; } catch {}
   button?.addEventListener('click', e => {
     off = !off; try { localStorage.setItem(HIDE_KEY, off ? '1' : '0'); } catch {}
@@ -58,7 +58,7 @@ export function createGoalCard({ root, button = null, game, heroId, callout = ()
     const html = `<div class="gc-banner" title="Click to ${folded ? 'show' : 'hide'} the steps"><small>GOAL</small><span>${g.title}</span><span class="gc-trail">${trail}</span></div>${rows}`;
     if (html !== shown) { root.innerHTML = html; shown = html; }
   }
-  // a rival mark on the World map (goals pass, Tim 2026-11-19): show the card, unfolded
+  // a rival mark on the World map (goals pass, 2026-11-19): show the card, unfolded
   function show() {
     off = false; folded = false;
     try { localStorage.setItem(HIDE_KEY, '0'); localStorage.setItem(FOLD_KEY, '0'); } catch {}

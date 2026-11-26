@@ -33,7 +33,7 @@ const game=createGame({district:json('data/port_town.json'),catalog:json('data/a
 assert.ok(game.itemServices.shop(),'placed blacksmith gets one outdoor shopkeeper');
 game.clans.addClan('player');const npc=game.itemServices.shop(),id=game.spawn('hero','ronin',npc.x,npc.z,{owner:'player',holdFire:true});
 game.state.clans.player.ryo=5000;game.step([{id,type:'item',action:'buy',item:'bandage'}]);assert.equal(game.state.clans.player.inventory.bandages,1,'shared command reaches authoritative shop');
-// Tim 2026-11-01: the blacksmith can't be attacked, never gets scared or crouches, and his frame reads normally
+// 2026-11-01: the blacksmith can't be attacked, never gets scared or crouches, and his frame reads normally
 game.step([{id,type:'attack',target:npc.id}]);for(let i=0;i<40;i++)game.step([]);assert.equal(npc.hp,60,'shopkeeper takes no damage');
 game.clans.addClan('rival');const foe=game.spawn('thug','thug',npc.x+1,npc.z,{owner:'rival'});
 for(let i=0;i<80;i++)game.step(i?[]:[{id,type:'attack',target:foe}]);

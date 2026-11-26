@@ -79,7 +79,7 @@ assert.equal(k.hp, k.maxHp, 'and is not attacked'); assert.equal(foe.swing, unde
   const hp = k.hp; run(60); assert.equal(k.hp, hp, 'nobody follows her');
   // shown again by a hit on her: no second Vanish yet, she stays shown for revealTicks
   g.stealth?.reveal ? g.stealth.reveal(k) : (k.revealUntil = g.state.tick + K.revealTicks, k.hidden = false);
-  g.step([{ id: hero.id, type: 'order', kind: 'move', units: [k.id], x: k.x - 40, z: k.z }]);   // out past the brute's spot range (war.spot, Tim 2026-11-25)
+  g.step([{ id: hero.id, type: 'order', kind: 'move', units: [k.id], x: k.x - 40, z: k.z }]);   // out past the brute's spot range (war.spot, 2026-11-25)
   run(10); assert.equal(k.hidden, false, 'Vanish is on cooldown');
   run(K.revealTicks + 5); assert.equal(k.hidden, true, 'hidden again after a few seconds'); }
 

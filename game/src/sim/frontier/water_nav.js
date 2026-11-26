@@ -1,4 +1,4 @@
-// Water for ships (ships plan S1, Tim 2026-11-22). A fine grid over the whole island (cell `cell`, 20 by default) says
+// Water for ships (ships plan S1, 2026-11-22). A fine grid over the whole island (cell `cell`, 20 by default) says
 // for each spot whether it is land or which water, and two masks say where ships may sail:
 //   big   = warships and transports: the sea and the four main rivers (world.json rivers), never through a bridge or
 //           ford (world.json fords); a lake only when a main river runs into it

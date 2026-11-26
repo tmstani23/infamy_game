@@ -1,4 +1,4 @@
-// Campaign zones on the World map (Z3, Tim 2026-11-19, mock zones_map_mock_v1.png): dashed borders between the six
+// Campaign zones on the World map (Z3, 2026-11-19, mock zones_map_mock_v1.png): dashed borders between the six
 // zones, a tint over a zone one clan holds, a label chip per zone (name, who holds it, your towns of the cap), the
 // castles you know and the goal row. A rival's part shows only what your clan has discovered: a rival town counts once
 // its ground is discovered, a rival castle likewise. A zone where you have a town uses the true holder (you know
@@ -90,7 +90,7 @@ function chip(ctx, px, py, r) {
   ctx.font = '12px Georgia, serif'; ctx.fillStyle = r.color || (r.status === 'contested' ? '#e58a6a' : '#c9bfa6'); ctx.fillText(r.text, px, py + 6);
   ctx.fillStyle = '#c9bfa6'; ctx.fillText(l3, px, py + 22);
 }
-// castle mark (Tim 2026-11-23, replaces the black box): an engraved keep in the sea-chart manner of the capital's wheel, ink
+// castle mark (2026-11-23, replaces the black box): an engraved keep in the sea-chart manner of the capital's wheel, ink
 // with brass edges on a stone base, a pennant in the clan's colour, the name in the map serif beside it
 function castleMark(ctx, px, py, c) {
   const u = 1, BRASS = '#d9b56a', INK = 'rgba(18,11,7,.95)';

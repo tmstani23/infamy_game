@@ -1,4 +1,4 @@
-// Tim 2026-11-07: the Vehicles panel commands (sim/vehicle_garage.js): recall to the nearest stable and store, take out; stored horses answer the whistle.
+// 2026-11-07: the Vehicles panel commands (sim/vehicle_garage.js): recall to the nearest stable and store, take out; stored horses answer the whistle.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
@@ -68,7 +68,7 @@ for (let t = 0; t < 30 * 20 && !(horse.stored && rk.stored); t++) g.step([]);
 assert.ok(horse.stored && rk.stored, 'both stored');
 g.step([{ id: hero.id, type: 'garage', action: 'recallAll' }]);
 assert.match(clan.notice?.text || '', /already in a stable/, 'nothing left out');
-// Tim 2026-11-10: Recall all stores every one, also a horse with a leftover rider id and a vehicle with someone still inside
+// 2026-11-10: Recall all stores every one, also a horse with a leftover rider id and a vehicle with someone still inside
 gcmd('takeout', horse.id); gcmd('takeout', rk.id);
 Object.assign(horse, { x: sx + 60, z: sz + 10 }); Object.assign(rk, { x: sx + 80, z: sz + 30 });
 horse.rider = 'gone-rider';
@@ -83,7 +83,7 @@ gcmd('takeout', horse.id); horse.rider = 'gone-rider'; Object.assign(horse, { x:
 gcmd('recall', horse.id);
 for (let t = 0; t < 30 * 20 && !horse.stored; t++) g.step([]);
 assert.ok(horse.stored, 'single recall stores her');
-// taken out, they park apart around the stable, off the town's buildings (Tim 2026-11-10)
+// taken out, they park apart around the stable, off the town's buildings (2026-11-10)
 {
   const { townBlockersIn } = await import('../src/sim/frontier/town_grid.js');
   const extra = [0, 1, 2].map(i => S.entities[g.spawn('horse', horse.model, sx, sz, { horseOwner: 'player', place: 'stable', stored: { town: 'tS' }, hp: 300, maxHp: 300, vehicle: true })]);
@@ -96,7 +96,7 @@ assert.ok(horse.stored, 'single recall stores her');
     for (const o of all) if (o !== v) assert.ok(Math.hypot(o.x - v.x, o.z - v.z) >= 4, `not stacked (${Math.hypot(o.x - v.x, o.z - v.z).toFixed(1)})`);
   }
 }
-// recall is capped at the stable's horse room; the hero's own mount has its own stall (Tim 2026-11-26)
+// recall is capped at the stable's horse room; the hero's own mount has its own stall (2026-11-26)
 {
   for (const e of Object.values(S.entities)) if (e.type === 'horse' && e.horseOwner === 'player' && e.id !== S.clans.player.mount) e.dead = true;
   const room = g.frontier.stable.room('player', 'horse');

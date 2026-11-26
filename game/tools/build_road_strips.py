@@ -1,4 +1,4 @@
-"""Cuts the road strip sheet (six roads side by side, Tim 2026-11-21) into the island road atlas.
+"""Cuts the road strip sheet (six roads side by side, 2026-11-21) into the island road atlas.
 Usage: python3 game/tools/build_road_strips.py [sheet] [out]
   defaults: assets/environment/travelroads1.png -> game/art/ground/island/road_strips.png
 Each road is found by its opaque columns, cut to a 256-wide column (centred), its rounded ends trimmed, and its

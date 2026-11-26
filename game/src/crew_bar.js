@@ -1,9 +1,9 @@
 import { sprintOn, setSprint } from './input.js';
 import { portrait } from './portraits.js';
 import { sharedKeybinds } from './keybinds.js';
-const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
+const keybinds = sharedKeybinds();   // key text follows rebinding (2026-11-12)
 // Independent crew command panel; wraps buttons into the chosen width,
-// styled like the ability slots with the key in the corner (Tim 2026-10-19).
+// styled like the ability slots with the key in the corner (2026-10-19).
 // Each button does exactly what its key does (through crewInput); greyed out when it would do nothing.
 // Only reads the state; orders go out as the same commands the keys send.
 const CMDS = [
@@ -16,7 +16,7 @@ const CMDS = [
   { key: 'C', action: 'selectAll', name: 'Hero', tip: 'Select your hero group, replacing the current selection (out on the island the hero too). During Rally, select the active Rally force. Ctrl+1–4 assigns a shortcut; 1–4 recalls it.', act: c => c.selectAll(), need: 'crew' },
   { key: 'Shift+C', action: 'selectTroops', name: 'Troops', tip: 'Select all your war troops where your hero is, replacing the current selection. Your hero group is left out (C selects it); out on the island the hero is selected too.', act: c => c.selectTroops(), need: 'troops' },
 ];
-// Mount controls (Tim 2026-11-06): their own headed row under the crew commands
+// Mount controls (2026-11-06): their own headed row under the crew commands
 const MOUNT_CMDS = [
   { key: 'H', action: 'horse', name: 'Horse', tip: 'On the island: ride your horse (she trots at your run speed) or call her and she gallops to you; H again gets you off. Raise horses at a stable in your town and pick which one is yours there. You fight from the saddle with every attack and ability, and stay on until you get off. In the city H still hires crew.', act: c => c.mountKey(), need: 'horse' },
   { key: 'Shift', name: 'Sprint', tip: 'On a horse or driving a rickshaw or omnibus: gallop at full speed (horse 3.75x, rickshaw 3.5x, omnibus 3x run speed). Press Shift or click here: it stays on until you press or click again, or get off.', act: () => setSprint(!sprintOn()), need: 'riding' },
@@ -51,7 +51,7 @@ const CSS = `
   #crewcommands .ccmd.on { border-color: #ffd34d; box-shadow: 0 0 6px rgba(255,190,60,.6); }
   #crewcommands .ccmd.press { border-color: #ffd34d; box-shadow: 0 0 8px rgba(255,190,60,.7); }`;
 
-// The Mount panel (Tim 2026-11-07): compact by default, your horse's portrait, name and status; double-click the portrait
+// The Mount panel (2026-11-07): compact by default, your horse's portrait, name and status; double-click the portrait
 // moves the camera to her (H calls her); ▸ opens Stay here, Send to stable and the mount controls.
 export function createCrewBar({ root, game, heroId, crewInput, catalog = null, jump = () => {}, send = () => {} }) {
   const style = document.createElement('style');
@@ -110,7 +110,7 @@ export function createCrewBar({ root, game, heroId, crewInput, catalog = null, j
     stay.disabled = !horse || !!horse.stored || horse.place !== 'world';
     stable.disabled = !horse || !!horse.stored || !!horse.recall;
   }
-  // key badges follow rebinding; Unbound shows red (Tim 2026-11-12)
+  // key badges follow rebinding; Unbound shows red (2026-11-12)
   const keyOf = cmd => cmd.action ? keybinds.badge(cmd.action) : cmd.key;
   const keyEls = [];
   const paintKeys = () => { for (const [n, cmd] of keyEls) { if (!n) continue; const t = keyOf(cmd); n.textContent = t; n.classList.toggle('unbound', t === 'Unbound'); } };

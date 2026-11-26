@@ -77,7 +77,7 @@ for (const f of world.fords) {
     const x = wp[i][0] + (wp[i + 1][0] - wp[i][0]) * t, z = wp[i][1] + (wp[i + 1][1] - wp[i][1]) * t;
     if (terrainAt(world, x, z) === 'r') assert.ok([[0, 0], [1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5]].some(([u, v]) => passable(world, x + u, z + v)), `${f.id}: route wades river at ${x | 0},${z | 0} off the crossing art`);   // 1.5 u: walk-grid cell
   }
-  // only the crossing art is walkable (Tim 2026-11-20): the water beside a bridge deck or past a ford's gravel bar blocks
+  // only the crossing art is walkable (2026-11-20): the water beside a bridge deck or past a ford's gravel bar blocks
   const off = f.kind === 'bridge' ? 25 : 130;
   for (const s of [-1, 1]) { const x = f.x + s * k.dx / Math.hypot(k.dx, k.dz) * off, z = f.z + s * k.dz / Math.hypot(k.dx, k.dz) * off;
     if (terrainAt(world, x, z) === 'r') assert.ok(!passable(world, x, z), `${f.id}: river ${off} u along the flow is not walkable`); }

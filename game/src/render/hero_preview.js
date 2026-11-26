@@ -1,4 +1,4 @@
-// Character page preview (Tim 2026-11-01): the hero's own in-game sprite, idle and animated,
+// Character page preview (2026-11-01): the hero's own in-game sprite, idle and animated,
 // facing front, with the real weapon glow and gear auras from render/characters.js.
 // Its own small WebGL canvas; only drawn while the character page is open.
 import * as THREE from 'three';

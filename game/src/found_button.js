@@ -34,7 +34,7 @@ export function createFoundButton({ root, game, heroId, send, view, blocked=()=>
     root.disabled=false;root.textContent=active?'Choose town hall location · Esc cancels':`Found a town · ${near} settlers`;
     draw();
   }
-  // Tim 2026-11-20: settlers still in an omnibus or rickshaw step out first (the hero stays at the reins), then the hall ghost opens
+  // 2026-11-20: settlers still in an omnibus or rickshaw step out first (the hero stays at the reins), then the hall ghost opens
   const aboard=()=>{const h=hero();return h?Object.values(game.state.entities).filter(u=>u.type==='settler' && u.owner===h.owner && !u.dead && u.aboard).map(u=>u.id):[];};
   root.addEventListener('click',()=>{if(!root.disabled){const ids=aboard();if(ids.length)send({id:heroId,type:'omnibus',action:'deploy',units:ids});cancel();onStart();active=true;}root.blur();update();});
   addEventListener('mousemove',e=>{if(active){mouse=e.target?.closest?.('canvas#view')?{x:e.clientX,y:e.clientY}:null;draw();}});

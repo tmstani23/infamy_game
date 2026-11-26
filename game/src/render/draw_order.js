@@ -39,7 +39,7 @@ export function sortThings(things) {
   }
 }
 
-// The same order as sortThings(statics.concat(movers)), made cheaper for every frame (Tim 2026-10-26).
+// The same order as sortThings(statics.concat(movers)), made cheaper for every frame (2026-10-26).
 // Buildings, props and banners never move, so the overlaps among them are worked out once (and again
 // only when that list or one of their screen boxes changes). Each frame only the movers (units) are
 // checked, against the statics near them on screen and against each other, and a heap picks the

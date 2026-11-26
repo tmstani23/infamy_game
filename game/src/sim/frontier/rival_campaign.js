@@ -1,6 +1,6 @@
-// Rival campaign (Z2, Tim 2026-11-19): each rival bot clan's home zone and hidden campaign strategy, and how it founds
+// Rival campaign (Z2, 2026-11-19): each rival bot clan's home zone and hidden campaign strategy, and how it founds
 // its towns after the first. Rolled once a game from the campaign seed and saved: state.frontier.rivals[clan] =
-// { home, strategy, founded, nextDay, party }. Data: campaign_zones.json `rivals` (placeholders, Tim to tune).
+// { home, strategy, founded, nextDay, party }. Data: campaign_zones.json `rivals` (placeholders, to tune).
 //  - The first town is the boss's own trip (bot_expedition.js). Every later one is the lieutenant's: when the clan is
 //    due (strategy everyDays after its last founding, under the strategy's maxTowns, the zone cap and a free site in
 //    reach) and can pay, it pays for the permit, the settlers and the founding, and the settlers land at the clan's

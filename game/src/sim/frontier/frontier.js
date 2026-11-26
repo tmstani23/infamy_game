@@ -64,8 +64,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
     { name: 'governor', econTick: () => governor.run() }, { name: 'alerts', econTick: () => alerts.econTick() }];
   const alerts = createAlerts({ state, data });
   const arrivals = createArrivals({ state, data });
-  const townsfolk = createTownsfolk({ state, data, civilians });   // Tim 2026-11-07: citizens wandering your towns in peacetime
-  // Z2 (Tim 2026-11-19): the campaign zones (who has towns where, the two towns a zone cap) and the rivals' campaign
+  const townsfolk = createTownsfolk({ state, data, civilians });   // 2026-11-07: citizens wandering your towns in peacetime
+  // Z2 (2026-11-19): the campaign zones (who has towns where, the two towns a zone cap) and the rivals' campaign
   const campaignZones = data.campaignZones ? createCampaignZones({ rules: data.campaignZones, world: worldData, settlements: () => state.frontier?.settlements, isClan: id => !!state.clans?.[id] }) : null;
   const founding = data.founding ? createFounding({ state, data, world: worldData, removeUnit, resourceIndex:workers.index, zones: campaignZones }) : null;
   const rivalCampaign = campaignZones && founding ? createRivalCampaign({ state, data, worldData, zones: campaignZones, founding, world: () => live, construction, dayTicks }) : null;
@@ -74,8 +74,8 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   const commandHooks = {};   // .rail once it exists (a removed station tears up its lines)
   const commands = createCommands({ state, data, world: live, economy, construction, governor, founding, worldData, placement, zones, workers, hooks: commandHooks });
   const garrison = createGarrison({ state, data, world: live, dismount: e => runtime?.dismount?.(e), atWar: (clan, s) => { const w = war.warOn(s.id); return !!w && w.attacker === clan; } });
-  const infirmary = createInfirmary({ state, data });   // Tim 2026-11-06: heals nearby units, revives the island's fallen
-  const stable = createStable({ state, data, world: live, capitalYard });   // capitalYard: the island side of the city gate (the capital stable)   // Tim 2026-11-06: horses and omnibuses, made by hand
+  const infirmary = createInfirmary({ state, data });   // 2026-11-06: heals nearby units, revives the island's fallen
+  const stable = createStable({ state, data, world: live, capitalYard });   // capitalYard: the island side of the city gate (the capital stable)   // 2026-11-06: horses and omnibuses, made by hand
   modules.push({ name: 'garrison', command: (e, c) => garrison.command(e, c) });
   modules.push({ name: 'stable', command: (e, c) => stable.command(e, c) });
   const rail = createRail({ state, data, world: live, worldData, stable, dayTicks });   // train plan: railway links between stations
@@ -90,7 +90,7 @@ export function createFrontier({ state, data, world: worldData = null, spotData 
   rail.setRobbery({ war: () => war, shipments: () => shipments, world: () => live });   // train robbery: guards' armory, the loot, cashing chests
   zones.setFrozen(s => !!war.warOn(s.id));   // 7c: zone cells do not grow or grow back while a war is on the town
   const structures = createStructures({ state, data, world: live, war, garrison, workers });   // F6 checkpoint 6: structure health, attacks, ruins
-  modules.push({ name: 'hallShelter', command: (e, c) => structures.shelterCommand(e, c) });   // Tim 2026-11-19: workers into the town hall by hand
+  modules.push({ name: 'hallShelter', command: (e, c) => structures.shelterCommand(e, c) });   // 2026-11-19: workers into the town hall by hand
   const warMorale = createWarMorale({ state, data, war });   // F6 checkpoint 8a-1: the morale bar of each side of a war
   const warEnd = createWarEnd({ state, data, war, world: live, morale: warMorale, garrison });   // F6 checkpoint 8a-3: the hall channel and the end of a war
   const warOutcomes = createWarOutcomes({ state, data, war, world: live, rail, garrison });

@@ -1,4 +1,4 @@
-// Tim 2026-11-14: war camp stables (sim/vehicle_garage.js): a built camp stable stores and brings out your horses and vehicles,
+// 2026-11-14: war camp stables (sim/vehicle_garage.js): a built camp stable stores and brings out your horses and vehicles,
 // adds no room; when the war ends what is stored there and what stands empty in the war area goes to the nearest town stable.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

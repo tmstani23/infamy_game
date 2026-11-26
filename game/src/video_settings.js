@@ -1,11 +1,11 @@
-// Video settings (Tim 2026-11-07): picture size, glow, screen shake, frame cap and the FPS readout,
+// Video settings (2026-11-07): picture size, glow, screen shake, frame cap and the FPS readout,
 // kept in this browser (localStorage 'infamy.video.v1') and applied live (render/view.js, main.js, fps.js).
 // resolution: '1080' / '900' / '720' draw about that many pixels whatever the window shape; 'sharp' draws
 // every screen pixel (up to 2 per page pixel). ?dpr=N in the URL still overrides it.
 export const RESOLUTIONS = [['1080', '1920 × 1080'], ['900', '1600 × 900'], ['720', '1280 × 720'], ['sharp', 'Sharp (full screen detail)']];
 export const RESOLUTION_PIXELS = { 1080: 1920 * 1080, 900: 1600 * 900, 720: 1280 * 720 };
 export const FPS_CAPS = [[0, 'Off'], [60, '60'], [30, '30']];
-// sprites (Tim 2026-11-15): GPU-compressed sprite pages (tools/make_ktx2_pages.mjs); read when the game starts
+// sprites (2026-11-15): GPU-compressed sprite pages (tools/make_ktx2_pages.mjs); read when the game starts
 export const SPRITE_MODES = [['far', 'Far zoom only'], ['all', 'Everywhere'], ['off', 'Off']];
 export const VIDEO_DEFAULTS = { resolution: '1080', glow: true, shake: true, weather: true, wildlife: true, fpsCap: 0, showFps: false, sprites: 'far' };
 export function normalizeVideoSettings(v = {}) {

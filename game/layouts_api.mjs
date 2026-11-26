@@ -1,4 +1,4 @@
-// Saved HUD layouts for the dev server (Tim 2026-11-16): one file per layout in saves/layouts/<name>.json,
+// Saved HUD layouts for the dev server (2026-11-16): one file per layout in saves/layouts/<name>.json,
 // kept apart from the game saves and from the game's own data folder (data/ui_layout.json is the shipped Default
 // and is never written by the game).
 //   GET    /layouts         -> { names: [...] }

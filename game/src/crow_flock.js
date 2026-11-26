@@ -1,4 +1,4 @@
-// Crows (wildlife W1, Tim 2026-11-24): where the crows are and what they do. Presentation only: never part of the
+// Crows (wildlife W1, 2026-11-24): where the crows are and what they do. Presentation only: never part of the
 // game rules or saves, so every client may show different crows. render/crow_fx.js feeds this what the camera
 // shows (perch spots, people, gunfire, fights, marching troops, night) and draws the birds it moves.
 // Numbers in data/wildlife.json "crows" (placeholders, tuned in play).
@@ -121,7 +121,7 @@ export function createCrowFlocks(cfgIn = {}, rnd = Math.random) {
     if (fight?.kills.length && rnd() < 0.7) { const k = fight.kills[Math.floor(rnd() * fight.kills.length)]; if (land(env, f, k.x, k.z, ['ground'])) { f.goal.until = time + R(cfg.sit) * 1.5; return; } }
     // a big column on the march: one flock trails it
     const army = env.armies.find(a => Math.hypot(a.x - c.x, a.z - c.z) < cfg.battleReach && !flocks.some(o => o !== f && o.trail === a.id));
-    // (Tim 2026-11-24: not all the time, just sometimes for a little bit; a flock that trailed once goes its own way after)
+    // (2026-11-24: not all the time, just sometimes for a little bit; a flock that trailed once goes its own way after)
     if (army && !f.trailed && rnd() < (cfg.follow ?? 0.2)) { f.trail = army.id; f.trailed = true; f.goal = { kind: 'trail', until: time + R(cfg.wander) }; return; }
     f.trail = null;
     // the wandering hermit: a flock in reach comes down on the ground by him, again and again as he moves on
@@ -236,7 +236,7 @@ export function createCrowFlocks(cfgIn = {}, rnd = Math.random) {
   return { update, birds: birdsOf, flocks: () => flocks, flush: fl => { const out = { scattered: [] }; flush(fl, out); return out; }, clear() { flocks = []; } };
 }
 
-// The flying crow's outline (from crow/crow_flock_anim.py, the flock mock Tim approved 2026-11-24), in units:
+// The flying crow's outline (from crow/crow_flock_anim.py, the flock mock approved 2026-11-24), in units:
 // x right, y forward, z up, before turning to the heading. phase 0..1 of the wingbeat; glide holds a shallow V.
 // Returns [[points, shade]], shade 0 body, 1 arm and palm, 2 primaries.
 export function crowOutline(phase, glide, bank = 0, span = 0.6) {

@@ -1,4 +1,4 @@
-// Tim's pre-export review: real models/clips, draft sheets ONLY. No production
+// the pre-export review: real models/clips, draft sheets ONLY. No production
 // file or art catalog is changed. Chromium is an offline asset renderer here.
 import fs from 'node:fs';
 import path from 'node:path';

@@ -1,5 +1,5 @@
 // The Shinobi contract board (ninja build phase 5), opened with Space at the village shrine's ring.
-// Menu restyle (Tim 2026-11-10): the shared war camp look (menu_shell.js), shrine art and Renown coins, one row per job. Reads state.contracts and sends 'contract' commands only; the
+// Menu restyle (2026-11-10): the shared war camp look (menu_shell.js), shrine art and Renown coins, one row per job. Reads state.contracts and sends 'contract' commands only; the
 // rules in sim/contracts.js decide what happens. Also writes the tracker line for the job you hold.
 const KIND = { scout: 'Scout', mark: 'Sabotage', steal: 'Steal', boss: 'Boss', bandits: 'Town' };
 import { contractLockoutUntil } from './sim/hq_raids.js';
@@ -72,7 +72,7 @@ export function createContractMenu({ panel, tracker, game, heroId, send, selecte
     const t = locked ? `<b>HQ on fire</b><span>Contracts unavailable, reopen in ${locked} s</span>`
       : job ? `<b>${job.label}</b><span>${progress(job)}, ${reward(job)}</span>${job.kind === 'boss' ? `<small>${huntStatus}</small><button data-ambush-contract type="button">${hunting ? 'Cancel boss hunt' : 'Order sectors to hunt this boss'}</button>` : ''}`
       : waiting ? `<b>Contract board</b><span>Next contract in ${waiting} s, any time of day</span>` : '';
-    // city work only: no contract bar while the hero is out on the frontier (Tim 2026-11-21)
+    // city work only: no contract bar while the hero is out on the frontier (2026-11-21)
     tracker.hidden = h?.place === 'world' || (!job && !locked && !waiting);
     if (t !== shownT) { tracker.innerHTML = t; shownT = t; }
     const counter = job?.counter;

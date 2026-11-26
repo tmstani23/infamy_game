@@ -7,7 +7,7 @@ import { spriteMaterial, groundMaterial, glowMaterial, flameMaterial, doorMateri
 import { shapeDistance, shapeBox, groundZone } from '../sim/geometry.js';
 
 const loader = new THREE.TextureLoader();
-// perf 2026-11-07 (Tim: hitches while riding as new props come into view): images are decoded off the main
+// perf 2026-11-07 (hitches while riding as new props come into view): images are decoded off the main
 // thread (ImageBitmap, already flipped the way TextureLoader's textures are), so the first draw of a new
 // prop only uploads it instead of decoding it mid-frame. Falls back to TextureLoader without createImageBitmap.
 const bitmapLoader = typeof createImageBitmap === 'function' ? new THREE.ImageBitmapLoader().setOptions({ imageOrientation: 'flipY', premultiplyAlpha: 'none', colorSpaceConversion: 'none' }) : null;
@@ -274,7 +274,7 @@ export function doorRings(doors) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), d.ninja ? windowDoorMaterial : doorMaterial);
     m.rotation.x = -Math.PI / 2;
     m.position.set(d.x, 0.02, d.z);
-    m.renderOrder = d.ninja || d.gate ? 99800 : 1;   // a back window ring shows through the wall in front of it; the gate's over the gate art's ground (Tim 2026-11-10)
+    m.renderOrder = d.ninja || d.gate ? 99800 : 1;   // a back window ring shows through the wall in front of it; the gate's over the gate art's ground (2026-11-10)
     if (d.gate) m.scale.setScalar(1.8);   // the island gate: a bigger ring (W3.5)
     m.userData.door = d;
     return m;

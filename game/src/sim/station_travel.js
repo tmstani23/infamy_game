@@ -1,4 +1,4 @@
-// Rickshaw travel between omnibus stations (Tim 2026-11-06 20:21, plan in project files omnibus_stable/plan.md).
+// Rickshaw travel between omnibus stations (2026-11-06 20:21, plan in project files omnibus_stable/plan.md).
 // Space at your station on the island (or the island gate menu in the city, src/site_menu.js) lists where you can go: your
 // other towns with a finished station, and the capital (you arrive just inside the island gate; the rickshaws
 // park on the island side). The trip is instant: each empty rickshaw parked where you leave carries two
@@ -22,7 +22,7 @@ export function createStationTravel({ state, data, rules, frontier, omnibus, gat
       for (const s of towns(e.owner)) { const b = st().of(s, 'station'), [x, z] = st().centre(s, b); if (Math.hypot(e.x - x, e.z - z) <= (C().reach ?? 8) + (data().townGrid?.cellSize || 10)) return { town: s, station: b }; }
       return null;
     }
-    // the city side: at the island gate (the gate menu, src/site_menu.js, Tim 2026-11-06 20:42)
+    // the city side: at the island gate (the gate menu, src/site_menu.js, 2026-11-06 20:42)
     return e.place === 'street' && gate && Math.hypot(e.x - gate.city[0], e.z - gate.city[1]) <= STAND ? { capital: true } : null;
   }
   const waiting = (e, f) => f.capital ? atCapital().filter(v => v.omnibusOwner === e.owner) : st().parkedAt(f.town, f.station, 'rickshaw');
@@ -36,7 +36,7 @@ export function createStationTravel({ state, data, rules, frontier, omnibus, gat
 
   function command(e, c) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
-    // Tim 2026-11-07 (train plan): no more instant rickshaw trips between stations; the railway is the fast way
+    // 2026-11-07 (train plan): no more instant rickshaw trips between stations; the railway is the fast way
     // between towns, rickshaws stay as vehicles you drive. Set rules.rickshaw.instantTravel to bring it back.
     if (!rules?.rickshaw?.instantTravel) return say(e.owner, 'Rickshaws no longer jump between stations: take the train');
     const f = from(e), R = C();

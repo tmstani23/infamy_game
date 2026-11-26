@@ -1,5 +1,5 @@
 import { modeRules } from './modes/index.js';
-// Ganging up on the leader (phase 6, Tim 2026-10-29). The leader: the clan (Shinobi too) with the top season
+// Ganging up on the leader (phase 6, 2026-10-29). The leader: the clan (Shinobi too) with the top season
 // score, at least leadMargin points ahead of the next. Bounties go only to property clans (the Shinobi have their
 // own bonuses already): raiding the leader's business, a Shakedown on it, and when the Shinobi lead, raiding their
 // HQ, knocking out their boss or downing their crew. Underdog: a clan at underdogShare of the leader's score or less

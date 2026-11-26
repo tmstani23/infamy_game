@@ -53,7 +53,7 @@ export function createDiscovery({ state, world }) {
       let grid = w.discovered[clan];
       const eyes = mine.map(e => ({ e, p: worldPos(e) }));
       for (const { e, p } of eyes) grid = reveal(grid, p.x, p.z, e.type === 'hero' ? R.revealHero : R.revealUnit);
-      // Tim 2026-11-18: a rival town is spotted from townSight away (roofs and smoke carry further than land is
+      // 2026-11-18: a rival town is spotted from townSight away (roofs and smoke carry further than land is
       // uncovered): its own cell is marked, so it shows on the M map and in the world (sim_snapshot.js frontierFor)
       for (const t of Object.values(state.frontier?.settlements || {})) {
         if ((t.capital && !t.castle) || t.owner === clan || !Number.isFinite(t.x)) continue;   // rival castles are spotted too (Z5)

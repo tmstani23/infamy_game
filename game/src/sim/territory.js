@@ -1,6 +1,6 @@
 import { modeRules } from './modes/index.js';
 import { refill } from './util.js';
-// Territory and the season (docs/territory_plan.md, Tim 2026-10-20): every business a clan owns
+// Territory and the season (docs/territory_plan.md, 2026-10-20): every business a clan owns
 // marks a circle of street around it as that clan's territory (where circles overlap, the
 // nearest business wins). Inside your own territory you see every unit (except hidden ninja,
 // e.hidden), get an alert when rival clan units walk in, heal faster, cool heat faster and your
@@ -86,7 +86,7 @@ export function createTerritory({ state, bounds, rules = {}, season = {}, scores
   function breakdown(clan) {
     const out = [];
     for (const b of Object.values(state.businesses)) if (b.owner === clan && scores[b.kind]) out.push({ label: b.kind.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase()), points: scores[b.kind] });
-    // Renown shows how close the next point is (Tim 2026-10-21: it just said 0), also before the first one
+    // Renown shows how close the next point is (2026-10-21: it just said 0), also before the first one
     const r = state.clans?.[clan]?.renown || 0;
     if (r || state.clans?.[clan]?.kind === 'ninja') out.push({ label: `${r} Renown (${renownPerPoint - r % renownPerPoint} to next)`, points: Math.floor(r / renownPerPoint) });
     const raidPoints = state.clans?.[clan]?.raidPoints || 0;
@@ -125,7 +125,7 @@ export function createTerritory({ state, bounds, rules = {}, season = {}, scores
     const s = state.season;
     if (state.dawn && !s.over) {
       s.day++;
-      if (s.day > s.cycles && modeRules(state).seasonEnds) {   // a campaign has no season end (frontier F0.4, Tim 2026-11-01)
+      if (s.day > s.cycles && modeRules(state).seasonEnds) {   // a campaign has no season end (frontier F0.4, 2026-11-01)
         s.over = true;
         s.final = standings();
         s.winner = s.final.length && (s.final.length < 2 || s.final[0].score > s.final[1].score) ? s.final[0].clan : null;   // null = a draw

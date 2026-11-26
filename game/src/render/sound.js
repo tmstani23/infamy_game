@@ -14,10 +14,10 @@ const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_met
   'Audio/impactPlank_medium_000', 'Audio/impactPlank_medium_001', 'Audio/impactPlank_medium_002', 'Audio/creak1', 'Audio/creak2', 'Audio/creak3', 'Audio/impactWood_heavy_000', 'Audio/impactWood_heavy_001', 'Audio/impactSoft_heavy_000', 'Audio/impactSoft_heavy_001'];   // ships S6
 // Punch fallback for models without a dedicated weapon route; heavy impacts use a lower pitch.
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
-// Tim's own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
+// the own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
 const CUSTOM = { gatling_loop_1: [], gatling_end_1: [], arrow_whoosh_1: [], arrow_whoosh_2: [], arrow_hit_1: [], arrow_hit_2: [], punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [], hoof_walk_1: [], hoof_walk_2: [], hoof_gallop_1: [], hoof_gallop_2: [], horse_whistle_1: [], horse_whistle_2: [], omnibus_roll_1: [], omnibus_roll_2: [], omnibus_roll_3: [], rickshaw_roll_1: [], rickshaw_roll_2: [], gate_open_1: [], cannon_fire_1: [], cannon_fire_2: [], cannon_fire_3: [], train_run_1: [], train_approach_1: [], train_brake_1: [], train_whistle_1: [], crow_caw_1: [], crow_caw_2: [], crow_scatter_1: [], crow_scatter_2: [], crow_scatter_3: [], deer_alarm_1: [], deer_alarm_2: [], boar_grunt_1: [], boar_charge_1: [], wolf_pack_howl_1: [], wolf_pack_howl_2: [], wolf_attack_1: [], wolf_attack_2: [], bear_roar_1: [], bear_roar_2: [], horse_whinny_1: [], horse_whinny_2: [] };
-// hero ability activation cues (Tim's clips 2026-10-30), layered over each ability's own sounds; [clip, pitch].
-// Each clip used once per hero so skills don't sound alike (Tim); abilities not listed keep only their old sounds
+// hero ability activation cues (the clips 2026-10-30), layered over each ability's own sounds; [clip, pitch].
+// Each clip used once per hero so skills don't sound alike; abilities not listed keep only their old sounds
 const ABILITY_CUE = { shadowstep: ['ability_dash_1', 1], assassinate: ['ability_finisher_1', 1],   // Shinobi
   lantern: ['ability_buff_1', 1],   // Yakuza ronin (Iaido Dash, Intimidate, Rally keep their katana/impact sounds)
   threefold: ['ability_finisher_1', 1.2] };   // Kuroda boss: storm
@@ -44,14 +44,14 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     const limiter=ctx.createDynamicsCompressor();limiter.threshold.value=-6;limiter.knee.value=12;limiter.ratio.value=6;limiter.attack.value=.003;limiter.release.value=.15;
     master.connect(limiter).connect(ctx.destination);apply();
     const load=(f,ext)=>fetch(`${base}${f}.${ext}`).then(r=>{if(!r.ok)throw Error('Sound unavailable');return r.arrayBuffer();}).then(b=>ctx.decodeAudioData(b)).then(b=>{buffers[f]=b;});
-    // the rifleman's shot (Tim 2026-10-29: made with Suno, dropped in as assets/sounds/rifle_shot_1 .ogg, .mp3 or .wav; missing = silent)
+    // the rifleman's shot (2026-10-29: made with Suno, dropped in as assets/sounds/rifle_shot_1 .ogg, .mp3 or .wav; missing = silent)
     const custom=Object.keys(CUSTOM).map(f=>load(f,'ogg').catch(()=>load(f,'mp3')).catch(()=>load(f,'wav')).catch(()=>{}));
     ready=Promise.all([...custom,...FILES.map(f=>load(f,'ogg').catch(()=>{}))]);
   }
   addEventListener('keydown', unlock);
   addEventListener('mousedown', unlock);
 
-  // Tim's clips (name plus numbered variants, e.g. use_1/use_2/use_3 or punch_main/punch_main_2), else the fallback list
+  // the clips (name plus numbered variants, e.g. use_1/use_2/use_3 or punch_main/punch_main_2), else the fallback list
   const pickCustom = name => {
     const base = name.replace(/_\d+$/, ''), mine = Object.keys(CUSTOM).filter(k => buffers[k] && new RegExp(`^${base}(_\\d+)?$`).test(k));
     return mine.length ? mine : CUSTOM[name];
@@ -76,7 +76,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     src.onended = () => voices--;
     src.start();
   }
-  // the Gatling gun (Tim 2026-11-10): the firing loop until it stops, then the wind-down (crank-up clip dropped: sounded janky); the loop starts with the first shot, after the silent spin
+  // the Gatling gun (2026-11-10): the firing loop until it stops, then the wind-down (crank-up clip dropped: sounded janky); the loop starts with the first shot, after the silent spin
   const gatlings = new Map();   // gun id -> { g, parts }
   function gatling(c, v) {
     if (!ctx) return;
@@ -92,7 +92,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     loop.connect(g); loop.start();
     gatlings.set(c.a, { g, parts: [loop] });
   }
-  // Wolves howling (wildlife W4, Tim 2026-11-24): heard far past the camera's normal hearing, fading with distance
+  // Wolves howling (wildlife W4, 2026-11-24): heard far past the camera's normal hearing, fading with distance
   // from the middle of the view and panned toward the pack's side of the screen (me.right: the screen's right on the ground)
   const HOWL_REACH = 900;
   function farPanned(family, c, me, volume, reach) {
@@ -130,12 +130,12 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     }
   }
 
-  // Movement loops (Tim 2026-11-06): wheels under moving vehicles, hooves under horses and a riding hero.
+  // Movement loops (2026-11-06): wheels under moving vehicles, hooves under horses and a riding hero.
   // One looping source per moving thing in earshot (nearest MAX_LOOPS), faded in and out, volume by distance.
   const MAX_LOOPS = 4, HORSES = new Set(['calico', 'mare', 'mare_saddled']), loops = new Map(), lastPos = new Map();
   const loopOf = (e, speed) => {
     const m = e.model || e.type;
-    if (e.cavalry && speed > 1) return ['hoof_gallop_1', 0.5, 1];   // war cavalry always gallops when it moves (Tim 2026-11-12)
+    if (e.cavalry && speed > 1) return ['hoof_gallop_1', 0.5, 1];   // war cavalry always gallops when it moves (2026-11-12)
     if (e.mounted || (HORSES.has(m) && !e.rider)) return speed > 12 ? ['hoof_gallop_1', 0.5, 1] : ['hoof_walk_1', 0.45, 1];
     if (m === 'omnibus') return ['omnibus_roll_1', 0.5, 1];
     if (m === 'rickshaw' || m === 'rickshaw_horse') return ['rickshaw_roll_1', 0.45, 1];
@@ -152,7 +152,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
   function stopLoop(id) { const l = loops.get(id); if (!l) return; const t = ctx.currentTime; l.g.gain.setTargetAtTime(0, t, 0.08); l.src.stop(t + 0.5); loops.delete(id); }
   function movementLoops(state, me) {
     if (!ctx) return;
-    // a Gatling whose crew went down or was taken away mid-burst sends no stop: end its loop here (Tim 2026-11-21)
+    // a Gatling whose crew went down or was taken away mid-burst sends no stop: end its loop here (2026-11-21)
     for (const [id, gl] of [...gatlings]) { const e = state.entities[id]; if (!e || e.dead || e.downed || !e.gat) { const t = ctx.currentTime; gl.g.gain.setTargetAtTime(0, t, 0.05); for (const p of gl.parts) try { p.stop(t + 0.3); } catch {} gatlings.delete(id); } }
     const want = [];
     for (const e of Object.values(state.entities)) {
@@ -175,7 +175,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     }
     if (lastPos.size > 600) for (const id of lastPos.keys()) if (!state.entities[id]) lastPos.delete(id);
   }
-  // Steam trains (Tim 2026-11-07, his clips in assets/sounds/new_sounds/train): a whistle when one leaves a station,
+  // Steam trains (2026-11-07, his clips in assets/sounds/new_sounds/train): a whistle when one leaves a station,
   // the running loop while it moves, the approach as it nears the next station (about the edge of town:
   // TRAIN.approach seconds out) and the brakes just before it stops. Heard further than other sounds; each clip
   // follows its train's volume by distance while it plays (the approach starts out of earshot and swells as it comes in).
@@ -223,7 +223,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
 
   return {
     bell,
-    // a UI cue for the hero's own actions (Space use): Tim's clip or its fallback
+    // a UI cue for the hero's own actions (Space use): the clip or its fallback
     cue(name, volume = 0.5) { play(pickCustom(name), volume); },
     clip(name, volume = 0.5, pitch = 1) { play(name, volume, pitch); },
     wild(name, volume, pitch = 1) { variant(name, volume, pitch); },   // wildlife (render/crow_fx.js): a clip family, volume already set by distance   // one named clip, no variants (Watch the city)
@@ -236,7 +236,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       const me = focus;
       movementLoops(state, me);
       trainSounds(state, me);
-      // worker hammer taps (Tim 2026-11-08): quiet, only workers near the camera, at most 3 per tick, each worker about once a second
+      // worker hammer taps (2026-11-08): quiet, only workers near the camera, at most 3 per tick, each worker about once a second
       if (me && state.tick !== lastTapTick) {
         lastTapTick = state.tick; let taps = 0;
         for (const e of Object.values(state.entities)) {
@@ -254,10 +254,10 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
           play(['Audio/impactMetal_light_000', 'Audio/impactMetal_light_001', 'Audio/impactMetal_light_002'][(k + state.tick) % 3], 0.16 * v, 0.9 + (k % 7) * 0.04); taps++;
         }
       }
-      // through the island gate (Tim 2026-11-06): the hero's place flips between street and world
+      // through the island gate (2026-11-06): the hero's place flips between street and world
       // (the camera's place: only a flip into or out of the island counts, not stepping into a room)
       if (me) { if (heroPlace && heroPlace !== me.place && (me.place === 'world' || heroPlace === 'world')) play(pickCustom('gate_open_1'), 0.6); heroPlace = me.place; }
-      // a war camp gate creaks when somebody starts through it (Tim 2026-11-15): once per passing group
+      // a war camp gate creaks when somebody starts through it (2026-11-15): once per passing group
       if (state.tick % 5 === 0) {
         const busy = new Set();
         for (const w of Object.values(state.frontier?.wars?.list || {})) for (const b of w.camp?.buildings || []) {
@@ -283,7 +283,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
       for (const h of state.hits) {
         const t = state.entities[h.t], v = near(me, h.x, h.z, t?.place);
         if(h.kind==='dynamite'||h.kind==='fire'||h.kind==='train'){if(h.kill)play('knockdown_thud_1',.4*v);continue;}
-        if(h.kind==='arrow'){ if(buffers.arrow_hit_1)variant('arrow_hit_1',.5*v,.95+Math.random()*.1); }   // Tim's arrow clips 2026-11-12: a thud where it lands
+        if(h.kind==='arrow'){ if(buffers.arrow_hit_1)variant('arrow_hit_1',.5*v,.95+Math.random()*.1); }   // the arrow clips 2026-11-12: a thud where it lands
         else if(h.kind==='geishabolt'||h.kind==='bullet'){ /* flight and ability cues supply the ranged sound */ }
         else if (SPEARS.has(h.weapon)) { /* Complete spear clip already includes impact. Keep crit/KO layers below. */ }
         else if (SWORDS.has(h.weapon)) play(h.kind === 'dash' ? ['katana_hit_metal_1', 'katana_hit_metal_2'] : 'sword_chop_1', 0.55 * v);
@@ -305,9 +305,9 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
           if (v > 0.01) { play(['Audio/creak1', 'Audio/creak2', 'Audio/creak3'], 0.75 * v, 0.55); play(['Audio/impactWood_heavy_000', 'Audio/impactWood_heavy_001'], 0.6 * v, 0.6);
             setTimeout(() => play('Audio/creak2', 0.55 * v, 0.45), 1400); setTimeout(() => play(['Audio/impactSoft_heavy_000', 'Audio/impactSoft_heavy_001'], 0.7 * v, 0.5), 5300); }
           continue; }
-        if (c.kind === 'cannonFire') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero)); variant('cannon_fire_1', 0.85 * v, c.brass ? 1 : 0.88); continue; }   // Tim 2026-11-07: only heard near the hero or the camera, fading fast
+        if (c.kind === 'cannonFire') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0, v = Math.max(ear(me), ear(me?.hero)); variant('cannon_fire_1', 0.85 * v, c.brass ? 1 : 0.88); continue; }   // 2026-11-07: only heard near the hero or the camera, fading fast
         const a = state.entities[c.a], v = near(me, c.x, c.z, c.place||a?.place);
-        if(c.kind==='arrow'){ if(buffers.arrow_whoosh_1)variant('arrow_whoosh_1',.4*v,.94+Math.random()*.12); else swordSlash(.16*v); }   // Tim's arrow flight clips (2026-11-12), the old quiet whoosh without them
+        if(c.kind==='arrow'){ if(buffers.arrow_whoosh_1)variant('arrow_whoosh_1',.4*v,.94+Math.random()*.12); else swordSlash(.16*v); }   // the arrow flight clips (2026-11-12), the old quiet whoosh without them
         if(c.kind==='geishabolt')play('ability_finisher_1',.18*v,1.3);
         if(c.kind==='bullet')play('rifle_shot_1',.5*v,1.05);   // war army rifleman (units.json army_rifleman): the Teppo shot, a little lighter
         if(c.kind==='hamstringHit')play('ability_buff_1',.3*v,1.2);
@@ -324,7 +324,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (c.kind === 'rifleshot') play('rifle_shot_1', v > 0 ? 0.8 * Math.max(v, 0.3) : 0, 1);   // gunfire carries: still heard at the edge of hearing range
         if (c.kind === 'taunt') play(SOFT, (c.style === 'shinobi_enforcer' ? 0.8 : 0.6) * v, c.style === 'shinobi_enforcer' ? 0.75 : 0.5);
         if (c.kind === 'loot' || c.kind === 'chestCashed' || c.kind === 'hidesSold') play(pickCustom('loot_coins_1'), 0.6 * v);   // a stolen chest cashed, hides sold (wildlife W5)
-        if (c.kind === 'wildAlarm') (c.species === 'boar' ? variant('boar_grunt_1', 0.4 * v, 0.94 + Math.random() * 0.12) : variant('deer_alarm_1', 0.22 * v, 0.86 + Math.random() * 0.08));   // deer softer and lower (Tim 2026-11-25: was loud and shrill)   // wild animals (sim/wild_animals.js): a deer's bark or a boar's grunt as they bolt
+        if (c.kind === 'wildAlarm') (c.species === 'boar' ? variant('boar_grunt_1', 0.4 * v, 0.94 + Math.random() * 0.12) : variant('deer_alarm_1', 0.22 * v, 0.86 + Math.random() * 0.08));   // deer softer and lower (2026-11-25: was loud and shrill)   // wild animals (sim/wild_animals.js): a deer's bark or a boar's grunt as they bolt
         // wandering folk (sim/wandering_folk.js), stand-ins from the clips we have: the ronin draw and clash and the fall, a shove, the robbery's coins (bell and voices to come)
         if (c.kind === 'folkShout') play(['katana_draw_1', 'katana_draw_2'], 0.45 * v, 0.95);
         if (c.kind === 'folkClash') { play('katana_clash_1', 0.5 * v, 0.95 + Math.random() * 0.1); setTimeout(() => play(['katana_hit_metal_1', 'katana_hit_metal_2'], 0.4 * v), 420); }

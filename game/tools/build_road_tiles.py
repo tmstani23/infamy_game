@@ -1,4 +1,4 @@
-"""Builds the town road autotiles (16 masks) and the field texture from Tim's generated art.
+"""Builds the town road autotiles (16 masks) and the field texture from the generated art.
 Usage: python3 build_road_tiles.py <environment dir> <out art/ground dir>
 Mask bits (connected neighbours): W=1 E=2 N=4 S=8. Image top = north (-z), left = west (-x)."""
 import sys, os

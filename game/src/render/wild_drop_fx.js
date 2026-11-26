@@ -1,4 +1,4 @@
-// A hunted animal's hide flies to the hero (wildlife W3, Tim 2026-11-24): a small pelt icon pops up off the
+// A hunted animal's hide flies to the hero (wildlife W3, 2026-11-24): a small pelt icon pops up off the
 // carcass, arcs over to wherever the hero is now and shrinks into him. No loot menu; the hide is already in the
 // clan's stock (sim/wild_animals.js killed). Sim: a 'wildDrop' cast { x, z, hero, item }.
 import * as THREE from 'three';
@@ -10,7 +10,7 @@ const COATS = { deer_hide: ['#927a5e', '#5c4632', '#cdbda2'], boar_hide: ['#6a51
   wolf_pelt: ['#7a746a', '#45413b', '#b1a998'], bear_hide: ['#3e322a', '#1d1712', '#62544a'] };   // W4 wolves and bears
 
 // A pelt laid out flat, seen from above: a rough oval with four leg flaps and the neck, darker down the spine,
-// ragged at the edge; deer keep a few pale spots, boar a bristly ridge. Muted, no bright outline (Tim 2026-11-23: grown-up icons).
+// ragged at the edge; deer keep a few pale spots, boar a bristly ridge. Muted, no bright outline (2026-11-23: grown-up icons).
 function paint(item) {
   if (item === 'bear_gall') {   // a small dried gall bladder on a cord (W4: a bear sometimes gives one)
     const c = document.createElement('canvas'); c.width = W * S; c.height = H * S;

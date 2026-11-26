@@ -1,4 +1,4 @@
-// Crew orders work inside a room the same as on the street (Tim 2026-10-18: indoors you
+// Crew orders work inside a room the same as on the street (2026-10-18: indoors you
 // could not send crew anywhere or set them on anyone): node game/tools/test_indoor_orders.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';

@@ -1,4 +1,4 @@
-// Dropped bag items (sim/ground_items.js, Tim 2026-11-26): drop outdoors only, bundle lies 15 minutes, anyone takes it.
+// Dropped bag items (sim/ground_items.js, 2026-11-26): drop outdoors only, bundle lies 15 minutes, anyone takes it.
 import assert from 'node:assert/strict';
 import { createInventory } from '../src/sim/inventory.js';
 import { createItemServices } from '../src/sim/item_services.js';

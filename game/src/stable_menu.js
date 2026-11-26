@@ -1,9 +1,9 @@
-// The stable menu (Tim 2026-11-07): click one of your stables (the inspection card's Open stable, or the town
+// The stable menu (2026-11-07): click one of your stables (the inspection card's Open stable, or the town
 // panel's) or Space beside it. Buy horses, rickshaws and omnibuses for this town's stock: +1 or +5 queue them on its
 // production bar (made one at a time); how many you can have comes from your stables' town tiers
 // (sim/frontier/stable.js room()). Your horses and vehicles: Ride picks your mount, Recall / Take out / Recall all
 // (sim/vehicle_garage.js). Number keys buy one, in the order shown; Esc / Space close.
-// The capital stable (Tim 2026-11-07, openCapital(): Space at its ring in the city) sells the same for clan ryo, no
+// The capital stable (2026-11-07, openCapital(): Space at its ring in the city) sells the same for clan ryo, no
 // waiting (stable.capital.prices); what you buy waits on the island side of the gate.
 import { listVehicles } from './vehicles_panel.js';
 import { msInstall, msShell, msAside, msArt, msSec, msRow, msBtn, msPager, msNote, msProg } from './menu_shell.js';
@@ -83,7 +83,7 @@ export function createStableMenu({ panel, game, heroId, send, data, openCavalry 
     if (capital() ? !st || hero()?.place !== 'street' : !b || !st) return close();
     const jobs = b?.stableJobs || [], j = jobs[0];
     const name = k => C().kinds?.[k]?.name || k;
-    // the queue in order, runs of the same kind counted: "Calico x5, Rickshaw" (Tim 2026-11-07)
+    // the queue in order, runs of the same kind counted: "Calico x5, Rickshaw" (2026-11-07)
     const runs = list => list.reduce((r, x) => { const last = r.at(-1); if (last?.k === x.kind) last.n++; else r.push({ k: x.kind, n: 1 }); return r; }, []).map(r => `${name(r.k)}${r.n > 1 ? ` x${r.n}` : ''}`);
     const myClan = game.state.clans?.[me];
     const list = listVehicles(game, heroId);
@@ -91,7 +91,7 @@ export function createStableMenu({ panel, game, heroId, send, data, openCavalry 
     if (view === 'buy') {
       if (!capital()) body += msSec('Making', j ? `Queue ${jobs.length} of ${C().queue ?? 10}` : 'Nothing being made', j ? runs(jobs).join(', ') : '')
         + (j ? msRow({ name: `${esc(name(j.kind))}, ${Math.ceil(j.left / 20)} s`, sub: msProg(1 - j.left / j.total), right: msBtn({ label: 'Cancel last', data: 'data-cancel="1"', hover: 'Cancel the last job in the queue (refunded)' }) }) : '')
-        // what waits behind the one being made, in order, same kinds grouped (Tim 2026-11-21, like the hire menu's Up next)
+        // what waits behind the one being made, in order, same kinds grouped (2026-11-21, like the hire menu's Up next)
         + (jobs.length > 1 ? msSec('Up next', `${jobs.length - 1} queued`) + `<div class="ms-chips">${runs(jobs.slice(1)).map(r => `<span class="ms-qchip" style="padding:2px 8px"><b>${esc(r)}</b></span>`).join('')}</div>` : '');
       const opts = options(), pages = Math.max(1, Math.ceil(opts.length / PER)); bpage = Math.max(0, Math.min(bpage, pages - 1));
       let k = 0;

@@ -94,7 +94,7 @@ assert.ok(solid(1, 20), 'moat');
   assert.equal(thinX(7, 16).length, 0, 'no cliff across the top of the land bridge'); assert.equal(count(g.use, 'k'), 0); }
 assert.ok(!solid(12, 27), 'the drawbridge is open ground'); assert.ok(!solid(5, 16), 'the land bridge is open ground');
 assert.ok(CASTLE_BLOCK.includes('m') && CASTLE_BLOCK.includes('k'));
-// a castle gate is open only in its doorway (Tim 2026-11-20): the run's ends beside the gatehouse block like wall
+// a castle gate is open only in its doorway (2026-11-20): the run's ends beside the gatehouse block like wall
 { const D = data.townGrid.castleGateDoor, ids = [...gate('land_gate')], bs = ids.flatMap(i => boxes.get(i) || []);
   assert.equal(bs.length, 2, 'one wall box each side of the doors');
   const cx = ids.reduce((t, i) => t + s.x + (i % n - (n - 1) / 2) * g.cell, 0) / ids.length, cz = s.z + (Math.floor(ids[0] / n) - (n - 1) / 2) * g.cell;
@@ -156,7 +156,7 @@ assert.ok(CASTLE_BLOCK.includes('m') && CASTLE_BLOCK.includes('k'));
   // the south face of the inner terrace stands from the yard to the terrace top; the land bridge has side faces
   assert.ok(pc.face.some(q => q.cell === at(9, 22) && q.side === 'S' && Math.abs(q.q[0][1] - H) < 1e-9 && Math.abs(q.q[3][1]) < 1e-9));
   assert.ok(pc.rampFace.some(q => q.cell === at(6, 17) && q.side === 'S') && !pc.face.some(q => q.cell === at(6, 17)), 'the land bridge side shows a cut-stone face');
-  // Tim 2026-11-20 stone ramp: steps run across the climb, a low parapet on each open side, capped at its ends
+  // 2026-11-20 stone ramp: steps run across the climb, a low parapet on each open side, capped at its ends
   assert.ok(pc.ramp.every(q => q.uvw?.length === 4), 'land bridge steps follow the climb');
   assert.ok(pc.parapet.length >= 10 * 3, 'parapets along the land bridges');
   setHeightField(f); assert.equal(groundY(...w(12, 17)), 2 * H); assert.ok(nearCastle(...w(5, 23), 0)); assert.equal(maxGroundY(), 2 * H);
@@ -201,7 +201,7 @@ assert.ok(CASTLE_BLOCK.includes('m') && CASTLE_BLOCK.includes('k'));
     assert.equal(h.place, 'world'); assert.ok(Math.hypot(h.x - p.x, h.z - p.z) < 2); assert.ok(p.z < c.z - 120, 'north of the castle, the land side');
     for (let k = 0; k < 40; k++) t.step([{ id: h.id, type: 'move', right: 0, down: 1 }]);
     assert.ok(h.z > p.z + 3 && h.place === 'world', 'walks toward the drawbridge');
-    // every castle's dock is walkable end to end (Tim 2026-11-20: stuck right past the snow castle's harbour gate, the
+    // every castle's dock is walkable end to end (2026-11-20: stuck right past the snow castle's harbour gate, the
     // island's sea under the planks blocked), and the sea beside it still blocks
     const { cellToWorld } = await import('../src/sim/frontier/town_grid.js');
     const walkTo = (pts, max = 400) => { for (const [x, z] of pts) for (let k = 0; k < max; k++) { const vx = x - h.x, vz = z - h.z, l = Math.hypot(vx, vz); if (l < 1.5) break;

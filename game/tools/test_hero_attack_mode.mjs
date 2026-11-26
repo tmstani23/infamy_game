@@ -45,7 +45,7 @@ enemy.buildings.push({ id: 'stk', type: 'stockade', stage: 'built', cell: stocka
 const hall = enemy.buildings.find(b => b.type === 'town_hall');
 const cmd = c => { g.step([{ id: hero.id, type: 'frontier', ...c }]); return g.state.frontier.receipts.findLast(r => r.action === c.action); };
 
-// Frontier attack mode for the hero (Tim 2026-11-15): right-click an enemy, he chases it, then goes for the nearest war
+// Frontier attack mode for the hero (2026-11-15): right-click an enemy, he chases it, then goes for the nearest war
 // enemy in range and then an enemy structure; WASD only breaks the chase; Esc/Z (command attackmode off) or cancel ends it.
 Object.assign(hero, { x: enemy.x + 300, z: enemy.z, place: 'world' });
 { const r = cmd({ action: 'devStartWar', town: 'enemyTown', side: 'attack' }); assert.ok(r?.ok, r?.reason); }
@@ -83,7 +83,7 @@ g.step([{ id: hero.id, type: 'attackmode', on: false }]);
 assert.ok(!hero.attackMode && !hero.attackTarget, 'Esc or Z ends it');
 const hx = hero.x, hz = hero.z; c.x += 8; run(60);
 assert.ok(Math.hypot(hero.x - hx, hero.z - hz) < 0.5, 'no chase once it is off');
-// a building that falls ends it there, as for crew (Tim 2026-11-15): no going on to the next one by himself
+// a building that falls ends it there, as for crew (2026-11-15): no going on to the next one by himself
 for (const u of [a, b, c]) { u.dead = true; }
 { const st = ST.find(`t|enemyTown|${HOUSE}`); assert.ok(st, 'the house is a target');
   Object.assign(hero, { x: st.x + 3, z: st.z + 3 });

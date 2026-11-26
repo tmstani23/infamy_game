@@ -1,4 +1,4 @@
-// War checkpoint 8b-2 (Tim 2026-11-15): the defending town trains troops.
+// War checkpoint 8b-2 (2026-11-15): the defending town trains troops.
 // The defender has its own war chest on the war record (war.defense = { chest, put }), filled from the town's coffers
 // with a typeable box at any time while the war is on (command warChestTown { war, amount }). Clan treasury money
 // reaches it only by train (8e). Built military buildings in the town (and its stable, for cavalry) train the units
@@ -40,7 +40,7 @@ export function createWarDefense({ state, data, war, world }) {
   // the town's buildings that train in this war: built military ones, and the stable once the town hall war upgrade is
   // done (cavalry need the upgrade, as at a camp)
   const trains = (s, b, clan) => b.stage === 'built' && war.trainsAt(b.type, clan).length > 0 && (data.buildings?.[b.type]?.military || (b.type === 'stable' && !!s.warHall));
-  const slotsOf = u => Math.max(1, UD()[u]?.slots ?? 1);   // troop places a unit takes (Tim 2026-11-21)
+  const slotsOf = u => Math.max(1, UD()[u]?.slots ?? 1);   // troop places a unit takes (2026-11-21)
   const troopsOf = w => Object.values(state.entities || {}).filter(e => e.warTroop === w.id && e.owner === w.defender && !e.dead).reduce((n, e) => n + slotsOf(e.warUnit), 0) + (war.crewIn?.(w, w.defender) || 0);   // hero crew in the circle count too
   const queuedOf = (w, s) => (s?.buildings || []).reduce((n, b) => n + (b.queue || []).reduce((m, q) => m + slotsOf(q.unit), 0), 0);
   function troopCap(w, s) {

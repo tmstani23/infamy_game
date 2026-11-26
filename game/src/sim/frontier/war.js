@@ -1,5 +1,5 @@
 // War (frontier plan F6, checkpoint 1): war records, the war circle, and planting the war camp
-// banner, which IS the declaration of war (Tim 2026-11-10: one step, no separate Declare click).
+// banner, which IS the declaration of war (2026-11-10: one step, no separate Declare click).
 // Rules only: no DOM, no randomness. All numbers live in data/frontier.json "war".
 // State: state.frontier.wars = { list: { [id]: war }, cooldown: { [townId]: untilTick }, history: [] }
 //   war = { id, town, attacker, defender, x, z, started, state: 'active' }   (x, z = the banner)
@@ -325,7 +325,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function missing(camp, type) {
     const out = [];
     for (const n of BD()[type]?.campNeeds ?? BD()[type]?.needs ?? []) {   // ships S5: campNeeds, what a camp needs when it differs from a town (the cannon tower: nothing)
-      if (n === 'upgrade' || n === 'tier2') { if (!upgraded(camp)) out.push('the camp hall upgrade'); }   // tier2: a camp has no tiers, the hall upgrade stands in (Tim 2026-11-15)
+      if (n === 'upgrade' || n === 'tier2') { if (!upgraded(camp)) out.push('the camp hall upgrade'); }   // tier2: a camp has no tiers, the hall upgrade stands in (2026-11-15)
       else if (!builtCount(camp, n)) out.push(`a built ${nice(n)}`);
     }
     return out;
@@ -352,8 +352,8 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     if (!Number.isFinite(x) || !Number.isFinite(z)) return 'Choose a spot';
     const need = missing(camp, type);
     if (need.length) return `Needs ${need.join(' and ')}`;
-    const max = campMax(camp, type);   // Tim 2026-11-21: supply tents unlock with the camp hall upgrade
-    if (max && camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length + (opts.more || 0) >= max)   // Tim 2026-11-17: a ruin is only a look until erased; it takes no building slot
+    const max = campMax(camp, type);   // 2026-11-21: supply tents unlock with the camp hall upgrade
+    if (max && camp.buildings.filter(b => b.type === type && b.stage !== 'ruined').length + (opts.more || 0) >= max)   // 2026-11-17: a ruin is only a look until erased; it takes no building slot
     return max < (BD()[type]?.max ?? Infinity) ? `A camp has at most ${max} ${nice(type)} before the camp hall upgrade` : `A camp has at most ${max} ${nice(type)}`;
     const t = town(war.town), r = radiusOf(type), p = { x, z };
     if (!t) return 'No such town';
@@ -362,7 +362,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!target(s) || !Number.isFinite(s.x)) continue;
       if (inRingOf(s, p, r)) return isCastle(s) ? `Inside ${s.name}` : `Inside ${s.name}'s town ring`;
     }
-    // 7c-4 (Tim 2026-11-12): the build area is the ground within chainDistance of a normal camp building. A resource
+    // 7c-4 (2026-11-12): the build area is the ground within chainDistance of a normal camp building. A resource
     // camp (lumber camp, quarry) may also stand outside it, by its resource (within resourceCampReach of a spot it
     // takes); resource camps never extend the area.
     const chain = W.chainDistance ?? 120;
@@ -390,7 +390,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // { type: 'palisade', rot: the line's angle } built by the camp workers like any site. Paid at once for the whole
   // run. A gate is one piece: placed on a palisade piece it takes its place and its angle; elsewhere it stands alone.
   // Read-only: { ok, reason, points: [{ x, z }], rot, cost }
-  // ---- joints (Tim 2026-11-15): every palisade or gate piece has two ends; a new run or gate locks onto an end near the
+  // ---- joints (2026-11-15): every palisade or gate piece has two ends; a new run or gate locks onto an end near the
   // cursor, so runs meet end to end and close at corners without hunting for the spot
   const lenOf = type => BD()[type]?.length || 5;
   const alongX = b => Math.abs(Math.cos(b.rot || 0)) >= Math.abs(Math.sin(b.rot || 0));
@@ -404,12 +404,12 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function campLineCheck(warId, a, b) {
     const war = byId(warId), def = BD().palisade, camp = war?.camp;
     if (!camp || !def?.line) return { ok: false, reason: 'No such war camp', points: [] };
-    if (war.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table', points: [] };   // Tim 2026-11-18
+    if (war.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table', points: [] };   // 2026-11-18
     if (![a?.x, a?.z, b?.x, b?.z].every(Number.isFinite)) return { ok: false, reason: 'Choose a start and an end', points: [] };
     const L = def.length || 5, snap = W.lineSnap ?? 4, joints = jointsOf(camp), locks = {};
     // the start locks onto the nearest piece end within reach
     { let best = null, bd = snap; for (const j of joints) { const d = Math.hypot(j.x - a.x, j.z - a.z); if (d <= bd) { bd = d; best = j; } } if (best) { a = { x: best.x, z: best.z }; locks.start = { x: r2(best.x), z: r2(best.z) }; } }
-    // Tim 2026-11-15: a run follows world x or world z (the two diagonals the palisade and gate art is drawn for);
+    // 2026-11-15: a run follows world x or world z (the two diagonals the palisade and gate art is drawn for);
     // a drag at any other angle snaps to the nearer one, so the pieces never stair-step
     const onX = Math.abs(b.x - a.x) >= Math.abs(b.z - a.z), sign = (onX ? b.x - a.x : b.z - a.z) < 0 ? -1 : 1;
     const dx = onX ? sign : 0, dz = onX ? 0 : sign, rot = Math.round(Math.atan2(dz, dx) * 1000) / 1000;
@@ -443,7 +443,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     for (const p of r.points) war.camp.buildings.push({ id: `${war.id}:palisade${f().nextId++}`, type: 'palisade', stage: 'site', x: p.x, z: p.z, rot: r.rot, line, progress: 0, need: BD().palisade.buildTicks || 1 });
     return { ok: true };
   }
-  // Where a gate goes (Tim 2026-11-15): { x, z, rot, replace: [pieces], lock } or null for open ground.
+  // Where a gate goes (2026-11-15): { x, z, rot, replace: [pieces], lock } or null for open ground.
   //  - on a palisade: it takes the place of the piece under the cursor and the next one along (a gate is two pieces long),
   //    standing in the wall, never in front of or behind it;
   //  - by the free end of a run: it locks onto the end and carries the run on, or with turn (R) stands square to it;
@@ -478,7 +478,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // Read-only for the UI, bots and tests: { ok, reason, point, rot?, replaces?: [ids], lock? }; opts.turn = a gate turned with R
   function campCheck(warId, type, point, opts = {}) {
     const war = byId(warId), p = point && { x: Math.round(point.x), z: Math.round(point.z) };
-    if (war?.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table', point: p };   // Tim 2026-11-18
+    if (war?.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table', point: p };   // 2026-11-18
     if (type === 'palisade') return { ok: false, reason: 'A palisade is placed as a line', point: p };
     if (type === 'gate' && p && war?.camp) {
       const g = gateSpot(war, point.x, point.z, !!opts.turn);
@@ -517,16 +517,16 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     war.camp.buildings.push({ id: `${war.id}:${c.kind}${f().nextId++}`, type: c.kind, stage: 'site', x: r.point.x, z: r.point.z, ...(r.rot !== undefined ? { rot: r.rot } : {}), ...(line ? { line } : {}), progress: 0, need: def.buildTicks || 1 });
     return { ok: true };
   }
-  // Tim 2026-11-17: a ruined camp station or rail section is rebuilt where it stood (a site again, built by camp
+  // 2026-11-17: a ruined camp station or rail section is rebuilt where it stood (a site again, built by camp
   // workers like any site). Cost: the station's build cost; a section war.supply.sectionCost, sectionBuildTicks.
-  // the camp's rail line only (Tim 2026-11-24: no rebuilding buildings in a war; the slipway, as every other camp
+  // the camp's rail line only (2026-11-24: no rebuilding buildings in a war; the slipway, as every other camp
   // building, is erased and placed new; a station or section has no other way back)
   const REBUILD = new Set(['camp_station', 'rail_section']);
   const rebuildCost = b => b.type === 'rail_section' ? W.supply?.sectionCost || { timber: 60, stone: 20 } : BD()[b.type]?.cost || {};
   function campRebuildCheck(warId, id) {
     const war = byId(warId), b = war?.camp?.buildings.find(x => x.id === id);
     if (!b) return { ok: false, reason: 'No such camp building' };
-    if (war.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table' };   // Tim 2026-11-18
+    if (war.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table' };   // 2026-11-18
     if (!REBUILD.has(b.type)) return { ok: false, reason: 'Erase the ruin, then build a new one' };
     if (b.stage !== 'ruined') return { ok: false, reason: 'It is not a ruin' };
     const cost = rebuildCost(b), why = canPay(war.camp, cost);
@@ -558,7 +558,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     war.camp.buildings.splice(i, 1);
     return { ok: true };
   }
-  // The Eraser (Tim 2026-11-15): take down any camp building but the hall, as the town eraser does. Everything it cost
+  // The Eraser (2026-11-15): take down any camp building but the hall, as the town eraser does. Everything it cost
   // comes back to the war chest, for a site too; a ruin is cleared for nothing. Read-only check for the UI:
   // { ok, reason, building, refund } for the building under a point (or by id)
   function campEraseCheck(warId, at) {
@@ -596,12 +596,12 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   function campUpgrade(e, c) {
     const war = byId(c.war), U = W?.hallUpgrade;
     if (!owns(e, war)) return { ok: false, reason: 'Not your war camp' };
-    if (war.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table' };   // Tim 2026-11-18
+    if (war.terms) return { ok: false, reason: 'A ceasefire is on: nobody builds while terms are on the table' };   // 2026-11-18
     const hall = hallOf(war.camp);
     if (!U || !hall || hall.stage !== 'built') return { ok: false, reason: 'No camp hall' };
     if (upgraded(war.camp)) return { ok: false, reason: 'The camp hall is already upgraded' };
     if (hall.upgrade) return { ok: false, reason: 'The upgrade is already under way' };
-    const cost = U.campCost || U.cost, why = canPay(war.camp, cost);   // Tim 2026-11-25: the camp hall upgrade has its own (cheaper) cost
+    const cost = U.campCost || U.cost, why = canPay(war.camp, cost);   // 2026-11-25: the camp hall upgrade has its own (cheaper) cost
     if (why) return { ok: false, reason: why };
     pay(war.camp, cost);
     hall.upgrade = { progress: 0, need: U.buildTicks || 1 };
@@ -623,7 +623,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
   // the side's hero crew standing in the war circle count toward the troop cap too (F6 phase 4; not the hero, workers or settlers)
   const crewIn = (war, clan) => { const t = town(war.town), R = W?.circleRadius ?? 900; if (!t) return 0;
     return Object.values(state.entities || {}).filter(e => e.owner === clan && e.place === 'world' && !e.dead && !e.warTroop && !e.worker && e.type !== 'hero' && e.type !== 'settler' && e.type !== 'civilian' && !e.guard && !e.captain && !e.guide && Math.hypot(e.x - t.x, e.z - t.z) <= R).length; };
-  // troop places a unit takes (war.units[unit].slots, default 1; Tim 2026-11-21: Gatling 2, cannons 3, like RTS supply)
+  // troop places a unit takes (war.units[unit].slots, default 1; 2026-11-21: Gatling 2, cannons 3, like RTS supply)
   const slotsOf = unit => Math.max(1, UD()[unit]?.slots ?? 1);
   const troopsOf = war => Object.values(state.entities || {}).filter(e => e.warTroop === war.id && e.owner === war.attacker && !e.dead).reduce((n, e) => n + slotsOf(e.warUnit), 0) + crewIn(war, war.attacker);
   const queuedOf = war => war.camp.buildings.reduce((n, b) => n + (b.queue || []).reduce((m, q) => m + slotsOf(q.unit), 0), 0);
@@ -696,7 +696,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
     armory?.tick();   // 8e-9: upgrades in the work
     // a war that is over takes its troops with it (they disband)
     if (runtime?.remove && (state.tick ?? 0) % 20 === 0) for (const e of Object.values(state.entities || {})) if (e.warTroop && !e.rout && !e.leave && !e.inShip && !byId(e.warTroop)) runtime.remove(e.id);   // routed troops run off first (war_end.js); a ship landing its people, and the troops in its hold, wait for it (ships S7)
-    // 7c (Tim 2026-11-12): war troops cannot leave their war circle. One past the edge is set back on it and stops;
+    // 7c (2026-11-12): war troops cannot leave their war circle. One past the edge is set back on it and stops;
     // a move order to a spot outside ends at the edge.
     if ((state.tick ?? 0) % 5 === 0) for (const e of Object.values(state.entities || {})) {
       if (!e.warTroop || e.dead || e.place !== 'world') continue;
@@ -720,7 +720,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (q.left > 0 || !runtime?.spawn) continue;   // without the game (bare tests) a ready troop waits at the front
       // ships S3: a ship comes out on the water beside its slipway (it waits there while no water is found)
       if (UD()[q.unit]?.ship) { if (!runtime.ships?.launch(war, q.unit, b.x, b.z, war.attacker)) continue; f().nextId++; b.queue.shift(); if (!b.queue.length) delete b.queue; continue; }
-      // Tim 2026-11-12: new troops come out on the side facing the town and gather in one spot there, a little spread
+      // 2026-11-12: new troops come out on the side facing the town and gather in one spot there, a little spread
       const t = town(war.town), r = radiusOf(b.type) + 2, a = t ? Math.atan2(t.z - b.z, t.x - b.x) : 0;
       const gx = b.x + Math.cos(a) * (r + 6), gz = b.z + Math.sin(a) * (r + 6), k = b.rally = ((b.rally || 0) % 24) + 1;
       const id = spawnTroop(war, q.unit, b.x + Math.cos(a) * r, b.z + Math.sin(a) * r), e = state.entities[id];
@@ -791,7 +791,7 @@ export function createWar({ state, data, world = null, worldData = null, resourc
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');
     }
-    if (c.action === 'armoryUp' || c.action === 'armoryCancel') {   // 8e-9: armory upgrades (cancel: Tim 2026-11-18 queue)
+    if (c.action === 'armoryUp' || c.action === 'armoryCancel') {   // 8e-9: armory upgrades (cancel: 2026-11-18 queue)
       const r = armory.command(e, c);
       if (!r.ok && state.clans?.[e.owner]) state.clans[e.owner].notice = { tick: state.tick, text: r.reason };
       return receipt(e, c, r.ok, r.reason || '');

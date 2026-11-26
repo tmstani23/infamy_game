@@ -1,4 +1,4 @@
-// Z3 (Tim 2026-11-19): what the World map says of each campaign zone (src/zone_map.js zoneMapState): the holder you
+// Z3 (2026-11-19): what the World map says of each campaign zone (src/zone_map.js zoneMapState): the holder you
 // know of, your towns of the cap, known castles and the goal row. Run: node game/tools/test_zone_map.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

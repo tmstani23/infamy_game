@@ -1,8 +1,8 @@
-// Catching a wild horse (wildlife W6, Tim 2026-11-24): no rope and nothing thrown. A band of warm lantern light
+// Catching a wild horse (wildlife W6, 2026-11-24): no rope and nothing thrown. A band of warm lantern light
 // passes over her from head to tail; behind it she is the saddled horse, ahead of it still the wild one. A soft,
 // uneven pool of the same light lies on the grass, leaning toward the hero. About a second, all see-through.
-// Mock and critic rounds: project files war_build/wildlife/halter_swap/ (Tim picked best_anim_r4).
-// Before it (Tim 2026-11-26, mock and critic rounds war_build/wildlife/catch_pole/): while the hero's catch runs
+// Mock and critic rounds: project files war_build/wildlife/halter_swap/ (picked best_anim_r4).
+// Before it (2026-11-26, mock and critic rounds war_build/wildlife/catch_pole/): while the hero's catch runs
 // (e.catchCast, sim/wild_animals.js catchHorse) he holds a plain bamboo pole to her neck (never a rope or loop) and a
 // soft lantern glow builds round her; after the saddle, one soft glow says she is ready to ride.
 // Sim: a 'horseCaught' cast { a: hero id, t: the wild horse's id (gone from the sim), horse: the tamed horse's id }
@@ -78,7 +78,7 @@ function poleMaterial() {
   });
 }
 const W0 = 0.07, W1 = 0.04;                         // pole width at the hand and at the tip (world units)
-const HAND_UP = 0.72, HAND_OUT = 0.18, RIDE_UP = 1.8, RIDE_OUT = 0.3,   // on foot; in the saddle (Tim 2026-11-26: most catches are from horseback)
+const HAND_UP = 0.72, HAND_OUT = 0.18, RIDE_UP = 1.8, RIDE_OUT = 0.3,   // on foot; in the saddle (2026-11-26: most catches are from horseback)
       NECK_UP = 1.47, NECK_HEAD = 0.36;   // hand and neck points on the sprites, on screen from their feet
 const PULL = 0.55, CATCH_COL = [226 / 255, 160 / 255, 92 / 255], READY_COL = [232 / 255, 182 / 255, 110 / 255];
 function headOf(dir) {                               // her head on screen from her middle (as setup below)

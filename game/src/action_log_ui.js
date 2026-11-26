@@ -1,4 +1,4 @@
-// The logs of the general, the governor and the capital lieutenant (Tim 2026-11-22, mock
+// The logs of the general, the governor and the capital lieutenant (2026-11-22, mock
 // /mnt/project-files/war_build/general_log): a closed section that shows the newest line, and an open view that takes
 // the tab: day headers, ten lines a page, a tag per kind, and a box under the list that explains the line the mouse is
 // on (no scrollbars; long text in that box). Entries from sim/frontier/action_log.js { tick, day, night, k, x, d },

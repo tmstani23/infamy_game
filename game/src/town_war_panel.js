@@ -1,4 +1,4 @@
-// Town war window (war checkpoint 8b-3, mock OK'd by Tim 2026-11-15): presentation only, the sim checks every
+// Town war window (war checkpoint 8b-3, mock OK'd by 2026-11-15): presentation only, the sim checks every
 // command again. The same look as the war camp menus (war_camp_panel.js CSS under #townwar).
 // show(townId): the town hall's War window, tabs Military (the military building cards: picking one hands the
 // build bar its tool), War chest (only while a war is on the town: fill it from the coffers with a typeable box) and
@@ -41,11 +41,11 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
   const hero = () => game.state.entities[heroId];
   const town = id => game.state.frontier?.settlements?.[id] || null;
   const warOn = id => Object.values(game.state.frontier?.wars?.list || {}).find(w => w.town === id) || null;
-  // with a tier: the art of that town hall tier (the window's own picture; Tim 2026-11-22: a tier 3 town showed the tier 1 hall)
+  // with a tier: the art of that town hall tier (the window's own picture; 2026-11-22: a tier 3 town showed the tier 1 hall)
   const artName = (type, tier = 0) => (tier ? tierArt(F.townArt, type, tier) : F.townArt?.[type]) || type;
   const artUrl = (type, tier = 0) => { const n = artName(type, tier), kind = catalog?.items?.[n]?.kind || 'buildings'; return `art/${kind}/${n}.png`; };
   let open = null, bid = null, tab = 'military', page = 0, tpage = 0, sig = '', why = '', confirm = false, logOpen = false, lpage = 0, gpage = 0;
-  // a building troops can hold (a watchtower): its garrison slots under its own menu (Tim 2026-11-25)
+  // a building troops can hold (a watchtower): its garrison slots under its own menu (2026-11-25)
   const Zg = () => W().structures?.zoneGarrison || F.war?.structures?.zoneGarrison || {};
   const garCap = t => (Zg().types || []).includes(t) ? (Zg().byType?.[t]?.capacity ?? Zg().capacity ?? 0) : 0;
   const counts = {};
@@ -91,7 +91,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
       const model = (typeof e.model === 'string' ? e.model : e.model?.[faction] || Object.values(e.model || {})[0]) || u.sprite || t;
       const dps = u.gatling ? u.gatling.damage * 20 / Math.max(1, u.gatling.everyTicks) : (u.damage || 0) / Math.max(0.1, u.attackSpeed || 1);
       const range = u.rifle?.range ?? u.gatling?.range ?? u.attackRange ?? 1;
-      const abil = Object.entries(SPECIALS).filter(([, S]) => S.has(u, { type: t })).map(([id, S]) => specialHover(id, S.name, ABOUT[id], u));   // with its numbers (Tim 2026-11-18)
+      const abil = Object.entries(SPECIALS).filter(([, S]) => S.has(u, { type: t })).map(([id, S]) => specialHover(id, S.name, ABOUT[id], u));   // with its numbers (2026-11-18)
       if (TRAITS[t]) abil.push(TRAITS[t]);
       return { name: u.name || nice(key), model, hp: u.hp ?? 0, dps, range, speed: u.run ?? 0, abil };
     };
@@ -175,7 +175,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
   // the General tab's keep box: sent when the box is left or Enter is pressed
   root.addEventListener('change', e => { if (!e.target?.dataset?.tkeep || !open) return; const n = Math.floor(Number(e.target.value)); delete counts.tkeep; sig = ''; if (!Number.isSafeInteger(n) || n < 0) why = 'Type 0 or more'; else { why = ''; send({ id: heroId, type: 'frontier', action: 'ship', mode: 'treasuryKeep', ryo: n }); } fill(); });   // 8e-2
   root.addEventListener('change', e => { if (!e.target?.dataset?.keep || !open) return; const k = keepShare(e.target.value); delete counts.keep; sig = ''; if (k === null) why = 'Type a number from 0 to 100'; else { why = ''; send({ id: heroId, type: 'frontier', action: 'warKeep', town: open, share: k }); } fill(); });
-  // the safety fund box (Tim 2026-11-22, moved here from the Governor tab): the typed share stays shown until the sim has it
+  // the safety fund box (2026-11-22, moved here from the Governor tab): the typed share stays shown until the sim has it
   const sendFund = pct => { pct = Math.max(0, Math.min(100, Math.round(pct))); counts.fund = String(pct); send({ id: heroId, type: 'frontier', action: 'setFund', settlement: open, pct }); };
   root.addEventListener('change', e => { if (!e.target?.dataset?.fund || !open) return; const v = String(e.target.value).trim(), n = Number(v); sig = ''; if (v === '' || !Number.isFinite(n)) { why = 'Type a number from 0 to 100'; delete counts.fund; } else { why = ''; sendFund(n); } fill(); });
   root.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
@@ -183,7 +183,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
   root.addEventListener('mousedown', e => { const s = open && town(open), b = bid && s?.buildings?.find(x => x.id === bid); const st = b && game.frontier?.structures?.list?.().find(x => x.b?.id === b.id && x.town === s.id); if (garrisonSlotOut(e, { heroId, st, send })) { sig = ''; fill(); } });
   root.addEventListener('contextmenu', e => { if (e.target.closest?.('[data-gout]')) e.preventDefault(); });
   for (const ev of ['keyup', 'pointerdown', 'mousedown', 'wheel']) root.addEventListener(ev, e => e.stopPropagation());
-  // Tim 2026-11-25: a redraw between mouse down and up (the queue countdown redraws every second) swapped the Train button out, so the click was lost
+  // 2026-11-25: a redraw between mouse down and up (the queue countdown redraws every second) swapped the Train button out, so the click was lost
   let held = false;
   root.addEventListener('pointerdown', () => { held = true; });
   for (const ev of ['pointerup', 'pointercancel', 'blur']) addEventListener(ev, () => { held = false; }, { capture: true });
@@ -192,7 +192,7 @@ export function createTownWarPanel({ game, heroId, catalog, frontierData, units 
     const b = e.target.closest?.('[data-gpage],[data-close],[data-tab],[data-page],[data-tpage],[data-build],[data-cancel],[data-armcancel],[data-train],[data-untrain],[data-upgrade],[data-put],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-fundstep],[data-logopen],[data-logback],[data-lpage]'); if (!b || !open) return;
     const d = b.dataset, s = town(open), w = warOn(open); why = ''; sig = '';
     if ((d.rsend || d.rcancel) && w) { why = chestSendClick(d, { war: w, heroId, counts, send }) || ''; fill(); return; }   // 8e-3
-    if (d.armcancel != null && w) { send({ id: heroId, type: 'frontier', action: 'armoryCancel', war: w.id, index: Number(d.armcancel) }); fill(); return; }   // armory queue (Tim 2026-11-18)
+    if (d.armcancel != null && w) { send({ id: heroId, type: 'frontier', action: 'armoryCancel', war: w.id, index: Number(d.armcancel) }); fill(); return; }   // armory queue (2026-11-18)
     if (d.armup && w) { const [group, track] = d.armup.split(':'); send({ id: heroId, type: 'frontier', action: 'armoryUp', war: w.id, group, track }); fill(); return; }   // 8e-9
     if (d.fundstep) { if (s?.fund) sendFund(Number(counts.fund ?? s.fund.pct ?? 10) + Number(d.fundstep)); fill(); return; }
     if (d.logopen || d.logback) { logOpen = !!d.logopen; lpage = 0; fill(); return; }

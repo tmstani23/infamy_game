@@ -52,7 +52,7 @@ const w = {
 };
 const CELL = w.terrain.cell, NX = w.terrain.rows[0].length, NZ = w.terrain.rows.length;
 
-// ---------- 2. overrides (Tim's steering, W1.4) ----------
+// ---------- 2. overrides (the steering, W1.4) ----------
 const lists = ['sites', 'nodes', 'camps', 'setPieces', 'nativeVillageSlots', 'passes', 'fords'];
 const findById = id => { for (const k of lists) { const o = w[k].find(q => q.id === id); if (o) return o; } return null; };
 // paint: { code, x0, z0, x1, z1 } or { code, x, z, r } or { code, near: { biome, cells } } (W3.11 P4: cells within
@@ -78,7 +78,7 @@ for (const p of ov.paint || []) {
     w.terrain.rows[i] = row.join('');
   }
 }
-// coastCliff (W3.11 P4, Tim 2026-11-03): land within `depth` cells of the open sea becomes mountain ('m') so the
+// coastCliff (W3.11 P4, 2026-11-03): land within `depth` cells of the open sea becomes mountain ('m') so the
 // existing cliff art lines the coast; shore stays open near harbours, the capital port and river mouths.
 if (ov.coastCliff) {
   const cc = ov.coastCliff, rows = w.terrain.rows, ocean = new Uint8Array(NX * NZ), q = [];

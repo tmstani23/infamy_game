@@ -37,7 +37,7 @@ const K = railways.ship.keep, ryoB = B.stock.ryo;
 sh.clerk(B);
 const want = r => open().find(o => o.to === 'tB' && o.resource === r);
 for (const r of ['food', 'timber', 'stone']) assert.ok(want(r), `auto order for ${r}`);
-assert.ok(!want('goods'), 'no own town has goods: goods refills are never bought at the capital (Tim 2026-11-22)');
+assert.ok(!want('goods'), 'no own town has goods: goods refills are never bought at the capital (2026-11-22)');
 assert.equal(want('food').amount, K.food, 'orders up to the keep amount');
 assert.deepEqual(want('food').sources.map(x => x.from), ['tA'], 'food from the surplus town');
 assert.deepEqual(want('stone').sources.map(x => x.from), ['capital'], 'no surplus stone anywhere: bought at the port');
@@ -54,7 +54,7 @@ assert.equal(Object.keys(F.shipping.orders).length, n, 'no duplicate orders');
 // everything arrives by train
 assert.ok(run(20000, () => !open().some(o => o.to === 'tB')), 'all delivered');
 
-// fix list 13 (Tim 2026-11-22): no refill until the stock falls below half the keep, then one order back up to the keep
+// fix list 13 (2026-11-22): no refill until the stock falls below half the keep, then one order back up to the keep
 B.stock.food = K.food * 0.6;
 sh.clerk(B);
 assert.ok(!want('food'), 'above half the keep: no refill');
@@ -89,7 +89,7 @@ const ryoA = A.stock.ryo;
 assert.ok(run(20000, () => sale.state === 'done'), 'sale delivered to the capital');
 assert.ok(A.stock.ryo > ryoA, 'tA was paid');
 
-// Tim 2026-11-22: goods, timber and stone above the keep go to the capital, a batch at a time once at least sell.min
+// 2026-11-22: goods, timber and stone above the keep go to the capital, a batch at a time once at least sell.min
 // is spare; the keep stays, war or not; food never
 { const SL = railways.ship.sell, sells = r => open().filter(x => x.kind === 'sell' && x.sellFrom === 'tA' && x.resource === r);
   for (const x of open()) { sh.release(x); x.state = 'cancelled'; }
@@ -118,7 +118,7 @@ B.stock.food = 0;
 assert.ok(run(4000, () => open().some(x => x.auto && x.to === 'tB' && x.resource === 'food')), 'governor review on auto runs the clerk');
 console.log('test_shipments_clerk: ok');
 
-// order slip (Tim 2026-11-25): source 'capital' buys it all there, even when one of your towns has spare
+// order slip (2026-11-25): source 'capital' buys it all there, even when one of your towns has spare
 {
   for (const o of open()) cmd({ mode: 'cancel', order: o.id });
   A.stock.food = 300; B.stock.ryo = 1000; B.autoBuild = false;

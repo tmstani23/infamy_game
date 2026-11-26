@@ -1,6 +1,6 @@
 {
   "date": "2026-11-03",
-  "status": "Applied; all ten focused Node checks pass; Tim in-game visual/traversal review pending",
+  "status": "Applied; all ten focused Node checks pass; in-game visual/traversal review pending",
   "approvedProposal": "reshape_proposal_v2.json",
   "sourceOverlay": "docs/images/frontier/blueprint/world_reshape_v1.json",
   "baseBlueprintUnchanged": true,

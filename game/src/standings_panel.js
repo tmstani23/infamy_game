@@ -1,4 +1,4 @@
-// The Standings panel (Tim 2026-11-10): click a clan chip in the top bar. A tab per clan, coins on the left,
+// The Standings panel (2026-11-10): click a clan chip in the top bar. A tab per clan, coins on the left,
 // where its Influence (campaign) or season points (classic) come from, and the tiers, paged (no scrollbars).
 // Reads the state only; the numbers come from standingsModel / standingsDetail (src/top_bar_standings.js).
 import { msInstall, msShell, msSec, msRow, msPager, msNote, msProg, msEsc } from './menu_shell.js';

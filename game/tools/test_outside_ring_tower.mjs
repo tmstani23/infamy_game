@@ -1,4 +1,4 @@
-// Tim 2026-11-21: a watchtower may stand outside the town ring only beside one of the town's own built work camps,
+// 2026-11-21: a watchtower may stand outside the town ring only beside one of the town's own built work camps,
 // one per work camp (frontier.json tiers.outsideRing).
 //   node game/tools/test_outside_ring_tower.mjs
 import assert from 'node:assert/strict';

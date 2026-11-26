@@ -13,7 +13,7 @@ export function createCrewFx({scene,spriteOf}){
   let glow=null;   // a soft round light, made once (torch glow)
   function glowTex(){if(glow)return glow;const cv=document.createElement('canvas');cv.width=cv.height=64;const x=cv.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.4,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return glow=new THREE.CanvasTexture(cv);}
   function ring(radius,color){const m=add(new THREE.RingGeometry(radius-.04,radius+.04,40),color);m.rotation.x=-Math.PI/2;return m;}
-  // A soft see-through streak trailing a shot (Tim 2026-11-25: tower and stockade shots were hard to see in a war):
+  // A soft see-through streak trailing a shot (2026-11-25: tower and stockade shots were hard to see in a war):
   // a faded straw colour starting just behind the fletching, in segments that thin and fade to nothing toward the
   // tail, plus a faint wider sheath so it holds up zoomed out. Normal blending and kept off the bloom layer, so it
   // never glows brighter than the lanterns.
@@ -33,14 +33,14 @@ export function createCrewFx({scene,spriteOf}){
   function shot(p){
     const group=new THREE.Group(),color=p.kind==='geishabolt'?0xff82c3:p.kind==='cannonball'?0x26262a:p.kind==='firebomb'?0xff8a3c:p.hamstring?0x8affcb:p.kind==='bullet'?0xfff2b0:0xf3dc9a;
     const shaft=new THREE.Mesh(p.kind==='cannonball'?new THREE.SphereGeometry(p.ship?.13:.21,10,8):p.kind==='firebomb'?new THREE.SphereGeometry(.22,8,6):p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):p.kind==='bullet'?new THREE.CylinderGeometry(.035,.035,1.5,5):new THREE.CylinderGeometry(.04,.04,1.0,5),material(color));   // bullet: bright tracer (war riflemen)
-    group.add(shaft);   // 7c (Tim 2026-11-12): shots are much easier to see; the body was never added before, only the faint trail showed
+    group.add(shaft);   // 7c (2026-11-12): shots are much easier to see; the body was never added before, only the faint trail showed
     if(p.kind==='cannonball'){
-      // Tim 2026-11-13: a long soft smoke wake, not a defined tube: soft puffs that grow and fade behind the ball
+      // 2026-11-13: a long soft smoke wake, not a defined tube: soft puffs that grow and fade behind the ball
       shaft.material.opacity=1;
       for(let i=1;i<=8;i++){const puff=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:0xcfc8bc,transparent:true,depthWrite:false,opacity:.2*(1-i/9)}));puff.position.y=-.3*i*(p.ship?.7:1);puff.scale.setScalar((.3+.07*i)*(p.ship?.65:1));group.add(puff);}
       scene.add(group);group.traverse(onFxLayer);return {mesh:group,elapsed:0};
     }
-    // Tim 2026-11-12: arrows and bullets looked the same; an arrow is a wooden shaft with an iron head and pale
+    // 2026-11-12: arrows and bullets looked the same; an arrow is a wooden shaft with an iron head and pale
     // fletching, a bullet a small hot ball with a thin fading streak, flying flat
     if(p.kind==='arrow'&&!p.hamstring){
       shaft.geometry.dispose();shaft.geometry=new THREE.CylinderGeometry(.03,.03,1.15,5);shaft.material.color.set(0x8a6440);shaft.material.opacity=1;
@@ -50,7 +50,7 @@ export function createCrewFx({scene,spriteOf}){
       scene.add(group);group.traverse(onFxLayer);if(p.tower||p.garrison)tracer(group,TRACER.arrow);return {mesh:group,elapsed:0};
     }
     if(p.kind==='bullet'){
-      // a solid slug (Tim 2026-11-12: it read as an effect): a dull lead body with a rounded nose, a faint grey wake
+      // a solid slug (2026-11-12: it read as an effect): a dull lead body with a rounded nose, a faint grey wake
       shaft.geometry.dispose();shaft.geometry=new THREE.CylinderGeometry(.065,.065,.26,8);shaft.material.color.set(0x6d6558);shaft.material.opacity=1;
       const nose=new THREE.Mesh(new THREE.SphereGeometry(.065,8,6,0,Math.PI*2,0,Math.PI/2),material(0x8a8070));nose.material.opacity=1;nose.position.y=.13;group.add(nose);
       const glint=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.16,5),material(0xd8cfb8));glint.material.opacity=.9;glint.position.set(.03,0,.03);group.add(glint);
@@ -74,7 +74,7 @@ export function createCrewFx({scene,spriteOf}){
         const core=new THREE.Mesh(new THREE.RingGeometry(c.radius*.45-.05,c.radius*.45+.05,32),material(0xffc070));core.userData.fxOpacity=.8;m.add(core);
         m.position.set(c.x,.15+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life:(c.ticks||40)/20,steady:true});
       }
-      if(c.kind==='torchCast'){   // Tim 2026-11-13: the 1 s Torch channel in the fire bomb look, toned to the softer building fire, with a warm glow
+      if(c.kind==='torchCast'){   // 2026-11-13: the 1 s Torch channel in the fire bomb look, toned to the softer building fire, with a warm glow
         const life=(c.ticks||20)/20,m=ring(.85,0xd36134);m.userData.fxOpacity=.8;
         const fill=new THREE.Mesh(new THREE.CircleGeometry(.85,32),material(0xdb7a3d));fill.userData.fxOpacity=.24;m.add(fill);
         m.position.set(c.x,.15+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life,steady:true});
@@ -115,7 +115,7 @@ export function createCrewFx({scene,spriteOf}){
     update(dt,state,heroId,viewPlace=null){
       const hero=viewPlace?{...state.entities[heroId],place:viewPlace}:state.entities[heroId],present=new Set();
       for(const p of state.projectiles||[]){
-        // one key per shot: a tower's volley shares a and at (Tim 2026-11-25: only one of its 3 arrows was drawn)
+        // one key per shot: a tower's volley shares a and at (2026-11-25: only one of its 3 arrows was drawn)
         if(hero?.place!==p.place||(!p.tower&&!p.garrison&&!visible(p.a)))continue;   // garrison: shot from inside a house (7c-3b)   // tower: a watchtower's arrow has no unit behind it (war checkpoint 6)
         const key=`${p.a}:${p.at}:${p.t}:${p.until}`;present.add(key);let v=shots.get(key);if(!v){v=shot(p);shots.set(key,v);}
         v.elapsed=Math.max(v.elapsed+dt*20,state.tick-p.at-1);

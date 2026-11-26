@@ -26,7 +26,7 @@ import { isMilitary, militaryFor, militaryNeeds, militaryCount, tierMax, townMil
 import { openMenu, placeBeside, unplace } from './card_beside.js';
 import { tiredCamps } from './tired_camps.js';
 import { campLoad, spotCounts } from './sim/frontier/camp_load.js';
-const keybinds = sharedKeybinds();   // rebindable keys (Tim 2026-11-12): Turn a station, Workers hold
+const keybinds = sharedKeybinds();   // rebindable keys (2026-11-12): Turn a station, Workers hold
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -81,12 +81,12 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     ? Object.values(game.state.frontier?.rail?.links || {}).filter(l => l.owner === s.owner && (l.from === s.id || l.to === s.id)).length : 0;
   let inspectionHtml = '', inspectionPressed = false;
   let pendingPlan = null, reviewHtml = '', reviewPressed = false;
-  let pointer = { x: 420, y: 300 };   // the last pointer spot anywhere: the confirm box opens next to it (Tim 2026-11-22)
+  let pointer = { x: 420, y: 300 };   // the last pointer spot anywhere: the confirm box opens next to it (2026-11-22)
   let workerPage = 0;
-  let workerTab='roster',workerLogPage=0,workerSpotPage=0,workerFilter=null;   // workerFilter: the job coin showing only its workers (Tim 2026-11-12)
+  let workerTab='roster',workerLogPage=0,workerSpotPage=0,workerFilter=null;   // workerFilter: the job coin showing only its workers (2026-11-12)
   let workersOpen = false;
   let rosterClick=null,toolClick=null;const builtTurn={};   // builtTurn: town|kind -> the last one shown (showBuilt)
-  // Tim 2026-11-22 building finder: the next built building of this kind in this town (only this town), camera on it and its card open
+  // 2026-11-22 building finder: the next built building of this kind in this town (only this town), camera on it and its card open
   function showBuilt(s,kind) {
     const list=(s.buildings || []).filter(b=>b.type===kind && b.stage==='built');
     if(!list.length)return false;
@@ -116,9 +116,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   const canvasEvent = e => e.target?.closest?.('canvas#view') && outdoors() && !blocked();
   const consume = e => { e.preventDefault(); e.stopImmediatePropagation(); };
   crewInput.onPick?.(() => { if (selected.length) { selected = []; if (inspect?.hover) inspect = null; } });   // one selection at a time: troops or workers
-  // a unit under the pointer (troops, crew, enemies; not workers, they are this file's) wins over the building behind it (Tim 2026-11-19)
+  // a unit under the pointer (troops, crew, enemies; not workers, they are this file's) wins over the building behind it (2026-11-19)
   const unitNear = (x, y) => Object.values(game.state.entities || {}).some(e => e.place === 'world' && !e.dead && !e.garrison && !e.hidden && !e.worker && e.type !== 'horse' && e.type !== 'civilian' && !e.stored && (() => { const u = view.unitToScreen(e.x, e.z, 1); return Math.hypot(u.x - x, u.y - y) < 26; })());
-  // Workers row on a spot card (Tim 2026-11-06 22:23): how worked out the spot is now and about how many workers it
+  // Workers row on a spot card (2026-11-06 22:23): how worked out the spot is now and about how many workers it
   // keeps at full speed. Live estimate: aim to keep at most `aim` of its value worked out (workers.overwork).
   function workRow(spot, n) {
     if (!n || !spotRules?.stages) return '';
@@ -129,7 +129,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + `<div style="font-size:12px;color:${col}">${over ? `Tired: ${n - best} over the max, they add little` : best != null && n >= best ? 'At the max' : 'Room for more workers'}</div>`
       + spotDetails(spot, n) + `</div>`;
   }
-  // The actual numbers behind the workers row (Tim 2026-11-06 22:25), folded away under Details.
+  // The actual numbers behind the workers row (2026-11-06 22:25), folded away under Details.
   function spotDetails(spot, n) {
     const st = spotRules.stages, saved = game.state.frontier?.spots?.[spot.id], chars = saved && saved.length === spot.pieces.length ? saved : 'f'.repeat(spot.pieces.length);
     const c = ch => [...chars].filter(x => x === ch).length, now = spotYield(spot, saved, st), full = spotYield(spot, null, st);
@@ -168,7 +168,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     for (const w of s.workers || []) if (w.spot && !out.has(w.spot)) { const p = spotIndex.get(w.spot); if (p && overwork(p, game.state.frontier?.spots?.[p.id], spotRules.stages, count[w.spot], data.workers?.overwork, tripSecondsAt(p)).over) out.add(w.spot); }
     return out;
   }
-  // Workers on the spots of a work camp (Tim 2026-11-22; sim/frontier/camp_load.js): the spots of its kind in reach that
+  // Workers on the spots of a work camp (2026-11-22; sim/frontier/camp_load.js): the spots of its kind in reach that
   // have no nearer camp, the workers on them and the camp's max (each spot's fixed max, summed). Over that = Tired.
   function campWork(b, s) {
     const W = data.workers || {};
@@ -176,7 +176,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const load = campLoad(s, b, { R: W, index: spotIndex, stages: spotRules?.stages, count: spotCounts(towns()), known });
     return load && { n: load.n, cap: load.max, extra: load.extra, spots: load.spots.length, res: W.campTakes[b.type].join(' and '), reach: W.campReach ?? 0 };
   }
-  // Move extras pressed (Tim 2026-11-22): the button reads Moving for a moment, so the press shows before the numbers change
+  // Move extras pressed (2026-11-22): the button reads Moving for a moment, so the press shows before the numbers change
   const movedAt = new Map(), moving = id => performance.now() - (movedAt.get(id) ?? -1e9) < 2500;
   function moveExtras(townId, id) { movedAt.set(id, performance.now()); command({ action: 'campExtras', town: townId, building: id }); }
   const campHead = t => `<div style="font:600 10px/12px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#b9a77e;margin:10px 0 3px">${t}</div>`;
@@ -190,16 +190,16 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + (over ? `<div style="position:absolute;left:${fill}%;top:0;bottom:0;width:${over}%;background:repeating-linear-gradient(135deg,#e3b06a 0 4px,#9a6a2e 4px 8px)"></div>` : '')
       + (c.cap ? `<div style="position:absolute;left:calc(${mark}% - 1px);top:0;bottom:0;width:2px;background:#f2e6c9"></div>` : '') + `</div>`
       + `<div style="display:flex;align-items:center;gap:8px;min-height:22px"><div style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${tired || !c.spots ? '#d9a25a' : '#7fc27a'}">${note}</div>`
-      // Move extras (Tim 2026-11-22): hands the extra workers back to the governor (a camp spot with room, or a wait in the hall)
+      // Move extras (2026-11-22): hands the extra workers back to the governor (a camp spot with room, or a wait in the hall)
       + (tired && moving(b.id) ? '<button disabled style="flex:none;font-size:11px;padding:2px 8px;opacity:.6">Moving</button>' : tired ? `<button data-camp-extras="${esc(b.id)}" data-cart-town="${esc(s.id)}" title="${esc(`Hand the ${c.extra} extra worker${c.extra > 1 ? 's' : ''} back to the governor. He puts them on a spot beside a camp with room, or they wait in the town hall until one opens. With Initiative off they stand idle.`)}" style="flex:none;font-size:11px;padding:2px 8px">Move extras</button>` : '') + `</div></div>`;
   }
-  // Workers in shelter, on the town hall card (Tim 2026-11-22): how many of the hall's room, why (hiding from an attack,
-  // sent in by hand, waiting for room at their camp, in a work camp), Back to work, and Send the others in (in peace too, Tim 2026-11-22).
+  // Workers in shelter, on the town hall card (2026-11-22): how many of the hall's room, why (hiding from an attack,
+  // sent in by hand, waiting for room at their camp, in a work camp), Back to work, and Send the others in (in peace too, 2026-11-22).
   // The small pill over the hall (town_hover.js) points here.
   const PILL_ICON = '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><circle cx="7" cy="4" r="2.7" fill="#f2e6c9"/><path d="M1.6 13.5c.4-3.6 2.5-5.4 5.4-5.4s5 1.8 5.4 5.4Z" fill="#f2e6c9"/></svg>';
   function hallShelterHTML(s) {
     const ws = s.workers || [], inside = ws.filter(w => w.shelter), war = Object.values(game.state.frontier?.wars?.list || {}).some(w => w.town === s.id);
-    if (!ws.length) return '';   // Tim 2026-11-22: the section shows in peace too, so workers can be called into the hall any time
+    if (!ws.length) return '';   // 2026-11-22: the section shows in peace too, so workers can be called into the hall any time
     const hall = s.buildings?.find(b => b.type === 'town_hall' && b.stage === 'built'), SH = data.war?.structures?.shelter || {}, t = SH.capacityByTier;
     const cap = t?.length ? t[Math.min(t.length, Math.max(1, s.tier || 1)) - 1] : SH.capacity, inHall = inside.filter(w => !w.shelter.b || w.shelter.b === hall?.id).length;
     const why = { attack: 0, hand: 0, wait: 0, camp: 0 };
@@ -217,8 +217,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       + (back || send ? `<div class="ti-acts" style="margin-top:7px">${back}${send}</div>` : '') + `</div>`
       + `<div style="border-top:1px solid #3c3b36;margin-top:10px"></div>`;
   }
-  // Camp card (Tim 2026-11-06 21:20: a bar and chips, not a wall of text): storage used / cap, each cart, worker limit, Buy cart.
-  // Tim 2026-11-22: the card kept resizing (the full note, cart chips and the carts line came and went or wrapped as carts
+  // Camp card (2026-11-06 21:20: a bar and chips, not a wall of text): storage used / cap, each cart, worker limit, Buy cart.
+  // 2026-11-22: the card kept resizing (the full note, cart chips and the carts line came and went or wrapped as carts
   // ran), so every row is always there, one line each.
   function campCardHTML(b, s) {
     const C = data.workers.carts, used = Object.values(b.store || {}).reduce((a, v) => a + v, 0), pct = Math.min(100, Math.round(100 * used / C.cap));
@@ -284,12 +284,12 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       const record = (best.kind === 'project' ? s.projects : s.buildings).find(b => b.id === best.id);
       return { s, cell: record.cell };
     }
-    // Tim 2026-11-07: a click on bare road, wall or gate ground opens no card (too easy to hit, and it covers the screen)
+    // 2026-11-07: a click on bare road, wall or gate ground opens no card (too easy to hit, and it covers the screen)
     const bare = (s, c) => 'rwg'.includes(s.grid.use[c]) && !s.buildings.some(b => (b.cells || [b.cell]).includes(c))
       && !s.projects.some(p => (p.cells || [p.cell]).includes(c)) && !Object.values(data.zones.kinds).some(k => k.char === s.grid.zone[c]);
     return towns().map(s => ({ s, cell: cellAt(x,y,s) })).find(p => townCellTip(p.s,p.cell,data) && !bare(p.s,p.cell));
   }
-  // byClick: only a real left-click on one worker opens its card; a drag box over one does not (Tim 2026-11-25)
+  // byClick: only a real left-click on one worker opens its card; a drag box over one does not (2026-11-25)
   let clickPicked = false;
   function select(ids, byClick = false) {
     selected = ids;
@@ -313,12 +313,12 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     }
     say(`Harvest order: ${townName(spot.kind)}`);
   }
-  // 7c-4 (Tim 2026-11-12: builders, repair and douse are manual). What the selected workers can work on under the
+  // 7c-4 (2026-11-12: builders, repair and douse are manual). What the selected workers can work on under the
   // pointer: a camp building site or the camp hall while it is upgraded (build), one of their site's damaged or
   // burning structures or a ruined town hall (douse, repair), or a ruined placed building of their town (the Rebuild
   // order). Sends the order and returns true when there was something.
   // A camp building under the pointer by its drawn shape (as the Building pane picks it, structure_card.js), not by the
-  // ground point: a tall watchtower's top is far from its base on the ground (Tim 2026-11-24: right-click repair missed).
+  // ground point: a tall watchtower's top is far from its base on the ground (2026-11-24: right-click repair missed).
   // `want` buildings (a site, or one with work to do) win over others standing in the same spot.
   function campBuildingAt(s, x, y, want) {
     let best = null, bd = Infinity;
@@ -332,7 +332,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     return best;
   }
   // What the selected workers would do on a right-click here: orders to send, and a label for the pointer hint
-  // (Tim 2026-11-24: show whether it works before and after the click). fail = your own building with nothing to do.
+  // (2026-11-24: show whether it works before and after the click). fail = your own building with nothing to do.
   // what mending the rest of it costs: paid bit by bit from the town or camp stock while they work (war.structures.repair.cost per health point)
   function repairCost(s, key) {
     const st = game.frontier?.structures?.find?.(key), hp = st ? Math.max(0, (st.max || 0) - (game.frontier.structures.hpOf(st) || 0)) : 0;
@@ -358,9 +358,9 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
         else if (b) fail = `${townName(b.type)}: ${b.stage === 'built' ? 'not damaged, nothing to repair' : 'nothing to do yet'}`;
       } else if (s.grid) {
         const cell = worldToCell(s, p.x, p.z), b = cell >= 0 ? (s.buildings || []).find(q => (q.cells || [q.cell]).includes(cell)) : null;
-        const pk = cell >= 0 ? ST?.projectKeyAt?.(s, cell) : null;   // a town building site (Tim 2026-11-15): workers speed it up
+        const pk = cell >= 0 ? ST?.projectKeyAt?.(s, cell) : null;   // a town building site (2026-11-15): workers speed it up
         if (pk && ST?.workTarget?.(s, pk)) { orders.push({ s, ids, target: pk, what: 'Workers: build', label: 'Right-click: help build' }); continue; }
-        if (b?.stage === 'ruined' && b.type !== 'town_hall') {   // Tim 2026-11-24: no rebuilding during a war on the town
+        if (b?.stage === 'ruined' && b.type !== 'town_hall') {   // 2026-11-24: no rebuilding during a war on the town
           if (atWar(s)) fail = `${townName(b.type)} (ruin): no rebuilding during a war. Place a new one, on it or anywhere you can build, or rebuild it after the war`;
           else orders.push({ s, rebuild: b.id, what: 'Rebuild order given', label: 'Right-click: order it rebuilt' });
           continue;
@@ -371,7 +371,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     }
     return { orders, fail, label: orders[0]?.label || fail, ok: !!orders.length };
   }
-  // 7c-4 (Tim 2026-11-12: builders, repair and douse are manual): sends what workPlan found; true when the click was used.
+  // 7c-4 (2026-11-12: builders, repair and douse are manual): sends what workPlan found; true when the click was used.
   // Your own camp building with nothing to do takes the click too and says so, instead of sending the workers off to it.
   function workAt(x, y) {
     const plan = workPlan(x, y);
@@ -394,19 +394,19 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   function requestDrop() {
     cancel();pendingPlan={at:{...pointer},drop:workSites().map(s=>({town:s.id,workers:(s.workers || []).filter(w=>selected.includes(w.id) && w.carrying>0).map(w=>w.id)})).filter(p=>p.workers.length)};
   }
-  // Tim 2026-11-05: the town hall card can also upgrade the hall (same upgradeHall command as the town panel)
-  // Tim 2026-11-25: the requirements block (hall_upgrade.js) with have / need per requirement and the Upgrade button
+  // 2026-11-05: the town hall card can also upgrade the hall (same upgradeHall command as the town panel)
+  // 2026-11-25: the requirements block (hall_upgrade.js) with have / need per requirement and the Upgrade button
   const hallUpgradeButton = s => hallUpgradeHTML(s, data, game.state);
   const trainingTip = s => resourceRequirements(s,{ryo:data.workers.cost,...(data.workers.goodsCost?{goods:data.workers.goodsCost}:{})},data.workers.personCost)
     + `\nTrains a selectable worker for harvesting and ground clearing.\nRequires a finished town hall. Training: ${data.workers.trainTicks / 20} seconds. Keep ${data.opening?.reservePeople || 0} townsperson for food/building.\nTechnology: none.\nEnables manual move, stop, group and resource orders.`;
-  // card look (menu restyle, Tim 2026-11-11): a header with art, eyebrow and title, label / value rows, plain text
+  // card look (menu restyle, 2026-11-11): a header with art, eyebrow and title, label / value rows, plain text
   const tiHead = (eyebrow, title, art = '') => `<div class="ti-head">${art ? `<img class="ti-art" src="${art}" alt="" onerror="this.remove()">` : ''}<div class="ti-name"><div class="ti-eye">${esc(eyebrow)}</div><b class="ti-title">${esc(title)}</b></div><button data-close class="ti-x" aria-label="Close inspection" title="Close (Esc)">Close</button></div>`;
   const tiRow = l => {
-    const good = l[0] === '\u0001', warn = l[0] === '\u0002', t = String(l).replace(/^[\u0001\u0002]/, '').replace(/ · /g, ', ').replace(/…/g, '...'), m = /^([A-Z][A-Za-z ]{1,26}): (.{1,40})$/.exec(t);   // a long sentence after the colon reads as text (Tim 2026-11-22)
+    const good = l[0] === '\u0001', warn = l[0] === '\u0002', t = String(l).replace(/^[\u0001\u0002]/, '').replace(/ · /g, ', ').replace(/…/g, '...'), m = /^([A-Z][A-Za-z ]{1,26}): (.{1,40})$/.exec(t);   // a long sentence after the colon reads as text (2026-11-22)
     return `<div class="ti-row${good ? ' good' : warn ? ' warn' : ''}">${m ? `<span>${esc(m[1])}</span><b>${esc(m[2])}</b>` : `<span class="ti-txt">${esc(t)}</span>`}</div>`;
   };
   function showInspection() {
-    // a card opened with a building menu sits beside it and goes when the menu closes (Tim 2026-11-20)
+    // a card opened with a building menu sits beside it and goes when the menu closes (2026-11-20)
     const menu = inspect?.menu ? openMenu() : null;
     if (inspect?.menu && !menu) inspect = null;
     if (!inspect?.menu) unplace(card);
@@ -439,10 +439,10 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const ruin = !inspect.spot && trainTown ? trainTown.buildings?.find(b => (b.cells || [b.cell]).includes(inspect.cell) && b.stage === 'ruined') : null;
     if (ruin) {
       const rebuilding = (trainTown.projects || []).some(p => p.replaces === ruin.id), cost = Object.entries(data.buildings?.[ruin.type]?.cost || {}).filter(([, v]) => v).map(([r, v]) => `${v} ${r}`).join(', ');
-      const warNow = ruin.type !== 'town_hall' && !rebuilding && atWar(trainTown);   // Tim 2026-11-24: no rebuilding during a war on the town
+      const warNow = ruin.type !== 'town_hall' && !rebuilding && atWar(trainTown);   // 2026-11-24: no rebuilding during a war on the town
       info = { title: `${townName(ruin.type)} (ruin)`, lines: [ruin.type === 'town_hall' ? 'Select workers and right-click it to repair it' : rebuilding ? 'Being rebuilt' : warNow ? 'No rebuilding during a war: place a new one, on it or anywhere you can build, or rebuild it once the war ends' : 'Stays a ruin until you order it rebuilt'] };
-      if (ruin.type === 'station') info.lines.push('No trains run here until it is rebuilt');   // Tim 2026-11-17
-      // the rebuild cost in plain sight (Tim 2026-11-16), paid from this town's stores; what the stores lack is named
+      if (ruin.type === 'station') info.lines.push('No trains run here until it is rebuilt');   // 2026-11-17
+      // the rebuild cost in plain sight (2026-11-16), paid from this town's stores; what the stores lack is named
       if (ruin.type !== 'town_hall' && cost) {
         const short = Object.entries(data.buildings?.[ruin.type]?.cost || {}).filter(([r, v]) => v && (trainTown.stock?.[r] || 0) < v).map(([r]) => r);
         if (!rebuilding && !warNow) info.lines.push(`Rebuild cost: ${cost}, from the town stores`);
@@ -497,7 +497,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   });
   card.addEventListener('mousedown', e => { inspectionPressed = true; e.stopPropagation(); });
   review.addEventListener('mousedown', e => { reviewPressed = true; e.stopPropagation(); });
-  // typed worker count (Tim 2026-11-09: number settings are typeable boxes)
+  // typed worker count (2026-11-09: number settings are typeable boxes)
   review.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
   review.addEventListener('change', e => {
     if (!e.target.hasAttribute?.('data-training-input') || !pendingPlan?.request) return;
@@ -522,7 +522,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   });
   addEventListener('mouseup', () => { inspectionPressed = false; reviewPressed = false; });
   addEventListener('keydown', e => {
-    // R turns a station while placing it (Tim 2026-11-07); otherwise R stays the hero's ability
+    // R turns a station while placing it (2026-11-07); otherwise R stays the hero's ability
     if(keybinds.lookup(e,['build'])==='rotateBuilding' && tool && !pendingPlan && shapeOf(data.buildings[tool]) && outdoors() && !blocked() && !e.target?.closest?.('input,select,textarea')) {
       rot=(rot+1)%4;lastPreview='';consume(e);return;
     }
@@ -532,7 +532,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     if (e.code !== 'Escape' || e.target?.closest?.('input, select, textarea')) return;
     const active = outdoors() && !blocked() && (!!tool || !!drag || !!pendingPlan);
     cancel(); selected = []; inspect = null; card.hidden = true;
-    // Tim 2026-11-10: Esc with no brush in hand leaves build mode and the town panel comes back
+    // 2026-11-10: Esc with no brush in hand leaves build mode and the town panel comes back
     if (!active && opened && outdoors() && !blocked()) { close(); consume(e); return; }
     // First Escape cancels a brush; a second follows the normal close-menu shortcut.
     if (active) consume(e);
@@ -558,8 +558,8 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const workerHit = !tool && workers().some(p => bodyDistance(view, p.e, e.clientX, e.clientY) < 22);
     drag = { x: e.clientX, y: e.clientY, first: cell, build: opened && !!tool && !workerHit };
     if (drag.build) { consume(e); return; }
-  }, { capture: true });   // a press on a worker is not consumed: the crew's drag box may start there too (Tim 2026-11-19)
-  // no card on hover any more (Tim 2026-11-20, was 2026-11-19: it got in the way of moving units): a left-click shows it
+  }, { capture: true });   // a press on a worker is not consumed: the crew's drag box may start there too (2026-11-19)
+  // no card on hover any more (2026-11-20, was 2026-11-19: it got in the way of moving units): a left-click shows it
   addEventListener('mousemove', e => { mouse = canvasEvent(e) ? { x: e.clientX, y: e.clientY } : null; });
   addEventListener('mouseup', e => {
     if (!drag || e.button !== 0) return;
@@ -569,7 +569,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       const s = current(), last = cellAt(e.clientX, e.clientY);
       if (s && d.first >= 0 && last >= 0) {
         const request = buildRequest(s, tool, d.first, last, data, rot), result = previewBuild(s, request);
-        // erasing a station with railway lines (Tim 2026-11-07): a second erase within 6 s confirms tearing them up
+        // erasing a station with railway lines (2026-11-07): a second erase within 6 s confirms tearing them up
         const lines = request.action === 'remove' && result.ok ? stationLines(s, request.cells) : 0;
         if (lines) {
           const k = `${s.id}:${request.cells.join(',')}`;
@@ -580,14 +580,14 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
           }
           eraseConfirm = null; request.confirmLines = true;
         }
-        // the confirm box opens beside the cursor and says it all, so no extra hint (Tim 2026-11-22)
+        // the confirm box opens beside the cursor and says it all, so no extra hint (2026-11-22)
         if (data.buildUI?.confirmDrag) { pendingPlan = { request, tool, at: { x: e.clientX, y: e.clientY } }; hint.hidden = true; }
         else { if (result.ok) command(request); say(result.ok ? `${townName(tool)}: ordered${result.warning ? ' · ' + result.warning : ''}` : result.reason); }
       } else say('Outside town grid');
       crewInput.cancelPointer(); consume(e); return;
     }
     const click = Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6;
-    // Tim 2026-11-19: a drag box with any of your troops or crew in it is theirs (crew_input.js); workers only when none are
+    // 2026-11-19: a drag box with any of your troops or crew in it is theirs (crew_input.js); workers only when none are
     if (!click) {
       const [x0, x1, y0, y1] = [Math.min(d.x, e.clientX), Math.max(d.x, e.clientX), Math.min(d.y, e.clientY), Math.max(d.y, e.clientY)];
       const me = hero()?.owner, inBox = u => { const p = view.unitToScreen(u.x, u.z); return p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1; };
@@ -603,12 +603,12 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       select(click ? selected.includes(ids[0]) ? selected.filter(id => id !== ids[0]) : [...selected, ...ids] : ids, click);
       crewInput.cancelPointer(); consume(e); return;
     }
-    if (!click) return;   // Tim 2026-11-19: a drag box with no workers in it is the crew's (crew_input.js); the worker selection stays
+    if (!click) return;   // 2026-11-19: a drag box with no workers in it is the crew's (crew_input.js); the worker selection stays
     if (unitNear(e.clientX, e.clientY)) return;   // a click on a unit selects it (crew_input.js), not the building behind it
     const spot = spotAt(e.clientX, e.clientY);
     const hit = townAt(e.clientX,e.clientY);
-    // Tim 2026-11-19: a left-click on your military building (or stockade, or the hall while your town is attacked) opens its menu
-    // Tim 2026-11-20: and the building's card opens beside the menu
+    // 2026-11-19: a left-click on your military building (or stockade, or the hall while your town is attacked) opens its menu
+    // 2026-11-20: and the building's card opens beside the menu
     if (!spot && hit && menuAt(e.clientX, e.clientY)) { inspect = { town: hit.s.id, cell: hit.cell, menu: true }; showInspection(); crewInput.cancelPointer(); consume(e); return; }
     if (spot || hit) {
       inspect = spot ? { spot: spot.id } : { town: hit.s.id, cell: hit.cell };
@@ -642,7 +642,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     return out;
   }
   let roadZones = null;   // road-link query for the overlay (cached per road layout)
-  // the confirm box (Tim 2026-11-22): rows per resource, short ones red
+  // the confirm box (2026-11-22): rows per resource, short ones red
   function requirementRows(s, cost = {}, people = 0) {
     const row = (r, need, have) => `<div class="br-row${have < need ? ' short' : ''}" title="need ${need}, have ${have}"><i class="br-ic ${esc(r)}"></i>${esc(townName(r))} <b>${have < need ? `${have} of ${need}` : need}</b></div>`;
     const out = Object.entries(cost).map(([r,n]) => row(r, n, Math.floor((s.stock?.[r] || 0)*100)/100));
@@ -658,7 +658,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const out = Object.entries(refund).map(([r,n]) => `<div class="br-row"><i class="br-ic ${esc(r)}"></i>${esc(townName(r))} <b>back ${n}</b></div>`);
     return out.join('') || '<div class="br-row muted">No paid resources to refund</div>';
   }
-  // Tim 2026-11-22: the confirm box sits beside the cursor, kept on screen and off the spot being placed
+  // 2026-11-22: the confirm box sits beside the cursor, kept on screen and off the spot being placed
   function footprintBox() {
     const r = pendingPlan?.request, s = r && towns().find(t => t.id === r.town);
     const cells = preview?.cells?.length ? preview.cells : r?.cells;
@@ -693,7 +693,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     }
     selected = selectedLive().map(p => p.w.id);
     if (crewInput.selected().length) selected = [];
-    { const live = selected.length ? selectedLive() : [], sig = live.map(p => `${p.s.id}|${p.w.id}`).join(',');   // Tim 2026-11-25: selected workers do not run for shelter by themselves
+    { const live = selected.length ? selectedLive() : [], sig = live.map(p => `${p.s.id}|${p.w.id}`).join(',');   // 2026-11-25: selected workers do not run for shelter by themselves
       if (sig !== pickedSig) { pickedSig = sig; command({ action: 'workerPicked', picks: live.map(p => [p.s.id, p.w.id]) }); } }
     const s = current(), show = outdoors() && !blocked();
     if (!show && drag) { cancel(); }
@@ -733,7 +733,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       const visible = visibleCells(s), definitions = Object.fromEntries(Object.entries(data.zones.kinds).map(([kind,k]) => [k.char,kind]));
       for (const i of visible) {
         if (s.grid.ground[i] !== 'x') polygon(ctx,s,i,'rgba(235,225,200,.025)');
-        // Tim 2026-11-22: cells under a placed building (or a site) and the cells under the town hall's art are dark red: nothing can be built there
+        // 2026-11-22: cells under a placed building (or a site) and the cells under the town hall's art are dark red: nothing can be built there
         if (s.grid.use[i] === 'B' || hallArtCell(s,i)) { polygon(ctx,s,i,'rgba(150,30,25,.38)','#b8382e'); continue; }
         const entry = definitions[s.grid.zone[i]];
         if (!entry && data.zones.military && s.grid.zone[i] === data.zones.military.char) { const mc = data.buildUI?.zoneColors?.military || '#e0584a'; polygon(ctx,s,i,mc + '40',mc); }   // 8d-5: the military zone, red
@@ -748,7 +748,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
         }
         polygon(ctx,s,i,color + '30',status || color);
       }
-      // Tim 2026-11-05: a warning icon over each group of road/gate cells not linked to the town hall
+      // 2026-11-05: a warning icon over each group of road/gate cells not linked to the town hall
       if (data.zones.roadsConnect) {
         const linked = (roadZones ||= createZones({ data })).linkedRoads(s), n = s.grid.n, use = s.grid.use, seen = new Uint8Array(use.length), road = j => use[j] === 'r' || use[j] === 'g';
         for (let i0 = 0; i0 < use.length; i0++) {
@@ -766,7 +766,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
           ctx.save(); ctx.fillStyle = '#ffb347'; ctx.strokeStyle = 'rgba(40,24,10,.9)'; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(u.x, u.y - 13); ctx.lineTo(u.x + 12, u.y + 8); ctx.lineTo(u.x - 12, u.y + 8); ctx.closePath(); ctx.fill(); ctx.stroke();
           ctx.fillStyle = '#2a1a0a'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('!', u.x, u.y + 6); ctx.restore();
-          // hover note (Tim 2026-11-05): over the icon or any cell of the unlinked road
+          // hover note (2026-11-05): over the icon or any cell of the unlinked road
           if (mouse && (Math.hypot(mouse.x - u.x, mouse.y - u.y) < 18 || group.includes(cellAt(mouse.x, mouse.y, s)))) {
             const lines = ['Road not connected', 'Roads must connect through other roads or gates', 'to the town hall. Zones near this road cannot grow.'];
             ctx.save(); ctx.font = '13px sans-serif';
@@ -791,14 +791,14 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
         if (key !== lastPreview) { lastPreview = key; preview = previewBuild(s,request); }
         const cells = new Set(preview.cells?.length ? preview.cells : request.cells);
         const zoneColor = data.buildUI?.zoneColors?.[pendingPlan?.tool || tool];
-        // a station (Tim 2026-11-07): the railway slot, where the track leaves, shows blue
+        // a station (2026-11-07): the railway slot, where the track leaves, shows blue
         const parts = Number.isInteger(request.rot) && preview.cells?.length === 6 ? stationParts(s, { cells: preview.cells, rot: request.rot }) : null;
         const slot = parts ? new Set(parts.slotCells) : null;
         for (const i of visible) if (cells.has(i)) {
           if(preview.reason==='occupied' && s.grid.zone[i]!=='.')continue;
           polygon(ctx,s,i,preview.ok ? slot?.has(i) ? 'rgba(90,170,245,.5)' : zoneColor ? zoneColor + '66' : 'rgba(80,235,120,.4)' : 'rgba(245,70,60,.4)');
         }
-        // the track's mouth (Tim 2026-11-07): an arrow out of the railway slot, the way the track leaves, for every turn
+        // the track's mouth (2026-11-07): an arrow out of the railway slot, the way the track leaves, for every turn
         if (parts) { const c = s.grid.cell, [dx, dz] = parts.dir, [sx, sz] = parts.slot;
           const a = view.unitToScreen(s.x + sx, s.z + sz, 0.1), b = view.unitToScreen(s.x + sx + dx * c * 1.6, s.z + sz + dz * c * 1.6, 0.1);
           const ang = Math.atan2(b.y - a.y, b.x - a.x), head = Math.max(9, Math.min(18, Math.hypot(b.x - a.x, b.y - a.y) * 0.35));
@@ -826,7 +826,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       const chosen=selected.includes(p.w.id);
       if(chosen){ctx.beginPath(); ctx.ellipse(u.x,u.y,15,7,0,0,Math.PI*2); ctx.strokeStyle = '#ffe08b'; ctx.lineWidth = 2; ctx.stroke();}
       if(d.cargo) {
-        // a little load icon over the worker (Tim 2026-11-08: logs, stone block, fish in a net, forage basket, rice sack)
+        // a little load icon over the worker (2026-11-08: logs, stone block, fish in a net, forage basket, rice sack)
         // with the amount beside it; the icons are drawn once and only copied here
         const icon=cargoIcon(spotIndex.get(p.w.spot)?.kind || d.resource),{w:iw,h:ih}=CARGO_ICON_SIZE;
         ctx.drawImage(icon,u.x-iw/2,u.y-30-ih/2,iw,ih);
@@ -843,7 +843,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   function html(s, mini = false, extra = '') {
     if (town !== s.id) { close(); town = s.id; }
     if(workersOpen)return `<div class="townbuild"><button data-act="build-workers">Back to town</button><h3>${esc(s.name)}</h3>${workerPanelHTML(s,{moving,tired:tiredCamps(game.state.frontier,s.owner).filter(c=>c.town===s.id),overworked:overworkedSpots(s),selected,index:spotIndex,data,page:workerPage,known,tab:workerTab,logPage:workerLogPage,filter:workerFilter,stockade:!!data.buildings?.stockade?.garrison && !!s.buildings?.some(b=>b.type==='stockade' && b.stage==='built')})}</div>`;
-    // Tim 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
+    // 2026-11-08: a capped building shows used / allowed, one the tier doesn't allow yet is greyed with the tier that does
     const capOf = id => {
       // 8b-1: a military building shows used / the war limit, greyed with what it still needs
       if (isMilitary(id, data)) { const max = tierMax(data.war?.buildings?.[id], 'town', townTierFor(s, data.war?.buildings?.[id])), need = militaryNeeds(s, id, data); if (!max && !need.length) return null;
@@ -853,7 +853,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       return { max, used, locked: max === 0, unlock: next?.name || '' }; };
     const button = (id, label) => {
       const color = data.buildUI?.zoneColors?.[id],built=(s.buildings || []).filter(b=>b.type===id && b.stage==='built').length,text=buildTooltip(id,s,data,resourceRequirements)+(built?`\nDouble-click: show your ${built === 1 ? 'one' : built} in this town in turn`:''), cap = capOf(id);
-      // Tim 2026-11-25 (replaces 11-22 own / own plus free slots): work camps share one cap, shown once on the Camps row (Camps 4/4); a camp button shows only how many of its kind the town has
+      // 2026-11-25 (replaces 11-22 own / own plus free slots): work camps share one cap, shown once on the Camps row (Camps 4/4); a camp button shows only how many of its kind the town has
       const own = cap && !cap.locked && placedGroup(id, data) !== id ? (s.buildings || []).filter(b => b.type === id && b.stage !== 'ruined').length + (s.projects || []).filter(p => p.type === id).length : null;
       const tag = !cap ? '' : cap.locked ? `<small>${esc(cap.unlock)}</small>` : own != null ? `<small>${own}</small>` : `<small>${cap.used}/${cap.max}</small>`;
       const cls = [tool === id ? 'on' : '', cap?.locked ? 'locked' : '', cap && !cap.locked && cap.used >= cap.max ? 'full' : '', id === 'eraser' ? 'eraser' : ''].filter(Boolean).join(' ');
@@ -864,16 +864,16 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
     const others = Object.entries(data.buildings).filter(([k, v]) => v.size && !v.military && !data.zones.fromBuilding[k] && !camps.includes(k)).map(([k]) => k);
     const military = militaryFor(s, data, game.state, game.ships?.world);   // 8b-1: the war camp's military buildings, in their own row
     const group = (name, ids, extra = '') => `<div class="bgroup"><span class="blab">${name}</span><div class="btns">${ids.map(t => button(t, camps.includes(t) ? townName(t).replace(/ camp$/i, '') : townName(t))).join('')}${extra}</div></div>`;
-    // Tim 2026-11-10: in build mode only this small box shows (top left); long text lives in the hovers
+    // 2026-11-10: in build mode only this small box shows (top left); long text lives in the hovers
     if (mini) return `<div class="bmhead"><b>Build · ${esc(s.name)}</b><button data-act="build-toggle" class="bmexit" data-tip="Leave build mode and go back to the town panel (Esc).">Exit build</button></div>`
       + `<div class="buildtools">` + group('Lay out', ['road', 'wall', 'gate'], `<span class="gap"></span>${button('eraser', townName('eraser'))}`)
       + group('Zones', ['housing', 'farm', 'work', ...(data.zones.military ? ['military'] : [])]) + group((() => { const c = camps.find(k => data.buildings[k]?.size), cap = c && capOf(c); return cap && !cap.locked ? `Camps <small>${cap.used}/${cap.max}</small>` : 'Camps'; })(), camps.filter(k => data.buildings[k]?.size)) + group('Buildings', others) + (military.length ? group('Military', military) : '')
       + `</div><div class="hint" data-tip="Drag, release, review requirements, then Confirm or Cancel. Right click or Esc cancels.\nZone previews match their buttons; amber border = short, red border = abandoned.\nDark red cells = a building or site stands there (or the town hall), nothing can be built on them.">Drag on the map, then Confirm. Right click cancels.</div>`;
-    // Tim 2026-11-16: training and the first steps moved into the Workers section of the town panel (workersHtml)
+    // 2026-11-16: training and the first steps moved into the Workers section of the town panel (workersHtml)
     return `<div class="townbuild"><div class="bigrow"><button data-act="build-toggle" class="buildbig" data-tip="Open the build bar: roads, walls, zones, camps and buildings. Other menus hide while you build.">Build bar</button>${extra}</div>`
       + (selected.length ? `<div>${selected.length} selected, right-click a spot to harvest</div>` : '') + '</div>';
   }
-  // The town panel's Workers section (Tim 2026-11-16 mock): worker art, count of the tier cap, the training queue,
+  // The town panel's Workers section (2026-11-16 mock): worker art, count of the tier cap, the training queue,
   // a Train button with coin costs (the old hint text is in its hover), and in a new town the first steps track,
   // which hides once all five are done.
   function workersHtml(s) {
@@ -912,7 +912,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
   return { update, html, workersHtml, miniHtml: s => html(s, true), isOpen: () => opened, close, cancel, isBuilding: () => opened && !!tool, isRosterOpen: () => workersOpen, campWorkersHtml, campSite,
     // 8b: a card in the town hall war window hands its building type to the place tool
     placeTool(id, kind) { town = id; opened = true; onBuild(town); inspect = null; card.hidden = true; cancel(); tool = kind; return true; },
-    // two or more workers picked: one small card each in the selection panel (Tim 2026-11-08); a click picks just that one
+    // two or more workers picked: one small card each in the selection panel (2026-11-08); a click picks just that one
     selectedWorkers:()=>selected.length>1?selectedLive().map(p=>({...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),id:`worker:${p.w.id}`,wid:p.w.id,worker:true,status:workerStatus(p.w,spotIndex)})):[],
     pickWorker:wid=>{const p=selectedLive().find(p=>String(p.w.id)===String(wid));if(p)select([p.w.id],true);},
     workerTarget:()=>{const p=selected.length===1 && clickPicked && selectedLive()[0];return p?{...workerPresentation(p.w,p.s,data,game.state.entities,game.state.workerAt),workerDetail:workerDetails(p.w,spotIndex)}:null;},
@@ -930,7 +930,7 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       }
       if (ds.act === 'build-toggle') { if (opened) close(); else { town = s.id; opened = true; } }
       if (ds.act === 'build-tool') {
-        // Tim 2026-11-22: a double-click on a build button shows this town's built ones of that kind in turn (camera + card)
+        // 2026-11-22: a double-click on a build button shows this town's built ones of that kind in turn (camera + card)
         const key='tool:'+s.id+':'+ds.id,now=Date.now(),twice=toolClick?.key===key && now-toolClick.at<(data.buildUI?.doubleClickMs || 400);
         toolClick={key,at:now};
         if(twice && (s.buildings || []).some(b=>b.type===ds.id && b.stage==='built')){cancel();tool=null;toolClick=null;showBuilt(s,ds.id);return true;}
@@ -945,15 +945,15 @@ export function createFrontierBuildUI({ game, view, heroId, data, spotIndex, spo
       if (ds.act === 'build-worker-stop')orderSelected('hold');
       if (ds.act === 'build-worker-return')orderSelected('return');
       if (ds.act === 'build-worker-drop')requestDrop();
-      // Tim 2026-11-11: sending workers into the stockade moved here from the Governor tab
-      if (ds.act === 'build-worker-hall')for(const t of workSites()){const ids=selectedLive().filter(p=>p.s.id===t.id && !p.w.garrison).map(p=>p.w.id);if(ids.length)command({action:'hallShelter',mode:'enter',town:t.id,workers:ids});}   // Tim 2026-11-19
+      // 2026-11-11: sending workers into the stockade moved here from the Governor tab
+      if (ds.act === 'build-worker-hall')for(const t of workSites()){const ids=selectedLive().filter(p=>p.s.id===t.id && !p.w.garrison).map(p=>p.w.id);if(ids.length)command({action:'hallShelter',mode:'enter',town:t.id,workers:ids});}   // 2026-11-19
       if (ds.act === 'build-worker-stockade')for(const t of workSites()){const units=selectedLive().filter(p=>p.s.id===t.id && p.w.entity!=null && !p.w.garrison).map(p=>p.w.entity);if(units.length)command({action:'garrison',mode:'enter',town:t.id,units});}
       if (ds.act === 'build-worker-page')workerPage=Number(ds.id);
       if (ds.act === 'build-worker-tab') {workerFilter=null;workerTab=ds.id==='idle' && workerTab==='idle'?'roster':['log','idle','groups','spots'].includes(ds.id)?ds.id:'roster';workerLogPage=0;workerPage=0;}
       if (ds.act === 'build-worker-log-page')workerLogPage=Number(ds.id);
       if (ds.act === 'build-worker-spot-page')workerSpotPage=Number(ds.id);
       if (ds.act === 'build-worker-spot') {const spot=spotIndex.get(ds.id);if(spot)view.jumpTo?.(spot.x,spot.z);}
-      // camps over their max (Tim 2026-11-22): Move extras as on the camp card; Go to puts the camera on the camp
+      // camps over their max (2026-11-22): Move extras as on the camp card; Go to puts the camera on the camp
       if (ds.act === 'build-worker-campextras')moveExtras(s.id,ds.id);
       if (ds.act === 'build-worker-campgo') {const c=tiredCamps(game.state.frontier,s.owner).find(c=>c.town===s.id && c.id===ds.id);if(c)view.jumpTo?.(c.x,c.z);}
       return true;

@@ -1,4 +1,4 @@
-// The end of a campaign (Z6, Tim OK'd the mocks 2026-11-20: zones_build/shots/victory_mock_v2.png, defeat_mock_v2.png;
+// The end of a campaign (Z6, approved the mocks 2026-11-20: zones_build/shots/victory_mock_v2.png, defeat_mock_v2.png;
 // then chose the live castle shot over the side banners).
 // Over the game when state.campaignEnd is set (sim/frontier/war_outcomes.js clanOut). The camera goes to your castle
 // (victory) or your fallen castle (defeat) and drifts slowly; the HUD is hidden and the screen frames the real scene,

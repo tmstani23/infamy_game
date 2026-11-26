@@ -106,7 +106,7 @@ const before = JSON.stringify(st); data.update(true, true);
 assert.equal(JSON.stringify(st), before, 'map data queries issue no commands or sim mutations');
 assert.ok(snapshot.contacts.some(c => c.id === visibleEnemy.id && c.live));
 
-// Exercise projection/selection with a lightweight canvas adapter in Node. Tim
+// Exercise projection/selection with a lightweight canvas adapter in Node. 
 // checks the visual result; this verifies markers and picks do not issue orders.
 let picked = null, hovered = null, strokes = 0;
 const ctx = new Proxy({}, { get: (_, k) => k === 'measureText' ? s => ({ width: s.length * 6 }) : k === 'stroke' ? () => { strokes++; } : () => {}, set: () => true });

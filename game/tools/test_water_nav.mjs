@@ -1,4 +1,4 @@
-// Ships plan S1 (Tim 2026-11-22): the water grid, landable shore and ship paths (sim/frontier/water_nav.js).
+// Ships plan S1 (2026-11-22): the water grid, landable shore and ship paths (sim/frontier/water_nav.js).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';

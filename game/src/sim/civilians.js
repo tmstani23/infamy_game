@@ -20,7 +20,7 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
   const spots = pois.map(p => { const [x, z] = nav.nearestFree(p.x, p.z) || [p.x, p.z]; return { ...p, x, z }; });
   const homes = spots.filter(p => p.home);
   // the buildings a type lives in (civilians.json "homes": poi ids in front of them; default every
-  // home): townsfolk only ever go in and come out there, never at the map edge (Tim 2026-10-18)
+  // home): townsfolk only ever go in and come out there, never at the map edge (2026-10-18)
   const homesOf = kind => { const ids = types[kind]?.homes; const l = ids ? spots.filter(p => ids.includes(p.id)) : homes; return l.length ? l : homes; };
   // one fixed total (every type's count): out + indoors + waiting to come back never goes above it
   const TOTAL = Object.values(types).reduce((n, t) => n + (t.count || 0), 0);
@@ -37,13 +37,13 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
   }
   const pick = list => list[Math.floor(rng() * list.length)];
   // vehicles (rickshaws, ox carts, the omnibus; civilians.json "vehicle"): they drive between spots
-  // like townsfolk but never chat, bow or freeze in fright; they just pull away (Tim 2026-11-06)
+  // like townsfolk but never chat, bow or freeze in fright; they just pull away (2026-11-06)
   const isVehicle = e => !!types[mind[e.id]?.kind]?.vehicle;
-  // animals (town dogs; civilians.json "animal", Tim 2026-11-10): walk the streets like townsfolk but never
+  // animals (town dogs; civilians.json "animal", 2026-11-10): walk the streets like townsfolk but never
   // chat, bow or freeze; a fight nearby sends them running at once, and nobody can hit them (combat.js, game.js)
   const isAnimal = e => !!types[mind[e.id]?.kind]?.animal;
 
-  // --- Driving (vehicles, Tim 2026-11-06) ---------------------------------------------
+  // --- Driving (vehicles, 2026-11-06) ---------------------------------------------
   // Vehicles keep to the roads (roadNav: the district's road bands) and steer like a cart:
   // the heading turns at most turnDegrees a second, they slow down in sharp turns, and they
   // wait for whoever stands in front of them instead of pushing through. The sprite row
@@ -121,7 +121,7 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
   }
 
   // Fill the streets: every type's count, each starting at one of its own homes (so where a
-  // type appears depends on its buildings; by day they still walk anywhere they like, Tim 2026-10-18)
+  // type appears depends on its buildings; by day they still walk anywhere they like, 2026-10-18)
   function populate() {
     for (const [kind, t] of Object.entries(types)) {
       for (let i = 0; i < (t.count || 0); i++) {
@@ -147,7 +147,7 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
     if (!sources.length) return;
     const radius = R.fearRadius ?? 8;
     for (const e of Object.values(state.entities)) {
-      // the blacksmith keeps working through fights (Tim 2026-11-01: never scared, no crouching)
+      // the blacksmith keeps working through fights (2026-11-01: never scared, no crouching)
       if (e.type !== 'civilian' || e.shopkeeper || e.place !== 'street' || e.downed || e.dead) continue;
       // hit themselves this tick: that counts before anything else nearby
       const own = sources.find(src => src.t === e.id);
@@ -163,7 +163,7 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
         }
         if (e.flee) { e.flee = fleeFrom(e, src); break; }          // already running: keep running away
         if (e.scared) break;
-        // reacted lately (Tim: no chains of reactions): no flinch this time, just move off
+        // reacted lately (no chains of reactions): no flinch this time, just move off
         if (state.tick - (mind[e.id]?.reactAt ?? -Infinity) < secs(R.reactSeconds ?? 3)) {
           delete e.talk; stopPath(e);
           e.flee = fleeFrom(e, src);
@@ -343,7 +343,7 @@ export function createCivilians({ state, data, pois = [], nav, roadNav = null, s
     loadState: d => {
       if (!d) return; refill(mind, d.mind); refill(away, d.away); refill(lost, d.lost); s = d.s;
       // a save from before a type existed (or with a raised count) gets the missing ones: they walk
-      // out of their homes over the next ticks like any replacement (town traffic, Tim 2026-11-06)
+      // out of their homes over the next ticks like any replacement (town traffic, 2026-11-06)
       for (const [kind, t] of Object.entries(types)) {
         const have = [...Object.values(mind), ...away, ...lost].filter(c => c.kind === kind).length;
         for (let i = have; i < (t.count || 0); i++) lost.push({ kind, nightOut: false, home: null, at: 0 });

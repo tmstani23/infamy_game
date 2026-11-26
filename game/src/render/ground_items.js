@@ -1,9 +1,9 @@
-// Dropped bag items on the ground (Tim 2026-11-26; sim/ground_items.js): a small furoshiki cloth bundle lying where the
+// Dropped bag items on the ground (2026-11-26; sim/ground_items.js): a small furoshiki cloth bundle lying where the
 // hero dropped it, painted like the item icons (render/wild_drop_fx.js style): a low cloth body spreading into two
 // corners on the grass, gathered into one knot with a long and a short tail, fold creases, a pale dot band, top-left
 // light, the scene's haze and grain, a darker edge on the shadow side only. It stands up toward the camera as a picture
 // with a soft green-brown contact shadow on the ground and a lantern-amber rim breathing behind it so it can be found
-// again (see-through, 15% to 45%, Tim 2026-11-23). Three dyes, each with its own pose, by bundle; blind critic 2026-11-26.
+// again (see-through, 15% to 45%, 2026-11-23). Three dyes, each with its own pose, by bundle; blind critic 2026-11-26.
 import * as THREE from 'three';
 import { CAM_QUAT, CAM_UP } from './iso.js';
 import { onFxLayer } from './bloom.js';

@@ -1,4 +1,4 @@
-// The general's and the governor's logs (Tim 2026-11-22): what each did lately in a town, and the general's war camp
+// The general's and the governor's logs (2026-11-22): what each did lately in a town, and the general's war camp
 // actions, newest first, for the General tab, the Governor tab and the war camp's General tab (src/action_log_ui.js).
 // holder.log = { general: [entry], governor: [entry] } on a settlement, or on a war record for its camp. entry = { tick,
 // day, night, k, x, d, n }: k = kind (build | land | save | bad | war | work), x = the line, d = the detail for the

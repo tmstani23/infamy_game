@@ -1,4 +1,4 @@
-// Town hall tiers (economy balance B3, Tim 2026-11-05). Pure helpers over data/frontier.json "tiers".
+// Town hall tiers (economy balance B3, 2026-11-05). Pure helpers over data/frontier.json "tiers".
 // A town's tier is s.tier (1 when missing). Each tier sets the build ring, zone cell caps, placed
 // building counts and the worker cap. Towns without tier data (old fixtures) are unlimited.
 export function tierOf(s, data) {
@@ -8,7 +8,7 @@ export function tierOf(s, data) {
 }
 export const nextTier = (s, data) => data.tiers?.list?.[(s.tier || 1)] || null;
 // what a placed building costs in this town: buildings.<type>.cost, or by town hall tier when the building has
-// costByTier (the stockade, Tim 2026-11-16)
+// costByTier (the stockade, 2026-11-16)
 export function buildingCost(data, type, s = null) {
   const b = data?.buildings?.[type], t = b?.costByTier;
   return (t?.length ? t[Math.min(t.length, Math.max(1, s?.tier || 1)) - 1] : null) || b?.cost || {};

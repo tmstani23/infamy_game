@@ -1,4 +1,4 @@
-// Stockade garrison (Tim 2026-11-06): 4-cell building, enter/leave, heal factor, safe from attack.
+// Stockade garrison (2026-11-06): 4-cell building, enter/leave, heal factor, safe from attack.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { createGarrison, stockadeHp } from '../src/sim/frontier/garrison.js';
@@ -43,7 +43,7 @@ assert.ok(workerIdle(town2.workers[0], new Map()), 'garrisoned workers count as 
 g2.command(st2.entities.h, { action: 'garrison', mode: 'leave', town: 't2' });
 assert.equal(town2.workers[0].garrison, undefined);
 console.log('garrison workers ok');
-// hits on people inside go to the stockade; at 0 it is ruined and everyone piles out (Tim 2026-11-06)
+// hits on people inside go to the stockade; at 0 it is ruined and everyone piles out (2026-11-06)
 {
   const town3 = { id: 't3', owner: 'c1', x: 0, z: 0, grid: town.grid, buildings: [{ id: 'b3', type: 'stockade', cells: [12, 13, 17, 18], stage: 'built' }], workers: [] };
   const st3 = { tick: 1, frontier: { receipts: [], settlements: { t3: town3 } }, entities: {} };
@@ -67,7 +67,7 @@ console.log('garrison workers ok');
   assert.equal(g3.shelter(p1, 10), false, 'outside again: hits land as normal');
   console.log('garrison stockade health ok');
 }
-// right-click walk-in, count and evacuate (Tim 2026-11-07)
+// right-click walk-in, count and evacuate (2026-11-07)
 {
   const { garrisonCount } = await import('../src/town_props.js');
   const t = { id: 't4', owner: 'c1', x: 0, z: 0, grid: town.grid, buildings: [{ id: 'b4', type: 'stockade', cells: [12, 13, 17, 18], stage: 'built' }], workers: [] };
@@ -88,11 +88,11 @@ console.log('garrison workers ok');
   console.log('garrison walk-in ok');
 }
 
-// the stockade as a fortress (Tim 2026-11-16): health by town hall tier, several stockades, each with its own room
+// the stockade as a fortress (2026-11-16): health by town hall tier, several stockades, each with its own room
 {
   // stockadeHp imported at the top
   const { garrisonCount, stockadeMax } = await import('../src/town_props.js');
-  assert.deepEqual([2, 3].map(t => stockadeHp(data, t)), [32000, 48000], 'Village 32,000, Town 48,000 (Tim 2026-11-18: 20 percent off)');
+  assert.deepEqual([2, 3].map(t => stockadeHp(data, t)), [32000, 48000], 'Village 32,000, Town 48,000 (2026-11-18: 20 percent off)');
   assert.deepEqual(data.tiers.list.map(t => t.placed.stockade), [0, 1, 3], 'none, one, three');
   const { buildingCost } = await import('../src/sim/frontier/tiers.js');
   assert.deepEqual([2, 3].map(t => buildingCost(data, 'stockade', { tier: t })), [{ timber: 400, stone: 450 }, { timber: 500, stone: 600 }], 'cost by town rank');

@@ -109,7 +109,7 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
     }
   }
   // Killed: the ryo stays on the body (t.loot) for whoever loots it with a right-click, not the
-  // killer (Tim 2026-10-19); the body lies there lootSeconds, then fades (sim/game.js loot)
+  // killer (2026-10-19); the body lies there lootSeconds, then fades (sim/game.js loot)
   function killed(a, t) {
     const base = (t.camp ? types[t.type]?.ryo : R.roamerLoot ?? types[t.type]?.ryo) || 0;
     if (!base) return;

@@ -21,13 +21,13 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     numbers.push({ el, x: h.x, z: h.z, age: 0, drift: (Math.random() - 0.5) * 50, big: h.crit ? 1.35 : 1 });
     while (numbers.length > MAX_NUMBERS) numbers.shift().el.remove();
   }
-  // a small green "+N" for a heal tick (Rally, Tim 2026-10-19)
+  // a small green "+N" for a heal tick (Rally, 2026-10-19)
   function addHeal(x, z, amount) {
     const el = document.createElement('div');
     el.className = 'dmg heal';
     el.textContent = `+${amount}`;
     overlay.appendChild(el);
-    // lower and off to the left of the unit, rising slower, so it never sits on the damage numbers (Tim)
+    // lower and off to the left of the unit, rising slower, so it never sits on the damage numbers
     numbers.push({ el, x, z, age: 0, drift: -6 - Math.random() * 8, big: 1, ox: -34, low: true });
     while (numbers.length > MAX_NUMBERS) numbers.shift().el.remove();
   }
@@ -38,7 +38,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     numbers.push({ el, x: h.x, z: h.z, age: 0, drift: (Math.random() - 0.5) * 18, big: 0.85, subtle: true });
     while (numbers.length > MAX_NUMBERS) numbers.shift().el.remove();
   }
-  // what a repair took this second, over the building (Tim 2026-11-24: "-6 stone" with the stone icon): the load
+  // what a repair took this second, over the building (2026-11-24: "-6 stone" with the stone icon): the load
   // icons the workers carry (cargo_icons.js), parchment figures on a soft dark haze, starting just over the building's
   // health bar (h = its height, structure_bars.js), held a moment then fading as it rises (critic round 2)
   const iconUrl = new Map(), icon = r => { if (!iconUrl.has(r)) iconUrl.set(r, cargoIcon(r).toDataURL()); return iconUrl.get(r); };
@@ -52,7 +52,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     numbers.push({ el, x, z, h, age: 0, drift: 0, big: 1, slow: true, life: 1.4 });
     while (numbers.length > MAX_NUMBERS) numbers.shift().el.remove();
   }
-  // a refused order over the unit (Tim 2026-11-08: crew sent onto the boss's horse): a red cross and a short word
+  // a refused order over the unit (2026-11-08: crew sent onto the boss's horse): a red cross and a short word
   function addRefuse(x, z, text, cls = 'refuse', mark = '✕') {
     const el = document.createElement('div');
     el.className = 'dmg ' + cls; el.innerHTML = `<b>${mark}</b> ${text}`;
@@ -77,7 +77,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
 
   // ---- slash trails -----------------------------------------------------------------
   const trails = [];
-  // Tim 2026-11-13: the hard-edged band read as blocky. A tapered brush stroke instead: thin at both ends, thickest
+  // 2026-11-13: the hard-edged band read as blocky. A tapered brush stroke instead: thin at both ends, thickest
   // just past the middle, faded at the tail (vertex alpha), so it reads painted rather than pixel cut.
   function strokeGeo(r, w, a0, span, n = 28) {
     const p = [], c = [], idx = [];
@@ -95,7 +95,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
   function addTrail(attacker, blade) {
     const mat = new THREE.MeshBasicMaterial({
       color: blade ? 0xd8dde6 : 0xb08a60, vertexColors: true, transparent: true, opacity: 0.12, side: THREE.DoubleSide,
-      blending: THREE.NormalBlending, depthTest: false, depthWrite: false,   // Tim 2026-11-12: several swings at once added up to a bright blob; plain blending no longer stacks to white
+      blending: THREE.NormalBlending, depthTest: false, depthWrite: false,   // 2026-11-12: several swings at once added up to a bright blob; plain blending no longer stacks to white
     });
     const m = new THREE.Mesh(blade ? bladeGeo : clubGeo, mat);
     m.quaternion.copy(CAM_QUAT);
@@ -114,7 +114,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
       t.age += dt;
       const k = t.age / TRAIL_LIFE;
       if (k >= 1) { scene.remove(t.m); t.m.material.dispose(); trails.splice(i, 1); continue; }
-      t.m.material.opacity = 0.12 * (1 - k);   // Tim 2026-11-12: much dimmer (was 0.9)
+      t.m.material.opacity = 0.12 * (1 - k);   // 2026-11-12: much dimmer (was 0.9)
       t.m.rotateZ(dt * 9 * Math.sign(t.m.scale.x));
       const s = 1 + 0.25 * k;
       t.m.scale.set(Math.sign(t.m.scale.x) * s, s, 1);
@@ -122,9 +122,9 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
   }
 
   // ---- impact sparks (pooled points, blood and dust) --------------------------------------
-  // Tim 2026-11-13: blood instead of sparks. Dark red droplets spray from the hit and fall (normal blending, so they read
+  // 2026-11-13: blood instead of sparks. Dark red droplets spray from the hit and fall (normal blending, so they read
   // as paint, not light); hits on carts, guns and vehicles throw a little brown dust instead.
-  // Tim 2026-11-13: square points looked like pixel blocks; each spark is now a soft round dab (radial falloff)
+  // 2026-11-13: square points looked like pixel blocks; each spark is now a soft round dab (radial falloff)
   const dab = (() => {
     const cv = document.createElement('canvas'); cv.width = cv.height = 32;
     const x = cv.getContext('2d'), gr = x.createRadialGradient(16, 16, 0, 16, 16, 16);
@@ -132,7 +132,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     x.fillStyle = gr; x.fillRect(0, 0, 32, 32);
     return new THREE.CanvasTexture(cv);
   })();
-  // two layers: blood droplets 4 px (Tim 2026-11-13: 8 was too big, 1.6 too small), dust puffs 8 px
+  // two layers: blood droplets 4 px (2026-11-13: 8 was too big, 1.6 too small), dust puffs 8 px
   const layer = size => {
     const pos = new Float32Array(MAX_SPARKS * 3), col = new Float32Array(MAX_SPARKS * 4), geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -184,7 +184,7 @@ export function createHitFx({ scene, overlay, unitToScreen }) {
     refuse: addRefuse,
     note: (x, z, text) => addRefuse(x, z, text, 'boarded', '▲'),   // a gold confirmation over a unit (crew popped into a vehicle)
     // h: one entry of state.hits; attacker: its entity (for facing), mine: the victim is on my side
-    // quiet: no floating damage number (Tim 2026-11-12: none on the frontier)
+    // quiet: no floating damage number (2026-11-12: none on the frontier)
     hit(h, attacker, mine, quiet = false, bleeds = true) {
       const blade = BLADES.has(h.weapon);
       if (!quiet) addNumber(h, mine);

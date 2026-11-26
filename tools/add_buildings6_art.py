@@ -1,4 +1,4 @@
-"""Cut building sheet 6 (Tim 2026-11-10) into game/art.
+"""Cut building sheet 6 (2026-11-10) into game/art.
 
     python tools/add_buildings6_art.py [--preview out.png]
 
@@ -25,7 +25,7 @@ SHEET = [('rail_gate', None), ('lieutenant_post', 300), ('cannon_battery', 480),
          ('siege_workshop', 480), ('burned_ruin', 480), ('water_tower', 320)]
 PROPS = ('rail_gate', 'lieutenant_post')   # saved in game/art/props, with a scale in art.json
 GATE_SLOPE = -15.0   # the painted wall's ground line, degrees (+ = falls to the right): it rises to the right
-GATE_SCALE = 0.7    # art.json scale: big enough for a train (Tim 2026-11-10); its wall stubs stand a little taller than props/stone_wall at 0.55
+GATE_SCALE = 0.7    # art.json scale: big enough for a train (2026-11-10); its wall stubs stand a little taller than props/stone_wall at 0.55
 
 
 def main():
@@ -67,7 +67,7 @@ def main():
         assert mark in t, 'art.json city_gate_se line missing'
         # anchored on the ground in the middle of the opening (set by eye on the sheared cutout)
         if '"lieutenant_post"' not in t: t = t.replace(mark, f'    "lieutenant_post": {{"kind":"props","scale":0.6,"foot":[2.6,2],"solid":0.8}},{nl}' + mark, 1)
-        t = t.replace(mark, f'    "rail_gate": {{"kind":"props","scale":{GATE_SCALE},"foot":[3,6],"solid":0,"artAnchor":[340,395],"_note":"Tim 2026-11-10, art-only: the railway opening in the city wall seen from the island (tools/add_buildings6_art.py)"}},{nl}' + mark, 1)
+        t = t.replace(mark, f'    "rail_gate": {{"kind":"props","scale":{GATE_SCALE},"foot":[3,6],"solid":0,"artAnchor":[340,395],"_note":"2026-11-10, art-only: the railway opening in the city wall seen from the island (tools/add_buildings6_art.py)"}},{nl}' + mark, 1)
     json.loads(t); open(art, 'w', encoding='utf-8', newline='').write(t)
     if '--preview' in sys.argv:
         out = sys.argv[sys.argv.index('--preview') + 1]

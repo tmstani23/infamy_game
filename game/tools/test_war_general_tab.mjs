@@ -12,7 +12,7 @@ const town = generalTab({ strategy: 'siege', rules, camp: false, town: { name: '
 for (const k of Object.keys(STRATEGY_NAMES)) assert.ok(town.includes(`data-strategy="${k}"`), `card ${k}`);
 assert.equal((town.match(/class="s on"/g) || []).length, 1); assert.ok(/class="s on" data-strategy="siege"/.test(town));
 assert.ok(town.includes('data-keep="1"') && town.includes('value="50"') && town.includes('1385 ryo would stay in Holdfast'));
-assert.ok(town.includes('If Holdfast is attacked'));   // 8e-2 (Tim 2026-11-16)
+assert.ok(town.includes('If Holdfast is attacked'));   // 8e-2 (2026-11-16)
 const tk = generalTab({ strategy: 'siege', rules, camp: false, town: { name: 'Holdfast', ryo: 2770, keep: 0.5 }, treasury: { ryo: 3340, keep: 1000, room: 585 }, share: 0.25 });
 assert.ok(tk.includes('data-tkeep="1"') && tk.includes('value="1000"') && tk.includes('They can send up to 585 today'), 'the treasury keep line row');
 assert.ok(generalTab({ strategy: 'rush', rules, camp: true, treasury: { ryo: 3340, keep: 1000, room: 585 } }).includes('data-tkeep'), 'at the camp too');
@@ -40,7 +40,7 @@ assert.ok(warBarHtml({ title: 'Defence of Holdfast', eyebrow: 'General in comman
 assert.ok(/>Back</.test(warBarHtml({ title: 't', mine: side, foe: side, war: 'w1', watch: 'back' })));
 assert.ok(!warBarHtml({ title: 't', mine: side, foe: side, war: 'w1' }).includes('data-watch'));
 
-// the safety fund on the General tab (Tim 2026-11-22, moved from the Governor tab)
+// the safety fund on the General tab (2026-11-22, moved from the Governor tab)
 const fv = { strategy: 'siege', rules: {}, camp: false, town: { name: 'Holdfast', ryo: 100, keep: 0.5 } };
 const fundOk = generalTab({ ...fv, fund: { pct: 10, timber: 153.4, stone: 20, ryo: 0, cap: { timber: 520, stone: 310, ryo: 0 }, next: 'watchtower', auto: true } });
 assert.ok(fundOk.includes('he needs 520') && fundOk.includes('for the war chest'), 'each tile says how much the list still needs');
@@ -53,6 +53,6 @@ assert.ok(fundFull.includes('fstat bad') && fundFull.includes('No room for a rif
 assert.ok(!generalTab({ ...fv, camp: true, fund: { pct: 10 } }).includes('Safety fund'), 'not in a camp');
 assert.ok(!generalTab(fv).includes('Safety fund'), 'no fund, no row');
 
-// no special characters in the texts (Tim 2026-11-10)
+// no special characters in the texts (2026-11-10)
 for (const s of [town, camp, a, b, fundOk, fundBad]) assert.ok(!/[^\x00-\x7F]/.test(s), 'ascii only');
 console.log('war general tab: ok');

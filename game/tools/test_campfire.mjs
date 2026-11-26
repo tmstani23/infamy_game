@@ -1,4 +1,4 @@
-// World variety P1 (Tim 2026-11-25, sim/campfire.js): N makes camp on the island. The hero lights a fire and sits,
+// World variety P1 (2026-11-25, sim/campfire.js): N makes camp on the island. The hero lights a fire and sits,
 // his following crew walk to seats round it and sit, everyone seated heals fast; a hit, the hero walking off or N
 // again ends it; refused in a war circle or right after a fight; the fire is a light for island sight.
 // Built on the war_test_yakuza save, with the hero and crew taken well away from the war and the towns.

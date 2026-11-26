@@ -1,11 +1,11 @@
-// Train robbery R1 (Tim 2026-11-20; plan in project files war_build/train_robbery/plan.md): blasting a line.
+// Train robbery R1 (2026-11-20; plan in project files war_build/train_robbery/plan.md): blasting a line.
 // Any clan's hero lays a charge on any open line, war or not ({ type: 'frontier', action: 'rail', mode: 'blast' },
 // standing on the track). After robbery.fuseSeconds it blows a gap there: the line is closed for robbery.closeDays
 // (half a day) while a repair crew hammers at the gap, and the line can't be blasted (or robbed) again until
 // robbery.cooldownDays after the blast. The repair crew can't be attacked by anyone (e.untouchable).
 // A train running into the gap stops robbery.stopGap short of it and stands robbery.stopSeconds (3 minutes; R2: its
 // guards are out), then backs up to the last station it passed and is held there like on any closed line. A train
-// standing at a station when the line blows still sets out once and stops at the gap (Tim 2026-11-21).
+// standing at a station when the line blows still sets out once and stops at the gap (2026-11-21).
 // State on the link: l.charge = { d, by, at } while the fuse burns; l.blast = { d, by, at, until, safeUntil, crew }
 // (until: the line opens again; safeUntil: end of the cooldown). On a train: t.stopped = { at, until, d } at the gap,
 // t.backing while it backs off.
@@ -69,7 +69,7 @@ export function createRailBlast({ state, data, rec, pointAt, say, placeName, day
     const rt = runtime(), b = l.blast, C = B().crew || {}, size = C.size ?? 3;
     b.crew = (b.crew || []).filter(id => state.entities?.[id] && !state.entities[id].dead);
     if (!rt?.spawn) return;
-    // Tim 2026-11-20: the crew comes once the stopped train has backed away (and not in the first crew.delaySeconds), so
+    // 2026-11-20: the crew comes once the stopped train has backed away (and not in the first crew.delaySeconds), so
     // they are not standing in the robbery; the repair time itself runs from the blast
     if (now() - b.at < (C.delaySeconds ?? 60) * 20 || Object.values(rec().trains || {}).some(t => t.link === l.id && t.stopped)) { drop(l); return; }
     const p = pointAt(l, b.d), r = C.spawnRadius ?? 300;
@@ -124,7 +124,7 @@ export function createRailBlast({ state, data, rec, pointAt, say, placeName, day
     if (t.dir * (stopAt - t.d) > v / 20) return false;   // not there yet
     if (t.dir * (stopAt - t.d) > 0) t.d = stopAt;
     t.stopped = { at: now(), until: now() + Math.round((B().stopSeconds ?? 180) * 20), d: t.d };
-    l.blast.sortie = true;   // its one run to the gap this blast (Tim 2026-11-21); after it backs home it is held
+    l.blast.sortie = true;   // its one run to the gap this blast (2026-11-21); after it backs home it is held
     t.v = 0;
     hooks.stop?.(t, l);   // guards out (rail_robbery.js)
     say(l.owner, `A train stopped at the blown track on ${lineName(l)}`);

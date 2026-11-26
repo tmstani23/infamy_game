@@ -1,6 +1,6 @@
-// The ship between the city harbour and your castle dock (Tim 2026-11-19, zones build): a skippable sail like the
+// The ship between the city harbour and your castle dock (2026-11-19, zones build): a skippable sail like the
 // train ride. The boss stands on the city's harbour pier (or on his castle's dock) and presses Use: All aboard is called
-// (Tim 2026-11-20, as the trains): a zone of ship.zoneRadius round him for ship.callSeconds, then everyone of his in it
+// (2026-11-20, as the trains): a zone of ship.zoneRadius round him for ship.callSeconds, then everyone of his in it
 // goes aboard, the ship sails, and they step off at the other end. Use again during the call boards at once; Use at sea
 // skips the crossing after a moment.
 //   { id, type: 'frontier', action: 'ferry', mode: 'board' | 'skip' }
@@ -25,7 +25,7 @@ export function createFerry({ state, rules, world = null, pier, seaGate, castles
     const d = castles?.dock(e.owner); if (!d) return null;
     const r = S().reach ?? 7;
     if (e.place === 'street' && Math.hypot(e.x - pier[0], e.z - pier[1]) <= r) return 'city';
-    // anywhere on the dock's planks, from where the ship lands out to the sea end (Tim 2026-11-20)
+    // anywhere on the dock's planks, from where the ship lands out to the sea end (2026-11-20)
     if (e.place === 'world' && segDist(e.x, e.z, d.land, d.end ?? d.land) <= (S().dockReach ?? 20)) return 'castle';
     return null;
   }
@@ -39,7 +39,7 @@ export function createFerry({ state, rules, world = null, pier, seaGate, castles
       && u.place === c.place && Math.hypot(u.x - c.x, u.z - c.z) <= c.r)
       .sort((a, b) => Math.hypot(a.x - c.x, a.z - c.z) - Math.hypot(b.x - c.x, b.z - c.z));
   }
-  // where the zone lies (Tim 2026-11-20): on the city pier, or at the sea end of the castle dock, ship.zoneInset back
+  // where the zone lies (2026-11-20): on the city pier, or at the sea end of the castle dock, ship.zoneInset back
   // along the dock so its far edge just reaches the moored ship
   function zoneAt(e, here) {
     const d = here === 'castle' && castles?.dock(e.owner);
@@ -49,7 +49,7 @@ export function createFerry({ state, rules, world = null, pier, seaGate, castles
   }
   // Use at the pier or the dock: call All aboard (the zone lies at the ship); Use again during the call: aboard at once
   function call(e) {
-    if (e.chest) return say(e.owner, 'No stolen chest on the ship: ride or run it home');   // train robbery (Tim 2026-11-20)
+    if (e.chest) return say(e.owner, 'No stolen chest on the ship: ride or run it home');   // train robbery (2026-11-20)
     if (e.shipCall) return allAboard(e);
     const here = at(e);
     if (!here) return say(e.owner, riding(e) ? 'Already at sea' : 'The ship lies at the city harbour pier and at your castle dock');
@@ -66,8 +66,8 @@ export function createFerry({ state, rules, world = null, pier, seaGate, castles
     const d = castles.dock(e.owner), now = state.tick ?? 0, to = here === 'city' ? 'castle' : 'city';
     const group = [...inZone(e, c), ...(to === 'castle' ? waiting?.(e) || [] : [])], crew = [e, ...group].slice(0, S().seats ?? 40);
     const from = to === 'castle' ? [seaGate.x, seaGate.z] : [d.sea.x, d.sea.z], dest = to === 'castle' ? [d.sea.x, d.sea.z] : [seaGate.x, seaGate.z];
-    const path = seaRoute(world, from, dest, { margin: S().seaMargin ?? 400 });   // round the island by sea (Tim 2026-11-20)
-    // a steady speed along the route (Tim 2026-11-20: too fast, about 40% slower)
+    const path = seaRoute(world, from, dest, { margin: S().seaMargin ?? 400 });   // round the island by sea (2026-11-20)
+    // a steady speed along the route (2026-11-20: too fast, about 40% slower)
     const routeLen = path.reduce((n, q, i) => i ? n + Math.hypot(q[0] - path[i - 1][0], q[1] - path[i - 1][1]) : 0, 0);
     const sailTicks = Math.round((S().speed ? Math.max(S().minSeconds ?? 8, routeLen / S().speed) : S().seconds ?? 20) * 20);
     for (const u of crew) {

@@ -21,7 +21,7 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
     while (used.has(k)) k++;
     return k;
   }
-  // ---- group moves on the island (war collision checkpoint 5b-3, Tim 2026-11-11) ----
+  // ---- group moves on the island (war collision checkpoint 5b-3, 2026-11-11) ----
   // One move order for a group works out one route; every unit walks it in its own lane (a small sideways offset)
   // and ends in a loose scattered spread round the clicked spot: no rows. Numbers: units.json rules.groupMove.
   const GM = () => ({ spacing: 2, mountedSpacing: 3.2, jitter: 0.3, lane: 1.2, joinPoints: 3, legReach: 8, legTicks: 100, ...(rules?.groupMove || {}) });
@@ -111,12 +111,12 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
           || (c.kind==='attack'&&c.place===u.place&&state.entities[c.target]?.place===u.place)
           || (c.by === 'general' && u.place === 'world' && generalOrder(hero, u))   // 8d: the bot general orders the war troops of a side it runs, wherever the hero is
           || ((hero.dead || hero.downed || hero.jailed) && c.kind === 'attack' && state.entities[c.target]?.place === u.place)
-          || (u.warTroop && u.place === 'world' && c.place === 'world' && c.kind !== 'follow')   // Tim 2026-11-25: war troops take orders wherever the hero is (dead, respawned elsewhere)
-          || (u.place === 'world' && c.place === 'world' && c.kind !== 'follow' && viewsOwnTown(hero, c)))   // Tim 2026-11-25: viewing one of your towns (town_view.js), island units take orders as if he were there
+          || (u.warTroop && u.place === 'world' && c.place === 'world' && c.kind !== 'follow')   // 2026-11-25: war troops take orders wherever the hero is (dead, respawned elsewhere)
+          || (u.place === 'world' && c.place === 'world' && c.kind !== 'follow' && viewsOwnTown(hero, c)))   // 2026-11-25: viewing one of your towns (town_view.js), island units take orders as if he were there
         && !(u.place !== 'street' && ['heal', 'enter'].includes(c.kind))
         && (c.kind === 'follow' || !c.place || u.place === c.place || (c.place === 'street' && c.kind === 'move' && u.place !== 'street'))
         && deployment.allowsOrder(u, c, hero, door));
-    // the one-group rule is for the city; on the island crew and war troops take one order together (Tim 2026-11-12)
+    // the one-group rule is for the city; on the island crew and war troops take one order together (2026-11-12)
     if(state.deployment.restrictionsEnabled&&!crew.every(u=>u.place==='world')){
       // settlers (and other escorts) carry no deployment record: they travel with the hero group
       const group=u=>{const g=u.deployment?.group ?? 'hero';return rally.status(hero.owner).active&&(g==='hero'||rally.participating(u))?'rally':g;};
@@ -147,14 +147,14 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
       if (!u.smokePassive || attacking) delete u.holdFire;
       if (attacking) delete u.smokePassive;
       if (fight[u.id]) delete fight[u.id].target;
-      // stop (Z, Tim 2026-10-18): stand still and stay passive, no auto attack even when hit,
+      // stop (Z, 2026-10-18): stand still and stay passive, no auto attack even when hit,
       // until the next order of any kind replaces this one
-      // resume (a second T, Tim 2026-10-19): call off the T attack, back to the order before it
+      // resume (a second T, 2026-10-19): call off the T attack, back to the order before it
       if (c.kind === 'resume') { if (u.order?.kind === 'attack') { delete u.swing; endAttack(u, true); } return; }
-      if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop', z: true }; u.anim = 'idle'; return; }   // z: the player's own Z (Tim 2026-11-25: on the island only this one is passive)
+      if (c.kind === 'stop') { delete u.swing; u.order = { kind: 'stop', z: true }; u.anim = 'idle'; return; }   // z: the player's own Z (2026-11-25: on the island only this one is passive)
       if (recalling) delete u.swing;
       if (c.kind === 'follow') { u.order = { kind: 'follow', target: hero.id, regrouping: true, ...(hero.place !== 'street' ? { exitWithHero: true } : {}) }; u.order.slot = freeSlot(hero.id, u.id); return; }
-      // resume (T, Tim 2026-10-19): when the attack ends they go back to what they were doing
+      // resume (T, 2026-10-19): when the attack ends they go back to what they were doing
       if (c.kind === 'attack') {
         if (u.swing?.target !== c.target) delete u.swing;
         const follow = c.followOnDefeat === true || c.assist || (Array.isArray(c.followOnDefeat) && c.followOnDefeat.includes(u.id));
@@ -174,10 +174,10 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
         u.order = { kind: 'enter', room: door.place, x, z, k, n: crew.length, ...(door.ninja ? { window: true } : {}) };
         return;
       }
-      // riders need a horse length each (Tim 2026-11-10: a mounted group clustered on one spot and ran in place)
+      // riders need a horse length each (2026-11-10: a mounted group clustered on one spot and ran in place)
       const place = c.place || hero.place;
       if (grouped) {
-        // big bodies (field cannons, Gatlings) get room for their width (Tim 2026-11-25: cannons sent to one spot bunched and ran in place)
+        // big bodies (field cannons, Gatlings) get room for their width (2026-11-25: cannons sent to one spot bunched and ran in place)
         const G = GM(), riders = crew.some(m => m.mounted), wide = Math.max(0, ...crew.map(m => stats?.base?.(m)?.radius || 0)) * 2 + 0.3;
         const spacing = Math.max(riders ? G.mountedSpacing : G.spacing, wide);
         // the unit's place in the spread; a place another unit already took (two snapped onto one free cell) moves on round the spiral
@@ -201,7 +201,7 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
     });
   }
 
-  // Crew inside a building whose order is out on the street (Tim 2026-10-19): walk to the room's
+  // Crew inside a building whose order is out on the street (2026-10-19): walk to the room's
   // way out and step out of the front door, then carry on with the order. True while doing that
   function crewOut(e, unit) {
     if (e.place === 'street') return false;
@@ -229,13 +229,13 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
     if (o.kind === 'follow') {
       const h = state.entities[o.target];
       if (!h || h.place !== e.place || h.dead) return null;   // hero indoors or knocked out: wait
-      // on horseback (him or them) the ring is wider: a horse is longer than a man (Tim 2026-11-07)
+      // on horseback (him or them) the ring is wider: a horse is longer than a man (2026-11-07)
       const wide = e.mounted || h.mounted ? 1.8 : 1, [ox, oz] = followOffset(o.slot).map(v => v * wide);
       // a hero on the move: keep pace with the slot instead of stopping on arrival and catching up the next tick
-      // (Tim 2026-11-08: crew on horses stuttered, moving every other tick)
+      // (2026-11-08: crew on horses stuttered, moving every other tick)
       const going = h.anim && h.anim !== 'idle';
       // standing, a follower that gets no closer to its place for half a second (shoved by the spacing push, or the
-      // place is blocked) stops where it is until the hero moves on (Tim 2026-11-08: loaded horses ran on the spot)
+      // place is blocked) stops where it is until the hero moves on (2026-11-08: loaded horses ran on the spot)
       const gx = h.x + ox, gz = h.z + oz, d = Math.hypot(gx - e.x, gz - e.z);
       if (going) delete o.hold;
       else if (!o.hold || d < o.hold.d - 0.1 || Math.hypot(gx - o.hold.gx, gz - o.hold.gz) > 0.5) o.hold = { d, gx, gz, tick: state.tick };   // a new spot (he jumped, got out) starts the wait again
@@ -243,10 +243,10 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
       return { x: gx, z: gz, near: going ? 0.05 : Math.hypot(e.x - h.x, e.z - h.z) < 2.2 + o.slot * 0.08 ? 0.6 : 0.3, walk: h.anim === 'walk' };
     }
     if (o.kind === 'attack') return null;
-    // 7c (Tim 2026-11-12: units ran in place after a fight): a unit that is there keeps the spot the spacing push
+    // 7c (2026-11-12: units ran in place after a fight): a unit that is there keeps the spot the spacing push
     // gives it instead of walking back into the crowd (only one shoved further than 1.5 walks back), and one
     // that gets no closer to its last step for half a second, with others in the way, stops where it is. On the island only.
-    // (Tim 2026-11-25: an attack-move that got there holds its pushed spot the same way; cannons ran in place)
+    // (2026-11-25: an attack-move that got there holds its pushed spot the same way; cannons ran in place)
     if ((o.kind === 'move' || o.kind === 'attackmove') && !o.patrol && e.place === 'world') {   // the island only: city raids hold their exact spots
       const d = Math.hypot(o.x - e.x, o.z - e.z);
       if (o.arrived && d <= 1.5) { o.x = e.x; o.z = e.z; return { x: e.x, z: e.z, near: Infinity }; }
@@ -279,7 +279,7 @@ export function createCrewOrders({ generalOrder = () => false, gateNav = () => n
         hold = true;
       }
     }
-    // lag fix (Tim 2026-11-10): a search that found no way is not run again every tick (a failed search is the dearest
+    // lag fix (2026-11-10): a search that found no way is not run again every tick (a failed search is the dearest
     // kind: it walks the whole reachable grid). The same goal is tried again once a second.
     if (p?.failed && Math.hypot(p.gx - gx, p.gz - gz) <= 1.2 && state.tick < p.at + 20) return false;
     if (!p || (!hold && Math.hypot(p.gx - gx, p.gz - gz) > 1.2) || !p.pts.length || (p.replanAt && p.pts.length <= p.replanAt)) {

@@ -1,4 +1,4 @@
-// Saved HUD layouts (Tim 2026-11-16): server routes (layouts_api.mjs, saves/layouts, delete moves to to_delete) and the
+// Saved HUD layouts (2026-11-16): server routes (layouts_api.mjs, saves/layouts, delete moves to to_delete) and the
 // editor's Layout row (src/hud_layout.js: choose, Save as, Delete, Reset = Default, changes on Default go to "My layout").
 // Run: node game/tools/test_layouts.mjs
 import assert from 'node:assert/strict';
@@ -15,16 +15,16 @@ await new Promise(r => server.listen(0, r));
 const base = `http://127.0.0.1:${server.address().port}`, url = n => `${base}/layouts/${encodeURIComponent(n)}`;
 assert.deepEqual(await (await fetch(`${base}/layouts`)).json(), { names: [] });
 assert.equal((await fetch(url('Big map'), { method: 'PUT', body: JSON.stringify({ panels: { hud: { dx: 5 } } }) })).status, 204);
-assert.equal((await fetch(url('Tim'), { method: 'PUT', body: JSON.stringify({ panels: {} }) })).status, 204);
-assert.deepEqual((await (await fetch(`${base}/layouts`)).json()).names, ['Big map', 'Tim']);
+assert.equal((await fetch(url('Mine'), { method: 'PUT', body: JSON.stringify({ panels: {} }) })).status, 204);
+assert.deepEqual((await (await fetch(`${base}/layouts`)).json()).names, ['Big map', 'Mine']);
 assert.deepEqual(await (await fetch(url('Big map'))).json(), { panels: { hud: { dx: 5 } } });
 assert.equal((await fetch(url('Default'), { method: 'PUT', body: '{"panels":{}}' })).status, 400, 'Default is the shipped layout');
 assert.equal((await fetch(url('../x'), { method: 'PUT', body: '{"panels":{}}' })).status, 400, 'no paths');
 assert.equal((await fetch(url('Bad'), { method: 'PUT', body: '{"nope":1}' })).status, 400, 'only layouts');
-assert.equal((await fetch(url('Tim'), { method: 'DELETE' })).status, 204);
+assert.equal((await fetch(url('Mine'), { method: 'DELETE' })).status, 204);
 assert.deepEqual((await (await fetch(`${base}/layouts`)).json()).names, ['Big map']);
-assert.match((await readdir(trash))[0], /^Tim-\d+\.json$/, 'a deleted layout moves to to_delete');
-assert.equal((await fetch(url('Tim'))).status, 404);
+assert.match((await readdir(trash))[0], /^Mine-\d+\.json$/, 'a deleted layout moves to to_delete');
+assert.equal((await fetch(url('Mine'))).status, 404);
 server.close();
 
 // ---- editor ----
@@ -61,7 +61,7 @@ L.begin(); L.done();
 assert.equal(puts.at(-1), 'My layout'); assert.equal(L.current(), 'My layout'); assert.ok(L.layouts().includes('My layout'));
 // Cancel goes back to the layout used when editing started
 L.begin(); await L.choose('Streaming'); L.cancel(); assert.equal(L.current(), 'My layout');
-// Panel opacity (Tim 2026-11-20): every panel 0.88 by default; a panel's own value overrides All panels; saved with the layout
+// Panel opacity (2026-11-20): every panel 0.88 by default; a panel's own value overrides All panels; saved with the layout
 L.reset(); assert.equal(panel.style.opacity, '0.88', 'slightly see-through by default');
 L.setOpacity('_all', .5); assert.equal(panel.style.opacity, '0.5');
 L.setOpacity('contract', .3); assert.equal(panel.style.opacity, '0.3', '30 means 30, not 30 percent of All panels');

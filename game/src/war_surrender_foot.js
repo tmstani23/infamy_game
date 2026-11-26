@@ -1,4 +1,4 @@
-// The Surrender line of the war camp panel and the town war window's War chest tab (war 8c-3, Tim 2026-11-15):
+// The Surrender line of the war camp panel and the town war window's War chest tab (war 8c-3, 2026-11-15):
 // a quiet Surrender button, a confirm box that says it cannot be taken back, and Open terms while a ceasefire is on.
 // The windows handle data-surrender (ask | yes | no) and data-terms; war_terms_panel.js is the terms window itself.
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

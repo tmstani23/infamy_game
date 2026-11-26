@@ -7,7 +7,7 @@ import { nearRivalHQ } from './sector_patrol.js';
 import { bossAway } from './util.js';
 export function createCrewStep({ gatling = { step: () => false }, firebomb = { step: () => false }, assignments, blockOffset, botExecute, businesses, clans, contracts, crewGoal, crewJobs, crewOut, crewTarget, deployment, diversion, doors, endAttack, engage, executeStep, fight, intents, leader, lootStep, moveTo, navOf, paths, rally, rifleman, rooms, sectorCleanup, sectorRecovery, sees, shakedown, shinobiAssignments, state, structures = () => null, sweep, swingStep, taunt }) {
   // Crew with no sector duty (the hero group left behind, the lieutenant's idle crew) also walk out of a rival HQ
-  // camping zone once its warning shows, then take their old order back (Tim 2026-11-20: 123 infamy from standing there)
+  // camping zone once its warning shows, then take their old order back (2026-11-20: 123 infamy from standing there)
   function freeCampingEscape(e, unit) {
     if (e.type === 'hero' || e.guard || e.cop || e.place !== 'street' || !state.clans?.[e.owner]) return false;
     if (state.deployment.clans[e.owner]?.sectors[e.deployment?.group]) return false;   // sector crew: assignments.avoidCamping
@@ -142,11 +142,11 @@ export function createCrewStep({ gatling = { step: () => false }, firebomb = { s
     const dist = goal ? Math.hypot(goal.x - e.x, goal.z - e.z) : 0;
     if (!goal || dist < goal.near) {
       e.anim = 'idle'; delete paths[e.id];
-      // arrived: hold there. On the island an attack-move stays on (Tim 2026-11-13: attack at will, anyone in reach, until a
+      // arrived: hold there. On the island an attack-move stays on (2026-11-13: attack at will, anyone in reach, until a
       // Stop or a new move order); in town it becomes a plain hold
       if (e.order?.kind === 'attackmove') { if (e.place === 'world') e.order.arrived = true; else e.order = { kind: 'move', x: e.order.x, z: e.order.z }; }
       if (e.order?.kind === 'heal') {                                       // at the clinic door: go in (or wait if broke)
-        if (clans?.hitWait(e) > 0) return;                                  // hit lately: wait at the door till it's safe (Tim 2026-10-20)
+        if (clans?.hitWait(e) > 0) return;                                  // hit lately: wait at the door till it's safe (2026-10-20)
         if (clans?.checkIn(e)) { delete state.entities[e.id]; delete intents[e.id]; delete fight[e.id]; return; }
         e.order = { kind: 'move', x: e.order.x, z: e.order.z };
       }

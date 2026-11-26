@@ -1,4 +1,4 @@
-// War checkpoint 8b-3 (Tim OK'd the mock 2026-11-15): the town war window and its building menus
+// War checkpoint 8b-3 (approved the mock 2026-11-15): the town war window and its building menus
 // (src/town_war_panel.js), Node smoke test with a tiny fake DOM like test_camp_menus.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

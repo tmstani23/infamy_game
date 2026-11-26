@@ -1,7 +1,7 @@
 import { RICH_NAME } from './sim/resource_spots.js';
 import { modeRules } from './sim/modes/index.js';
 import { createRailLedger } from './rail_ledger.js';
-// The full game map (M, Tim 2026-10-20, docs/territory_plan.md): the whole district over the
+// The full game map (M, 2026-10-20, docs/territory_plan.md): the whole district over the
 // screen with the same fog of war, territory (sim/territory.js) and switches for its layers.
 // The game keeps running underneath (no pause, as in multiplayer). Hover a business for its
 // owner and payout; click anywhere (a business: its door) to look there and close the map.
@@ -33,7 +33,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
   const layerButtons = new Map(), sectorButtons = new Map();
   let selectedSector = game.state.deployment.sectors[0]?.id;
   let pointPicker = null, destinationPicker = null, flashUntil = 0;
-  // one map (Tim 2026-10-27): managing a sector docks the Deployment menu beside the open map
+  // one map (2026-10-27): managing a sector docks the Deployment menu beside the open map
   const selectSector = id => {
     if (destinationPicker) { destinationPicker(id);return; }
     selectedSector = id; flashUntil=performance.now()+1200; onSelectSector(id); drawDeployment(); map?.invalidate();
@@ -189,7 +189,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
     tip.hidden = false; positionTip(e);
   }
 
-  // hover a quarter: who holds it (Tim 2026-10-20: just that)
+  // hover a quarter: who holds it (2026-10-20: just that)
   function hoverQuarter(q, e) {
     const st = game.state, t = game.territory;
     const o = map?.shownHolder(q);
@@ -213,7 +213,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
       const o = t.heldBy(q);
       return `<div class="row q"><span>${q.name}</span><em>${!o ? 'nobody holds it all' : o === clan ? 'yours (+payout)' : `held by ${st.clans[o]?.name}`}</em></div>`;
     }).join('')+'</details>';
-    // a short key (Tim 2026-10-20: just these three)
+    // a short key (2026-10-20: just these three)
     const legend = `<h4>Key</h4><div class="key">B, Bandit camp</div><div class="key">Q, Pawnshop, A, Bathhouse</div><div class="key">K, Sake brewery, R, Manor</div><div class="key">U, Customs house</div><div class="key"><i class="k-turf"></i>Territory</div>`
       + `<div class="key"><i class="k-quarter"></i>Quarter: hold it all for +${Math.round(t.rules.quarterBonus * 100)}% payout</div>`
       + `<div class="key"><i class="k-cam"></i>Camera view</div>`;
@@ -224,7 +224,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
   // World atlas: full geography, discovered features and own pins. Reads the clan snapshot;
   // live units and camera geometry belong to the minimap/City view.
   let tab = 'city', worldMap = null, worldCanvas = null, pinDraft = null, picked = null;
-  let travelTo = null;   // dev-only instant travel (Tim 2026-11-02): click empty ground on the World tab, then confirm
+  let travelTo = null;   // dev-only instant travel (2026-11-02): click empty ground on the World tab, then confirm
   const canTravel = () => devTravel && modeRules(game.state).island && ['street', 'world'].includes(game.state.entities[heroId]?.place);
   const tabs = document.createElement('div'), worldSide = document.createElement('div');
   tabs.className = 'maptabs'; worldSide.className = 'worldside'; worldSide.hidden = true;
@@ -244,8 +244,8 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
     // campaign zones (Z3): what your clan knows of each zone, worked out again only when towns or discovery change
     const zr = game.frontier?.data?.campaignZones, grid = w?.discovered?.[clan] ?? '0';
     if (zr) { const all = !!worldMap?.layers.revealAll, key = `${all}:${grid}:${Object.values(game.state.frontier?.settlements || {}).map(s => `${s.id}${s.owner}${s.founded ?? ''}`).join()}:${game.state.day ?? Math.floor((game.state.tick ?? 0) / 2400)}`;
-      if (key !== zoneKey) { zoneKey = key;  const towns = game.state.frontier?.settlements; zoneState = zoneMapState({ rules: zr, world, settlements: all && game.state.devCastles ? { ...towns, ...Object.fromEntries(game.state.devCastles.map(c => [c.id, { ...towns?.[c.id], ...c }])) } : towns, clans: game.state.clans, clan, known: all ? () => true : (x, z) => isDiscovered(world, grid, x, z) }); } }   // Show everything shows every castle (Tim 2026-11-23)
-    // the Found card's site picks (Tim 2026-11-20), read twice a second
+      if (key !== zoneKey) { zoneKey = key;  const towns = game.state.frontier?.settlements; zoneState = zoneMapState({ rules: zr, world, settlements: all && game.state.devCastles ? { ...towns, ...Object.fromEntries(game.state.devCastles.map(c => [c.id, { ...towns?.[c.id], ...c }])) } : towns, clans: game.state.clans, clan, known: all ? () => true : (x, z) => isDiscovered(world, grid, x, z) }); } }   // Show everything shows every castle (2026-11-23)
+    // the Found card's site picks (2026-11-20), read twice a second
     if (!goalSitesAt || performance.now() - goalSitesAt > 500) { goalSitesAt = performance.now(); goalSites = game.goals?.current?.(clan)?.sites || []; }
     const campsCleared = Object.fromEntries(Object.entries(w?.camps || {}).filter(([, c]) => c?.cleared).map(([id]) => [id, true]));   // cleared camps drawn faded
     return { campsCleared, zones: zr ? zoneState : null, zoneRules: zr, rivalHints, goalSites, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
@@ -254,9 +254,9 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
       rail: { links: game.state.frontier?.rail?.links || {}, trains: game.state.frontier?.rail?.trains || {}, highlight: ledgerOpen ? ledger.train() : null, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600, wars: game.state.frontier?.wars?.list, me: clan, clans: game.state.clans } };
   };
   // Frontier towns to draw and hover (F4.4d): your own, plus rival towns on ground you have discovered
-  // (the snapshot only carries those). Placed where the town hall actually stands (Tim 2026-11-05);
+  // (the snapshot only carries those). Placed where the town hall actually stands (2026-11-05);
   // records without a position (old fixture towns, rival name-only records) fall back to their world site.
-  // Rail ledger (rail shipments S5, Tim 2026-11-08): a docked panel on the World tab
+  // Rail ledger (rail shipments S5, 2026-11-08): a docked panel on the World tab
   const ledger = createRailLedger({ game });
   let ledgerOpen = false, ledgerEl = null, ledgerHtml = '';
   function drawLedger() {
@@ -266,7 +266,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
         if (id === 'close') { ledgerOpen = false; drawWorldSide(); } else { const r = ledger.click(id); if (r?.cancel) send({ id: heroId, type: 'frontier', action: 'ship', mode: 'cancel', order: r.cancel }); } ledgerHtml = ''; drawLedger(); worldMap?.invalidate(); b.blur(); }); }
     ledgerEl.hidden = !(ledgerOpen && tab === 'world' && isOpen());
     if (ledgerEl.hidden) return;
-    // Tim 2026-11-09: sit below the map's layer buttons, not over them
+    // 2026-11-09: sit below the map's layer buttons, not over them
     const bar = root.querySelector('.atlas-layers')?.getBoundingClientRect();
     if (bar?.bottom > 0) ledgerEl.style.top = Math.round(bar.bottom + 10) + 'px';
     const h = ledger.html(); if (h !== ledgerHtml) { ledgerEl.innerHTML = h; ledgerHtml = h; }
@@ -276,7 +276,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
   function townsOnMap() {
     const f = game.state.frontier; if (!f) return [];
     const at = t => Number.isFinite(t.x) && Number.isFinite(t.z) ? { x: t.x, z: t.z } : siteXZ[t.site ?? ''] ? { x: siteXZ[t.site].x, z: siteXZ[t.site].z } : null;
-    // owner colour on the marker (Tim 2026-11-21): yours ringed, a rival's in its clan colour
+    // owner colour on the marker (2026-11-21): yours ringed, a rival's in its clan colour
     return Object.values(f.settlements || {}).filter(t => !t.capital && at(t)).map(t => ({ ...t, ...at(t), mine: t.owner === clan, color: game.state.clans?.[t.owner]?.color }));
   }
   const TRAIT = v => '<i class="tdot on"></i>'.repeat(v) + '<i class="tdot"></i>'.repeat(Math.max(0, 3 - v));   // drawn dots, no glyphs
@@ -325,7 +325,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
     const label = p ? `You are in ${gridLabel(p.x, p.z)}` : '';
     if (el.textContent !== label) el.textContent = label;
   }
-  // the railway key (Tim 2026-11-08): shown while the Railways switch is on and you have a line
+  // the railway key (2026-11-08): shown while the Railways switch is on and you have a line
   function railKey() {
     const links = Object.values(worldState().rail?.links || {});
     if (!worldMap.layers.rail || !links.length) return '';
@@ -359,7 +359,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
       }
       b.blur();
     });
-    // the map's own overlay (Tim 2026-11-23): the hover line on a plaque at the bottom middle, a small key at the bottom left
+    // the map's own overlay (2026-11-23): the hover line on a plaque at the bottom middle, a small key at the bottom left
     // that folds away with its button (remembered); the how-to line lives in the key button's hover
     const hud = document.createElement('div'); hud.className = 'atlas-hud';
     let keyShut = false; try { keyShut = localStorage.getItem('infamy.atlasKeyShut') === '1'; } catch {}
@@ -377,7 +377,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
     worldCanvas.width = worldCanvas.clientWidth || 1200; worldCanvas.height = worldCanvas.clientHeight || 686;
     worldMap = createWorldMap({ canvas: worldCanvas, world, resourceSpots, paintConfig, atlasConfig, getState: worldState, onHover: info => {
       const el=root.querySelector('.atlas-hud .atlas-hover'); if (!el) return;
-      // the place name large, then zone, biome and grid square, the coordinates small (Tim 2026-11-23)
+      // the place name large, then zone, biome and grid square, the coordinates small (2026-11-23)
       const head = info ? String(info.feature || info.zone || info.biome).replace(' · ', ' ') : 'Hover the map', rest = info ? [info.feature && info.zone, info.biome, info.grid].filter(Boolean).join(', ') : 'Zone, biome and grid square';
       const html = `<b>${esc(head)}</b><span>${esc(rest)}</span>`;
       if (el._html !== html) { el._html = html; el.innerHTML = html; }
@@ -415,7 +415,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
       const p=canvasToWorldPoint(...local(e));
       // clicking a marked place travels to it, landing about half a screen (26 units) away on the screen-lower side, never on top
       travelTo = !canTravel() ? null : picked?.kind === 'capital' ? { city: true } : !picked ? p : (Number.isFinite(picked.x) && Number.isFinite(picked.z) ? { x: Math.round(picked.x + 18), z: Math.round(picked.z + 18) } : null);
-      // your town: a small View / Cancel confirm beside it (Tim 2026-11-25); if it cannot be viewed, the full panel (F4.4d)
+      // your town: a small View / Cancel confirm beside it (2026-11-25); if it cannot be viewed, the full panel (F4.4d)
       if (picked?.kind === 'town' && picked.owner === (game.state.entities[heroId]?.owner ?? clan) && picked.stock) { card.hidden = true; if (viewTown?.(picked.id, e.clientX, e.clientY)) { picked = null; return; } openTown(picked.id); return; }
       drawWorldSide();
     });
@@ -444,7 +444,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
   function open() {
     root.hidden = false;
     // M opens straight to World while the hero is out on the island (W3 puts heroes there)
-    // watching the city (Tim 2026-11-08): the city deployment map first instead
+    // watching the city (2026-11-08): the city deployment map first instead
     if (world && game.state.entities[heroId]?.place === 'world') setTab(document.body.classList.contains('city-watching') ? 'city' : 'world');
     deploymentData.update(true, true);
     if (!map) {
@@ -476,7 +476,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
     root.classList.toggle('docked', on);
     if (sector && overlay.sectors.some(s => s.id === sector)) selectedSector = sector;
     if (on) { layers.deployment = true; if (!isOpen()) open();
-      // the World tab hides the Deployment menu: in the city it docks on the City tab (Tim 2026-11-20: the lieutenant's
+      // the World tab hides the Deployment menu: in the city it docks on the City tab (2026-11-20: the lieutenant's
       // Show me opened the World tab, left there by the surveyor's tour, and showed nothing)
       if (tab === 'world' && game.state.entities[heroId]?.place !== 'world') setTab('city'); }
     else pointPicker = null;
@@ -487,7 +487,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
     focusSector: id => { if (overlay.sectors.some(s => s.id === id)) { selectedSector = id; flashUntil=performance.now()+1200; map?.invalidate(); } },
     pickDestination(callback) { pointPicker=null;destinationPicker=callback;layers.deployment=true;syncLayers();open(); },
     cancelPick() {pointPicker=null;destinationPicker=null;},
-    // the surveyor's tour (Tim 2026-11-06 20:45): open the World tab on a site with sites and resources showing
+    // the surveyor's tour (2026-11-06 20:45): open the World tab on a site with sites and resources showing
     tourTo(id, span = 2600) {
       const t = siteXZ[id]; if (!world || !t) return false;
       if (!isOpen()) open(); setTab('world'); ensureWorldMap();

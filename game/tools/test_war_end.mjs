@@ -1,4 +1,4 @@
-// War checkpoint 8a-3 to 8a-6 (Tim 2026-11-14): taking a hall (the channel), the outcomes Capture, Sack and Burn,
+// War checkpoint 8a-3 to 8a-6 (2026-11-14): taking a hall (the channel), the outcomes Capture, Sack and Burn,
 // the defender's win at the camp hall, the rout, the war chest and the cooldown.
 // (sim/frontier/war_end.js, war_outcomes.js, world.js removeTown, structures.js hall repair, vehicle_garage.js)
 import assert from 'node:assert/strict';

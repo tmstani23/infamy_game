@@ -81,10 +81,10 @@ assert.ok(!l.blast, 'cooldown over');
 assert.ok(run(4000, () => train().wait <= 0 && train().d > 20 && train().d < 400), 'train running');
 { const tr = train(), ahead = tr.d + tr.dir * 60; if (ahead > 10 && ahead < L - 10) { Object.assign(hero, { x: ax + ahead, z: az }); hero.order = { kind: 'stop' };
   assert.ok(run(400, () => hero.dead || hero.downed), 'hit by the train');
-  // Tim 2026-11-25: like any death, health to nothing (the bar turns red then goes) and a killing hit for the blood
+  // 2026-11-25: like any death, health to nothing (the bar turns red then goes) and a killing hit for the blood
   assert.equal(hero.hp, 0, 'health gone');
   assert.ok(S.hits.some(h => h.t === hero.id && h.kill && h.kind === 'train'), 'a killing hit for the renderer'); } }
-// Tim 2026-11-21: blown while the train stands at a station, it still sets out once, stops at the gap, backs home and is held
+// 2026-11-21: blown while the train stands at a station, it still sets out once, stops at the gap, backs home and is held
 S.tick = (l.blast?.safeUntil ?? S.tick) + 1; run(2);
 assert.ok(run(8000, () => train().d <= 0 && train().wait > 2), 'train standing at tA');
 { const tr = train(), mid = L / 2; Object.assign(hero, { x: ax + mid, z: az, dead: false, downed: false, hp: hero.maxHp }); hero.order = { kind: 'stop' }; blast();

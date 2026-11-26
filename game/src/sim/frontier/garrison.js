@@ -1,19 +1,19 @@
-// Stockade garrison (Tim 2026-11-06). Your hero, crew and workers can shelter inside a finished
+// Stockade garrison (2026-11-06). Your hero, crew and workers can shelter inside a finished
 // stockade: they cannot be attacked, they heal data.buildings.stockade.garrison.healFactor times faster
 // (sim/stats.js reads e.garrison.heal) and they stand idle at the building until sent out.
 // Command (through the frontier hub): { id: <hero id>, type: 'frontier', action: 'garrison', mode: 'enter' | 'leave',
 // town: <settlement id>, units: [entity ids] } (leave with no units = everyone). Receipts as for other frontier commands.
-// Hits on anyone inside go to the stockade instead (garrison.hp, Tim 2026-11-06): area attacks such as
+// Hits on anyone inside go to the stockade instead (garrison.hp, 2026-11-06): area attacks such as
 // dynamite or a cleave cannot reach the people. At 0 the stockade is ruined and everyone piles out;
 // the town governor rebuilds it on the same spot. Enemies attacking the building itself waits for F7 sieges.
 // createGarrison({ state, data, world }) -> { command, tick, members, capacity, shelter }
-// 7c-3b (Tim 2026-11-12, war plan 2026-11-09b): garrisons in a town's houses, workshops and farmhouses. The town owner's
-// troops, crew and the hero (Tim 2026-11-19; not workers) go in, up to war.structures.zoneGarrison.capacity per building:
+// 7c-3b (2026-11-12, war plan 2026-11-09b): garrisons in a town's houses, workshops and farmhouses. The town owner's
+// troops, crew and the hero (2026-11-19; not workers) go in, up to war.structures.zoneGarrison.capacity per building:
 // { action: 'garrison', mode: 'enter' | 'leave', structure: <structure key>, units, walk }. Inside: e.garrison =
 // { town, key, zone: true, x, z }. Hits on them go to the building (structures.damage), at 0 everyone piles out
 // (breakOutKey), melee inside cannot attack, ranged troops shoot out (sim/frontier/structures.js garrisonFire), no
 // healing inside. Not the stockade's members().
-// Stockade as a fortress (Tim 2026-11-16): health by town hall tier (garrison.hpByTier, stockadeHp), a town may have
+// Stockade as a fortress (2026-11-16): health by town hall tier (garrison.hpByTier, stockadeHp), a town may have
 // several (tiers placed limit) and each holds garrison.capacity. War troops (e.warTroop) go in by the structure way
 // above: into a town stockade or a war camp's stockade (war.buildings.stockade), with garrison.range, the stockade's
 // healing and e.garrison.fort; the hero, crew and workers go in as before (town stockades only). Both kinds share
@@ -44,7 +44,7 @@ export function createGarrison({ state, data, world, atWar = () => false, dismou
   const zoneOk = st => (!!st && !!Z() && (st.kind === 'zone' || st.kind === 'building') && (Z().types || []).includes(st.type)) || fort(st);
   const inZone = key => Object.values(state.entities || {}).filter(e => e.garrison?.zone && e.garrison.key === key && !e.dead);
   // room and reach of a structure troops can hold: a stockade's own numbers (less the hero, crew and workers inside), else a house's
-  // Z4e (Tim 2026-11-19): watchtowers are garrisonable too, in towns, war camps and castles: zoneGarrison.byType gives a
+  // Z4e (2026-11-19): watchtowers are garrisonable too, in towns, war camps and castles: zoneGarrison.byType gives a
   // type its own room (capacity) and how much further its ranged troops reach from up there (reach)
   const byType = st => Z()?.byType?.[st?.type] || null;
   const capOf = st => fort(st) ? (rules().capacity || 0) - (st.s && st.b ? membersIn(st.s, st.b).length : 0) : byType(st)?.capacity ?? Z()?.capacity ?? 10;
@@ -71,12 +71,12 @@ export function createGarrison({ state, data, world, atWar = () => false, dismou
     return true;
   }
   function admitZone(u, st) {
-    if (u.mounted || u.ride?.kind === 'horse') dismount(u);   // Tim 2026-11-25: a rider (the hero on his horse) gets off and goes in
+    if (u.mounted || u.ride?.kind === 'horse') dismount(u);   // 2026-11-25: a rider (the hero on his horse) gets off and goes in
     u.garrison = { ...(st.town ? { town: st.town } : {}), ...(st.war ? { war: st.war } : {}), key: st.key, zone: true, x: st.x, z: st.z, ...(fort(st) ? { fort: true, heal: rules().healFactor || 1 } : {}), ...(byType(st)?.reach ? { reach: byType(st).reach } : {}) };
     delete u.order; delete u.swing; delete u.attackTarget; u.x = st.x; u.z = st.z;
   }
-  // who may hold a house or a stockade the structure way: troops, crew and the hero (Tim 2026-11-19: the hero may garrison any
-  // garrisonable building; was troops and crew only, 2026-11-12); never workers, animals, guns on wheels. Riders may (Tim
+  // who may hold a house or a stockade the structure way: troops, crew and the hero (2026-11-19: the hero may garrison any
+  // garrisonable building; was troops and crew only, 2026-11-12); never workers, animals, guns on wheels. Riders may (
   // 2026-11-25: the hero on his horse could not go in): they ride over and get off at the door.
   const troopOk = (u, owner) => !!u && u.owner === owner && !u.worker && !u.garrison && !u.dead && !u.downed && !u.jailed && u.place === 'world' && !u.aboard && !u.cavalry
     && u.type !== 'civilian' && u.type !== 'horse' && !u.wild && !u.cop && !u.guide && !u.gatling;
@@ -166,7 +166,7 @@ export function createGarrison({ state, data, world, atWar = () => false, dismou
       const b = near.b, [cx, cz] = at.get(b.id), st = troop ? zoneSt(keyOf(s, b)) : null;
       if (troop && !st) continue;
       if (near.d > R.range) {
-        // right-click on the stockade (Tim 2026-11-07): far units walk over and go in when they arrive
+        // right-click on the stockade (2026-11-07): far units walk over and go in when they arrive
         if (c.walk && !u.worker && !u.aboard) { u.order = { kind: 'move', x: cx, z: cz, garrisonGo: s.id, ...(troop ? { garrisonKey: st.key } : { garrisonB: b.id }) }; delete u.attackTarget; walking++; } else far++;
         continue;
       }

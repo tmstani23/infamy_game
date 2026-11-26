@@ -1,4 +1,4 @@
-// War checkpoint 8b-1 (Tim 2026-11-15): military buildings in towns and the town hall war upgrade.
+// War checkpoint 8b-1 (2026-11-15): military buildings in towns and the town hall war upgrade.
 // (sim/frontier/town_military.js, placement.js, commands.js warUpgradeHall, economy.js, upkeep.js, tiers.js, structures.js)
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -20,7 +20,7 @@ const world = data('data/world.json'), U = data('data/units.json'), FR = data('d
     const b = FR.buildings[t];
     assert.ok(b.size >= 1 && b.military && b.buildTicks > 0, t);
     assert.deepEqual(b.cost, FR.war.buildings[t].cost, `${t} costs what it costs at a camp`);
-    assert.ok(FR.war.structures.town[t] >= (FR.war.structures.camp[t] ?? 0), `${t} is at least as sturdy as at a camp`);   // (a town-only one, the shipyard, has no camp health)   // 8d-6 (Tim 2026-11-16): town military buildings have 2.5 times the camp health
+    assert.ok(FR.war.structures.town[t] >= (FR.war.structures.camp[t] ?? 0), `${t} is at least as sturdy as at a camp`);   // (a town-only one, the shipyard, has no camp health)   // 8d-6 (2026-11-16): town military buildings have 2.5 times the camp health
     assert.ok(FR.upkeep.buildings[t], `${t} pays upkeep`);
     assert.equal(b.max, undefined, 'limits live in war.buildings only');
   }
@@ -89,7 +89,7 @@ const finish = (s, max = 4000) => { for (let i = 0; i < max && s.town.projects.l
   r = place(s, 'supply_tents'); assert.ok(r.ok, r.reason);
   finish(s);
   r = place(s, 'clan_hall'); assert.ok(r.ok, r.reason); finish(s);
-  // kennel and hidden dojo: the clan hall and a town hall at tier 2 (Tim 2026-11-15)
+  // kennel and hidden dojo: the clan hall and a town hall at tier 2 (2026-11-15)
   { const t0 = town.tier; town.tier = 1; r = place(s, 'kennel'); assert.equal(r.reason, 'Needs a town hall at tier 2'); town.tier = Math.max(2, t0 || 1); }
   r = place(s, 'kennel'); assert.ok(r.ok, r.reason); finish(s);
   // the war upgrade: refused while short, paid at once, then built by the town builders (upgradeWork), other projects wait
@@ -149,14 +149,14 @@ const finish = (s, max = 4000) => { for (let i = 0; i < max && s.town.projects.l
   assert.ok(foe.hp < hp || foe.dead || foe.downed, 'the town watchtower shoots the attacker');
   const counted = s.g.frontier.warMorale.view('w9').town;
   assert.ok(JSON.stringify(counted).includes('barracks') && JSON.stringify(counted).includes('foundry'), 'the morale bar counts them: ' + JSON.stringify(counted).slice(0, 300));
-  // ruins: the attacker knocks a barracks down; the Rebuild order brings it back during the war too, and the bar rises again (Tim 2026-11-17)
+  // ruins: the attacker knocks a barracks down; the Rebuild order brings it back during the war too, and the bar rises again (2026-11-17)
   { const b = mine.find(x => x.type === 'barracks');
     assert.ok(ST.canDamage(s.rival, b) && !ST.canDamage('player', b), 'only the attacker hits it');
     assert.ok(ST.damage(s.rival, b, 1e9, 'fire')); s.run(2);
     assert.equal(b.b.stage, 'ruined', 'a ruin');
     const mv = s.g.frontier.warMorale.view('w9').town;
     assert.ok(mv.pct < 100 && mv.down.some(d => d.type === 'barracks' && d.n === 1), 'the bar drops: ' + JSON.stringify(mv));
-    // Tim 2026-11-24: no Rebuild during the war (replaces 2026-11-17); a new one goes up on the ruin, from scratch
+    // 2026-11-24: no Rebuild during the war (replaces 2026-11-17); a new one goes up on the ruin, from scratch
     const r2 = cmd({ action: 'rebuild', settlement: 'tM', building: b.b.id }); assert.ok(!r2.ok && /No rebuilding during a war/.test(r2.reason), r2.reason);
     assert.equal(militaryCount(town, 'barracks'), 2, 'a ruin does not count toward the limit');
     const timber1 = town.stock.timber, place2 = () => cmd({ action: 'place', town: 'tM', kind: 'barracks', cells: [b.b.cell], ...(Number.isInteger(b.b.rot) ? { rot: b.b.rot } : {}) });

@@ -1,4 +1,4 @@
-// The surrender screens (war checkpoint 8c-3, Tim 2026-11-15): presentation only, the sim (sim/frontier/war_terms.js)
+// The surrender screens (war checkpoint 8c-3, 2026-11-15): presentation only, the sim (sim/frontier/war_terms.js)
 // checks every command again. One window with four faces:
 //   you surrendered        -> type a ransom (filled with the suggested price) and Offer; Leave without terms
 //   they surrendered       -> their offer with a fair offer hint: Accept, No, Refuse for good
@@ -69,7 +69,7 @@ export function termsModel(game, heroId, w) {
       : [['Accept', `${amount} ryo goes to the coffers of ${town}. Their camp packs up and leaves, and their war chest goes home with them.`],
         ['No', 'They may offer again.'], ['Refuse for good', `Their troops walk off and their war chest goes to the coffers of ${town}.`]] };
 }
-// Tim 2026-11-18: with an offer waiting for your answer the window cannot be put away: Esc does nothing and the
+// 2026-11-18: with an offer waiting for your answer the window cannot be put away: Esc does nothing and the
 // close button asks to refuse the terms for good first (ui.confirm). Otherwise it closes as before.
 export const owesAnswer = m => !!m && m.face === 'answer' && m.amount != null;
 // ui = { amount: text in the box, why: refusal line, confirm: the close button asked to refuse for good }

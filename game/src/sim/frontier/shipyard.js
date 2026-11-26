@@ -7,7 +7,7 @@ import { buildable, passable, terrainAt } from '../world_data.js';
 
 const harbourOf = (world, s) => world?.sites?.find(t => t.id === s?.site)?.harbor || null;
 const sailNear = (world, x, z, r) => !!nearestSailable(waterGrid(world), x, z, 'big', r);
-// right at the drawn water's edge (Tim 2026-11-23: a slipway stood far up the grass): drawn sea or river within r of
+// right at the drawn water's edge (2026-11-23: a slipway stood far up the grass): drawn sea or river within r of
 // the middle, as the eye sees the shore; the grid test above only says that water is big ships' water
 const wetWithin = (world, x, z, r) => { const w = (a, b) => { const c = terrainAt(world, a, b); return c === 'w' || c === 'r'; };
   if (w(x, z)) return true; for (let d = 2; d <= r; d += 2) for (let k = 0; k < 24; k++) if (w(x + Math.cos(k * Math.PI / 12) * d, z + Math.sin(k * Math.PI / 12) * d)) return true; return false; };

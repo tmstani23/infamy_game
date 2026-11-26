@@ -1,4 +1,4 @@
-"""Blocking shapes from the art's own outline (war collision checkpoint 5b-0, Tim 2026-11-11).
+"""Blocking shapes from the art's own outline (war collision checkpoint 5b-0, 2026-11-11).
 
 For every building cut-out a frontier town or war camp draws (data/frontier.json townArt), the ground the
 building stands on is read from its outline (tools/preview_mask_collision.py ground_mask: fill the outline,
@@ -10,7 +10,7 @@ all of it, so no blocked edge reaches beyond the art.
 
 Per-art settings in data/art.json: "blockWall" = wall height as a share of the art's height, where the
 automatic reading is off; "blockShape" = a hand-made ground outline, [[x, y], ...] in art pixels, for art the
-outline method reads badly (the stockade, Tim 2026-11-11: the whole of it blocks, not only the front). It is still
+outline method reads badly (the stockade, 2026-11-11: the whole of it blocks, not only the front). It is still
 cut to the art's own outline. Art with a hand-set "foot" keeps it. frontier.json townArt._noBlock lists art
 that blocks nothing.
 
@@ -33,7 +33,7 @@ def art_names(fr):
         if isinstance(v, str) and v not in names: names.append(v)
     for t, v in ta.items():
         if not t.startswith('_'): add(v)
-    for vs in ta.get('_byTier', {}).values():   # art by town hall tier (Tim 2026-11-20)
+    for vs in ta.get('_byTier', {}).values():   # art by town hall tier (2026-11-20)
         if isinstance(vs, list):
             for v in vs: add(v)
     for z in ta.get('_zones', {}).values():

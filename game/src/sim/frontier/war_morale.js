@@ -1,4 +1,4 @@
-// War morale (frontier plan F6, checkpoint 8a-1, Tim 2026-11-14): the progress bar of a war, one per side.
+// War morale (frontier plan F6, checkpoint 8a-1, 2026-11-14): the progress bar of a war, one per side.
 // Rules only: no DOM, no randomness. Numbers: data.war.morale.
 // A side's bar counts buildings only, each with a weight (morale.weights[type]; no weight = not counted):
 //   the town:  its town hall and its military buildings (today the stockade; 8b adds the rest)

@@ -39,7 +39,7 @@ const cast = (f, ability, ids, extra = {}) => f.g.step([{ id: f.hero.id, type: '
   assert.ok(!foe.taunted && !big1.taunt, 'auto off: no taunt on his own');
   { const v = specialView({ state: st, units: f.units }, 'taunt', ids); assert.deepEqual(v, { have: 2, ready: 2, auto: 0, nextReadyAt: 0 }); }
   // the player asks: it happens, with auto still off; the second enforcer finds the enemy already taunted and keeps his cooldown
-  // one press, one caster (Tim 2026-11-12): the ready one nearest the pointer
+  // one press, one caster (2026-11-12): the ready one nearest the pointer
   cast(f, 'taunt', ids, { x: big2.x + 0.2, z: big2.z });
   assert.ok(!big1.castReq && !big1.taunt, 'one press asks one unit: the nearest to the pointer');
   for (let i = 0; i < 3 && !foe.taunted; i++) g.step();

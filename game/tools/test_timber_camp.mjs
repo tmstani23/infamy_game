@@ -1,4 +1,4 @@
-// Tim 2026-11-11: a bot town on a site with no trees in worker reach (S22) builds a lumber camp toward the nearest
+// 2026-11-11: a bot town on a site with no trees in worker reach (S22) builds a lumber camp toward the nearest
 // trees before any other camp, so it never spends its start timber on a quarry and sits at 5 people for good.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { makeBots } from '../src/sim/save.js';
 
 const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const frontier = data('data/frontier.json'), B = frontier.founding.bots;
-// Tim 2026-11-21: world_spots.json now gives every site an ordinary tree spot in reach (seed_resource_spots.mjs site
+// 2026-11-21: world_spots.json now gives every site an ordinary tree spot in reach (seed_resource_spots.mjs site
 // floor). The rule stays for any site without one, so the test takes the trees within workers.range away from S22.
 function noTrees(id) {
   const spots = data('data/world_spots.json'), site = data('data/world.json').sites.find(s => s.id === id), R = frontier.workers.range;

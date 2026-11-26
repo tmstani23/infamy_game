@@ -25,7 +25,7 @@ export function createBloom(renderer, { strength = 1.15, radius = 0.55 } = {}) {
   let w = 0, h = 0;
   const black = new THREE.Color(0, 0, 0), oldClear = new THREE.Color();
 
-  // perf 2026-11-07 (Tim's F3: the glow pass cost 2.4 ms a frame with no effect on screen): is any effect showing?
+  // perf 2026-11-07 (the F3: the glow pass cost 2.4 ms a frame with no effect on screen): is any effect showing?
   const mask = 1 << FX_LAYER;
   function anyFx(o) {
     if (!o.visible) return false;

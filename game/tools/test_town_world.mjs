@@ -40,7 +40,7 @@ function game(heroAt) {
   const t = w.settlement('tw'), snap = () => drawableTowns(structuredClone(g.state.frontier), 'player');
   // queue a stockade through the command path and watch it go from dirt to frame to building
   const hero = Object.values(g.state.entities).find(e => e.type === 'hero');
-  Object.assign(t.stock, { timber: 600, stone: 600 });   // the stockade's price (Tim 2026-11-16: 400 timber, 450 stone at Village)
+  Object.assign(t.stock, { timber: 600, stone: 600 });   // the stockade's price (2026-11-16: 400 timber, 450 stone at Village)
   g.step([{ id: hero.id, type: 'frontier', action: 'queue', settlement: 'tw', building: 'stockade' }]);
   let props = townProps(snap(), frontier.townArt, frontier.townLights);
   assert.ok(props.filter(p => p.art === 'stone_lantern').length >= 4, 'lanterns beside the finished buildings');
@@ -53,7 +53,7 @@ function game(heroAt) {
   let sawFrame = false, sig1 = sig0;
   for (let i = 0; i < 20 * 400 && t.projects.length; i++) {
     g.step([]);
-    if (t.projects[0]?.progress > 0 && !sawFrame) { sawFrame = true; props = townProps(snap(), frontier.townArt); assert.ok(props.some(p => p.key.includes(':frame') && (frontier.townArt._buildPhases || ['house_construction_1', 'house_construction_2']).includes(p.art)), 'work done = construction-site frame (Tim 2026-11-05)'); sig1 = townSignature(snap()); }
+    if (t.projects[0]?.progress > 0 && !sawFrame) { sawFrame = true; props = townProps(snap(), frontier.townArt); assert.ok(props.some(p => p.key.includes(':frame') && (frontier.townArt._buildPhases || ['house_construction_1', 'house_construction_2']).includes(p.art)), 'work done = construction-site frame (2026-11-05)'); sig1 = townSignature(snap()); }
   }
   assert.ok(sawFrame && t.projects.length === 0, 'the stockade got built');
   props = townProps(snap(), frontier.townArt);

@@ -1,4 +1,4 @@
-// The town railway station (Tim 2026-11-07, sim/frontier/station_layout.js): one 3x2 placement, ticket hall, engine
+// The town railway station (2026-11-07, sim/frontier/station_layout.js): one 3x2 placement, ticket hall, engine
 // shed and railway slot in a row; rot turns it (the track leaves +x, +z, -x, -z). A line ends in the shed and leaves
 // through the slot. Removing a station with lines needs confirmLines, then its lines are torn up.
 // Run: node game/tools/test_town_station.mjs
@@ -59,7 +59,7 @@ if (!pv.error) {
   assert.ok(b[0] > a[0] + 2 && Math.abs(b[1] - a[1]) < 3, `out of the shed through the slot (${JSON.stringify([a, b])})`);
 }
 // --- every turn of the station: the track leaves straight out of the mouth and never bends tighter than a train can
-// (Tim 2026-11-08: no hairpin back past the shed), one town cell clear of water and cliffs where the town allows
+// (2026-11-08: no hairpin back past the shed), one town cell clear of water and cliffs where the town allows
 const radiusAt = (l, d, w = 8) => { const a = pointAt(l, d - w), b = pointAt(l, d), c = pointAt(l, d + w);
   const A = Math.hypot(b.x - c.x, b.z - c.z), B = Math.hypot(a.x - c.x, a.z - c.z), C = Math.hypot(a.x - b.x, a.z - b.z);
   const area2 = Math.abs((b.x - a.x) * (c.z - a.z) - (c.x - a.x) * (b.z - a.z)); return area2 < 1e-6 ? Infinity : A * B * C / (2 * area2); };

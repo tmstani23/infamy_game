@@ -1,4 +1,4 @@
-// The capital stable (Tim 2026-11-07, sim/frontier/stable.js buyCapital): the old rickshaw station in the city sells
+// The capital stable (2026-11-07, sim/frontier/stable.js buyCapital): the old rickshaw station in the city sells
 // horses, rickshaws and omnibuses for clan ryo to permit holders; what you buy waits on the island side of the gate,
 // counts toward your stables' room (stable.capital.room) and can be recalled and stored there.
 // Run: node game/tools/test_capital_stable.mjs

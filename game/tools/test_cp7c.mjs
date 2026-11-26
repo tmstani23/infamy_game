@@ -1,4 +1,4 @@
-// War checkpoint 7c-1 (Tim 2026-11-12): field clinic heal, watchtower sight, the war circle leash.
+// War checkpoint 7c-1 (2026-11-12): field clinic heal, watchtower sight, the war circle leash.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';

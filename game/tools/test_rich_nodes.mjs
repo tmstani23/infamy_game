@@ -1,4 +1,4 @@
-// Rich resource nodes (Tim 2026-11-06). Run: node game/tools/test_rich_nodes.mjs
+// Rich resource nodes (2026-11-06). Run: node game/tools/test_rich_nodes.mjs
 // Rich deposits yield stages.rich.yield x and regrow faster; every node kind has a "Rich ..." name; reach lines.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

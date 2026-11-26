@@ -1,4 +1,4 @@
-// Chase hits (Tim 2026-11-26): a melee swing started in reach at a target that runs on still lands (mounted hero after a fleeing deer, troops after runners).
+// Chase hits (2026-11-26): a melee swing started in reach at a target that runs on still lands (mounted hero after a fleeing deer, troops after runners).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
@@ -45,7 +45,7 @@ enemy.buildings.push({ id: 'stk', type: 'stockade', stage: 'built', cell: stocka
 const hall = enemy.buildings.find(b => b.type === 'town_hall');
 const cmd = c => { g.step([{ id: hero.id, type: 'frontier', ...c }]); return g.state.frontier.receipts.findLast(r => r.action === c.action); };
 
-// Frontier attack mode for the hero (Tim 2026-11-15): right-click an enemy, he chases it, then goes for the nearest war
+// Frontier attack mode for the hero (2026-11-15): right-click an enemy, he chases it, then goes for the nearest war
 // enemy in range and then an enemy structure; WASD only breaks the chase; Esc/Z (command attackmode off) or cancel ends it.
 Object.assign(hero, { x: enemy.x + 300, z: enemy.z, place: 'world' });
 { const r = cmd({ action: 'devStartWar', town: 'enemyTown', side: 'attack' }); assert.ok(r?.ok, r?.reason); }

@@ -1,4 +1,4 @@
-// Economy pass 2 (Tim 2026-11-05): goods sinks, idle half tax, market, start workers, governor fixes.
+// Economy pass 2 (2026-11-05): goods sinks, idle half tax, market, start workers, governor fixes.
 // Run from the repo root: node game/tools/test_frontier_pass2.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -50,7 +50,7 @@ function town(stock, pop = 8) {
   const g = s.stock.goods; econ(3); assert.ok(s.stock.goods < g, 'sells down toward the new keep');
 }
 
-// fix list 15 (Tim 2026-11-22): the market sells timber and stone too, slowly, above each one's keep (= the rail keep),
+// fix list 15 (2026-11-22): the market sells timber and stone too, slowly, above each one's keep (= the rail keep),
 // never reserved stock; the keep is what stays, war or not
 {
   const { s, send, econ, state } = town({ food: 500, timber: 600, stone: 600, goods: 0, ryo: 0 });

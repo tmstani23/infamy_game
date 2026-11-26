@@ -1,4 +1,4 @@
-// Minimap guide arrows (Tim 2026-11-20): edge arrow placement and direction.
+// Minimap guide arrows (2026-11-20): edge arrow placement and direction.
 import assert from 'node:assert/strict';
 import { edgeArrow } from '../src/minimap_icons.js';
 const size = 180, c = 90;

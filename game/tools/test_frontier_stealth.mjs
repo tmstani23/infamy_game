@@ -1,4 +1,4 @@
-// Frontier stealth and the Smoke Bomb rule (Tim 2026-11-09, built 2026-11-15; sim/stealth.js, game.js islandCover /
+// Frontier stealth and the Smoke Bomb rule (2026-11-09, built 2026-11-15; sim/stealth.js, game.js islandCover /
 // islandLit, hero_abilities.js, ninja_bot.js): day and night ranges on the island, cover, lights, riding reveals,
 // and the ninja hero veiled by his own smoke (also in a war circle) for smokeLinger s after leaving it.
 import assert from 'node:assert/strict';

@@ -1,4 +1,4 @@
-// MMO-style unit frames, top middle under the alerts (Tim 2026-10-19); each one can be locked, moved
+// MMO-style unit frames, top middle under the alerts (2026-10-19); each one can be locked, moved
 // and resized like the other HUD panels (src/hud_layout.js, ids uself / utarget): the hero's own frame (portrait, name, HP, what
 // he is doing) and, right of it, the current target's frame. The target is the unit you left-clicked,
 // else the hero's attack target, else the Tab target (the same pick as T). Border and bar colour say
@@ -31,7 +31,7 @@ export function frameTarget(state, heroId, selected, tabbed, seen = () => true, 
 export function relation(e, hero) {
   if (e.id === hero.id) return { tag: 'You', kind: 'you' };
   if(e.workerOwner===hero.owner)return {tag:'Your worker',kind:'crew'};
-  if (e.omnibusOwner) { const k = e.type === 'rickshaw' ? 'rickshaw' : 'omnibus'; return e.omnibusOwner === hero.owner ? { tag: `Your ${k}`, kind: 'crew' } : { tag: `Rival ${k}`, kind: 'enemy' }; }   // vehicles (Tim 2026-11-07)
+  if (e.omnibusOwner) { const k = e.type === 'rickshaw' ? 'rickshaw' : 'omnibus'; return e.omnibusOwner === hero.owner ? { tag: `Your ${k}`, kind: 'crew' } : { tag: `Rival ${k}`, kind: 'enemy' }; }   // vehicles (2026-11-07)
   if (e.owner === POLICE) return { tag: 'Police', kind: 'enemy' };
   if (e.owner === WILD) return { tag: 'Bandit', kind: 'neutral' };
   if (!e.owner) return { tag: 'Townsfolk', kind: 'neutral' };
@@ -89,7 +89,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
       hp: c.querySelector('.hp span'), status: c.querySelector('i'), id: null, model: null };
   }
   const self = frame('self', 'uself'), target = frame('target', 'utarget');
-  self.c.addEventListener('dblclick', e => { if (e.button === 0) view.snapBack?.(); });   // Tim 2026-10-30: camera back to the hero
+  self.c.addEventListener('dblclick', e => { if (e.button === 0) view.snapBack?.(); });   // 2026-10-30: camera back to the hero
   let remembered = null, rememberedAtLook = null, rememberedAtTab=null, cached=null;
   let inspected=null, inspectedSelection=null, inspectedTab=null;
   const targetMemory=createTargetMemory();
@@ -107,7 +107,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
   hover.name.after(hover.tag);
   let lastTarget = { id: null, t: 0 };
   target.c.addEventListener('click', () => {
-    // a double-click on one of your troops here selects all of its type nearby (Tim 2026-11-12)
+    // a double-click on one of your troops here selects all of its type nearby (2026-11-12)
     { const now = performance.now(), id = target.id; if (id && lastTarget.id === id && now - lastTarget.t < 400 && crewInput.selectTypeOf?.(id)) { lastTarget = { id: null, t: 0 }; return; } lastTarget = { id, t: now }; }
     const worker=workerTarget();if(worker){view.jumpTo?.(worker.x,worker.z);return;}
     const known = remembered && knownTarget();
@@ -186,7 +186,7 @@ export function createUnitFrames({ game, units, catalog, crewInput, heroId, view
     hover.c.hidden = !h || !id || targeted.includes(id);
     if (hover.c.hidden) return;
     fill(hover, game.state.entities[id], h);
-    { const e = game.state.entities[id];   // a free horse of yours (a caught wild one too, Tim 2026-11-26): say how to get on
+    { const e = game.state.entities[id];   // a free horse of yours (a caught wild one too, 2026-11-26): say how to get on
       if (e?.type === 'horse' && e.horseOwner === h.owner && !e.rider && !e.dead && !h.mounted) set(hover.status, 'textContent', 'Right-click to mount'); }
     const x = pointer.x + 18, y = pointer.y + 18;
     hover.c.style.left = `${Math.max(4, Math.min(x, innerWidth - hover.c.offsetWidth - 4))}px`;

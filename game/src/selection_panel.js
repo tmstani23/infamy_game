@@ -5,7 +5,7 @@ import { healthBar } from './render/health.js';
 import { portrait } from './portraits.js';
 import { prisonerOf } from './sim/police.js';
 
-// frontier town workers read as Worker, not Civilian (Tim 2026-11-08)
+// frontier town workers read as Worker, not Civilian (2026-11-08)
 export const entityName = (units, e, type = e.type) => e.worker ? 'Worker' : unitName(units, type);
 export const unitName = (units, type) => units.types[type]?.name || units.models?.[type]?.name || (type.charAt(0).toUpperCase() + type.slice(1)).replace(/_/g, ' ');
 
@@ -40,7 +40,7 @@ export function unitStatus(e, state) {
     if (e.anim === 'bow') return 'Praying';
     return e.anim === 'walk' || e.anim === 'run' ? 'Walking' : 'Idle';
   }
-  // a rickshaw or omnibus says what it is doing itself (Tim 2026-11-10: a staying omnibus read 'Patrolling')
+  // a rickshaw or omnibus says what it is doing itself (2026-11-10: a staying omnibus read 'Patrolling')
   if (e.type === 'omnibus' || e.type === 'rickshaw') return e.stored ? 'In the stable' : e.recall ? 'Going to the stable' : e.driver ? 'Driven by you' : e.vorder?.kind === 'stay' ? 'Staying' : e.vorder?.kind === 'move' ? 'Driving there' : e.vorder?.kind === 'follow' && (e.anim === 'run' || e.anim === 'trot') ? 'Following' : e.vorder?.kind === 'follow' ? 'Waiting to follow' : 'Parked';
   const task=state.deployment?.clans[e.owner]?.sectors[e.deployment?.group];
   if(!e.deployment?.duty?.manual){if(task?.recovery)return task.recovery.state;if(task?.operation?.units?.includes(e.id))return task.operation.kind.replaceAll('_',' ')+', '+task.operation.state;if(e.deployment?.duty?.status)return e.deployment.duty.status;}
@@ -70,7 +70,7 @@ export function unitWhere(e, state, district, info = {}) {
 const css = ([r, g, b]) => `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
 
 // skip(ids): hide the panel for this selection (a lone enemy or townsperson shows in the target frame instead)
-// workers(): town workers picked with a box (Tim 2026-11-08): [{ id, wid, status, ...unit-like }] when two or more are
+// workers(): town workers picked with a box (2026-11-08): [{ id, wid, status, ...unit-like }] when two or more are
 // selected; a card click asks pickWorker(wid) to select just that one (it then shows in the target frame)
 export function createSelectionPanel({ root, game, units, catalog, crewInput, where = () => '', skip = () => false, hideOwnedBy = () => null, onInspect = () => {}, workers = () => [], pickWorker = () => {} }) {
   let shown = '';
@@ -86,7 +86,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
     if (card) {crewInput.select([card.dataset.id]);onInspect(card.dataset.id);}
   });
 
-  // Fit (Tim 2026-11-16): every selected unit shows in the pane, its picture and health bar; the cards shrink step by
+  // Fit (2026-11-16): every selected unit shows in the pane, its picture and health bar; the cards shrink step by
   // step until they all fit (no scrolling, nothing cut off). Only when even the smallest tiles do not fit, one card per
   // unit type takes over (count and their health together).
   const LEVELS = [[], ['snug'], ['tight'], ['many'], ['many', 'tiny'], ['many', 'tiny', 'micro']], ALL = [...new Set(LEVELS.flat())];
@@ -103,7 +103,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       for (const g of groups) {
         const e = game.state.entities[g.ids[0]], c = document.createElement('div');
         c.className = 'card'; c.dataset.ids = g.ids.join(',');
-        // the count sits on the picture so it shows at every size (Tim 2026-11-25: a big army read as 7 units)
+        // the count sits on the picture so it shows at every size (2026-11-25: a big army read as 7 units)
         c.innerHTML = '<div class="pic"><em class="grp"></em><em class="cnt"></em></div><div class="info"><b></b><div class="hp"><div class="fill"></div></div><i></i><s></s></div>';
         c.querySelector('b').textContent = `${entityName(units, e, e.civ || e.type)} x${g.ids.length}`;
         c.querySelector('.cnt').textContent = g.ids.length;
@@ -128,7 +128,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
     const byId = picked.length ? Object.fromEntries(picked.map(w => [w.id, w])) : null;
     const unit = id => byId ? byId[id] : game.state.entities[id] || prisonerOf(game.state, id);
     const owner = hideOwnedBy();
-    // your own crew show in the crew panel, not here; your war troops (and other units that are not crew) show here only (Tim 2026-11-12)
+    // your own crew show in the crew panel, not here; your war troops (and other units that are not crew) show here only (2026-11-12)
     const crewOf = u => owner && (u.owner ?? u.omnibusOwner ?? u.horseOwner) === owner && !u.warTroop;
     let ids = byId ? picked.map(w => w.id) : crewInput.selected().filter(unit).filter(id => !crewOf(unit(id)));
     root.hidden = !ids.length || (!byId && skip(ids));
@@ -174,7 +174,7 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
       if (k.status.textContent !== st) k.status.textContent = st;
       const at = where(e);
       if (k.where.textContent !== at) k.where.textContent = at;
-      { const n = crewInput.groupOf?.(id) || ''; if (k.grp.textContent !== String(n)) k.grp.textContent = n; }   // control group number (Tim 2026-11-12)
+      { const n = crewInput.groupOf?.(id) || ''; if (k.grp.textContent !== String(n)) k.grp.textContent = n; }   // control group number (2026-11-12)
       k.c.classList.toggle('down', !!e.downed);
       k.c.classList.toggle('jailed', !!e.prisoner);
       k.c.title = e.prisoner ? `${unitName(units, e.type)}: ${st}` : `${((e.cannon || e.surveyor) && e.name) || entityName(units, e, e.civ || e.type)}: ${Math.ceil(e.hp)} / ${e.maxHp}, ${at}`;
@@ -183,11 +183,11 @@ export function createSelectionPanel({ root, game, units, catalog, crewInput, wh
   return { update };
 }
 
-// a ship says what it is doing (Tim 2026-11-23: a ship in a fight read Idle)
+// a ship says what it is doing (2026-11-23: a ship in a fight read Idle)
 function shipStatus(e, state) {
   const now = state.tick ?? 0, k = e.sorder?.kind, recent = (t, n) => t != null && now - t < n;
   if (e.board) return 'Boarding fight';
-  if (e.gat || e.fighting || recent(e.firedAt, 60)) return k === 'engage' && e.anim === 'walk' ? 'Closing to gun range' : 'Attacking';   // steady for the whole fight (Tim 2026-11-24)
+  if (e.gat || e.fighting || recent(e.firedAt, 60)) return k === 'engage' && e.anim === 'walk' ? 'Closing to gun range' : 'Attacking';   // steady for the whole fight (2026-11-24)
   if (recent(e.hitAt, 80)) return 'Under fire';
   if (e.mending) return 'Repairing';
   if (e.loadQueue?.length) return 'Loading';

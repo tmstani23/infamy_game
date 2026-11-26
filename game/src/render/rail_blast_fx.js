@@ -1,4 +1,4 @@
-// Train robbery: the rail charge and its blast (Tim 2026-11-20: like the shakedown dynamite but a longer fuse and a
+// Train robbery: the rail charge and its blast (2026-11-20: like the shakedown dynamite but a longer fuse and a
 // much bigger blast; the game's painted, muted look, not cartoony; cool and powerful). Purely visual.
 // Layers, each on its own timing: the charge (a big bundle strapped to the rail, a fuse cord that burns down with a
 // hissing spark, the shakedown ring), then the blast: a flash, a fireball of noise-lumped puffs that cool from white
@@ -37,11 +37,11 @@ uniform float uTime, uSeed, uAmp;
 varying vec3 vN, vS, vP; varying float vNoise;
 ${NOISE}
 // the surface: big slow lumps plus rounded billows bulging out, so the edge rolls like cauliflower, never a plain ball;
-// all smooth and low enough in frequency for the mesh (sharp creases came out polygony, Tim 2026-11-20)
+// all smooth and low enough in frequency for the mesh (sharp creases came out polygony, 2026-11-20)
 float bil(vec3 q){ float n = snoise(q) * .5 + .5; return n * n; }
 float disp(vec3 q){
   vec3 o = vec3(uSeed, uSeed * .7, -uTime * .6);
-  return snoise(q * 1.2 + o) * uAmp * .7 + bil(q * 2. + o * 1.3) * uAmp * .6;   // broad rolls only: fine bumps on every lump read as popcorn (Tim 2026-11-20)
+  return snoise(q * 1.2 + o) * uAmp * .7 + bil(q * 2. + o * 1.3) * uAmp * .6;   // broad rolls only: fine bumps on every lump read as popcorn (2026-11-20)
 }
 void main(){
   vec3 q = normalize(position);
@@ -87,7 +87,7 @@ void main(){
   col += vec3(.45, .17, .04) * uUnderGlow * (1. - up) * (1. - uHeat);
   float edge = smoothstep(0., .35, face);
   float a = smoothstep(uErode - .08, uErode + .08, detail * .5 + .62) * mix(.94, 1., edge) * uOpacity;
-  a *= mix(1., clamp(.1 + .34 * edge + .4 * detail, .04, .62), uThin);   // Tim 2026-11-20: more transparent smoke
+  a *= mix(1., clamp(.1 + .34 * edge + .4 * detail, .04, .62), uThin);   // 2026-11-20: more transparent smoke
   a *= smoothstep(0., .42, mix(vS.z, vN.z, .4) + detail * .1);   // a wide soft rim melts each lump into its neighbours   // a soft rim on the lumpy outline hides the mesh edge   // cooled smoke thins into a see-through, patchy veil
   if (a < .01) discard;
   gl_FragColor = vec4(col, a);
@@ -192,7 +192,7 @@ export function createRailBlastFx({ scene }) {
     m.position.set(x, y, z); m.scale.setScalar(.01); lift(m);
     puffs.push({ m, age: -(o.delay || 0), x, y, z, ...o });
   }
-  // o.scale: a smaller blast of the same kind (the shakedown dynamite, Tim 2026-11-20); o.shake false: no camera shake
+  // o.scale: a smaller blast of the same kind (the shakedown dynamite, 2026-11-20); o.shake false: no camera shake
   function blast(x, z, heading = 0, o = {}) {
     const S = o.scale ?? 1, N = n => Math.max(1, Math.round(n * S));
     const P = (dx, y, dz, q) => puff(x + dx * S, y * S, z + dz * S, { ...q, size: q.size * S, rise: q.rise * S, drift: [q.drift[0] * S, q.drift[1] * S] });
@@ -203,7 +203,7 @@ export function createRailBlastFx({ scene }) {
     pop.quaternion.copy(CAM_QUAT); pop.position.set(x, 2 * S, z);
     cards.push({ m: pop, age: 0, life: .35, fade: k => 1 - k, grow: 1.2 });
     // fireball: a dome of lumps, the middle ones biggest and hottest, cooling into smoke
-    for (let i = 0; i < 9; i++) {   // few, big, overlapping lumps: many small ones read as popcorn (Tim 2026-11-20)
+    for (let i = 0; i < 9; i++) {   // few, big, overlapping lumps: many small ones read as popcorn (2026-11-20)
       const a = (i / 9) * 6.283 + rand(-.3, .3), core = i < 3, r = core ? rand(0, .6) : rand(.8, 1.9);
       P(Math.cos(a) * r, core ? 1.2 + i * .9 : rand(.6, 1.4), Math.sin(a) * r, { delay: rand(0, .1), size: core ? rand(3.6, 4.6) : rand(2.8, 3.7), rise: core ? rand(4, 7) : rand(1.2, 2.6), drift: [Math.cos(a) * rand(1, 2.6), Math.sin(a) * rand(1, 2.6)], fire: core ? rand(.95, 1.1) : rand(.7, .95), life: rand(5, 7.5) });
     }
@@ -230,7 +230,7 @@ export function createRailBlastFx({ scene }) {
     const pieces = o.debris === false ? 0 : N(70);
     for (let i = 0; i < pieces; i++) {
       const kind = i < pieces * .37 ? 'wood' : i < pieces * .49 && S >= 1 ? 'iron' : 'stone';
-      const geo = kind === 'wood' ? new THREE.BoxGeometry(rand(.28, .7), rand(.06, .1), rand(.08, .15)) : kind === 'iron' ? new THREE.BoxGeometry(rand(.35, .8), .07, .07) : new THREE.DodecahedronGeometry(rand(.05, .12));   // splinters, bits of rail and stones (Tim 2026-11-20: smaller)
+      const geo = kind === 'wood' ? new THREE.BoxGeometry(rand(.28, .7), rand(.06, .1), rand(.08, .15)) : kind === 'iron' ? new THREE.BoxGeometry(rand(.35, .8), .07, .07) : new THREE.DodecahedronGeometry(rand(.05, .12));   // splinters, bits of rail and stones (2026-11-20: smaller)
       const m = lift(shaded(geo, pick(kind === 'wood' ? WOOD : kind === 'iron' ? IRON : STONE)));
       const a = rand(0, 6.283), v = rand(3, kind === 'stone' ? 13 : 9) * Math.sqrt(S), side = rand(-.5, .5);
       m.position.set(x + along.x * side, .3, z + along.z * side);
@@ -263,7 +263,7 @@ export function createRailBlastFx({ scene }) {
   function clearCrater(id) { const c = craters.get(id); if (c) { scene.remove(c.g); craters.delete(id); } }
 
   // ---- every frame --------------------------------------------------------------------------------
-  // the blast plays SPEED times faster than real time (Tim 2026-11-20: way faster); the fuse and the crater keep real time
+  // the blast plays SPEED times faster than real time (2026-11-20: way faster); the fuse and the crater keep real time
   const SPEED = 1.6;
   function update(dt0) {
     const dt = dt0 * SPEED;

@@ -19,7 +19,7 @@
   /* soft vignette, deeper at night */
   #vignette { position: fixed; inset: 0; pointer-events: none;
     background: radial-gradient(ellipse at center, transparent 55%, rgba(4,6,10,.45) 100%); transition: background 1s; }
-  /* F2 hides every HUD element, panels included (Tim 2026-11-16: clean screenshots) */
+  /* F2 hides every HUD element, panels included (2026-11-16: clean screenshots) */
   body.ui-hidden > :not(#view):not(#vignette), body.ui-hidden > :not(#view):not(#vignette) * { visibility: hidden !important; }
   body.night #vignette { background: radial-gradient(ellipse at center, transparent 45%, rgba(2,3,8,.7) 100%); }
   #hud { position: fixed; left: 16px; top: 14px; display: flex; gap: 12px; align-items: center;
@@ -34,7 +34,7 @@
   button:hover { background: #2c3139; }
   #prompt { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); padding: 6px 14px;
     background: rgba(10,12,16,.72); border: 1px solid rgba(233,194,122,.35); border-radius: 6px; color: #e9c27a; letter-spacing: .04em; }
-  /* the Use prompt (Tim 2026-11-20): a gold keycap for the key and a soft gold flash when an action comes up (2026-11-21: smaller
+  /* the Use prompt (2026-11-20): a gold keycap for the key and a soft gold flash when an action comes up (2026-11-21: smaller
      and quieter, no lasting glow) */
   #prompt.act { padding: 4px 12px 4px 6px; font-size: 13px; border-color: rgba(240,200,110,.6); color: #f3dfae; box-shadow: 0 0 8px rgba(233,194,122,.18); animation: promptFlash .6s ease-out 1; }
   #prompt .usekey { display: inline-block; min-width: 36px; margin-right: 8px; padding: 1px 7px 2px; text-align: center; font: bold 10px Georgia, serif; letter-spacing: .1em; text-transform: uppercase;
@@ -42,7 +42,7 @@
     box-shadow: inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 0 rgba(90,55,10,.5), 0 1px 0 #4a3210, 0 2px 4px rgba(0,0,0,.5); }
   @keyframes promptFlash { 0% { box-shadow: 0 0 0 0 rgba(255,214,120,.55), inset 0 0 8px rgba(255,214,120,.35); } 100% { box-shadow: 0 0 10px 4px rgba(255,214,120,0), inset 0 0 0 rgba(255,214,120,0); } }
   #money { color: #e9c27a; white-space: nowrap; display: inline-block; }
-  /* Tim 2026-11-06: windows opened at a shop, merchant or dialogue stack above the HUD panels (Goal card 12, town windows 33-34, Controls 30); tooltips (100) and the Character page (60) stay above */
+  /* 2026-11-06: windows opened at a shop, merchant or dialogue stack above the HUD panels (Goal card 12, town windows 33-34, Controls 30); tooltips (100) and the Character page (60) stay above */
   #hire, #clinic, #police, #contracts, #landoffice, #lttalk, #svtalk, #sitemenu, #stationmenu, #stablemenu { z-index: 36; }
   #hire, #clinic, #police, #contracts, #landoffice, #lttalk, #svtalk, #sitemenu, #stationmenu, #stablemenu { position: fixed; left: 48vw; top: 33vh; width: clamp(260px, 27vw, 480px); max-height: 60vh; overflow-y: auto; background: rgba(10,12,16,.82);
     border: 1px solid rgba(233,194,122,.35); border-radius: 8px; padding: 10px 12px; }
@@ -149,7 +149,7 @@
   #partyframes .mate.passive .name { color: #c9e4ff; }
   #partyframes .mate.jailed .name { color: #8fb4ff; }
   #partyframes .mate.jailed .pip { background: repeating-linear-gradient(90deg, #8fb4ff 0 3px, #1a2440 3px 6px); }
-  #selpanel { position: fixed; left: 14px; bottom: 150px; display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); align-content: start; align-items: start; gap: 5px; padding: 7px; width: 300px; max-height: 45vh; box-sizing: border-box; overflow: hidden;   /* Tim 2026-11-12: cards wrap into whatever size the layout gives it, never spill out or stretch */
+  #selpanel { position: fixed; left: 14px; bottom: 150px; display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); align-content: start; align-items: start; gap: 5px; padding: 7px; width: 300px; max-height: 45vh; box-sizing: border-box; overflow: hidden;   /* 2026-11-12: cards wrap into whatever size the layout gives it, never spill out or stretch */
     background: linear-gradient(#14171d, #0b0d11); border: 1px solid #5c4a2c; border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,.6); user-select: none; animation: rise .15s ease-out; }
   #selpanel .card { display: flex; min-width: 0; gap: 6px; align-items: center; padding: 3px; border-radius: 5px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); cursor: pointer; }
   #selpanel .card:hover { border-color: #ffd34d; }
@@ -249,7 +249,7 @@
   #townpanel { position: fixed; left: 14px; top: 96px; width: 350px; min-height: 560px; max-height: calc(100vh - 28px); overflow: auto; box-sizing: border-box; padding: 10px; z-index: 33;
     background: linear-gradient(#14171d, #0b0d11); border: 1px solid #5c4a2c; border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,.6); user-select: none; font: 12px/16px system-ui, sans-serif; color: #dcd6c8; }
   #townpanel[hidden] { display: none; }
-  /* build mode (Tim 2026-11-10): one small Build box top left, the other menus hide */
+  /* build mode (2026-11-10): one small Build box top left, the other menus hide */
   #buildmini { position: fixed; left: 14px; top: 96px; width: 352px; box-sizing: border-box; padding: 10px; z-index: 33; background: linear-gradient(#14171d, #0b0d11); border: 1px solid #5c4a2c; border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,.6); user-select: none; font: 12px/16px system-ui, sans-serif; color: #dcd6c8; }
   #buildmini[hidden] { display: none; }
   #buildmini button, #townpanel button.buildbig { font: 600 11px/14px system-ui, sans-serif; color: #f2d48a; background: #1b1e25; border: 1px solid rgba(233,194,122,.5); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
@@ -277,7 +277,7 @@
   #towninspect { position: fixed; top: 33vh; left: 48vw; max-width: min(330px, calc(100vw - 24px)); padding: 10px; background: #171b22f5; border: 1px solid #aa9266; color: #e4dac6; z-index: 34; font: 12px/18px system-ui; }
   #towninspect button { cursor: pointer; background: #302e26; color: #f0dfb9; border: 1px solid #776341; margin-top: 5px; }
   #towninspect button[data-close] { float: right; margin: 0 0 4px 10px; }
-  /* the build confirm box (Tim 2026-11-22): opens beside the cursor (frontier_build_ui.js placeReview, tail toward it), not a layout panel; a lacquered wooden placard */
+  /* the build confirm box (2026-11-22): opens beside the cursor (frontier_build_ui.js placeReview, tail toward it), not a layout panel; a lacquered wooden placard */
   #townbuildreview { position: fixed; left: 48vw; top: 33vh; width: 236px; max-width: calc(100vw - 16px); box-sizing: border-box; padding: 9px 11px 11px; background: radial-gradient(ellipse at 30% 0%, #3a2c22 0%, transparent 70%), linear-gradient(180deg, #2b211a, #1a1411); border: 2px solid #0e0b09; box-shadow: inset 0 0 0 1px #8a6a3e, inset 0 0 0 3px #1a1411, inset 0 0 0 4px #4a3826, inset 0 0 22px #0009, 0 10px 26px #000c; color: #eadfc6; z-index: 41; font: 14px/1.4 Georgia, 'Times New Roman', serif; font-variant-numeric: lining-nums tabular-nums; }
   #townbuildreview[hidden] { display: none; }
   #townbuildhint { white-space: pre-line; }
@@ -341,13 +341,13 @@
 #townpanel input.keepin::-webkit-inner-spin-button, #townpanel input.keepin::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } #townpanel input.keepin { -moz-appearance: textfield; appearance: textfield; width: 64px; font: 600 11px/14px system-ui, sans-serif; color: #f2d48a; background: #1b1e25; border: 1px solid rgba(233,194,122,.5); border-radius: 4px; padding: 2px 4px; text-align: right; }
   #townpanel button.on { background: #3a2f18; border-color: #e9c27a; } #townpanel button.no { color: #ff9a80; border-color: rgba(220,80,60,.6); }
   #townpanel .tabs { display: flex; gap: 4px; margin-bottom: 8px; }
-  /* Tim 2026-11-08: tabs read as tabs (underline), not as more buttons */
+  /* 2026-11-08: tabs read as tabs (underline), not as more buttons */
   #townpanel .pclose { position: absolute; top: 8px; right: 10px; z-index: 2; min-width: 28px; padding: 2px 8px; }
   #townpanel .ptabs { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 10px; padding-right: 36px; border-bottom: 1px solid #3a352c; }
   #townpanel .ptabs button { border: none; border-bottom: 2px solid transparent; border-radius: 0; margin-bottom: -1px; padding: 5px 12px; color: #a9a294; background: none; }
   #townpanel .ptabs button:hover { color: #e6dcc4; }
   #townpanel .ptabs button.on { color: #f2d48a; border-bottom-color: #e9c27a; background: none; }
-  /* Shipments tab (rail shipments S4, Tim 2026-11-09): Deployment-panel look */
+  /* Shipments tab (rail shipments S4, 2026-11-09): Deployment-panel look */
   #townpanel .ptabs button.dimtab { color: #6d675c; }
   #townpanel .ptabs .badge { display: inline-block; min-width: 14px; padding: 0 4px; border-radius: 8px; background: #c9583f; color: #fff; font-size: 10px; line-height: 14px; }
   #townpanel .row.plan { border-left: 3px solid #e9b95e; padding-left: 6px; background: #1b2028; border-radius: 3px; } #townpanel button.go { color: #d9f3e2; border-color: #6fae8b; background: #1d2e25; }
@@ -378,7 +378,7 @@
   #townpanel .shbar { display: inline-block; width: 70px; height: 7px; vertical-align: middle; background: #0b0d11; border: 1px solid #5a4a2c; border-radius: 4px; overflow: hidden; }
   #townpanel .shbar i { display: block; height: 100%; background: linear-gradient(#e9c27a, #a3834d); }
   #townpanel .red { color: #ef8a7a; }
-  /* Rail ledger inside the town card (Tim 2026-11-09) */
+  /* Rail ledger inside the town card (2026-11-09) */
   #townpanel .lghead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; } #townpanel .lghead b { letter-spacing: .1em; font-size: 12px; }
   #townpanel .tabs3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 4px; }
   #townpanel .tabs3 button { min-height: 34px; font-size: 12.5px; font-weight: 750; border-radius: 8px; background: linear-gradient(#252d34, #171e25); border: 1px solid #756445; color: #e7dfcc; }
@@ -388,7 +388,7 @@
   #townpanel .lgbar { height: 7px; background: #0b0d11; border: 1px solid #5a4a2c; border-radius: 4px; overflow: hidden; } #townpanel .lgbar i { display: block; height: 100%; background: linear-gradient(#e9c27a, #a3834d); }
   #townpanel .lgcard { padding: 6px 9px; border-left: 3px solid #e9b95e; background: #1b2028; border-radius: 4px; margin-top: 4px; } #townpanel .lgcard b { color: #f0d08e; }
   #townpanel .lgpages { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; } #townpanel .lgnote { color: #9a9078; font-size: 11px; padding: 3px; }
-  /* Rail ledger on the World map (rail shipments S5, Tim 2026-11-09): Deployment-panel look, pages instead of scrolling */
+  /* Rail ledger on the World map (rail shipments S5, 2026-11-09): Deployment-panel look, pages instead of scrolling */
   #railledger { position: fixed; z-index: 34; right: 14px; top: 14px; width: min(370px, calc(100vw - 28px)); box-sizing: border-box; padding: 12px 14px; background: rgba(10,12,16,.97); border: 1px solid #a3834d; border-radius: 10px; color: #e7dfce; box-shadow: 0 12px 40px #000a; font: 12.5px/1.35 system-ui, sans-serif; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
   #railledger[hidden] { display: none; }
   #gamemap #railledger h3::after { content: none; }
@@ -407,7 +407,7 @@
   #townpanel .hint, #townpanel .why { font-size: 11px; color: #b8b0a0; margin-top: 3px; } #townpanel .why { color: #ff9a80; }
   #townpanel .chat { background: #101318; border: 1px solid #23262d; border-radius: 6px; padding: 7px; margin: 8px 0; font-style: italic; color: #e0d8c4; }
   #townpanel .choices { display: flex; flex-direction: column; gap: 5px; }
-  /* Usage page (Tim 2026-11-05 redesign) */
+  /* Usage page (2026-11-05 redesign) */
   #townpanel .utabs { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0; }
   #townpanel button[data-act="usage-back"] { white-space: nowrap; flex: none; }
   #townpanel .utabs button { border-radius: 12px; padding: 3px 7px; color: #c9c1ae; border-color: #3a3a38; background: #181b21; }
@@ -512,7 +512,7 @@
   .channel.aiming { background: #260908; border-color: #9f3b32; }
   .channel.aiming i { background: linear-gradient(#ff8070, #b82a20); }
   .channel.aiming span { color: #ffaaa0; text-shadow: 0 0 5px #c8281c, 0 1px 2px #000; }
-  /* a hero taking a hall (Tim 2026-11-15): colour by the pick, seconds at the right end, sparks at the bar tip and off the hero */
+  /* a hero taking a hall (2026-11-15): colour by the pick, seconds at the right end, sparks at the bar tip and off the hero */
   .channel.torching span { text-shadow: 0 0 6px #ff3a10, 0 1px 2px #000; }
   .channel.hall b { position: absolute; right: -26px; top: -2px; font: 700 9px/1 system-ui, sans-serif; color: #f3e2c0; text-shadow: 0 1px 2px #000; }
   .channel.hall.burn span, .channel.hall.camp span { text-shadow: 0 0 6px #ff3a10, 0 1px 2px #000; }
@@ -564,10 +564,10 @@
   #lostcops.show { animation: lostcops 2.6s ease-out forwards; }
   @keyframes lostcops { 0% { opacity: 0; transform: translate(-50%, 8px); } 12% { opacity: 1; transform: translate(-50%, 0); } 75% { opacity: 1; } 100% { opacity: 0; } }
   /* big moments: rival boss knocked out / arrested, War Lantern destroyed (main.js callout) */
-  /* Goal card (quest log, Tim 2026-11-06): parchment banner, wax seals, filling bars */
-  /* goal guide flash (Tim 2026-11-06): the next button to press for the current goal step */
-  /* Tim 2026-11-06 18:14: much more obvious: thick gold ring, wide glow, a little pulse and brighter */
-  /* hovering your omnibus: what a right-click does (Tim 2026-11-06) */
+  /* Goal card (quest log, 2026-11-06): parchment banner, wax seals, filling bars */
+  /* goal guide flash (2026-11-06): the next button to press for the current goal step */
+  /* 2026-11-06 18:14: much more obvious: thick gold ring, wide glow, a little pulse and brighter */
+  /* hovering your omnibus: what a right-click does (2026-11-06) */
   #busicon { position: fixed; transform: translate(-50%, -100%); pointer-events: none; z-index: 30; padding: 3px 9px; border-radius: 4px;
     background: rgba(20, 16, 10, 0.85); color: #ffe7a8; font-size: 12px; border: 2px solid #ffd34d; animation: goalflash 2.6s ease-in-out infinite; }
   .goal-flash { animation: goalflash 2.6s ease-in-out infinite; outline: 1px solid rgba(255,211,77,.6); outline-offset: 1px; position: relative; z-index: 2; }
@@ -684,7 +684,7 @@
   #controls .row > span { display: none; }
   #controls kbd { flex: 1; min-width: 0; font: 600 11px/1.3 system-ui, sans-serif; color: #fff0d7; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15); border-radius: 4px; padding: 4px 7px; cursor: help; }
   #controls kbd:hover, #controls kbd:focus-visible { border-color: #e9c27a; background: rgba(233,194,122,.12); outline: none; }
-  /* rebinding (Tim 2026-11-12): an action with no key shows Unbound in red, here and on HUD key badges */
+  /* rebinding (2026-11-12): an action with no key shows Unbound in red, here and on HUD key badges */
   #controls kbd.unbound { color: #ffb4a8; border-color: #c0392b; background: rgba(192,57,43,.22); }
   .key.unbound, kbd.unbound, i.unbound { color: #ff6b5c !important; }
   #control-tooltip { position: fixed; z-index: 100; box-sizing: border-box; width: max-content; max-width: min(420px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; padding: 10px 12px; border: 1px solid rgba(233,194,122,.65); border-radius: 7px; background: rgba(10,12,16,.98); color: #e7dfce; box-shadow: 0 6px 24px rgba(0,0,0,.65); font: 13px/1.5 system-ui, sans-serif; pointer-events: none; }

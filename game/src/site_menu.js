@@ -1,8 +1,8 @@
-// The island gate menu (Tim 2026-11-06 20:40, option B): Space at the island gate in the city opens a small menu
+// The island gate menu (2026-11-06 20:40, option B): Space at the island gate in the city opens a small menu
 // when there is more than one way out; otherwise Space just walks through. Choices:
 //   1. Walk out: on foot (with a permit and settlers along, they come in the omnibus: expedition 'walk').
 //   2. Ride to a known site: permit and settlers; a second page of the sites you have found, nearest first, 5 a page.
-//   3. Take the train (Tim 2026-11-07, train plan step 4): once a line runs to the capital; a third page of the Since the city railway station (Tim 2026-11-07) trains board there, so this page only shows when one stands within reach of the gate.
+//   3. Take the train (2026-11-07, train plan step 4): once a line runs to the capital; a third page of the Since the city railway station (2026-11-07) trains board there, so this page only shows when one stands within reach of the gate.
 //      trains standing at the gate or due in (sim/frontier/rail.js service). Instant rickshaw trips are off.
 // Sends 'expedition', 'use' or frontier 'rail' board commands only; the rules are in sim/frontier/land_office.js.
 // Look: the shared menu shell (menu_shell.js, menu restyle 2026-11-10).

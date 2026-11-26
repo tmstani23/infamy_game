@@ -1,11 +1,11 @@
-// Built-in island roads as textured strips (Tim 2026-11-21): the corridors of world.json (plus world_paint.json
+// Built-in island roads as textured strips (2026-11-21): the corridors of world.json (plus world_paint.json
 // `paths`) were painted into the coarse ground weight maps and came out blotchy and broken, worst on snow. Now each
 // is a ribbon mesh along a smoothed copy of its line, textured from the road strip sheet (six road types, one per
 // kind of land, art/ground/island/road_strips.png, built by tools/build_road_strips.py). The road type follows the
 // biome field and fades between types where the land changes; the road fades out over water. Pure (Node-tested,
 // tools/test_road_strips.mjs); render/world_ground.js turns the arrays into meshes.
 //
-// Natural roads (Tim 2026-11-25): the corridors are short straight pieces meeting end to end, so drawn one strip each
+// Natural roads (2026-11-25): the corridors are short straight pieces meeting end to end, so drawn one strip each
 // they showed square seams at every join and hard right-angle T junctions. With `strips.network` set, roadLines joins
 // the pieces into whole roads (at a junction the straightest pair carries on through), gives long runs a gentle
 // wander that calms down near junctions and road ends, and lets each branch curve into the road it meets (a Y, not
@@ -30,7 +30,7 @@ export function roadLines(world, paths = [], cfg = null) {
   return byCfg.get(N);
 }
 
-// Roads onto their bridges and fords (Tim 2026-11-26): world.json places each crossing (world.fords, bridge or ford)
+// Roads onto their bridges and fords (2026-11-26): world.json places each crossing (world.fords, bridge or ford)
 // on its own, 20 to 120 units beside where its road's corridor crosses the river, so the road ran into the water
 // beside the bridge. Each road crossing a river is matched to the nearest free crossing on that river (within
 // network.crossReach), then the land round the crossing is warped: near it every road moves and turns as one piece so

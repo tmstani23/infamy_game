@@ -1,7 +1,7 @@
-// 8e-9 (mock G, Tim 2026-11-16): the armory's menu, at the war camp and in a defending town. One row for all troops
-// (Tim 2026-11-25, was four groups), weapons and armor cards with level pips, the next level's cost as chips and a
+// 8e-9 (mock G, 2026-11-16): the armory's menu, at the war camp and in a defending town. One row for all troops
+// (2026-11-25, was four groups), weapons and armor cards with level pips, the next level's cost as chips and a
 // Buy button; the one in the work shows its countdown. Reads war.armory.view (sim/frontier/war_armory.js).
-// armoryHtml({ game, war, owner, artUrl }) -> html; armorySig(game, war, owner) -> string; click: data-armup="<group>:<track>", data-armcancel="<queue index>" (Tim 2026-11-18)
+// armoryHtml({ game, war, owner, artUrl }) -> html; armorySig(game, war, owner) -> string; click: data-armup="<group>:<track>", data-armcancel="<queue index>" (2026-11-18)
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const cap1 = s => s[0].toUpperCase() + s.slice(1);
 const ART = { all: 'armory' };
@@ -36,7 +36,7 @@ export function armoryHtml({ game, war: w, owner, artUrl = () => '', chip = (r, 
   const pct = Math.round(v.step * 100);
   let h = `<div class="sec"><span>Troop upgrades, this war only</span><b title="Upgrades count for all your troops, those already out too. The hero and crew are never changed. They end with the war.">Hero and crew not affected</b></div>`;
   if (!v.has) h += '<div class="small" style="padding:6px 0;color:#ee8a7c">Needs a built armory.</div>';
-  // the queue (Tim 2026-11-18): waiting upgrades, paid, each can be cancelled for its full price back
+  // the queue (2026-11-18): waiting upgrades, paid, each can be cancelled for its full price back
   const queue = v.queue || [];
   if (queue.length) h += `<div class="aqueue"><span class="small">Queued (${queue.length + (v.work ? 1 : 0)} of ${v.queueMax}):</span>${queue.map(x => `<span class="aq">${esc(cap1(x.track))} ${x.level}<button data-armcancel="${x.index}" title="${esc('Cancel: its full price comes back to the war chest and stock. Later levels of the same upgrade in the queue are cancelled too.')}">Cancel</button></span>`).join('')}</div>`;
   for (const g of v.groups) {

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "Generated and visually accepted by Tim; mapping and integration pending",
+  "status": "Generated and visually accepted; mapping and integration pending",
   "instructions": "The source prompts are retained for reference. All 13 outputs are saved in assets/environment/island/ with the filenames below. Four rim files are 1536 × 1024 with true alpha; nine top_<biome>_b/c/d textures are 1254 × 1254 and fully opaque (alpha 255). Source prompts request 1024 × 1024 for the textures, but the saved outputs are 1254 × 1254; preserve this actual-size note until integration decides whether resizing is needed. These art pieces are accepted for later mapping review; no placement, importer, or code changes are implied.",
   "sharedRimPrompt": "Semi-realistic painted illustration, muted moody colours, soft overcast light from the upper left, 1870s Japan. Classic 2:1 isometric game view: camera looks down at about 27 degrees from the south-east; ground diagonals slope one down for two across. Same detailed painted materials, natural olive foliage and weathered stone as the supplied approved rim and game pine. Trees about 200 pixels wide at 1536 × 1024. A single modular low rim strip on genuine transparent alpha, no backdrop, no ground plane beyond the described narrow high-ground strip, no cast background shadow, text, border or frame. Keep lighting upper-left and tree/rock scale consistent. This supplies the missing opposite-bank orientation, not a taller cliff. Match the approved rim's length and low local height; clean ends for linking, no rounded island or endcaps.",
   "sharedTexturePrompt": "Semi-realistic painted terrain texture for the same 1870s Japanese island game, muted moody palette and fine natural material detail matching the supplied approved high-ground texture. STRICT ORTHOGRAPHIC TOP-DOWN, camera straight down at 90 degrees, NOT isometric: show only plan-view crowns and rock/ground surfaces, no tree trunks, side silhouettes, standing cliffs or horizon. 1024 × 1024 opaque PNG filling every pixel. Seamless/tileable: all opposite edges continue naturally, no border, vignette, edge fading, text or baked directional cast shadows. One continuous terrain texture, NOT a sheet or grid of several tiles. Match the reference's fine-feature scale, mean colour, brightness and contrast so the four variants can blend into a natural mosaic. Avoid obvious stripes, rows, a central focal feature and large unique repeated motifs.",
@@ -19,7 +19,7 @@
       "outputWidth": 1536,
       "outputHeight": 1024,
       "outputAlpha": "transparent",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "rim_forest_opposite_mirrored.png",
@@ -35,7 +35,7 @@
       "outputWidth": 1536,
       "outputHeight": 1024,
       "outputAlpha": "transparent",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "rim_snow_opposite.png",
@@ -51,7 +51,7 @@
       "outputWidth": 1536,
       "outputHeight": 1024,
       "outputAlpha": "transparent",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "rim_snow_opposite_mirrored.png",
@@ -67,7 +67,7 @@
       "outputWidth": 1536,
       "outputHeight": 1024,
       "outputAlpha": "transparent",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "top_forest_b.png",
@@ -82,7 +82,7 @@
       "outputWidth": 1254,
       "outputHeight": 1254,
       "outputAlpha": "opaque (255)",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "top_forest_c.png",
@@ -97,7 +97,7 @@
       "outputWidth": 1254,
       "outputHeight": 1254,
       "outputAlpha": "opaque (255)",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "top_forest_d.png",
@@ -112,7 +112,7 @@
       "outputWidth": 1254,
       "outputHeight": 1254,
       "outputAlpha": "opaque (255)",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "top_snow_b.png",
@@ -127,7 +127,7 @@
       "outputWidth": 1254,
       "outputHeight": 1254,
       "outputAlpha": "opaque (255)",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "top_snow_c.png",
@@ -142,7 +142,7 @@
       "outputWidth": 1254,
       "outputHeight": 1254,
       "outputAlpha": "opaque (255)",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "top_snow_d.png",
@@ -157,7 +157,7 @@
       "outputWidth": 1254,
       "outputHeight": 1254,
       "outputAlpha": "opaque (255)",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "top_dry_b.png",
@@ -172,7 +172,7 @@
       "outputWidth": 1254,
       "outputHeight": 1254,
       "outputAlpha": "opaque (255)",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "top_dry_c.png",
@@ -187,7 +187,7 @@
       "outputWidth": 1254,
       "outputHeight": 1254,
       "outputAlpha": "opaque (255)",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     },
     {
       "file": "top_dry_d.png",
@@ -202,7 +202,7 @@
       "outputWidth": 1254,
       "outputHeight": 1254,
       "outputAlpha": "opaque (255)",
-      "status": "saved; visually accepted by Tim; mapping/integration pending"
+      "status": "saved; visually accepted; mapping/integration pending"
     }
   ]
 }

@@ -1,4 +1,4 @@
-// Frontier merchant (Tim 2026-11-26): a stall keeper by each player town hall; sells plain gear and bandages at blacksmith
+// Frontier merchant (2026-11-26): a stall keeper by each player town hall; sells plain gear and bandages at blacksmith
 // prices, buys bag items at half the shop price (never under the blacksmith's), no War Lanterns, never heirlooms.
 import assert from 'node:assert/strict';
 import { createInventory } from '../src/sim/inventory.js';
@@ -40,7 +40,7 @@ v.bag[0] = 'heirloom_yakuza'; svc.command(h, { action: 'sell', index: 0 }); asse
 state.frontier.settlements.t1.owner = 'rival'; assert.equal(svc.merchantNear(h), null); state.frontier.settlements.t1.owner = 'player';
 state.frontier.settlements.t1.ruined = true; state.tick = 20; svc.merchants();
 assert.equal(state.entities[m.id], undefined); assert.equal(state.frontier.settlements.t1.merchantNpc, undefined);
-// never on a building: the spot moves to the nearest free cell (Tim 2026-11-26)
+// never on a building: the spot moves to the nearest free cell (2026-11-26)
 { const n = 11, c = 5, use = Array(n * n).fill('.'), s = { x: 0, z: 0, grid: { n, cell: 11, use: '', zone: '.'.repeat(n * n), ground: 'c'.repeat(n * n) }, projects: [] };
   s.grid.use = use.join(''); const [x0, z0] = merchantSpot(s); assert.deepEqual([x0, z0], [22, 11], 'the free cell nearest the spot');
   use[(c + 1) * n + c + 2] = 'B'; s.grid.use = use.join(''); const p1 = merchantSpot(s); assert.notDeepEqual(p1, [22, 11], 'moves off a building');

@@ -47,7 +47,7 @@ export function createZones({ state, data, world,resourceIndex }) {
     return out;
   }
 
-  // Road and gate cells linked to the town hall (Tim 2026-11-05: stray road bits must not count). A chain of
+  // Road and gate cells linked to the town hall (2026-11-05: stray road bits must not count). A chain of
   // road/gate cells (diagonals join) has to reach the hall's apron: within roadReserve + 1 cells of its centre.
   // Cached per grid layout string, so it is recomputed only when roads change.
   const linkedCache = new WeakMap();
@@ -107,7 +107,7 @@ export function createZones({ state, data, world,resourceIndex }) {
     if (k.cliffMargin && list.some(i => nearCliff(s, i, data))) return bad('too close to a cliff', list);
     if(coversResources(s,list,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',list);
     if (list.some(i => !inCore(s, i, data))) return bad('outside the town ring', list);
-    const free = list.filter(i => g.use[i] === '.' && g.zone[i] === '.' && !hallRoadCell(s, i) && !s.railCells?.[i]);   // never on railway track (Tim 2026-11-07)
+    const free = list.filter(i => g.use[i] === '.' && g.zone[i] === '.' && !hallRoadCell(s, i) && !s.railCells?.[i]);   // never on railway track (2026-11-07)
     if (!free.length && list.some(i => s.railCells?.[i])) return bad('railway track', list);
     if (!free.length && list.some(i => hallRoadCell(s, i))) return bad('reserved for town hall road', list);
     if (!free.length) return bad('occupied', list);
@@ -226,7 +226,7 @@ export function createZones({ state, data, world,resourceIndex }) {
         if (st >= max) { delete s.zoneGrow[i]; continue; }
         if (!roadNear(s, i, needs.roadReach)) { z.noRoad++; continue; }
         if (z.abandoned || z.health < D.healthyAt) continue;
-        if (frozen(s)) continue;   // 7c: nothing grows (or grows back) while a war is on the town (Tim 2026-11-12)
+        if (frozen(s)) continue;   // 7c: nothing grows (or grows back) while a war is on the town (2026-11-12)
         // B5: housing grows to stage 2+ only while its goods are paid (short goods never lower a level)
         if (k.housing && st >= 1 && (data.upkeep?.goodsByStage?.[st] || 0) > 0 && (s.goodsShort || !(s.stock.goods > 0))) { wait(s, 'goods for housing'); continue; }
         const t = (s.zoneGrow[i] || 0) + 1;
@@ -244,7 +244,7 @@ export function createZones({ state, data, world,resourceIndex }) {
         for (const [r, per] of Object.entries(k.output)) made[r] = per * levels * live * tf;
         const total = Object.values(made).reduce((a, b) => a + b, 0);
         let scale = 1;
-        // a full store makes no more (Tim 2026-11-05 governor soak: workshops burned timber/stone into a full goods store)
+        // a full store makes no more (2026-11-05 governor soak: workshops burned timber/stone into a full goods store)
         if (k.inputs) for (const [r, v] of Object.entries(made)) if (v > 0) scale = Math.min(scale, Math.max(0, storageCap(s, data, r) - (s.stock[r] || 0)) / v);
         const has = r => Math.max(0, s.stock[r] - (s.gov?.inputKeep?.[r] || 0) - upkeepKeep(s, data, r));   // what the governor saves for a camp stays, and a few ticks of upkeep
         for (const [r, per] of Object.entries(k.inputs || {})) { const need = per * total; if (need > 0) scale = Math.min(scale, has(r) / need); }

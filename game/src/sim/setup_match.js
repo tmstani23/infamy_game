@@ -20,7 +20,7 @@ export function setupMatch(game, { clan, difficulty, mode, home, bots, spawns = 
     if (identity) b.hideout = identity === selected.id ? 'player' : identity === 'yakuza' ? bots.yakuza.id : bots.clan.id;
   }
   const heroId = startClan(game, { id: 'player', name: `${selected.name} clan`, kind: selected.kind,
-    model: selected.model, color: selected.color,   // every clan starts right outside its HQ door (Tim 2026-10-26)
+    model: selected.model, color: selected.color,   // every clan starts right outside its HQ door (2026-10-26)
     ryo: test.playerRyo });
   const startBiz = test.playerOwns && Object.values(game.state.businesses).find(b => b.kind === test.playerOwns);
   if (startBiz) game.clans.setOwner(startBiz.id, 'player');
@@ -33,9 +33,9 @@ export function setupMatch(game, { clan, difficulty, mode, home, bots, spawns = 
       rules: (choice.kind === 'ninja' ? bots.shinobiLevels : bots.levels)[options.difficulty], seed: 4242 + rivals.length * 977 });
   }
   game.state.match = { ...options };
-  // E6 (Tim 2026-11-05): bot site picks vary per game; the screen passes a random seed, tests a fixed one
+  // E6 (2026-11-05): bot site picks vary per game; the screen passes a random seed, tests a fixed one
   if (modeRules(game.state).founding) game.state.campaignSeed = Number.isFinite(seed) ? Math.floor(seed) : 1;
-  // Z7 (Tim 2026-11-20): a new game from the start screen passes home 'pick': no castle yet, the player chooses his home
+  // Z7 (2026-11-20): a new game from the start screen passes home 'pick': no castle yet, the player chooses his home
   // with the old surveyor after buying the founding permit (sim/frontier/land_office.js chooseHome). Tests and dev
   // saves may pass a zone (or 'random', rolled with the campaign seed); the default is East Plains.
   // The rivals roll their homes from the castle sites left (sim/frontier/rival_campaign.js)

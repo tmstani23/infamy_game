@@ -17,7 +17,7 @@ export function createClans(state, units, opts = {}) {
 
   // clan colours (banners, badge): the first clan teal, then red, purple, amber... (picked at the start later)
   const COLORS = ['#24978c', '#b02424', '#7a3fb0', '#c08a1e', '#2f5fb0'];
-  // kind: 'yakuza' (businesses) or 'ninja' (the Shinobi clan: contracts and Renown, no businesses; Tim 2026-10-20)
+  // kind: 'yakuza' (businesses) or 'ninja' (the Shinobi clan: contracts and Renown, no businesses; 2026-10-20)
   function addClan(id, { name = id, bot = false, ryo = rules.startRyo, aggression = rules.botAggression ?? 0.5, color = COLORS[Object.keys(state.clans).length % COLORS.length], kind = 'yakuza', faction = kind === 'ninja' ? 'shinobi' : 'yakuza' } = {}) {
     // queue: hires paid for and waiting, first one counting down; notice: last hire message;
     // aggression (bots): share of downed enemies they choose to finish off, 0 to 1
@@ -44,8 +44,8 @@ export function createClans(state, units, opts = {}) {
   // ...plus the ones in hospital or in jail (they still count for the cap and the hire price)
   const crewCount = id => crewOf(id).length + (state.clans[id]?.clinic.length || 0) + (state.clans[id]?.jail?.length || 0) + (state.clans[id]?.respawning?.length || 0);
 
-  // Hero + baseCap crew, +capPerDawn for every dawn of the season so far (Tim 2026-10-28), plus slots for every business the clan holds
-  // (Shinobi: for Renown). Phase 6 (Tim 2026-10-29): no clan passes maxCrew (maxBonusSlots, unset, would limit the slots).
+  // Hero + baseCap crew, +capPerDawn for every dawn of the season so far (2026-10-28), plus slots for every business the clan holds
+  // (Shinobi: for Renown). Phase 6 (2026-10-29): no clan passes maxCrew (maxBonusSlots, unset, would limit the slots).
   function crewCap(id) {
     const base = rules.baseCap + Math.max(0, (state.season?.day || 1) - 1) * (rules.capPerDawn || 0);
     // the Shinobi clan holds no businesses: its crew grows with Renown (renownPerCrew a head)
@@ -70,7 +70,7 @@ export function createClans(state, units, opts = {}) {
   function setOwner(businessId, clanId) {
     const b = state.businesses[businessId];
     if (!b) return;
-    // who it was taken from and when: the lieutenant's War Mode only raids to win such a business back (Tim 2026-11-19)
+    // who it was taken from and when: the lieutenant's War Mode only raids to win such a business back (2026-11-19)
     if (b.lost && b.lost.clan === clanId) delete b.lost;   // won back
     else if (b.owner && clanId && b.owner !== clanId && !b.hideout) b.lost = { clan: b.owner, tick: state.tick ?? 0 };
     b.owner = clanId;
@@ -87,11 +87,11 @@ export function createClans(state, units, opts = {}) {
     if (!clan || (hero.type !== 'hero' && !hero.captain)) return null;   // C2: the city captain hires while the boss is away
     // in a teahouse (the Shinobi clan: the village dojo), or (slower) in your own hideout
     const home = b?.kind === 'hideout' && b.owner === clan.id;
-    // Settlers are hired at the Land Office door (E1, Tim 2026-11-05), and only there
+    // Settlers are hired at the Land Office door (E1, 2026-11-05), and only there
     const office = b?.kind === 'land_office';
     if (office) {
       if (!types[type]?.settler) return say(clan, 'The Land Office hires settlers only');
-      if (!clan.bot && !clan.permit) return say(clan, 'Buy a founding permit first: settlers sign up for a town');   // Tim 2026-11-10
+      if (!clan.bot && !clan.permit) return say(clan, 'Buy a founding permit first: settlers sign up for a town');   // 2026-11-10
       if (hero.place !== 'street' || !b.ring || Math.hypot(hero.x - b.ring[0], hero.z - b.ring[1]) > (rules.buyReach ?? 2.5) + 0.5) return say(clan, 'Hire settlers at the Land Office door');
     } else if (types[type]?.settler) return say(clan, 'Hire settlers at the Land Office');
     if (!office && (!b || (b.kind !== hallOf(clan.id) && !home) || hero.place !== b.room)) return say(clan, clan.kind === 'ninja' ? 'Hire ninja inside the village dojo or your longhouse' : 'Hire crew inside a teahouse or your hideout');
@@ -101,7 +101,7 @@ export function createClans(state, units, opts = {}) {
     const settler = !!types[type]?.settler, queued = n => clan.queue.filter(q => !!types[q.unit]?.settler === n).length;
     if (settler) {
       if (queued(true)+count > (rules.settlers?.maxQueue ?? 10)) return say(clan, 'Too many settlers waiting');
-      // Tim 2026-11-06: no more than a town takes (with you + waiting at the HQ + signing up)
+      // 2026-11-06: no more than a town takes (with you + waiting at the HQ + signing up)
       const cap = rules.settlers?.max ?? Infinity, have = settlersOf(clan.id).length + (clan.settlersWaiting || 0) + queued(true);
       if (have + count > cap) return say(clan, have >= cap ? `You have all ${cap} settlers a new town takes` : `Only ${cap - have} more settler${cap - have === 1 ? '' : 's'} needed`);
     }
@@ -110,7 +110,7 @@ export function createClans(state, units, opts = {}) {
     const prices=Array.from({length:count},(_,i)=>hirePrice(clan.id,type,i)),total=prices.reduce((n,v)=>n+v,0);
     if (clan.ryo < total) return say(clan, `Not enough ryo (${total} needed)`);
     debitRyo(state, clan, total, 'Crew hired', { target: type });
-    // a player's settlers sign up at once and wait at the HQ (Tim 2026-11-20: the goal card waited on each one)
+    // a player's settlers sign up at once and wait at the HQ (2026-11-20: the goal card waited on each one)
     if (settler && !clan.bot && modeRules(state).founding) { clan.settlersWaiting = (clan.settlersWaiting || 0) + count;
       return say(clan, `${count === 1 ? 'A settler waits' : `${count} settlers wait`} safely at your HQ (${total} ryo)`); }
     const duration=types[type].hireSeconds * (home && !office ? rules.hideout?.hireTimeFactor ?? 1 : 1);
@@ -118,7 +118,7 @@ export function createClans(state, units, opts = {}) {
     return say(clan, count===1?`Hired a ${types[type].name || type} for ${total} ryo`:`Queued ${count} ${types[type].name || type} for ${total} ryo`);
   }
 
-  // Cancel one queued hire (index in clan.queue; 0 is the one in training) for the ryo paid for it (Tim 2026-11-08)
+  // Cancel one queued hire (index in clan.queue; 0 is the one in training) for the ryo paid for it (2026-11-08)
   function cancelHire(hero, index) {
     const clan = state.clans[hero?.owner];
     if (!clan || clan.bot || (hero.type !== 'hero' && !hero.captain)) return null;
@@ -129,12 +129,12 @@ export function createClans(state, units, opts = {}) {
   }
 
   // Dismiss crew from the clan's own hideout for a small refund. Any crewman, from any zone and in any state
-  // (hurt, downed, jailed), and clinic patients too (patient = their index in clan.clinic) (Tim 2026-11-08:
+  // (hurt, downed, jailed), and clinic patients too (patient = their index in clan.clinic) (2026-11-08:
   // no running over to fetch them first). unitId 'all' dismisses every crewman and patient at once.
-  // prisoner: index in clan.jail (Tim 2026-11-10: jailed crew can be dismissed too, same refund, frees the slot)
+  // prisoner: index in clan.jail (2026-11-10: jailed crew can be dismissed too, same refund, frees the slot)
   function dismiss(hero, unitId, businessId, patient = null, prisoner = null) {
     const clan = state.clans[hero?.owner], b = state.businesses[businessId];
-    // the city captain lets a basic crewman go to make room for a better hire (sim/lieutenant.js, Tim 2026-11-10), rivals too
+    // the city captain lets a basic crewman go to make room for a better hire (sim/lieutenant.js, 2026-11-10), rivals too
     if (!clan || (clan.bot && !hero.captain) || !canInteract(hero)) return null;
     if (!b || b.kind !== 'hideout' || b.owner !== clan.id || !b.room || hero.place !== b.room)
       return say(clan, 'Dismiss crew inside your own hideout');
@@ -183,23 +183,23 @@ export function createClans(state, units, opts = {}) {
     const clan = state.clans[e.owner], t = types[e.type];
     if (!clan || !t) return false;
     // sector and HQ crew are not carried to the clinic: they come round at their own HQ after
-    // sectorRespawnSeconds and run back to their sector; hero-group crew still go to the clinic (Tim 2026-10-27)
+    // sectorRespawnSeconds and run back to their sector; hero-group crew still go to the clinic (2026-10-27)
     const saved = storedDeployment(e);
-    if (opts.islandCarry?.(e, saved)) return true;   // on the island with a town: comes round at its hall (Tim 2026-11-06)
+    if (opts.islandCarry?.(e, saved)) return true;   // on the island with a town: comes round at its hall (2026-11-06)
     if (state.deployment?.restrictionsEnabled && saved && saved.savedGroup !== 'hero' && hideoutOf(clan.id)) {
       (clan.respawning ||= []).push({ unit: e.type, model: e.model, deployment: saved, left: (rules.sectorRespawnSeconds ?? 30) * (opts.respawnFactor?.(e.owner) ?? 1) });
       say(clan, `Your ${e.type} will come round at your HQ in ${rules.sectorRespawnSeconds ?? 30} s`);
       return true;
     }
     // every clan's downed crew go to the clinic, bots too, and wait there until their boss comes
-    // and pays to revive them (Tim 2026-10-19)
+    // and pays to revive them (2026-10-19)
     clan.clinic.push({ unit: e.type, model: e.model, deployment: storedDeployment(e), kind: 'recover', left: t.recoverSeconds || 30,
       cost: Math.round((t.price || 0) * (rules.recoverCostShare ?? 0.25) * scale(clan.id)), hp: 0 });
     say(clan, `Your ${e.type} was carried to the clinic`);
     return true;
   }
   // a hurt crew member at the clinic door checks in; false when the clan cannot pay
-  // seconds before a unit may use the clinic: none until it has gone clinicUnhitSeconds without a hit (Tim 2026-10-20)
+  // seconds before a unit may use the clinic: none until it has gone clinicUnhitSeconds without a hit (2026-10-20)
   function hitWait(e) {
     return Math.max(0, (rules.clinicUnhitSeconds ?? 5) - (state.tick - (e?.hitAt ?? -Infinity)) / 20);
   }
@@ -257,7 +257,7 @@ export function createClans(state, units, opts = {}) {
   // Release a clinic patient without reviving them or taking payment, freeing the crew slot.
   function releasePatient(hero, patientIndex) {
     const clan = state.clans[hero?.owner];
-    // the clinic's actor can be a selected crewman at the door, not only the hero (Tim 2026-11-08: Confirm release did nothing)
+    // the clinic's actor can be a selected crewman at the door, not only the hero (2026-11-08: Confirm release did nothing)
     if (!clan || clan.bot || !canInteract(hero)) return null;
     if (!Number.isInteger(patientIndex) || patientIndex < 0 || patientIndex >= clan.clinic.length) return null;
     const [patient] = clan.clinic.splice(patientIndex, 1);
@@ -278,7 +278,7 @@ export function createClans(state, units, opts = {}) {
         say(clan, `Your ${r.unit} came round at your HQ`);
       }
       for (const c of [...clan.clinic]) {
-        // downed crew never walk out on their own: the boss revives them at the clinic menu (Tim 2026-10-19)
+        // downed crew never walk out on their own: the boss revives them at the clinic menu (2026-10-19)
         if (c.kind === 'recover') { c.left = Math.max(0, c.left - dt); continue; }
         if ((c.left = Math.max(0, c.left - dt)) > 0) continue;
         if (clan.ryo < c.cost) { if (!c.broke) { c.broke = true; say(clan, `Your ${c.unit} is ready: ${c.cost} ryo to leave the clinic`); } continue; }
@@ -301,7 +301,7 @@ export function createClans(state, units, opts = {}) {
       const h = clan.queue[0];
       if (!h || (h.left -= dt) > 1e-9) continue;
       clan.queue.shift();
-      // settlers (Tim 2026-11-06) wait safely inside the HQ as a count, not as units in the street; they appear
+      // settlers (2026-11-06) wait safely inside the HQ as a count, not as units in the street; they appear
       // beside the hero when he leaves the city through the island gate (game.js expedition)
       if (types[h.unit]?.settler && modeRules(state).founding) { clan.settlersWaiting = (clan.settlersWaiting || 0) + 1; say(clan, 'A settler is waiting safely at your HQ'); continue; }
       // Player recruits (settlers too: they wait outside the Land Office, E1) hold at the hiring site until explicitly ordered to Follow.

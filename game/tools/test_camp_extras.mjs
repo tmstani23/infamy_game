@@ -1,4 +1,4 @@
-// Move extras (Tim 2026-11-22): the camp card button hands the workers past a spot's max back to the governor.
+// Move extras (2026-11-22): the camp card button hands the workers past a spot's max back to the governor.
 // Run: node game/tools/test_camp_extras.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -38,12 +38,12 @@ assert.ok(on() <= max, `at most the max (${max}) left on the spot, got ${on()}`)
 assert.ok(s.workers.filter(w => w.spot === food.id && w.by === 'p').length >= on() - 0, 'the ones left are still the player\'s');
 assert.equal(s.workers.filter(w => w.by === 'g').length, r.moved, 'the moved ones belong to the governor');
 assert.ok(!W.campExtras(s, 'fc').ok, 'nothing more to move');
-// the press is confirmed by one line that accounts for every worker moved (Tim 2026-11-22: "no confirmation that anything changed")
+// the press is confirmed by one line that accounts for every worker moved (2026-11-22: "no confirmation that anything changed")
 { const said = news.filter(n => n.kind === 'campMoved');
   assert.equal(said.length, 1, 'one confirmation line'); assert.equal(said[0].moved, r.moved); assert.equal(said[0].building, 'fc');
   assert.equal(said[0].placed + said[0].waiting + said[0].loaded + said[0].idle, r.moved, 'every moved worker is in the line');
   assert.match(said[0].text, new RegExp(`^T food camp: ${r.moved} workers moved off\\. `)); }
-// one max everywhere (Tim 2026-11-22): the box, the camp card and the governor all use the spot's fixed max, however
+// one max everywhere (2026-11-22): the box, the camp card and the governor all use the spot's fixed max, however
 // long the walk, so the governor never refills what Move extras took off
 { const { overwork } = await import('../src/sim/resource_spots.js');
   assert.equal(overwork(food, null, rules.stages, max, 0.35, 500).best, max, 'a long trip does not shrink the max');
@@ -65,7 +65,7 @@ assert.equal(s.tiredCamps, undefined, 'no longer tired');
 assert.ok(!W.campExtras(s, 'nope').ok, 'unknown camp rejected');
 console.log('test_camp_extras: ok', JSON.stringify({ max, moved: r.moved, left: on() }));
 
-// the Workers view lists them (Tim 2026-11-22): a box over the cards, one card row fewer, Move extras / Go to per camp
+// the Workers view lists them (2026-11-22): a box over the cards, one card row fewer, Move extras / Go to per camp
 { const { workerPanelHTML } = await import('../src/worker_panel.js');
   const { tiredCamps } = await import('../src/tired_camps.js');
   s.tiredCamps = [{ id: 'fc', type: 'food_camp', extra: 14, n: 20, max: 6 }];

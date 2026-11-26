@@ -1,4 +1,4 @@
-// Campfires (world variety P1, Tim 2026-11-25, plan in project files war_build/world_variety/plan.md part F). Island only.
+// Campfires (world variety P1, 2026-11-25, plan in project files war_build/world_variety/plan.md part F). Island only.
 // Make camp ({ id: <hero id>, type: 'campfire', units?: [ids] }, key N): the hero lights a fire a step ahead of him and
 // sits down; his selected crew (else the crew following him) walk to seats round it and sit. Everyone seated heals
 // rules.campfire.healPerSecond of their max health a second (sim/stats.js regeneration). Refused inside a war circle,
@@ -35,7 +35,7 @@ export function createCampfires({ state, rules, nav = () => null, inWarCircle = 
     if ([e, ...group].some(u => fought(u, calm))) return say(e.owner, 'Not while there is fighting');
     return group;
   }
-  // Shift+N starts "Preparing fire" (Tim 2026-11-26: a short cast with a cast bar): castSeconds standing still; moving,
+  // Shift+N starts "Preparing fire" (2026-11-26: a short cast with a cast bar): castSeconds standing still; moving,
   // a hit, going down or Shift+N again stops it. e.campCast = { start, until, x, z (where he stands), units } for the bar
   function cast(e, c) {
     if (!ready(e, c)) return;
@@ -51,7 +51,7 @@ export function createCampfires({ state, rules, nav = () => null, inWarCircle = 
   function make(e, c) {
     const r = R(), group = ready(e, c);
     if (!group) return;
-    // one camp per clan (Tim 2026-11-26: no spamming fires all over): the old one goes out and is cleared first
+    // one camp per clan (2026-11-26: no spamming fires all over): the old one goes out and is cleared first
     for (const old of Object.values(fires())) if (old.owner === e.owner) { end(old); delete fires()[old.id]; }
     if (e.mounted) dismount(e);
     for (const u of group) if (u.mounted) dismount(u);
@@ -93,7 +93,7 @@ export function createCampfires({ state, rules, nav = () => null, inWarCircle = 
     if (why) say(f.owner, why, good);
   }
 
-  // right-click your own fire, lit or burning down (Tim 2026-11-26): the hero walks back to his seat, sits, and the fire
+  // right-click your own fire, lit or burning down (2026-11-26): the hero walks back to his seat, sits, and the fire
   // keeps going; the crew who sat there come back to their seats. e.campBack = fire id while he walks (WASD ends it)
   function back(e, fireId) {
     const f = fires()[fireId];

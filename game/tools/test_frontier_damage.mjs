@@ -1,4 +1,4 @@
-// Frontier effect (Tim 2026-11-24): every hero hits frontierDamage times harder on the island (place world); city unchanged; crew unchanged.
+// Frontier effect (2026-11-24): every hero hits frontierDamage times harder on the island (place world); city unchanged; crew unchanged.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
@@ -19,7 +19,7 @@ for (const [h, name] of [[spawn('hero', 'ronin', 'player'), 'player hero'], [spa
 }
 const t = spawn('thug', units.types.thug.sprite, 'player'), td = g.stats.damage(t);
 t.place = 'world'; assert.equal(g.stats.damage(t), td, 'crew unchanged on the island');
-// rival bots wear what they win (Tim 2026-11-24); the player's gear still goes to the bag
+// rival bots wear what they win (2026-11-24); the player's gear still goes to the bag
 {
   const I = g.itemServices, rv = g.state.clans.rival.inventory, pv = g.state.clans.player.inventory;
   I.grant('rival', 'honed_weapon'); assert.equal(rv.equipment.weapon, 'honed_weapon', 'bot wears a shop weapon into an empty slot');

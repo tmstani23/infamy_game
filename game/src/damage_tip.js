@@ -1,4 +1,4 @@
-// Damage taken hover (Tim 2026-11-25): hover the health bar of a ship, building, wall or gate card and a small panel
+// Damage taken hover (2026-11-25): hover the health bar of a ship, building, wall or gate card and a small panel
 // under the card shows how much of each weapon's damage it takes, read live from the war tables
 // (war.ships.hullDamage for hulls, war.structures.damage and war.structures.stone for buildings), so it can never drift.
 // A bar opts in with data-dmg="ship" | "wood" | "stone". Presentation only.

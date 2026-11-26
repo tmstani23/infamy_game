@@ -1,6 +1,6 @@
 import { modeRules } from '../modes/index.js';
 import { siteTraits } from './founding.js';
-// The Land Office and the expedition out of the city (frontier plan E1, Tim 2026-11-05).
+// The Land Office and the expedition out of the city (frontier plan E1, 2026-11-05).
 // Campaign only. Pure rules, no DOM: the screen opens the menus and sends commands.
 //  - { id, type: 'landOffice', action: 'permit' } at the Land Office door (the telegraph office) buys a
 //    founding permit. Players need Renown, crew and businesses held (frontier.json founding.permit);
@@ -32,7 +32,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   function permitStatus(id) {
     const clan = state.clans?.[id];
     if (!clan) return { ok: false, reason: 'no clan', rows: [], ryo: P.ryo || 0 };
-    // Shinobi hold no businesses: they pay ryo instead (Tim 2026-11-06, frontier.json permit.shinobi)
+    // Shinobi hold no businesses: they pay ryo instead (2026-11-06, frontier.json permit.shinobi)
     const Q = clan.kind === 'ninja' && !clan.bot && P.shinobi ? { ...P, ...P.shinobi } : P;
     if (!on()) return { ok: false, reason: 'The Land Office deals in campaign games only', rows: [], ryo: P.ryo || 0 };
     const rows = clan.bot ? [] : [
@@ -41,7 +41,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
       { label: 'Businesses held', have: businessesHeld(id), need: Q.businesses || 0 },
       { label: 'Ryo', have: Math.floor(clan.ryo || 0), need: Q.ryo || 0 },
     ].filter(r => r.need > 0 || r.label === 'Renown' || r.label === 'Crew').map(r => ({ ...r, ok: r.have >= r.need }));
-    // Tim 2026-11-06: a 2nd or 3rd permit also needs one of your towns grown to a tier (frontier.json permit.townTier)
+    // 2026-11-06: a 2nd or 3rd permit also needs one of your towns grown to a tier (frontier.json permit.townTier)
     const wantTier = P.townTier?.[townsOf(id)] || 0;
     if (!clan.bot && wantTier > 1) {
       const best = Math.max(0, ...Object.values(fr()?.settlements || {}).filter(s => s.owner === id && s.founded).map(s => s.tier || 1));
@@ -65,20 +65,20 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     if (st.ryo) { clan.ryo -= st.ryo; (state.ryoLosses ||= []).push({ clan: clan.id, amount: st.ryo, reason: 'Founding permit' }); }
     clan.permit = true;
     if (clan.bot) return say(clan, 'Founding permit bought');
-    clan.surveyPending = true;   // the old surveyor outside the Land Office has a report for this permit (Tim 20:45)
+    clan.surveyPending = true;   // the old surveyor outside the Land Office has a report for this permit (20:45)
     return say(clan, 'Founding permit bought: the old surveyor outside the Land Office has a report for you');
   }
 
-  // Talk to the old surveyor (Tim 2026-11-06 20:45): { id, type: 'landOffice', action: 'survey' } beside him, once per
+  // Talk to the old surveyor (2026-11-06 20:45): { id, type: 'landOffice', action: 'survey' } beside him, once per
   // permit, makes the nearest open sites known (the rest you discover on the island). Measured from your towns
-  // (Tim 20:43: each permit pushes the known sites out past your last town); the first from the capital.
+  // (20:43: each permit pushes the known sites out past your last town); the first from the capital.
   // clan.survey = { sites, n, tick } is what the screen's map tour shows.
-  // beside the old surveyor: his ring, or as close as his talk stays open (3.5, src/surveyor_talk.js; Tim 2026-11-20:
+  // beside the old surveyor: his ring, or as close as his talk stays open (3.5, src/surveyor_talk.js; 2026-11-20:
   // Show me did nothing from just outside his ring)
   const atSurveyor = e => { if (e?.type !== 'hero' || e.place !== 'street') return false; if (doorNear(e.id)?.menu === 'surveyor') return true;
     const g = state.entities[state.surveyorNpc]; return !!g && Math.hypot(g.x - e.x, g.z - e.z) < 3.5; };
 
-  // Choosing a home (Z7, Tim 2026-11-20): a player who started without a castle (new game: match home 'pick') chooses
+  // Choosing a home (Z7, 2026-11-20): a player who started without a castle (new game: match home 'pick') chooses
   // where it stands with the old surveyor, once he holds a founding permit: { id, type: 'landOffice', action: 'home',
   // zone }. The castle goes up at once (sim/castles.js place). Until then the island gate stays shut to him; the rivals
   // roll their homes from the sites left once he has chosen (sim/frontier/rival_campaign.js).
@@ -99,7 +99,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     if (!c) return say(clan, 'The castle could not be raised there');
     if (state.match) state.match.home = zone;
     (state.news ||= []).push({ kind: 'homeChosen', clan: clan.id, zone, town: c.id, x: c.x, z: c.z });
-    // his site report comes with the castle (Tim 2026-11-20: the goal went back to Show me on the map): the sites
+    // his site report comes with the castle (2026-11-20: the goal went back to Show me on the map): the sites
     // nearest the castle are marked now and the goals move on to the lieutenant
     if (clan.surveyPending) survey(e);
     return say(clan, `Your castle stands in ${site.name}. The ship at the harbour takes you there`);
@@ -122,7 +122,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return near.map(s => s.id);
   }
 
-  // The Land Office talk on rival towns (goals pass, Tim 2026-11-19): { id, type: 'landOffice', action: 'rivals' } beside
+  // The Land Office talk on rival towns (goals pass, 2026-11-19): { id, type: 'landOffice', action: 'rivals' } beside
   // the old surveyor, once, after your first town. Each rival bot clan gets a hint on your World map: around its town,
   // or, if it has not founded yet, around the site it is given now (claimed, so it founds there: botSite keeps a claim).
   // The hint's centre is offset from the town (founding.rivalHints, never on it). clan.rivalHints = [{ clan, x, z, r }];
@@ -170,7 +170,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
   // why a site can't be chosen by clan `id`, or null
   function siteBlocked(si, id) {
     const by = claims()[si.id];
-    // Z2 (Tim 2026-11-19): castle ground is closed to everyone; two towns a clan in one campaign zone
+    // Z2 (2026-11-19): castle ground is closed to everyone; two towns a clan in one campaign zone
     if (zones?.closedSites().has(si.id) || zones?.nearCastle(si.x, si.z)) return 'Kept for a clan castle';
     const zid = id && zones?.zoneOfSite(si);
     if (zid && zones.full(id, zid)) return `Zone full (${zones.count(id, zid)} towns in ${zones.zone(zid).name})`;
@@ -199,15 +199,15 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     return Object.values(state.entities).filter(u => u.owner === e.owner && u.type === 'settler' && standing(u) && u.place === e.place
       && Math.hypot(u.x - e.x, u.z - e.z) < radius && ((ids || []).includes(u.id) || (u.order?.kind === 'follow' && u.order.target === e.id)));
   }
-  // Tim 2026-11-06: the Hero group goes with the hero as the escort; the rest of the crew stay in the city.
+  // 2026-11-06: the Hero group goes with the hero as the escort; the rest of the crew stay in the city.
   // Downed, jailed or clinic crew are not standing, so they stay behind too.
   function heroCrew(e) {
     return Object.values(state.entities).filter(u => u.owner === e.owner && u.type !== 'hero' && u.type !== 'settler' && u.type !== 'civilian'
       && !u.captain && u.deployment?.group === 'hero' && standing(u) && u.place === e.place);
   }
-  // settlers waiting at the HQ (Tim 2026-11-06): they all go with the hero through the gate
+  // settlers waiting at the HQ (2026-11-06): they all go with the hero through the gate
   const settlersWaiting = id => state.clans?.[id]?.settlersWaiting || 0;
-  // The island gate (Tim 2026-11-10): a clan (the player's or a rival's) goes out only with a founding permit, or once it holds a
+  // The island gate (2026-11-10): a clan (the player's or a rival's) goes out only with a founding permit, or once it holds a
   // town or already has someone out there
   const mayLeave = id => { const c = state.clans?.[id]; return !c || !!c.permit || Object.values(fr()?.settlements || {}).some(s => s.owner === id)
     || Object.values(state.entities).some(e => e.owner === id && e.place === 'world'); };
@@ -221,7 +221,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     const crew = heroCrew(e);
     if (!mayLeave(clan.id)) return { ok: false, reason: 'The island gate opens once you hold a founding permit (telegraph office)' };
     if (needsHome(clan.id)) return { ok: false, reason: 'Choose your home with the old surveyor first' };
-    // nobody leaves with a Rally up, rivals included (Tim 2026-11-10): rallied crew would go along and leave the city short
+    // nobody leaves with a Rally up, rivals included (2026-11-10): rallied crew would go along and leave the city short
     const rally = state.deployment?.clans?.[clan.id]?.rally;
     if (rally?.active && rally.endsAt > state.tick) return { ok: false, reason: 'A Rally is up: the gate opens once your crew are back at their posts' };
     if (c.action === 'walk') return { ok: true, settlers, waiting, crew };
@@ -267,7 +267,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     if (fr().rivals?.[id]?.founded) return false;   // Z2: the boss founds the first town only; later ones are the lieutenant's (rival_campaign.js)
     return day() >= botDay(order);
   }
-  // the day bot number `order` may leave (Tim 2026-11-11): afterPlayerDays after the player's first town, or from
+  // the day bot number `order` may leave (2026-11-11): afterPlayerDays after the player's first town, or from
   // fallbackDay when the player has no town by then; staggerDays apart per bot
   function botDay(order = 0) {
     const B = D.bots || {}, fb = B.fallbackDay ?? 30, p = fr().firstPlayerTownDay;
@@ -283,7 +283,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
     let r = (Math.abs(seed() | 0) ^ [...id].reduce((n, ch) => n * 31 + ch.charCodeAt(0), 7)) % 2147483646 + 1;
     const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
     let free = (worldData?.sites || []).filter(si => !siteBlocked(si, id) && !skip.includes(si.id));
-    // Z2 (Tim 2026-11-19): a rival with a home zone settles there first, then the zones touching it, then onward
+    // Z2 (2026-11-19): a rival with a home zone settles there first, then the zones touching it, then onward
     const homeZone = zones && fr().rivals?.[id]?.home, homeAt = homeZone && zones.castles().find(c => c.zone === homeZone);
     if (homeZone) {
       const seen = new Set([homeZone]); let ring = [homeZone];
@@ -302,7 +302,7 @@ export function createLandOffice({ state, data, worldData, units, clans, doorNea
       s += taste.terrain?.[si.terrain] || 0;
       for (const [k, w] of Object.entries(taste.traits || {})) s += (t[k] || 0) * w;
       s -= (homeAt && Number.isFinite(homeAt.x) ? Math.hypot(si.x - homeAt.x, si.z - homeAt.z) * (B.homePull ?? 3) : (si.travelCostToCapital || 0)) / (B.travelScale || 6000);
-      // Tim 2026-11-06 22:33: rich deposits within a camp's reach of the town (workers.range + campReach) are a bonus
+      // 2026-11-06 22:33: rich deposits within a camp's reach of the town (workers.range + campReach) are a bonus
       const far = (data.workers?.range ?? 600) + (data.workers?.campReach ?? 0);
       for (const n of worldData?.nodes || []) if (Math.hypot(n.x - si.x, n.z - si.z) <= far) s += B.richNode ?? 0.5;
       return { id: si.id, s: s + rnd() * (B.randomRoll ?? 3) };

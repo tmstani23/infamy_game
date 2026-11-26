@@ -37,7 +37,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   assert.equal(C.player.clinic.length, 0);
   assert.equal(C.player.ryo, ryo - cost, 'paid the revive price');
   const back = Object.values(S).find(e => e.type === 'thug' && e.owner === 'player')?.id;
-  assert.ok(back && S[back].hp === S[back].maxHp && !S[back].order, 'out and holding until ordered (Tim 2026-10-25)');
+  assert.ok(back && S[back].hp === S[back].maxHp && !S[back].order, 'out and holding until ordered (2026-10-25)');
   // broke: stays in
   C.player.clinic.push({ unit: 'thug', model: 'thug', kind: 'recover', left: 30, cost: 15, hp: 0 });
   C.player.ryo = 0;
@@ -149,7 +149,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   console.log('crew vs townsfolk ok');
 }
 // Every clan's downed crew go to the clinic, each on its own clan's list, and nobody walks out
-// until its own boss revives them there (Tim 2026-10-19); townsfolk are helped home
+// until its own boss revives them there (2026-10-19); townsfolk are helped home
 {
   const g = newGame(), S = g.state.entities, C = g.state.clans;
   const hero = g.spawn('hero', 'ronin', -30, 1, { owner: 'player' });
@@ -158,7 +158,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   const civ = g.civilians.add('merchant', 4, 1);
   for (const id of [mine, foe, civ]) Object.assign(S[id], { hp: 0, downed: true, downedAt: 0 });
   run(g, R.downedMinSeconds - 1);
-  assert.ok(S[mine] && S[foe] && S[civ], 'everyone stays on the ground downedMinSeconds (Tim 2026-10-20)');
+  assert.ok(S[mine] && S[foe] && S[civ], 'everyone stays on the ground downedMinSeconds (2026-10-20)');
   run(g, 2);
   assert.ok(!S[mine] && !S[foe] && !S[civ], 'all three carried away');
   assert.equal(C.player.clinic.length, 1, 'our crew member is in the clinic');
@@ -169,7 +169,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   void hero;
   console.log('clinic only for our crew ok');
 }
-// Bystanders only flinch briefly before running (Tim: the scared clip was too long), and a
+// Bystanders only flinch briefly before running (the scared clip was too long), and a
 // runner jammed in a crowd gives up instead of pushing on
 {
   const g = newGame(), S = g.state.entities;
@@ -195,7 +195,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   const door = g.doors.find(d => d.label === 'Enter the Teahouse');
   const hero = g.spawn('hero', 'ronin', door.x, door.z, { owner: 'player' });
   const a = g.spawn('thug', 'thug', door.x + 1, door.z + 1, { owner: 'player', order: { kind: 'follow', target: hero } });
-  // b holds (not following): outdoor followers now run in after the hero on their own (Tim 2026-10-25)
+  // b holds (not following): outdoor followers now run in after the hero on their own (2026-10-25)
   const b = g.spawn('thug', 'thug', door.x - 1, door.z + 1, { owner: 'player' });
   const far = g.spawn('thug', 'thug', door.x + 30, door.z, { owner: 'player' });
   const [bx, bz] = [S[b].x, S[b].z];
@@ -214,7 +214,7 @@ const run = (g, s, cmds = []) => { g.step(cmds); for (let i = 1; i < s * 20; i++
   g.step([{ id: hero, type: 'use' }]);
   assert.equal(S[hero].place, 'street');
   assert.equal(S[a].place, door.place, 'unselected crew stay inside');
-  // back in, told Follow inside, then out with it selected: it comes too (Tim 2026-10-25)
+  // back in, told Follow inside, then out with it selected: it comes too (2026-10-25)
   S[hero].x = door.x; S[hero].z = door.z;
   g.step([{ id: hero, type: 'use' }]);
   g.step([{ id: hero, type: 'order', units: [a], kind: 'follow' }]);

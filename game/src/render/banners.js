@@ -1,5 +1,5 @@
 import { createRune, runeProgress, RUNE } from './rune_mesh.js';
-// Clan banners (Tim OK'd the mock 2026-10-19, business_visuals/ownership_mock_v2.png): a tall
+// Clan banners (approved the mock 2026-10-19, business_visuals/ownership_mock_v2.png): a tall
 // nobori in the owner's colour beside the door of every owned business, with a thin glowing
 // outline and a faint ring at its foot; it swaps when the business changes hands. Reads
 // state.businesses and state.clans only. The crest is also drawn for the clan badge (src/clan_badge.js).
@@ -11,10 +11,10 @@ import { cellToWorld } from '../sim/frontier/town_grid.js';
 import { groundY } from '../castle_height.js';
 
 const W = 112, H = 300;                      // canvas pixels
-const WORLD_H = 2.4,   // about a third of a building, a little taller than a person (Tim 2026-10-19)
+const WORLD_H = 2.4,   // about a third of a building, a little taller than a person (2026-10-19)
       WORLD_W = WORLD_H * W / H;
 
-// War Lantern (Tim OK'd business_visuals/war_lantern_mock_v3.png): art/props/war_lantern.png, the
+// War Lantern (approved business_visuals/war_lantern_mock_v3.png): art/props/war_lantern.png, the
 // lantern post recoloured crimson with a gold crest, planted at a raid's lantern spot (sim/businesses.js)
 const LW = 220, LH = 486, L_H = 2.9, L_W = L_H * LW / LH,
       L_FOOT = 72 / LW, L_PAPER = [168 / LW, 214 / LH];   // foot of the post, centre of the paper (texture uv from top-left)
@@ -37,7 +37,7 @@ const shade = (hex, k) => {
 };
 
 // the clan crest (mon): a ring with three commas, in cream, centred on (cx, cy) with radius r
-// the painted clan crests (assets/ui/crests/<faction>_96.png, Tim 2026-11-23), loaded once; the drawn mon is the fallback
+// the painted clan crests (assets/ui/crests/<faction>_96.png, 2026-11-23), loaded once; the drawn mon is the fallback
 const PAINTED = {};
 if (typeof Image !== 'undefined') for (const f of ['yakuza', 'kuroda', 'shinobi']) { const im = new Image(); im.src = `../assets/ui/crests/${f}_96.png`; PAINTED[f] = im; }
 export const paintedCrest = faction => { const im = PAINTED[faction]; return im?.complete && im.naturalWidth ? im : null; };
@@ -114,7 +114,7 @@ export function createBanners({ scene }) {
   const lanterns = new Map();        // business id -> { mesh, glow, pool, ring, thing }
   const knocks = new Map();          // business id -> the knock-down progress ring
   let lanternTex = null, glowTex = null;
-  // Telegraph office hint (Tim 2026-11-06): once a permit can be bought, the office door blinks gold.
+  // Telegraph office hint (2026-11-06): once a permit can be bought, the office door blinks gold.
   // The view sets hint to [x, z] (the door ring) or null; nothing is stored in the sim.
   let hint = null, hintMarks = null;
   const setHint = p => { hint = p; };
@@ -167,7 +167,7 @@ export function createBanners({ scene }) {
     const key = `${color}|${paintedCrest(faction) ? faction : ''}`;   // the painted crest once it has loaded
     if (!textures.has(key)) textures.set(key, bannerTexture(color, faction));
     const [x, z] = spot(b);
-    const mat = new THREE.MeshBasicMaterial({ map: textures.get(key), transparent: true, opacity: 0.82, depthWrite: false });   // a little see-through (Tim: subtle)
+    const mat = new THREE.MeshBasicMaterial({ map: textures.get(key), transparent: true, opacity: 0.82, depthWrite: false });   // a little see-through (subtle)
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     mesh.quaternion.copy(CAM_QUAT);
     mesh.scale.set(WORLD_W, WORLD_H, 1);
@@ -193,13 +193,13 @@ export function createBanners({ scene }) {
 
   // every frame: banners follow ownership; returns the businesses that just changed hands to a clan
 
-  // Space rings on the island (Tim 2026-11-07): the same door ring the city uses, at the front (screen-down) of your
+  // Space rings on the island (2026-11-07): the same door ring the city uses, at the front (screen-down) of your
   // built town hall, stable and station, the buildings that open a menu with Space. Reads state.frontier only.
   const spaceRings = new Map();
   const FRONT = { town_hall: 1, stable: 1.6, station: 1.6 };   // fallback before the art is placed: placed-art width in cells
   let doorSpots = new Map();   // "town:hall" / "town:building" -> [x, z] at the art's front door (render/view.js setTowns)
   const setDoors = m => { doorSpots = m; };
-  // Tim 2026-11-07: the frontier rings were a plain gold circle; now an entry rune with a slowly turning inner seal and
+  // 2026-11-07: the frontier rings were a plain gold circle; now an entry rune with a slowly turning inner seal and
   // a soft warm pool, like the city's marked doors
   function spaceRing() {
     const g = new THREE.Group();
@@ -240,7 +240,7 @@ export function createBanners({ scene }) {
   let jobRing = null, jobMark = null;
   const campingRings = new Map();
   const campingGeo = new THREE.RingGeometry(0.992, 1.008, 128);
-  // the old surveyor's quest mark (Tim 2026-11-07): a gold ! above his head instead of a ground ring;
+  // the old surveyor's quest mark (2026-11-07): a gold ! above his head instead of a ground ring;
   // it flashes while he has a report for you (clan.surveyPending, after a permit is bought)
   let questMark = null, questId = null, ltMark = null, govMark = null;
   function questTexture() {
@@ -251,7 +251,7 @@ export function createBanners({ scene }) {
     g.fillStyle = '#ffd77a'; g.font = 'bold 84px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('!', 64, 68);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
   }
-  // the same mark over your lieutenant at the island gate (Tim 2026-11-10); it flashes until you have first talked to him
+  // the same mark over your lieutenant at the island gate (2026-11-10); it flashes until you have first talked to him
   function updateLieutenantMark(state, time, me, place) {
     const e = Object.values(state.entities).find(u => u.guide && u.captain && u.owner === me && !u.dead && u.place === place);
     if (!e) { if (ltMark) ltMark.visible = false; return; }
@@ -265,7 +265,7 @@ export function createBanners({ scene }) {
     ltMark.scale.setScalar(active ? 0.8 + 0.12 * beat : 0.62);
     ltMark.material.opacity = active ? 0.75 + 0.25 * beat : 0.55;
   }
-  // and over your first town's governor until you have met him (Tim 2026-11-10); at night he is inside, so the mark
+  // and over your first town's governor until you have met him (2026-11-10); at night he is inside, so the mark
   // sits over the hall, where Space still talks to him
   function updateGovernorMark(state, time, me, place) {
     const met = state.clans?.[me]?.milestones?.metGovernor;
@@ -404,7 +404,7 @@ export function createBanners({ scene }) {
       hintMarks.pool.material.opacity = 0.05 + 0.3 * flare;
       hintMarks.ring.material.opacity = 0.25 + 0.7 * flare;
     } else if (hintMarks) { hintMarks.pool.visible = hintMarks.ring.visible = false; }
-    // someone knocking a War Lantern down (Tim 2026-10-20): a red ring at his feet fills over the channel
+    // someone knocking a War Lantern down (2026-10-20): a red ring at his feet fills over the channel
     for (const [id, m] of knocks) if (!state.attacks?.[id]?.knock) { scene.remove(m); m.material.dispose(); knocks.delete(id); }
     for (const a of Object.values(state.attacks || {})) {
       const k = a.knock;

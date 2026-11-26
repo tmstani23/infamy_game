@@ -10,7 +10,7 @@
 // hero packs (ATTACKER=<size> or ATTACKER=rich changes it); output `launchTown` / `defenderTown` = ryo, timber and
 // stone of each town when the banner goes up.
 // TREASURY=n: both clans' Clan treasury starts at n ryo. attackerUse / defenderUse: what came by train, the biggest
-// troop cap, supply tents, armory levels and the ryo left in the chest (Tim 2026-11-17).
+// troop cap, supply tents, armory levels and the ryo left in the chest (2026-11-17).
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
 import { setupMatch } from '../src/sim/setup_match.js';
@@ -41,7 +41,7 @@ export function runWar({ attack, defence, size, seed = 1, maxMinutes = 90, tune 
   for (const a of sites) for (const b of sites) { const d = Math.hypot(a.x - b.x, a.z - b.z); if (a !== b && d >= 1650 && d <= 2100) pairs.push([a, b]); }
   const [sa, sb] = pairs[seed % pairs.length];
   const hall = o.frontier.founding.townHall;
-  // the attacker's launch town (Tim 2026-11-17): the same fixture stock as the defender's town (ATTACKER=<size> picks
+  // the attacker's launch town (2026-11-17): the same fixture stock as the defender's town (ATTACKER=<size> picks
   // another, ATTACKER=rich the old rich town). After the peace build-up it is raised to just the war pack for the
   // target's tier plus attack.keep where it holds less, so it can launch; the pack comes out of its coffers and stores, as in a game
   const AT = o.frontier.war.general.attack || {}, packNeed = Object.fromEntries(['ryo', 'timber', 'stone'].map(r => [r, (AT.packByTier?.[Z.tier - 1]?.[r] ?? AT.pack?.[r] ?? 0) + (AT.keep?.[r] ?? 0)]));   // the pack and what a bot keeps back (attack.keep)
@@ -83,7 +83,7 @@ export function runWar({ attack, defence, size, seed = 1, maxMinutes = 90, tune 
   let peak = { [A]: 0, [B]: 0 }, last = null; const left = { [A]: 0, [B]: 0 };
   const line = { linkedMin: null, cuts: 0, cutTicks: 0, wasCut: false };   // RAIL: the camp's supply line
   const townUse = { ruined: new Set(), rebuilt: new Set(), stationTicks: 0 };   // the town's buildings knocked down and rebuilt during the war, and how long its station was a ruin
-  // what each side used and left unused (Tim 2026-11-17): ryo and timber + stone that came by train (the most each
+  // what each side used and left unused (2026-11-17): ryo and timber + stone that came by train (the most each
   // order delivered), the biggest troop cap, supply tents and armory levels at the end, ryo left in the chest
   const got = {}, use = { [A]: { ryoByTrain: 0, goodsByTrain: 0, capPeak: 0, tents: 0, armory: 0, chestLeft: 0 }, [B]: { ryoByTrain: 0, goodsByTrain: 0, capPeak: 0, tents: 0, armory: 0, chestLeft: 0 } };
   const tally = () => {

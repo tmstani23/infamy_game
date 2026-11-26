@@ -58,20 +58,20 @@ export function createVision(state, bounds, rules = {}, territory = null, island
   // Can this clan see this unit now? Its own units always; others on the street when
   // in range of its standing units or businesses, in a room when one of the clan's units is in that room.
   // each clan's units (sim/util.js ownerIndex, rebuilt each tick and after a spawn): canSee was the top sim cost,
-  // scanning every entity for every look (Tim 2026-11-08 lag). Positions and states are still read live.
+  // scanning every entity for every look (2026-11-08 lag). Positions and states are still read live.
   const owned = ownerIndex(state), live = u => state.entities[u.id] === u;
   const towerMemo = { tick: -1, list: [] };
   const litMemo = new Map(), witness = new Map();   // island sight helpers (never saved; they only shorten the search)
   function canSee(clan, e) {
     if (!e || !clan) return false;
     if (e.owner === clan || e.workerOwner === clan) return true;
-    if (e.horseOwner === clan || e.omnibusOwner === clan) return true;   // your own horses and vehicles: never fogged, however far (Tim 2026-11-08)
-    if (e.seenBy === clan) return true;   // ownerless scenery of your own (ox carts, rail gang, salute cannons): never fogged (Tim 2026-11-07)
+    if (e.horseOwner === clan || e.omnibusOwner === clan) return true;   // your own horses and vehicles: never fogged, however far (2026-11-08)
+    if (e.seenBy === clan) return true;   // ownerless scenery of your own (ox carts, rail gang, salute cannons): never fogged (2026-11-07)
     if (e.detectedBy?.[clan] > state.tick) return true;   // war stealth (sim/stealth.js): a kunoichi detected by this clan's dog handler, Teppo or watchtower
     if (e.hidden) return false;   // a hidden ninja (sim/stealth.js)
     if (e.place === 'world') {
       if (!island) return false;
-      // daytime: dayRange (Tim 2026-11-10); night: range, or fireRange near a lit fire
+      // daytime: dayRange (2026-11-10); night: range, or fireRange near a lit fire
       // speed pass (war collision checkpoint 5b-5): the same answers, worked out with less. By day the fire check is
       // skipped when a fire could not add range; a unit's fire check is kept while it stands on the same spot in the
       // same tick; and the unit that saw it last is asked first, before the whole clan.
@@ -89,7 +89,7 @@ export function createVision(state, bounds, rules = {}, territory = null, island
       if (w && looks(w)) return true;
       for (const u of owned(clan)) if (looks(u)) { seen.set(e.id, u); return true; }
       if (w) seen.delete(e.id);
-      // 7c (Tim 2026-11-12): a built watchtower sees the ground round it (island.towers: [{ owner, x, z, sight }], listed once a tick)
+      // 7c (2026-11-12): a built watchtower sees the ground round it (island.towers: [{ owner, x, z, sight }], listed once a tick)
       if (island.towers) {
         if (towerMemo.tick !== state.tick) { towerMemo.tick = state.tick; towerMemo.list = island.towers() || []; }
         for (const t of towerMemo.list) if (t.owner === clan && t.sight > 0 && (t.x - e.x) ** 2 + (t.z - e.z) ** 2 <= t.sight * t.sight) return true;

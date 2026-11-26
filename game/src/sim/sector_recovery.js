@@ -174,7 +174,7 @@ export function createSectorRecovery({ state, deployment, rally, vision, cityAwa
       }
     }
   }
-  // crew never hit street police on their own: that is +heat a hit and the police pile in (Tim 2026-11-08, heat 1072);
+  // crew never hit street police on their own: that is +heat a hit and the police pile in (2026-11-08, heat 1072);
   // they still withdraw from them. Officers defending a business you attack (wave) are fair game.
   const fightable = t => !t.cop || !!t.wave;
   const teamAttacked=(t,clan)=>Object.values(state.entities).some(u=>u.owner===clan&&(u.hitBy?.id===t.id&&state.tick-u.hitBy.tick<120||t.attackTarget===u.id||t.order?.kind==='attack'&&t.order.target===u.id||t.swing?.target===u.id));

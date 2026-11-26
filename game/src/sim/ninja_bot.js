@@ -1,6 +1,6 @@
 import { charmProtected } from './charm_rules.js';
 import { bossHire } from './hire_mix.js';
-// Shinobi bot clan brain (Tim 2026-10-20: 3 clans, the two you don't play are bots). A client like
+// Shinobi bot clan brain (2026-10-20: 3 clans, the two you don't play are bots). A client like
 // sim/bot.js: it reads the state, sees only what its clan sees (sim/vision.js) and sends the same
 // commands as a Shinobi player ('move', 'use', 'hire', 'contract', 'attack', 'order', 'ability',
 // 'snuff', 'clinic', 'loot'). No hidden bonuses.
@@ -54,10 +54,10 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
   const job = () => state.contracts?.active?.[clan] || null;
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
   const crewRoom = () => game.clans.crewCount(clan) + myClan().queue.length < game.clans.crewCap(clan);
-  // hiring mix (Tim 2026-11-10): ninja, tanto ninja, geisha and masked bodyguard in turn (sim/hire_mix.js)
+  // hiring mix (2026-11-10): ninja, tanto ninja, geisha and masked bodyguard in turn (sim/hire_mix.js)
   const hireType = () => bossHire(game, clan, game.lieutenant?.rules?.hireBasic) || B.hireType;
   const canHireNow = () => {
-    if (expedition?.saving()) return false;   // E6: saving up for permit, settlers and founding (Tim 2026-11-11: it rehired itself broke)
+    if (expedition?.saving()) return false;   // E6: saving up for permit, settlers and founding (2026-11-11: it rehired itself broke)
     const price = game.clans.hirePrice(clan, hireType());
     const count = game.clans.crewCount(clan) + myClan().queue.length;
     const established = (myClan().renown || 0) >= (U.renownPerCrew || 75);
@@ -104,10 +104,10 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     const c = myClan(), h = me();
     const raid = Object.values(state.attacks || {}).find(a => a.hq && a.defender === clan);
     if (raid) return { kind: 'defend', business: raid.business };
-    // bribe the police at Wanted, like the other rivals (Tim 2026-11-11: its heat ran past Most Wanted and it never paid)
+    // bribe the police at Wanted, like the other rivals (2026-11-11: its heat ran past Most Wanted and it never paid)
     if (game.doors.some(d => d.menu === 'police_box') && !ai.blocked('bribe:') && !job() && c.heat >= B.bribeAtHeat && c.ryo >= (game.police?.bribeCost(clan) ?? Infinity)) return { kind: 'bribe' };
     if (readyPatient(c) >= 0 && !ai.blocked('revive:')) return { kind: 'revive' };
-    // bail its cheapest prisoner out of the police HQ (Tim 2026-11-11: a rival's arrested crew sit in jail like yours)
+    // bail its cheapest prisoner out of the police HQ (2026-11-11: a rival's arrested crew sit in jail like yours)
     if (cheapestPrisoner(c) >= 0 && !ai.blocked('bail:')) return { kind: 'bail' };
     if (dojo() && canHireNow() && !job() && !ai.blocked(`hire:${dojo().id}`)) return { kind: 'hire', business: dojo().id };
     // A leader indoors cannot count recruits waiting outside in its immediate
@@ -146,7 +146,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     out.push({ id: hero, type: 'snuff' });
     return true;
   }
-  // crew wait outside a rival hideout's camping circle (Tim 2026-11-11: waiting by the window there ran up Camping heat)
+  // crew wait outside a rival hideout's camping circle (2026-11-11: waiting by the window there ran up Camping heat)
   function waitSpot(x, z) {
     for (const zone of state.hqCamping?.zones || []) {
       const d = Math.hypot(x - zone.x, z - zone.z), far = zone.radius + 3;
@@ -234,7 +234,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
           out.push(...order(crew().filter(u => u.place === 'street'), 'enter', { business: b.id, place: 'street' }));
           goal.sent = a.phase;
         }
-        // warm-up: the whole crew defends the lantern (Tim 2026-10-26: only the boss came), crew indoors or
+        // warm-up: the whole crew defends the lantern (2026-10-26: only the boss came), crew indoors or
         // away included; those inside walk out first (only a plain move takes crew out of a door)
         if (a.phase !== 'hold') {
           const L = a.lantern, to = { x: L.x, z: L.z, place: 'street' };
@@ -343,7 +343,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
     if (by && standing(by) && by.place === h.place && !sneaking && (!by.cop || by.wave)) out.push({ id: hero, type: 'attack', target: by.id });
     if (!close.length) return;
     if (h.hp < h.maxHp * B.smokeHp && cast('R')) return;
-    // Assassinate: hidden long enough (or veiled by his own smoke: no wait, Tim 2026-11-09), a target right next to it
+    // Assassinate: hidden long enough (or veiled by his own smoke: no wait, 2026-11-09), a target right next to it
     const held = h.hidden && (h.buffs?.veil?.until ?? -1) > state.tick ? Infinity : h.hidden && h.hiddenAt != null ? (state.tick - h.hiddenAt) / 20 : 0;
     const t = close[0];
     if (held >= (F.hiddenSeconds ?? 3) && dist(h, t) <= (F.reach ?? 1.5) + 0.6 && (!sneaking || t.type === 'hero') && cast('F', { x: t.x, z: t.z, target: t.id })) return;
@@ -376,7 +376,7 @@ export function createNinjaBot(game, { clan, hero, rules = {}, seed = 9191 }) {
       goal = { kind: 'flee', business: hq.id }; ai.reset(); out.push({ id: hero, type: 'stopattack' });
     }
     // a raid on the HQ doesn't pull a badly hurt leader back out: he heals inside first, or he pops in
-    // and out of the doorway every tick, flickering hidden/seen and out of reach (Tim 2026-10-26)
+    // and out of the doorway every tick, flickering hidden/seen and out of reach (2026-10-26)
     if (hq && h.place === hq.room && (h.hp < h.maxHp * B.restUntilHp || (!defending && crew().some(u => u.place === hq.room && u.hp < u.maxHp * 0.65))) && goal?.kind !== 'hire') {
       goal = null;
       out.push({ id: hero, type: 'move', right: 0, down: 0 });

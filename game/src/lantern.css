@@ -1,4 +1,4 @@
-/* Lantern style (Tim 2026-11-23, plan project files ui_style2/plan.md, mock ui_audit/mock/town_panel_and_bar_v5.png).
+/* Lantern style (2026-11-23, plan project files ui_style2/plan.md, mock ui_audit/mock/town_panel_and_bar_v5.png).
    A skin layer loaded after menu_shell.css: looks only, no layout logic. Lacquer frames, clan-dyed cloth headers,
    dark wood bodies, washi notes, brass and wood buttons, wooden tag tabs, serif type, no eyebrows, no thin rules.
    Kept rules: no scrollbars, plain text, hovers for long text, typeable number boxes, clan accents (body[data-clan]). */
@@ -1086,17 +1086,17 @@ body #campaignend .fc { border-radius: 30px 2px 2px 30px; }
 #startscreen .start-choice input:checked + .start-clan-card { background: radial-gradient(ellipse 70% 60% at 30% 20%, rgba(255,170,80,.16), transparent 70%), linear-gradient(180deg, rgba(20,12,8,.94), rgba(34,22,13,.94));
   box-shadow: inset 0 3px 10px #000, inset 0 0 0 1px rgba(168,50,31,.6), 0 0 0 2px #070403, 0 0 0 4px #c99a52; }
 #startscreen .start-content::before { inset: -30px -40px -26px -44px; background: linear-gradient(90deg, rgba(16,10,6,.86), rgba(16,10,6,.7) 80%, transparent), var(--ln-grain); opacity: .92; border-right: 3px solid rgba(90,61,28,.6); }
-/* Tim 2026-11-23: the wood board runs to the screen's left edge and full height */
+/* 2026-11-23: the wood board runs to the screen's left edge and full height */
 #startscreen .start-content::before { position: fixed; inset: 0 auto 0 0; width: calc(clamp(36px, 7vw, 150px) + min(720px, 100vw - 72px) + 40px); }
 @media (max-width: 850px) { #startscreen .start-content::before { width: 100vw; border-right: none; } }
-/* painted crests on the war bar and the standings window (Tim 2026-11-23): the crest over the clan-colour disc */
+/* painted crests on the war bar and the standings window (2026-11-23): the crest over the clan-colour disc */
 body #warbar .wb-crest[data-faction], #standingspanel .st-crest[data-faction] { background-position: center, center; background-size: 92%, auto; background-repeat: no-repeat, no-repeat; }
 body #warbar .wb-crest[data-faction] { width: 24px; height: 24px; }
 body #warbar .wb-crest[data-faction="yakuza"], #standingspanel .st-crest[data-faction="yakuza"] { background-image: url(../../assets/ui/crests/yakuza_96.png), radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 60%); }
 body #warbar .wb-crest[data-faction="kuroda"], #standingspanel .st-crest[data-faction="kuroda"] { background-image: url(../../assets/ui/crests/kuroda_96.png), radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 60%); }
 body #warbar .wb-crest:is([data-faction="shinobi"], [data-faction="ninja"]), #standingspanel .st-crest:is([data-faction="shinobi"], [data-faction="ninja"]) { background-image: url(../../assets/ui/crests/shinobi_96.png), radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 60%); }
 
-/* ---------- hover boxes and small cards (Tim 2026-11-23: "fix those hover tooltips, they look like the old style") ----------
+/* ---------- hover boxes and small cards (2026-11-23: "fix those hover tooltips, they look like the old style") ----------
    Hover tips are small lacquer plaques with a brass edge in the serif; building cards take the frame. Injected and inline
    styles load after this file, so body / id weight. Eyebrows become a plain italic line under the title. */
 body #uhover.uf, body #gamemap .maptip, body #warbar .wb-hov, body #interiorinfo .building-details, body #garhint, body .loot-toast {
@@ -1188,7 +1188,7 @@ body #warcoin small::first-letter, body #ryo .lvl::first-letter, body #heat .lvl
 body #ryo .num, body #heat .num { font-family: var(--ln-font); font-weight: 800; }
 body .garrisonbadge { font: 700 12.5px/16px var(--ln-font); color: #f6e6bf; border: none; border-radius: 2px; background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 1.5px #0a0604, 0 0 0 2.5px #c9a04e, 0 3px 6px #000; }
 body .garrisonbadge:hover { background: linear-gradient(180deg, #5a3f28, #2e1f14); }
-/* painted title (Tim 2026-11-23, ChatGPT from art_prompts/title/title_prompt.md, magenta cut): the word stays in the h1 for screen readers */
+/* painted title (2026-11-23, ChatGPT from art_prompts/title/title_prompt.md, magenta cut): the word stays in the h1 for screen readers */
 body #startscreen h1 { height: clamp(110px, 20vh, 210px); aspect-ratio: 989 / 591; margin: 0 0 -1.2vh -14px; font-size: 0 !important; color: transparent; text-shadow: none;
   background: url(../../assets/ui/title/infamy_title.png) left center / contain no-repeat;
   filter: brightness(1.45) saturate(1.15) drop-shadow(0 3px 2px rgba(0,0,0,.85)) drop-shadow(0 0 30px rgba(255,140,60,.3)); }
@@ -1196,7 +1196,7 @@ body #startscreen h1 { height: clamp(110px, 20vh, 210px); aspect-ratio: 989 / 59
 #startscreen .start-content > header::before { content: ""; position: absolute; left: -60px; top: -40px; width: 520px; height: 300px; pointer-events: none;
   background: radial-gradient(ellipse 50% 45% at 45% 45%, rgba(255,140,60,.12), transparent 72%); }
 
-/* ---------- start screen as a street, not a form (Tim 2026-11-23: banners, painting bleeds in, plain menu) ---------- */
+/* ---------- start screen as a street, not a form (2026-11-23: banners, painting bleeds in, plain menu) ---------- */
 /* the wood board fades into the painting instead of ending in a hard edge */
 #startscreen .start-content::before { width: calc(clamp(36px, 7vw, 150px) + min(720px, 100vw - 72px) + 260px); border-right: none; opacity: .96;
   -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 300px), rgba(0,0,0,.55) calc(100% - 170px), transparent 100%);
@@ -1287,7 +1287,7 @@ body #warbar .wb-line.good { box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #4d6b3a; }
 body #warbar .wb-terms b { font: 800 18px var(--ln-font); } body #warbar .wb-terms span { font: italic 500 12px var(--ln-font); }
 body #warbar .wb-terms button, body #warbar .wb-watch { font: 700 13px var(--ln-font); letter-spacing: 0; color: #ead3a6; border: none; border-radius: 2px;
   background: linear-gradient(180deg, #4a3322, #24170f); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,220,170,.25), 0 2px 0 #0a0604; }
-/* war bar body (Tim 2026-11-23: still old style): framed wood board, recessed tracks, terms box framed */
+/* war bar body (2026-11-23: still old style): framed wood board, recessed tracks, terms box framed */
 body #warbar .wb { border: 10px solid transparent; border-image: url(../art/ui/lantern_frame.png) 36 round; border-radius: 0; padding: 3px 8px 4px;
   background-origin: border-box; background-clip: padding-box; background-color: #1b120d;
   background-image: radial-gradient(ellipse 40% 120% at 50% 0%, rgba(200,60,40,.16), transparent 70%), linear-gradient(rgba(20,13,9,.4), rgba(20,13,9,.4)), var(--ln-grain);
@@ -1300,7 +1300,7 @@ body #warbar .wb-terms { border: 10px solid transparent; border-image: url(../ar
   background-origin: border-box; background-clip: padding-box; background-color: #1b120d; background-image: linear-gradient(rgba(20,13,9,.4), rgba(20,13,9,.4)), var(--ln-grain); }
 body #warbar .wb-chan { border-radius: 2px; background: #0d0806; box-shadow: inset 0 1px 2px #000, 0 0 0 1px #5a4430; }
 
-/* Status effects on the target frame and hero bar (Tim 2026-11-25): painted art was drawn at full 128px size.
+/* Status effects on the target frame and hero bar (2026-11-25): painted art was drawn at full 128px size.
    Now one small square tile size for both: painted icon in a lacquer edge with a brass bevel and brass corner brackets,
    warm lantern rim light; debuffs get an oxblood bevel and a small notch at the top. Seconds left as a gold number on a dark band at the bottom. */
 body #utarget .effects { gap: 6px; bottom: calc(100% + 8px); }
@@ -1320,7 +1320,7 @@ body #utarget .effect small, body #bar .buff small { z-index: 2; left: 0; right:
   font: 800 11px/1 var(--ln-font) !important; -webkit-text-stroke: 1px #000; paint-order: stroke fill; text-shadow: 0 1px 2px #000;
   background: linear-gradient(rgba(8,5,3,.6), rgba(8,5,3,.94)); }
 
-/* item hover card (item_card.js, Tim 2026-11-24): lacquer card with a brass rim, tier colour on the name line */
+/* item hover card (item_card.js, 2026-11-24): lacquer card with a brass rim, tier colour on the name line */
 #itemcard { border: 2px solid #3a2612; outline: 1px solid rgba(138,106,58,.45); outline-offset: -6px; position: fixed; z-index: 140; width: 322px; box-sizing: border-box; padding: 12px 14px 9px; pointer-events: none;
   font: 500 14px/1.4 var(--ln-font); color: var(--ln-text); border-radius: 2px;
   background: radial-gradient(120% 70% at 0% 0%, color-mix(in srgb, var(--tier, #c9b48c) 16%, transparent), transparent 60%), linear-gradient(180deg, #26190f, #140d09 70%);
@@ -1355,7 +1355,7 @@ body #utarget .effect small, body #bar .buff small { z-index: 2; left: 0; right:
 #characterpage .character-stat strong.preview .stat-was { font-size: 12px; font-weight: 500; color: #a08c70; }
 #characterpage .character-stat strong.preview i { display: inline-block; width: 0; height: 0; margin: 0 7px 1px; border-left: 6px solid var(--ln-faint); border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
 #itemcard .ic-row > span:first-child { white-space: nowrap; }
-/* Tim 2026-11-25: a selected worker card is a cream paper slip like the open tab, with dark ink; easy to spot, no red on brown.
+/* 2026-11-25: a selected worker card is a cream paper slip like the open tab, with dark ink; easy to spot, no red on brown.
    Every card keeps 6px side room so the slip edge never touches the portrait or the group box; selecting changes no sizes. */
 #townpanel .workerroster .wcard { padding-left: 6px; padding-right: 6px; }
 #townpanel .workerroster .wcard:hover:not(.sel) { background: linear-gradient(180deg, rgba(255,205,150,.06), rgba(255,205,150,.02)); }
@@ -1366,12 +1366,12 @@ body #utarget .effect small, body #bar .buff small { z-index: 2; left: 0; right:
 #townpanel .workerroster .wcard.sel .wtop b { color: #2b1d12; text-shadow: none; }
 #townpanel .workerroster .wcard.sel .wjob, #townpanel .workerroster .wcard.sel .harvestline { color: #4a3624; }
 #townpanel .workerroster .wcard.sel .wprog { background: rgba(90,60,30,.2); box-shadow: inset 0 1px 2px rgba(0,0,0,.35); }
-/* Tim 2026-11-25: the camp window is narrow, so a worker's group box sits under the name and job instead of beside them (names were cut to "Wor...") */
+/* 2026-11-25: the camp window is narrow, so a worker's group box sits under the name and job instead of beside them (names were cut to "Wor...") */
 body #warcamp .campworkers .workerroster .wcard .wmain { display: flex; flex-direction: column; gap: 2px; }
 body #warcamp .campworkers .workerroster .wcard .wjob { min-height: 0; }
 body #warcamp .campworkers .workerroster .wcard .wmain > select.wgrp { align-self: flex-start; margin: 2px 0 0; min-width: 118px; width: auto; max-width: 100%; }
 
-/* Stolen chest cashed at a war camp (Tim 2026-11-25, mock loot_turnin, src/ryo_badge.js chestGain): koban coins fly into
+/* Stolen chest cashed at a war camp (2026-11-25, mock loot_turnin, src/ryo_badge.js chestGain): koban coins fly into
    the war chest badge, it blooms gold with embers and "+N ryo / stolen chest" shows beside it on an ink wash. */
 .kobanfly { position: fixed; left: 0; top: 0; z-index: 9000; pointer-events: none; will-change: transform, opacity;
   filter: drop-shadow(0 0 4px rgba(255, 200, 80, .7)) drop-shadow(0 2px 1px rgba(0, 0, 0, .6)); }
@@ -1396,7 +1396,7 @@ body #ryo.bloom .num { color: #ffe27a; text-shadow: 0 0 14px rgba(255, 200, 70, 
 @keyframes chestgain { 0% { opacity: 0; transform: translateY(10px) scale(.9); } 10% { opacity: 1; transform: translateY(0) scale(1.06); }
   18% { transform: translateY(0) scale(1); } 65% { opacity: 1; transform: translateY(-12px); } 100% { opacity: 0; transform: translateY(-40px); } }
 
-/* Camp hall shelter button (Tim 2026-11-25): a small noren curtain on a wooden bar (svg in town_hover.js), not a wide text pill.
+/* Camp hall shelter button (2026-11-25): a small noren curtain on a wooden bar (svg in town_hover.js), not a wide text pill.
    The count is painted on the cloth; a warm lantern glow behind it; red cloth and a breathing red glow while some hide from an attack. */
 body .garrisonbadge.shelterbadge { width: 36px; height: 42px; padding: 0; border: none; border-radius: 0; background: none; box-shadow: none; opacity: .94;
   filter: drop-shadow(0 0 1px #000) drop-shadow(0 2px 3px rgba(0,0,0,.8)) drop-shadow(0 0 6px rgba(255,170,80,.45)); }
@@ -1405,7 +1405,7 @@ body .garrisonbadge.shelterbadge:hover { opacity: 1; background: none; filter: d
 body .garrisonbadge.shelterbadge.attack { animation: shelterbadgepulse 1.6s ease-in-out infinite; }
 @keyframes shelterbadgepulse { 0%, 100% { filter: drop-shadow(0 0 1px #000) drop-shadow(0 2px 3px rgba(0,0,0,.8)) drop-shadow(0 0 5px rgba(255,120,50,.7)); } 50% { filter: drop-shadow(0 0 1px #000) drop-shadow(0 2px 3px rgba(0,0,0,.8)) drop-shadow(0 0 14px rgba(255,100,50,1)); } }
 
-/* Town hall upgrade block (Tim 2026-11-25, hall_upgrade.js): hall card and town panel. A lacquer header band, one line per requirement with a framed bar, a red seal on met lines */
+/* Town hall upgrade block (2026-11-25, hall_upgrade.js): hall card and town panel. A lacquer header band, one line per requirement with a framed bar, a red seal on met lines */
 :is(#towninspect, #townpanel) .tg { margin-top: 10px; padding: 0 9px 9px; box-shadow: inset 0 3px 9px #000; background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255,160,70,.08), transparent 70%), var(--ln-fiber), linear-gradient(180deg, #120b07, #1a110b); font-family: var(--ln-font); }
 :is(#towninspect, #townpanel) .tg.ready { box-shadow: inset 0 3px 9px #000, 0 0 0 1px #a8732c, 0 0 18px rgba(250,170,70,.35); }
 :is(#towninspect, #townpanel) .tg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 -9px 6px; padding: 7px 10px 6px; background: linear-gradient(180deg, #4a1a12, #2a0f0a); box-shadow: inset 0 1px 0 rgba(255,190,150,.2), 0 2px 0 #0a0503, 0 3px 0 rgba(150,110,60,.35); }
@@ -1446,7 +1446,7 @@ body .garrisonbadge.shelterbadge.attack { animation: shelterbadgepulse 1.6s ease
 :is(#towninspect, #townpanel) button.tg-btn.no { opacity: 1; color: #e2cfa6; background: linear-gradient(180deg, #3a291a, #1e140c); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,220,170,.12), inset 0 0 0 1px #5e4529; }
 :is(#towninspect, #townpanel) button.tg-btn.no small { color: #f0a46e; font-size: 12.5px; }
 
-/* Bag slip and drag (Tim 2026-11-26, item dropping): right-click a bag item for Wear / Drop; drag it out to drop it */
+/* Bag slip and drag (2026-11-26, item dropping): right-click a bag item for Wear / Drop; drag it out to drop it */
 #characterpage .character-window { position: relative; }
 #characterpage .bag-slip { position: absolute; z-index: 30; min-width: 190px; padding: 9px 8px 7px; display: flex; flex-direction: column; gap: 3px;
   font: 500 14px/1.3 var(--ln-font); color: var(--ln-text); border: 2px solid #3a2612; border-radius: 2px;

@@ -1,4 +1,4 @@
-// Wild animals on the island (wildlife W3 deer and boar, W4 wolves and bears, Tim 2026-11-24; plan war_build/wildlife/wildlife_plan.md).
+// Wild animals on the island (wildlife W3 deer and boar, W4 wolves and bears, 2026-11-24; plan war_build/wildlife/wildlife_plan.md).
 // Deer and boar come and go around the player's own units, by the ground they like (data/wildlife.json
 // "animals": species habitat by terrain code), and only in chunks that are already awake. They graze and
 // wander near a home spot, run from people who come close and from the noise of a fight or a gun, and are
@@ -258,7 +258,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     const base = Math.atan2(e.z - fz, e.x - fx) + (rng() - 0.5) * 0.8, d = range(R.fleeDistance || [26, 40]);
     const p = areas.nav.nearestFree(e.x + Math.cos(base) * d, e.z + Math.sin(base) * d) || [e.x + Math.cos(base) * d, e.z + Math.sin(base) * d];
     Object.assign(m, { mode: 'flee', x: p[0], z: p[1], until: state.tick + secs(range(R.flee || [5, 9])), from: [fx, fz] });
-    if (!predator(e)) {   // a deer or boar run off again and again tires, and a hurt one runs slower (Tim 2026-11-24: a doe could never be caught)
+    if (!predator(e)) {   // a deer or boar run off again and again tires, and a hurt one runs slower (2026-11-24: a doe could never be caught)
       m.flights = m.lastFlee != null && state.tick - m.lastFlee < secs(T.window ?? 30) ? (m.flights || 0) + 1 : 0;
       m.lastFlee = state.tick;
       pace(e);
@@ -486,7 +486,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     }
   }
 
-  // Selling hides (W5, Tim 2026-11-24): what the clan has taken (clan.hides) the hero sells with Space at the built market
+  // Selling hides (W5, 2026-11-24): what the clan has taken (clan.hides) the hero sells with Space at the built market
   // of one of its own towns, at data.market.prices ryo each; the coins fly into the market (render/chest_cash_fx.js)
   const M = () => data?.market || {};
   const carried = clan => Object.entries(state.clans?.[clan]?.hides || {}).filter(([, n]) => n > 0);
@@ -522,9 +522,9 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     return true;
   }
 
-  // Catching a wild horse (W6, Tim 2026-11-24): on foot the hero creeps up (Shift walks; running, riding or crew near
+  // Catching a wild horse (W6, 2026-11-24): on foot the hero creeps up (Shift walks; running, riding or crew near
   // make the herd bolt) to within catch.reach of a calm one; on horseback he rides alongside one, running or not, within
-  // catch.rideReach. Space catches her (nothing is thrown, Tim 2026-11-24: no lasso, no rope; warm light passes over her and she is saddled, render/tame_fx.js) and she is his (mounts.adopt).
+  // catch.rideReach. Space catches her (nothing is thrown, 2026-11-24: no lasso, no rope; warm light passes over her and she is saddled, render/tame_fx.js) and she is his (mounts.adopt).
   const CATCH = () => data?.catch || {};
   const NAMES = () => CATCH().names || ['Kaze'];
   function catchTarget(e) {
@@ -540,7 +540,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     return best;
   }
   function catchPrompt(e) { return e?.catchCast ? { text: 'Space  Let her go' } : catchTarget(e) ? { text: 'Space  Catch her' } : null; }
-  // Space starts a short catch (Tim 2026-11-26: so the hero is seen doing something, not a saddle just appearing):
+  // Space starts a short catch (2026-11-26: so the hero is seen doing something, not a saddle just appearing):
   // catch.castSeconds with a cast bar, the hero holding a plain pole to her neck (render/tame_fx.js; never a rope or
   // loop) while she stands calm and glows. On foot he stands still (catch.standRange); riding he stays within
   // rideReach + 1. A hit, going down, her being hurt, or Space again ends it, and she bolts. Then she is saddled and his.

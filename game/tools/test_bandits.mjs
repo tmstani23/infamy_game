@@ -181,7 +181,7 @@ for (const type of ['bandit', 'night_brute']) {
   assert.ok(!g.state.entities[far].angry, 'the far one does not');
   assert.ok(g.state.hits.length >= 0 && g.state.entities[hero].hp < 100000, 'they hit back');
   const got = g.state.clans.player.ryo - ryo0, base = B.rules.roamerLoot, k = B.rules.ryoSpread;
-  assert.equal(got, 0, 'no ryo for the kill itself (Tim 2026-10-19)');
+  assert.equal(got, 0, 'no ryo for the kill itself (2026-10-19)');
   const loot = g.state.entities[a].loot;
   assert.ok(loot >= Math.round(base * (1 - k)) && loot <= Math.round(base * (1 + k)), `loot ${loot}`);
   assert.equal(gains.length, 0);

@@ -1,4 +1,4 @@
-"""Add the housing build-phase and abandoned art (Tim 2026-11-05) to game/art without rerunning the whole cutter.
+"""Add the housing build-phase and abandoned art (2026-11-05) to game/art without rerunning the whole cutter.
 
     python tools/add_housing_stage_art.py
 

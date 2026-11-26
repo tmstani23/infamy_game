@@ -7,7 +7,7 @@
 //   add --pack to repack just these models into the live catalog afterwards
 //       (tools/repack_model.mjs; --margin=N passes through)
 //   add --bare to draw the clip with nothing in the hands, and --as=NAME to write it as <model>_NAME
-//       (the campfire sit: --clip=coach_sitting --bare --as=campfire_sit, world variety P1, Tim 2026-11-26)
+//       (the campfire sit: --clip=coach_sitting --bare --as=campfire_sit, world variety P1, 2026-11-26)
 //   add --props=flasks to put a little flask in each fist (the hermit's mixing: --clip=bartending --props=flasks --as=mix)
 //   add --from=S --span=S to draw only that stretch of a long clip (seconds), --frames=N for more than the page's 32 frames
 //   add --portrait for the character-page portrait: the idle from art.json, front
@@ -79,7 +79,7 @@ const MODEL_SETS = {
   ninja_grunt: ['ninja'],
   ninja_tanto: ['ninja'],
   archer: ['archer'],
-  // war specials (Tim 2026-11-10): kunoichi on the ninja set, dog handler on the brawler set,
+  // war specials (2026-11-10): kunoichi on the ninja set, dog handler on the brawler set,
   // the fire-bomber on the brawler set plus his own throw and stab (animations/firebomber)
   kunoichi: ['ninja'],
   dog_handler: ['brawler'],
@@ -91,17 +91,17 @@ const VARIANTS = { brute: 'mutant' };
 const SCALE = { brute: 1.12 };
 const ITEMS = {
   mercenary: { file: 'rifle', mode: 'both', length: 1.25, grip: 0.25 },
-  ninja_leader: { file: 'ninjato', mode: 'right', length: 1.05, grip: 0.17, idleBack: { drop: -45, hand: 'left', idle: { forward: true } } },   // 40% bigger (Tim 2026-10-20); idle: blade out forward 45° up, not back by his head (Tim 2026-11-21)
+  ninja_leader: { file: 'ninjato', mode: 'right', length: 1.05, grip: 0.17, idleBack: { drop: -45, hand: 'left', idle: { forward: true } } },   // 40% bigger (2026-10-20); idle: blade out forward 45° up, not back by his head (2026-11-21)
   // Two-handed swords: flip points the blade away from the left hand (left hand near the pommel)
   // hang: when the hands part (idles, walks) the sword hangs from the right hand along the leg
-  // idleBack: one-hand blade in the palm, in idles and walks pointing back behind at drop degrees below level, negative = tip up; hand 'left' = the other hand (ninja, Tim 2026-10-20: left hand, 45° up)
+  // idleBack: one-hand blade in the palm, in idles and walks pointing back behind at drop degrees below level, negative = tip up; hand 'left' = the other hand (ninja, 2026-10-20: left hand, 45° up)
   // runBack: while a clip named run plays the blade trails behind the hand, almost level (drop = degrees tip below level, roll 180 bows the curve upward)
   // proc = stylized weapon built in code by the sprite page (drawn blade, wrapped hilt, rim light); beats the image slab
   ronin: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true, runBack: { drop: 12, roll: 180 } },
   swordsman: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true, runBack: { drop: 12, roll: 180 } },
   rival_yakuza: KURODA_SPRITES.rival_yakuza.item,
   kuroda_spearman: KURODA_SPRITES.kuroda_spearman.item,
-  ninja_grunt: { file: 'ninjato', mode: 'right', length: 1.05, grip: 0.17, idleBack: { drop: -45, hand: 'left' } },   // 40% bigger (Tim 2026-10-20)
+  ninja_grunt: { file: 'ninjato', mode: 'right', length: 1.05, grip: 0.17, idleBack: { drop: -45, hand: 'left' } },   // 40% bigger (2026-10-20)
   ninja_tanto: { file: 'tanto', mode: 'right', length: 0.62, grip: 0.2, palmOffset: 0.08, idleBack: { drop: -45, hand: 'left', forward: true }, runBack: { drop: 5, roll: 0 } },
   archer: { file: 'bow', mode: 'left', length: 1.3, grip: 0.5 },
   // Brawlers swing clubs in the right hand (the brute's grows into a kanabo once it has a model)
@@ -110,10 +110,10 @@ const ITEMS = {
   brute: { file: 'wooden_club', proc: 'club', mode: 'right', length: 1.0, grip: 0.15, dir: [0.92, 0.38, 0] },
   // Police: iron jitte in the right hand, same hammer grip as the clubs
   police: { file: 'jitte', proc: 'jitte', mode: 'right', length: 0.55, grip: 0.18, dir: [0.92, 0.38, 0] },
-  // Rail gang (Tim 2026-11-07): the laborer body holding a sledge in the right hand, same hammer grip
-  // war specials (Tim 2026-11-10): the kunoichi's tanto, the dog handler's club, the fire-bomber's short knife
-  kunoichi: { file: 'tanto', mode: 'right', length: 0.72, thin: 0.45, grip: 0.15, palmOffset: 0.03, idleBack: { drop: -45, hand: 'left', forward: true }, runBack: { drop: 5, roll: 0 } },   // longer, slimmer blade (Tim 2026-11-10)
-  dog_handler: { file: 'knuckles', proc: 'knuckles', mode: 'right', length: 0.26, grip: 0.5, palmOffset: 0.08, dir: [0.92, 0.38, 0] },   // iron knuckles (Tim 2026-11-10: the club is overused)
+  // Rail gang (2026-11-07): the laborer body holding a sledge in the right hand, same hammer grip
+  // war specials (2026-11-10): the kunoichi's tanto, the dog handler's club, the fire-bomber's short knife
+  kunoichi: { file: 'tanto', mode: 'right', length: 0.72, thin: 0.45, grip: 0.15, palmOffset: 0.03, idleBack: { drop: -45, hand: 'left', forward: true }, runBack: { drop: 5, roll: 0 } },   // longer, slimmer blade (2026-11-10)
+  dog_handler: { file: 'knuckles', proc: 'knuckles', mode: 'right', length: 0.26, grip: 0.5, palmOffset: 0.08, dir: [0.92, 0.38, 0] },   // iron knuckles (2026-11-10: the club is overused)
   fire_bomber: { file: 'tanto', mode: 'right', length: 0.5, grip: 0.2, palmOffset: 0.08, dir: [0.92, 0.38, 0] },   // in the fist like the clubs (no dir = at the wrist)
   rail_worker: { file: 'hammer', proc: 'hammer', mode: 'right', length: 0.9, grip: 0.12, dir: [0.92, 0.38, 0] },
 };
@@ -122,28 +122,28 @@ const EXTRA = {
   swordsman: ['brawler/Walking.fbx'],
   rival_yakuza: ['brawler/Walking.fbx'],
   geisha: ['Arms Hip Hop Dance.fbx'],
-  // the wandering hermit (world variety P2, Tim 2026-11-26): picking herbs, mixing his flasks, feeding the animals
+  // the wandering hermit (world variety P2, 2026-11-26): picking herbs, mixing his flasks, feeding the animals
   monk: ['Picking Up.fbx', 'Bartending.fbx', 'Throwing.fbx'],
   monk2: ['Picking Up.fbx', 'Bartending.fbx', 'Throwing.fbx'],
   rail_worker: ['Great Sword Slash.fbx'],   // the hammer swing (overhead chop) until a proper pounding clip exists
-  lieutenant1: ['Yelling Out.fbx'],   // talk clip for the gate dialogue (Tim OK 2026-11-06)
+  lieutenant1: ['Yelling Out.fbx'],   // talk clip for the gate dialogue (OK 2026-11-06)
 };
 // Dedicated borrowed clips stay out of the root combat set.
-// RIDE: the heroes' riding pose, for now the coachman's omnibus sitting clip (Tim 2026-11-06); art.json characters.<hero>.ride
+// RIDE: the heroes' riding pose, for now the coachman's omnibus sitting clip (2026-11-06); art.json characters.<hero>.ride
 const RIDE = Object.fromEntries(['ronin', 'ninja_leader', 'rival_yakuza',
-  // every crew model rides too (Tim 2026-11-07: select crew, right-click a horse); enforcer = brute sheets, shinobi_geisha = geisha
+  // every crew model rides too (2026-11-07: select crew, right-click a horse); enforcer = brute sheets, shinobi_geisha = geisha
   'thug', 'brute', 'swordsman', 'kuroda_spearman', 'koruda_enforcer', 'shinobi_enforcer', 'demolitions', 'lookout', 'ninja_grunt', 'ninja_tanto',
   'mercenary', 'monk', 'monk2', 'geisha', 'archer', 'gunslinger',
-  // the coachman drawn on a driven rickshaw (Tim 2026-11-08: no empty seat, not the hero himself; render/view.js)
+  // the coachman drawn on a driven rickshaw (2026-11-08: no empty seat, not the hero himself; render/view.js)
   'rickshaw_driver'].map(m => [m, 'coach_sitting.fbx']));
 const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx', 'coach_sitting.fbx', 'Picking Up.fbx', 'Bartending.fbx', 'Throwing.fbx']);
-// RIDE_ATTACK (Tim 2026-11-14): the strike from the saddle, sheet <model>_ride_attack: the riding seat's hips and legs
+// RIDE_ATTACK (2026-11-14): the strike from the saddle, sheet <model>_ride_attack: the riding seat's hips and legs
 // with this attack clip above the hips (blended by the sprite page, addBlend). art.json characters.<model>.rideAttack
 // The same models get <model>_ride_saddle, their riding seat with the legs round the horse (RIDE_STRADDLE: thighs out
 // and down, degrees), used as art.json characters.<model>.ride in place of the coach seat.
 const RIDE_STRADDLE = [28, 30];
 const RIDE_ATTACK = { swordsman: 'Great Sword Slash.fbx', kuroda_spearman: 'Bayonet Stab.fbx', ninja_grunt: 'ninja/Sword And Shield Slash.fbx',
-  // heroes and every crew body that rides (Tim 2026-11-14); the brute sheets serve the Irezumi enforcer too, the geisha's bow is the Shinobi geisha's charm
+  // heroes and every crew body that rides (2026-11-14); the brute sheets serve the Irezumi enforcer too, the geisha's bow is the Shinobi geisha's charm
   ronin: 'Great Sword Slash.fbx', ninja_leader: 'ninja/Sword And Shield Slash.fbx', rival_yakuza: 'Upward Thrust.fbx',
   thug: 'brawler/Punching_noskin.fbx', brute: 'brawler/Punching_noskin.fbx', demolitions: 'brawler/Punching_noskin.fbx',
   ninja_tanto: 'ninja/Sword And Shield Slash.fbx', koruda_enforcer: 'Great Sword Slash.fbx', shinobi_enforcer: 'ninja/Sword And Shield Slash.fbx',
@@ -177,12 +177,12 @@ const MOUNTS = {
   omnibus: { file: 'omnibus.glb', height: 2.4, ref: '^black_beauty', merge: 'walk', supersample: 2,
     extra: [{ file: 'omnibus_gallop.glb', merge: 'gallop' }],
     wheels: { mesh: 'omnibus_body', fwd: 1, axle: [0.133, 0.172], list: [[-0.222, 0.108, 0.108], [0.209, 0.095, 0.087]], spokes: 10 } },
-  // Horse-drawn rickshaw (Tim 2026-11-06): the black mare in the black rickshaw's stretched shafts, no puller
+  // Horse-drawn rickshaw (2026-11-06): the black mare in the black rickshaw's stretched shafts, no puller
   // (assets/models/source/rickshaw_horse_rig/rickshaw_horse.py). Wheel numbers are in the scene's Blender coordinates.
   rickshaw_horse: { file: 'rickshaw_horse.glb', height: 2.4, ref: '^black_beauty', merge: 'walk', supersample: 2,
     extra: [{ file: 'rickshaw_horse_gallop.glb', merge: 'gallop' }],
     wheels: { mesh: 'rickshaw', fwd: 1, axle: [0.133, 0.195], list: [[-0.889, 0.179, 0.181]], spokes: 10 } },
-  // Train pieces (Tim 2026-11-07), from tools/train_to_glb.py. dirs: 32 sheet rows (long cars need finer turns on curves), fps 6 = 6 frames, keeps the pages small. One shared scale: engine 3.6 units to the chimney top
+  // Train pieces (2026-11-07), from tools/train_to_glb.py. dirs: 32 sheet rows (long cars need finer turns on curves), fps 6 = 6 frames, keeps the pages small. One shared scale: engine 3.6 units to the chimney top
   // (k = 9.28 world units per model unit; guard car also x0.556 because its model is bigger). Wheels cut out and spun
   // like the omnibus; list = [along (Blender y), height, radius]. Clips 'walk' (slow roll) and 'run' (fast roll).
   train_engine: { file: 'train_engine.glb', dirs: 32, fps: 6, height: 3.6, supersample: 2,
@@ -195,17 +195,17 @@ const MOUNTS = {
     wheels: { mesh: 'train_goods', fwd: 1, axle: [0.058, 0.092], list: [[-0.109, 0.054, 0.055], [0.09, 0.054, 0.055]], spokes: 12 } },
   train_guard: { file: 'train_guard.glb', dirs: 32, fps: 6, height: 3.81, supersample: 2,
     wheels: { mesh: 'train_guard', fwd: 1, axle: [0.11, 0.17], list: [[-0.215, 0.1, 0.1], [0.255, 0.1, 0.1]], spokes: 12 } },
-  // Cannons: 'fire' = recoil only; muzzle flash and smoke are separate effects (Tim 2026-11-06)
+  // Cannons: 'fire' = recoil only; muzzle flash and smoke are separate effects (2026-11-06)
   cannon_field: { file: 'cannon_field.glb', height: 1.3, merge: 'fire', yaw: 90 },   // muzzle along Blender -X
   // Kuroda Gatling gun (2026-11-10, assets/models/source/gatling_rig/gatling_rig.py): 'fire' = barrels spin on their own axis + shudder; flash, smoke, bullets are effects
   gatling: { file: 'gatling.glb', height: 1.1, merge: 'fire', yaw: 90 },
   cannon_wooden: { file: 'cannon_wooden.glb', height: 1.2, merge: 'fire', yaw: 90 },
   // Boats (hull cut at the waterline; the game draws the water): sized by hull length, and at half the
-  // characters' pixel scale (pxPerUnit) so the big hulls stay a sane sheet size; fps 6 halves their frames (art.json plays them at speed 0.5; Tim 2026-11-06). Wake and spray come later as effects.
+  // characters' pixel scale (pxPerUnit) so the big hulls stay a sane sheet size; fps 6 halves their frames (art.json plays them at speed 0.5; 2026-11-06). Wake and spray come later as effects.
   boat_river: { file: 'boat_river.glb', length: 6, yaw: 90, pxPerUnit: 320 / 3 , fps: 6 },
   ship_coastal: { file: 'ship_coastal.glb', length: 12, yaw: 90, pxPerUnit: 320 / 3 , fps: 6 },   // twice people's page pixels (2026-11-23: ships drawn 1.15 to 1.7 times larger looked soft); pages load compressed (render/characters.js BIG_DRAWN)
   ship_war: { file: 'ship_war.glb', length: 16, yaw: 90, pxPerUnit: 160 / 3 , fps: 6 },
-  // Wildlife (W2, Tim 2026-11-24): the animal rigs from war_build/wildlife/rigs (quad_rig_v2.py + anim_extra.py), sized by body
+  // Wildlife (W2, 2026-11-24): the animal rigs from war_build/wildlife/rigs (quad_rig_v2.py + anim_extra.py), sized by body
   // length nose to tail (a person is 2 tall): bear "pretty big" 3.4, wolf and stag 1.85, boar 1.5, doe 1.4
   wolf: { file: 'wolf.glb', length: 1.85 },
   bear: { file: 'bear.glb', length: 3.4 },

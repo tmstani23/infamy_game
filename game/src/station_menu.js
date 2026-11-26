@@ -1,8 +1,8 @@
-// The island travel menu (Tim 2026-11-06): Space on the island at your omnibus station (which doubles as the
-// railway station) or at the island end of the gate. Trains (Tim 2026-11-07, train plan step 4): board one standing
+// The island travel menu (2026-11-06): Space on the island at your omnibus station (which doubles as the
+// railway station) or at the island end of the gate. Trains (2026-11-07, train plan step 4): board one standing
 // here, see when the next one comes in, lay track to another of your towns (sim/frontier/rail.js). While you ride,
 // the panel stays up with Skip (Space or the button, after a few seconds; number keys do nothing while you ride). Instant rickshaw trips are off (rickshaws are
-// driven like the omnibus). Drive back to the gate was taken out (Tim 2026-11-07). The city side is the island gate
+// driven like the omnibus). Drive back to the gate was taken out (2026-11-07). The city side is the island gate
 // menu (src/site_menu.js). Closes when you walk away, or on Esc / Space. Number keys board the trains standing here.
 import { msInstall, msShell, msAside, msArt, msSec, msRow, msBtn, msPager, msNote, msProg } from './menu_shell.js';
 const PER = 4;   // track offers a page, no scrollbars (look: shared menu shell, menu restyle 2026-11-10)
@@ -13,11 +13,11 @@ export function createStationMenu({ panel, game, heroId, send }) {
   const trip = () => onIsland() ? game.stationTravel?.destinations(hero()) || null : null;
   const rail = () => game.frontier?.rail;
   const riding = () => String(hero()?.aboard || '').startsWith('rail:');
-  // the city's railway station by the gate (Tim 2026-11-07): its door ring opens this menu too (main.js)
+  // the city's railway station by the gate (2026-11-07): its door ring opens this menu too (main.js)
   const atCity = () => { const h = hero(), st = game.gate?.station; return !!st && h?.place === 'street' && Math.hypot(h.x - st[0], h.z - st[1]) <= 6; };
   // trains serving the station you stand at (an island station or the city's)
   const trains = () => (onIsland() || atCity()) && !riding() ? rail()?.service(hero()) || [] : [];
-  const boardNow = () => trains().filter(s => s.eta === 0 && !s.closed);   // (a closed line's train does not leave, Tim 2026-11-17)
+  const boardNow = () => trains().filter(s => s.eta === 0 && !s.closed);   // (a closed line's train does not leave, 2026-11-17)
   const placeName = id => id === 'capital' ? 'the capital' : game.state.frontier?.settlements?.[id]?.name || id;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // railway (train plan step 2): lay track from this station to another of yours, or watch the line being laid
@@ -80,7 +80,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
     const cut = tr.filter(s => s.closed), now = tr.filter(s => s.eta === 0 && !s.closed), next = tr.filter(s => s.eta > 0 && !s.closed && !now.some(n => n.to === s.to));
     const name = t?.here || (atCity() ? 'The capital' : tr[0] ? placeName(tr[0].at) : '');
     let k = 0, body = msSec('Trains', now.length ? `${now.length} boarding` : '', 'All aboard: everyone of yours in the gold zone after 10 s gets on (Space boards at once). Ride along, or Skip after a few seconds.');
-    // Tim 2026-11-17: a line that is cut (a camp's supply line broken, or a town's station in ruins) runs no trains
+    // 2026-11-17: a line that is cut (a camp's supply line broken, or a town's station in ruins) runs no trains
     body += cut.map(s => msRow({ off: true, name: `To ${esc(s.toName)}`, sub: 'Line cut: no trains until it is rebuilt' })).join('');
     if (now.length || next.length) {
       body += now.map(s => msRow({ key: ++k <= 9 ? k : null, name: `To ${esc(s.toName)}`, sub: `${s.seats - s.riders} seats, leaves in ${s.leaves ?? 0} s`,
@@ -116,7 +116,7 @@ export function createStationMenu({ panel, game, heroId, send }) {
   function close() { open = false; update(); }
   const at = () => riding() || !!trip() || trains().length > 0;
   // the on-screen prompt while a train stands here (main.js): which way it goes and when it leaves
-  // the All aboard call you made (Tim 2026-11-08): Space boards at once; the prompt counts down and counts the zone
+  // the All aboard call you made (2026-11-08): Space boards at once; the prompt counts down and counts the zone
   const call = () => { return Object.values(game.state.frontier?.rail?.trains || {}).find(t => t.call?.hero === heroId) || null; };
   const calling = () => !!call();
   const boardCall = () => { const t = call(); if (t) send({ id: heroId, type: 'frontier', action: 'rail', mode: 'board', train: t.id }); };

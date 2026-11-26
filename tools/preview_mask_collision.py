@@ -1,6 +1,6 @@
-"""Preview: blocking taken from the art's own outline (war collision checkpoint 5b-0, Tim 2026-11-11).
+"""Preview: blocking taken from the art's own outline (war collision checkpoint 5b-0, 2026-11-11).
 
-Tim's idea: select the background, invert, fill: everything inside the outline. The filled outline also holds
+the idea: select the background, invert, fill: everything inside the outline. The filled outline also holds
 the walls and roof, which stand above the ground, so the building's height is cut off the top of every column:
 what is left is the ground the building stands on, and it can never reach outside the art.
 Height: read from the outline at its left and right ends (a column there is one wall high), or art data.
@@ -58,7 +58,7 @@ def ground_mask(img, name):
         y0 = int(top[x] + wall)
         if y0 <= low[x]:
             g[y0:low[x] + 1, x] = a[y0:low[x] + 1, x]
-    # straight back edges (Tim OK 2026-11-11): the cut edge copies the roofline, so chimneys and towers leave
+    # straight back edges (OK 2026-11-11): the cut edge copies the roofline, so chimneys and towers leave
     # spikes. Two straight lines at the ground slope, one over each half, set at the middle height of that
     # half's back edge, cut the spikes off. The shape only ever shrinks, so it stays inside the art.
     gc = np.where(g.any(axis=0))[0]

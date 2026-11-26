@@ -1,4 +1,4 @@
-// Military quarter (Tim 2026-11-21, war_build/town_plan/town_plan_spec.md section 3). In a town whose governor
+// Military quarter (2026-11-21, war_build/town_plan/town_plan_spec.md section 3). In a town whose governor
 // has the initiative (every bot town, and a player's town on auto) the general reserves one compact block of
 // Military zone, so military buildings do not spread over the town, and lays the road to it himself.
 // - First pick: it runs at the top of the governor review, before the governor zones anything, at founding and
@@ -53,7 +53,7 @@ export function createMilitaryPlot({ state, data, world, zones, placement = () =
     }
     return out;
   }
-  // why no block fits (Tim 2026-11-22: the panel says the cause): the main thing on the ground round the hall
+  // why no block fits (2026-11-22: the panel says the cause): the main thing on the ground round the hall
   let lastWhy = '';
   function whyNoRoom(s, W, H, ok, skip, camps) {
     const g = s.grid, n = g.n, hall = centreCell(n), hc = hall % n, hr = (hall - hc) / n, minD = P().minDistance ?? 3;
@@ -171,7 +171,7 @@ export function createMilitaryPlot({ state, data, world, zones, placement = () =
     layRoad(s);
   }
 
-  // Tim 2026-11-22: a full quarter grows by itself, a quarter the player painted too (this replaces "his zone is
+  // 2026-11-22: a full quarter grows by itself, a quarter the player painted too (this replaces "his zone is
   // never touched" of 2026-11-21). The general (war_general_brain fundCap) names in s.fund.grow the next buildings of
   // his list from the first with no room (up to plot.ahead, 3). One strip is added for them: the buildings side by
   // side, one building deep, with a one-cell road lane along one long side, so the quarter never walls ground off.

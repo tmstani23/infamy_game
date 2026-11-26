@@ -1,4 +1,4 @@
-// Stock flows for the Usage page (Tim 2026-11-05). world.change notes every stock change here by its
+// Stock flows for the Usage page (2026-11-05). world.change notes every stock change here by its
 // reason; once per economy tick the sums fold into a smoothed per-minute rate per reason. Read-only
 // for rules: nothing in the sim decides anything from s.flow, it only explains the stock to players.
 const SMOOTH = 1 / 60;   // about a one-minute average, so lumpy worker drop-offs read steady

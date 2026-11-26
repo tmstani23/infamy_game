@@ -1,10 +1,10 @@
-// Island minimap building icons (Tim 2026-11-07): each major built building of a frontier town gets a small
+// Island minimap building icons (2026-11-07): each major built building of a frontier town gets a small
 // lettered badge, with its name on hover. Reads the frontier view only (state.frontier.settlements).
 // Also the city business names for the minimap's hover label.
 import { cellToWorld } from './sim/frontier/town_grid.js';
 
 // type -> [badge letter, name, military?]; the rest (houses, farms, camps, quarries, workshops) are too minor to mark.
-// Military buildings (Tim 2026-11-19): town and war camp, first letter, the first two where another badge has it;
+// Military buildings (2026-11-19): town and war camp, first letter, the first two where another badge has it;
 // drawn with a red rim. Enemy ones only as your units last saw them (the snapshot sends remembered buildings only).
 export const MAJOR_BUILDINGS = {
   town_hall: ['H', 'Town hall'],
@@ -38,7 +38,7 @@ export const CITY_NAMES = { pawnshop: 'Pawnshop', bathhouse: 'Bathhouse', sake_b
 export function majorBuildings(frontier) {
   const out = [];
   for (const s of Object.values(frontier?.settlements || {})) {
-    // castles (Tim 2026-11-20): every castle gets its badges, but not its wall watchtowers; other capitals none
+    // castles (2026-11-20): every castle gets its badges, but not its wall watchtowers; other capitals none
     if ((s.capital && !s.castle) || !s.grid || !Number.isFinite(s.x) || !Number.isFinite(s.z)) continue;
     for (const b of s.buildings || []) {
       const info = MAJOR_BUILDINGS[b.type];
@@ -50,7 +50,7 @@ export function majorBuildings(frontier) {
         type: b.type, letter: info[0], name: info[1], military: !!info[2] || b.type === 'stockade', town: s.name, owner: s.owner });
     }
   }
-  // war camps (Tim 2026-11-19): their finished buildings, by position
+  // war camps (2026-11-19): their finished buildings, by position
   for (const w of Object.values(frontier?.wars?.list || {})) {
     const camp = w.camp, t = frontier?.settlements?.[w.town];
     for (const b of camp?.buildings || []) {
@@ -75,7 +75,7 @@ export function drawBuildingBadge(ctx, u, v, letter, color, size = 8, military =
   ctx.restore();
 }
 
-// Guide arrows (Tim 2026-11-20): a gold arrow on the minimap edge for each pin or goal spot outside the box.
+// Guide arrows (2026-11-20): a gold arrow on the minimap edge for each pin or goal spot outside the box.
 // edgeArrow takes the target's minimap pixel and returns where the arrow sits on the inset edge and which way it points
 // (null while the target is inside the box, where the regular pulse shows instead).
 export function edgeArrow(u, v, size, inset = 10) {
@@ -91,7 +91,7 @@ export function drawGuideArrow(ctx, ar, s = 1) {
   ctx.restore();
 }
 
-// train robbery (Tim 2026-11-20): where your hero last went down, and your own dropped stolen chest (sim/frontier/rail_robbery.js)
+// train robbery (2026-11-20): where your hero last went down, and your own dropped stolen chest (sim/frontier/rail_robbery.js)
 export function robberyMarks(state, clan) {
   const out = [], d = state?.clans?.[clan]?.lastDown;
   if (d) out.push({ kind: 'down', x: d.x, z: d.z, name: 'Where your hero last went down' });

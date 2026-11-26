@@ -16,7 +16,7 @@
     "lootSeconds": 60
   },
   "worldCamps": {
-    "_note": "W4 functional pass: placeholder strength, rewards and spacing, Tim to tune. Five-day recovery is approved. Existing authored tiers get increasing resident counts. First-clear bonus is once per camp across all clans; ordinary body loot still uses bandit rules.",
+    "_note": "W4 functional pass: placeholder strength, rewards and spacing, to tune. Five-day recovery is approved. Existing authored tiers get increasing resident counts. First-clear bonus is once per camp across all clans; ordinary body loot still uses bandit rules.",
     "enabled": true,
     "respawnDays": 5,
     "firstClearRyo": 40,

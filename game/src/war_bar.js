@@ -1,10 +1,10 @@
-// The war bar (war checkpoint 8a-2, Tim 2026-11-14): presentation only. While your clan is in a war a bar sits at
+// The war bar (war checkpoint 8a-2, 2026-11-14): presentation only. While your clan is in a war a bar sits at
 // the top of the screen with both sides' morale (sim/frontier/war_morale.js): yours on the left, the enemy's on the
 // right, each draining toward the middle. A drop flashes that side and a line under the bar names the cause for a few
 // seconds. Hovering a side lists what still stands and what is down. A side at 0 shows that its hall can be taken, and
 // a running channel (8a-3) shows its countdown in the middle with a strip under the bar.
 // With several wars it shows the one whose town is nearest to the hero.
-// The capture moment (Tim 2026-11-25): for a few seconds after your hero captures a town the bar shows only
+// The capture moment (2026-11-25): for a few seconds after your hero captures a town the bar shows only
 // "<Town> captured" in big gold between the two seals (the town fireworks and the hall's gold flare go off with it).
 // warBarHtml(model) is pure (the mock page uses it too); warBarModel(game, heroId) reads the state only.
 export const WAR_BAR_CSS = `
@@ -71,7 +71,7 @@ export function warBarHtml(m) {
   const side = (s, cls) => {
     const crest = `<span class="wb-crest"${s.faction ? ` data-faction="${esc(s.faction)}"` : ''}></span>`, pct = `<b class="wb-pct">${Math.round(s.pct)}</b>`;
     const col = `<div class="wb-col"><div class="wb-name">${esc(s.name)}</div><div class="wb-track"><i style="width:${Math.max(0, Math.min(100, s.pct))}%"></i>${s.ready ? `<span class="wb-ready">${esc(s.readyText || '')}</span>` : ''}</div></div>`;
-    // 8e-6 (mock E, Tim 2026-11-16): a bigger, shorter hover: what is down and what it cost, then what is left
+    // 8e-6 (mock E, 2026-11-16): a bigger, shorter hover: what is down and what it cost, then what is left
     const H = s.hover, hov = H ? `<div class="wb-hov"><h4>${esc(H.title)}</h4><div class="hb"><i style="width:${Math.max(0, Math.min(100, s.pct))}%"></i></div>${H.down.map(d => `<div class="hl"><span>${esc(d.name)}</span><span>-${d.minus}</span></div>`).join('')}<div class="hleft">${esc(H.left)}</div></div>` : '';
     return `<div class="wb-side ${cls}${s.hit ? ' hit' : ''}${s.ready ? ' ready' : ''}" style="--c:${esc(s.color || '#888')}"${H ? '' : ` title="${esc(s.tip || '')}"`}>${cls === 'me' ? crest + col + pct : pct + col + crest}${hov}</div>`;
   };
@@ -116,7 +116,7 @@ export function warBarModel(game, heroId, prefer = null) {
   const line = last ? { text: `${last.side === mySide ? 'Your' : 'Enemy'} ${nice(last.type).toLowerCase()} destroyed, morale down ${last.amount}`, good: last.side !== mySide } : null;
   // 8c: a ceasefire while surrender terms are on the table
   const T = w.terms, truce = T ? { text: T.state === 'outcome' ? (attacking ? 'They left: choose what happens to the town' : 'No terms: the attacker is choosing') : `Ceasefire: ${T.by === (attacking ? 'attacker' : 'defender') ? 'you' : foeClan?.name || 'they'} surrendered, terms are on the table`, good: T.by !== (attacking ? 'attacker' : 'defender') } : null;
-  // Tim 2026-11-18: a big "waiting on terms" notice with an Open terms button, flashing when it is your move
+  // 2026-11-18: a big "waiting on terms" notice with an Open terms button, flashing when it is your move
   const meSide = attacking ? 'attacker' : 'defender', myMove = !!T && (T.state === 'outcome' ? attacking : T.by === meSide ? !T.offer : !!T.offer);
   const notice = T ? { text: T.state === 'outcome' ? (attacking ? 'Choose what happens to the town' : 'Waiting on the attacker') : myMove ? (T.by === meSide ? 'Terms: make your offer' : 'Terms: your answer is needed') : 'Waiting on terms', owe: myMove,
     sub: T.state === 'outcome' ? '' : 'Ceasefire: nobody attacks, trains or builds' } : null;
@@ -128,7 +128,7 @@ export function createWarBar({ game, heroId, channelOf = () => null, watch = nul
   const root = document.createElement('div'); root.id = 'warbar'; root.hidden = true; document.body.appendChild(root);
   let shown = '';
   // 8d-4: Watch looks at the war from afar (war_watch.js); Back returns to the hero
-  root.addEventListener('click', e => { const t = e.target.closest?.('[data-terms]'); if (t) { openTerms(t.dataset.terms); t.blur(); return; } });   // Tim 2026-11-18
+  root.addEventListener('click', e => { const t = e.target.closest?.('[data-terms]'); if (t) { openTerms(t.dataset.terms); t.blur(); return; } });   // 2026-11-18
   root.addEventListener('click', e => { const b = e.target.closest?.('[data-watch]'); if (!b || !watch) return; if (watch.watching() === b.dataset.watch) watch.end(); else watch.start(b.dataset.watch); b.blur(); });
   for (const ev of ['pointerdown', 'mousedown']) root.addEventListener(ev, e => { if (e.target.closest?.('[data-watch],[data-terms]')) e.stopPropagation(); });
   function update() {

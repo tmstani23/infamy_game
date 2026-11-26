@@ -30,16 +30,16 @@ Each layer is playable on its own before the next one starts.
 6. Built 2026-10-19: the 2x hand-made port-town map, the game settings file, and businesses and raids (buying, attacking, War Lantern raids, defending; `business_raids_plan.md`). The rival bot clan is built too (2026-10-19, `rival_bot_plan.md`).
 7. Built 2026-10-20: season score and season end, territory areas and the M game map (`territory.md`).
 
-Tim's order from here (2026-10-20): a fully playable single-player game first, small tweaks later.
+the order from here (2026-10-20): a fully playable single-player game first, small tweaks later.
 
 8. Ninja (Shinobi) clan fully playable: contracts only (no property), village board, stealth, assassin leader. Plan: `ninja_clan_plan.md` (being built, 2026-10-20).
 9. Start menu built 2026-10-22: [clan/difficulty selection](gameplay_and_design.md#starting-paths-settled). Load/save remains future work.
 10. Inventory, stash, fence and world loot; business upgrades.
 11. Rival bot medium and hard tuning.
-12. Before any public release: close the test switches (`test_params.md`) or put them behind sign-in (Tim 2026-10-19).
-13. Later (after the core game): combat variety (Tim 2026-10-19, planned, not built), so fights aren't one big auto-attack huddle. Ideas: per-enemy special attacks (knockdowns, stuns, charged shots); police types such as ranged officers who back off and fire a charged shot, and a captain; AI that spreads out and flanks instead of piling in.
+12. Before any public release: close the test switches (`test_params.md`) or put them behind sign-in (2026-10-19).
+13. Later (after the core game): combat variety (2026-10-19, planned, not built), so fights aren't one big auto-attack huddle. Ideas: per-enemy special attacks (knockdowns, stuns, charged shots); police types such as ranged officers who back off and fire a charged shot, and a captain; AI that spreads out and flanks instead of piling in.
 
-On hold: real estate (market, selling, lots, development) until the map can grow (Tim 2026-10-20).
+On hold: real estate (market, selling, lots, development) until the map can grow (2026-10-20).
 
 ## Architecture and maintenance pass (2026-10-21)
 

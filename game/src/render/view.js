@@ -41,7 +41,7 @@ import { buildCityDocks } from './city_docks.js';
 import { createShipMarks } from './ship_marks.js';
 import { createShipFx } from './ship_fx.js';
 import { createBoardFx } from './board_fx.js';
-import { createFishingFx } from './fishing_fx.js';   // fishing poles (Tim 2026-11-23)
+import { createFishingFx } from './fishing_fx.js';   // fishing poles (2026-11-23)
 import { createShoreLine } from './shore_line.js';   // ships S6b
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
@@ -59,7 +59,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
   renderer.info.autoReset=false; // count all water/bloom/main passes together for diagnostics
   let frameDrawMs=0,frameWorkers=0;
-  const frameParts={};   // F3 breakdown of the frame's CPU time (Tim 2026-11-07 lag hunt)
+  const frameParts={};   // F3 breakdown of the frame's CPU time (2026-11-07 lag hunt)
   const framePeaks={};   // worst single frame of each part over the last 8 s, so a hitch can be read after stopping
   let partAt=0;const mark=k=>{const n=performance.now(),v=n-partAt;frameParts[k]=(frameParts[k]||0)*0.9+v*0.1;const pk=framePeaks[k];if(!pk||v>pk.v||n-pk.at>8000)framePeaks[k]={v,at:n};partAt=n;};
   // Painted art is shaded in its own sRGB values, so no colour conversion on output
@@ -72,7 +72,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 600);
   camera.quaternion.copy(CAM_QUAT);
-  // unit overlays (health bars, selection rings, nameplates) sit on their own layer so F2 can hide them (Tim 2026-11-08)
+  // unit overlays (health bars, selection rings, nameplates) sit on their own layer so F2 can hide them (2026-11-08)
   const UI_LAYER = 5;
   camera.layers.enable(UI_LAYER);
   const camTarget = new THREE.Vector3();
@@ -80,10 +80,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let freeCam = null;      // where the camera looks while panned away from the hero (arrow keys), else null
   let shipPan = null;      // ships S6: { k, x, z, tx, tz } the hero's ship went down at x, z; he washes ashore at tx, tz
   let watchedPlace=null,watchedId=null;
-  let roomView=null;       // interior view (Tim 2026-11-10): the room the camera stays in after following crew inside, until it goes back out
+  let roomView=null;       // interior view (2026-11-10): the room the camera stays in after following crew inside, until it goes back out
   const indoorPlace=p=>!!p&&p!=='street'&&p!=='world';
   let worldView=false,worldExit=null;   // Watch a war (war 8d-4): the camera shows the island wherever the hero is
-  let cityView=false,cityExit=null;   // Watch the city (Tim 2026-11-08): the boss is on the island, the camera shows the capital street
+  let cityView=false,cityExit=null;   // Watch the city (2026-11-08): the boss is on the island, the camera shows the capital street
   let watchFn = null;      // camera follow target (double-click a crew name or group header): () => { x, z } or null
   const PAN_SPEED = 16;
   // Indoors the camera may also travel to the street to command outdoor crew.
@@ -117,7 +117,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   resize();
 
   scene.add(await buildGround(district.ground, renderer, district.bounds));
-  scene.add(await buildCityDocks(district.docks));   // the harbour piers on piles (render/city_docks.js, Tim 2026-11-23)
+  scene.add(await buildCityDocks(district.docks));   // the harbour piers on piles (render/city_docks.js, 2026-11-23)
   const roomLights = [], blueprintWalls = [], blueprintDoors = [];
   const roomCharacterScales = Object.fromEntries(rooms.map(r => [r.name, r.template.characterScale || 1]));
   for (const r of rooms) {
@@ -131,18 +131,18 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const door of built.partitionDoors) blueprintDoors.push({ ...door, at: door.at * scale, a: door.a * scale, b: door.b * scale,
       room: r.name, ox: r.origin.x, oz: r.origin.z, fade: baseOpacity, baseOpacity });
   }
-  const rings = doorRings(doors.filter(d => d.menu !== 'surveyor' && d.menu !== 'lieutenant'));   // the lieutenant too (Tim 2026-11-10)   // the surveyor has a quest mark over his head instead (render/banners.js)
+  const rings = doorRings(doors.filter(d => d.menu !== 'surveyor' && d.menu !== 'lieutenant'));   // the lieutenant too (2026-11-10)   // the surveyor has a quest mark over his head instead (render/banners.js)
   for (const d of rings) { scene.add(d); d.traverse(c => c.layers.set(UI_LAYER)); }   // door rings hide with F2 too
   const things = await buildScenery(scenery, renderer);
   // the island around the camera while the hero is out there (render/world_ground.js, frontier W3.4)
   const worldGround = world && worldChunks && cutouts ? createWorldGround({ scene, renderer, world, cfg: worldChunks, catalog, cutouts, bounds: district.bounds, gate: doors.find(d=>d.gate&&d.place==='street'), railZ: (district.buildings || []).find(b => b.railStation)?.z ?? null, resourceSpots, spotConfig }) : null;
-  // train plan: railway track on the island; each train car is a sprite (train_* art, Tim 2026-11-07), only its body and shadow
+  // train plan: railway track on the island; each train car is a sprite (train_* art, 2026-11-07), only its body and shadow
   const railTrack = worldGround ? createRailTrack({ scene, snow: (x, z) => islandBiome(world, x, z) === 'snow', hide: (() => { const c = cityOnIsland(world, district.bounds); return (x, z) => x > c.minX && x < c.maxX + 0.6 && z > c.minZ && z < c.maxZ; })(), carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
-  // frontier weather, purely visual (render/weather.js, Tim 2026-11-20): fog banks, rain, snow
+  // frontier weather, purely visual (render/weather.js, 2026-11-20): fog banks, rain, snow
   const weather = worldGround ? createWeather({ scene, camera, renderer, world, cfg: weatherCfg }) : null;
-  // crows out on the island (wildlife W1, Tim 2026-11-24), purely visual: render/crow_fx.js
+  // crows out on the island (wildlife W1, 2026-11-24), purely visual: render/crow_fx.js
   const crowFx = worldGround ? createCrowFx({ scene, world, groundY, isBuilding: n => catalog?.items?.[n]?.kind === 'buildings', cfg: wildlifeCfg?.crows || {} }) : null;
-  // the capital's railway station (Tim 2026-11-07): an engine with its nose out and a track off the east edge, in the city
+  // the capital's railway station (2026-11-07): an engine with its nose out and a track off the east edge, in the city
   const cityStationAt = (district.buildings || []).find(b => b.railStation);
   const cityStation = cityStationAt ? createCityStation({ scene, station: cityStationAt, edgeX: district.bounds.maxX,
     carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
@@ -152,9 +152,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const boardFx = createBoardFx({ scene, figureSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh); return s; } });   // boarding: grappling lines, deck fight, its bar, clan sails and pennants (ships S8)
   const shipFx = createShipFx({ scene, figureSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh); return s; } });   // ship guns and hull damage (ships S4)   // war ships: ring, plate, wake (ships S2)
   const ferryShips = worldGround && ships ? createFerryShips({ scene, ...ships, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
-  // boats tied up at the castle docks for the look only: a fishing boat, some days a warship (render/moored_boats.js, Tim 2026-11-23)
+  // boats tied up at the castle docks for the look only: a fishing boat, some days a warship (render/moored_boats.js, 2026-11-23)
   const mooredBoats = worldGround && ships ? createMooredBoats({ scene, rules: ships.rules, carSprite: async model => { const s = new CharacterSprite(await loadSheets(catalog, model)); scene.add(s.thing.mesh, s.shadow); return s; } }) : null;
-  // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (Tim 2026-11-02)
+  // night in the wild: a soft, cool glow around the hero's group keeps the ground readable (2026-11-02)
   const wildGlow = { pos: new THREE.Vector3(), radius: worldChunks?.nightGlow?.radius ?? 12, color: new THREE.Color(...(worldChunks?.nightGlow?.color ?? [0.3, 0.36, 0.5])), fire: false, seed: 1 };
   for (const t of things) scene.add(t.mesh, ...t.extras);
   const lights = [...things.flatMap(t => t.lights), ...roomLights];
@@ -177,7 +177,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   let nightTarget = night ? 1 : 0;
   shared.uNight.value = nightTarget;
   // tiny glowing mushrooms on the plank edges of the village bridges (port_town.json glowShrooms
-  // [x, z, shape], Tim 2026-10-20/21): little stem-and-cap sprites in three shapes (round, tall cone,
+  // [x, z, shape], 2026-10-20/21): little stem-and-cap sprites in three shapes (round, tall cone,
   // flat wide), pale by day, the caps glowing soft light-blue at night; only drawn, they light nothing
   const shrooms = (() => {
     const list = district.glowShrooms || [];
@@ -218,15 +218,15 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
 
   // thin ring under every character, coloured by who they are to you, over a faint dark
   // edge so it reads on light and dark ground, day or night
-  const TEAM = { hero: 0xffc83c, crew: 0x3cc8e6, enemy: 0xe63c32, bandit: 0xd2823c, townsfolk: 0xdcdcd2, police: 0x4a78e6, worker: 0x9be05a };   // worker: your workers (Tim 2026-11-12)
-  // Turning arcs (Tim 2026-11-01, mock C): three soft arcs with gaps and small beads that slowly
+  const TEAM = { hero: 0xffc83c, crew: 0x3cc8e6, enemy: 0xe63c32, bandit: 0xd2823c, townsfolk: 0xdcdcd2, police: 0x4a78e6, worker: 0x9be05a };   // worker: your workers (2026-11-12)
+  // Turning arcs (2026-11-01, mock C): three soft arcs with gaps and small beads that slowly
   // rotate, a faint inner line and a dark under-shadow so it reads on any ground. One shared quad
   // and one shader material per team: no textures, no per-unit memory beyond the mesh itself.
   const TEAM_TIME = { value: 0 };
-  // zoomed out (Tim 2026-11-19): 0 at normal zoom, 1 at the furthest; rings get thicker and brighter so enemies read in a war
+  // zoomed out (2026-11-19): 0 at normal zoom, 1 at the furthest; rings get thicker and brighter so enemies read in a war
   const TEAM_FAR = { value: 0 };
   const TEAM_GEO = new THREE.PlaneGeometry(1.4, 1.4);
-  // rim: a thin pale brass ring all the way round, just outside the arcs, kept apart by a dark gap (workers, Tim 2026-11-25: easy to spot zoomed out)
+  // rim: a thin pale brass ring all the way round, just outside the arcs, kept apart by a dark gap (workers, 2026-11-25: easy to spot zoomed out)
   const teamMaterial = (c, rim) => new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
     uniforms: { uColor: { value: new THREE.Color(c) }, uTime: TEAM_TIME, uOpacity: { value: 0.6 }, uFar: TEAM_FAR, uRim: { value: new THREE.Color(rim ?? 0) }, uRimK: { value: rim == null ? 0 : 0.6 } },
@@ -260,9 +260,9 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
         if (alpha < 0.004) discard;
         gl_FragColor = vec4(col, alpha);
       }` });
-  // health bars by side (Tim 2026-11-19): yours green, enemies red, everyone else keeps the green-to-red health shading
+  // health bars by side (2026-11-19): yours green, enemies red, everyone else keeps the green-to-red health shading
   const SIDE_BAR = { hero: [0.36, 0.8, 0.3], crew: [0.36, 0.8, 0.3], worker: [0.36, 0.8, 0.3], enemy: [0.86, 0.18, 0.14] };
-  const TEAM_RIM = { worker: 0xe8d9a0 };   // pale brass edge on your workers' rings, town and camp (Tim 2026-11-25)
+  const TEAM_RIM = { worker: 0xe8d9a0 };   // pale brass edge on your workers' rings, town and camp (2026-11-25)
   const TEAM_MAT = Object.fromEntries(Object.entries(TEAM).map(([k, c]) => [k, teamMaterial(c, TEAM_RIM[k])]));
   // a wild animal's coat: between the species' two shades (coat[0]) and a little lighter or darker (coat[1])
   const coatTint = e => {
@@ -271,17 +271,17 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   };
   function teamOf(e, me) {
     if (e.id === me?.id) return 'hero';
-    if (e.worker) return me && e.workerOwner === me.owner ? 'worker' : 'enemy';   // workers stand out from townsfolk and crew (Tim 2026-11-12)
-    if (e.type === 'civilian' || (e.guide && !e.owner)) return 'townsfolk';   // the old surveyor and other clanless guides read as townsfolk (Tim 2026-11-20)
+    if (e.worker) return me && e.workerOwner === me.owner ? 'worker' : 'enemy';   // workers stand out from townsfolk and crew (2026-11-12)
+    if (e.type === 'civilian' || (e.guide && !e.owner)) return 'townsfolk';   // the old surveyor and other clanless guides read as townsfolk (2026-11-20)
     if (me && e.owner === me.owner) return 'crew';
-    if (e.type === 'horse' && !e.owner) return me && e.horseOwner === me.owner ? 'crew' : e.horseOwner ? 'enemy' : 'townsfolk';   // a loose horse takes its owner's side, not red (Tim 2026-11-21)
+    if (e.type === 'horse' && !e.owner) return me && e.horseOwner === me.owner ? 'crew' : e.horseOwner ? 'enemy' : 'townsfolk';   // a loose horse takes its owner's side, not red (2026-11-21)
     if (e.wildlife) return e.angry && Object.keys(e.angry).length ? 'enemy' : 'bandit';   // wild animals (sim/wild_animals.js): red only while a boar charges
     if (e.owner === 'bandits') return e.angry && Object.keys(e.angry).length ? 'enemy' : 'bandit';
     // police: blue, red while after your clan
     if (e.owner === 'police') return e.angry?.[me?.owner] !== undefined ? 'enemy' : 'police';
     return 'enemy';
   }
-  // Special-unit auras (Tim 2026-11-12): a soft glow under every unit with a special ability, its own colour and motion
+  // Special-unit auras (2026-11-12): a soft glow under every unit with a special ability, its own colour and motion
   // per special (sim/special_cast.js SPECIALS). style 0 pulse, 1 flicker, 2 ripples, 3 turning ticks.
   const AURA = { firebomb: [0xff7a2a, 1], taunt: [0xff3b30, 0], charm: [0xff7ad2, 2], aimed: [0x9fd8ff, 3], dogs: [0xe0a650, 2], gatling: [0xdfe6ee, 3], hamstring: [0x7ee07a, 2] };
   const AURA_GEO = new THREE.PlaneGeometry(2.4, 2.4);
@@ -298,7 +298,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
         else if (uStyle < 1.5) k = glow * (0.5 + 0.12 * sin(t * 3.1) + 0.08 * sin(t * 4.7 + r * 3.0));
         else if (uStyle < 2.5) { float w = fract(r * 0.9 - t * 0.5); k = glow * 0.35 + exp(-pow(w - 0.5, 2.0) / 0.006) * exp(-r * r / 0.9) * 0.5; }
         else { float a = atan(vP.y, vP.x) + t * 0.6; k = glow * 0.35 + step(0.8, fract(a * 4.0 / 6.2832)) * exp(-pow(r - 0.8, 2.0) / 0.004) * 0.7; }
-        k *= 0.5;   // kept soft (Tim 2026-11-13: lighter, no flicker on the move)
+        k *= 0.5;   // kept soft (2026-11-13: lighter, no flicker on the move)
         if (k < 0.004) discard;
         gl_FragColor = vec4(uColor * k, 1.0);
       }` });
@@ -315,7 +315,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.team = new THREE.Group();
       const ring = new THREE.Mesh(TEAM_GEO, TEAM_MAT.enemy);
       ring.renderOrder = 2;
-      ring.layers.set(UI_LAYER);   // F2 hides the team rings too (Tim 2026-11-16: clean screenshots)
+      ring.layers.set(UI_LAYER);   // F2 hides the team rings too (2026-11-16: clean screenshots)
       s.team.add(new THREE.Object3D(), ring);   // slot 0 kept empty so children[1] stays the ring
       s.team.rotation.x = -Math.PI / 2;
       scene.add(s.team);
@@ -339,10 +339,10 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     scene.add(s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate);
     for (const o of [s.ring, s.bar, s.nameplate]) o.traverse(c => c.layers.set(UI_LAYER));
     s.ring.visible = selected.has(e.id);
-    if (e.type === 'war_dog') s.addOutline(0xd9a24a);   // loosed dogs: a thin lamp-gold glowing edge (Tim 2026-11-25)
+    if (e.type === 'war_dog') s.addOutline(0xd9a24a);   // loosed dogs: a thin lamp-gold glowing edge (2026-11-25)
     return s;
   }
-  // A frontier rickshaw with anyone in it gets a seated coachman on the seat (Tim 2026-11-08: no empty seat, but not
+  // A frontier rickshaw with anyone in it gets a seated coachman on the seat (2026-11-08: no empty seat, but not
   // the hero himself; a parked empty one stays empty). Drawing only: the rickshaw_driver coach_sitting sheet, placed
   // per direction at the seat of the rickshaw_horse sheet (cell pixels, centre to centre; both sheets are 5.4/288 per px).
   // Facing away the hood is in front of him, so he draws behind the cart.
@@ -439,7 +439,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const door of blueprintDoors) door.leaf.visible = !state.interiorDoors?.[door.id];
   }
 
-  // a building pulses softly twice: crew were sent in, or came out (Tim 2026-10-19)
+  // a building pulses softly twice: crew were sent in, or came out (2026-10-19)
   const flashes = new Map();   // building index -> seconds since the flash started
   function updateFlashes(dt) {
     for (const [i, age] of flashes) {
@@ -480,15 +480,15 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (e.shipRide) { const q = seaSpot(state, e.shipRide, alpha); p = e = { ...e, x: q.x, z: q.z }; }   // at sea: on the drawn ship
       const w = e.swing, swingT = w ? Math.min(1, Math.max(0, (state.tick - 1 + alpha - w.start) / w.len)) : null;
       // a rifleman standing about within 3 s of a shot plays his reload (sim/rifleman.js firedAt)
-      // on horseback (sim/mounts.js, Tim 2026-11-06): the hero sits up on the horse ('ride' clip, the idle until it is exported)
+      // on horseback (sim/mounts.js, 2026-11-06): the hero sits up on the horse ('ride' clip, the idle until it is exported)
       s.riding = !!e.mounted;
       // seated at a campfire (sim/campfire.js): the 'sit' clip on his log, while he stands still
       const anim = e.mounted ? ((e.anim === 'attack' || e.anim === 'sweep') && swingT !== null && swingT < 1 ? e.anim : 'ride') : e.sitting && (e.anim === 'idle' || !e.anim) ? 'sit' : e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
-      // the rider sits on the saddle (Tim 2026-11-14: he sat low and off it): his cell centre goes to the horse's cell
+      // the rider sits on the saddle (2026-11-14: he sat low and off it): his cell centre goes to the horse's cell
       // centre, then RIDE_SEAT per facing moves his hips onto the saddle of the mare sheets
       const seat = e.mounted ? RIDE_SEAT[((e.dir ?? 0) % 8 + 8) % 8] : null;
       s.lift = seat ? (sprites.get(e.ride?.horse)?.feetUp ?? 1.221) - s.feetUp : anim === 'sit' ? SIT.lift : 0;
-      // art.json rideBack: some bodies sit this many sheet pixels further back, along the saddle's offset from -49 (Tim 2026-11-14)
+      // art.json rideBack: some bodies sit this many sheet pixels further back, along the saddle's offset from -49 (2026-11-14)
       const back = seat ? (catalog.rideBack?.[e.model] || 0) / 14 : 0;
       s.seat = seat ? [(seat[0] * (1 + back)) * SEAT_PX, -(seat[1] + (seat[1] + 49) * back) * SEAT_PX] : null;
       s.setEquipment(e.type === 'hero' ? ['weapon','armor','accessory'].map(slot=>ITEMS[e.equipment?.[slot]]) : []);
@@ -496,25 +496,25 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
         (e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1) * (s.tinyK ?? 1));
       if (e.type === 'rickshaw' || drivers.has(id)) syncDriver(e, s, fdt, loaded);   // its coachman (frontier rickshaw)
-      // salute cannons: no health bar; a ridden horse neither: its bar sat on the rider's and the two flickered (Tim 2026-11-16), her health shows on her Mount card
-      if (e.cannon || (e.guide && !e.owner) || (e.type === 'horse' && e.rider) || (e.folk && e.type === 'civilian')) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp, SIDE_BAR[teamOf(e, state.entities[followId])]);   // nor the clanless guides (Tim 2026-11-20)
+      // salute cannons: no health bar; a ridden horse neither: its bar sat on the rider's and the two flickered (2026-11-16), her health shows on her Mount card
+      if (e.cannon || (e.guide && !e.owner) || (e.type === 'horse' && e.rider) || (e.folk && e.type === 'civilian')) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp, SIDE_BAR[teamOf(e, state.entities[followId])]);   // nor the clanless guides (2026-11-20)
       s.setNameplate(e.name || entityName(units || { types: {} }, e), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
         state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), state.clans?.[e.owner] ? state.clans[e.owner].faction || true : false, e.type === 'hero',
-        teamOf(e, state.entities[followId]) === 'enemy' ? '#e63c32' : null);   // enemies: a red border, the crest keeps the clan colour (Tim 2026-11-19)
+        teamOf(e, state.entities[followId]) === 'enemy' ? '#e63c32' : null);   // enemies: a red border, the crest keeps the clan colour (2026-11-19)
       // an execute or arrest channel shows one bar, the labelled one in render/abilityfx.js (the
-      // health bar stays a health bar: two bars used to show, Tim 2026-10-18);
+      // health bar stays a health bar: two bars used to show, 2026-10-18);
       // a jailed hero (sim/police.js) is greyed out and his bar counts down his time
       if (e.jailed) s.setBar((e.jailed.until - state.tick - alpha) / e.jailed.len, [0.6, 0.6, 0.65]);
       const grey = !!e.jailed, gu = s.material.uniforms;
       if (grey !== !!s.grey) { gu.uTint.value.setRGB(...(grey ? [0.5, 0.5, 0.55] : [1, 1, 1])); s.grey = grey; }
-      // your hidden ninja (sim/stealth.js) are drawn a little see-through (Tim 2026-10-20: half as see-through as before); nobody else is shown them at all
+      // your hidden ninja (sim/stealth.js) are drawn a little see-through (2026-10-20: half as see-through as before); nobody else is shown them at all
       const ghost = !!e.hidden && !grey;
       const veiled = ghost && !e.dead && !e.downed && (e.buffs?.veil?.until ?? -1) > state.tick;
-      // a body (Tim 2026-11-13): one with no fall to play (horses, guns) fades at once; on the island the others fade out over
+      // a body (2026-11-13): one with no fall to play (horses, guns) fades at once; on the island the others fade out over
       // the last 1.5 s of sim/game.js islandCorpseSeconds (20); bodies with loot on them and the hero are left alone
       const deadFor = e.dead && e.type !== 'hero' && e.diedAt != null ? (state.tick - e.diedAt) / 20 : -1;
       const fall = deadFor < 0 ? 1 : !s.sheets?.death ? Math.max(0, 1 - deadFor / 0.8) : e.place === 'world' && !e.loot && !e.gearItem && e.owner !== 'police' ? Math.min(1, Math.max(0, (20 - deadFor) / 1.5)) : 1;
-      // war troops running off after their war ended (sim/frontier/war_end.js, Tim 2026-11-14): they fade out over the last 60% of the run
+      // war troops running off after their war ended (sim/frontier/war_end.js, 2026-11-14): they fade out over the last 60% of the run
       const rout = e.rout ? Math.min(1, Math.max(0, (e.rout.until - state.tick - alpha) / Math.max(1, (e.rout.until - e.rout.start) * 0.6))) : 1;
       if (e.rout) s.bar.visible = false;
       gu.uOpacity.value = (grey ? 0.55 : veiled ? 0.18 : ghost ? 0.8 : 1) * fall * rout;
@@ -524,7 +524,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       if (e.wildlife) {   // wild animals: no bar until hurt; each its own coat shade from its seed (data/wildlife.json animals.coat)
         if (e.dead || !(e.hp < e.maxHp)) s.bar.visible = false;
         if (!s.coat && e.coat) { s.coat = coatTint(e); s.material.uniforms.uTint.value.setRGB(...s.coat); s.material.uniforms.uGrey.value = wildlifeCfg?.animals?.grey?.[e.type] ?? 0; }
-        // night eyes (render/wild_eyes_fx.js, Tim 2026-11-24): at night a wolf or bear out past your people goes near black and only its eyes show
+        // night eyes (render/wild_eyes_fx.js, 2026-11-24): at night a wolf or bear out past your people goes near black and only its eyes show
         const EY = wildlifeCfg?.animals?.eyes, night = shared.uNight.value;
         if (EY?.at?.[e.type] && s.coat && (night > 0.01 || s.eyesDark)) {
           let far = 0;
@@ -557,7 +557,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
         u.uSelfLight.value.setRGB(0.2, 0.18, 0.16);
       }
       s.lanternTint = lit;
-      // hidden ninja: a very slight purple shimmer rippling over them (Tim 2026-10-20)
+      // hidden ninja: a very slight purple shimmer rippling over them (2026-10-20)
       const shim = ghost && !lit && !veiled;
       if (shim) {
         const k = 0.5 + 0.5 * Math.sin(time * 2.4 + s.pos.x * 1.3 + s.pos.z * 0.9);
@@ -571,15 +571,15 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
         u.uTint.value.setRGB(0.65, 0.78, 1.05);
         u.uSelfLight.value.setRGB(0.09, 0.15, 0.27);
       }
-      // salute cannons (Tim 2026-11-07): lifted out of the night's mud so they read; brighter still while hovered
+      // salute cannons (2026-11-07): lifted out of the night's mud so they read; brighter still while hovered
       if (e.cannon && !lit && !veiled) {
         const hv = id === hoverUnitId;
-        u.uTint.value.setRGB(hv ? 1.35 : 1.08, hv ? 1.3 : 1.05, hv ? 1.2 : 1.0);   // Tim 2026-11-07: the stronger lift looked washed out
+        u.uTint.value.setRGB(hv ? 1.35 : 1.08, hv ? 1.3 : 1.05, hv ? 1.2 : 1.0);   // 2026-11-07: the stronger lift looked washed out
         u.uSelfLight.value.setRGB(hv ? 0.18 : 0.06, hv ? 0.15 : 0.05, hv ? 0.1 : 0.04);
       }
       s.veiled = veiled;
       s.shimmer = shim;
-      // sheltering in a stockade garrison (Tim 2026-11-06): not drawn, shown again when sent out
+      // sheltering in a stockade garrison (2026-11-06): not drawn, shown again when sent out
       const sheltered = !!e.garrison || !!e.aboard || !!e.stored;   // stored in a stable (sim/vehicle_garage.js): not drawn   // or riding inside the omnibus (sim/omnibus.js)
       if (sheltered || s.sheltered) {
         for (const m of [s.thing.mesh, s.shadow, s.hidden, s.ring, s.bar, s.nameplate, s.team]) if (m) m.visible = !sheltered && (m !== s.ring || selected.has(id));
@@ -603,11 +603,11 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     structureFire.updateSmoke(dt, cameraPlace(state.entities[followId]));   // 7c: moving smoke over ruins
     hallFx.update(state, cameraPlace(state.entities[followId]));   // war 8a: the fire or banner on a hall being taken
     campfireFx.update(state, (heroPlace === 'world' && !cityView) || worldView);   // made camps (sim/campfire.js)
-    fireSmokeFx.update(dt, state, (heroPlace === 'world' && !cityView) || worldView);   // flames, sparks and smoke on every camp fire (Tim 2026-11-26)
+    fireSmokeFx.update(dt, state, (heroPlace === 'world' && !cityView) || worldView);   // flames, sparks and smoke on every camp fire (2026-11-26)
     folkFx.update(state, (heroPlace === 'world' && !cityView) || worldView, dt);   // wandering folk's logs and fires (sim/wandering_folk.js)
     hitFx.update(fdt);
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
-    abilityFx.update(fdt, state, presentationId, cameraPlace(state.entities[followId]));   // the place the camera shows: the city street in Watch the city (Tim 2026-11-10)
+    abilityFx.update(fdt, state, presentationId, cameraPlace(state.entities[followId]));   // the place the camera shows: the city street in Watch the city (2026-11-10)
     shakeT = Math.max(0, shakeT - dt);
     if (shakeT > 0 && video.shake) {
       const a = shakeAmp * shakeT / 0.18;
@@ -617,12 +617,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     mark('ground');
     railTrack?.update(state.frontier, (heroPlace === 'world' && !cityView) || worldView, dt, shared.uNight.value);
     if (railBlastFx) syncRailBlast(state, (heroPlace === 'world' && !cityView) || worldView, dt);
-    // a hero robbing a freight wagon: loot hops out of the wagon into his hands (Tim 2026-11-21)
+    // a hero robbing a freight wagon: loot hops out of the wagon into his hands (2026-11-21)
     chestCashFx.steal(((heroPlace === 'world' && !cityView) || worldView) ? Object.values(state.entities).filter(e => e.robbing?.until > state.tick && e.place === 'world' && !e.dead && !e.downed && sprites.get(e.id)?.thing.mesh.visible).map(e => { const t = state.frontier?.rail?.trains?.[e.robbing.train], p = sprites.get(e.id).pos; return t?.wagonSpot ? { id: e.id, from: t.wagonSpot, to: { x: p.x, y: p.y, z: p.z } } : null; }).filter(Boolean) : [], dt);
     chestCashFx.update(dt);   // cashing a stolen chest: the loot flies into the hall
     stolenChests?.update((heroPlace === 'world' && !cityView) || worldView, state.frontier?.rail?.chests, Object.values(state.entities).filter(e => e.chest && e.place === 'world' && !e.dead && sprites.get(e.id)).map(e => { const p = sprites.get(e.id).pos; return { id: e.id, x: p.x, y: p.y, z: p.z }; }), dt, Object.values(state.frontier?.rail?.trains || {}).filter(t => t.stopped && t.wagonSpot).map(t => ({ id: t.id, x: t.wagonSpot.x, z: t.wagonSpot.z, fast: !!t.robbing, robbed: !!state.frontier.rail.links?.[t.link]?.blast?.robbed })));   // train robbery: the stolen chest carried and dropped, the guard's lantern on a stopped train
     groundItemsFx.update(((heroPlace === 'world' && !cityView) || worldView) ? 'world' : (heroPlace === 'street' || cityView) ? 'street' : null, state.groundItems?.items, dt);   // dropped bag items (render/ground_items.js)
-    { const out = (heroPlace === 'world' && !cityView) || worldView;   // fishing poles (Tim 2026-11-23): the sim sets e.fishing (cast point) while a worker harvests a fish spot
+    { const out = (heroPlace === 'world' && !cityView) || worldView;   // fishing poles (2026-11-23): the sim sets e.fishing (cast point) while a worker harvests a fish spot
       fishingFx.update(out ? Object.values(state.entities).filter(e => e.fishing && e.anim === 'idle' && e.place === 'world' && !e.dead && sprites.get(e.id)?.thing.mesh.visible).map(e => { const s = sprites.get(e.id); return { id: e.id, x: s.pos.x, y: s.pos.y, z: s.pos.z, tx: e.fishing[0], tz: e.fishing[1], order: s.thing.mesh.renderOrder }; }) : [], dt);
       fishingFx.moor(out ? worldGround?.spotsInView() || [] : []); }
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
@@ -686,14 +686,14 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // crew sent onto the boss's horse (sim/mounts.js): she shies sideways, a red ring, and a cross with the reason
       if (c.kind === 'refuseMount') { const s = sprites.get(c.a); if (s) { s.lean = 1; s.leanX = 1; s.leanZ = -0.4; } hitFx.refuse(c.x, c.z, c.text || "The boss's horse"); }
       if (c.kind === 'boarded') { const s = sprites.get(c.a); if (s) s.flash = 0.7; hitFx.note(c.x, c.z, `${c.n} aboard`); }   // crew popped in (sim/omnibus.js)
-      // the shakedown dynamite: a small blast of the same kind (Tim 2026-11-20); shakedownfx.js keeps its flash and ring
+      // the shakedown dynamite: a small blast of the same kind (2026-11-20); shakedownfx.js keeps its flash and ring
       if (c.kind === 'dynamiteBlast' && (c.place || 'street') === heroPlace) railBlastFx.blast(c.x, c.z, 0, { scale: 0.38, shake: false });
       if ((c.kind === 'chestCashed' || c.kind === 'hidesSold') && heroPlace === 'world') chestCashFx.cash(c);   // hides sold at a market (wildlife W5): koban coins fly into it
       if (c.kind === 'horseCaught' && heroPlace === 'world') tameFx.cast(c);
-      if (c.kind === 'repairSpend' && heroPlace === 'world' && c.owner != null && c.owner === castState?.entities?.[heroId]?.owner) hitFx.spend(c.x, c.z, c.spent, c.h);   // what a repair of yours took (Tim 2026-11-24)
-      if (c.kind === 'wildDrop' && heroPlace === 'world') wildDropFx.drop(c);   // the hide flies from the carcass to the hero   // Tim 2026-11-21: the stolen loot flies into the hall
+      if (c.kind === 'repairSpend' && heroPlace === 'world' && c.owner != null && c.owner === castState?.entities?.[heroId]?.owner) hitFx.spend(c.x, c.z, c.spent, c.h);   // what a repair of yours took (2026-11-24)
+      if (c.kind === 'wildDrop' && heroPlace === 'world') wildDropFx.drop(c);   // the hide flies from the carcass to the hero   // 2026-11-21: the stolen loot flies into the hall
       if (c.kind === 'railBlast' && railBlastFx) { railBlastFx.blast(c.x, c.z, c.heading || 0); railShakeK = Math.max(0, 1 - Math.hypot(c.x - camTarget.x, c.z - camTarget.z) / 45); }   // train robbery: the charge goes off
-      if (c.kind === 'cannonFire' && !c.tower) { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (Tim 2026-11-07)
+      if (c.kind === 'cannonFire' && !c.tower) { shakeT = Math.max(shakeT, 0.18); shakeAmp = Math.max(shakeAmp, 0.12); }   // the salute's kick (2026-11-07)
       if (c.kind === 'assassinate') { shakeT = 0.26; shakeAmp = 0.2; freezeT = Math.max(freezeT, 0.1); }   // the vicious flash hits hard
       if (c.kind === 'shadowstep' && c.crit) { shakeT = 0.24; shakeAmp = 0.18; freezeT = Math.max(freezeT, 0.08); }   // a tiny pause so it lands hard (Shadow Step crit slash)
     }
@@ -704,7 +704,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const wildEyes = createWildEyesFx({ scene, cfg: wildlifeCfg?.animals?.eyes || {} });
   const wildDropFx = createWildDropFx({ scene, posOf: id => sprites.get(id)?.pos || null });
   const tameFx = createTameFx({ scene });
-  const fishingFx = createFishingFx({ scene });   // workers on fish spots cast lines; fish spot boats moored (Tim 2026-11-23)
+  const fishingFx = createFishingFx({ scene });   // workers on fish spots cast lines; fish spot boats moored (2026-11-23)
   const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null, groundItemsFx = createGroundItemsFx({ scene });   // fx id -> 'charge' | 'crater'
   let railShakeK = 0;
   function syncRailBlast(state, show, dt) {
@@ -734,8 +734,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const p = prev.entities[e.id], s = sprites.get(e.id);
       if (!p || !s || !e.maxHp || e.dead || e.downed || p.downed || e.hp <= p.hp) continue;
       const gain = (e.hp - p.hp) / e.maxHp, steal = !!e.buffs?.lantern && gain > 0.002;   // more than regen gives in a tick
-      // a real heal: Rally's ticks rain green (Tim 2026-10-19); lifesteal keeps its red-gold dazzle (the rain
-      // was lost in the lanterns' glow, Tim), the clinic's heal its green one
+      // a real heal: Rally's ticks rain green (2026-10-19); lifesteal keeps its red-gold dazzle (the rain
+      // was lost in the lanterns' glow, ), the clinic's heal its green one
       if (gain >= 0.015 || steal) { if ((e.buffs?.rally || e.buffs?.shroud) && !steal) { abilityFx.rain(s.pos.x, s.pos.z); hitFx.heal(s.pos.x, s.pos.z, Math.round(e.hp - p.hp)); } else abilityFx.heal(s.pos.x, s.pos.z, true, steal); trickle.set(e.id, 0); continue; }
       const t = (trickle.get(e.id) || 0) + gain;
       if (t >= 0.04) { abilityFx.heal(s.pos.x, s.pos.z, false, false); trickle.set(e.id, 0); } else trickle.set(e.id, t);
@@ -750,7 +750,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const a = state.entities[h.a], t = state.entities[h.t];
       if (h.crit) sprites.get(h.a)?.shadowBlade?.critical();
       const dry = t && (t.cart || /cannon|gatling|omnibus|rickshaw$|ox_cart|train_|^ship_/.test(t.model || t.type || ''));   // no blood from carts, guns and vehicles
-      hitFx.hit(h, a, t?.owner === me?.owner, me?.place === 'world', !dry);   // no damage numbers on the frontier (Tim 2026-11-12)
+      hitFx.hit(h, a, t?.owner === me?.owner, me?.place === 'world', !dry);   // no damage numbers on the frontier (2026-11-12)
       const s = sprites.get(h.t);
       if (s && a) { const d = Math.hypot(h.x - a.x, h.z - a.z) || 1; s.struck((h.x - a.x) / d, (h.z - a.z) / d, h.crit || h.kill); }
       if (a && t) sprites.get(h.a)?.gearFx?.hit(t.x - a.x, t.z - a.z, h.crit);   // a claw charm's rakes on the one struck (render/gear_fx.js)
@@ -778,12 +778,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     cameraPoint.set(h.x, groundY(h.x, h.z), h.z);   // on a castle terrace the view centres on the raised ground (Z4h)
     // Don't interpolate through a whole-island test travel.
     if (position && Math.hypot(position.x - h.x, position.z - h.z) <= 60) cameraPoint.copy(position);
-    // aboard a train (Tim 2026-11-07): the camera follows the drawn engine; boarding drops a pan or a watch,
+    // aboard a train (2026-11-07): the camera follows the drawn engine; boarding drops a pan or a watch,
     // panning afterwards keeps the camera there until Home
     const ride = typeof h.aboard === 'string' && h.aboard.startsWith('rail:') ? h.aboard.slice(5) : null, eng = ride && railTrack?.focus(ride);
     if (ride !== lastRide) { if (ride) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; roomView = null; } lastRide = ride; }
     if (eng && Math.hypot(eng.x - h.x, eng.z - h.z) <= 60) cameraPoint.set(eng.x, 0, eng.z);
-    // at sea (Tim 2026-11-20: very jerky): the camera sits on the drawn ship itself, no lag behind it
+    // at sea (2026-11-20: very jerky): the camera sits on the drawn ship itself, no lag behind it
     const sea = h.shipRide && !freeCam && !watchFn ? seaSpot(state, h.shipRide, frameAlpha) : null;
     if (sea) cameraPoint.set(sea.x, 0, sea.z);
     if (jumped) { freeCam = null; farCam = false; watchFn = null; jumpFrom = null; roomView = null; camTarget.copy(cameraPoint); }
@@ -833,7 +833,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     setTowns: list => {
       structureFire.setRuins(list.filter(p => p.ruinSmoke).map(p => ({ x: p.x, z: p.z, w: Math.min(8, (p.maxFootprint || 11) * 0.4) })));   // 7c: moving smoke over ruins
       worldGround?.setTowns(list);
-      // Space rings at the front door (Tim 2026-11-07): the middle of the art's front (+z, screen down-left) edge, as drawn
+      // Space rings at the front door (2026-11-07): the middle of the art's front (+z, screen down-left) edge, as drawn
       const spots = new Map();
       if (cutouts) for (const p of list) if (p.spaceDoor) {
         const piece = placePiece({ name: p.art, x: p.x, z: p.z, flip: !!p.flip }, catalog, cutouts); if (!piece) continue;
@@ -911,7 +911,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     audioFocus(state, followId, selected = []) {
       const h = state.entities[followId];
       if (!h) return null;
-      // hear: how far sounds carry from the middle of the view, so what is on screen is heard when zoomed out too (Tim 2026-11-15)
+      // hear: how far sounds carry from the middle of the view, so what is on screen is heard when zoomed out too (2026-11-15)
       return { x: camTarget.x, z: camTarget.z, place: cameraPlace(h), hear: Math.min(140, Math.max(24, camera.right * 0.9)), hero: { x: h.x, z: h.z, place: h.place }, right: [CAM_RIGHT.x, CAM_RIGHT.z] };
     },
     // page pixel -> ground point { x, z }
@@ -952,7 +952,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       v.set(x, y + groundY(x, z), z).project(camera);   // y above the ground there (castle terraces, src/castle_height.js)
       return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
     },
-    // where a lantern prop's lights actually glow, as page pixels [{ x, y }] (for hovering it to snuff, Tim 2026-10-21)
+    // where a lantern prop's lights actually glow, as page pixels [{ x, y }] (for hovering it to snuff, 2026-10-21)
     lampScreen(prop) {
       return (propLights.get(prop) || []).map(l => { v.set(l.pos.x, l.pos.y, l.pos.z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; });
     },

@@ -1,8 +1,8 @@
-// Stolen chest (train robbery R3/R4, Tim 2026-11-20): the chest of loot a hero carries after robbing a train, shown
+// Stolen chest (train robbery R3/R4, 2026-11-20): the chest of loot a hero carries after robbing a train, shown
 // floating over their head, and a dropped chest lying on the ground (state.frontier.rail.chests) with a slow gold glint
 // so it can be found again. Sim: sim/frontier/rail_robbery.js. Drawn in the painted look: a small wooden chest with
 // iron bands, each face lit by the same upper-left sun as the rail blast debris.
-// The guard's lantern (Tim 2026-11-21, replaces the hard warm flash): a small iron lantern with red glass hangs on the
+// The guard's lantern (2026-11-21, replaces the hard warm flash): a small iron lantern with red glass hangs on the
 // camera side of a stopped train's freight wagon and swings a little; lights() gives a real soft red light for view.js,
 // so it pools on the ground like a city lantern. The sim counts that pool as lit for stealth (sim/game.js islandLit).
 import * as THREE from 'three';

@@ -1,19 +1,19 @@
-// Horses and the hero's mount (Tim 2026-11-06, plan in project files omnibus_stable/plan.md). Horses come
+// Horses and the hero's mount (2026-11-06, plan in project files omnibus_stable/plan.md). Horses come
 // from a stable's production bar (sim/frontier/stable.js) and wait there; the clan's mount (clan.mount, the
 // first horse raised or the one chosen at the stable) is the one H uses. Island only.
 // H ({ id: <hero id>, type: 'mount', horse?: <id> }, right-click a horse of yours sends its id): on the horse -> get off; the horse beside you -> get on; else she is
 // called and gallops to you. Riding is rules.mount.speed x the hero's run speed; he fights from the saddle
-// (Tim 2026-11-14: attacks and abilities, no throw at low health). Going through the gate he gets
+// (2026-11-14: attacks and abilities, no throw at low health). Going through the gate he gets
 // off first (the horse waits there). A bot boss mounts his horse on the island by himself.
-// Whistles (Tim 2026-11-07): each horse comes with her whistle (clan.whistles: { horse, name, kind }, shown under
+// Whistles (2026-11-07): each horse comes with her whistle (clan.whistles: { horse, name, kind }, shown under
 // Field supplies on the character page). { type: 'mount', whistle: <horse id> } makes her your mount and calls
 // her; if she is far (rules.mount.whistleRange), stuck (no closer for rules.mount.stuckSeconds) or gone (missing
 // after a load), she appears beside you. A horse that dies takes her whistle with her.
-// Stay ({ type: 'mount', stay: true }, the Mount panel, Tim 2026-11-07): she stays where she is (you get off, a call is off).
-// Mount up (Tim 2026-11-07, Shift+H / the Mount up button): { type: 'mount', group: true, units?: [ids] } puts you and
+// Stay ({ type: 'mount', stay: true }, the Mount panel, 2026-11-07): she stays where she is (you get off, a call is off).
+// Mount up (2026-11-07, Shift+H / the Mount up button): { type: 'mount', group: true, units?: [ids] } puts you and
 // your selected crew (else the crew following you) on horses: free horses of yours nearby trot over, then spare
 // ones (stored or far) come out to them. Settlers and workers never ride. Again with anyone mounted: everyone off.
-// Mounted crew follow at horse speed and fight from the saddle; they get off only when told (Tim 2026-11-14).
+// Mounted crew follow at horse speed and fight from the saddle; they get off only when told (2026-11-14).
 // createMounts({ state, rules, spawn, nav, born, say }) -> { command, tick, mountOf, dismount }
 import { steer } from './vehicle_steer.js';
 
@@ -35,7 +35,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     Object.assign(horse, { x, z, place: 'world', anim: 'idle' }); delete horse.called; delete horse.path; delete horse.callBest;
     delete horse.stored;
   }
-  // far away, stored or lost (Tim 2026-11-08): she turns up out of sight, arriveDistance off on the side she was on
+  // far away, stored or lost (2026-11-08): she turns up out of sight, arriveDistance off on the side she was on
   // (else behind you), and gallops the rest of the way in, so she never just pops up beside you
   function inbound(horse, hero) {
     const R0 = R().arriveDistance ?? 40, there = !horse.stored && horse.place === 'world';
@@ -50,7 +50,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     Object.assign(horse, { x: spot[0], z: spot[1], place: 'world', anim: 'run' }); delete horse.stored; delete horse.path; delete horse.callBest;
     horse.called = hero.id;
   }
-  // the whistle is heard (render/sound.js horse_whistle_1, Tim 2026-11-10)
+  // the whistle is heard (render/sound.js horse_whistle_1, 2026-11-10)
   const blow = e => state.casts?.push({ kind: 'horseWhistle', a: e.id, x: e.x, z: e.z, place: e.place });
   function whistle(e, id) {
     const w = whistlesOf(e.owner).find(w => w.horse === id);
@@ -118,7 +118,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     }
     say(e.owner, short ? `${short} crew have no horse: buy more at a stable` : group.length ? 'Mount up!' : 'Mounting up');
   }
-  // select crew (or their group) and right-click one of your horses (Tim 2026-11-07): the nearest of them rides that
+  // select crew (or their group) and right-click one of your horses (2026-11-07): the nearest of them rides that
   // horse, the others take your other free horses (nearest first); a horse that is not beside its rider comes over
   function crewRide(e, c) {
     const picked = state.entities[c.horse];
@@ -126,13 +126,13 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     const group = c.units.map(id => state.entities[id]).filter(u => rider(u, e.owner) && u.place === 'world');
     if (!group.length) return command(e, { horse: c.horse });
     const onIt = group.find(u => u.ride?.horse === picked.id);
-    if (onIt) { dismount(onIt); onIt.order = { kind: 'stop' }; onIt.anim = 'idle'; return; }   // right-click the horse one of them rides: that one gets off and waits there (Tim 2026-11-08)
+    if (onIt) { dismount(onIt); onIt.order = { kind: 'stop' }; onIt.anim = 'idle'; return; }   // right-click the horse one of them rides: that one gets off and waits there (2026-11-08)
     const want = group.filter(u => !u.mounted).sort((a, b) => Math.hypot(a.x - picked.x, a.z - picked.z) - Math.hypot(b.x - picked.x, b.z - picked.z));
     if (!want.length) return;
-    // the boss's own mount carries only him (Tim 2026-11-08): she tosses her head (render: refuseMount)
+    // the boss's own mount carries only him (2026-11-08): she tosses her head (render: refuseMount)
     if (picked.id === mountOf(e.owner)?.id || state.entities[picked.rider]?.type === 'hero') { state.casts?.push({ kind: 'refuseMount', a: picked.id, x: picked.x, z: picked.z, place: picked.place }); return; }
     if (picked.rider) return say(e.owner, 'Someone already rides her');
-    // one right-click, one rider (Tim 2026-11-10): only the nearest of them takes this horse, and he runs over to
+    // one right-click, one rider (2026-11-10): only the nearest of them takes this horse, and he runs over to
     // her himself; no other horse is called. Right-click each horse you want ridden. (Shift+H still mounts a group.)
     const u = want[0];
     if (picked.stored || picked.place !== 'world') return say(e.owner, `${picked.name || 'The horse'} is in the stable`);
@@ -151,11 +151,11 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
   }
   function command(e, c) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
-    if (c.stay) return stay(e);   // the Mount panel's Stay here (Tim 2026-11-07)
+    if (c.stay) return stay(e);   // the Mount panel's Stay here (2026-11-07)
     if (c.whistle) return whistle(e, c.whistle);
     if (c.group) return mountUp(e, c);
     if (c.horse && Array.isArray(c.units) && c.units.length) return crewRide(e, c);
-    // right-click one of your horses (Tim 2026-11-06 20:25): that one becomes your mount
+    // right-click one of your horses (2026-11-06 20:25): that one becomes your mount
     const picked = c.horse && state.entities[c.horse];
     if (picked?.type === 'horse' && picked.horseOwner === e.owner && !picked.dead) {
       if (e.ride?.horse === picked.id) return dismount(e);
@@ -167,7 +167,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     const horse = mountOf(e.owner);
     if (!horse) return say(e.owner, 'No horse yet: raise one at a stable in your town');
     // in the stable, or far off (rules.mount.whistleRange, e.g. after a train ride): H works as her whistle and she
-    // appears beside you (Tim 2026-11-08)
+    // appears beside you (2026-11-08)
     if (horse.stored || horse.place !== 'world' || Math.hypot(horse.x - e.x, horse.z - e.z) > (R().whistleRange ?? 300)) return whistle(e, horse.id);
     if (horse.rider) return;
     if (Math.hypot(horse.x - e.x, horse.z - e.z) <= (R().reach ?? 4)) { mount(e, horse); return; }
@@ -204,7 +204,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
       clan.whistles = clan.whistles.filter(w => !gone.includes(w));
       for (const w of gone) say(clan.id, `${w.name || 'Your horse'} has died`);
     }
-    // a rider flag with no horse under it is dropped (Tim 2026-11-10: left over after a train or vehicle ride, it kept
+    // a rider flag with no horse under it is dropped (2026-11-10: left over after a train or vehicle ride, it kept
     // the unit from fighting, riding again or showing in its group)
     if (state.tick % 20 === 0) for (const u of Object.values(state.entities)) {
       if (!u.mounted) continue;
@@ -215,7 +215,7 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
     for (const horse of Object.values(state.entities)) {
       if (horse.type !== 'horse' || horse.stored) continue;
       const rider = horse.rider && state.entities[horse.rider];
-      if (horse.rider && !rider) delete horse.rider;   // her rider is gone (Tim 2026-11-10: she could not be ridden, called or recalled)
+      if (horse.rider && !rider) delete horse.rider;   // her rider is gone (2026-11-10: she could not be ridden, called or recalled)
       if (horse.recall) continue;                      // on her way to the stable (sim/vehicle_garage.js moves her)
       if (rider) {
         if (rider.ride?.horse !== horse.id) { delete horse.rider; continue; }
@@ -226,9 +226,9 @@ export function createMounts({ state, rules, spawn, nav, born, say }) {
           continue;
         }
         if (rider.place !== 'world' || rider.dead || rider.downed || rider.jailed) { dismount(rider); continue; }
-        // Tim 2026-11-14: hero and crew fight from the saddle (attacks and abilities) and stay on until they fall or are
+        // 2026-11-14: hero and crew fight from the saddle (attacks and abilities) and stay on until they fall or are
         // told off (Q, the crew card, Mount up again): no throw at low health, no getting off when hit or sent to attack
-        // really travelling, not nudged by the crowd around her (Tim 2026-11-10: stopped crew horses ran on the spot)
+        // really travelling, not nudged by the crowd around her (2026-11-10: stopped crew horses ran on the spot)
         if (Math.hypot(rider.x - horse.x, rider.z - horse.z) > (R().moveStep ?? 0.12)) horse.wentAt = state.tick;
         const moved = horse.wentAt != null && state.tick - horse.wentAt <= 2;
         Object.assign(horse, { x: rider.x, z: rider.z, dir: rider.dir ?? horse.dir, heading: rider.heading ?? horse.heading, anim: moved ? (rider.type === 'hero' && !rider.gallop ? 'trot' : 'run') : 'idle' });

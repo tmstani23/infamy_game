@@ -2,7 +2,7 @@
 
     python tools/key_checker_sheet.py in.png out.png
 
-For image sheets that came back with a fake transparency checkerboard (ruined_buildings1.png, Tim 2026-11-12).
+For image sheets that came back with a fake transparency checkerboard (ruined_buildings1.png, 2026-11-12).
 Background = near-grey, light pixels joined to the sheet edge, plus enclosed gaps (between posts and beams) that
 are flat checker colour. Needs Pillow, numpy and scipy.
 """

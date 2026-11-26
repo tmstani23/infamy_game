@@ -13,7 +13,7 @@ for (const t of KEY_TYPES) assert.ok(KEY_ACTIONS.some(a => a.type === t), t + ' 
   const seen = new Map();
   for (const a of KEY_ACTIONS) if (!a.fixed) for (const c of a.keys) { const k = a.context + ':' + c; assert.ok(!seen.has(k), `${a.id} and ${seen.get(k)} share ${c}`); seen.set(k, a.id); }
 }
-// no special characters in any shown text (Tim 2026-11-10)
+// no special characters in any shown text (2026-11-10)
 const plain = s => /^[A-Za-z0-9 ,;]*$/.test(s);
 for (const a of KEY_ACTIONS) assert.ok(plain(a.name.replace(/[.]/g, '')), a.name);
 

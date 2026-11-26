@@ -1,4 +1,4 @@
-// Self-running governor check (Tim 2026-11-05): a fresh town with initiative On, run headless (frontier rules
+// Self-running governor check (2026-11-05): a fresh town with initiative On, run headless (frontier rules
 // only). Prints the town every 10 game minutes; the player's only act is pressing Upgrade when it is affordable.
 // Run from the repo root: node game/tools/governor_soak.mjs [minutes] [site index]
 import {readFileSync} from 'node:fs';

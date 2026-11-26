@@ -1,4 +1,4 @@
-// Every war unit with a special gets a hover with numbers (Tim 2026-11-18: Loose the dogs showed no damage or stats).
+// Every war unit with a special gets a hover with numbers (2026-11-18: Loose the dogs showed no damage or stats).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { SPECIALS } from '../src/sim/special_cast.js';

@@ -1,5 +1,5 @@
 // Existing buttons keep their handlers and live labels. Only presentation moves.
-// the pictures are drawn masks in menu_shell.css (Tim 2026-11-11: no glyphs); data-icon only names them
+// the pictures are drawn masks in menu_shell.css (2026-11-11: no glyphs); data-icon only names them
 const ICONS = { deploymentbtn:'map',characterbtn:'hero',inventorybtn:'bag',settingsbtn:'gear',unstuckbtn:'home',pausebtn:'pause',mutebtn:'music',fullscreenbtn:'screen',ctlbtn:'help',townbtn:'town',townsbtn:'towns',vehiclesbtn:'vehicles',daynight:'sun',goalbtn:'goals',fieldguidebtn:'book' };
 export function createUtilityMenu({ root, anchor, buttons, win = window }) {
   root.setAttribute('aria-label','Game menu');

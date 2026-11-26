@@ -1,4 +1,4 @@
-// Storage caps (economy balance B2, Tim 2026-11-05). Pure helpers over data/frontier.json "storage":
+// Storage caps (economy balance B2, 2026-11-05). Pure helpers over data/frontier.json "storage":
 // cap = caps[tier - 1] + perStorehouse x built storehouses. The capital and uncapped resources (ryo) have none.
 const EPS = 1e-9;
 export function storageCap(s, data, resource) {
@@ -9,7 +9,7 @@ export function storageCap(s, data, resource) {
   const stores = (s.buildings || []).filter(b => b.type === 'storehouse' && b.stage === 'built').length;
   return base + (st.perStorehouse || 0) * stores;
 }
-// Default keep amount (Tim 2026-11-09): half the town's storage cap for that resource (railways.ship.keepShare), so it
+// Default keep amount (2026-11-09): half the town's storage cap for that resource (railways.ship.keepShare), so it
 // grows with storehouses and the hall tier. A keep the player sets wins. No cap: the old fixed defaults.
 export function defaultKeep(s, data, resource) {
   const cap = storageCap(s, data, resource), share = data.railways?.ship?.keepShare;   // 0 / missing: fixed defaults

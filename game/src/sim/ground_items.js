@@ -1,4 +1,4 @@
-// Dropped bag items (Tim 2026-11-26, plan in project files war_build/drop_and_merchant/plan.md). A hero drops a bag
+// Dropped bag items (2026-11-26, plan in project files war_build/drop_and_merchant/plan.md). A hero drops a bag
 // item outdoors (city street or island): it lies there as a small cloth bundle for GROUND_ITEMS.lifeSeconds, then is
 // gone. Anyone can take it, rivals included: a player hero with Space beside it ({ type: 'groundItem', action: 'pick' }),
 // a rival bot's hero simply by walking past it. The bundle: state.groundItems.items[id] = { id, item, place, x, z, at, by }.
@@ -36,7 +36,7 @@ export function createGroundItems({ state, give, moveTo = null }) {
     if (!b || !near(e, b)) return false;
     return take(e, b);
   }
-  // right-click a bundle (Tim 2026-11-26): the hero walks over and picks it up (e.fetchBundle; WASD or another order ends it)
+  // right-click a bundle (2026-11-26): the hero walks over and picks it up (e.fetchBundle; WASD or another order ends it)
   function fetch(e, bundleId) {
     const b = items()[bundleId];
     if (!b || !canInteract(e) || e.type !== 'hero' || e.aboard || b.place !== e.place) return false;

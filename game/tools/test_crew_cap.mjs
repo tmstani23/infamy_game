@@ -1,4 +1,4 @@
-// Phase 6 (docs/playtest_followup_plan.md, Tim 2026-10-29): business / Renown slots grow the cap, but no clan passes maxCrew.
+// Phase 6 (docs/playtest_followup_plan.md, 2026-10-29): business / Renown slots grow the cap, but no clan passes maxCrew.
 // Run: node game/tools/test_crew_cap.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';

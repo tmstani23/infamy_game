@@ -45,10 +45,10 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
       glow.emit({ x: x + rand(-spread, spread), y: y + rand(-0.6, 0.8), z: z + rand(-spread, spread), vy: rand(0.3, 1.2), drag: 1.5, sway: 0.5,
         life: rand(0.6, 1.2), size: rand(0.1, 0.22), color: pick(DUSK), alpha: 0.75, shape: SHAPE.sparkle, twinkle: 0.7, spin: 2 });
   }
-  // the governor's cannon salute (Tim 2026-11-07): a muzzle flash, a burst of thin fire tongues, sparks thrown
+  // the governor's cannon salute (2026-11-07): a muzzle flash, a burst of thin fire tongues, sparks thrown
   // forward, then thick grey smoke rolling out, rising and drifting for about 3 s
   const GREY = [[0.42, 0.41, 0.4], [0.55, 0.54, 0.52], [0.33, 0.32, 0.32]];
-  // a black-powder shot (Tim 2026-11-07: "as real as possible, slightly stylized", no gold sparkles): a short white-hot
+  // a black-powder shot (2026-11-07: "as real as possible, slightly stylized", no gold sparkles): a short white-hot
   // flash at the muzzle, a quick cone of orange flame, burning powder flecks, then a big pale smoke cloud that
   // punches out along the barrel and rolls upward. c.dir is the sprite's direction index (0 = toward the camera).
   const SMOKE = [[0.86, 0.85, 0.82], [0.76, 0.75, 0.72], [0.66, 0.65, 0.63], [0.92, 0.91, 0.88]];
@@ -58,7 +58,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
     const fx = (sx + sy) * S, fz = (-sx + sy) * S, reach = c.brass ? 1.7 : 1.4, mx = c.x + fx * reach, mz = c.z + fz * reach, y = c.brass ? 0.85 : 0.75;
     const along = (sp, spread) => { const a = rand(-spread, spread), dx = fx * Math.cos(a) - fz * Math.sin(a), dz = fz * Math.cos(a) + fx * Math.sin(a); return [dx * sp, dz * sp]; };
     cards.glint(mx, y, mz, 1.5, 0xfff2d8, 0.09);   // the white-hot instant
-    for (let i = 0; i < 40; i++) {   // flame cone: fast, short-lived, hot core to red edge (Tim 2026-11-07: more fire)
+    for (let i = 0; i < 40; i++) {   // flame cone: fast, short-lived, hot core to red edge (2026-11-07: more fire)
       const [vx, vz] = along(rand(6, 16), 0.26);
       glow.emit({ x: mx, y: y + rand(-0.05, 0.1), z: mz, vx, vz, vy: rand(0, 0.7), drag: 8, life: rand(0.08, 0.24),
         size: rand(0.24, 0.6), grow: 0.7, color: FLAME[Math.min(3, Math.floor(i / 10))], alpha: 0.95, shape: SHAPE.dot });
@@ -84,7 +84,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         life: rand(0.8, 1.3), size: rand(0.4, 0.7), grow: 1.4, color: [0.5, 0.44, 0.36], alpha: 0.35, shape: SHAPE.dot });
     }
   }
-  // the Gatling gun (Tim 2026-11-10, sim/cannon_salute.js gatlingShot every 2 ticks): a small muzzle flash, a hot
+  // the Gatling gun (2026-11-10, sim/cannon_salute.js gatlingShot every 2 ticks): a small muzzle flash, a hot
   // tracer streaking out about 20 units, a puff of thin powder smoke and a little dust where the round lands
   function gatlingShot(c) {
     const th = (c.dir || 0) * Math.PI / 4, sx = -Math.sin(th), sy = Math.cos(th), S = Math.SQRT1_2;
@@ -96,7 +96,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
       glow.emit({ x: mx, y: y + rand(-0.04, 0.06), z: mz, vx: dx * sp, vz: dz * sp, vy: rand(0, 0.3), drag: 9, life: rand(0.05, 0.12),
         size: rand(0.14, 0.32), color: FLAME[Math.floor(Math.random() * 3)], alpha: 0.95, shape: SHAPE.dot });
     }
-    const [bx, bz] = turn(rand(-0.06, 0.06)), V = 70, reach = rand(17, 23.5);   // Tim 2026-11-10: 30% farther
+    const [bx, bz] = turn(rand(-0.06, 0.06)), V = 70, reach = rand(17, 23.5);   // 2026-11-10: 30% farther
     for (let k = 0; k < 4; k++)   // the round: a short bright streak of dots flying together
       glow.emit({ x: mx - bx * k * 0.22, y: y - k * 0.005, z: mz - bz * k * 0.22, vx: bx * V, vz: bz * V, vy: -0.5, life: reach / V,
         size: 0.13 - k * 0.02, color: [1, 0.86 - k * 0.08, 0.5 - k * 0.1], alpha: 1 - k * 0.2, shape: SHAPE.dot });
@@ -146,7 +146,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
   // Kuroda rifleman (sim/rifleman.js): a thin red aim line while he aims, a brief pale tracer on the shot
   const rifleSmoke = new Map();   // rifleman id -> until (s): a thin wisp curls up from the muzzle after a shot
   const rifleLines = new Map();   // "aim:id" or "shot:id:tick" -> { m, life? }
-  // fade: the line dims toward the target (additive, so a black far end fades it out; Tim 2026-10-29)
+  // fade: the line dims toward the target (additive, so a black far end fades it out; 2026-10-29)
   function rifleLine(color, fade = false) {
     const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
     const c = new THREE.Color(color), far = fade ? new THREE.Color(0, 0, 0) : c;
@@ -228,9 +228,9 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         }
       }
       if (c.kind === 'shadowstep') {
-        // landed on a target with the sure crit (Tim 2026-10-20): a massive violet slash across him
+        // landed on a target with the sure crit (2026-10-20): a massive violet slash across him
         if (c.crit) {
-          // bigger, brighter and longer (Tim 2026-10-21: it wasn't noticeable): a white-hot slash with a wide
+          // bigger, brighter and longer (2026-10-21: it wasn't noticeable): a white-hot slash with a wide
           // violet edge and a second cut across it, on screen for most of a second
           const ang = screenAngle(c.tx - c.x, c.tz - c.z);
           cards.stroke(c.tx, 1.2, c.tz, ang - 0.6, 8, 1.6, 0x7a5ac8, 0.9);
@@ -268,10 +268,10 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         wave(c.tx, c.tz, 2, 0x3c4a8a, 0.6, 0.05, THIN_WAVE_GEO);
       }
       if (c.kind === 'snuff') {
-        // a Shinobi snuffing a lantern from afar (Tim 2026-10-20): a small blackish-purple smoke flash off him, a wisp at the lantern
+        // a Shinobi snuffing a lantern from afar (2026-10-20): a small blackish-purple smoke flash off him, a wisp at the lantern
         smokeBurst(c.x, c.z, 16, 0.5, 0.8); motes(c.x, c.z, 10, 0.5);
         wave(c.x, c.z, 1.2, 0x5c3c8c, 0.35, 0, THIN_WAVE_GEO);
-        // and a puff big enough to wrap the whole lantern (Tim 2026-10-21)
+        // and a puff big enough to wrap the whole lantern (2026-10-21)
         smokeBurst(c.tx, c.tz, 30, 1.4, 1.1); motes(c.tx, c.tz, 12, 1);
         wave(c.tx, c.tz, 2.5, 0x5c3c8c, 0.5, 0, THIN_WAVE_GEO);
       }
@@ -294,7 +294,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         // a vicious strike: black smoke bursts, a violet crescent with a white-hot edge, a blinding flash, the 影 (shadow) seal
         smokeBurst(c.tx, c.tz, 46, 1.1, 1.2);
         const ang = screenAngle(c.tx - (c.fx ?? c.x), c.tz - (c.fz ?? c.z));
-        // the lunge (Tim 2026-10-21: make it clear): a bright speed streak from where he set off to the enemy
+        // the lunge (2026-10-21: make it clear): a bright speed streak from where he set off to the enemy
         if (c.fx !== undefined) {
           const L = Math.hypot(c.tx - c.fx, c.tz - c.fz), mx = (c.fx + c.tx) / 2, mz = (c.fz + c.tz) / 2;
           if (L > 0.6) {
@@ -337,7 +337,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         if (s0) s0.flash = 0.6;
       }
       if (c.kind === 'taunt' && c.style === 'shinobi_enforcer') {
-        // Masked bodyguard (Tim 2026-11-10: the taunt was hard to notice): a violet wave out to her reach and a
+        // Masked bodyguard (2026-11-10: the taunt was hard to notice): a violet wave out to her reach and a
         // seal that stays on the taunted enemy for the length of the taunt
         wave(c.x, c.z, c.radius || 4.5, 0xba9fff, 0.7, 0, THIN_WAVE_GEO);
         for (const t of c.victims || [{ id: c.t, x: c.tx, z: c.tz }]) cards.seal(t.x, t.z, 1.1, '挑', 0xba9fff, 3.0, { follow: () => posOf(t.id) });
@@ -414,7 +414,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
     },
 
     // healing rain: small green drops falling onto a unit healed by a Rally tick,
-    // with a few tiny sparkles where they land (Tim 2026-10-19)
+    // with a few tiny sparkles where they land (2026-10-19)
     rain(x, z) {
       for (let i = 0; i < 7; i++) {
         const a = Math.random() * Math.PI * 2, r = rand(0.05, 0.45), y = rand(2.1, 2.9), vy = -rand(4.5, 5.5);
@@ -455,7 +455,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
       sweepFx.update(state,heroId,viewPlace);
       const aiming = new Set();
       for (const e of Object.values(state.entities)) {
-        // the red aim line shows only at night, faint, fading toward the target (Tim 2026-10-29)
+        // the red aim line shows only at night, faint, fading toward the target (2026-10-29)
         const aim = state.night && e.rifle?.aim, a = aim && !e.dead && !e.downed && posOf(e.id), b = a && posOf(aim.target);
         if (!b) continue;
         const key = `aim:${e.id}`; aiming.add(key);
@@ -464,7 +464,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         l.m.material.opacity = 0.15 + 0.3 * Math.min(1, (state.tick - aim.at) / Math.max(1, aim.until - aim.at));
       }
       const tNow = performance.now() / 1000;
-      // the enforcer's burning club sheds a few embers (Tim 2026-10-28: hotter club, a few embers)
+      // the enforcer's burning club sheds a few embers (2026-10-28: hotter club, a few embers)
       for (const e of Object.values(state.entities)) {
         if (e.type !== 'yakuza_enforcer' || e.dead || e.downed) continue;
         const p = posOf(e.id);
@@ -740,7 +740,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         }
       }
       // downed enemies: a blood-red outline round the body, dark with bright flashes,
-      // so they're easy to find and execute (Tim 2026-10-26)
+      // so they're easy to find and execute (2026-10-26)
       const me = state.entities[heroId]?.owner;
       for (const e of Object.values(state.entities)) {
         if (!e.downed || e.dead || e.owner === me || e.cart) continue;   // 7c-5: never on an ox cart
@@ -769,21 +769,21 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         const charm=e.buffs?.charming, p = posOf(e.id);
         let x = e.execute || (e.markScrub?{...e.markScrub,scrubbing:true}:null) || (charm?.until>state.tick?{start:charm.start,len:charm.until-charm.start,charming:true}:null);
         const visible = !e.dead && !e.downed && !e.jailed && spriteOf(e.id)?.thing.mesh.visible;
-        // a hero taking a hall (sim/frontier/war_end.js, Tim 2026-11-15): the bar shows to both sides, sparks while he holds
-        // a unit setting a building alight (sim/frontier/structures.js torch cast, Tim 2026-11-16)
+        // a hero taking a hall (sim/frontier/war_end.js, 2026-11-15): the bar shows to both sides, sparks while he holds
+        // a unit setting a building alight (sim/frontier/structures.js torch cast, 2026-11-16)
         const tc = e.order?.cast;
         if (!x && visible && tc?.start != null && tc.until > state.tick) x = { start: tc.start, len: Math.max(1, tc.until - tc.start), torching: true };
-        // the hero preparing a camp fire (sim/campfire.js, Tim 2026-11-26): embers rise where the fire will be
+        // the hero preparing a camp fire (sim/campfire.js, 2026-11-26): embers rise where the fire will be
         const cc = e.campCast;
         if (!x && visible && cc?.until > state.tick) x = { start: cc.start, len: Math.max(1, cc.until - cc.start), camping: true };
-        const kc = e.catchCast;   // the hero catching a wild horse (sim/wild_animals.js catchHorse, Tim 2026-11-26)
+        const kc = e.catchCast;   // the hero catching a wild horse (sim/wild_animals.js catchHorse, 2026-11-26)
         if (!x && visible && kc?.until > state.tick) x = { start: kc.start, len: Math.max(1, kc.until - kc.start), catching: true };
         if (!x && visible && e.hallChannel) { const v = hallChannelOf(e.hallChannel); if (v?.by === e.id) x = { start: 0, hall: v }; }
         if (!x && visible) {
           const aim = e.rifle?.aim, tauntStart = e.taunt?.startedAt ?? e.taunt?.castUntil - 15;
-          if (e.robbing?.until > state.tick && e.robbing.start != null) x = { start: e.robbing.start, len: Math.max(1, e.robbing.until - e.robbing.start), robbing: true };   // train robbery hold (Tim 2026-11-21)
+          if (e.robbing?.until > state.tick && e.robbing.start != null) x = { start: e.robbing.start, len: Math.max(1, e.robbing.until - e.robbing.start), robbing: true };   // train robbery hold (2026-11-21)
           else if (aim?.until > state.tick) x = { start:aim.at, len:aim.until-aim.at, aiming:true };
-          else if (e.gat?.state === 'spin' && e.gat.start != null && e.gat.until > state.tick) x = { start: e.gat.start, len: Math.max(1, e.gat.until - e.gat.start), spinning: true, unload: !!e.gat.unload };   // Gatling spin up (Tim 2026-11-21)
+          else if (e.gat?.state === 'spin' && e.gat.start != null && e.gat.until > state.tick) x = { start: e.gat.start, len: Math.max(1, e.gat.until - e.gat.start), spinning: true, unload: !!e.gat.unload };   // Gatling spin up (2026-11-21)
           else if (tauntStart <= state.tick && state.tick < tauntStart + 40) x = { start:tauntStart, len:40, taunting:true };
         }
         if (!x || x.start === null || !p || !overlay) continue;

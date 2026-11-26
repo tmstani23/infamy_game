@@ -1,4 +1,4 @@
-// Phase 8 section 4 balance (Tim 2026-10-30): payouts -40% with diminishing returns after the
+// Phase 8 section 4 balance (2026-10-30): payouts -40% with diminishing returns after the
 // 4th business, property-clan Renown, one raid per rival per night. Run: node tools/test_phase8_balance.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';

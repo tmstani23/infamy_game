@@ -79,7 +79,7 @@ export function chooseMatch({ root, loading, difficulty = 'easy', startRyo = 200
       if (!all.length) return;
       let sorted = sortSaves(all);
       box.hidden = false;
-      // Loading needs a second click (Tim 2026-11-04): the first click arms the button, any other click disarms it.
+      // Loading needs a second click (2026-11-04): the first click arms the button, any other click disarms it.
       let armed = null;
       const confirmed = (btn, key, text, say, go) => { if (armed?.key === key) { go(); return; } disarm(); armed = { key, btn, text: btn.textContent }; btn.textContent = text; note.textContent = say; };
       const disarm = () => { if (armed) { armed.btn.textContent = armed.text; armed = null; note.textContent = ''; } };

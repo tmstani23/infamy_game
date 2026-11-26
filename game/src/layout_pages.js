@@ -6,7 +6,7 @@ export function createLayoutPages(root,id){
  const previous=document.createElement('button'),label=document.createElement('span'),next=document.createElement('button');
  previous.type=next.type='button';previous.textContent='Prev';next.textContent='Next';
  nav.append(previous,label,next);
- const title=id==='controls'&&root.querySelector('h3');if(title)title.after(nav);else root.appendChild(nav);   // Controls: page buttons at the top (Tim 2026-11-02)
+ const title=id==='controls'&&root.querySelector('h3');if(title)title.after(nav);else root.appendChild(nav);   // Controls: page buttons at the top (2026-11-02)
  let page=0,size=1,items=[],oldWidth=-1,oldHeight=-1,crewPages=[],oldGroups=[],oldCardHeight=0;
  const measured=new WeakMap();
  function paint(){
@@ -20,7 +20,7 @@ export function createLayoutPages(root,id){
   const current=[...root.querySelectorAll(selector)];
   const groups=current.map(e=>e.parentElement||e.parent||root);
   const same=current.length===items.length&&current.every((e,i)=>e===items[i]);
-  // Tim 2026-11-07 (crew panel bounced up and down): with the same cards the height only grows, so a re-measure after
+  // 2026-11-07 (crew panel bounced up and down): with the same cards the height only grows, so a re-measure after
   // re-paging (cards wrap differently when a section hides) can't flip the pages back and forth every frame
   const cardHeight=Math.max(same?oldCardHeight:0,44+4,...current.map(e=>{if(e.offsetHeight)measured.set(e,e.offsetHeight);return (measured.get(e)||0)+4;}));
   if(width===oldWidth&&height===oldHeight&&cardHeight===oldCardHeight&&current.length===items.length&&current.every((e,i)=>e===items[i]&&groups[i]===oldGroups[i]))return;

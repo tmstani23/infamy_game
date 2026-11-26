@@ -1,4 +1,4 @@
-// Frontier C2 + C3 (Tim 2026-11-02/05): while a boss is out on the island, a lieutenant runs the city with the
+// Frontier C2 + C3 (2026-11-02/05): while a boss is out on the island, a lieutenant runs the city with the
 // same commands, inside the clan's standing orders and daily budget; a city captain takes charge at the HQ and
 // stands down when the boss returns. Campaign pacing: raid cooldown, no leader bounties. Classic is untouched.
 import assert from 'node:assert/strict';
@@ -35,7 +35,7 @@ const mine = brains.find(b => b.config?.lieutenant && b.config.clan === 'player'
 assert.ok(mine && brains.filter(b => b.config?.lieutenant).length === Object.keys(g.state.clans).length, 'one lieutenant per clan, bots too');
 
 // standing orders: validated, a rejected command changes nothing
-g.step([]);   // the lieutenant takes his place by the gate first (Tim 2026-11-10: there whenever the boss is in the city)
+g.step([]);   // the lieutenant takes his place by the gate first (2026-11-10: there whenever the boss is in the city)
 const before = JSON.stringify(L.record('player'));
 for (const bad of [{ orders: { pillage: true } }, { orders: { defend: 'yes' } }, { budget: -5 }, { budget: CC.lieutenant.maxBudget + 1 }, { budget: 1.5 }])
   g.step([{ id: hero.id, type: 'lieutenant', ...bad }]);

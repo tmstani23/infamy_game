@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "status": "Generated and visually accepted by Tim; mapping and integration pending",
+  "status": "Generated and visually accepted; mapping and integration pending",
   "sharedPrompt": "Semi-realistic painted game illustration for 1870s Japan, muted olive greens, weathered grey stones and brown earth, soft overcast lighting from the upper left, matching the supplied game pine and lake-shore reference. STRICT ORTHOGRAPHIC TOP-DOWN camera at 90 degrees, looking straight down, NOT an isometric standing cutout. A modular narrow lake-bank strip on a genuine transparent PNG, 1024 × 1024. Use a nominal human height of 75 pixels for scale: individual pebbles 4–12 pixels, small bank rocks 15–35 pixels, occasional reed clumps 30–55 pixels. Keep the decorated band about 100–140 pixels wide overall. Paint damp earth, scattered small stones and sparse reeds on the LAND side. On the water side, include only a thin wet-stone fringe fading to transparent; do NOT paint a water surface, blue or dark water fill, underwater scenery or lake interior—the engine supplies all water. Fade the outer land margin to transparent too. Keep the two joining ends simple, compatible and open, without endcaps or a vignette cutting off the strip. The shoreline boundary is the centre of the decorated band. No logs, trees, large boulders, characters, text, grid, border, frame, cast background shadow or backdrop. Do not reproduce the reference lake's oversized features or its painted water. The directions below refer to this TOP-DOWN texture's axes; the game handles its isometric projection.",
   "references": [
     "game/art/props/pine_tree.png",
     "assets/environment/island/lake_edge.png"
   ],
-  "instructions": "The source prompts are retained for reference. Do not regenerate or rename the saved numeric files. All eight outputs are in assets/environment/island/ as lake_edge_1.png through lake_edge_8.png (1254 × 1254, true alpha); order: N, NE, E, SE, S, SW, W, NW. lake_edge_1.png is the approved north v3 and matches lake_edge_n_v3.png. Preserve lake_edge_n_initial.png and the original lake_edge.png. lake_edge_n_v2.png was moved to to_delete at Tim’s request. These are accepted art pieces awaiting terrain mapping and integration; their numeric order is not a calibrated placement guarantee.",
+  "instructions": "The source prompts are retained for reference. Do not regenerate or rename the saved numeric files. All eight outputs are in assets/environment/island/ as lake_edge_1.png through lake_edge_8.png (1254 × 1254, true alpha); order: N, NE, E, SE, S, SW, W, NW. lake_edge_1.png is the approved north v3 and matches lake_edge_n_v3.png. Preserve lake_edge_n_initial.png and the original lake_edge.png. lake_edge_n_v2.png was moved to to_delete at the request. These are accepted art pieces awaiting terrain mapping and integration; their numeric order is not a calibrated placement guarantee.",
   "items": [
     {
       "number": 1,

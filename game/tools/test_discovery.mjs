@@ -10,7 +10,7 @@ const data = file => JSON.parse(readFileSync(new URL(`../${file}`, import.meta.u
 const world = data('data/world.json');
 const R = world.rules.discovery;
 
-// --- Tim 2026-11-18: a rival town is spotted from townSight away, not from further ---------
+// --- 2026-11-18: a rival town is spotted from townSight away, not from further ---------
 {
   const t = { id: 'tR', owner: 'rival', x: 7000, z: 3000 };
   const state = { tick: 0, clans: { player: {}, rival: {} }, frontier: { settlements: { tR: t } }, entities: {

@@ -1,4 +1,4 @@
-// Item hover card (Tim 2026-11-24): replaces the browser's grey title tip on inventory slots. Shows the item, what it
+// Item hover card (2026-11-24): replaces the browser's grey title tip on inventory slots. Shows the item, what it
 // does to the hero's real stats compared with what is worn now (green better, red worse), its look and its price.
 // The numbers come from the sim's own stat snapshot of the hero wearing the item; this file owns no stat formulas.
 import { ITEMS, EQUIPMENT_SLOTS, gearFlat } from './sim/inventory.js';

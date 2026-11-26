@@ -25,7 +25,7 @@ export function terrainName(world, x, z) {
   return world.terrain.codes[terrainAt(world, x, z)] || 'unknown';
 }
 
-// River water is walkable only on the crossing art (Tim 2026-11-20): a ford's gravel bar or a bridge deck.
+// River water is walkable only on the crossing art (2026-11-20): a ford's gravel bar or a bridge deck.
 // Each crossing is a strip across its river: `along` = half its size along the flow (ford: rules.fordAlong,
 // the solid part of the gravel bar in world_crossings.json fordBed; bridge: rules.bridgeHalfWidth, half the
 // plank strip's width in world_crossings.json bridge.width), `lo..hi` = across the river from bank to bank

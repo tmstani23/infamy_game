@@ -26,7 +26,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
 
   // Cells a placement covers: a line kind covers each listed cell, a building its 1x1 or 2x2 footprint.
   // Returns null when a footprint runs off the grid edge.
-  // A building with a `shape` (the 3x2 railway station, Tim 2026-11-07) is cols x rows, turned by rot (0..3).
+  // A building with a `shape` (the 3x2 railway station, 2026-11-07) is cols x rows, turned by rot (0..3).
   function footprint(s, kind, cells, rot = 0) {
     if (LINES[kind]) return cells.slice();
     const { n } = s.grid, a = cells[0], size = sizeOf(kind), [w, h] = shapeOf(data.buildings[kind], rot) || [size, size];
@@ -115,7 +115,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
 
   const bad = (reason, cells = []) => ({ ok: false, reason, cost: {}, cells });
 
-  // Tim 2026-11-24: a new building may go up on a ruin (any placed building's ruin but the town hall's and a
+  // 2026-11-24: a new building may go up on a ruin (any placed building's ruin but the town hall's and a
   // station's, whose railway lines hang on it); placing it clears the ruins under it for nothing. check() judges the
   // town as if those ruins were gone: their cells free, out of every count.
   const cellsOf = b => b.cells || [b.cell];
@@ -136,7 +136,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
   }
   function checkClear(s, { kind, cells, rot = 0 }) {
     if (!s?.grid) return bad('no grid');
-    // Tim 2026-11-18: while surrender terms are on the table for this town's war, nobody builds in it
+    // 2026-11-18: while surrender terms are on the table for this town's war, nobody builds in it
     if (Object.values(state?.frontier?.wars?.list || {}).some(w => w.town === s.id && w.terms)) return bad('A ceasefire is on: nobody builds while terms are on the table', Array.isArray(cells) ? cells : []);
     // 7c-4: a ruined town hall stops the town placing anything until workers repair it
     if ((s.buildings || []).some(b => b.type === 'town_hall' && b.stage === 'ruined')) return bad('the town hall is a ruin: send workers to repair it', Array.isArray(cells) ? cells : []);
@@ -154,13 +154,13 @@ export function createPlacement({ state, data, world, construction, resourceInde
     if ((kind === 'road' || kind === 'gate') && cover.some(i => nearCliff(s, i, data))) return bad('too close to a cliff', cover);
     if(kind!=='road' && kind!=='gate' && coversResources(s,cover,resourceIndex,data.founding?.unitClearance))return bad('resource area: leave room to harvest',cover);
     // 8d-5: the military zone takes military buildings only (the cells they cover stop being zone, see place)
-    const MZ = data.zones?.military?.char, milB = !LINES[kind] && !!(data.buildings[kind]?.military || data.buildings[kind]?.militaryZone);   // militaryZone: a town building allowed there too (the stockade, Tim 2026-11-22)
+    const MZ = data.zones?.military?.char, milB = !LINES[kind] && !!(data.buildings[kind]?.military || data.buildings[kind]?.militaryZone);   // militaryZone: a town building allowed there too (the stockade, 2026-11-22)
     if (MZ && !milB && cover.some(i => g.use[i] === '.' && g.zone[i] === MZ) && cover.every(i => g.use[i] === '.' && (g.zone[i] === '.' || g.zone[i] === MZ))) return bad('military zone: only military buildings go here', cover);
     if (cover.some(i => g.use[i] !== '.' || (g.zone[i] !== '.' && !(milB && g.zone[i] === MZ)))) return bad('occupied', cover);
-    // war checkpoint 6: a breach stays open while the war is on; Tim 2026-11-17: a player may build it over during
+    // war checkpoint 6: a breach stays open while the war is on; 2026-11-17: a player may build it over during
     // the war himself (wall or gate piece, normal cost); a bot clan's town still waits for the war's end
     if (s.breaches?.length && (!state.clans?.[s.owner] || state.clans[s.owner].bot) && Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id) && cover.some(i => s.breaches.some(b => b.cell === i))) return bad('breached: rebuild after the war', cover);
-    if (kind !== 'road' && kind !== 'gate' && cover.some(i => s.railCells?.[i])) return bad('railway track', cover);   // roads may cross (Tim 2026-11-07)
+    if (kind !== 'road' && kind !== 'gate' && cover.some(i => s.railCells?.[i])) return bad('railway track', cover);   // roads may cross (2026-11-07)
     if(kind==='wall' || !LINES[kind]) {
       const reason=buildingSafety(s,cover,state,data.founding?.unitClearance);
       if(reason)return bad(reason,cover);
@@ -168,7 +168,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
     // B3: everything but roads and work camps stays inside the town hall tier's ring
     const needsRing = kind !== 'road' && !data.tiers?.camps?.includes(kind) && !data.buildings[kind]?.shore;   // ships S3: the shipyard stands on the shore, in the ring or out
     if (needsRing && cover.some(i => !inCore(s, i, data))) {
-      // Tim 2026-11-21: a watchtower may stand outside the ring beside one of the town's own built work camps
+      // 2026-11-21: a watchtower may stand outside the ring beside one of the town's own built work camps
       // (tiers.outsideRing: within near world units of it, perCamp towers each), to guard the workers out there
       const O = data.tiers?.outsideRing?.[kind], gb = data.tiers?.camps || [];
       const camps = O ? (s.buildings || []).filter(b => b.stage === 'built' && gb.includes(b.type)) : [];
@@ -226,7 +226,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
   }
 
   // Preview and execution share a de-duplicated plan. Eraser returns 100% of paid costs.
-  // Cells the player erases stay marked as touched (by 'p', Tim 2026-11-21) so the governor never zones them again.
+  // Cells the player erases stay marked as touched (by 'p', 2026-11-21) so the governor never zones them again.
   function remove(s, { cells, dryRun = false, by = '.' }) {
     if (!s?.grid) return bad('no grid');
     const g = s.grid, { n } = g;
@@ -245,7 +245,7 @@ export function createPlacement({ state, data, world, construction, resourceInde
     }
     if(!plan.size)return bad('nothing there',cells);
     for(const p of plan.values()) {
-      if(p.building) {if(p.building.stage!=='ruined')addRefund(p.building.paidCost || data.buildings[p.building.type]?.cost);   // a ruin is cleared for nothing (Tim 2026-11-24, as camps)
+      if(p.building) {if(p.building.stage!=='ruined')addRefund(p.building.paidCost || data.buildings[p.building.type]?.cost);   // a ruin is cleared for nothing (2026-11-24, as camps)
         for(const i of p.building.cells || [p.building.cell])covered.add(i);}
       else if(p.proj) {if(p.proj.paid)addRefund(p.proj.cost);for(const i of p.proj.cells || [p.proj.cell])covered.add(i);}
       else if(p.line!==undefined) {addRefund(s.lineCosts?.[p.line] || data.placeCosts[({r:'road',w:'wall',g:'gate'})[g.use[p.line]]]);covered.add(p.line);}

@@ -21,7 +21,7 @@ export const ATLAS_DEV_LAYERS = [{ id: 'revealAll', label: 'Show everything (tes
 const circle = r => ({ circle: r });
 const line = (...points) => ({ points });
 const polygon = (...points) => ({ points, closed: true });
-// town marker (Tim 2026-11-21, mock town_marker_mock.png B): a little house badge, drawn in its owner's clan colour
+// town marker (2026-11-21, mock town_marker_mock.png B): a little house badge, drawn in its owner's clan colour
 const TOWN_HOUSE = polygon([0,-7],[6,-1],[5,-1],[5,6],[-5,6],[-5,-1],[-6,-1]);
 export const ATLAS_MARKERS = {
   site: { label: 'Site', layer: 'sites', color: '#f3d67d', glyph: [circle(5)] },
@@ -66,7 +66,7 @@ export function drawAtlasGlyph(ctx, kind, x, y, hollow = false, featureKind = nu
   }
   ctx.restore();
 }
-// Town badge on the World map (Tim 2026-11-21, mock town_marker_mock_v2.png): a round cream seal rimmed in the owner's
+// Town badge on the World map (2026-11-21, mock town_marker_mock_v2.png): a round cream seal rimmed in the owner's
 // clan colour, holding a two-tier curved roof in that colour over dark walls and a lit door. Yours are bigger, glow in your
 // colour and carry a gold ring, so they stand out from rivals'.
 export function drawTownBadge(ctx, x, y, color = ATLAS_MARKERS.town.color, mine = false) {
@@ -93,7 +93,7 @@ export function drawTownBadge(ctx, x, y, color = ATLAS_MARKERS.town.color, mine 
   ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, 0.9 * u); ctx.beginPath(); ctx.moveTo(0, -6.2 * u); ctx.lineTo(0, -7.6 * u); ctx.stroke();
   ctx.restore();
 }
-// The Capital (Tim 2026-11-23): an engraved brass ship's wheel, a little bigger than a castle mark, in the manner of an
+// The Capital (2026-11-23): an engraved brass ship's wheel, a little bigger than a castle mark, in the manner of an
 // old sea chart: eight spokes to a red hub inside a double rim, eight turned handles, a faint see-through warm glow
 // and its name in the map serif beside it, like the castles.
 export function drawCapitalBadge(ctx, x, y, { label = true, scale = 1 } = {}) {
@@ -142,7 +142,7 @@ export function atlasFeatureName(it) {
 }
 export function atlasItems(world, st, layers, known) {
   const records = [];
-  // sites the surveyor reported (Tim 2026-11-06 20:45) and the nodes around them show through the fog
+  // sites the surveyor reported (2026-11-06 20:45) and the nodes around them show through the fog
   const told = new Set(st.knownSites || []), near = (st.knownAt || []), surveyed = (it, kind) => kind === 'site' ? told.has(it.id) : kind === 'resource' && near.some(p => Math.hypot(p.x - it.x, p.z - it.z) <= p.r);
   const add = (list, kind) => { if (!layers[ATLAS_MARKERS[kind].layer] && !layers.revealAll) return; for (const it of list || []) if (known(it.x,it.z) || surveyed(it, kind)) records.push({ ...it, featureKind: it.kind, kind }); };
   add(world.sites, 'site'); add(world.nodes, 'resource'); add(world.camps, 'camp');

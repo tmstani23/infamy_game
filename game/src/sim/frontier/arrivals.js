@@ -1,4 +1,4 @@
-// Visible arrivals and level-ups (economy balance B7, Tim 2026-11-05). Pure presentation support in the sim:
+// Visible arrivals and level-ups (economy balance B7, 2026-11-05). Pure presentation support in the sim:
 // growth (economy) and housing level-ups (zones) push small records onto the town; this module walks a
 // cosmetic civilian from the town ring's edge to the house when the player's units are near, then
 // removes it. Nobody can lose a person this way: pop already changed; the walker is decoration.
@@ -24,7 +24,7 @@ export function noteLevelUp(s, cell, stage, state) {
   (s.fx ||= []).push({ kind: 'level', cell, stage, tick: state?.tick ?? 0 });
   while (s.fx.length > 12) { const i = s.fx.findIndex(f => f.kind !== 'fireworks'); if (i < 0) break; s.fx.splice(i, 1); }
 }
-// a town hall tier-up: fireworks from the hall (Tim 2026-11-05); kept apart from the 12-entry cap
+// a town hall tier-up: fireworks from the hall (2026-11-05); kept apart from the 12-entry cap
 export function noteTierUp(s, state) {
   (s.fx ||= []).push({ kind: 'fireworks', tier: s.tier || 1, tick: state?.tick ?? 0 });
 }
@@ -53,7 +53,7 @@ export function createArrivals({ state, data }) {
         };
         if (!a.entity) {
           if (!enabled || !near(home) || walking >= (A.maxWalkers || 3)) { done(); continue; }
-          // newcomers walk out of the town hall to their house (Tim 2026-11-05), from the hall's side facing it
+          // newcomers walk out of the town hall to their house (2026-11-05), from the hall's side facing it
           const ang = Math.atan2(home[1] - s.z, home[0] - s.x) || 0, step = (s.grid.cell || 11) * 1.2;
           const start = runtime.areas.nav.nearestFree?.(s.x + Math.cos(ang) * step, s.z + Math.sin(ang) * step) || [s.x, s.z];
           const path = runtime.areas.nav.workerPath(...start, ...home);

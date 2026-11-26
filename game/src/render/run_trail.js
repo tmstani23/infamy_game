@@ -1,7 +1,7 @@
-// Hero running trails (Tim 2026-10-29): only while the hero runs, nothing idle or attacking.
+// Hero running trails (2026-10-29): only while the hero runs, nothing idle or attacking.
 // sonic (Yakuza ronin): thin pale speed lines peel off his body and stretch out behind him; idle, each time
-// the blade shimmer runs, two faint hum rings ripple out from the blade (Tim 2026-10-29: added to the glint).
-// static (Kuroda boss): slower coherent crimson discharges trail behind and fade; also (Tim 2026-10-29)
+// the blade shimmer runs, two faint hum rings ripple out from the blade (2026-10-29: added to the glint).
+// static (Kuroda boss): slower coherent crimson discharges trail behind and fade; also (2026-10-29)
 // tiny crimson sparks now and then fall off the blade when idle, and one thin extra arc flickers along the blade mid-swing.
 // Sprite-local units (0..1 of the quad, y up); "behind" = opposite the sheet direction (sim dirIndex:
 // screen right -sin, screen down cos). Purely visual. Style and colour: weapon_glow.json runTrail.

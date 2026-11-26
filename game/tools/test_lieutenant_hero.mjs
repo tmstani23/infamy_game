@@ -1,4 +1,4 @@
-// The lieutenant together with the hero (Tim 2026-11-06: "governor" = the lieutenant who runs the capital while
+// The lieutenant together with the hero (2026-11-06: "governor" = the lieutenant who runs the capital while
 // the hero is out). test_lieutenant.mjs covers his rules (orders, budget, hire, standing down); this file plays
 // him in a running campaign: the hero walks out through the real gate with the Hero group, the lieutenant defends
 // a raid and buys back a lost business, the hero is knocked out on the island, the captain falls, a rival boss
@@ -36,7 +36,7 @@ const party = crew.slice(0, 2), stay = crew.slice(2);
 party.forEach((u, i) => Object.assign(u, { x: gate.x - 0.6 * (i + 1), z: gate.z - 0.6, order: { kind: 'follow', target: hero.id }, deployment: { ...u.deployment, group: 'hero' } }));
 stay.forEach(u => { if (u.deployment?.group === 'hero') u.deployment.group = 'home'; });
 assert.ok(!L.captainOf('player'), 'no captain while the boss is home');
-clan.permit = true;   // the gate opens with a founding permit (Tim 2026-11-10)
+clan.permit = true;   // the gate opens with a founding permit (2026-11-10)
 g.step([{ id: hero.id, type: 'expedition', action: 'walk', units: [] }]);
 assert.equal(hero.place, 'world', clan.notice?.text);
 const cap = L.captainOf('player'), hq = L.hq('player');
@@ -114,7 +114,7 @@ assert.ok(logged(/captain takes charge/));
   Object.assign(c, { dead: true, diedAt: g.state.tick, hp: 0 });
   g.step([]);
   assert.ok(logged(/captain fell/));
-  // not straight away: after captainWaitSeconds, for captainFee ryo (Tim 2026-11-06)
+  // not straight away: after captainWaitSeconds, for captainFee ryo (2026-11-06)
   for (let i = 0; i < 20; i++) g.step([]);
   assert.ok(!L.captainOf('player'), 'no instant free replacement');
   const wait = Math.round(L.rules.captainWaitSeconds * 20);
@@ -125,7 +125,7 @@ assert.ok(logged(/captain takes charge/));
   assert.equal(Object.values(g.state.entities).filter(e => e.captain && e.owner === 'player' && !e.dead).length, 1, 'one captain only');
 }
 
-// --- fairness while the boss is away (Tim 2026-11-06): rivals raid him on about awayRaidShare of nights; a city
+// --- fairness while the boss is away (2026-11-06): rivals raid him on about awayRaidShare of nights; a city
 // holding no business gets a stipend each new day ---------------------------------------------------------------
 {
   assert.ok(L.away('player'));
@@ -147,7 +147,7 @@ assert.ok(logged(/captain takes charge/));
   for (const b of mine) b.owner = 'player';
 }
 
-// --- no wage (Tim 2026-11-19: the 2026-11-06 wage sink was removed) ------------------------------------------------
+// --- no wage (2026-11-19: the 2026-11-06 wage sink was removed) ------------------------------------------------
 {
   const r = L.record('player');
   clan.ryo = 5000; r.day = g.state.clock.day - 1;
@@ -165,7 +165,7 @@ assert.ok(logged(/captain takes charge/));
   assert.ok(g2.lieutenant.captainOf('player') && g2.lieutenant.active('player'));
 }
 
-// --- the boss is knocked out on the island: he comes round out there (no town yet: by the gate, Tim 2026-11-06),
+// --- the boss is knocked out on the island: he comes round out there (no town yet: by the gate, 2026-11-06),
 // the captain stays in charge and the Hero group is still with him; walking home, the captain stands down ---
 {
   Object.assign(hero, { dead: true, diedAt: g.state.tick, hp: 0 });
@@ -207,7 +207,7 @@ assert.ok(logged(/captain takes charge/));
   Object.assign(boss, was); g.step([]);
   assert.ok(!L.captainOf('kuroda'), 'rival captain stands down');
 }
-// --- Buy (Tim 2026-11-06): a Yakuza lieutenant buys one free business a day, inside the budget and the reserve ---------
+// --- Buy (2026-11-06): a Yakuza lieutenant buys one free business a day, inside the budget and the reserve ---------
 const fresh = (kind, ryo = 3000) => {
   const g = createGame(options());
   const m = setupMatch(g, { clan: kind, difficulty: 'easy', mode: 'campaign', bots: data('data/bots.json'), spawns: options().district.spawns, test: { playerRyo: ryo }, seed: 9 });
@@ -242,7 +242,7 @@ const fresh = (kind, ryo = 3000) => {
   assert.equal(t.L.gate(t.hero, { type: 'contract', action: 'take', job: -1 }).ok, false, 'Yakuza never take contracts');
 }
 
-// --- Shinobi Jobs and Steal (Tim 2026-11-06): the captain takes Scout / bandits by day, one Steal a night; never Sabotage or boss ---
+// --- Shinobi Jobs and Steal (2026-11-06): the captain takes Scout / bandits by day, one Steal a night; never Sabotage or boss ---
 {
   const t = fresh('shinobi'), C = t.S.contracts, U = t.g.settings.units.types;
   const rival = Object.values(t.S.businesses).filter(b => !b.owner && !b.hideout && b.room).slice(0, 2);
@@ -278,7 +278,7 @@ const fresh = (kind, ryo = 3000) => {
   assert.ok(!C.active.player, 'one steal a night');
   C.board = [job(907, 'steal', rival[1])];   // on the board when asked (a refresh in the run above would make it 'not a lieutenant command')
   assert.equal(t.L.gate(t.hero, { type: 'contract', action: 'take', job: 907 }).why, 'one steal a night');
-  // next day: Sabotage in turn after the Scout (Tim 2026-11-10); the squad plants and holds the mark
+  // next day: Sabotage in turn after the Scout (2026-11-10); the squad plants and holds the mark
   t.g.step([{ type: 'time', night: false }]);
   C.readyAt.player = 0; delete C.active.player;
   C.board = [job(908, 'scout', rival[1]), job(909, 'mark', rival[0])];

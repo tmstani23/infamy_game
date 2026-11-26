@@ -1,4 +1,4 @@
-// Winning and losing a war (frontier plan F6, checkpoint 8a, Tim 2026-11-14). Rules only: no DOM, no randomness.
+// Winning and losing a war (frontier plan F6, checkpoint 8a, 2026-11-14). Rules only: no DOM, no randomness.
 // Numbers: data.war.channel, data.war.outcomes, data.war.rout.
 //
 // The channel. When a side's morale is 0 (sim/frontier/war_morale.js: every counted building down, the hall a
@@ -54,7 +54,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
   function outcomeList(w) {
     // Z6 (2026-11-20): a castle has one outcome: it falls and its clan is out (no capture or sack choice)
     if (town(w.town)?.castle) return [{ id: 'fall', ok: true, why: '' }];
-    // Z2 (Tim 2026-11-19): every town can be captured or burned. The rule of 2026-11-09 (a clan's last town can only be
+    // Z2 (2026-11-19): every town can be captured or burned. The rule of 2026-11-09 (a clan's last town can only be
     // sacked) went with the big picture plan: a clan lives on in its home and founds again (rival_campaign.js).
     return ['capture', 'sack', 'burn'].map(id => ({ id, ok: true, why: '' }));
   }
@@ -159,7 +159,7 @@ export function createWarEnd({ state, data, war, world, morale, garrison = null 
     news({ kind: 'warEnded', war: w.id, town: w.town, townName: s?.name || note?.townName || '', result, attacker: w.attacker, defender: w.defender, by, x: cx, z: cz, ...(note || {}), chest, ...(w.spoilsStock ? { stock: w.spoilsStock } : {}),
       ...(w.terms ? { surrender: w.terms.by, ...(w.ransom ? { ransom: w.ransom.amount } : {}) } : {}) });
     war.end(w.id, result, opts.days ?? null);
-    // a captured town celebrates: the town fireworks (town_growth_fx.js) in the victor's colour (Tim 2026-11-25)
+    // a captured town celebrates: the town fireworks (town_growth_fx.js) in the victor's colour (2026-11-25)
     if (result === 'captured' && s) (s.fx ||= []).push({ kind: 'fireworks', capture: true, clan: by ?? w.attacker, tick: state.tick ?? 0 });
     // Z6: a fallen castle takes its clan out: its other wars end too (the towns it fought over are empty now)
     if (result === 'fell') for (const o of war.active()) if (o.attacker === w.defender || o.defender === w.defender) finish(o, 'clanOut');

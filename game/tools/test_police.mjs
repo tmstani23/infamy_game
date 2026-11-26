@@ -130,7 +130,7 @@ const tierOk = g => g.police.tierOf('player') === 2;
   assert.equal(clan(g).ryo, ryo - Math.round(U.types.thug.price * P.bailShare));
   assert.ok(Object.values(g.state.entities).some(e => e.type === 'thug' && e.owner === 'player'), 'thug back on the street');
   for (const o of cops(g)) delete g.state.entities[o.id];   // squads now all come out of the HQ, where the freed thug stands: clear them
-  // no time limit: jailed crew stay until bailed (Tim 2026-10-18), and still count for the crew cap
+  // no time limit: jailed crew stay until bailed (2026-10-18), and still count for the crew cap
   const before = g.clans.crewCount ? g.clans.crewCount('player') : null;
   clan(g).jail.push({ id: 'jailX', unit: 'thug', model: 'thug', bail: 30 });
   if (before !== null) assert.equal(g.clans.crewCount('player'), before + 1, 'jailed crew count for the cap');
@@ -250,7 +250,7 @@ const tierOk = g => g.police.tierOf('player') === 2;
   console.log('lost him ok');
 }
 
-// Lost indoors (Tim 2026-10-18): the hero fights the squad at a door and slips inside. No search
+// Lost indoors (2026-10-18): the hero fights the squad at a door and slips inside. No search
 // round the door: they patrol on from there and are not waiting when he comes out
 {
   const g = newGame();
@@ -293,7 +293,7 @@ const tierOk = g => g.police.tierOf('player') === 2;
   assert.ok(near <= 1, `crew at the door: still back on patrol (${near} of ${cops(g).length} within 6)`);
   assert.ok(cops(g).every(o => !o.angry), 'not angry at the crew');
 }
-// Manhunt (90-119): hero and crew all go in together: the squad calms down and patrols on (Tim 2026-10-18)
+// Manhunt (90-119): hero and crew all go in together: the squad calms down and patrols on (2026-10-18)
 {
   const g = newGame();
   const d = g.doors.find(x => x.label === 'Enter the Teahouse');
@@ -314,7 +314,7 @@ const tierOk = g => g.police.tierOf('player') === 2;
   assert.ok(near <= 2, `Manhunt: back on patrol (${near} of ${cops(g).length} within 6)`);
   assert.ok(cops(g).every(o => !o.angry && o.place === 'street'), 'calm, and they stay outside');
 }
-// Most Wanted indoors (Tim 2026-10-18): they follow the hero and crew in, knock them all down and
+// Most Wanted indoors (2026-10-18): they follow the hero and crew in, knock them all down and
 // arrest them in there (they used to stand swinging at the downed hero for ever), then walk back out
 {
   const g = newGame();
@@ -331,7 +331,7 @@ const tierOk = g => g.police.tierOf('player') === 2;
   console.log('lost him ok');
 }
 
-// No radios (Tim 2026-10-18): below 120 only officers who see the hero, or see an officer chasing
+// No radios (2026-10-18): below 120 only officers who see the hero, or see an officer chasing
 // him, go after him; one far off keeps patrolling
 {
   const g = newGame();
@@ -426,7 +426,7 @@ const tierOk = g => g.police.tierOf('player') === 2;
   assert.ok(cops(g).some(c => Math.hypot(c.x - h.x, c.z - h.z) < 4), 'Most Wanted: they come for him');
   console.log('new squad ok');
 }
-// Two officers beat two crew on their own (Tim 2026-10-18: police were too easy)
+// Two officers beat two crew on their own (2026-10-18: police were too easy)
 for (const kind of ['thug', 'swordsman', 'brute']) {
   const g = newGame();
   const h = g.spawn('hero', 'ronin', -8, 30, { owner: 'player' });
@@ -442,7 +442,7 @@ for (const kind of ['thug', 'swordsman', 'brute']) {
   assert.ok(up(cops2) > 0 && up(crew) === 0, `2 officers beat 2 ${kind}s`);
 }
 console.log('tough police ok');
-// The city police stop at the island gate (Tim 2026-11-08): even Most Wanted, nobody chases a boss out on the island,
+// The city police stop at the island gate (2026-11-08): even Most Wanted, nobody chases a boss out on the island,
 // and an officer already out there goes back
 {
   const g = newGame();
@@ -460,7 +460,7 @@ console.log('tough police ok');
   console.log('island out of reach ok');
 }
 // An arrested city captain cools the clan's heat like the boss
-// (Tim 2026-11-08: heat stuck at 1487)
+// (2026-11-08: heat stuck at 1487)
 {
   const g = newGame();
   clan(g).heat = 900;

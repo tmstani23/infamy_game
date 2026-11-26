@@ -1,4 +1,4 @@
-// Building stats beside its menu (Tim 2026-11-20): buildings no longer show a card on hover (it got in the way of
+// Building stats beside its menu (2026-11-20): buildings no longer show a card on hover (it got in the way of
 // moving units). A left-click on a building with a menu (town war window, garrison card, war camp menu) opens the menu
 // and the building's card beside it; the card goes when the menu closes. Used by frontier_build_ui.js (town card) and
 // structure_card.js (Building pane). Presentation only.
@@ -22,7 +22,7 @@ export function besidePos(menu, card, view, gap = 10, pad = 8) {
 
 const KEYS = ['left', 'top', 'right', 'bottom', 'transform'];
 // put the card beside the menu; its own place (Edit layout) is kept and comes back with unplace
-// Tim 2026-11-22: a card the player dragged (hud_layout pins it) stays where he put it
+// 2026-11-22: a card the player dragged (hud_layout pins it) stays where he put it
 export function placeBeside(card, menu) {
   if (!card || !menu || card.dataset?.layoutPinned === 'true') return;
   if (card.dataset.besideSaved == null) card.dataset.besideSaved = JSON.stringify(Object.fromEntries(KEYS.map(k => [k, card.style[k] || ''])));

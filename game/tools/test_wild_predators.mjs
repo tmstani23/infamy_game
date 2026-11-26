@@ -1,4 +1,4 @@
-// Wolves and bears in their dens (sim/wild_animals.js, wildlife W4, Tim 2026-11-24).
+// Wolves and bears in their dens (sim/wild_animals.js, wildlife W4, 2026-11-24).
 // Run: node tools/test_wild_predators.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

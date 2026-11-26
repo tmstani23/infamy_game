@@ -204,17 +204,17 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
     const tents = rec.camp.buildings.at(-1); tents.progress = 0;
     assert.ok(cmd({ action: 'campCancel', war: rec.id, building: tents.id })?.ok);
     assert.ok(!rec.camp.buildings.includes(tents)); }
-  // 7c-4 (Tim 2026-11-12): builders are sent by hand; a site with nobody on it waits and is flagged idle
+  // 7c-4 (2026-11-12): builders are sent by hand; a site with nobody on it waits and is flagged idle
   for (let i = 0; i < 200; i++) g.step([]);
   assert.ok(!barracks.progress && barracks.idle, 'nobody builds a site by himself');
   { const r = cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.map(w => w.id), kind: 'work', target: barracks.id }); assert.ok(r?.ok, r?.reason); }
   const crew4 = rec.camp.workers.filter(w => w.project === barracks.id);
-  assert.equal(crew4.length, Math.min(4, rec.camp.workers.length), 'at most 4 workers build one site, the rest stay (Tim 2026-11-14)');
+  assert.equal(crew4.length, Math.min(4, rec.camp.workers.length), 'at most 4 workers build one site, the rest stay (2026-11-14)');
   if (rec.camp.workers.length > 4) assert.ok(!cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.filter(w => !crew4.includes(w)).map(w => w.id), kind: 'work', target: barracks.id })?.ok, 'a full site takes no more builders');
   for (let i = 0; i < 8000 && barracks.stage !== 'built'; i++) g.step([]);
   assert.equal(barracks.stage, 'built', 'camp workers build the barracks');
   assert.ok(rec.camp.workers.every(w => !w.project), 'builders are done');
-  assert.ok(crew4.every(w => w.order?.kind === 'hold' && !w.spot), 'they wait by the finished building for orders (Tim 2026-11-12)');
+  assert.ok(crew4.every(w => w.order?.kind === 'hold' && !w.spot), 'they wait by the finished building for orders (2026-11-12)');
   assert.doesNotMatch(war.campCheck(rec.id, 'rifle_range', spotFor('rifle_range') || { x: 0, z: 0 }).reason || '', /Needs/, 'the barracks unlocks the rifle range');
   assert.match(war.campBuildList(rec.id).find(b => b.type === 'stable').reason, /camp hall upgrade/, 'stables wait for the hall upgrade');
   // the camp hall upgrade
@@ -224,8 +224,8 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
   { const r = cmd({ action: 'workerOrder', town: rec.id, workers: rec.camp.workers.map(w => w.id), kind: 'work', target: hall.id }); assert.ok(r?.ok, r?.reason); }   // 7c-4: sent by hand
   for (let i = 0; i < 8000 && hall.tier !== 2; i++) { if (hall.upgrade && hall.upgrade.need - (hall.upgrade.progress || 0) <= 8 && hall.hp == null) hall.hp = 7000; g.step([]); }
   assert.equal(hall.tier, 2, 'workers build the upgrade');
-  { const { campWorkerCap } = await import('../src/sim/frontier/camp_worker_cap.js'); assert.equal(campWorkerCap(rec.camp, frontier), frontier.war.camp.workerCapByTier[1], 'the camp hall upgrade raises the camp worker cap (Tim 2026-11-25)'); assert.equal(campWorkerCap({ buildings: [] }, frontier), frontier.war.camp.workerCapByTier[0]); }
-  { const H = frontier.war.structures.campHall; assert.ok(hall.hp >= 7000 + H[1] - H[0], `the upgrade adds its extra health to a damaged hall (Tim 2026-11-25): ${hall.hp}`); }   // 7000 of 8000 -> 11000 of 12000
+  { const { campWorkerCap } = await import('../src/sim/frontier/camp_worker_cap.js'); assert.equal(campWorkerCap(rec.camp, frontier), frontier.war.camp.workerCapByTier[1], 'the camp hall upgrade raises the camp worker cap (2026-11-25)'); assert.equal(campWorkerCap({ buildings: [] }, frontier), frontier.war.camp.workerCapByTier[0]); }
+  { const H = frontier.war.structures.campHall; assert.ok(hall.hp >= 7000 + H[1] - H[0], `the upgrade adds its extra health to a damaged hall (2026-11-25): ${hall.hp}`); }   // 7000 of 8000 -> 11000 of 12000
   assert.ok(war.upgraded(rec.camp) && war.campBuildList(rec.id).find(b => b.type === 'stable').ok, 'the upgrade unlocks stables');
   // training and the troop cap
   // the hero crew in the war circle count toward the cap (F6 phase 4); the hero does not
@@ -269,7 +269,7 @@ rejected('one war per town', /already at war/, 'enemyTown', ex + mid, ez - 30);
       if (types[t].war) assert.ok(!types[t].price && g.clans.hirePrice('player', t) == null, `${t} is war-only`);
     }
   }
-  assert.deepEqual(war.trainsAt('barracks').sort(), ['brute', 'enforcer', 'grunt', 'spearman'], 'enforcers train at the barracks (Tim 2026-11-11), spearmen too (7c-2)');
+  assert.deepEqual(war.trainsAt('barracks').sort(), ['brute', 'enforcer', 'grunt', 'spearman'], 'enforcers train at the barracks (2026-11-11), spearmen too (7c-2)');
   assert.deepEqual(war.trainsAt('rifle_range').sort(), ['archer', 'rifleman']);
   assert.deepEqual(war.trainsAt('stable').sort(), ['mounted_pikeman', 'sword_rider']);
   // checkpoint 7-1: the clan hall trains only the camp clan's own specials
@@ -405,7 +405,7 @@ const second = plant('enemyTown2', enemy2.x + mid, enemy2.z);
 if (second?.ok) assert.equal(war.warsOf('player').length, 2, 'two wars at once');
 else assert.match(second.reason, /cannot be built|resource/, `second war only blocked by ground: ${second.reason}`);
 
-// Frontier protection (Tim 2026-11-10): heroes and crews may fight anywhere; townsfolk never; a town's
+// Frontier protection (2026-11-10): heroes and crews may fight anywhere; townsfolk never; a town's
 // workers only by the other side of a war on that town
 {
   const at = { place: 'world', area: 'world', holdFire: true, hp: 60 };

@@ -33,7 +33,7 @@ const evenIn = (rng, a, b) => 2 * rng.int(Math.ceil(a / 2), Math.floor(b / 2));
 const TRIES = 30;          // spots tried per prop before it is skipped
 const ATTEMPTS = 25;       // whole layouts tried per seed before giving up
 const NEEDS_ACCESS = new Set(['tea_table', 'teahouse_tea_table', 'manor_reception_table', 'gambling_mat', 'den_card_table', 'den_dice_table', 'den_side_bar', 'counter', 'futon']);   // plus anything marked loot
-// gap rule (Tim 2026-10-18): two solid things either nearly touch (one pile) or leave room for
+// gap rule (2026-10-18): two solid things either nearly touch (one pile) or leave room for
 // the biggest crew body (brute, 0.9 wide) to walk between them on the room walk grid
 const GAP = { pile: 0.5, walk: 1.05 };
 const ENTRY = [4, 4];      // clear floor inside the door, cells across x deep, so crew coming in aren't boxed in
@@ -171,7 +171,7 @@ function layout(recipe, parts, rng) {
     const d = template.inner[0].door * W.bay;
     wallRects.push({ x0: 0, x1: d, z0: at - 0.1, z1: at + 0.1 }, { x0: d + W.bay, x1: X, z0: at - 0.1, z1: at + 0.1 });
   }
-  let strict = false;          // the gap rule, on once the seed's own layout is done (so it stays as Tim picked it)
+  let strict = false;          // the gap rule, on once the seed's own layout is done (so it stays as picked it)
   const fits = (r, zone, def) => r.x0 >= zone.x0 && r.z0 >= zone.z0 && r.x1 <= zone.x1 && r.z1 <= zone.z1
     && !placed.some(q => overlap(r, q.rect)) && !keep.some(k => overlap(r, k)) && !(strict && tight(r, null, def));
   // a gap too narrow to walk through between r and anything else (hanging lanterns may sit by a wall)
@@ -454,7 +454,7 @@ function layout(recipe, parts, rng) {
     if (n < j.min) missing.push(`could not fit ${j.min - n} ${j.item.type} in the ${j.zoneName.replace('_', ' ')}`);
   }
 
-  // the way in (Tim 2026-10-18): a wide patch of clear floor inside the door, and room to walk
+  // the way in (2026-10-18): a wide patch of clear floor inside the door, and room to walk
   // up to the back room's doorway. Then the gap rule: anything that leaves a gap too narrow to
   // walk through is moved. Both happen after the layout, so the rest of the room keeps the
   // layout its seed gave it. Pieces flat against the wall beside the street door stay, and so

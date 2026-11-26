@@ -1,11 +1,11 @@
-// Townsfolk in frontier towns (Tim 2026-11-07): in peacetime each of your towns has a few citizens wandering
+// Townsfolk in frontier towns (2026-11-07): in peacetime each of your towns has a few citizens wandering
 // its roads and buildings, like the capital's. How many: one per perPeople of its population, capped by the
 // town hall tier (max[tier]). At night, or while enemies are inside the town ring (a stand-in for war until wars
 // exist; s.war also counts), they walk back to the town hall and go in. Decoration only: they exist only while
 // one of your units is within viewRadius of the hall, and nobody can lose a person this way.
-// Tim 2026-11-08: they are the capital's mix of townsfolk (every civilians.json walker type, picked at random by its
+// 2026-11-08: they are the capital's mix of townsfolk (every civilians.json walker type, picked at random by its
 // count), and they keep near the town hall: within roam[tier] world units of it, a bit further each tier.
-// Tim 2026-11-15: the town's builders show too. While a placed building of the town is being built (paid, not a
+// 2026-11-15: the town's builders show too. While a placed building of the town is being built (paid, not a
 // zone building), up to s.builders (the townspeople building it) walk out of the hall in work clothes
 // (townsfolk.builderModel), stand round the site and hammer; when it is done they walk back in. Decoration only.
 // Records (plain data, saved): s.folk = [{ entity, path, step, wait, home, build? }] (build = the project id).
@@ -20,7 +20,7 @@ const HZ = 20;
 export function createTownsfolk({ state, data, civilians = null }) {
   const T = data.townsfolk;
   // the capital's walkers, each as many times as its count (vehicles drive, they don't walk round a town)
-  // (town dogs come along too, Tim 2026-11-10: { model, kind, animal } so they keep their name and can't be hit)
+  // (town dogs come along too, 2026-11-10: { model, kind, animal } so they keep their name and can't be hit)
   const mix = Object.entries(civilians?.types || {}).filter(([, t]) => !t.vehicle && t.model)
     .flatMap(([kind, t]) => Array(Math.max(1, t.count || 1)).fill(t.animal ? { model: t.model, kind, animal: true } : t.model));
   const roamOf = s => T.roam?.[s.tier || 1] ?? T.roam?.[1] ?? Infinity;

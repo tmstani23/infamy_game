@@ -1,4 +1,4 @@
-// Tim 2026-11-25: a left-click on your own war camp's buildings (hall, barracks, ...) opens the camp menu
+// 2026-11-25: a left-click on your own war camp's buildings (hall, barracks, ...) opens the camp menu
 // (town_hover.js menuAt). Camp plots carry foreign: true from drawableWarSites, which once blocked the menu.
 import assert from 'node:assert/strict';
 const noop = () => {};

@@ -1,4 +1,4 @@
-// War checkpoint 8b-2 (Tim 2026-11-15): the defending town's war chest, muster delay and training.
+// War checkpoint 8b-2 (2026-11-15): the defending town's war chest, muster delay and training.
 // (sim/frontier/war_defense.js, war.js, war_end.js settle, infirmary.js town field clinic)
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

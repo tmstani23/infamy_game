@@ -1,4 +1,4 @@
-// Z4f (Tim 2026-11-19): a clan with a castle has its rail hub at the castle station. The node keeps the name 'capital';
+// Z4f (2026-11-19): a clan with a castle has its rail hub at the castle station. The node keeps the name 'capital';
 // the track runs out of the station, through the rail gate and over the rail bridge; trains are boarded and left at
 // the castle on the island. A clan with no castle keeps the city end. Run: node game/tools/test_castle_rail.mjs
 import assert from 'node:assert/strict';

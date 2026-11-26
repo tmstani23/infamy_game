@@ -1,4 +1,4 @@
-// Ships plan S3 (Tim 2026-11-22): the town shipyard and the camp slipway on the ship_test dev save: where they may
+// Ships plan S3 (2026-11-22): the town shipyard and the camp slipway on the ship_test dev save: where they may
 // stand (the shore by the harbour; any shore in the circle, not chained), the menus offer them only with water ships
 // sail, ships trained from the war chest and timber come out on the water beside them, dock repair, ruin rules.
 import assert from 'node:assert/strict';
@@ -43,7 +43,7 @@ assert.match(yardSpotWhy(world, town, town.x, town.z, W.buildings.shipyard) || '
 // the dev save has a built shipyard on the shore by the harbour: take it out to try the placement rules, then put it back
 const yard = town.buildings.find(b => b.type === 'shipyard');
 assert.ok(yard?.stage === 'built', 'ship_test has a built shipyard');
-for (const e of Object.values(S.entities)) if (e.ship) e.holdFire = true;   // no gunfire here: the bow cannon (twice as fast, Tim 2026-11-23) would ruin the yard before it trains
+for (const e of Object.values(S.entities)) if (e.ship) e.holdFire = true;   // no gunfire here: the bow cannon (twice as fast, 2026-11-23) would ruin the yard before it trains
 { const pts = yard.cells.map(i => cellToWorld(town, i)), cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cz = pts.reduce((a, p) => a + p[1], 0) / pts.length;
   assert.equal(yardSpotWhy(world, town, cx, cz, W.buildings.shipyard), null, 'it stands on the shore by the harbour'); }
 const use0 = town.grid.use;
@@ -124,7 +124,7 @@ const ship0 = Object.values(S.entities).find(e => e.ship && before.has(e.id) && 
   assert.ok(away); Object.assign(ship0, { x: away.x, z: away.z, sorder: { kind: 'stay' } }); }
 ship0.holdFire = true; ship0.hp = ship0.maxHp * 0.5; run(100); assert.equal(ship0.hp, ship0.maxHp * 0.5, 'away from a yard it does not mend');
 sb.stage = 'ruined'; made.hp = made.maxHp * 0.4; run(100); assert.equal(made.hp, made.maxHp * 0.4, 'a ruined slipway mends nothing');
-// Tim 2026-11-24: no rebuilding buildings in a war; a ruined slipway is erased and placed new, as every camp building
+// 2026-11-24: no rebuilding buildings in a war; a ruined slipway is erased and placed new, as every camp building
 assert.equal(war.campRebuildCheck(rec.id, sb.id).reason, 'Erase the ruin, then build a new one', 'a ruined slipway is not rebuilt in place');
 
 // --- the town shipyard trains for the defender, from his war chest and town timber ---

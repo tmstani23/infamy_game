@@ -1,4 +1,4 @@
-// Castle terraces drawn raised (Z4h, Tim 2026-11-19: "the raised terraces and land bridge"). Drawing only: the sim
+// Castle terraces drawn raised (Z4h, 2026-11-19: "the raised terraces and land bridge"). Drawing only: the sim
 // stays flat, and the castle's cliff cells and fenced land bridges (sim/frontier/castle.js, town_grid.js) keep
 // walkers from ever stepping across a height jump. No three.js here, so Node tests can check it.
 //   createHeightField(castles, { levelHeight }) -> { at(x, z), near(x, z, margin), list }
@@ -66,14 +66,14 @@ export function terrainPieces(c, H) {
   const out = { top1: [], top2: [], rim: [], ramp: [], face: [], rampFace: [], parapet: [], footing: [], footFade: [], pier: [], dockBeam: [], dockPile: [], dockWet: [], dockDark: [] }, n = c.n, s = c.cell;
   const P = (col, row, u, v, h) => [c.x + (col - c.mid - 0.5 + u) * s, h, c.z + (row - c.mid - 0.5 + v) * s];
   const lv = (i, u, v) => cellLevel(c, i, u, v) * H;
-  // the footing (Tim 2026-11-20, "the base line"): a sloped skirt of rubble stone along the bottom of every face the camera
+  // the footing (2026-11-20, "the base line"): a sloped skirt of rubble stone along the bottom of every face the camera
   // sees, FOOT.h up the face and FOOT.w out over the ground below, so a face never meets the ground in a hard line.
   // a, b: [face top, ground] heights at the two ends of the face edge (a at its north or west end)
   const footAt = new Map();   // cell -> sides with a footing, for the caps and corners below
   // the outer edge wanders (FOOT.wobble of FOOT.w, by world position, so neighbouring cells meet): never a straight line
   const wide = (x, z) => { const t = Math.sin(x * 0.41 + z * 0.37) * 0.45 + Math.sin(x * 0.17 - z * 0.23 + 1.3) * 0.35 + Math.sin(x * 1.31 + z * 1.17 + 2.1) * 0.2;
     return FOOT.w * (1 + FOOT.wobble * t) / s; };
-  // and so does its top edge up the face (Tim 2026-11-20: no straight line on the top part either)
+  // and so does its top edge up the face (2026-11-20: no straight line on the top part either)
   const high = (x, z) => FOOT.h * (1 + FOOT.wobbleUp * (Math.sin(x * 0.53 - z * 0.47 + 0.7) * 0.6 + Math.sin(x * 1.7 + z * 1.9 + 2.9) * 0.4));
   const riseAt = (x, z, top, g) => g + Math.min(high(x, z), Math.max(0, top - g));
   function footing(side, col, row, a, b) {
@@ -138,7 +138,7 @@ export function terrainPieces(c, H) {
     const q = [P(col, row, 1, 1, y), P(col, row, 1, 1, y), P(col, row, E ? 1 + w : 1, E ? 1 : 1 + w, g), P(col, row, 1, 1, g)];
     out.footing.push({ q, uvw: q.map(([x, y2, z]) => [E ? x : z, y2]), cell: k, side: 'cap', shade: 0.75 });
   }
-  // the land bridges' parapets (Tim 2026-11-20, stone ramp with low parapets): a low stone wall along each open long side
+  // the land bridges' parapets (2026-11-20, stone ramp with low parapets): a low stone wall along each open long side
   // of a ramp (the sides the sim fences, town_grid.js), climbing with it; PARAPET.w thick inside the cell, PARAPET.h high
   const W = PARAPET.w / s;
   for (const [i, r] of c.ramp) {
@@ -162,7 +162,7 @@ export function terrainPieces(c, H) {
       }
     }
   }
-  // the dock (Tim 2026-11-23): a raised deck on piles with an edge beam and bracing (src/dock_shape.js)
+  // the dock (2026-11-23): a raised deck on piles with an edge beam and bracing (src/dock_shape.js)
   dockPieces(c, c.dock, out);
   // faces of higher cells looking west or north are hidden behind their own tops; faces of a higher cell to the east or
   // south of a lower one face away from the camera (also hidden)

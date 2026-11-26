@@ -1,5 +1,5 @@
 {
-  "_note": "Frontier weather, purely visual (Tim 2026-11-20). Picked per half-day from the biome at the camera; see src/weather_pick.js and src/render/weather.js.",
+  "_note": "Frontier weather, purely visual (2026-11-20). Picked per half-day from the biome at the camera; see src/weather_pick.js and src/render/weather.js.",
   "seed": 7151,
   "fadeSeconds": 12,
   "kinds": {

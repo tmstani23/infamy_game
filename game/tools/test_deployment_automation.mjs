@@ -117,7 +117,7 @@ for (const bot of [false, true]) {
   e.dead = true; f.sync(40); assert.equal(f.d.counts('p')[f.sectors[0]], 0, 'death releases automatic reservation');
   assert.doesNotThrow(() => JSON.stringify(f.state));
 }
-// New crew fill the hero group up to six before any sector or HQ reserve (Tim 2026-10-27).
+// New crew fill the hero group up to six before any sector or HQ reserve (2026-10-27).
 {
   const f = fixture({ bot: false }), fresh = Array.from({ length: 8 }, () => f.add('home', { deployment: { group: 'home' } }));
   f.sync(0);

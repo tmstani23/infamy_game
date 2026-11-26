@@ -41,7 +41,7 @@ export function drawableWarSites(frontier, clan) {
   return out;
 }
 
-// Town hall upgrade phase 1-3 while s.tierUpgrade runs (Tim 2026-11-05: the hall goes through construction stages), else 0
+// Town hall upgrade phase 1-3 while s.tierUpgrade runs (2026-11-05: the hall goes through construction stages), else 0
 export function hallPhase(s) {
   const u = s.tierUpgrade;
   if (!u) return 0;
@@ -67,7 +67,7 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
     return grid.use[i] !== '.' || grid.zone[i] !== '.' || Math.hypot(x, z) <= G.foundationRadius;
   };
   // a neighbour whose clearing is drawn too (a castle's moat, sea and cliff cells are not: the dirt fades out at the
-  // water there like a bank, Tim 2026-11-20 "sharp edges on the wall side")
+  // water there like a bank, 2026-11-20 "sharp edges on the wall side")
   const drawn = i => cleared(i) && grid.use[i] !== 'm' && grid.use[i] !== 'k';
   for (let i = 0; i < grid.n * grid.n; i++) {
     if (grid.ground[i] === 'x') continue;
@@ -81,7 +81,7 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
       // Fade only the clearing's perimeter; adjoining cells share uninterrupted earth.
       Object.assign(out[out.length - 1], { tile: G.textureTile, edgeFade: G.edgeFade, opacity: G.clearOpacity,
         edges: [i % grid.n === 0 || !drawn(i - 1), i % grid.n === grid.n - 1 || !drawn(i + 1), !drawn(i - grid.n), !drawn(i + grid.n)].map(Number) });
-      // soft rounded blob (Tim 2026-11-20): which of the 8 neighbours are drawn too (row-major 3x3, middle 0), so the
+      // soft rounded blob (2026-11-20): which of the 8 neighbours are drawn too (row-major 3x3, middle 0), so the
       // shader blurs the whole clearing into one smooth shape, rounded at every corner (render/world_ground.js)
       if (G.blur) {
         const col = i % grid.n, row = Math.floor(i / grid.n), nb = [];
@@ -106,7 +106,7 @@ export function townCellsToProps(grid, art = {}, zones = {}) {
       patch('road', grid.cell, grid.cell, '#ffffff', `art/ground/road/road_${mask}.png`);
       Object.assign(out[out.length - 1], { cornerRadius: 0, road: { arms, mask } });
     }
-    // castle walls (Tim 2026-11-19): fitted art (tools/fit_castle_wall_art.py) that climbs the ground diagonal exactly and
+    // castle walls (2026-11-19): fitted art (tools/fit_castle_wall_art.py) that climbs the ground diagonal exactly and
     // repeats end to end, count pieces per cell; the wall runs on through a gate and one gatehouse stands over the middle
     // of each run of gate cells, drawn in front of the wall
     if ((use === 'w' || use === 'g') && art._walls?.castle) {
@@ -189,20 +189,20 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
   out.castleWater = towns.filter(s => s.castle && s.grid?.use && Number.isFinite(s.x)).map(s => ({ id: s.id, x: s.x, z: s.z, n: s.grid.n, cell: s.grid.cell,
     use: s.grid.use, level: s.grid.level || null, slope: s.grid.slope || null, ramps: s.castle.ramps || [], pier: s.castle.pier || [] }));
   out.castleArt = townArt?._castle || null;
-  // the castle dock's things (Tim 2026-11-23, look B): cargo, net racks, derricks, lantern posts and boats tied
+  // the castle dock's things (2026-11-23, look B): cargo, net racks, derricks, lantern posts and boats tied
   // alongside, placed by dock position from frontier.json townArt._castle.dockProps ([art, across 0..1, land 0 to sea 1, flip])
   for (const s of towns) {
     const list = townArt?._castle?.dockProps, g = s.grid;
     if (!s.castle?.pier?.length || !g || !list || !Number.isFinite(s.x)) continue;
     const f = dockFrame({ x: s.x, z: s.z, n: g.n, cell: g.cell, mid: (g.n - 1) / 2, use: g.use, level: g.level, pier: s.castle.pier });
-    // flip 'hook' (Tim 2026-11-23): a derrick, mirrored so its hook hangs out over the water past its nearest edge
+    // flip 'hook' (2026-11-23): a derrick, mirrored so its hook hangs out over the water past its nearest edge
     // (the art's hook is on its right; screen right is +x, -z, so an edge facing that way keeps it unmirrored)
     const hookFlip = (a, b) => { const e = [[1 - a, f.across], [a, f.across.map(v => -v)], [1 - b, f.along]].sort((p, q) => p[0] - q[0])[0][1];
       return e[0] - e[1] < 0; };
     if (f) list.forEach(([art, a, b, flip], k) => { const [x, z] = f.spot(a, b), fl = flip === 'hook' ? hookFlip(a, b) : flip;
       out.push({ key: `${s.id}:dock${k}`, art, x, z, ...(fl ? { flip: true } : {}) }); });
   }
-  // the frontier merchant's market stall (Tim 2026-11-26): beside the hall of each founded own town, just behind the
+  // the frontier merchant's market stall (2026-11-26): beside the hall of each founded own town, just behind the
   // stall keeper (sim/item_services.js merchants, spot gear_catalog.js FRONTIER_MERCHANT); a picture only, never blocks
   for (const s of towns) {
     if (!s.founded || s.ruined || s.empty || !Number.isFinite(s.x)) continue;
@@ -244,8 +244,8 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
           ...(fitR ? { maxFootprint: (s.grid?.cell || 11) * fitR } : lineArt ? { maxFootprint: 3 } : {}), noLights: true, ...(lineArt ? {} : { ruinSmoke: true }) });
         return;
       }
-      const fit = townArt._placedFootprint?.[b.type], maxFootprint = fit ? (s.grid?.cell || 11) * fit : undefined;   // Tim 2026-11-07: placed buildings were far bigger than the townhouse
-      // the 3x2 railway station (Tim 2026-11-07): the ticket hall (its Space ring) and the engine shed, its open front to the track
+      const fit = townArt._placedFootprint?.[b.type], maxFootprint = fit ? (s.grid?.cell || 11) * fit : undefined;   // 2026-11-07: placed buildings were far bigger than the townhouse
+      // the 3x2 railway station (2026-11-07): the ticket hall (its Space ring) and the engine shed, its open front to the track
       const parts = b.type === 'station' && townArt._stationParts && stationParts(s, b);
       if (parts) {
         const P = townArt._stationParts, along = parts.rot % 2 === 0, mf = (s.grid?.cell || 11) * (P.fit ?? 1.6), op = b.stage === 'built' ? 1 : 0.5;
@@ -255,7 +255,7 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
           ...(b.stage === 'built' && !s.foreign ? { spaceDoor: `${s.id}:${b.id}` } : {}) });
       }
       // a camp gate someone is passing stands open: gate_x_open / gate_z_open, the same art with a dark doorway (stand-in until
-      // open-gate art, Tim 2026-11-15)
+      // open-gate art, 2026-11-15)
       else if (art) out.push({ key: `${s.id}:${b.id}:${b.stage}${openGates?.has(`${s.id}:${b.id}`) ? ':open' : ''}`, art: openGates?.has(`${s.id}:${b.id}`) && lineArt ? `${art}_open` : art, x: s.x + ox, z: s.z + oz, opacity: b.stage === 'built' ? 1 : 0.5, maxFootprint,
         ...(b.stage === 'built' && !s.foreign && ['town_hall', 'stable', 'station'].includes(b.type) ? { spaceDoor: `${s.id}:${b.type === 'town_hall' ? 'hall' : b.id}` } : {}) });   // render/banners.js puts its Space ring at the door
       // hall upgrade: new wings go up beside the hall in stages (site, frame, then timber stacks while it finishes)
@@ -266,7 +266,7 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
       }
       // stone lanterns beside finished buildings: they light the town at night (townLights = how many per type)
       if (b.stage === 'built' && !s.camp) for (let k = 0; k < (townLights[b.type] || 0); k++) out.push({ key: `${s.id}:${b.id}:lamp${k}`, art: townLights.art || 'stone_lantern', x: s.x + ox + (k ? 4.6 : -4.6), z: s.z + oz + 3.8 });
-      // 7c-5 war camp night lighting (Tim 2026-11-12): braziers, lantern posts and bonfires beside finished camp buildings
+      // 7c-5 war camp night lighting (2026-11-12): braziers, lantern posts and bonfires beside finished camp buildings
       // (townLights.camp[type] = [[art, angle in degrees, distance], ...], existing lit art from data/art.json)
       if (b.stage === 'built' && s.camp) (townLights.camp?.[b.type] || []).forEach(([art, deg, d], k) => out.push({ key: `${s.id}:${b.id}:light${k}`, art, x: s.x + ox + Math.cos(deg * Math.PI / 180) * d, z: s.z + oz + Math.sin(deg * Math.PI / 180) * d }));
     });
@@ -283,11 +283,11 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
     s.projects.forEach((p, i) => {
       const art = tierArt(townArt, p.type, s.tier), [ox, oz] = spotOf(s, p, s.buildings.length + i);
       const x = s.x + ox, z = s.z + oz;
-      // placed buildings go through the same build phases as zone houses (Tim 2026-11-05): site, then frame, then the building
+      // placed buildings go through the same build phases as zone houses (2026-11-05): site, then frame, then the building
       if (p.paid && p.progress > 0 && art) { const half = p.progress * 2 >= p.need, phases = townArt._buildPhases || ['house_construction_1', 'house_construction_2'];
         out.push({ key: `${s.id}:${p.id}:frame${half ? 2 : 1}`, art: phases[half ? 1 : 0], x, z }); }
       // the dirt site shows from placement (also while workers clear overgrown ground) and stays under the frames
-      // until the building stands (Tim 2026-11-25)
+      // until the building stands (2026-11-25)
       {
         const offsets = p.cells?.map(c => cellOffset(s, c));
         const width = offsets ? Math.max(...offsets.map(p => p[0])) - Math.min(...offsets.map(p => p[0])) + s.grid.cell : 8;
@@ -295,14 +295,14 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
         out.push({ key: `${s.id}:${p.id}:dirt`, dirt: true, width, height, x, z,
           texture: townArt._ground?.clearTexture, tint: townArt._ground?.clearTint, tile: townArt._ground?.textureTile,
           edgeFade: townArt._ground?.edgeFade, edges: [1, 1, 1, 1], opacity: townArt._ground?.clearOpacity,cornerRadius:Math.min(width,height)*(townArt._ground?.tileRoundness || 0),
-          ...(townArt._ground?.blur ? { blob: { nb: new Array(9).fill(0), blur: townArt._ground.blur, pad: townArt._ground.blobPad, lo: townArt._ground.blobFeather[0], hi: townArt._ground.blobFeather[1], wobble: townArt._ground.blobWobble } } : {}) });   // soft blob rim like the town ground (Tim 2026-11-20)
+          ...(townArt._ground?.blur ? { blob: { nb: new Array(9).fill(0), blur: townArt._ground.blur, pad: townArt._ground.blobPad, lo: townArt._ground.blobFeather[0], hi: townArt._ground.blobFeather[1], wobble: townArt._ground.blobWobble } } : {}) });   // soft blob rim like the town ground (2026-11-20)
       }
     });
   }
   return out;
 }
 
-// ---- hover and right-click on a plot (frontier E5, Tim 2026-11-04) ----
+// ---- hover and right-click on a plot (frontier E5, 2026-11-04) ----
 // Every building and project of your towns is a plot: { town, kind: 'building' | 'project', id, x, z }.
 export function townPlots(towns) {
   const out = [];
@@ -329,7 +329,7 @@ export const stockadeMax = (data, s) => { const G = data?.buildings?.stockade?.g
 const nice = t => (t || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 // { title, lines } for a plot, read from the live snapshot so numbers stay current.
 // a rival town's building (F6 war): what it is; at the hall, its stores and people once one of your units
-// is close (snapshot scouted, Tim 2026-11-10), otherwise a hint to walk up. Never opens a town panel.
+// is close (snapshot scouted, 2026-11-10), otherwise a hint to walk up. Never opens a town panel.
 function rivalPlotInfo(s, plot) {
   const n = v => Math.floor(v || 0);
   if (plot.kind === 'project') {

@@ -1,8 +1,8 @@
-// Cashing a stolen chest (train robbery, Tim 2026-11-21): the loot flies from the hero into the town hall (or the war
+// Cashing a stolen chest (train robbery, 2026-11-21): the loot flies from the hero into the town hall (or the war
 // camp banner) as the same little load icons the workers carry (cargo_icons.js), ryo as gold koban coins. Each icon
 // pops up out of the chest, arcs over and drops into the hall, a few at a time, then shrinks away.
 // steal(): while a hero holds on a freight wagon, small icons hop out of the wagon into his hands, one every STEAL_EVERY s
-// (Tim 2026-11-21: the hero art has no stealing animation, so the loot coming off the wagon shows it).
+// (2026-11-21: the hero art has no stealing animation, so the loot coming off the wagon shows it).
 // Sim: rail_robbery.js cash() pushes a 'chestCashed' cast { x, z, tx, tz, loot }.
 import * as THREE from 'three';
 import { cargoIcon, CARGO_ICON_SIZE } from '../cargo_icons.js';
@@ -42,7 +42,7 @@ export function createChestCashFx({ scene }) {
       timers.set(r.id, STEAL_EVERY * (.8 + Math.random() * .4));
       const kind = ['coin', 'coin', 'timber', 'stone', 'sack'][Math.floor(Math.random() * 5)];
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(kind), transparent: true, depthWrite: false, depthTest: false, opacity: 0 }));
-      s.renderOrder = 99797; scene.add(s);   // over the train art (Tim 2026-11-21: they came in behind it)
+      s.renderOrder = 99797; scene.add(s);   // over the train art (2026-11-21: they came in behind it)
       live.push({ s, t: 0, fly: STEAL_FLY, size: STEAL_SIZE, from: { x: r.from.x, y: groundY(r.from.x, r.from.z) + 1.5, z: r.from.z }, to: { x: r.to.x, y: r.to.y + 1.1, z: r.to.z },
         pop: { x: 0, z: 0 }, arc: 1 + Math.random() * .6, spin: (Math.random() - .5) * 1.5 });
     }

@@ -1,4 +1,4 @@
-// Tim 2026-11-22: once a town has a built work camp of a kind, the governor's workers take that resource only at the
+// 2026-11-22: once a town has a built work camp of a kind, the governor's workers take that resource only at the
 // spots beside one (workers.campSide). With no place left they wait in the town hall, he trains nobody meanwhile and
 // builds another camp when he can. The player can call them out and give them a job; his own picks never move.
 import assert from 'node:assert/strict';

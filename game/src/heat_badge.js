@@ -1,4 +1,4 @@
-// Heat gauge, bottom right (Tim OK'd the mock 2026-10-17): a flame, the clan's heat number
+// Heat gauge, bottom right (approved the mock 2026-10-17): a flame, the clan's heat number
 // and a ring filling toward 100, with a level name under it. The glow grows and reddens with
 // heat, flares whenever heat goes up (with a notice like "Townsperson killed +30" rising
 // above it, from state.heatGains) and pulses at the top level. Only reads the state.

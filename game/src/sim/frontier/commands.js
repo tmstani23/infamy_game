@@ -11,7 +11,7 @@ import { setFundPct } from './fund.js';
 const PRIORITIES = ['grow', 'produce', 'trade', 'fortify'];
 const ACTIONS = ['setPriority', 'buyCart', 'setBudget', 'setAutoBuild', 'approveSuggestion', 'setTax', 'authorize', 'cancel', 'queue', 'setTownOrder', 'devRoadState', 'found', 'place', 'remove', 'zone', 'train', 'assign', 'workerOrder', 'upgradeHall', 'warUpgradeHall', 'setMarketKeep', 'setFund', 'rebuild', 'cartOrder', 'campExtras'];
 
-// hooks.rail (set by frontier.js once the railway exists): a station's lines, torn up when it is removed (Tim 2026-11-07)
+// hooks.rail (set by frontier.js once the railway exists): a station's lines, torn up when it is removed (2026-11-07)
 export function createCommands({ state, data, world, economy, construction, governor, founding, worldData, placement, zones, workers, hooks = {} }) {
   const f = () => state.frontier;
 
@@ -69,7 +69,7 @@ export function createCommands({ state, data, world, economy, construction, gove
       if (t.owner == null || t.owner !== e.owner) return reject(e, c, 'not your settlement');
       if (c.dryRun) { placement.lastDryRun = c.action === 'place' ? placement.check(t, c) : c.action === 'zone' ? zones.zone(t, { ...c, dryRun: true }) : null; return true; }   // changes nothing, not even receipts
       const by = c.by === 'g' ? 'g' : 'p';
-      // removing a station with railway lines (Tim 2026-11-07): only with confirmLines; then its lines are torn up
+      // removing a station with railway lines (2026-11-07): only with confirmLines; then its lines are torn up
       const station = c.action === 'remove' && Array.isArray(c.cells) && t.buildings.find(b => b.type === 'station' && (b.cells || [b.cell]).some(i => c.cells.includes(i)));
       const lines = station && hooks.rail ? hooks.rail.linesAt(t.owner, t.id).length : 0;
       if (lines && !c.confirmLines) return reject(e, c, `Track runs from this station: erase it again to tear up its ${lines === 1 ? 'railway line' : `${lines} railway lines`}`);
@@ -96,7 +96,7 @@ export function createCommands({ state, data, world, economy, construction, gove
     switch (c.action) {
       case 'setPriority':
         if (!PRIORITIES.includes(c.priority)) return reject(e, c, 'unknown priority');
-        s.priority = c.priority; s.focusSet = true;   // goal step "Give him his orders" (Tim 2026-11-06)
+        s.priority = c.priority; s.focusSet = true;   // goal step "Give him his orders" (2026-11-06)
         return receipt(e, c, true);
       case 'setBudget':
         if (!Number.isFinite(c.ryo) || c.ryo < 0) return reject(e, c, 'budget must be 0 or more');
@@ -105,7 +105,7 @@ export function createCommands({ state, data, world, economy, construction, gove
       case 'setAutoBuild':
         if (typeof c.on !== 'boolean') return reject(e, c, 'on must be true or false');
         s.autoBuild = c.on;
-        if (c.on) s.initiativeOnce = true;   // goal step "Give him his orders" stays done after Off (Tim 2026-11-21)
+        if (c.on) s.initiativeOnce = true;   // goal step "Give him his orders" stays done after Off (2026-11-21)
         return receipt(e, c, true);
       case 'approveSuggestion':
         if (!Number.isInteger(c.index) || !s.suggestions?.[c.index]) return reject(e, c, 'no such suggestion');
@@ -116,7 +116,7 @@ export function createCommands({ state, data, world, economy, construction, gove
         if (!['low', 'normal', 'high', 'auto'].includes(c.level)) return reject(e, c, 'unknown tax level');
         economy.setTax(s.id, c.level);
         return receipt(e, c, true);
-      case 'setFund': {   // the safety fund share (Tim 2026-11-21, fund.js): a whole percent 0 to 100, typed on the Governor tab
+      case 'setFund': {   // the safety fund share (2026-11-21, fund.js): a whole percent 0 to 100, typed on the Governor tab
         const why = setFundPct(s, data, state, c.pct);
         return why ? reject(e, c, why) : receipt(e, c, true);
       }
@@ -142,8 +142,8 @@ export function createCommands({ state, data, world, economy, construction, gove
         const r = startWarUpgrade(s, data, world, state);
         return r.ok ? receipt(e, c, true) : reject(e, c, r.reason);
       }
-      case 'rebuild': {   // 7c-4 (Tim 2026-11-12): a ruined placed building comes back only by this order; the town's builders then rebuild it at the normal cost
-        // Tim 2026-11-24 (replaces 2026-11-17 "during a war too"): never while a war is on the town, for the player, bots and
+      case 'rebuild': {   // 7c-4 (2026-11-12): a ruined placed building comes back only by this order; the town's builders then rebuild it at the normal cost
+        // 2026-11-24 (replaces 2026-11-17 "during a war too"): never while a war is on the town, for the player, bots and
         // the general alike, so a razed building stays down; mid-war a new one is placed from scratch at full cost
         const b = (s.buildings || []).find(x => x.id === c.building);
         if (!b || b.stage !== 'ruined') return reject(e, c, 'no ruin there');
@@ -151,7 +151,7 @@ export function createCommands({ state, data, world, economy, construction, gove
         if (b.type === 'town_hall') return reject(e, c, 'send workers to repair the town hall (select them, right-click the ruin)');
         if (s.buildings.some(x => x.type === 'town_hall' && x.stage === 'ruined')) return reject(e, c, 'the town hall is a ruin: send workers to repair it first');
         if (s.projects.some(p => p.replaces === b.id)) return reject(e, c, 'already being rebuilt');
-        { const why = militaryWhy(s, b.type, data, state) || (placedRoom(s, b.type, data) < 1 && 'town hall tier limit'); if (why) return reject(e, c, `${why}: a new one stands in its place, erase the ruin`); }   // ruins do not count (Tim 2026-11-24)
+        { const why = militaryWhy(s, b.type, data, state) || (placedRoom(s, b.type, data) < 1 && 'town hall tier limit'); if (why) return reject(e, c, `${why}: a new one stands in its place, erase the ruin`); }   // ruins do not count (2026-11-24)
         const pid = construction.queue(s.id, b.type, b.cell, { replaces: b.id });
         if (!pid) return reject(e, c, 'could not queue it');
         construction.authorize(pid);

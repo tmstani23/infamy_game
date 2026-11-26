@@ -86,7 +86,7 @@ assert.equal(spare.place, home.room, 'HQ reserve arrives inside the home through
 assert.equal(spare.deployment.group, 'home');
 assert.notEqual(spare.order.kind, 'follow');
 
-// Sector crew who go down come round at their HQ instead of the clinic (Tim 2026-10-27).
+// Sector crew who go down come round at their HQ instead of the clinic (2026-10-27).
 send([u.id], sector.id); finish(u);
 u.downed = true; u.downedAt = g.state.tick;
 assert.ok(g.clans.carryOff(u)); delete g.state.entities[u.id];

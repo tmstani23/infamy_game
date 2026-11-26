@@ -1,4 +1,4 @@
-// Tim 2026-11-06: town Need score (sim/frontier/alerts.js townNeed) and the all-towns window sort.
+// 2026-11-06: town Need score (sim/frontier/alerts.js townNeed) and the all-towns window sort.
 // Run: node game/tools/test_town_need.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

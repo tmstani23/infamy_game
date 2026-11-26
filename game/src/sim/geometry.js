@@ -75,7 +75,7 @@ export function placePiece(entry, catalog, cutouts) {
     // its recipe footprint or gameplay blocker.
     center: entry.artAnchor ?? item.artAnchor ?? (item.anchor ? (entry.flip ? [meta.w - item.anchor[0], item.anchor[1]] : item.anchor) : f.center),
     // a painting whose base is turned off the ground diagonal is sheared back upright-safe (art.json "shear",
-    // tools/measure_art_slant.py, Tim 2026-11-07); mirrored art mirrors it
+    // tools/measure_art_slant.py, 2026-11-07); mirrored art mirrors it
     shear: entry.shear ?? (entry.flip ? -1 : 1) * (item.shear || 0),
     foot: rect(entry.x, entry.z, f.fa * shrink, f.fb * shrink),
     // Interior parts already provide their exact blockers, including surface-mounted props.
@@ -88,7 +88,7 @@ export function placeScenery(district, catalog, cutouts) {
   return [
     ...district.buildings.map((b, i) => ({ name: b.art, x: b.x, z: b.z, flip: !!b.flip, business: b.business || null, building: i })),
     // a prop is [name, x, z] or [name, x, z, { flip: true }] (mirrored, so a wall runs along z instead of x);
-    // { cleared: true } takes it away but keeps the others' indices (the city railway station, Tim 2026-11-07)
+    // { cleared: true } takes it away but keeps the others' indices (the city railway station, 2026-11-07)
     ...district.props.map(([name, x, z, o], i) => o?.cleared ? null : ({ name, x, z, flip: !!o?.flip, prop: i })),   // prop: its index (lanterns snuffed out, sim/stealth.js)
   ].map(e => e && placePiece(e, catalog, cutouts)).filter(Boolean);
 }

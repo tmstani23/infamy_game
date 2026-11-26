@@ -1,4 +1,4 @@
-// Shipment countdowns (Tim 2026-11-23, mock project files ledger_merge/mock_final.png): when an open rail order
+// Shipment countdowns (2026-11-23, mock project files ledger_merge/mock_final.png): when an open rail order
 // should arrive, read from the trains' places on their lines. Read only: the Rail ledger (map and town card) draws it.
 // Same timing as rail.js serviceAt: a train runs its line at train.speed and stands stopSeconds at each end. It is an
 // estimate where cargo still waits (trains are shared, big orders need several trips, a watched train runs slower);

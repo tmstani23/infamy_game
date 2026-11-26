@@ -1,6 +1,6 @@
 import { modeRules } from '../modes/index.js';
 // Founding a frontier town (frontier plan E3). Pure rules: no randomness, no DOM. A town can be
-// founded anywhere buildable at least founding.minSpacing from other towns (Tim, 2026-11-02); bot
+// founded anywhere buildable at least founding.minSpacing from other towns (2026-11-02); bot
 // clans found only within founding.botSiteRadius of one of the W1 sites. Traits (soil, water,
 // defense, 1 to 3) are computed from the terrain round the spot, so any spot has them.
 // All numbers live in data/frontier.json "founding". Players, bots and governors use the same
@@ -52,9 +52,9 @@ export function createFounding({ state, data, world, removeUnit, resourceIndex, 
     if (clan.ryo < D.cost) return `Founding costs ${D.cost} ryo`;
     if(!Number.isFinite(point?.x) || !Number.isFinite(point?.z))return 'Choose a hall position';
     if(Math.hypot(point.x-hero.x,point.z-hero.z)>(D.placementRange || D.gatherRadius))return 'Hall is too far from the hero';
-    // Tim 2026-11-06: the capital has its own, smaller gap so a town can go up a short walk from the gate
+    // 2026-11-06: the capital has its own, smaller gap so a town can go up a short walk from the gate
     const capGap = D.capitalSpacing ?? D.minSpacing;
-    // Z2 (Tim 2026-11-19): two towns a clan in one campaign zone; nobody founds on a clan castle's ground
+    // Z2 (2026-11-19): two towns a clan in one campaign zone; nobody founds on a clan castle's ground
     if (zones) {
       const zid = zones.zoneAt(point.x, point.z), closed = zones.closedSites();
       if (zid && zones.full(clan.id, zid)) return `Zone full: you already have ${zones.count(clan.id, zid)} towns in ${zones.zone(zid).name}`;
@@ -121,7 +121,7 @@ export function createFounding({ state, data, world, removeUnit, resourceIndex, 
       buildings: (D.startBuildings || [D.townHall]).map((type, i) => ({ type, stage: 'built', cell: i })),
     });
     ensureGrid(town, wd, data);   // L3.1: the town grid, water and mountain cells marked x; the hall takes the centre
-    // Economy pass 2 (Tim 2026-11-05): new towns start with free workers, ready on the next tick.
+    // Economy pass 2 (2026-11-05): new towns start with free workers, ready on the next tick.
     town.workerTraining = [...(town.workerTraining || []), ...Array.from({ length: D.startWorkers || 0 }, () => ({ id: w.newId('w'), readyAt: state.tick || 0 }))];
     w.payFounding(clan, D.cost, town.id);
     town.foundedTick = state.tick ?? 0;   // E1: the camp-bandit grace counts from here

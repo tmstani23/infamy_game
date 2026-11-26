@@ -114,7 +114,7 @@ const crew = (s, kind) => s.buildings.filter(b => b.type === kind).reduce((n, b)
   eco.assignJobs(s); assert.equal(s.builders, 0);
   s.projects.push({ id: 'p1', type: 'house', cell: null, cost: {}, paid: true, progress: 0, need: 30, authorized: true });
   eco.assignJobs(s);
-  assert.equal(s.builders, 4);   // rates.maxBuilders (Tim 2026-11-15: 4, same as camps)
+  assert.equal(s.builders, 4);   // rates.maxBuilders (2026-11-15: 4, same as camps)
   const used = s.builders + s.buildings.reduce((n, b) => n + b.workers, 0);
   assert.ok(used <= s.pop);
 }

@@ -1,4 +1,4 @@
-// Drawn icons for the HUD (Tim 2026-11-11: no glyphs or emoji). Generated from project file
+// Drawn icons for the HUD (2026-11-11: no glyphs or emoji). Generated from project file
 // menu_restyle/hud/gen_icons.py; the same set feeds the button masks at the end of menu_shell.css.
 export const HUD_ICONS = {
  "attack": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 20L17 7\"/><path d=\"M14.5 4.5l5 5\"/><path d=\"M7 14l3 3\"/><path d=\"M3 21l2-2\"/></svg>",

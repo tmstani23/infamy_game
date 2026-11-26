@@ -25,7 +25,7 @@ export function reconcile(target, source) {
 // { id, name, owner, region, site } for towns on discovered ground, roads with their state, its own
 // shipments, its own receipts. Never the 500-entry ledger, totals or rival stock.
 export const FRONTIER_EVERY = 5;
-// Walk up to a rival town and you see everything (Tim 2026-11-10): its stores and people while one of
+// Walk up to a rival town and you see everything (2026-11-10): its stores and people while one of
 // your living units out on the frontier is within its build ring plus war.scoutRange of the hall.
 function scoutedBy(game, clan) {
   return st => {
@@ -55,7 +55,7 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
       settlements[id] = { id: s.id, name: s.name, owner: s.owner, region: s.region, site: s.site };
       // F6 war: a rival town on discovered ground is drawn in the world and can be attacked, so it carries what
       // drawing and the banner rules need (position, tier, grid, buildings), never stock, workers or orders
-      // Tim 2026-11-18 remembered sight (sim/sightings.js): only the blocks your units have seen, buildings as last seen
+      // 2026-11-18 remembered sight (sim/sightings.js): only the blocks your units have seen, buildings as last seen
       const mask = sightings?.seenMask?.(clan, id), seenCell = c => { if (!sightings) return true; if (!mask || !Number.isInteger(c)) return false; const n = s.grid?.n || 1, B = sightings.BLOCK, nb = Math.ceil(n / B); return mask[Math.floor(Math.floor(c / n) / B) * nb + Math.floor((c % n) / B)] === '1'; };
       const blds = sightings ? Object.values(sightings.remembered(clan, id)) : (s.buildings || []);
       // a rival castle (Z4, castle.js) is a capital with a place on the island: drawn once its ground is discovered
@@ -63,7 +63,7 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
         buildings: blds.map(({ id, type, cell, cells, stage, rot }) => ({ id, type, cell, cells, stage, rot })), ...(s.castle ? { castle: s.castle } : {}), ...(s.breaches ? { breaches: s.breaches } : {}),
         projects: (s.projects || []).filter(p => seenCell(p.cell ?? p.cells?.[0])).map(({ id, type, cell, cells, phase, paid, progress, need }) => ({ id, type, cell, cells, phase, paid, progress, need })),
         zones: Object.fromEntries(Object.entries(s.zones || {}).map(([k, z]) => [k, { abandoned: !!z.abandoned }])), tierUpgrade: s.tierUpgrade || null, ...(s.captured ? { captured: s.captured } : {}) });
-      // walked up to it (Tim 2026-11-10): one of your units near the town sees everything there, stores and people included
+      // walked up to it (2026-11-10): one of your units near the town sees everything there, stores and people included
       if (!s.capital && Number.isFinite(s.x) && scouted?.(s)) Object.assign(settlements[id], { scouted: true, stock: { ...s.stock }, pop: s.pop, housing: s.housing, workerCount: (s.workers || []).length + (s.workerTraining || []).length });
     }
   }
@@ -97,7 +97,7 @@ export function frontierFor(f, clan, discovery, recent, spotIndex, workerPositio
     siteClaims: f.siteClaims || {},   // E1: claimed sites are shut in everyone's Choose site menu
     // train plan: this clan's railway links (track drawn up to `built`)
     // 8e-6: a defender also sees the enemy camp spur of a war on its town (its supply line to cut), and its train
-    // Train robbery (Tim 2026-11-21): a rival's finished line is seen once any stretch of it lies on discovered ground, with
+    // Train robbery (2026-11-21): a rival's finished line is seen once any stretch of it lies on discovered ground, with
     // its trains (their cargo stays hidden: no freight) and the dropped stolen chests on discovered ground (no loot list)
     rail: (() => { const onGround = l => l.done && (l.points || []).some((p, i, a) => (i % 6 === 0 || i === a.length - 1) && discovery?.isDiscovered?.(clan, p[0], p[1]));
       const seen = l => l.owner === clan || (l.camp && f.wars?.list?.[l.camp]?.defender === clan) || onGround(l), links = Object.fromEntries(Object.entries(f.rail?.links || {}).filter(([, l]) => seen(l)));
@@ -121,15 +121,15 @@ export function createSnapshotEncoder(game, clan = 'player') {
     // Frontier towns (F2.4b readout; F4.2 filters per owner): everything but the 500-entry display ledger.
     // F4.2: per clan and at 4 Hz (every 5th tick, the encoder keeps the last view between).
     { const g = groundItemsFor(st, clan, game.discovery); if (g) roots.groundItems = { items: g }; }   // dropped bag items (sim/ground_items.js)
-    if (st.influence) roots.influence = st.influence;   // C4: every clan's Influence totals are public (Standings; Tim 2026-11-20)
+    if (st.influence) roots.influence = st.influence;   // C4: every clan's Influence totals are public (Standings; 2026-11-20)
     if (st.lieutenants) roots.lieutenants = { [clan]: st.lieutenants[clan] || null };   // C3: own standing orders and log only
     if (st.frontier) {
       if (!frontierView || st.tick - frontierAt >= FRONTIER_EVERY || st.tick < frontierAt) { const workers=game.frontier?.modules?.find(m => m.name === 'workers')?.workers; frontierView = structuredClone(frontierFor(st.frontier, clan, game.discovery, recentReceipts, workers?.index,workers?.position, scoutedBy(game, clan)(st), game.frontier?.structures?.viewFor(clan), game.sightings)); frontierAt = st.tick; }
       roots.frontier = frontierView;
-      // dev builds only (Show everything on the World map, Tim 2026-11-23): where every clan's castle stands, past the fog
+      // dev builds only (Show everything on the World map, 2026-11-23): where every clan's castle stands, past the fog
       if (game.frontier?.data?.dev) roots.devCastles = Object.values(st.frontier.settlements || {}).filter(s => s.castle && Number.isFinite(s.x)).map(s => ({ id: s.id, owner: s.owner, x: s.x, z: s.z, castle: true, capital: true }));
       // Sleeping workers move every tick but the frontier view is 4 Hz: send just their positions each tick so
-      // they glide on screen instead of stepping 4 times a second (Tim 2026-11-05 "morse code" workers).
+      // they glide on screen instead of stepping 4 times a second (2026-11-05 "morse code" workers).
       if (!map) {
         const workers = game.frontier?.modules?.find(m => m.name === 'workers')?.workers, at = {};
         if (workers?.position) for (const s of Object.values(st.frontier.settlements || {})) if (s.owner === clan) for (const w of s.workers || [])

@@ -1,4 +1,4 @@
-// Town window Stable tab (Tim 2026-11-23, src/stable_tab.js): the stable shown in the town window: stables with Go to,
+// Town window Stable tab (2026-11-23, src/stable_tab.js): the stable shown in the town window: stables with Go to,
 // room (owned + queued), buy cards, the queue, your horses and vehicles; its buttons send the stable and garage commands.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

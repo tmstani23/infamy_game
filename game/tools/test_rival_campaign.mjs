@@ -1,4 +1,4 @@
-// Z2 (Tim 2026-11-19): rival homes and strategies, the two towns a zone cap, castle ground closed, and the rivals'
+// Z2 (2026-11-19): rival homes and strategies, the two towns a zone cap, castle ground closed, and the rivals'
 // later towns (settlers land at the home harbour, walk to a site in the home zone and found there).
 //   node game/tools/test_rival_campaign.mjs
 import assert from 'node:assert/strict';
@@ -105,7 +105,7 @@ const kinds = Object.keys(zonesFile.rivals.strategies);
   // the home zone is full now: the next one goes to a zone touching home
   const next = world.sites.find(s => s.id === L.botSite(id));
   assert.ok(next && Z.touches(r.home, Z.zoneOfSite(next)), 'then a zone next to home');
-  // Tim 2026-11-21: every strategy founds like an Expander (a Warlord used to stop at two towns)
+  // 2026-11-21: every strategy founds like an Expander (a Warlord used to stop at two towns)
   r.strategy = 'warlord';
   assert.equal(R.mayFound(id), true, 'a Warlord goes on founding past two towns');
   assert.equal(R.mayWar(id), true);

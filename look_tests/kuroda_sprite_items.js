@@ -98,7 +98,7 @@ export function poseSpear(root, findBone, { both, shield, clip, phase, leftOnly=
   };
   root.updateMatrixWorld(true);
   if (nativeAttack) {
-    // Tim's purpose-picked Mixamo clips already contain the thrust. Keep their
+    // the purpose-picked Mixamo clips already contain the thrust. Keep their
     // arms instead of retargeting the old sword slash into one.
     if (shield) arm('Left', world(leftPoint), 1);
     const right = findBone(/RightHand$/);

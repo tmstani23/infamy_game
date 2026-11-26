@@ -1,4 +1,4 @@
-// The General tab of the town war window and the war camp panel (war 8d-4, Tim 2026-11-15): pick Rush, Siege or
+// The General tab of the town war window and the war camp panel (war 8d-4, 2026-11-15): pick Rush, Siege or
 // Raider for your own bot general (one choice for the whole clan), and in a town the share of the coffers he must
 // leave alone. Pure HTML builders; the windows handle data-strategy (rush | siege | raider) and the keep box
 // (input[data-keep], sent on change). Rules: sim/frontier/war_general.js (commands warStrategy, warKeep).
@@ -38,7 +38,7 @@ export function strategyTip(key, rules, camp) {
   return camp ? `${STRATEGY_NAMES[key]}. Builds in this order: ${count(part.build)}. Hires up to ${part.workers ?? 8} workers. Trains in these shares: ${mix}. Pushes at ${part.pushAt ?? 12} troops, or with what it has when it cannot grow. Goes for ${(part.targets || []).map(t => t === 'military' ? 'military buildings' : t === 'hall' ? 'the hall' : t === 'tower' ? 'watchtowers' : t === 'wall' ? 'walls and gates' : t).join(', then ')}. Breaks a gate or wall when the town is shut. Builds its whole list before it pushes in full, with a probe before that. Answers a town stockade with a foundry and siege guns. Digs in with watchtowers, a stockade and a palisade when the fight drags on or goes badly. Archers and riflemen who are not on a push hold the camp stockade.`
     : `${STRATEGY_NAMES[key]}. Trains in these shares: ${mix}. Archers and riflemen hold the stockades first, then the houses. The army meets attackers near the town and goes for the war camp at ${part.sortieAt ?? 12} troops, or sooner when it is clearly the stronger.`;
 }
-// 8e-2 (mock C, Tim 2026-11-16): the Clan treasury keep line, for auto ryo orders only (governors and the general,
+// 8e-2 (mock C, 2026-11-16): the Clan treasury keep line, for auto ryo orders only (governors and the general,
 // during a war); typeable box input[data-tkeep], sent on change as { action: 'ship', mode: 'treasuryKeep', ryo }
 const fmt = n => Math.floor(n).toLocaleString('en-US');
 function treasuryRow(t, share) {
@@ -47,7 +47,7 @@ function treasuryRow(t, share) {
   return `<div class="sec"><span>Clan treasury</span><b>Limits your general and governors, not you</b></div>
     <div class="keep" title="${esc(tip)}"><span style="flex:1"><b style="color:#f3e3bd;font-weight:600">They never take it below</b><br><span class="gnote" style="margin:0">Treasury ${fmt(t.ryo)}. They can send up to ${fmt(t.room)} today.</span></span><input type="text" inputmode="numeric" data-tkeep="1" data-n="tkeep" value="${esc(t.typing ?? t.keep)}" style="width:80px"></div>`;
 }
-// The town's safety fund (sim/frontier/fund.js; Tim 2026-11-22 moved here from the Governor tab): the share box
+// The town's safety fund (sim/frontier/fund.js; 2026-11-22 moved here from the Governor tab): the share box
 // (input[data-fund], sent on change as setFund) with -/+ (data-fundstep), what is in the fund, and what he saves for,
 // or the red reason he cannot build. fund = { pct, timber, stone, ryo, next, warn, auto, typing }
 const cap1 = t => String(t || '').replace(/^./, c => c.toUpperCase());
@@ -58,7 +58,7 @@ function fundRow(fund, tn) {
   const [lead, ...why] = String(warn || '').split(': ');
   const stat = warn ? `<div class="fstat bad"><b>${esc(lead)}</b>${why.length ? why.join(': ').split('. ').map(l => `<span>${esc(cap1(l))}</span>`).join('') : ''}</div>`
     : `<div class="fstat">${esc(!fund.auto ? 'The governor\'s Initiative is off: he builds nothing here' : fund.next ? `Saving for ${fund.next}` : pct ? 'His list is built: the fund keeps for an attack' : 'Set to 0: he builds nothing')}</div>`;
-  // each tile: what is in the fund, and how much his list at this tier still needs of it (the fund keeps filling past it, Tim 2026-11-22)
+  // each tile: what is in the fund, and how much his list at this tier still needs of it (the fund keeps filling past it, 2026-11-22)
   const tiles = ['timber', 'stone', 'ryo'].map(r => { const need = Math.ceil(fund.cap?.[r] || 0); return `<div title="${esc(need ? `The rest of his list at this tier costs ${need} ${r}. The fund keeps filling past that.` : r === 'ryo' ? 'Nothing left on his list at this tier costs ryo. It is kept for the war chest if the town is attacked.' : `Nothing left on his list at this tier costs ${r}. It goes into town stock if the town is attacked.`)}"><b>${Math.floor(fund[r] || 0)}</b><small>${cap1(r)}</small><em>${need ? `he needs ${need}` : r === 'ryo' ? 'for the war chest' : 'none needed'}</em></div>`; }).join('');
   return `<div class="sec" title="${esc(tip)}"><span>Safety fund</span><b>Pays for his military buildings</b></div>
     <div class="keep" title="${esc(tip)}"><span>Set aside</span><button class="fstep" data-fundstep="-5" title="5 less">-</button><input type="text" inputmode="numeric" data-fund="1" data-n="fund" value="${esc(fund.typing ?? pct)}" title="Type 0 to 100, then Enter"><button class="fstep" data-fundstep="5" title="5 more">+</button><span>% of all the timber, stone and ryo ${tn} earns</span></div>

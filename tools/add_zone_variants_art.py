@@ -1,4 +1,4 @@
-"""Cut the zone variant sheet and the second ruin sheet (Tim 2026-11-18) into game/art/buildings.
+"""Cut the zone variant sheet and the second ruin sheet (2026-11-18) into game/art/buildings.
 
     python tools/add_zone_variants_art.py [--preview out.png]
 

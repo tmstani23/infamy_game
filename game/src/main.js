@@ -54,8 +54,8 @@ import { createAbilityRows } from './ability_rows.js';
 import { createSiteFlash } from './site_flash.js';   // war 7c-4: a camp building site with no workers flashes
 import { createGarrisonCard } from './garrison_card.js';
 import { createStructureCard } from './structure_card.js';
-import { createFieldGuide } from './field_guide.js';   // Tim 2026-11-25: weapons x targets page from the live tables
-import { installDamageTip } from './damage_tip.js';   // Tim 2026-11-25: damage taken hover on ship and building health bars   // 7c-3b: town building card, house garrisons
+import { createFieldGuide } from './field_guide.js';   // 2026-11-25: weapons x targets page from the live tables
+import { installDamageTip } from './damage_tip.js';   // 2026-11-25: damage taken hover on ship and building health bars   // 7c-3b: town building card, house garrisons
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
 import { isDiscovered } from './world_map.js';
@@ -127,14 +127,14 @@ async function start() {
   status('Preparing the city...');
   // Single player runs the rules here. In multiplayer the server runs them instead.
   // data/settings.json (the numbers picked before a game) is laid over the detail files inside the sim
-  // Lean Classic (Tim 2026-11-05): the mode is fixed once here (start screen or the save), and a match
+  // Lean Classic (2026-11-05): the mode is fixed once here (start screen or the save), and a match
   // without the island never builds the island, its camps or the frontier, in the sim or the view.
   const bootFile = selected.loadSave ? await startSaves.read(selected.loadSave) : null;
   const island = modeRules(bootFile ? decode(bootFile.state) : { match: selected }).island;
   const islandOnly = v => island ? v : null;
   const railways = await getJSON('data/railways.json').catch(() => null);   // train plan: railway rules
   const weatherCfg = await getJSON('data/weather.json').catch(() => null);
-  const wildlifeCfg = await getJSON('data/wildlife.json').catch(() => null);   // crows and animals, visual only so far (wildlife W1, Tim 2026-11-24)   // frontier weather, visual only (Tim 2026-11-20)
+  const wildlifeCfg = await getJSON('data/wildlife.json').catch(() => null);   // crows and animals, visual only so far (wildlife W1, 2026-11-24)   // frontier weather, visual only (2026-11-20)
   const castleBlueprint = await getJSON('data/castle_default.json').catch(() => null), campaignZones = await getJSON('data/campaign_zones.json').catch(() => null);   // Z4: castles and zones
   const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), animals: islandOnly(wildlifeCfg?.animals), folk: islandOnly(wildlifeCfg?.folk), frontier: islandOnly(frontier && { ...frontier, railways, castleBlueprint, campaignZones, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
   const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST, seed: Math.floor(Math.random() * 2147483646) + 1 };   // seed: per-game bot site picks (E6)
@@ -169,7 +169,7 @@ async function start() {
     status('This browser could not start WebGL, which the game needs.');
     throw e;
   }
-  // Video settings (Settings > Video, Tim 2026-11-07): applied live and kept in this browser
+  // Video settings (Settings > Video, 2026-11-07): applied live and kept in this browser
   const video = createVideoSettings();
   view.setVideo(video.get());
   view.setHallChannels(warId => game.frontier?.warEnd?.view(warId) || null);   // the channel bar over a hero taking a hall
@@ -196,22 +196,22 @@ async function start() {
   if (DEV) onKey('F3', () => view.toggleDebug());
   // Space at a door: go through it, or at the clinic's / police box's / HQ's ring open its menu (no interior)
   onAction('use', () => {
-    if (stationMenu.calling()) { stationMenu.boardCall(); return; }   // All aboard called: Space boards now (Tim 2026-11-08)
+    if (stationMenu.calling()) { stationMenu.boardCall(); return; }   // All aboard called: Space boards now (2026-11-08)
     if (warOutcome.use()) return;   // at a ruined hall of your war: take it (war 8a-3)
     // train robbery (sim/frontier/rail.js prompt): cash the stolen chest, rob a stopped train, or set a charge on the line
     { const rp = game.frontier?.rail?.prompt?.(game.state.entities[heroId]); if (rp?.mode) { pending.push({ id: heroId, type: 'frontier', action: 'rail', mode: rp.mode }); return; } }
     if (game.groundItems?.nearest(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'groundItem', action: 'pick' }); return; }   // a dropped bag item (sim/ground_items.js)
     if (game.wildAnimals?.sellPrompt(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'sellHides' }); return; }   // sell the clan's hides at an own market (wildlife W5)
     if (game.wildAnimals?.catchPrompt(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'catchHorse' }); return; }   // catch a wild horse (wildlife W6)
-    // the ship between the city harbour pier and your castle dock (Tim 2026-11-19): board here, or skip the crossing
+    // the ship between the city harbour pier and your castle dock (2026-11-19): board here, or skip the crossing
     { const sp = game.ferry?.prompt(game.state.entities[heroId]); if (sp) { pending.push({ id: heroId, type: 'frontier', action: 'ferry', mode: sp.riding ? 'skip' : 'board' }); return; } }
     // your war ship (sim/frontier/ships.js, ships S2): beside it at the shore All aboard, aboard at the shore everyone steps off
     if (game.ships?.prompt(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'use', units: [] }); return; }
-    if(game.itemServices.near(game.state.entities[heroId])||game.itemServices.merchantNear?.(game.state.entities[heroId])){shop.open();return;}   // the blacksmith, or your town's merchant stall (Tim 2026-11-26)
-    // on the island at your omnibus station, or by your omnibus away from the gate: travel (Tim 2026-11-06)
+    if(game.itemServices.near(game.state.entities[heroId])||game.itemServices.merchantNear?.(game.state.entities[heroId])){shop.open();return;}   // the blacksmith, or your town's merchant stall (2026-11-26)
+    // on the island at your omnibus station, or by your omnibus away from the gate: travel (2026-11-06)
     if (stableMenu.isOpen() || stableMenu.at()) { stableMenu.toggle(); return; }
     if (stationMenu.at()) { stationMenu.toggle(); return; }
-    // at your town hall: talk to its governor (Tim 2026-11-07: no figure stands there any more)
+    // at your town hall: talk to its governor (2026-11-07: no figure stands there any more)
     const gov = game.governorNear?.(heroId);
     if (gov) { pending.push({ id: heroId, type: 'lieutenant', guide: 'governor' }); townTalk(gov.governor); return; }
     // by a raider's War Lantern at your business: knock it down (checkpoint 5)
@@ -227,33 +227,33 @@ async function start() {
     else if (menu === 'police_box' || menu === 'police_hq') policeMenu.toggle(menu);
     else if (menu === 'contracts') contractMenu.toggle();
     else if (menu === 'land_office') landOfficeMenu.toggle();   // E1: founding permit and settlers
-    else if (menu === 'surveyor') surveyorTalk.toggle();   // the old surveyor by the Land Office (Tim 2026-11-06 20:45)
-    else if (menu === 'lieutenant') lieutenantTalk.toggle();   // goal steps: the lieutenant at the gate (Tim 2026-11-06)
-    else if (menu === 'rail_station') {   // the city railway station by the gate (Tim 2026-11-07)
-      // open to you once you hold (or have used) a founding permit (Tim 2026-11-07)
+    else if (menu === 'surveyor') surveyorTalk.toggle();   // the old surveyor by the Land Office (2026-11-06 20:45)
+    else if (menu === 'lieutenant') lieutenantTalk.toggle();   // goal steps: the lieutenant at the gate (2026-11-06)
+    else if (menu === 'rail_station') {   // the city railway station by the gate (2026-11-07)
+      // open to you once you hold (or have used) a founding permit (2026-11-07)
       const own = game.state.entities[heroId]?.owner, clan = game.state.clans?.[own];
       const founded = Object.values(game.state.frontier?.settlements || {}).some(t => t.owner === own && t.founded);
       if (clan?.permit || founded) stationMenu.toggle();
       else callout('The railway station is for permit holders: buy a founding permit at the Land Office first', 'news', 4000);
     }
-    else if (menu === 'capital_stable') {   // the capital stable (Tim 2026-11-07): buy horses and vehicles for clan ryo, permit holders
+    else if (menu === 'capital_stable') {   // the capital stable (2026-11-07): buy horses and vehicles for clan ryo, permit holders
       const own = game.state.entities[heroId]?.owner, clan = game.state.clans?.[own];
       const town = Object.values(game.state.frontier?.settlements || {}).some(t => t.owner === own && !t.capital);
       if (stableMenu.isOpen()) stableMenu.close();
       else if (clan?.permit || town) stableMenu.openCapital();
       else callout('The capital stable sells to permit holders: buy a founding permit at the Land Office first', 'news', 4000);
     }
-    else if (door0?.gate && siteMenu.wanted()) siteMenu.toggle();   // the island gate menu when there is more than one way out (Tim 20:40)
+    else if (door0?.gate && siteMenu.wanted()) siteMenu.toggle();   // the island gate menu when there is more than one way out (20:40)
     else { pending.push({ id: heroId, type: 'use', units: crewInput.selected() }); sound.cue('use_1', 0.45); }   // selected crew come in too
   });
   // a rival's raid on one of your businesses (the newest); near = only one whose lantern the hero can knock down now
   const raidOnMe = (near = false) => Object.values(game.state.attacks || {})
-    .filter(a => a.mode === 'raid' && a.defender === game.state.entities[heroId]?.owner && (!near || (game.state.entities[heroId]?.place !== 'world' && game.businesses.canKnock(heroId, a.business).ok))).pop();   // near: no knock-down prompt or Space while the boss is on the island, even if crew stand by the lantern (Tim 2026-11-26)
+    .filter(a => a.mode === 'raid' && a.defender === game.state.entities[heroId]?.owner && (!near || (game.state.entities[heroId]?.place !== 'world' && game.businesses.canKnock(heroId, a.business).ok))).pop();   // near: no knock-down prompt or Space while the boss is on the island, even if crew stand by the lantern (2026-11-26)
   const alarmSeen = new Set();
   // big callouts at the top of the screen, queued so two at once don't overwrite each other
   const callouts = [];
   let calloutBusy = false;
-  function callout(text, kind, ms = 2700) {   // ms: how long it stays (contract results linger 5 s, Tim 2026-10-21)
+  function callout(text, kind, ms = 2700) {   // ms: how long it stays (contract results linger 5 s, 2026-10-21)
     callouts.push({ text, kind, ms });
     if (calloutBusy) return;
     const next = () => {
@@ -272,15 +272,15 @@ async function start() {
   // Hero abilities aim at the mouse point on the ground
   let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
   addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
-  // no Get in / Step out label on hovering a vehicle any more (Tim 2026-11-08): a right-click pops the crew in, with a gold flash
+  // no Get in / Step out label on hovering a vehicle any more (2026-11-08): a right-click pops the crew in, with a gold flash
   const busIcon = $('busicon'); if (busIcon) busIcon.hidden = true;
-  // Shinobi (Tim 2026-10-20): a lit lantern under the mouse, within snuffReach of the boss at night,
+  // Shinobi (2026-10-20): a lit lantern under the mouse, within snuffReach of the boss at night,
   // says "Snuff"; a left-click on it snuffs it (before the crew clicks see it)
   let hoverLamp = null;
   function lampAt() {
     const h = game.state.entities[heroId], st = game.stealth;
     if (!st || !h || game.state.clans[h.owner]?.kind !== 'ninja' || (h.place==='street'&&!game.state.night)) return null;
-    // measured from where the lantern glows on screen, not its foot (Tim 2026-10-21: it picked the wrong one)
+    // measured from where the lantern glows on screen, not its foot (2026-10-21: it picked the wrong one)
     const off = new Set(game.state.lightsOut), near = l => Math.min(Infinity, ...view.lampScreen(l.prop).map(q => Math.hypot(q.x - mouse.x, q.y - mouse.y)));
     return st.lights.filter(l => l.place===h.place&&!off.has(l.prop) && Math.hypot(l.x - h.x, l.z - h.z) < st.rules.snuffReach && near(l) < 45).sort((a, b) => near(a) - near(b))[0] || null;
   }
@@ -293,10 +293,10 @@ async function start() {
   for (let i = 0; i < 4; i++) onAction(`special${i + 1}`, () => { abilityRows?.key(i, view.screenToGround(mouse.x, mouse.y)); });
   // hero abilities: ability1..4 run the sim's slots Q, E, R, F (the slot names stay; the keys are rebindable)
   for (const [slotIndex, slot] of ['Q', 'E', 'R', 'F'].entries()) onAction(`ability${slotIndex + 1}`, () => {
-    // the omnibus (sim/omnibus.js, Tim 2026-11-06): Q inside steps everyone out; Q right by a parked one gets in
+    // the omnibus (sim/omnibus.js, 2026-11-06): Q inside steps everyone out; Q right by a parked one gets in
     if (slot === 'Q' && crewInput.omnibusKey()) return;
     const p = view.screenToGround(mouse.x, mouse.y);
-    // Shinobi Q / F go for the unit in the target frame when there is one (Tim 2026-10-21)
+    // Shinobi Q / F go for the unit in the target frame when there is one (2026-10-21)
     const h = game.state.entities[heroId], target = h && frameTarget(game.state, heroId, crewInput.looked?.() ? [crewInput.looked()] : [], crewInput.tabbed?.(), e => !game.vision || game.vision.canSee(h.owner, e));
     pending.push({ id: heroId, type: 'ability', slot, ...(p ? { x: p.x, z: p.z } : {}), ...(target ? { target } : {}) });
   });
@@ -344,40 +344,40 @@ async function start() {
   }
   const foundButton = createFoundButton({ root: $('foundtown'), game, heroId, view, send: c => pending.push(c), onStart:()=>{frontierBuildUI?.cancel();crewInput.clear();}, blocked:()=>gameMap.isOpen() || !$('controls').hidden || hudLayout.isEditing() || gameSettings.isOpen() });
   const hireMenu = createHireMenu({ panel: $('hire'), money: $('money'), game, units, heroId, catalog, openStash:() => {hireMenu.close();hqStash.open({back:() => hireMenu.toggle()});}, send: c => pending.push(c) });
-  // H: on the island it is your horse (ride, get off, call her; sim/mounts.js, Tim 2026-11-06); in the city it hires
-  // H: your horse; Shift+H: Mount up, you and your selected crew (else those following you) on horses (Tim 2026-11-07)
-  // Shift on a horse or driving: sprint on / off (Tim 2026-11-07; on foot Shift still walks while held)
-  // only a clean tap of Shift (Tim 2026-11-12): Shift held for an ability key or a Shift + click does not flip it
+  // H: on the island it is your horse (ride, get off, call her; sim/mounts.js, 2026-11-06); in the city it hires
+  // H: your horse; Shift+H: Mount up, you and your selected crew (else those following you) on horses (2026-11-07)
+  // Shift on a horse or driving: sprint on / off (2026-11-07; on foot Shift still walks while held)
+  // only a clean tap of Shift (2026-11-12): Shift held for an ability key or a Shift + click does not flip it
   { let cleanShift = false;
     addEventListener('keydown', e => { if (e.key === 'Shift') { if (!e.repeat) cleanShift = true; } else cleanShift = false; }, true);
     addEventListener('mousedown', () => { cleanShift = false; }, true);
     addEventListener('keyup', e => { if (e.key === 'Shift' && cleanShift) { cleanShift = false; if (!e.target?.closest?.('input, select, textarea') && game.state.entities[heroId]?.ride) setSprint(!sprintOn()); } }, true); }
-  // H calls your horse and rides her, and H again gets you off (Tim 2026-11-15: Q on horseback is the ability, so the
+  // H calls your horse and rides her, and H again gets you off (2026-11-15: Q on horseback is the ability, so the
   // dash and the rest work from the saddle; Q still steps out of an omnibus or rickshaw). Shift+H is Mount up / All off
   onAction('horse', () => { const h = game.state.entities[heroId]; if (h?.place === 'world') pending.push({ id: heroId, type: 'mount' }); else hireMenu.toggle(); });
   onAction('makeCamp', () => pending.push({ id: heroId, type: 'campfire', units: crewInput.selected() }));   // world variety P1 (sim/campfire.js); off the island the sim says why
-  // camp news and refusals (sim/campfire.js marks its clan notice with camp) come up as a callout (Tim 2026-11-26: a refusal must say why)
+  // camp news and refusals (sim/campfire.js marks its clan notice with camp) come up as a callout (2026-11-26: a refusal must say why)
   { let seen = null;
     setInterval(() => { const h = game.state.entities[heroId], n = h && game.state.clans?.[h.owner]?.notice;
       if (!n?.camp || n.tick === seen) return; seen = n.tick; if (game.state.tick - n.tick < 40) callout(n.text, n.camp === 'good' ? 'news' : 'loss'); }, 200); }
   onAction('mountGroup', () => { const h = game.state.entities[heroId]; if (h?.place === 'world') pending.push({ id: heroId, type: 'mount', group: true, units: crewInput.selected() }); else hireMenu.toggle(); });
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, catalog, selected: () => crewInput.selected(), send: c => pending.push(c) });
-  // telegraph office hint (Tim 2026-11-06): once the hero's clan can buy a founding permit, the office
+  // telegraph office hint (2026-11-06): once the hero's clan can buy a founding permit, the office
   // blinks gold in the street and on the maps, and a one-time callout says where to go. Read-only.
   // Every Goal card step with a place pings the same way (the minimap pulse and the street blink).
   let hintAt = 0, calloutShown = false, gateCallout = false, leaveSince = 0;
   let ordersSent = false, reportSent = false, lastPlace = null;   // While I'm away opened during the orders step: told to the sim once
-  // Town goal flashes (Tim 2026-11-20): the town panel and the build bar redraw often, which wiped the gold flash
+  // Town goal flashes (2026-11-20): the town panel and the build bar redraw often, which wiped the gold flash
   // between checks; the panel calls this after every redraw too, and the build bar (#buildmini) counts as well
   let townStepFn = null, workerPicked = false;
   function applyTownFlash() {
-    const roots = ['#townpanel', '#towninspect', '#buildmini', '#townwar'];   // #townwar: the General tab goal (Tim 2026-11-21)
-    // '@timber' (Tim 2026-11-06): the nearest timber Look button on the Workers pane Spots tab (else the Spots tab flashes)
+    const roots = ['#townpanel', '#towninspect', '#buildmini', '#townwar'];   // #townwar: the General tab goal (2026-11-21)
+    // '@timber' (2026-11-06): the nearest timber Look button on the Workers pane Spots tab (else the Spots tab flashes)
     const pick = sel => sel[0] === '@' ? [...document.querySelectorAll('#townpanel [data-act="build-worker-spot"]')].find(el => el.dataset.kind === sel.slice(1) && el.offsetParent !== null)
       : [...document.querySelectorAll(roots.map(r => `${r} ${sel}`).join(', '))].find(el => el.offsetParent !== null);
     let target = null;
     if (townStepFn) for (const sel of townStepFn()) { target = pick(sel); if (target) break; }
-    // only the old target loses the class: taking it off and back on every check restarted the pulse, so it never showed (Tim 2026-11-20)
+    // only the old target loses the class: taking it off and back on every check restarted the pulse, so it never showed (2026-11-20)
     for (const el of document.querySelectorAll(roots.map(r => `${r} .goal-flash`).join(', '))) if (el !== target) el.classList.remove('goal-flash');
     if (target && !target.classList.contains('goal-flash')) { target.style.animationDelay = `-${Math.round(performance.now() % 2600)}ms`; target.classList.add('goal-flash'); }
     return target;
@@ -388,33 +388,33 @@ async function start() {
     const h = game.state.entities[heroId], L = game.landOffice, b = L?.office(), c = h && game.state.clans[h.owner];
     const goal = c && !c.bot ? game.goals?.current(h.owner) : null;
     const ready = !!(b && c && !c.bot && !c.permit && L.permitStatus(c.id).ok) && !landOfficeMenu.isOpen();
-    // Leave the city goal (Tim 2026-11-06): the island gate gets the same gold blink and minimap pulse
+    // Leave the city goal (2026-11-06): the island gate gets the same gold blink and minimap pulse
     const leave = !ready && h?.place !== 'world' && !!goal?.gate && game.gate?.city;
-    // Goal pings (Tim 2026-11-06): otherwise the first unfinished row of the Goal card that names a spot (shown when the hero is in that place)
+    // Goal pings (2026-11-06): otherwise the first unfinished row of the Goal card that names a spot (shown when the hero is in that place)
     const row = goal?.rows.find(r => !r.done && r.where), where = row?.where && row.where.place === h?.place ? row.where : null;
-    // Tim 2026-11-06: when the last settler arrives, the HQ blinks for a few seconds first (they wait there), then the gate
+    // 2026-11-06: when the last settler arrives, the HQ blinks for a few seconds first (they wait there), then the gate
     if (leave && !leaveSince) leaveSince = now; else if (!leave) leaveSince = 0;
     const hq = leave && now - leaveSince < 8000 && Object.values(game.state.businesses).find(x => x.hideout === h.owner && x.ring);
     const door = hq ? hq.ring : leave ? game.gate.city : ready ? b && (b.ring || b.door || [b.x, b.z]) : where && !landOfficeMenu.isOpen() ? [where.x, where.z] : null;
     view.setOfficeHint(door || null);
     game.officeHint = door ? { x: door[0], z: door[1], name: hq ? 'Your headquarters' : leave ? 'Gate to the island' : ready ? 'Land Office' : row?.label || 'Goal' } : null;   // name: the minimap arrow's hover
-    // Shakedown / Sweep goal (Tim 2026-11-06): lead the player with gold flashes, one at a time:
+    // Shakedown / Sweep goal (2026-11-06): lead the player with gold flashes, one at a time:
     // the Deployment icon, then your sectors with crew on the map, then the Start Shakedown / Dispatch Sweep button
     const op = goal?.rows.find(r => !r.done && (r.label === 'Shakedown done' || r.label === 'Sweep done'));
     const ops = op && $('deploymentpanel').querySelector(op.label === 'Sweep done' ? '.sweep-ops' : '.shakedown-ops');
     const opsShown = !!ops && !ops.hidden && deploymentPanel.isOpen(), menuOpen = deploymentPanel.isOpen() || gameMap.isOpen();
-    // lieutenant goal steps (Tim 2026-11-06): Deployment icon, then the While I'm away tab, then the budget slider
+    // lieutenant goal steps (2026-11-06): Deployment icon, then the While I'm away tab, then the budget slider
     const orders = goal?.key === 'orders', awayPage = $('deploymentpanel').dataset.page === 'away' && deploymentPanel.isOpen();
     $('deploymentbtn').classList.toggle('goal-flash', (!!op || orders) && !menuOpen);
-    // Tim 2026-11-20: a full hero group shows "Choose your first assignment zone" first: its zone buttons flash, then the tab
+    // 2026-11-20: a full hero group shows "Choose your first assignment zone" first: its zone buttons flash, then the tab
     const zoneBox = document.querySelector('#deploymentpanel .first-zone'), zoneFirst = orders && deploymentPanel.isOpen() && !awayPage && !!zoneBox && !zoneBox.hidden && !game.zonePicked;
     if (zoneBox && !zoneBox.dataset.goalHook) { zoneBox.dataset.goalHook = '1'; zoneBox.addEventListener('click', e => { if (e.target.closest('button')) game.zonePicked = true; }); }
     for (const b of document.querySelectorAll('#deploymentpanel .first-zone-options button')) b.classList.toggle('goal-flash', zoneFirst);
     document.querySelector('#deploymentpanel .show-away')?.classList.toggle('goal-flash', orders && deploymentPanel.isOpen() && !awayPage && !zoneFirst);
-    // the whole While I'm away section lights up on its page: his orders (toggles) and the budget row (Tim 2026-11-20)
+    // the whole While I'm away section lights up on its page: his orders (toggles) and the budget row (2026-11-20)
     for (const sel of ['.away-orders', '.away-budget-row', '.away-budget']) document.querySelector(`#deploymentpanel ${sel}`)?.classList.toggle('goal-flash', orders && awayPage);
     if (orders && awayPage && !goal.rows[0].done && !ordersSent) { ordersSent = true; pending.push({ id: heroId, type: 'lieutenant', guide: 'opened' }); }
-    // Lieutenant's report (Tim 2026-11-06): the first time the boss walks back into the city, a callout and the log flashes until read
+    // Lieutenant's report (2026-11-06): the first time the boss walks back into the city, a callout and the log flashes until read
     const ms = c?.milestones || {};
     if (h && lastPlace === 'world' && h.place !== 'world' && !ms.reportDue && !ms.reportRead && game.state.lieutenants?.[c.id]) {
       pending.push({ id: heroId, type: 'lieutenant', guide: 'back' });
@@ -431,16 +431,16 @@ async function start() {
     for (const btn of $('deploymentpanel').querySelectorAll('.start-shakedown, .start-sweep')) btn.classList.toggle('goal-flash', opsShown && ops.contains(btn));
     game.goalGuide = op && menuOpen && !opsShown ? { sectors: (game.state.deployment?.sectors || []).map(s => s.id)
       .filter(id => Object.values(game.state.entities).some(e => e.owner === h.owner && e.type !== 'hero' && !e.dead && e.deployment?.group === id)) } : null;
-    // Land Office menu (Tim 2026-11-06): the permit's Buy button flashes once it can be bought; Five settlers during the settlers goal
+    // Land Office menu (2026-11-06): the permit's Buy button flashes once it can be bought; Five settlers during the settlers goal
     for (const btn of $('landoffice').querySelectorAll('[data-pick]')) btn.classList.toggle('goal-flash',
       !btn.disabled && ((btn.dataset.pick === '0' && !!goal?.key?.startsWith('permit') && L.permitStatus(c.id).ok) || (btn.dataset.pick === '1' && !!goal?.key?.startsWith('settlers'))));
-    // Town setup goals (Tim 2026-11-06): flash the next button in the town panel, or the Town icon while it is shut
+    // Town setup goals (2026-11-06): flash the next button in the town panel, or the Town icon while it is shut
     const TOOL = { 'Road cells': 'road', 'Housing cells': 'housing', 'Farm cells': 'farm', 'Work cells': 'work', Storehouse: 'storehouse', 'Lumber camp': 'lumber_camp', Quarry: 'quarry', 'Food camp': 'food_camp', People: 'housing', Infirmary: 'infirmary', 'Military zone painted': 'military' };
     game.goalKey = goal?.key;
     const workerSteps = kind => {
       const q = s => document.querySelector(`#townpanel ${s}`);
       if (!q('[data-act="build-worker-tab"]')) return ['[data-act="build-workers"]'];
-      // the Spots tab shows no worker cards: remember whether one was selected on the roster (Tim 2026-11-20: Look never flashed)
+      // the Spots tab shows no worker cards: remember whether one was selected on the roster (2026-11-20: Look never flashed)
       if (q('.wface')) workerPicked = !!q('.wface[aria-pressed="true"]');
       if (!workerPicked) return ['.wface', '[data-act="build-worker-tab"][data-id="roster"]'];
       return [`@${kind}`, '[data-act="build-worker-tab"][data-id="spots"]'];
@@ -448,33 +448,33 @@ async function start() {
     if (!window.__goalLookHint) { window.__goalLookHint = true;   // pressing the flashing Look button: tell the player how to send him
       document.addEventListener('click', e => { const b = e.target.closest?.('#townpanel [data-act="build-worker-spot"]');
         if (b && (game.goalKey === 'workers' || game.goalKey === 'stone')) callout(`Now right-click the ${b.dataset.kind === 'stone' ? 'rocks' : 'trees'} to send your selected worker there`, 'news', 9000); }, true); }
-    const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"].buildbig', '[data-build]'];   // the Workers button only flashes in the worker steps (Tim 2026-11-20)
+    const toolSteps = () => [`[data-act="build-tool"][data-id="${TOOL[goal.rows.find(r => !r.done)?.label] || 'road'}"]`, '[data-act="build-toggle"].buildbig', '[data-build]'];   // the Workers button only flashes in the worker steps (2026-11-20)
     const step = goal && { layout: toolSteps, goods: toolSteps, storehouse: toolSteps, foodcamp: toolSteps, camps: toolSteps, people: toolSteps, infirmary: toolSteps,
       govorders: () => goal.rows[0].done ? ['[data-act="auto"][data-id="on"]', '[data-act="approve"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="priority"][data-id="grow"]', '[data-act="tab"][data-id="governor"]'],
-      // Tim 2026-11-20: one step at a time: Workers button, a worker card to select, the Spots tab, the node's Look button; then a callout says to right-click
+      // 2026-11-20: one step at a time: Workers button, a worker card to select, the Spots tab, the node's Look button; then a callout says to right-click
       stone: () => workerSteps('stone'),
       workers: () => workerSteps('timber'), village: () => ['[data-upgrade]'],
       rail: goal.rows[0].done ? null : () => ['[data-act="build-tool"][data-id="station"]', '[data-act="build-toggle"]', '[data-build]'],
       shipping: goal.rows[0].done ? null : () => ['[data-act="ship"][data-id^="order:"]', '[data-act="tab"][data-id="ship"]'],
       market: () => goal.rows[0].done ? ['[data-act="keepinput"]', '[data-act="tab"][data-id="governor"]'] : ['[data-act="build-tool"][data-id="market"]', '[data-act="build-toggle"]', '[data-build]'],
-      // the general's goals (Tim 2026-11-21): the fund box, the General tab of the town war window, a barracks when he is not on auto
+      // the general's goals (2026-11-21): the fund box, the General tab of the town war window, a barracks when he is not on auto
       fund: () => ['[data-act="fundinput"]', '[data-act="tab"][data-id="governor"]'],
       strategy: () => ['[data-strategy]', '[data-tab="general"]', '[data-act="townwar"]'],
       quarter: goal.rows[0].label === 'Military zone painted' ? toolSteps : null,   // else the gold mark on the ground
       barracks: goal.auto ? null : () => ['[data-build="barracks"]', '[data-tab="military"]', '[data-act="townwar"]'] }[goal.key];
     townStepFn = step || null;
     const target = applyTownFlash();
-    // war goals (goals pass, Tim 2026-11-19): the War banner on the action bar flashes while packing, and at a rival town
-    $('fieldguidebtn').classList.toggle('goal-flash', goal?.key === 'fieldguide' && !fieldGuide.isOpen());   // Tim 2026-11-25
+    // war goals (goals pass, 2026-11-19): the War banner on the action bar flashes while packing, and at a rival town
+    $('fieldguidebtn').classList.toggle('goal-flash', goal?.key === 'fieldguide' && !fieldGuide.isOpen());   // 2026-11-25
     document.getElementById('warbannerbtn')?.classList.toggle('goal-flash', goal?.key === 'warpack' || (goal?.key === 'war' && !(document.getElementById('warbannerbtn')?.disabled)));
     $('townbtn').classList.toggle('goal-flash', !!step && !target && h?.place === 'world' && !document.querySelector('#buildmini:not([hidden])') && !$('townpanel').getClientRects().length);
     if (leave && !gateCallout) { gateCallout = true; callout('Your settlers are all at your HQ (gold): they will join you outside the island gate. Walk to the gate (G on the minimap) and press Space', 'news', 7000); }
     if (ready && !calloutShown) { calloutShown = true; callout('You can buy a founding permit: go to the telegraph office (gold marker on the map)', 'news', 5000); }
   }
-  // quest log (Tim 2026-11-06): the campaign's current goal; reads game.goals only
+  // quest log (2026-11-06): the campaign's current goal; reads game.goals only
   const goalCard = createGoalCard({ root: $('goalcard'), button: $('goalbtn'), game, heroId, callout: (t, k, ms) => callout(t, k, ms), stamp: () => sound.cue('knockdown_thud_1', 0.25) });
   const stationMenu = createStationMenu({ panel: $('stationmenu'), game, heroId, send: c => pending.push(c) });
-  const stableMenu = createStableMenu({ panel: $('stablemenu'), game, heroId, send: c => pending.push(c), data: frontier, openCavalry: (t, b) => townWar.show(t, b) });   // Tim 2026-11-07: buy horses and vehicles (8b: its Cavalry tab during a war on the town)
+  const stableMenu = createStableMenu({ panel: $('stablemenu'), game, heroId, send: c => pending.push(c), data: frontier, openCavalry: (t, b) => townWar.show(t, b) });   // 2026-11-07: buy horses and vehicles (8b: its Cavalry tab during a war on the town)
   // the old surveyor's map tour runs on the World tab of the game map (made further down; called only after a click)
   const surveyorTalk = createSurveyorTalk({ panel: $('svtalk'), card: $('svtour'), game, heroId, send: c => pending.push(c), home: simOptions.world && campaignZones ? { world: simOptions.world, rules: campaignZones } : null,   // Z7: choosing your home
    
@@ -486,7 +486,7 @@ async function start() {
   const contractMenu = createContractMenu({ panel: $('contracts'), tracker: $('contract'), game, heroId, view, selected: () => crewInput.selected(), send: c => pending.push(c) });
   const heatBadge = createHeatBadge({ root: $('heat'), game, heroId });
   const ryoBadge = createRyoBadge({ root: $('ryo'), game, heroId, toScreen: (x, z) => view.unitToScreen(x, z, 3) });
-  // your clan's crest and name in the top bar (picked at the start later, Tim 2026-10-19)
+  // your clan's crest and name in the top bar (picked at the start later, 2026-10-19)
   {
     const clan = game.state.clans.player, cv = $('clan').querySelector('canvas'), g = cv.getContext('2d');
     g.fillStyle = clan.color; g.beginPath(); g.arc(28, 28, 26, 0, Math.PI * 2); g.fill();
@@ -506,12 +506,12 @@ async function start() {
   const deploymentPanel = createDeploymentPanel({ root: $('deploymentpanel'), button: $('deploymentbtn'), game, units, catalog, heroId, crewInput, send: c => pending.push(c),
     onPickPoint: (sector, callback) => gameMap.pickPoint(sector, callback),
     onPickDestination: callback => gameMap.pickDestination(callback), onCancelPick: () => gameMap.cancelPick(),
-    // docked beside the open game map with the Sectors layer on (Tim 2026-10-27)
+    // docked beside the open game map with the Sectors layer on (2026-10-27)
     onOpen: id => gameMap.dock(true, id), onClose: () => { gameMap.dock(false); gameMap.close(); }, onFocus: id => gameMap.focusSector(id), onInspect:id=>unitFrames.inspect(id),
     onViewCrew:ids=>{gameMap.close();if(ids.length===1)jump(game.state.entities[ids[0]]);else watchGroup(null,ids);} });
-  // Watch the city (Tim 2026-11-08): camera to the capital while the boss stays on the island; Home or the banner button return (Esc only closes menus, Tim 2026-11-10)
+  // Watch the city (2026-11-08): camera to the capital while the boss stays on the island; Home or the banner button return (Esc only closes menus, 2026-11-10)
   const cityWatch = createCityWatch({ game, view, heroId, send: c => pending.push(c), notify: (...a) => callout(...a), sound: { clip: (...a) => sound.clip(...a), bell: () => sound.bell() }, onStart: () => { warWatch.end(); townView.end(); deploymentPanel.close(); gameMap.close(); crewInput.clear(); } });
-  // Interior view (Tim 2026-11-10): Inside / Outside button, End key, double-click a building with your crew inside
+  // Interior view (2026-11-10): Inside / Outside button, End key, double-click a building with your crew inside
   const interiorPeek = createInteriorPeek({ game, view, heroId, crewInput, canvas: $('view') });
   onAction('interiorPeek', () => interiorPeek.toggle());
   const lieutenantPanel = createLieutenantPanel({ root: $('deploymentpanel'), game, heroId, cityWatch, send: c => pending.push(c), maxBudget: settings.campaignCity?.lieutenant?.maxBudget });   // C3: While I'm away
@@ -527,14 +527,14 @@ async function start() {
   onAction('selectTroops', () => crewInput.selectTroops());
   onAction('followMe', () => crewInput.followMe());
   onAction('attackMove', () => crewInput.armAttackMove());
-  onAction('stop', () => crewInput.stopSelected());   // stop + passive until the next order (Tim 2026-10-18)
+  onAction('stop', () => crewInput.stopSelected());   // stop + passive until the next order (2026-10-18)
   onAction('cycleTarget', () => crewInput.tab());
   $('knockbar').addEventListener('click', () => crewInput.target($('knockbar').dataset.by));   // target whoever knocks down your War Lantern
   onAction('crewAttack', () => crewInput.crewAttack());
   onAction('heal', () => crewInput.healSelected());
   let openTownHook = () => {};   // opens a town panel (F4.4d)
-  let evacuateGarrison = () => {};   // Shift+K: everyone out of your stockades (Tim 2026-11-07)
-  let townTalk = () => {};       // opens a town panel at the governor's talk (Tim 2026-11-06)
+  let evacuateGarrison = () => {};   // Shift+K: everyone out of your stockades (2026-11-07)
+  let townTalk = () => {};       // opens a town panel at the governor's talk (2026-11-06)
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
   // opening it counts for the Learn what beats what goal
@@ -543,7 +543,7 @@ async function start() {
   onKey('Escape', () => { fieldGuide.close(); warOutcome.close(); crewInput.cancelTarget(); crewInput.endAttackMode(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   let abilityRows = null;   // war checkpoint 7: made after the action bar
   // left-click a quest figure (the old surveyor, your lieutenant, a town governor) or the Land Office to open its talk or
-  // menu, as Space there does (Tim 2026-11-20). Out of reach: a callout to walk up first. Capture phase, so the
+  // menu, as Space there does (2026-11-20). Out of reach: a callout to walk up first. Capture phase, so the
   // click does not also select or start a box.
   addEventListener('mousedown', e => {
     if (e.button !== 0 || e.shiftKey || e.ctrlKey || e.target.id !== 'view') return;   // only clicks on the scene
@@ -579,12 +579,12 @@ async function start() {
   const gameSettings=createGameSettings({button:$('settingsbtn'),sound,video,saves,keybinds,onOpen:()=>setGameplayInput(false),onClose:()=>setGameplayInput(true),onChooseLayout:name=>hudLayout.choose(name),onEditLayout:()=>{gameMap.close();shop.close();hqStash.close();characterPanel.close();$('controls').hidden=true;hudLayout.begin();}});
   const updateMute=s=>{$('mutebtn').textContent=(s.muted?'Unmute':'Mute')+keybinds.hint('mute');};
   sound.subscribe(updateMute);updateMute(sound.getSettings());
-  // mute: K or the button (M opens the game map, Tim 2026-10-20)
+  // mute: K or the button (M opens the game map, 2026-10-20)
   const mute = () => { const m = sound.toggleMute(); $('mutebtn').textContent = (m ? 'Unmute' : 'Mute') + keybinds.hint('mute'); };
   onAction('mute', mute);
   onAction('evacuate', () => evacuateGarrison());
   $('mutebtn').addEventListener('click', e => { mute(); e.currentTarget.blur(); });
-  // Pause (Tim 2026-10-27, single player): the sim stops stepping, drawing and menus keep going
+  // Pause (2026-10-27, single player): the sim stops stepping, drawing and menus keep going
   let paused = false;
   let gatePlace = null;   // the hero's place last frame, for the gate fade
   const togglePause = () => { paused = !paused; $('pausedbanner').hidden = !paused; $('pausebtn').textContent = (paused ? 'Resume' : 'Pause') + keybinds.hint('pause'); $('pausebtn').setAttribute('aria-pressed', String(paused)); };
@@ -599,7 +599,7 @@ async function start() {
   onAction('controls', toggleControls);
   onAction('fieldGuide', () => fieldGuide.toggle());
   $('fieldguidebtn').addEventListener('click', e => { fieldGuide.toggle(); e.currentTarget.blur(); });
-  // key text on buttons and in the Controls panel follows rebinding (Tim 2026-11-12)
+  // key text on buttons and in the Controls panel follows rebinding (2026-11-12)
   const refreshKeys = () => { refreshKeyHints(); updateMute(sound.getSettings()); $('pausebtn').textContent = (paused ? 'Resume' : 'Pause') + keybinds.hint('pause'); };
   refreshKeys(); keybinds.subscribe(refreshKeys);
   $('ctlbtn').addEventListener('click', e => { toggleControls(); e.currentTarget.blur(); });
@@ -610,7 +610,7 @@ async function start() {
     return door ? { x: door.x, z: door.z,place:'street' } : { id:u.id,x: u.x, z: u.z,place:u.place };
   };
   const usable = u => u && !u.dead && !u.jailed;
-  // double-click a crew name: the camera follows him (Tim 2026-10-28) until you pan, click the map or press Home
+  // double-click a crew name: the camera follows him (2026-10-28) until you pan, click the map or press Home
   const jump = u => {
     if (!u.id) { view.jumpTo(u.x, u.z); return; }
     view.watch(() => { const e = game.state.entities[u.id]; return usable(e) ? lookPoint(e) : null; });
@@ -624,7 +624,7 @@ async function start() {
   onAction('useItem', () => bar.useItem());   // usable-item slot
   let nameplatesOn = false;
   onAction('nameplates', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
-  // F2: hide every panel, bar and nameplate for screenshots, F2 again brings them back (Tim 2026-11-08)
+  // F2: hide every panel, bar and nameplate for screenshots, F2 again brings them back (2026-11-08)
   onAction('hideUi', () => { const on = document.body.classList.toggle('ui-hidden'); view.setUnitOverlays(!on); });
   const actionCommands=document.createElement('div');actionCommands.className='action-commands';
   const lanternButton=document.createElement('button');lanternButton.id='warlanternbtn';lanternButton.type='button';lanternButton.dataset.icon='lantern';
@@ -640,11 +640,11 @@ async function start() {
   // war 8d-4: the war-declared alert and Watch a war from afar (no orders while watching)
   const warWatch=createWarWatch({game,view,heroId,catalog,frontierData:simOptions.frontier,notify:(...a)=>callout(...a),sound:{clip:(...a)=>sound.clip(...a),bell:()=>sound.bell()},ping:(x,z)=>{minimap.ping(x,z);gameMap.ping(x,z);},showOnMap:(x,z)=>gameMap.showAt(x,z),
     busy:()=>warTerms.isOpen()||townWar.isOpen()||warCamp.isOpen()||gameMap.isOpen()||warBlocked(),onStart:()=>{cityWatch.end();townView.end();frontierBuildUI?.cancel();deploymentPanel.close();gameMap.close();crewInput.clear();warCamp.close();townWar.close();}});
-  // View a town (Tim 2026-11-25): camera to one of your own towns from Your towns (Y) or a World map click, hero stays put
+  // View a town (2026-11-25): camera to one of your own towns from Your towns (Y) or a World map click, hero stays put
   const townView=createTownView({game,view,heroId,sites:simOptions.world?.sites,askHost:()=>gameMap.isOpen(),notify:(...a)=>callout(...a),sound:{clip:(...a)=>sound.clip(...a),bell:()=>sound.bell()},
     onStart:()=>{cityWatch.end();warWatch.end();frontierBuildUI?.cancel();deploymentPanel.close();gameMap.close();crewInput.clear();warCamp.close();townWar.close();}});
   const warBar=createWarBar({game,heroId,channelOf:id=>warOutcome?.channelOf(id)||null,watch:warWatch,openTerms:id=>warTerms.show(id)});   // war 8a-2: both sides' morale at the top of the screen
-  // the capture moment (Tim 2026-11-25): a ruined hall your hero can take now pulses gold (render/hall_channel_fx.js)
+  // the capture moment (2026-11-25): a ruined hall your hero can take now pulses gold (render/hall_channel_fx.js)
   view.setHallTakeable?.(()=>{const me=game.state.entities[heroId]?.owner,MO=game.frontier?.warMorale,out=[];if(!MO||me==null)return out;
     for(const w of Object.values(game.state.frontier?.wars?.list||{})){if(w.channel||w.terms)continue;const side=w.attacker===me?'town':w.defender===me?'camp':null;if(side&&MO.ready(w.id,side))out.push({war:w.id,side});}
     return out;});
@@ -656,7 +656,7 @@ async function start() {
   const crewBar = createCrewBar({ root: crewCommands, game, heroId, crewInput, catalog, jump, send: c => pending.push(c) });   // send: the Mount panel's Stay here / Send to stable
   // a lone left-clicked enemy or townsperson shows in the target frame (top left), not the unit card
   const lone = ids => ids.length === 1 && game.state.entities[ids[0]]?.owner !== game.state.entities[heroId]?.owner;
-  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, hideOwnedBy:()=>game.state.entities[heroId]?.owner, onInspect:id=>unitFrames.inspect(id), workers:()=>frontierBuildUI?.isRosterOpen?.() && !$('townpanel').hidden ? [] : frontierBuildUI?.selectedWorkers?.()||[],   // Tim 2026-11-11: hidden while the Workers pane shows the same cards
+  const selPanel = createSelectionPanel({ root: $('selpanel'), game, units, catalog, crewInput, where, skip: lone, hideOwnedBy:()=>game.state.entities[heroId]?.owner, onInspect:id=>unitFrames.inspect(id), workers:()=>frontierBuildUI?.isRosterOpen?.() && !$('townpanel').hidden ? [] : frontierBuildUI?.selectedWorkers?.()||[],   // 2026-11-11: hidden while the Workers pane shows the same cards
  pickWorker:wid=>frontierBuildUI?.pickWorker?.(wid) });
   const unitFrames = createUnitFrames({ game, units, catalog, crewInput, heroId, view, where, jump, workerTarget:()=>frontierBuildUI?.workerTarget(), send: c => pending.push(c) });
   const interiorInfo = createInteriorInfo({ root: $('interiorinfo'), game, district, info: buildingInfo, units, heroId, clan: 'player' });
@@ -702,12 +702,12 @@ async function start() {
   $('seasonend').querySelector('.keep').addEventListener('click', e => { $('seasonend').hidden = true; e.currentTarget.blur(); });
   // every HUD panel can be unlocked (its lock icon), moved and resized; Reset layout in the Controls panel.
   // data/ui_layout.json is the shipped Default layout; the player's own layouts are in saves/layouts (layouts_api.mjs,
-  // Tim 2026-11-16) and the one last chosen is loaded on top
+  // 2026-11-16) and the one last chosen is loaded on top
   const uiFile = await fetch('data/ui_layout.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));   // Default HUD layout
   let layoutName = currentLayoutName(), layoutPanels = layoutName === DEFAULT_LAYOUT ? null : await fetchLayout(layoutName);
   if (layoutName !== DEFAULT_LAYOUT && !layoutPanels) layoutName = DEFAULT_LAYOUT;   // its file is gone: back to Default
   const stealthBadge = createStealthBadge({ root: $('stealth'), game, heroId, view });
-  const stationClock = createStationClock({ game, heroId, view });   // when the next train comes in, over each station (Tim 2026-11-08)
+  const stationClock = createStationClock({ game, heroId, view });   // when the next train comes in, over each station (2026-11-08)
   const hudLayout = createHudLayout({ fromFile: layoutPanels || uiFile.panels, defaults: uiFile.panels || {}, current: layoutName, onLayouts: l => gameSettings?.setLayouts?.(l),onBegin:()=>setGameplayInput(false),onEnd:()=>{setGameplayInput(true);$('settingsbtn').focus();} });
   const deploymentCards=document.createElement('section'),mapCards=document.createElement('section');
   deploymentCards.className=mapCards.className='selection-dock';
@@ -740,7 +740,7 @@ async function start() {
       nearbyTown: () => nearTown(), onStable: id => stableMenu.openFor(id), onTownWar: (id, tab) => townWar.show(id, null, tab) });
     const overview = createTownsOverview({ root: $('townsoverview'), game, heroId, send: c => pending.push(c), openTown: id => townPanel.open(id), viewButton: id => townView.rowButton(id), viewTown: id => townView.start(id) });
     onAction('townPanel', () => townPanel.toggle());
-    // the Vehicles panel (Tim 2026-11-07): Shift+Y or its icon
+    // the Vehicles panel (2026-11-07): Shift+Y or its icon
     vehiclesPanel = createVehiclesPanel({ root: $('vehiclespanel'), game, heroId, send: c => pending.push(c), view, crewInput });
     onAction('overview', () => overview.toggle());
     onAction('vehicles', () => vehiclesPanel.toggle());
@@ -760,7 +760,7 @@ async function start() {
     createStructureBars({ game, view, heroId, root: $('structbars') });   // war checkpoint 6: health bars over damaged structures
     closeTown = () => { townPanel.close(); overview.close(); };
     // F4.4c: clickable alert under the big callout (click opens that town), and a flag on its overview row
-    // Tim 2026-11-06: alerts from many towns must not spam. Urgent ones (attack, lost building, road
+    // 2026-11-06: alerts from many towns must not spam. Urgent ones (attack, lost building, road
     // blocked) and alerts for the town you stand in show on their own; the rest fold into one
     // "Towns: N need attention" line. Every alert opens the all-towns window (Y), worst towns first.
     // At most 3 lines on screen.
@@ -796,9 +796,9 @@ async function start() {
   // Fixed-tick loop: the rules advance TICK_RATE times a second, the screen
   // draws as often as it can and slides units between the last two ticks.
   // last tick's units, only what the view reads from it (render/view.js: sliding between ticks, heal pops);
-  // a full copy of the state 20 times a second was wasted work (Tim 2026-10-26). Add a field here if the view needs more.
+  // a full copy of the state 20 times a second was wasted work (2026-10-26). Add a field here if the view needs more.
   const snapshot = state => { const entities = {}; for (const id in state.entities) { const e = state.entities[id]; entities[id] = { x: e.x, z: e.z, hp: e.hp, downed: e.downed }; }
-    // sleeping workers are drawn from their trip records (withWorkerPresentations); keep their last spot too so they glide, not tick (Tim 2026-11-05)
+    // sleeping workers are drawn from their trip records (withWorkerPresentations); keep their last spot too so they glide, not tick (2026-11-05)
     for (const s of Object.values(state.frontier?.settlements || {})) for (const w of s.workers || []) if (!state.entities[w.entity]) { const p = workerLocation(w, state.entities, state.workerAt); if (p) entities[`worker:${w.id}`] = { x: p[0], z: p[1] }; }
     return { tick: state.tick, entities }; };
   let prev = snapshot(game.state);
@@ -852,19 +852,19 @@ async function start() {
       // your attack on a business (sim/businesses.js): waves left, then the hold timer
       {
         const a = Object.values(game.state.attacks || {}).find(a => a.clan === game.state.entities[heroId]?.owner && a.phase !== 'over'), bar = $('attackbar');
-        // the captain's raid on the island: no play-by-play unless watching the city (Tim 2026-11-25)
+        // the captain's raid on the island: no play-by-play unless watching the city (2026-11-25)
         bar.hidden = !a || (a.mode === 'raid' && game.state.entities[heroId]?.place === 'world' && !cityWatch.isOn());
         if (a) {
           const where = a.hq ? 'Shinobi HQ' : a.kind.replace(/_/g, ' ');
           bar.classList.toggle('hold', a.phase === 'hold');
           const wait = Math.ceil((a.startsAt - game.state.tick) / TICK_RATE), opens = Math.ceil((a.opensAt - game.state.tick) / TICK_RATE);
-          // the boss is out on the island: his captain runs the raid, so report it and ask nothing of him (Tim 2026-11-10)
+          // the boss is out on the island: his captain runs the raid, so report it and ask nothing of him (2026-11-10)
           const led = a.mode === 'raid' && game.state.entities[heroId]?.place === 'world';
           bar.textContent = led ? (a.phase === 'warmup' ? `Your captain is raiding the ${where}: the doors open in ${opens} s`
               : `Your captain is raiding the ${where}: ${a.holding ? `holding the back room, ${Math.ceil(a.holdLeft / TICK_RATE)} s` : a.away > 0 ? 'the crew are going in' : 'fighting for the back room'}`)
             : a.phase === 'warmup' ? `Raid on the ${where}: the doors open in ${opens} s`
             : wait > 0 ? `Attacking the ${where}: police arrive in ${wait} s, get inside` : a.phase === 'hold'
-            ? a.mode === 'raid' && a.away > 0   // nobody of yours inside: get in before the raid fails (Tim 2026-10-20)
+            ? a.mode === 'raid' && a.away > 0   // nobody of yours inside: get in before the raid fails (2026-10-20)
               ? `Get inside the ${where}: ${Math.max(0, Math.ceil(((game.businesses.raidRules.leaveSeconds || 10) * TICK_RATE - a.away) / TICK_RATE))} s or the raid fails`
               : `Hold the back room of the ${where}: ${Math.ceil(a.holdLeft / TICK_RATE)} s${a.holding ? '' : ' (stand in the gold ring)'}`
             : `Attacking the ${where}: police wave ${a.wave} of ${a.waves}`;
@@ -892,7 +892,7 @@ async function start() {
       }
       // your business is being raided: bell once, red banner, a channel bar while knocking the lantern down
       {
-        const a = game.state.entities[heroId]?.place === 'world' && !cityWatch.isOn() ? null : raidOnMe(), el = $('raidalarm');   // quiet on the island (Tim 2026-11-06): the lieutenant defends; shown while watching the city
+        const a = game.state.entities[heroId]?.place === 'world' && !cityWatch.isOn() ? null : raidOnMe(), el = $('raidalarm');   // quiet on the island (2026-11-06): the lieutenant defends; shown while watching the city
         el.hidden = !a;
         if (a) {
           const where = a.hq ? 'Shinobi HQ' : a.kind.replace(/_/g, ' '), who = game.state.clans[a.clan]?.name || 'A rival clan';
@@ -902,7 +902,7 @@ async function start() {
           if (el.querySelector('b').textContent !== b) el.querySelector('b').textContent = b;
           if (el.querySelector('span').textContent !== t) el.querySelector('span').textContent = t;
         }
-        // ...or a rival knocking down your own War Lantern (Tim 2026-10-20): the same bar in red, a bell
+        // ...or a rival knocking down your own War Lantern (2026-10-20): the same bar in red, a bell
         // when it starts, and a click on it targets him
         const mine = Object.values(game.state.attacks || {}).find(r => r.clan === game.state.entities[heroId]?.owner && r.knock);
         const foe = mine?.knock || null, k = a?.knock?.by === heroId ? a.knock : foe, kb = $('knockbar');
@@ -929,8 +929,8 @@ async function start() {
       const travel = !door && !innerDoor && !knockable && !stablePrompt && stationMenu.at() && !stationMenu.isOpen();
       const lamp = !door && !travel && game.stealth.snuffable(game.state.entities[heroId]), left = lamp ? game.stealth.snuffsLeft(game.state.entities[heroId].owner) : 0;
       const allAboard = stationMenu.callPrompt() || warOutcome.prompt() || game.ferry?.prompt(game.state.entities[heroId])?.text || game.ships?.prompt(game.state.entities[heroId])?.text || game.frontier?.rail?.prompt?.(game.state.entities[heroId])?.text || game.wildAnimals?.sellPrompt(game.state.entities[heroId])?.text || game.wildAnimals?.catchPrompt(game.state.entities[heroId])?.text;   // (or the ruined hall of a war: take it)
-      // the world prompts name the Use key: whatever it is bound to now (Tim 2026-11-12)
-      // Tim 2026-11-20: the key is a gold keycap and the prompt flashes gold when a Use action comes up (index.html #prompt.act)
+      // the world prompts name the Use key: whatever it is bound to now (2026-11-12)
+      // 2026-11-20: the key is a gold keycap and the prompt flashes gold when a Use action comes up (index.html #prompt.act)
       const setPrompt = t => { t = t || ''; const el = $('prompt'), use = t.startsWith('Space  '), key = use ? keybinds.badge('use') : '', sig = key + '|' + t; if (el.dataset.sig === sig) return; el.dataset.sig = sig; el.textContent = '';
         if (use) { const k = document.createElement('kbd'); k.className = 'usekey'; k.textContent = key; el.append(k); }
         el.append(use ? t.slice(7) : t); el.classList.remove('act'); if (use) { void el.offsetWidth; el.classList.add('act'); } };   // a new Use action flashes again
@@ -943,7 +943,7 @@ async function start() {
       stealthBadge.update(); stationClock.update();
       characterPanel.update(); hqStash.update(); shop.update(); lootNotice.update();
       hireMenu.update(); foundButton.update(); updateSpotHover();
-      // a built camp gate with anyone at it stands open: drawn dark until open-gate art exists (Tim 2026-11-15); looked at every 5 ticks
+      // a built camp gate with anyone at it stands open: drawn dark until open-gate art exists (2026-11-15); looked at every 5 ticks
       const openGates = shown => { if (game.state.tick === gatesTick || game.state.tick % 5) return gatesOpen; gatesTick = game.state.tick; const open = new Set(), gates = [];
         for (const s of shown) if (s.camp) for (const b of s.buildings || []) if (b.type === 'gate' && b.stage === 'built' && b.off) gates.push([s, b, s.x + b.off[0], s.z + b.off[1]]);
         if (gates.length) for (const e of Object.values(game.state.entities)) { if (e.place !== 'world' || e.dead || e.downed) continue; for (const [s, b, gx, gz] of gates) if (Math.abs(e.x - gx) < 3.5 && Math.abs(e.z - gz) < 3.5) open.add(`${s.id}:${b.id}`); }
@@ -966,7 +966,7 @@ async function start() {
       interiorInfo.update();
     if(!presentation.map){
     const pan = panAxes();
-    // the mouse at the screen edge pans too (Tim 2026-10-20): only when the camera is off the hero
+    // the mouse at the screen edge pans too (2026-10-20): only when the camera is off the hero
     // (not in hero follow; Home goes back to it), and not with the game map open
     const edge = !hudLayout.isEditing() && !gameSettings.isOpen() && !characterPanel.isOpen() && !hqStash.isOpen() && !shop.isOpen() && !gameMap.isOpen() && !deploymentPanel.isOpen() && view.isPanned() ? edgeAxes() : { right: 0, up: 0 };
     view.pan(Math.max(-1, Math.min(1, pan.right + edge.right)), Math.max(-1, Math.min(1, pan.up + edge.up)), dt);
@@ -980,7 +980,7 @@ async function start() {
     presentation.measure('world',()=>view.render(withWorkerPresentations(fog.seen(game.state),frontier,{...view.audioFocus(game.state,heroId),owner:game.state.entities[heroId]?.owner}), prev, clock.alpha(), dt, now, heroId));
     for (const [clip, v, p] of view.wildSounds?.() || []) sound.wild(clip, v, p);   // crows (render/crow_fx.js)
     crewInput.drawMarkers($('lock'));
-    abilityRows?.aimPreview(mouse);   // Unload's cone (Tim 2026-11-21)
+    abilityRows?.aimPreview(mouse);   // Unload's cone (2026-11-21)
     unitFrames.updateHover(mouse, document.elementFromPoint(mouse.x, mouse.y) === $('view'));
     frontierBuildUI?.update();
     { hoverLamp = lampAt(); const el = $('snuffhint'), h = game.state.entities[heroId];
@@ -994,12 +994,12 @@ async function start() {
       frontierBuildUI?.update();
       view.updateCamera(game.state, heroId, dt);   // live map footprint; scene painting stays suspended
       presentation.measure('map',()=>gameMap.update());
-      officeHint(now * 1000);   // the goal flashes on the docked Deployment menu run with the map open too (Tim 2026-11-20)
+      officeHint(now * 1000);   // the goal flashes on the docked Deployment menu run with the map open too (2026-11-20)
     }
     if(!presentation.map){bar.update(game.state.tick - 1 + clock.alpha());crewBar.update();}
     selectionDock.update();
     warLantern.update();warBanner.update();
-    { const away=game.state.entities[heroId]?.place==='world'?'none':'';if(lanternButton.style.display!==away){lanternButton.style.display=away;$('rallybtn').style.display=away;} }   // Tim 2026-11-12: no Rally or War Lantern on the island
+    { const away=game.state.entities[heroId]?.place==='world'?'none':'';if(lanternButton.style.display!==away){lanternButton.style.display=away;$('rallybtn').style.display=away;} }   // 2026-11-12: no Rally or War Lantern on the island
     campaignEnd.update();   // Z6: the victory or defeat screen once state.campaignEnd is set
     warCamp.update();townWar.update();warBar.update();warOutcome.update();warTerms.update();utilityMenu.update();   // the camp menu and utility menu redraw every frame (the comment above once swallowed this call)
     hudLayout.update();

@@ -96,7 +96,7 @@ const inWall = (g, e) => g.blockers.some(b => e.x > b.minX && e.x < b.maxX && e.
   console.log(`night ok (${owls} stay out)`);
 }
 
-// One fixed total (Tim 2026-10-18): out + indoors + dead waiting their replaceSeconds never goes
+// One fixed total (2026-10-18): out + indoors + dead waiting their replaceSeconds never goes
 // above it across a night and a day with kills, and townsfolk only ever appear at their own homes
 {
   const g = newGame();
@@ -127,7 +127,7 @@ const inWall = (g, e) => g.blockers.some(b => e.x > b.minX && e.x < b.maxX && e.
   console.log('townsfolk total ok');
 }
 
-// Town dogs (Tim 2026-11-10): never chat, bow or freeze; run from a fight at once; nobody can hurt them
+// Town dogs (2026-11-10): never chat, bow or freeze; run from a fight at once; nobody can hurt them
 {
   const g = newGame(), S = g.state.entities;
   g.spawn('hero', 'ronin', -6, 1, { owner: 'player' });

@@ -71,24 +71,24 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   // W3.10: the walled city seen from the island. Its box is a walk blocker (sim/chunk_gen.js), so a line of
   // stone wall pieces marks its edges, open at the gate and left out over water (data: world_paint.json cityWall).
   const CW = cfg.paint?.cityWall, wall = [];
-  // the gate stands in the wall line (Tim 2026-11-10), not out at the gate ring: the wall's gap is as wide as the gate art
+  // the gate stands in the wall line (2026-11-10), not out at the gate ring: the wall's gap is as wide as the gate art
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const gateAt = gate && CW ? { x: clamp(gate.x, city.minX - CW.out, city.maxX + CW.out), z: clamp(gate.z, city.minZ - CW.out, city.maxZ + CW.out) } : gate;
   if (CW && gate) {
-    // railZ: the city station's track goes out through its own opening in the east wall (Tim 2026-11-10)
+    // railZ: the city station's track goes out through its own opening in the east wall (2026-11-10)
     const rz = railZ === null ? null : city.minZ - bounds.minZ + railZ, RH = CW.railHalf ?? 2.7, onRail = (x, z) => rz !== null && x > city.maxX && Math.abs(z - rz) < RH + CW.step / 2;
     const o = CW.out, add = (x, z, flip) => { if (terrainAt(world, x, z) !== 'w' && !onRail(x, z) && Math.hypot(x - gateAt.x, z - gateAt.z) > (CW.gateHalf ?? CW.gap)) wall.push({ art: CW.art, x, z, flip }); };
     for (let x = city.minX + CW.step / 2; x < city.maxX; x += CW.step) { add(x, city.minZ - o, false); add(x, city.maxZ + o, false); }
     for (let z = city.minZ + CW.step / 2; z < city.maxZ; z += CW.step) { add(city.minX - o, z, true); add(city.maxX + o, z, true); }
     // the wall grid rarely lands on the railway gate's ends: one extra piece butts against each end of the gate
-    // (it overlaps the next grid piece), so no gap is left (Tim 2026-11-10)
+    // (it overlaps the next grid piece), so no gap is left (2026-11-10)
     if (rz !== null) for (const s of [-1, 1]) wall.push({ art: CW.art, x: city.maxX + o, z: rz + s * (RH + CW.step / 2 - (CW.railLap ?? 0.15)), flip: true });
   }
-  // fog behind the wall (Tim 2026-11-10): the city is not drawn from the island, so its box is dark, not open grass
+  // fog behind the wall (2026-11-10): the city is not drawn from the island, so its box is dark, not open grass
   const cityFog = CW ? new THREE.Mesh(new THREE.PlaneGeometry(city.maxX - city.minX + CW.out * 2, city.maxZ - city.minZ + CW.out * 2),
     new THREE.MeshBasicMaterial({ color: 0x06080c, transparent: true, opacity: CW.fog ?? 0.94, depthTest: false, depthWrite: false })) : null;
   if (cityFog) { cityFog.rotation.x = -Math.PI / 2; cityFog.position.set((city.minX + city.maxX) / 2, 0.04, (city.minZ + city.maxZ) / 2); cityFog.renderOrder = -0.3; cityFog.visible = false; scene.add(cityFog); }
-  // built-in roads as textured strips (src/road_strips.js, Tim 2026-11-21): built per road when the camera comes near
+  // built-in roads as textured strips (src/road_strips.js, 2026-11-21): built per road when the camera comes near
   const RS = cfg.paint?.enabled ? cfg.paint.trail?.strips : null, roadMeshes = new Map();
   const roads = RS ? roadLines(world, cfg.paint.paths?.list, RS) : [];
   let roadMat = null, roadAt = null;
@@ -314,7 +314,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     sprites.delete(key);
   }
 
-  // Tim 2026-11-07: grass and other props must not grow over laid track. A set of 1.5-unit cells within ~2 units of
+  // 2026-11-07: grass and other props must not grow over laid track. A set of 1.5-unit cells within ~2 units of
   // the laid part of every rail link (rebuilt when a link grows by 10 units or changes), checked in `cleared`.
   let railKey = '', railSet = new Set();
   function railMask(fr) {
@@ -325,7 +325,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     for (const l of links) {
       const p = l.points, dist = l.dist;
       if (!p || p.length < 2) continue;
-      for (const [start, end] of laidStretches(l)) for (let i = 1; i < p.length && dist[i - 1] < end; i++) {   // each crew's stretch (Tim 2026-11-22)
+      for (const [start, end] of laidStretches(l)) for (let i = 1; i < p.length && dist[i - 1] < end; i++) {   // each crew's stretch (2026-11-22)
         if (!(end > start) || dist[i] < start) continue;
         const [ax, az] = p[i - 1], [bx, bz] = p[i], len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(len));
         for (let k = 0; k <= n; k++) {
@@ -375,7 +375,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
       }
     }
     // props: refresh when the camera has moved a few units (or a chunk came in)
-    // perf 2026-11-07 (Tim: worse while moving): props are gathered a margin wider and refreshed every MOVE units
+    // perf 2026-11-07 (worse while moving): props are gathered a margin wider and refreshed every MOVE units
     // instead of every 4, so panning rebuilds the prop set about a third as often without props popping in
     const MOVE = 12, R = (cfg.propRadius ?? 55) * viewScale + MOVE;
     if (propAt && Math.hypot(x - propAt[0], z - propAt[1]) < MOVE && Math.abs(R - propAt[2]) < 1) return;
@@ -397,7 +397,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
     for (const spot of spots) for (const p of spotPiecesToProps(spot, snapshot?.spots?.[spot.id], catalog.spotArt, spotConfig))
       if (Math.hypot(p.x - x, p.z - z) < R && !cleared(p)) want.set(p.key, p);
     if(gate&&cfg.islandArt?.enabled&&Math.hypot(gate.x-x,gate.z-z)<R+30)want.set('city-gate',{art:'city_gate_se',x:gateAt.x,z:gateAt.z});
-    // the railway gate in the east wall, where the capital's lines go in (Tim 2026-11-10, art rail_gate)
+    // the railway gate in the east wall, where the capital's lines go in (2026-11-10, art rail_gate)
     if(CW&&gate&&railZ!==null&&cfg.islandArt?.enabled){const gx=city.maxX+CW.out,gz=city.minZ-bounds.minZ+railZ;if(Math.hypot(gx-x,gz-z)<R+30)want.set('rail-gate',{art:'rail_gate',x:gx,z:gz});}
     for (const p of towns) if (Math.hypot(p.x - x, p.z - z) < R + 10) want.set(`town:${p.key}`, p);
     wall.forEach((p, i) => { if (Math.hypot(p.x - x, p.z - z) < R + 10) want.set(`city-wall:${i}`, p); });
@@ -432,7 +432,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   function captureWater(camera, time) {
     if (!waterEffects) return;
     let waterVisible = false;
-    // perf 2026-11-07 (Tim: lag riding past water): the box around all water in view, so the reflection
+    // perf 2026-11-07 (lag riding past water): the box around all water in view, so the reflection
     // pass can skip everything standing too far from it to show in it
     let w0x = Infinity, w0z = Infinity, w1x = -Infinity, w1z = -Infinity;
     if (shown && painter) {
@@ -548,7 +548,7 @@ export function createWorldGround({ scene, renderer, world, cfg, catalog, cutout
   // war 8a (render/hall_channel_fx.js): the thing drawing a prop by its key ('town:' + town_props key), and a new
   // thing for an art name the caller owns (added to the scene and disposed by the caller)
   const thingAt = key => sprites.get(key) || null, artThing = p => { const t = makeThing(p) || null; return t ? liftThing(t, p.x, p.z, t.decal ? 0 : pullOf(t)) : t; };
-  // Tim 2026-11-19: a gatehouse a train runs through goes see-through black while a car is under it, with the wall that runs
+  // 2026-11-19: a gatehouse a train runs through goes see-through black while a car is under it, with the wall that runs
   // on through its gate cells (castle gates, the city's railway gate). cars: [[x, z]] from render/rail_track.js carSpots
   const GATE_FADE = { reach: 9, opacity: 0.5, dark: 1, rate: 6 }, white = new THREE.Color(1, 1, 1), black = new THREE.Color(0, 0, 0);
   function fadeGates(cars, dt) {

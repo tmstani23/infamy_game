@@ -1,7 +1,7 @@
 {
   "version": 1,
   "date": "2026-11-03",
-  "status": "Completed generation/cutting/import and biome integration authorized directly by Tim; jungle, regular forest-floor props and ground textures integrated 2026-11-03. See runtime configs for current sizing/density.",
+  "status": "Completed generation/cutting/import and biome integration authorized directly; jungle, regular forest-floor props and ground textures integrated 2026-11-03. See runtime configs for current sizing/density.",
   "outputRoot": "assets/environment/island/",
   "references": [
     "assets/environment/island/biome_props/cutouts/meadow_broadleaf_tree.png",
@@ -9,7 +9,7 @@
     "assets/environment/island/biome_props/cutouts/forest_giant_hollow_cedar.png"
   ],
   "instructions": [
-    "Read imagegen skill; use built-in image_gen. Inspect references and provide actual reference images to generation, not just their filenames. No CLI/API fallback unless Tim authorizes it.",
+    "Read imagegen skill; use built-in image_gen. Inspect references and provide actual reference images to generation, not just their filenames. No CLI/API fallback unless authorizes it.",
     "Generate all seven outputs below, one tool call per sheet/texture. Props have genuine transparent alpha (transparent_background=true); ground tiles are opaque (false).",
     "Save unmodified generated native PNGs in the specified workspace folders; highest supported native detail, record actual dimensions. Never upscale or overwrite accepted art; choose next _v02, _v03 suffix if a filename exists.",
     "Four prop sheets use three columns by two rows with six isolated subjects in reading order. Generous blank transparent gutters and outside margins, every leaf/root/frond inside its own region, no overlaps or labels. Do not crop, cut, resize, remove backgrounds, build previews, import into game, edit code/docs, or commit.",

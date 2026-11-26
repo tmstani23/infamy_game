@@ -1,4 +1,4 @@
-// Ships plan S8 (Tim 2026-11-23): boarding (sim/frontier/boarding.js) on the ship_test dev save. Board goes from the
+// Ships plan S8 (2026-11-23): boarding (sim/frontier/boarding.js) on the ship_test dev save. Board goes from the
 // nearest selected warship with troops aboard, sails alongside, grapples 4 s, then the holds fight a second at a time
 // (strength by ryo cost, no dice) until one is empty; capture, an empty hold taken at once, the deck Gatling's cut, the
 // weakened defender, a grapple that fails, break off and its wait, no boarding while unloading or empty, a tie, a third

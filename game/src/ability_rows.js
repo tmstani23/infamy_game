@@ -1,4 +1,4 @@
-// Ability rows over the action bar (war checkpoint 7, Tim 2026-11-12): the special abilities of the selected
+// Ability rows over the action bar (war checkpoint 7, 2026-11-12): the special abilities of the selected
 // units, shown only while the selection has any. Keys are Shift + the main bar keys, slot for slot:
 //   Torch         Shift + right-click an enemy building, wall, gate or house in your war (or click the button, then
 //                 left-click it): every selected melee unit runs over and sets it alight.
@@ -14,7 +14,7 @@ import { SPECIALS, specialView } from './sim/special_cast.js';
 import { specialNumbers } from './special_stats.js';
 import { sharedKeybinds } from './keybinds.js';
 import { PAINTED } from './hud_icons.js';
-const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
+const keybinds = sharedKeybinds();   // key text follows rebinding (2026-11-12)
 const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICONS = {
   torch: svg('<path d="M12 3c1 3 4 4.500 4 8a4 4 0 0 1-8 0c0-1.500.700-2.500 1.500-3.500C10 9 12 7 12 3z"/><path d="M10 15l-1.500 6h7L14 15"/>'),
@@ -31,7 +31,7 @@ const ICONS = {
   bowcannon: svg('<circle cx="8" cy="15" r="3.500"/><path d="M10.500 13l9-5M11.500 15.500l9-5M20.500 8v2.500"/>'),
   deckgun: svg('<circle cx="7" cy="15" r="4"/><path d="M9 12l11-5M10 14l11-5M20 7v2"/>'),
 };
-// painted art (data/ui_art.json, lantern style) where it exists: the slot id, or the painted id it borrows (Tim 2026-11-23)
+// painted art (data/ui_art.json, lantern style) where it exists: the slot id, or the painted id it borrows (2026-11-23)
 const PAINT_ID = { board: 'boarding', deckgun: 'gatling', bowcannon: 'bow_cannon' };
 const slotIcon = id => { const p = PAINT_ID[id] || id; return PAINTED.has(p) ? `<img class="painted" src="../assets/ui/abilities/${p}.png" alt="" draggable="false">` : ICONS[id] || ''; };
 export const ABOUT = {
@@ -85,13 +85,13 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
   function tipText(a, s) {
     const v = s.v || {};
     const lines = [`<div><span>Ready</span>${v.ready || 0} of ${v.have || 0} selected</div>`];
-    if (a.id === 'board' && !v.ready) {   // Tim 2026-11-24: why Board is grey when no selected warship has anyone aboard
+    if (a.id === 'board' && !v.ready) {   // 2026-11-24: why Board is grey when no selected warship has anyone aboard
       const ships = picked().units.map(id => game.state.entities[id]).filter(e => e?.ship && e.warUnit === 'warship');
       const full = ships.some(e => Object.values(game.state.entities).some(u => u.inShip === e.id && !u.dead));
       if (ships.length && !full) lines.push(`<div><span>Hold</span><b style="color:#f0a488">Empty: load troops first</b></div>`);
     }
     if (a.auto) lines.push(`<div><span>Auto</span>${!v.auto ? 'off' : v.auto === v.have ? 'on' : `on for ${v.auto} of ${v.have}`}</div>`);
-    const u = a.special ? picked().units.map(id => units?.types?.[game.state.entities[id]?.type]).find(d => d && specialNumbers(a.id, d)) : null;   // its numbers, from a selected caster (Tim 2026-11-18)
+    const u = a.special ? picked().units.map(id => units?.types?.[game.state.entities[id]?.type]).find(d => d && specialNumbers(a.id, d)) : null;   // its numbers, from a selected caster (2026-11-18)
     return `<b>${a.name}</b><i>${s.keyText}</i>${lines.join('')}<p>${a.about}</p>${u ? `<p>${specialNumbers(a.id, u)}</p>` : ''}${a.special ? `<p>One press, one caster: press again for the next unit.${a.auto ? ' Right-click this button to switch auto-cast on or off.' : ''}</p>` : ''}`;
   }
   function slot(a) {
@@ -139,7 +139,7 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
     row.hidden = !shown.length;
     if (!shown.length && tip.hidden === false) tip.hidden = true;
     for (const [id, s] of slots) s.b.hidden = !shown.some(x => x.a.id === id);
-    // a ship ability keeps its own key whatever is selected (Tim 2026-11-24); the other specials take the keys left, in order
+    // a ship ability keeps its own key whatever is selected (2026-11-24); the other specials take the keys left, in order
     { const taken = new Set(shown.filter(x => x.a.special && SHIP_KEY[x.a.id] != null).map(x => SHIP_KEY[x.a.id])); let n = 0;
       for (const x of shown) { if (!x.a.special) continue; if (SHIP_KEY[x.a.id] != null) x.ki = SHIP_KEY[x.a.id]; else { while (taken.has(n)) n++; x.ki = n++; } } }
     k = 0;
@@ -154,13 +154,13 @@ export function createAbilityRows({ root, marks, game, units, view, heroId, crew
       set(s.secs, cooling && Number.isFinite(v.nextReadyAt) ? `${Math.max(1, Math.ceil((v.nextReadyAt - (game.state.tick ?? 0)) / tickRate))}` : '');   // not able at all (Board with an empty hold): grey, no count
       const auto = !!a.auto && v.auto > 0;
       s.b.classList.toggle('auto', auto); s.auto.hidden = !auto;
-      s.b.classList.toggle('firing', v.firing > 0);   // a ship gun firing: the slot flashes red (Tim 2026-11-23)
+      s.b.classList.toggle('firing', v.firing > 0);   // a ship gun firing: the slot flashes red (2026-11-23)
       s.b.classList.toggle('armed', crewInput.targetArmed() === a.id);
     }
     updateMarks();
   }
   setInterval(update, 100);
-  // Unload (Tim 2026-11-21): while it waits for its click, a cone on the ground from the ready Gatling crew nearest the
+  // Unload (2026-11-21): while it waits for its click, a cone on the ground from the ready Gatling crew nearest the
   // pointer toward the pointer, as far as the gun reaches (call each frame with the mouse's page place)
   const NS = 'http://www.w3.org/2000/svg';
   const coneSvg = document.createElementNS(NS, 'svg'); coneSvg.setAttribute('class', 'unloadcone');

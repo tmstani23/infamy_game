@@ -74,7 +74,7 @@ function buildTopology(world, inland) {
     const count = wet.filter(Boolean).length;
     if ((count !== 1 && count !== 3) || codes.some((c, i) => c === 'm' || (!inland && c === 'r') || (c === 'w' && !wet[i]))) continue;
     // Beside a harbour the cells stay square for walking and ships (harborKeep), but the drawn shore is rounded
-    // too (Tim 2026-11-23: no sharp coast points): the same drawing-only path as the ford corners below.
+    // too (2026-11-23: no sharp coast points): the same drawing-only path as the ford corners below.
     const nearHarbor = harbors.some(h => Math.hypot(h.x - x, h.z - z) < radius + (C.harborKeep || 30));
     const convex = count === 3, q = wet.indexOf(!convex), [sx, sz] = quadrants[q];
     // Fine-rasterizing a cell that intersects a ford would also refine its

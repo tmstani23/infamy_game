@@ -1,4 +1,4 @@
-// Shinobi bot (sim/ninja_bot.js, Tim 2026-10-20: 3 clans, the two you don't play are bots): it
+// Shinobi bot (sim/ninja_bot.js, 2026-10-20: 3 clans, the two you don't play are bots): it
 // hires ninja at the dojo, takes a job at the shrine and gets on with it, through the same commands.
 // Run: node tools/test_ninja_bot.mjs
 import { readFileSync } from 'node:fs';

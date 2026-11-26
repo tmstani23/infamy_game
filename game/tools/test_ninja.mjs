@@ -276,7 +276,7 @@ const newGame = () => {
   Object.assign(crew, { x: spot.x, z: spot.z });
   run(20 * (K.mark.plantSeconds + 1));
   assert.ok(C.active.player?.mark, 'mark planted');
-  // a hidden plant alerts the owner after alertDelay; the job can't finish until alertWindowSeconds after that (Tim 2026-10-30)
+  // a hidden plant alerts the owner after alertDelay; the job can't finish until alertWindowSeconds after that (2026-10-30)
   run(20 * (Math.max(K.mark.holdSeconds, K.mark.alertDelay + K.alertWindowSeconds) + 1));
   assert.ok(!C.active.player && tea.sabotaged, 'mark held: sabotaged');
   const k0 = g.state.clans.kuroda.ryo;
@@ -291,7 +291,7 @@ const newGame = () => {
   C.readyAt.player = 0;   // skip the accept interval (aa1fa76); pacing is covered by test_contract_pacing
   g.step([{ id: boss.id, type: 'contract', action: 'take', job: job.id }]);
   const win = g.doors.find(d => d.ninja && d.place === tea.room);
-  // right-click the business with crew selected: they climb in by the back window too (Tim 2026-10-21)
+  // right-click the business with crew selected: they climb in by the back window too (2026-10-21)
   Object.assign(crew, { x: win.x + 0.5, z: win.z, place: 'street', order: { kind: 'stop' } });
   g.step([{ id: boss.id, type: 'order', units: [crew.id], kind: 'enter', business: tea.id }]);
   for (let i = 0; i < 20 * 3 && crew.place !== tea.room; i++) g.step();
@@ -300,7 +300,7 @@ const newGame = () => {
   Object.assign(boss, { x: win.x, z: win.z, place: 'street' });
   g.step([{ id: boss.id, type: 'use' }]);
   assert.equal(boss.place, tea.room, 'climbed into the business');
-  // harder steal (Tim 2026-10-20): the business has a guard patrolling it; send it off for this check
+  // harder steal (2026-10-20): the business has a guard patrolling it; send it off for this check
   const hg = Object.values(g.state.entities).filter(e => e.guard === tea.id);
   for (const e of hg) delete g.state.entities[e.id];
   const stash = g.contracts.stash(tea), r1 = clan.ryo;
@@ -310,7 +310,7 @@ const newGame = () => {
   assert.ok(C.active.player.spot?.on && Math.hypot(C.active.player.spot.x - stash.x, C.active.player.spot.z - stash.z) < 0.01, 'the stash ring is on the stash, lit while on it');
   Object.assign(boss, { x: stash.x + 3, z: stash.z }); run(20 * 2);
   assert.equal(C.active.player.progress, p1, 'stepping off pauses the steal, keeps the count');
-  // seen inside: one alarm to the owners, and the count still runs while seen (Tim 2026-10-21)
+  // seen inside: one alarm to the owners, and the count still runs while seen (2026-10-21)
   const watcher = g.state.entities[g.spawn('thug', 'thug', boss.x + 1, boss.z, { owner: 'kuroda', place: tea.room, order: { kind: 'stop' }, hp: 1e6, maxHp: 1e6 })];
   watcher.dir = 3; watcher.x = stash.x + 1; watcher.z = stash.z;
   boss.hp = boss.maxHp = 1e6;
@@ -321,7 +321,7 @@ const newGame = () => {
   assert.ok(C.active.player.progress > p2, 'the count runs while seen');
   delete g.state.entities[watcher.id];
   Object.assign(boss, { x: stash.x, z: stash.z });
-  // seen = alerted: the steal can't finish until alertWindowSeconds after the alarm (Tim 2026-10-30)
+  // seen = alerted: the steal can't finish until alertWindowSeconds after the alarm (2026-10-30)
   run(20 * (Math.max(K.steal.seconds - 3, K.alertWindowSeconds) + 1));
   assert.equal(clan.ryo - r1, Math.min(stealQuote.stealCap, 1000 * stealQuote.stealShare), 'stole their ryo');
   assert.equal(g.state.clans.kuroda.ryo, 1000 - (clan.ryo - r1));
@@ -338,7 +338,7 @@ const newGame = () => {
   assert.ok(clan.ryo >= r2 && clan.renown === renownBeforeDawn, 'dawn does not pay an unfinished job');
   console.log('contracts ok');
 }
-// fair board (Tim 2026-10-20): at most perClan jobs on a clan, taking one swaps the rest on that clan away
+// fair board (2026-10-20): at most perClan jobs on a clan, taking one swaps the rest on that clan away
 {
   const g = newGame(), C = g.state.contracts, K = g.contracts.rules;
   g.clans.addClan('ota', { bot: true });
@@ -373,7 +373,7 @@ const newGame = () => {
   assert.ok(ku < baseline, `recent hits reduce that clan's jobs (${ku} vs baseline ${baseline})`);
   console.log('fair board ok');
 }
-// Tim 2026-10-20: snuff a clicked lantern from up to snuffReach away (with a smoke-flash cast);
+// 2026-10-20: snuff a clicked lantern from up to snuffReach away (with a smoke-flash cast);
 // Shadow Step onto an enemy lands by it with a sure crit and auto attacks it
 {
   const g = newGame(), S = g.settings.units.rules.stealth;

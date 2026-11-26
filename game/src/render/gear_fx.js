@@ -1,4 +1,4 @@
-// Equipped-item effects (Tim 2026-11-01): every item kind has its own look, subtle but readable
+// Equipped-item effects (2026-11-01): every item kind has its own look, subtle but readable
 // at medium zoom. Presentation only; the item's visual.kind comes from sim/gear_catalog.js.
 //   weapon    weaponGlint  a short spark slides along the blade edge every few seconds
 //             weaponEmbers a few sparks drift off the blade, more on swings
@@ -7,7 +7,7 @@
 //             bodyOutline  1-2 faint afterimages trail the body while moving
 //   accessory accessoryAura tiny spirit motes rise around the body and fade
 //             movementWisps thin wind curls on the ground behind the feet while running
-//   castle heirlooms (Tim 2026-11-25, after web research on slash VFX): heirloomArc, a short tapered crescent swept
+//   castle heirlooms (2026-11-25, after web research on slash VFX): heirloomArc, a short tapered crescent swept
 //             round the hands, about 1.35x the blade's reach, revealed with the swing and gone in a fifth of a second.
 //             Each sword has its own shape, not just its colour: Benikiri a broad, short crimson sweep with red drops
 //             flung off; Shimotsuki a thin, long, cold crescent shedding ice; Kagenui a dark smoke band sewn with

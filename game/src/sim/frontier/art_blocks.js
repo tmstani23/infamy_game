@@ -1,4 +1,4 @@
-// Blocking that matches the art (war collision checkpoint 5b-0, Tim 2026-11-11). Pure: no DOM, no randomness.
+// Blocking that matches the art (war collision checkpoint 5b-0, 2026-11-11). Pure: no DOM, no randomness.
 // Every town, zone and war camp building blocks the ground its art stands on: art/cutouts.json "blocks"
 // (tools/build_art_blockers.py reads them from the art's outline), scaled to the size the art is drawn at
 // (render: catalog scale, shrunk to maxFootprint, the same sum as render/world_ground.js).
@@ -44,7 +44,7 @@ export function artBoxes(data, name, maxFootprint = 0, flip = false) {
   return out;
 }
 
-// Art that changes with the town hall tier (frontier.json townArt._byTier, Tim 2026-11-20): the list's entry for the
+// Art that changes with the town hall tier (frontier.json townArt._byTier, 2026-11-20): the list's entry for the
 // tier (the last one past its end), else townArt[type]. A war camp counts its camp hall's tier (campTier).
 export function tierArt(townArt, type, tier) {
   const list = townArt?._byTier?.[type];

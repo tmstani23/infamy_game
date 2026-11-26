@@ -20,9 +20,9 @@ const fresh = (kind, ryo = 3000) => {
   const run = (n, until = () => false) => { const sent = []; for (let i = 0; i < n && !until(); i++) { const out = mine.tick(); sent.push(...out); g.step(out); } return sent; };
   return { g, m, hero, L, mine, brains, away, run, clan: g.state.clans.player, S: g.state };
 };
-// Lieutenant raids (Tim 2026-11-08): with the boss away the captain buys a War Lantern, calls a Rally of the city
+// Lieutenant raids (2026-11-08): with the boss away the captain buys a War Lantern, calls a Rally of the city
 // groups, plants it at a rival business at night and the crew go in to hold the back room.
-// War Mode (Tim 2026-11-19): in a frontier war the lieutenant holds what the clan has. No new businesses, no
+// War Mode (2026-11-19): in a frontier war the lieutenant holds what the clan has. No new businesses, no
 // War Lantern or raid except to win back a business a rival took since the war began. Shakedowns and Sweeps go on.
 {
   const t = fresh('yakuza', 6000), S = t.g.state, L = t.L;

@@ -1,5 +1,5 @@
 import { modeRules } from '../modes/index.js';
-// Influence (frontier plan C4, Tim 2026-11-05). Campaign only; Classic never imports this folder.
+// Influence (frontier plan C4, 2026-11-05). Campaign only; Classic never imports this folder.
 // Influence is a running total per clan = Renown + businesses held per day + frontier trade.
 // Renown itself is unchanged (earned as in Classic, never converted or spent).
 // Unlocks (settings.json "influence"): more town permits, cheaper imports (takes effect once F3
@@ -9,7 +9,7 @@ export function createInfluence({ state, rules, businessesHeld = () => 0 }) {
   const R = rules || {};
   const on = () => !!R.tiers && modeRules(state).influence;
   const rec = id => ((state.influence ||= {})[id] ||= { days: 0, trade: 0, tier: 0 });
-  // Renown counted toward Influence: a Shinobi clan's contract Renown counts at shinobiRenownRate (Tim 2026-11-20: half,
+  // Renown counted toward Influence: a Shinobi clan's contract Renown counts at shinobiRenownRate (2026-11-20: half,
   // contracts outran businesses); its Renown itself (crew slots, season points) is unchanged.
   const renownRate = id => state.clans?.[id]?.kind === 'ninja' ? (R.shinobiRenownRate ?? 1) : 1;
   const renownPart = id => (state.clans?.[id]?.renown || 0) * renownRate(id);

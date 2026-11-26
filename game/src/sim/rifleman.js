@@ -1,11 +1,11 @@
-// Kuroda teppo rifleman (Tim 2026-10-28): the Kuroda clan's special crew, on a par with the Shinobi
+// Kuroda teppo rifleman (2026-10-28): the Kuroda clan's special crew, on a par with the Shinobi
 // geisha (sim/diversion.js). He acts on his own while standing still:
 //  - Aimed Shot is his "auto attack": every cooldownTicks he aims at one visible enemy within range
 //    for aimTicks (render draws a red line), then hits him for damage and staggers him for
 //    staggerTicks (heroes for half). First anyone hitting his clan, then the nearest. Moving or being
 //    hit while aiming spoils the shot (short retry). Gunfire itself adds no heat.
 //  - Otherwise he moves and fights like any other crew member (weak rifle-butt melee between shots;
-//    Tim 2026-10-28: no running away of his own, orders always obeyed).
+//    2026-10-28: no running away of his own, orders always obeyed).
 // An explicit attack order shoots that target when it can, else fights like any crew member.
 import { dirIndex } from './geometry.js';
 import { createFlee } from './flee.js';
@@ -49,7 +49,7 @@ export function createRifleman({ state, vision, rangeScale = () => 1, hit, stun,
     if (alive(t)) stun(t, t.type === 'hero' ? Math.round(R.staggerTicks / 2) : R.staggerTicks);
   }
   const flee = createFlee({ state, moveTo, nearestFree, canOccupy, clearLine });
-  // his own ranged routine on a sector duty (not the hero group, Rally or HQ reserves; Tim 2026-10-28):
+  // his own ranged routine on a sector duty (not the hero group, Rally or HQ reserves; 2026-10-28):
   // holds ground between shots, backs off from anyone coming at him, and after fleeTicks without
   // shaking them turns and fights, opening with a snap shot if loaded
   const onDuty = e => { const g = e.deployment?.group; return !!g && g !== 'hero' && g !== 'home' && !e.deployment?.duty?.manual && !inRally(e) && e.order?.kind !== 'attack'; };
@@ -64,7 +64,7 @@ export function createRifleman({ state, vision, rangeScale = () => 1, hit, stun,
     }
     spoil(e);
     const t = threats.reduce((a, b) => dist(a, e) <= dist(b, e) ? a : b);
-    // street police: back off, never fight back on his own (+heat a hit; Tim 2026-11-08, heat 1072). An attack order still does.
+    // street police: back off, never fight back on his own (+heat a hit; 2026-11-08, heat 1072). An attack order still does.
     if (t.cop && !t.wave) { if (!e.swing && flee(e, unit, t)) { e.rifleMode = 'fleeing'; return true; } return false; }
     e.cornered = dist(t, e) <= (unit.attackRange || 1.2) + 0.6 ? (e.cornered ?? state.tick) : null;
     e.fleeingSince ??= state.tick; e.calmSince = null;

@@ -1,4 +1,4 @@
-// Tim 2026-11-13: troops shot from a garrisoned house fight back at the house; a rival inside cannot be clicked.
+// 2026-11-13: troops shot from a garrisoned house fight back at the house; a rival inside cannot be clicked.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';

@@ -1,4 +1,4 @@
-// Shinobi contracts (ninja build phase 5, Tim 2026-10-20): the village shrine's board posts
+// Shinobi contracts (ninja build phase 5, 2026-10-20): the village shrine's board posts
 // a rolling board of jobs from town and rival clans. One active job per Shinobi clan
 // (Space at the shrine); objective counters are independent of day/night. Done: ryo + Renown; failed: nothing. The
 // clan it is aimed at gets a warning when it is taken.
@@ -12,7 +12,7 @@
 //           share of the clan's ryo (at most max)
 //   boss    knock out the named rival boss
 //   bandits knock out count bandits
-// Fair board (Tim 2026-10-20): at most perClan jobs on one clan; a clan the Shinobi hit in the
+// Fair board (2026-10-20): at most perClan jobs on one clan; a clan the Shinobi hit in the
 // last recentDays days draws fewer jobs, the season leader more; taking a job swaps the other
 // jobs on that clan for jobs on other clans or the town.
 // Numbers: units.json rules.contracts. Everything is plain data in state.contracts.
@@ -22,8 +22,8 @@ const DEFAULTS = {
   perDawn: [3, 5],
   refreshSeconds: 120, repeatSeconds: 120, failedRepeatSeconds: 30, acceptIntervalSeconds: 120,
   hiddenBonusShare: .25, hiddenProgressRate: 2,
-  defendBonus: 150,   // ryo for the owner when a Sabotage/Steal they were warned about fails (Tim 2026-10-29)
-  alertWindowSeconds: 75,   // once the owner is alerted, a Sabotage/Steal can't finish for this long (Tim 2026-10-30)
+  defendBonus: 150,   // ryo for the owner when a Sabotage/Steal they were warned about fails (2026-10-29)
+  alertWindowSeconds: 75,   // once the owner is alerted, a Sabotage/Steal can't finish for this long (2026-10-30)
   perClan: 2, recentDays: 2, leaderWeight: 2, rewardPerBusinessPoint: 0.1,
   scout: { ryo: 150, renown: 15, seconds: 10 },
   mark: { ryo: 300, renown: 30, plantSeconds: 3, holdSeconds: 60, leaveSeconds: 10, alertDelay: 15, clearSeconds: 4, reach: 1.5 },
@@ -277,7 +277,7 @@ export function createContracts({ state, rules = {}, scores = {}, backRoom, stas
       const on = candidates.find(e => e.hidden) || candidates[0];
       job.hiddenEligible = !!on?.hidden;
       job.spot = spot && { x: spot.x, z: spot.z, r: r.reach, on: !!on };   // the ring to stand in (render/banners.js)
-      // stepping off pauses the count instead of resetting it (Tim 2026-10-20)
+      // stepping off pauses the count instead of resetting it (2026-10-20)
       if (on) job.progress += on.hidden ? R.hiddenProgressRate : 1;
       job.need = secs(r.seconds);
       job.counter = { ...spot, place: b.room, label: 'Take stash', progress: job.progress, need: job.need };

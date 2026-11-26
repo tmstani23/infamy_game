@@ -1,12 +1,12 @@
 {
   "version": 1,
   "date": "2026-11-02",
-  "status": "Completed and visually accepted by Tim 2026-11-03, including final water surface/reflection/inland banks and coastal playtest. Representative-load performance and documented edge checks remain.",
+  "status": "Completed and visually accepted by 2026-11-03, including final water surface/reflection/inland banks and coastal playtest. Representative-load performance and documented edge checks remain.",
   "decision": {
     "recommended": "Three flat, neutral-lit shoreline texture strips, wet/dry/snow. Continuous fitting around the coastline; eight directions are placement directions, not eight new paintings per family.",
     "promptCount": 3,
     "alternative24": "Use 3 x 8 direction-specific images only if a later approved look requires baked perspective or substantial upright silhouettes in the shoreline art. Such images still do not solve arbitrary bends by themselves.",
-    "existingCliffs": "Assess and reuse the current cliff/rim/corner inventory. Tim believes the cliff edges are covered; no new cliff generation is included."
+    "existingCliffs": "Assess and reuse the current cliff/rim/corner inventory. believes the cliff edges are covered; no new cliff generation is included."
   },
   "sources": [
     {
@@ -392,7 +392,7 @@
     "wet": "coast_wet_strip_v1.png and coast_wet_strip_v2.png generated; v2 selected by generation_manifest.json",
     "drySnow": "coast_dry_strip_v1.png and coast_snow_strip_v1.png generated with per-image manifests; all three selected images are 2172 x 724 with alpha",
     "scope": "Three terrain types / three selected strips total; chunk-streamed continuous fitting implemented. Original sources preserved; runtime imports are byte-identical copies.",
-    "joinStatus": "Tim accepted in-game coastline appearance; native source ends preserved and phase-blended."
+    "joinStatus": "accepted in-game coastline appearance; native source ends preserved and phase-blended."
   },
   "implementation": {
     "checklist": [

@@ -1,4 +1,4 @@
-// Z7 (Tim 2026-11-20): a new game starts with no castle (home 'pick'); after the founding permit the player chooses
+// Z7 (2026-11-20): a new game starts with no castle (home 'pick'); after the founding permit the player chooses
 // his home with the old surveyor, the castle goes up there and the rivals roll their homes from the sites left (or
 // from the fallback day, when he has not chosen). Tests and dev saves may still pass a zone. Every site gives a castle,
 // a rail hub, a ship dock and a route out.
@@ -108,7 +108,7 @@ assert.ok(new Set(rolled).size > 1, 'random varies with the seed');
   const d = g.castles.dock('player');
   assert.ok(!hero.aboard && hero.place === 'world' && Math.hypot(hero.x - d.land.x, hero.z - d.land.z) < 20, 'landed at the castle dock');
   assert.equal(Object.values(S.entities).filter(u => u.type === 'settler' && u.owner === 'player' && u.place === 'world').length, 5, 'with the settlers');
-  // Tim 2026-11-20: your horse, 2 crew horses and 2 omnibuses wait outside the castle gate; Mount up, then the Found card
+  // 2026-11-20: your horse, 2 crew horses and 2 omnibuses wait outside the castle gate; Mount up, then the Found card
   // with a Ride to a town site row pointing at the surveyor's picks
   const cm = clan.castleMounts;
   assert.ok(cm, 'mounts placed at the castle gate');

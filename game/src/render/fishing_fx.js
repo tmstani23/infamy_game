@@ -1,11 +1,11 @@
-// Fishing poles (Tim 2026-11-23): a worker harvesting a fish spot holds a bamboo pole and casts a line into the
+// Fishing poles (2026-11-23): a worker harvesting a fish spot holds a bamboo pole and casts a line into the
 // water. Presentation only: the sim puts e.fishing = [x, z] (the water point to cast at) on the worker while it
 // harvests a fish spot (sim/frontier/workers.js); this draws the pole, the line, a float and soft rings on the water.
 // One loop per worker, about 9 s: raise the pole back, flick it forward, the float arcs out and lands with a ring,
 // sits bobbing (now and then a nibble dips it), then the line is reeled in and it starts again. All of it is a little
-// see-through (Tim 2026-11-23: every effect somewhat see-through).
+// see-through (2026-11-23: every effect somewhat see-through).
 // It also ties each fish spot's bollards to its boats with a slack mooring rope and darkens the water under each boat
-// (Tim 2026-11-24), from the spot pieces (world_spots.json: variant 0 = rowboat on the water, 1 = bollard on the bank).
+// (2026-11-24), from the spot pieces (world_spots.json: variant 0 = rowboat on the water, 1 = bollard on the bank).
 //   createFishingFx({ scene }) -> { update(list, dt), moor(spots), clear() }
 //   list: [{ id, x, y, z, tx, tz, order }]  x/y/z = the worker's feet, tx/tz = the cast point, order = its sprite's renderOrder
 //   spots: the fish spots in view ({ id, x, z, pieces }); rebuilt only when the set changes

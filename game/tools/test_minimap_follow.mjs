@@ -1,4 +1,4 @@
-// Town minimap follows the camera when zoomed in (Tim 2026-11-20): box stays centred, clicks map back correctly.
+// Town minimap follows the camera when zoomed in (2026-11-20): box stays centred, clicks map back correctly.
 import assert from 'node:assert/strict';
 const lines=[];let path=[];
 const ctx=new Proxy({},{get:(o,k)=>k==='beginPath'?()=>{path=[];}:k==='moveTo'||k==='lineTo'?(u,v)=>path.push([u,v]):k==='stroke'?()=>{if(o.strokeStyle==='rgba(255,255,255,.75)')lines.push(path);}:o[k]||(()=>{}),set:(o,k,v)=>(o[k]=v,true)});

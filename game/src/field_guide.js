@@ -1,4 +1,4 @@
-// Field guide (Tim 2026-11-25): one notebook page that answers "what is good against what" with the real numbers.
+// Field guide (2026-11-25): one notebook page that answers "what is good against what" with the real numbers.
 // Every number is read live from the data (war.structures.damage and .stone, war.ships.hullDamage, the cannons'
 // unitShare, war.structures.fire, war.armory.step, the hero's frontierDamage), so it follows any later change.
 // Own button in the utility menu and its own key (fieldGuide, Shift+G). Presentation only.

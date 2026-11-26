@@ -22,7 +22,7 @@ const CELL_WORLD = 3;       // a 160px cell covers 3 world units (see sprite_ren
 const ROLL_Q = new THREE.Quaternion(), Z_AXIS = new THREE.Vector3(0, 0, 1);
 const FEET_UP = 0.9;        // the cell centre is 0.9 units above the feet
 const FPS = 12;
-// drawing scale for characters inside buildings (Tim tried 0.75 on 2026-10-18 and went back to 1);
+// drawing scale for characters inside buildings (tried 0.75 on 2026-10-18 and went back to 1);
 // drawing only, reach and body sizes in the rules stay the same
 export const INDOOR_SIZE = 1;
 // health bar above the head: dark back plus a coloured fill that shrinks from the right
@@ -31,7 +31,7 @@ const BAR_GEO = new THREE.PlaneGeometry(1, 1).translate(0.5, 0, 0);
 // both transparent with the fill one step later, so the dark back never draws over the fill
 const BAR_BACK = new THREE.MeshBasicMaterial({ color: 0x0a0806, transparent: true, opacity: 0.68, depthTest: false, depthWrite: false });
 const RING_GEO = new THREE.RingGeometry(0.55, 0.68, 40);
-const RING_MAT = new THREE.MeshBasicMaterial({ color: 0x8fd17a, transparent: true, opacity: 0.38, depthWrite: false });   // softer (Tim 2026-11-01)
+const RING_MAT = new THREE.MeshBasicMaterial({ color: 0x8fd17a, transparent: true, opacity: 0.38, depthWrite: false });   // softer (2026-11-01)
 
 // Weapon glow per weapon type and which model holds what, from data/weapon_glow.json (loaded once)
 let glowConfig = null;
@@ -43,7 +43,7 @@ const sheetCache = {};
 // 1. Once a packed page is on the graphics card, its decoded copy in the page is closed (it was held twice).
 // 2. Far out the half-size pages are used, up close the full ones (render/sprite_detail.js); the swap is in place.
 // 3. A model's sheets are dropped when no sprite has used them for SHEET_IDLE_SECONDS; they load again when needed.
-// 4. GPU-compressed pages (KTX2, Tim 2026-11-15): Video settings, Compressed sprites, picks where they are used (read
+// 4. GPU-compressed pages (KTX2, 2026-11-15): Video settings, Compressed sprites, picks where they are used (read
 //    at start); a page without a compressed copy, or a graphics card that cannot take them, uses the PNG.
 const noHalf = new Set();   // full page urls whose half page is missing: use the full page
 // ships and boats (2026-11-23): rendered at twice people's page pixels per unit (tools/export_sprites.mjs MOUNTS) and drawn up
@@ -301,7 +301,7 @@ export class CharacterSprite {
       mesh.add(this.glow);
       this.thing.extras.push(this.glow);
       // hero weapons (weapon_glow.json "hero"): a light trail on swings, from the last few glow frames
-      // drawn again with fading strength (Tim 2026-10-28, option 4: shimmer idle + trail on attacks)
+      // drawn again with fading strength (2026-10-28, option 4: shimmer idle + trail on attacks)
       if (weapon.lightning) {
         this.lightning=createWeaponLightning(this.material.uniforms);
         mesh.add(this.lightning.mesh);this.thing.extras.push(this.lightning.mesh);
@@ -351,7 +351,7 @@ export class CharacterSprite {
       : f % sheet.frames;
     // hit flash fades out; the lean eases back
     this.flash = Math.max(0, (this.flash || 0) - dt / 0.12);
-    this.material.uniforms.uFlash.value = Math.min(1, this.flash) * 0.15;   // Tim 2026-11-12: the white hit flash read as a strobe at night (was 0.85)
+    this.material.uniforms.uFlash.value = Math.min(1, this.flash) * 0.15;   // 2026-11-12: the white hit flash read as a strobe at night (was 0.85)
     this.lean = Math.max(0, (this.lean || 0) - dt / 0.18);
     const lk = Math.sin(this.lean * Math.PI / 2) * 0.16;
     x += (this.leanX || 0) * lk; z += (this.leanZ || 0) * lk;

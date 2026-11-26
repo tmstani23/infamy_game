@@ -42,7 +42,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   const D = state.deployment, sectorIds = D.sectors.map(s => s.id);
   const localNavs = new Map();
   const crew = e => !!e && !!state.clans?.[e.owner] && e.type !== 'hero' && e.type !== 'civilian' && e.type !== 'settler' && !e.captain
-    && !e.guard && !e.cop && !e.wild && !e.warTroop && !e.trainGuard;   // (train guards are not city crew: bound to 'home' they could not fight, Tim 2026-11-21)
+    && !e.guard && !e.cop && !e.wild && !e.warTroop && !e.trainGuard;   // (train guards are not city crew: bound to 'home' they could not fight, 2026-11-21)
   const active = e => crew(e) && !e.dead && !e.jailed;
   const validGroup = id => id === 'home' || id === 'hero' || sectorIds.includes(id);
   function addClan(clan) {
@@ -79,7 +79,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
   function counts(clan, excluding = []) {
     const excluded = new Set(excluding), result = Object.fromEntries(['hero', 'home', ...sectorIds].map(id => [id, 0]));
     // downed crew give up their place, so replacements can go in at once; when they come round and the group
-    // is full they stay at HQ (Tim 2026-11-08: couldn't send new crew to a sector whose crew were all down)
+    // is full they stay at HQ (2026-11-08: couldn't send new crew to a sector whose crew were all down)
     for (const e of members(clan)) if (!excluded.has(e.id) && !e.downed) {
       const group = e.deployment?.transfer?.to || e.deployment?.group;
       if (validGroup(group)) result[group]++;
@@ -156,7 +156,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       return (!mask || mask[k] === 1) && (cells[k] === label || cells[k] === other);
     } });
   }
-  // Lag fix 3 (Tim 2026-11-05): build every sector/excursion patrol map in the first seconds after
+  // Lag fix 3 (2026-11-05): build every sector/excursion patrol map in the first seconds after
   // load, a couple per tick, so none is built mid-game. Home maps depend on the unit and stay lazy.
   let warmKeys=null;
   function warmNavs(perTick = 2) {
@@ -172,7 +172,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     if (!D.restrictionsEnabled) return true;
     if (!e.deployment) return true;   // settlers and other escorts have no group or sector: they go where they are told
     let ok = !e.deployment?.transfer && !e.deployment?.scattered;
-    // a lieutenant's job squad (Shinobi jobs and steals while the boss is away) may come from any group (Tim 2026-11-08)
+    // a lieutenant's job squad (Shinobi jobs and steals while the boss is away) may come from any group (2026-11-08)
     if (ok && c.by === 'lieutenant' && c.job && c.kind !== 'follow') { e.deployment.ltJob = true; return true; }
     if (ok && c.kind === 'follow') ok = e.deployment.group === 'hero' || isRallyParticipant(state, e);
     else if (ok && c.kind === 'attack') {
@@ -249,7 +249,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     const wait = Math.max(0, 6 - (state.tick - Math.max(h.hitAt ?? -Infinity, h.foughtAt ?? -Infinity)) / 20);
     if (wait > 0) return { ok: false, why: `Hero in combat: transfers available in ${Math.ceil(wait)} s` };
     if (to === 'hero' && (h.dead || h.downed || h.jailed)) return { ok: false, why: 'Hero unavailable: choose HQ or a sector' };
-    // out on the island the Hero group is who went with him (Tim 2026-11-08): city crew do not walk out to join it
+    // out on the island the Hero group is who went with him (2026-11-08): city crew do not walk out to join it
     if (to === 'hero' && h.place === 'world' && ids.some(id => state.entities[id] && state.entities[id].place !== 'world'))
       return { ok: false, why: 'The boss is on the island: city crew stay in the city' };
     return { ok: true, why: '' };
@@ -284,9 +284,9 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
       const reserves = members(clan.id, 'home').filter(e => !e.deployment.transfer && !e.downed && !isRallyParticipant(state, e));
       for (const e of reserves) delete e.deployment.automatic;
       const heroUp = !h.dead && !h.downed && !h.jailed;
-      // crew he pinned at the HQ by hand are the lieutenant's to use once the boss has left the city (Tim 2026-11-10)
+      // crew he pinned at the HQ by hand are the lieutenant's to use once the boss has left the city (2026-11-10)
       if (h.place === 'world') for (const e of reserves) e.deployment.keepAtHQ = false;
-      // the boss is out on the island (Tim 2026-11-08): Hero group crew left in the city become HQ reserves,
+      // the boss is out on the island (2026-11-08): Hero group crew left in the city become HQ reserves,
       // so the lieutenant can staff sectors with them; new crew fill the Hero group again once he is back
       if (h.place === 'world') for (const e of members(clan.id)) {
         const g = e.deployment.transfer?.to ?? e.deployment.group;   // a transfer to the Hero group from the city stops too
@@ -315,7 +315,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
         if (!e.downed) { clearCombat(e); e.order = { kind: 'follow', target: h.id }; }
       }
       // Revived and respawned crew go back to the group they came from; new crew fill the
-      // hero group up to six first (Tim 2026-10-27). Neither waits for the hero's combat.
+      // hero group up to six first (2026-10-27). Neither waits for the hero's combat.
       const sent = new Set(), waiting = new Set();
       for (const e of reserves) {
         if (e.deployment.awaitingAssignment || !quiet(e) || !idle(e) || e.deployment.keepAtHQ || e.deployment.ltJob) continue;
@@ -430,7 +430,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     for (const { e, target } of prepared) {
       startTransfer(e, c.to, target);
       // crew you send to HQ yourself stay there (Keep at HQ) until you send them out: with Keep 0 ready crew the
-      // automatic fill walked them straight back to the sector they left (Tim 2026-11-08)
+      // automatic fill walked them straight back to the sector they left (2026-11-08)
       e.deployment.keepAtHQ = c.to === 'home';
     }
     if(sectorIds.includes(c.to))D.clans[h.owner].autoSector=c.to;
@@ -440,7 +440,7 @@ export function createDeployment({ state, district, nav, navOf = () => nav, door
     const t = e.deployment?.transfer;
     if (!t) return false;
     clearCombat(e, false);
-    // stuck on the way to the HQ (Tim 2026-11-08): no progress for STUCK_HOME_TICKS, blocked or not, and he goes
+    // stuck on the way to the HQ (2026-11-08): no progress for STUCK_HOME_TICKS, blocked or not, and he goes
     // straight inside and becomes a reserve
     if (t.to === 'home' && state.tick - (t.progressAt ?? t.startedAt ?? state.tick) > STUCK_HOME_TICKS) {
       const d = destination(e, 'home');

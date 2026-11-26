@@ -107,7 +107,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   }
 
   // Founded towns never get stuck without timber: with no lumber camp, idle people gather a little by
-  // hand up to a small cap (frontier.json forage; fixture towns are not affected). Placeholder, Tim to tune.
+  // hand up to a small cap (frontier.json forage; fixture towns are not affected). Placeholder, to tune.
   function forage(s) {
     const fg = data.forage;
     if (!fg || workers?.has(s) || s.founded === undefined || built(s).some(b => b.type === 'lumber_camp')) return;
@@ -187,7 +187,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
   // safety recover a little.
   function review(s) {
     factors(s);
-    // Economy pass 2 C (Tim 2026-11-05): employed townsfolk pay full tax, idle ones pay idleTaxShare.
+    // Economy pass 2 C (2026-11-05): employed townsfolk pay full tax, idle ones pay idleTaxShare.
     const idle = Math.min(s.pop, s.report?.idle || 0), share = rates.idleTaxShare ?? 1;
     const tax = rates.tax[s.taxLevel] * (s.pop - idle + idle * share) * (s.mood / 100);
     if (tax > 0) world.change(s.id, 'ryo', tax, 'tax');
@@ -244,10 +244,10 @@ export function createEconomy({ state, data, world, zones = null, workers = null
     if (f().econTick % M.reviewTicks === 0) review(s);
   }
 
-  // Economy pass 2 D (Tim 2026-11-05): a built market sells goods above the keep level for ryo.
-  // Tim 2026-11-22 (fix list 15): timber and stone too (market.resources: slower, low price; rail to the capital pays
+  // Economy pass 2 D (2026-11-05): a built market sells goods above the keep level for ryo.
+  // 2026-11-22 (fix list 15): timber and stone too (market.resources: slower, low price; rail to the capital pays
   // better), each above its own keep, which is the same number as its rail keep (s.keep[res]). Never stock reserved
-  // for a rail order. The keep is what stays, war or not (Tim 2026-11-22).
+  // for a rail order. The keep is what stays, war or not (2026-11-22).
   function market(s) {
     const mk = data.market;
     if (!mk || !s.buildings.some(b => b.type === 'market' && b.stage === 'built')) return;
@@ -264,7 +264,7 @@ export function createEconomy({ state, data, world, zones = null, workers = null
       if (s.owner && res === 'goods') trade.sold?.(s.owner, sell);
     }
   }
-  // resource: goods (default) = s.marketKeep; timber, stone = s.keep[res], the rail keep (one level, Tim 2026-11-22)
+  // resource: goods (default) = s.marketKeep; timber, stone = s.keep[res], the rail keep (one level, 2026-11-22)
   function setMarketKeep(sid, keep, resource = 'goods') {
     const s = world.settlement(sid); init(s);
     if (resource === 'goods') s.marketKeep = keep; else (s.keep ||= {})[resource] = keep;

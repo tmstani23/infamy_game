@@ -3,7 +3,7 @@
 // down: the flames go at once and its light shrinks to nothing over rules.campfire.emberSeconds, then all of it goes.
 // createCampfireFx({ scene, lights, artThing, emberSeconds }) -> { update(state, show), things() }
 //   artThing(prop): a new world-ground thing for an art name (render/world_ground.js), added to the scene here
-// The seat log and the sitter (Tim 2026-11-26: the near ones looked to stand on their log, then to sit in front of it).
+// The seat log and the sitter (2026-11-26: the near ones looked to stand on their log, then to sit in front of it).
 // The coach sitting pose is chair height with the hips straight above the ground point, so the log lies at the seat
 // and always draws behind the sitter, who is raised a touch onto it. A sitter with his back to the camera (sheet rows
 // 3, 4, 5) has his legs over the far side: the <model>_campfire_sit sheets have nothing drawn there below the coat hem

@@ -1,4 +1,4 @@
-// Tim 2026-11-07: crew horses (sim/mounts.js mountUp): Shift+H puts the hero and his crew on horses; settlers never ride; hits put crew off; vehicles take crew without the hero (sim/omnibus.js).
+// 2026-11-07: crew horses (sim/mounts.js mountUp): Shift+H puts the hero and his crew on horses; settlers never ride; hits put crew off; vehicles take crew without the hero (sim/omnibus.js).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
@@ -44,7 +44,7 @@ const x0 = crew[0].x;
 for (let t = 0; t < 60; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0 }]);
 for (let t = 0; t < 20; t++) g.step([]);
 assert.ok(Math.hypot(crew[0].x - hero.x, crew[0].z - hero.z) < 20, `mounted crew kept up (${Math.hypot(crew[0].x - hero.x, crew[0].z - hero.z).toFixed(1)})`);
-// a group move while mounted (Tim 2026-11-10): riders end a horse length apart and the horses stand still
+// a group move while mounted (2026-11-10): riders end a horse length apart and the horses stand still
 {
   const tx = hero.x + 30, tz = hero.z + 20;
   g.step([{ id: hero.id, type: 'order', units: crew.map(u => u.id), kind: 'move', x: tx, z: tz }]);
@@ -62,7 +62,7 @@ assert.ok(Math.hypot(crew[0].x - hero.x, crew[0].z - hero.z) < 20, `mounted crew
 const ridden = state => myHorses().find(h => h.rider === crew[1].id);
 const h1 = ridden();
 assert.ok(h1 && Math.hypot(h1.x - crew[1].x, h1.z - crew[1].z) < 0.01, 'the horse is under him');
-// a hit no longer puts him off (Tim 2026-11-14: crew fight from the saddle)
+// a hit no longer puts him off (2026-11-14: crew fight from the saddle)
 crew[1].hitBy = { id: 'x', tick: S.tick }; g.step([]);
 assert.ok(crew[1].mounted && h1.rider === crew[1].id, 'still on when hit');
 // told to attack: he rides over and fights from the saddle, still mounted
@@ -80,10 +80,10 @@ for (let k = 0; k < 4; k++) crew.push(S.entities[g.spawn('thug', 'thug', hero.x 
 up();
 assert.match(clan.notice?.text || '', /no horse/, `short of horses (${clan.notice?.text})`);
 up(); for (let t = 0; t < 5; t++) g.step([]);
-// crew into a rickshaw without the hero (Tim 2026-11-07): they walk over and get in, two seats
+// crew into a rickshaw without the hero (2026-11-07): they walk over and get in, two seats
 for (const u of crew) if (u.mounted) g.step([{ id: hero.id, type: 'mount', group: true }]);
 cmd({ mode: 'rickshaw' }); for (let t = 0; t < 50 * 20; t++) g.step([]);
-// right-click one horse with a group selected (Tim 2026-11-10): only the nearest runs over and rides her, no other horse moves
+// right-click one horse with a group selected (2026-11-10): only the nearest runs over and rides her, no other horse moves
 {
   for (const u of crew) if (u.mounted) g.step([{ id: hero.id, type: 'mount', horse: u.ride.horse, units: [u.id] }]);
   if (hero.mounted) g.step([{ id: hero.id, type: 'mount' }]);
@@ -111,7 +111,7 @@ const rx = rk.x; for (let t = 0; t < 40; t++) g.step([]);
 assert.ok(Math.abs(rk.x - rx) < 0.5, 'it stays put until told');
 g.step([{ id: hero.id, type: 'omnibus', action: 'deploy', vehicles: [rk.id] }]);
 assert.equal(Object.values(S.entities).filter(u => u.aboard === rk.id).length, 0, 'let out');
-// one at a time: a second crew member joins the one already inside (Tim 2026-11-07: same as the omnibus)
+// one at a time: a second crew member joins the one already inside (2026-11-07: same as the omnibus)
 for (const u of three.slice(0, 2)) {
   g.step([{ id: hero.id, type: 'omnibus', action: 'board', omnibus: rk.id, units: [u.id], crewOnly: true }]);
   for (let t = 0; t < 200 && u.aboard !== rk.id; t++) g.step([]);
@@ -119,7 +119,7 @@ for (const u of three.slice(0, 2)) {
 }
 g.step([{ id: hero.id, type: 'omnibus', action: 'board', omnibus: rk.id, units: [three[2].id], crewOnly: true }]);
 assert.ok(!three[2].boardBus, 'full: no third');
-// the hero gets in with nobody selected (Tim 2026-11-10): a man standing by him (stepped out earlier, told to stay) comes too
+// the hero gets in with nobody selected (2026-11-10): a man standing by him (stepped out earlier, told to stay) comes too
 {
   g.step([{ id: hero.id, type: 'omnibus', action: 'deploy', vehicles: [rk.id] }]);
   assert.equal(Object.values(S.entities).filter(u => u.aboard === rk.id).length, 0, 'rickshaw emptied');
@@ -132,7 +132,7 @@ assert.ok(!three[2].boardBus, 'full: no third');
   // his own seat: only he steps out, the vehicle waits with the other aboard
   g.step([{ id: hero.id, type: 'omnibus', action: 'deploy', vehicles: [rk.id], units: [hero.id], hero: true }]);
   assert.ok(!hero.aboard && crew[0].aboard === rk.id && rk.vorder?.kind === 'stay', 'only the hero stepped out');
-  // and back into the loaded one (Tim 2026-11-10: he could not board with crew already aboard)
+  // and back into the loaded one (2026-11-10: he could not board with crew already aboard)
   Object.assign(hero, { x: rk.x + 2, z: rk.z + 1 });
   g.step([{ id: hero.id, type: 'omnibus', action: 'board', omnibus: rk.id, units: [], crewOnly: false }]);
   assert.ok(hero.aboard === rk.id && crew[0].aboard === rk.id, 'the hero gets into a vehicle with crew aboard');

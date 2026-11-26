@@ -1,4 +1,4 @@
-// Fishing poles (Tim 2026-11-23/24): rich fishing grounds sit on open shore, fish spot boats float on the water,
+// Fishing poles (2026-11-23/24): rich fishing grounds sit on open shore, fish spot boats float on the water,
 // bollards stand on the bank, and every fish spot has a cast point out on open water clear of its boats.
 // Run: node game/tools/test_fishing.mjs
 import { readFileSync } from 'node:fs';

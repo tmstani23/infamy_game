@@ -73,7 +73,7 @@ assert.equal(JSON.stringify(state), before, 'reading writes nothing');
   assert.equal(rival.mine, false); assert.equal(rival.lines.length, 0); assert.match(rival.sub, /Kuroda/);
   assert.equal(hoverCard(null), null);
 }
-// Tim 2026-11-16: the People rows (stock card, job chips, growth line)
+// 2026-11-16: the People rows (stock card, job chips, growth line)
 {
   const data = { buildings: { workshop: { jobs: 2 }, farm: { jobs: 4 } }, rates: { growthTicks: 60 }, cadenceTicks: 20, mood: { growthFullAt: 70 }, workers: { gatherBuildings: [] } };
   const s = { pop: 6, housing: 70, mood: 74, builders: 2, workers: [{}, {}], stock: {}, report: { idle: 0, growth: { block: null, eta: 7, text: 'Next person in 7s' } },

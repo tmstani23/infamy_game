@@ -1,5 +1,5 @@
 // Keyboard -> commands for the game rules, plus view shortcuts.
-// Keys are rebindable (Tim 2026-11-12): game code asks for an action ('heal', 'moveUp'), keybinds.js says which keys
+// Keys are rebindable (2026-11-12): game code asks for an action ('heal', 'moveUp'), keybinds.js says which keys
 // run it. onKey(code) stays only for keys that never move (Escape, dev keys).
 import { sharedKeybinds } from './keybinds.js';
 export const keybinds = sharedKeybinds();
@@ -24,9 +24,9 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 // a browser menu (Shift+right-click forces it in some browsers) swallows the key-ups, so held keys stuck and the hero
-// kept moving or galloping (Tim 2026-11-07): forget held keys when a menu opens, and drop a Shift the mouse says is up
+// kept moving or galloping (2026-11-07): forget held keys when a menu opens, and drop a Shift the mouse says is up
 // only when the browser menu really shows: the game cancels it on every right-click, and clearing then dropped WASD
-// on each right-click move order, so the hero stopped or stuttered until the key repeat came back (Tim 2026-11-12)
+// on each right-click move order, so the hero stopped or stuttered until the key repeat came back (2026-11-12)
 addEventListener('contextmenu', e => { setTimeout(() => { if (!e.defaultPrevented) keys.clear(); }, 0); }, { capture: true });
 addEventListener('mousedown', e => { if (e.button === 2 && e.shiftKey) keys.clear(); }, { capture: true });
 const shiftCheck = e => { if (!e.shiftKey) { keys.delete('ShiftLeft'); keys.delete('ShiftRight'); } };
@@ -46,7 +46,7 @@ const axis = (neg, pos) => (pos.some(k => keys.has(k)) ? 1 : 0) - (neg.some(k =>
 // Arrow keys pan the camera: -1..1 right and up on screen
 export const panAxes = () => ({ right: axis(keybinds.codesFor('panLeft'), keybinds.codesFor('panRight')), up: axis(keybinds.codesFor('panDown'), keybinds.codesFor('panUp')) });
 
-// Edge scrolling (Tim 2026-10-20): the mouse at the edge of the window pans the camera like the
+// Edge scrolling (2026-10-20): the mouse at the edge of the window pans the camera like the
 // arrow keys, -1..1 right and up on screen; nothing while it is outside the window
 let mouse = null;
 addEventListener('mousemove', e => { mouse = { x: e.clientX, y: e.clientY }; });
@@ -59,7 +59,7 @@ export function edgeAxes() {
   const up = mouse.y <= EDGE ? 1 : mouse.y >= innerHeight - 1 - EDGE ? -1 : 0;
   return { right, up };
 }
-// Sprint toggle (Tim 2026-11-07): the Sprint button in Mount controls makes the hero's horse gallop without
+// Sprint toggle (2026-11-07): the Sprint button in Mount controls makes the hero's horse gallop without
 // holding Shift; it switches off when he gets off (crew_bar.js)
 let sprintLock = false;
 export const sprintOn = () => sprintLock;

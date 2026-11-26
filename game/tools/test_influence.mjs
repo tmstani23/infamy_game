@@ -1,4 +1,4 @@
-// Frontier C4 (Tim 2026-11-05): in campaign mode Influence = Renown + businesses held per day + frontier
+// Frontier C4 (2026-11-05): in campaign mode Influence = Renown + businesses held per day + frontier
 // trade; tiers fire once each and unlock the 2nd/3rd town permit, cheaper imports and better Market export
 // prices. Renown itself is unchanged. Classic has no Influence at all.
 import assert from 'node:assert/strict';
@@ -79,7 +79,7 @@ assert.equal(IN.maxTowns('player', 1), 1 + permitTiers.length, '2nd and 3rd town
   const g2 = createGame(options()); loadSave(g2, JSON.parse(JSON.stringify(makeSave(g, { bots: [] }))));
   assert.equal(g2.influence.value('player'), IN.value('player'));
 }
-// Shinobi Renown counts at shinobiRenownRate toward Influence, Renown itself unchanged (Tim 2026-11-20)
+// Shinobi Renown counts at shinobiRenownRate toward Influence, Renown itself unchanged (2026-11-20)
 {
   const { g } = match('campaign'), ninja = Object.values(g.state.clans).find(c => c.kind === 'ninja');
   assert.ok(ninja, 'the campaign has a Shinobi clan');

@@ -2,10 +2,10 @@
 import { createLayoutPages } from './layout_pages.js';
 export const HUD_PANELS = ['hud','minimap','bar','selpanel','partyframes','crewcommands','bldpanel','ryo','heat','uself','utarget','stealth','utilitymenu','raidalarm','attackbar','knockbar','campingnotice','contract','interiorinfo','prompt','hire','clinic','police','contracts','lostcops','callout','pausedbanner','snap','deploymentpanel','townpanel','townsoverview','foundtown','townalerts','townhover','townflash','goalcard','structcard'];
 const TB_KEY='infamy.hudLayout.toolbar.v1',KEY='infamy.hudLayout.v1',FILE='data/ui_layout.json',PROPS=['left','top','right','bottom','transform','scale','position','width','height','minHeight'];
-// fixed-shape panels keep the uniform corner scale; every other panel also gets side handles for free width/height (Tim 2026-10-30)
+// fixed-shape panels keep the uniform corner scale; every other panel also gets side handles for free width/height (2026-10-30)
 const UNIFORM=new Set(['ryo','minimap','heat','stealth','raidalarm','uself','utarget','uhover','prompt','attackbar','knockbar']);
 const NAMES={hud:'Top status',minimap:'Minimap',bar:'Action bar',selpanel:'Selection details',partyframes:'Crew panel',crewcommands:'Crew commands',bldpanel:'Building details',ryo:'Ryo',heat:'Infamy',uself:'Hero portrait',utarget:'Target portrait',uhover:'Hover portrait',structcard:'Building pane',stealth:'Stealth badge',utilitymenu:'Navigation icons',raidalarm:'Raid alarm',attackbar:'Raid progress',knockbar:'Recovery progress',campingnotice:'HQ camping warning',contract:'Contract status',interiorinfo:'Interior details',prompt:'Interaction prompt',hire:'Hiring window',clinic:'Clinic window',police:'Police window',contracts:'Contracts window',lostcops:'Police escape alert',callout:'Game alerts',pausedbanner:'Paused banner',snap:'Camera notice',deploymentpanel:'Deployment window',townpanel:'Town window',townsoverview:'Towns overview window',foundtown:'Found settlement button',townalerts:'Town alerts',townhover:'Town hover card',townflash:'Town notice',goalcard:'Campaign goal',fptip:'Town info tooltip',gamesettings:'Settings window',blacksmithshop:'Blacksmith shop',hqstash:'HQ stash',characterpage:'Character window',controls:'Controls window',jail:'Jail status',seasonend:'Match results',snuffhint:'Light interaction hint','control-tooltip':'Controls tooltip',
- // menu restyle (Tim 2026-11-11): every window and badge gets a plain name
+ // menu restyle (2026-11-11): every window and badge gets a plain name
  sitemenu:'Island gate window',landoffice:'Land Office window',lttalk:'Lieutenant talk',svtalk:'Surveyor talk',svtour:'Surveyor map card',stationmenu:'Station window',stablemenu:'Stable window',vehiclespanel:'Vehicles window',garrisoncard:'Garrison card',railledger:'Rail ledger',towninspect:'Town inspector',townbuildreview:'Build review',buildmini:'Build box',citywatch:'Watch the city bar','interior-details':'Interior details',foundhint:'Found settlement hint',warsplash:'War banner splash',warcamp:'War camp window',townwar:'Town war window',warpack:'Pack for war window',warcamphint:'War camp hint',warbannerhint:'War banner hint',warbannerbtn:'War banner button',warlanternbtn:'War lantern button',warcoin:'War chest'};
 export function layoutCategory(id){
  if(/tooltip|hint|uhover|townhover|fptip/.test(id))return 'tooltips';
@@ -15,12 +15,12 @@ export function layoutCategory(id){
 }
 const STRUCTURAL=new Set(['shopmarker','view','vignette','fx','selbox','lock','hudlayout','startscreen','loading','gamemap','gamesettings','blacksmithshop','hqstash','characterpage','controls','results','towngrowthfx','townbuildoverlay','townbuildhint','townbuildreview','gatefade']);   // full-screen effect layers are never movable panels
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-// Panel opacity (Tim 2026-11-20): saved._all.o fades every panel (default 0.88), saved[id].o overrides it for one panel (30 means 30).
+// Panel opacity (2026-11-20): saved._all.o fades every panel (default 0.88), saved[id].o overrides it for one panel (30 means 30).
 export const OPACITY_ALL='_all',OPACITY_DEFAULT=.88,OPACITY_MIN=.3;
 const opNum=v=>{const n=Number(v);return Number.isFinite(n)?clamp(n,OPACITY_MIN,1):null;};
 const clone=v=>JSON.parse(JSON.stringify(v));
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{};}catch{return {};}};
-// Saved layouts (Tim 2026-11-16): data/ui_layout.json is the shipped Default (the game never writes it); the player's
+// Saved layouts (2026-11-16): data/ui_layout.json is the shipped Default (the game never writes it); the player's
 // layouts live in saves/layouts/<name>.json (server layouts_api.mjs). The chosen one is remembered per browser.
 export const DEFAULT_LAYOUT='Default',CUR_KEY='infamy.hudLayout.current.v1',LAYOUT_NAME_RE=/^[A-Za-z0-9][A-Za-z0-9 _-]{0,29}$/;
 export const currentLayoutName=()=>{try{return localStorage.getItem(CUR_KEY)||DEFAULT_LAYOUT;}catch{return DEFAULT_LAYOUT;}};
@@ -123,7 +123,7 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
  const empty=document.createElement('option');empty.value='';empty.textContent='Select a panel...';picker.appendChild(empty);
  for(const [category,label]of [['main','Main HUD'],['tooltips','Tooltips'],['alerts','Alerts'],['windows','Windows']]){
   const b=document.createElement('button');b.type='button';b.dataset.filter=category;
-  // the label says what a click does (Tim 2026-11-05: "Hide Windows" while windows were already hidden read as a missing Town window)
+  // the label says what a click does (2026-11-05: "Hide Windows" while windows were already hidden read as a missing Town window)
   const label_=()=>{const off=hiddenCategories.has(category);b.textContent=`${off?'Show':'Hide'} ${label}`;b.setAttribute('aria-pressed',String(off));};label_();
   b.addEventListener('click',()=>{drag=null;if(hiddenCategories.has(category))hiddenCategories.delete(category);else hiddenCategories.add(category);label_();if(selected&&hiddenCategories.has(panels.get(selected).category))select(null);update();});
   filters.appendChild(b);
@@ -144,7 +144,7 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
   const L=saved[p.id];
   if(!L||!L.ax){Object.assign(p.el.style,p.defaults);p.el.dataset.layoutPinned='false';p.el.dataset.layoutSized='false';p.applied=signature(p.el);return;}
   p.el.style.width=L.w?`${L.w}px`:p.defaults.width;p.el.style.minHeight=L.h?`${L.h}px`:p.defaults.minHeight;
-  p.el.style.height=L.h?(UNIFORM.has(p.id)||p.id==='bar'||p.id==='selpanel'?`${L.h}px`:'auto'):p.defaults.height;   // selpanel: a fixed height, so its cards shrink to fit instead of the pane growing (Tim 2026-11-18)
+  p.el.style.height=L.h?(UNIFORM.has(p.id)||p.id==='bar'||p.id==='selpanel'?`${L.h}px`:'auto'):p.defaults.height;   // selpanel: a fixed height, so its cards shrink to fit instead of the pane growing (2026-11-18)
   p.el.dataset.layoutSized=String(!!(L.w||L.h));
   const [w,h]=dimensions(p),s=clamp(Number(L.s)||1,.5,2.5);
   const x=clamp(L.ax==='l'?L.dx:innerWidth-L.dx-w*s,0,Math.max(0,innerWidth-w*s));
@@ -181,7 +181,7 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
   if(el.classList?.contains('tip')){const n=[...panels.keys()].filter(k=>k.startsWith('tooltip-')).length+1;register(el,`tooltip-${n}`,`Tooltip ${n}`);}
  }
  HUD_PANELS.forEach(id=>register(document.getElementById(id)));
- // the windows first (Tim 2026-11-09): enrolling body children would take the id for the full-screen backdrop
+ // the windows first (2026-11-09): enrolling body children would take the id for the full-screen backdrop
  for(const [id,selector]of [['gamesettings','.settings-window'],['characterpage','.character-window'],['hqstash','.stash-window'],['blacksmithshop','.shop-window'],['controls',null]]){const root=document.getElementById(id);if(root)register(selector?root.querySelector(selector)||root:root,id,NAMES[id]);}
  for(const el of document.body.children)enroll(el);
  if(typeof MutationObserver!=='undefined')new MutationObserver(records=>{for(const r of records)for(const n of r.addedNodes)enroll(n);}).observe(document.body,{childList:true});
@@ -190,7 +190,7 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
   for(const p of panels.values()){
    if(p.pages&&p.el.offsetWidth){const rect=p.el.getBoundingClientRect(),L=saved[p.id],s=L?.s||1;
     // a scaled panel grows about its middle, so its live top moves with its content: paging from that fed back into itself
-    // and the crew panel bounced (Tim 2026-11-07). A top-anchored saved panel uses its saved top instead.
+    // and the crew panel bounced (2026-11-07). A top-anchored saved panel uses its saved top instead.
     const top=L&&L.ay==='t'&&Number.isFinite(L.dy)?L.dy:Math.max(0,rect.top);
     p.pages.update(p.el.offsetWidth,Math.min(L?.h||600,Math.max(160,(innerHeight-top-24)/s)));
    }
@@ -206,8 +206,8 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
    Object.assign(p.handle.style,{left:`${rect.left}px`,top:`${rect.top}px`,width:`${rect.width}px`,height:`${rect.height}px`});
   }
  }
- // Live move (Tim 2026-11-04, extended 2026-11-15 to every window-category panel): windows can be dragged by their title bar outside Edit layout. Move only; resizing stays in Edit layout.
- const MOVABLE=new Set(['hire','clinic','police','contracts','townpanel','townsoverview','gamesettings','characterpage','hqstash','blacksmithshop','controls','towninspect','structcard']);   // towninspect, structcard: building cards drag by their top (Tim 2026-11-22)
+ // Live move (2026-11-04, extended 2026-11-15 to every window-category panel): windows can be dragged by their title bar outside Edit layout. Move only; resizing stays in Edit layout.
+ const MOVABLE=new Set(['hire','clinic','police','contracts','townpanel','townsoverview','gamesettings','characterpage','hqstash','blacksmithshop','controls','towninspect','structcard']);   // towninspect, structcard: building cards drag by their top (2026-11-22)
  let live=null;
  addEventListener('mousedown',e=>{
   if(editing||e.button!==0||!e.target?.closest)return;
@@ -230,7 +230,7 @@ export function createHudLayout({fromFile,defaults=null,current=DEFAULT_LAYOUT,o
  addEventListener('mouseup',endLive,{capture:true});addEventListener('blur',endLive);
  function finish(commit){if(!editing)return;drag=null;if(commit)store(saved);else{saved=before;for(const p of panels.values())place(p);showOpacity();if(beforeName!==null&&beforeName!==layoutName){layoutName=beforeName;setCurrentName(layoutName);showLayouts();}}before=null;beforeName=null;editing=false;select(null);for(const p of panels.values())p.el.classList.remove('layout-filtered');layer.hidden=true;onEnd();}
  function begin(){if(editing)return;before=clone(saved);beforeName=layoutName;editing=true;note();refresh();showOpacity();layer.hidden=false;onBegin();update();actions.done.focus();}
- function reset(){drag=null;toolbarDrag=null;toolbar.style.left='max(10px,calc(50% - 470px))';toolbar.style.top='10px';try{localStorage.removeItem(TB_KEY);}catch{}layoutName=DEFAULT_LAYOUT;setCurrentName(DEFAULT_LAYOUT);apply(base);try{localStorage.setItem(KEY,JSON.stringify(saved));}catch{}showLayouts();note('Back to Default');}   // Reset layout = the Default layout (Tim 2026-11-16)
+ function reset(){drag=null;toolbarDrag=null;toolbar.style.left='max(10px,calc(50% - 470px))';toolbar.style.top='10px';try{localStorage.removeItem(TB_KEY);}catch{}layoutName=DEFAULT_LAYOUT;setCurrentName(DEFAULT_LAYOUT);apply(base);try{localStorage.setItem(KEY,JSON.stringify(saved));}catch{}showLayouts();note('Back to Default');}   // Reset layout = the Default layout (2026-11-16)
  actions.done.addEventListener('click',()=>finish(true));actions.cancel.addEventListener('click',()=>finish(false));actions.reset.addEventListener('click',reset);
  addEventListener('mousemove',e=>{if(!editing)return;if(toolbarDrag){if(typeof e.buttons==='number'&&!(e.buttons&1)){toolbarDrag=null;return;}const w=toolbar.offsetWidth,h=toolbar.offsetHeight;toolbar.style.left=`${clamp(toolbarDrag.left+e.clientX-toolbarDrag.x,0,Math.max(0,innerWidth-w))}px`;toolbar.style.top=`${clamp(toolbarDrag.top+e.clientY-toolbarDrag.y,0,Math.max(0,innerHeight-h))}px`;return;}if(!drag)return;if(typeof e.buttons==='number'&&!(e.buttons&1)){drag=null;return;}const {p,rect:r,s,resize,edge}=drag,dx=e.clientX-drag.x,dy=e.clientY-drag.y;
   if(edge){   // side handle: change width or height, the opposite side stays put

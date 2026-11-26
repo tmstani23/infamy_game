@@ -1,4 +1,4 @@
-# Castle wall and gate art fitted to the island's ground diagonal by measurement, not by eye (Tim 2026-11-19).
+# Castle wall and gate art fitted to the island's ground diagonal by measurement, not by eye (2026-11-19).
 # The view looks down at ELEVATION = atan(0.5) from a 45 degree turn, so a wall run along a cell row climbs
 # s = sin(ELEVATION) screen units per unit across, and one cell (11 units) spans 11 * sqrt(1/2) units across.
 # 1. town_wall.png: the base line and the roof line of the painting are fitted (least squares over the middle

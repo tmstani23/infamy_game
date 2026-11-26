@@ -1,6 +1,6 @@
 {
   "phase": "Start-game menu, approved 2026-10-22",
-  "architecture_pass": "Deferred until after this phase at Tim's request; preserve gameplay and interior-assets thread work.",
+  "architecture_pass": "Deferred until after this phase at the request; preserve gameplay and interior-assets thread work.",
   "checklist": [
     {"task":"Choose Yakuza, Kuroda or Shinobi, with correct hero, physical HQ and two rival clans", "status":"implemented; all nine clan/difficulty setups passed Node checks"},
     {"task":"Choose Easy/Medium/Hard and apply existing business-clan and Shinobi bot profiles without starting-resource bonuses", "status":"implemented; both live AI brains launch on every selected profile; fair-opening checks passed"},

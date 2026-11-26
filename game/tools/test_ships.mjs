@@ -1,4 +1,4 @@
-// Ships plan S2 (Tim 2026-11-22): warships and transports as RTS units (sim/frontier/ships.js) on the ship_test dev save:
+// Ships plan S2 (2026-11-22): warships and transports as RTS units (sim/frontier/ships.js) on the ship_test dev save:
 // troop places, move on water inside the war circle, landing on a click on land (one steps off a second), boarding one at
 // a time, All aboard, Z holds, hits on riders go to the hull, sinking, save and load mid-sail.
 import assert from 'node:assert/strict';
@@ -74,7 +74,7 @@ assert.ok(shore, 'landable shore by the town');
 order([ship.id], { kind: 'move', x: shore.land.x, z: shore.land.z });
 assert.equal(ship.sorder.kind, 'land'); assert.ok(!ship.holdFire, 'a new order lifts the hold');
 for (let i = 0; i < 2400 && ship.sorder.kind === 'land'; i++) g.step([]);
-assert.equal(ship.sorder.kind, 'stay', 'reached the shore: it waits, nobody steps off on their own (Tim 2026-11-24)');
+assert.equal(ship.sorder.kind, 'stay', 'reached the shore: it waits, nobody steps off on their own (2026-11-24)');
 { const n = g.ships.riders(ship).length; for (let i = 0; i < 60; i++) g.step([]); assert.ok(n > 0 && g.ships.riders(ship).length === n, 'everyone still aboard'); }
 g.ships.command({ owner: 'player' }, { action: 'unload', ships: [ship.id] });
 assert.equal(ship.sorder.kind, 'unload', 'Q at the shore unloads');
@@ -96,7 +96,7 @@ assert.equal(ship.sorder.kind, 'stay');
 order([ship.id, men[0].id], { kind: 'move', x: shore.land.x + 3, z: shore.land.z + 3 });
 assert.ok(!ship.order && men[0].order?.kind === 'move', 'a mixed order: the ship sails, the man walks');
 
-// --- as the omnibus (Tim 2026-11-23): no ring and no Space; a right-click sends them aboard one at a time ---
+// --- as the omnibus (2026-11-23): no ring and no Space; a right-click sends them aboard one at a time ---
 for (let i = 0; i < 100 && ship.sorder.kind !== 'stay'; i++) g.step([]);
 for (const [i, u] of men.slice(0, 4).entries()) Object.assign(u, { x: shore.land.x + 2 + i, z: shore.land.z + 1, order: { kind: 'stop' } });
 Object.assign(hero(), { x: shore.land.x + 1, z: shore.land.z + 1, place: 'world' });
@@ -107,7 +107,7 @@ g.step([{ id: hero().id, type: 'ship', action: 'board', ship: ship.id, units: [h
 run(10 * 20 + 7 * 20);
 assert.ok(hero().inShip === ship.id && g.ships.riders(ship).length >= 5, `the hero and the men sent are aboard (${g.ships.riders(ship).length})`);
 const sx = hero().x; g.step([{ id: hero().id, type: 'move', right: 1, down: 0 }]); assert.equal(hero().x, sx, 'the hero aboard does not walk');
-assert.equal(g.ships.prompt(hero()), null, 'aboard: no hint banner (Tim 2026-11-24)');
+assert.equal(g.ships.prompt(hero()), null, 'aboard: no hint banner (2026-11-24)');
 
 // --- S6b: the landable shore shows while your people are afloat; the cursor marks where a click lands ---
 { const want = shoreWanted(g, 'player'); assert.equal(want.length, 1, 'the war circle your people are afloat in');
@@ -146,7 +146,7 @@ console.log('ships: ok');
 { const t = landingFor(wg, town.x, town.z, 'big', { box: circle, maxR: 600 }), s = g.ships.spawn(rec, 'transport', t.berth.x, t.berth.z, 'player'), u = crew().find(x => !x.inShip);
   Object.assign(u, { aboard: s.id, inShip: s.id, x: s.x, z: s.z }); delete S.entities[s.id]; g.step([]);
   assert.ok(!u.inShip && !u.aboard && passable(world, u.x, u.z), 'stranded rider set ashore'); }
-// as the omnibus (Tim 2026-11-23): Q on a ship out on the water brings it in to the nearest shore, then everyone steps off;
+// as the omnibus (2026-11-23): Q on a ship out on the water brings it in to the nearest shore, then everyone steps off;
 // a right-click on a ship lying off brings it in to the shore by the men, and they board; one rider let off alone
 { const cmd = c => g.ships.command({ owner: 'player' }, c);   // (the hero is down after the sinking above: the rule itself)
   const t = landingFor(wg, town.x, town.z, 'big', { box: circle, maxR: 600 }), s = g.ships.spawn(rec, 'transport', t.berth.x, t.berth.z, 'player');
@@ -167,7 +167,7 @@ console.log('ships: ok');
   assert.equal(g.ships.riders(s).length, 2, 'aboard again at the shore');
   cmd({ action: 'unload', ships: [s.id], only: two[0].id });
   assert.ok(!two[0].inShip && two[1].inShip === s.id, 'one rider let off alone');
-  // Tim 2026-11-24: one seat on a ship out on the water: it comes in and only he steps off
+  // 2026-11-24: one seat on a ship out on the water: it comes in and only he steps off
   Object.assign(s, { x: out.x, z: out.z, sorder: { kind: 'stay' } }); Object.assign(two[1], { x: s.x, z: s.z });
   cmd({ action: 'unload', ships: [s.id], only: two[1].id });
   assert.equal(s.sorder.kind, 'land', 'one seat out on the water: the ship comes in');

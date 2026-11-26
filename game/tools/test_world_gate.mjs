@@ -79,7 +79,7 @@ assert.ok(Math.hypot(hero.x - g.gate.inside[0], hero.z - g.gate.inside[1]) <= 1 
 assert.equal(a.place, 'street'); assert.equal(b.place, 'street');
 run(200);
 assert.equal(g.areas.active().length, 0, 'nobody on the island: every chunk asleep');
-// --- Dev-only instant travel (Tim 2026-11-02): refused without the dev build, works with it -------
+// --- Dev-only instant travel (2026-11-02): refused without the dev build, works with it -------
 {
   const { g: g3, hero: h3 } = match('campaign');
   g3.step([{ id: h3.id, type: 'travel', x: 9000, z: 4000, units: [] }]);

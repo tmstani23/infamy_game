@@ -28,7 +28,7 @@ assert.equal(view.settlements.enemy, undefined, 'unknown rival towns stay hidden
 // F6 war: a rival town on discovered ground is drawn (grid, buildings), never with its stock or workers
 assert.ok(view.settlements.seen && view.settlements.seen.x === 300 && view.settlements.seen.grid && view.settlements.seen.buildings.length === 1, 'discovered rival town carries drawing fields');
 assert.equal(view.settlements.seen.stock, undefined, 'no rival stock'); assert.equal(view.settlements.seen.workers, undefined, 'no rival workers');
-// walk up to it and you see its stores and people (Tim 2026-11-10), still never the worker records
+// walk up to it and you see its stores and people (2026-11-10), still never the worker records
 const close = frontierFor(f, 'player', discovery, [], index, null, s => s.id === 'seen');
 assert.deepEqual(close.settlements.seen.stock, { ryo: 9 }, 'scouted rival stock'); assert.equal(close.settlements.seen.workerCount, 1, 'scouted worker count');
 assert.equal(close.settlements.seen.workers, undefined, 'never the worker records'); assert.equal(close.settlements.enemy, undefined, 'scouting never reveals unknown towns');
@@ -42,7 +42,7 @@ assert.equal(close.settlements.seen.workers, undefined, 'never the worker record
 assert.deepEqual(view.spots, { sp1: 'fhs' }, 'only discovered changed spot stages cross the snapshot boundary');
 const cells = townCellsToProps(view.settlements.t.grid, art, town.zones);
 assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p => p.art), ['house_construction_2', 'tenements', 'townhouse'].map((a, i) => zoneVariant(art._zones.h, a, i)));
-{ // zone variants (Tim 2026-11-18): each stage art has its looks, picked per cell by a fixed hash; render and blocking agree
+{ // zone variants (2026-11-18): each stage art has its looks, picked per cell by a fixed hash; render and blocking agree
   const V = art._zones.h.variants.townhouse, seen = new Set();
   for (let i = 0; i < 60; i++) { const a = zoneVariant(art._zones.h, 'townhouse', i); assert.ok(V.includes(a)); assert.equal(zoneVariant(art._zones.h, 'townhouse', i), a, 'same cell, same look'); seen.add(a); }
   assert.equal(seen.size, V.length, 'a street shows every look');
@@ -50,7 +50,7 @@ assert.deepEqual(cells.filter(p => p.key.includes(':zone:') && p.cell < 3).map(p
   for (const n of Object.values(art._zones).flatMap(d => Object.values(d.variants || {}).flat())) assert.ok(catalog.items[n] && cutouts[`buildings/${n}`]?.blocks && existsSync(new URL(`../art/buildings/${n}.png`, import.meta.url)), n + ' is registered, cut and blocks');
   for (const n of new Set(Object.values(art._ruin.byType))) assert.ok(catalog.items[n] && cutouts[`buildings/${n}`] && existsSync(new URL(`../art/buildings/${n}.png`, import.meta.url)), n + ' ruin is registered and cut');
 }
-// Housing build phases and ruins (Tim 2026-11-05): zoned stage 0 shows site 1, stage 1 site 2; abandoned swaps in ruin art
+// Housing build phases and ruins (2026-11-05): zoned stage 0 shows site 1, stage 1 site 2; abandoned swaps in ruin art
 const pre = townCellsToProps({ ...grid, zone: 'hhhh.' + grid.zone.slice(5), stage: '12300' + grid.stage.slice(5) }, art, town.zones);
 assert.equal(pre.find(p => p.key.startsWith('3:zone:'))?.art, 'house_construction_1', 'zoned housing cell shows the first building site');
 const ruins = townCellsToProps(grid, art, { housing: { abandoned: true }, farm: { abandoned: true }, work: { abandoned: true } });
@@ -84,7 +84,7 @@ const cornerProps = townCellsToProps(corner, art).filter(p => p.cell === 6 && p.
 assert.ok(cornerProps.some(p => p.flip) && cornerProps.some(p => !p.flip), 'wall corners join both directions');
 if (art._walls.w.post) assert.ok(townCellsToProps(corner, art).some(p => p.cell === 6 && p.art === art._walls.w.post), 'a corner post stands where two runs meet');
 const worldProps = townProps([town], art, frontier.townLights);
-assert.ok(worldProps.some(p => p.art === art._byTier.town_hall[0] && p.x === 100 && p.z === 100));   // tier 1 hall (Tim 2026-11-20)
+assert.ok(worldProps.some(p => p.art === art._byTier.town_hall[0] && p.x === 100 && p.z === 100));   // tier 1 hall (2026-11-20)
 { const t3 = { ...town, tier: 3 }; assert.ok(townProps([t3], art, frontier.townLights).some(p => p.art === art._byTier.town_hall[2]), 'a tier 3 town draws the tier 3 hall'); }
 assert.ok(worldProps.some(p => p.cell === 0 && p.x === 78 && p.z === 78), 'local grid instructions are translated once');
 const buildingTown = structuredClone(town);
@@ -186,6 +186,6 @@ console.log('test_town_drawing: ok');
     buildings: [{ id: 'p1', type: 'palisade', stage: 'ruined', off: [3, 0], rot: 0 }, { id: 'p2', type: 'palisade', stage: 'ruined', off: [0, 3], rot: Math.PI / 2 }, { id: 'wt', type: 'watchtower', stage: 'ruined', off: [6, 6] }, { id: 'ar', type: 'armory', stage: 'ruined', off: [9, 9] }, { id: 'st', type: 'stockade', stage: 'ruined', off: [12, 12] }] };
   const cp = townProps([camp], art), at = id => cp.find(p => p.key === `w1:${id}:ruined`);
   assert.equal(at('p1')?.art, R.byType.palisade); assert.notEqual(!!at('p1').flip, !!at('p2').flip, 'a broken palisade piece follows its line');
-  assert.equal(at('wt')?.art, R.byType.watchtower); assert.equal(at('ar')?.art, 'ruin_barracks', 'an armory shows the burned barracks (Tim 2026-11-18)');
+  assert.equal(at('wt')?.art, R.byType.watchtower); assert.equal(at('ar')?.art, 'ruin_barracks', 'an armory shows the burned barracks (2026-11-18)');
   assert.equal(at('st')?.art, R.art, 'a type with no ruin of its own shows the burned ruin');
 }

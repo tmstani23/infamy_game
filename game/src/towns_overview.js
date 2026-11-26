@@ -4,13 +4,13 @@
 import { overviewRows, SORTS } from './frontier_report.js';
 import { bindTips } from './frontier_tips.js';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const arrow = { up: '<span class="up tri"></span>', down: '<span class="dn tri"></span>', flat: '<span class="dim">-</span>' }   // drawn triangles, no glyphs (Tim 2026-11-10);
+const arrow = { up: '<span class="up tri"></span>', down: '<span class="dn tri"></span>', flat: '<span class="dim">-</span>' }   // drawn triangles, no glyphs (2026-11-10);
 const NEED = { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low', ok: 'OK' };
 const COLS = [['rank', '#', 'Priority list. The top town gets capital supplies, imports and new recruits first. Drag a row to reorder.'], ['need', 'Need', 'How badly the town needs you: Urgent (attacked, lost a building), High (road blocked, food running out, very low mood), down to OK. Click to list the worst first. Hover a Need cell for why.'], ['name', 'Town'], ['pop', 'Pop'], ['mood', 'Mood', 'How content the town is, and the worst thing dragging it down.'],
   ['food', 'Food', 'Arrow: food going up or down. Down for long means a farm is needed.'], ['ryo', 'Ryo', 'Ryo in the town treasury and its trend.'], ['shortage', 'Short of'], ['project', 'Building'], ['road', 'Road', 'Whether goods can travel between this town and the capital.'], ['garrison', 'Garrison'], ['priority', 'Focus', 'What the governor builds first.'], ['tax', 'Tax', 'Ryo per person against mood. Auto lets the governor pick.']];
 
 export function createTownsOverview({ root, game, heroId, clan = 'player', send, openTown = () => {}, viewButton = () => '', viewTown = () => {}, onOpen = () => {}, onClose = () => {} }) {
-  const PER = 10;   // towns a page (no scrollbars, Tim 2026-11-10)
+  const PER = 10;   // towns a page (no scrollbars, 2026-11-10)
   let page = 0;
   let sort = 'rank', dragId = null, lastHtml = '', prev = {}, cur = {}, prevAt = 0;
   const alerts = {}, flash = {};   // alerts[id] = [text]; flash[id] = time it stops flashing
@@ -43,7 +43,7 @@ export function createTownsOverview({ root, game, heroId, clan = 'player', send,
     const pg = e.target.closest?.('[data-page]'); if (pg?.dataset?.page !== undefined) { page += Number(pg.dataset.page); lastHtml = ''; render(); return; }
     const th = e.target.closest?.('th[data-sort]'); if (th) { sort = th.dataset.sort; lastHtml = ''; render(); return; }
     if (e.target.closest?.('select')) return;
-    const vb = e.target.closest?.('[data-view]'); if (vb) { close(); viewTown(vb.dataset.view); return; }   // View (Tim 2026-11-25): camera to the town
+    const vb = e.target.closest?.('[data-view]'); if (vb) { close(); viewTown(vb.dataset.view); return; }   // View (2026-11-25): camera to the town
     const tr = e.target.closest?.('tr[data-id]'); if (tr) openTown(tr.dataset.id);
   });
   root.addEventListener('change', e => {
@@ -63,7 +63,7 @@ export function createTownsOverview({ root, game, heroId, clan = 'player', send,
     cmd({ action: 'setTownOrder', order }); dragId = null; lastHtml = '';
   });
   function open() { root.hidden = false; lastHtml = ''; render(); onOpen(); }
-  // Tim 2026-11-06: a town alert opens this window with the worst towns first and that town's row flashing
+  // 2026-11-06: a town alert opens this window with the worst towns first and that town's row flashing
   function showNeed(id) { sort = 'need'; if (id) flash[id] = Date.now() + 4000; open(); }
   function close() { if (!root.hidden) { root.hidden = true; tips.hide(); onClose(); } }
   setInterval(render, 1000);

@@ -1,4 +1,4 @@
-// Choosing your home (Z7, Tim 2026-11-20): the old surveyor's island map (surveyor_talk.js) with the six zones, the
+// Choosing your home (Z7, 2026-11-20): the old surveyor's island map (surveyor_talk.js) with the six zones, the
 // city and the five castle sites; click a site or its name below. A site with a castle on it already (a rival's,
 // when the rivals chose first) is greyed and cannot be picked. The rivals take two of the others, hidden.
 // homeField({ world, zones, initial, held = [], random = false }) -> { html, mount(root, onChange) }

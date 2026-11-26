@@ -1,10 +1,10 @@
-// Hover tooltip and right-click on a founded town's buildings (frontier E5, Tim 2026-11-04). Reads the
+// Hover tooltip and right-click on a founded town's buildings (frontier E5, 2026-11-04). Reads the
 // frontier snapshot only; right-click opens the town panel for that town and flashes the plot.
 import { drawableTowns, drawableWarSites, townPlots, garrisonCount } from './town_props.js';
 import { pointAt } from './sim/frontier/rail_route.js';
 
-// the worker icon on the small hall pill (Tim 2026-11-22)
-// Tim 2026-11-25: the camp hall shelter button is a small noren curtain hanging from a wooden bar, not a wide text pill:
+// the worker icon on the small hall pill (2026-11-22)
+// 2026-11-25: the camp hall shelter button is a small noren curtain hanging from a wooden bar, not a wide text pill:
 // the count of workers inside painted on it (a door mark when nobody is in); it glows red while some hide from an attack;
 // the words are in its hover
 const shelterIcon = (n, attack) => `<svg viewBox="0 0 36 42" aria-hidden="true"><defs><linearGradient id="shcloth${attack ? 'a' : ''}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${attack ? '#a3342a' : '#2c3550'}"/><stop offset="1" stop-color="${attack ? '#5a140e' : '#151a2a'}"/></linearGradient></defs>`
@@ -33,14 +33,14 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     for (const p of plots) {
       const u = view.unitToScreen(p.x, p.z, 0), a = view.unitToScreen(p.x + 1, p.z, 0), k = Math.hypot(a.x - u.x, a.y - u.y) || 1;
       const dx = Math.abs(x - u.x), dy = y - u.y;
-      // a stockade is 4 cells of tall art: a wider, taller hit area than a one-cell building (Tim 2026-11-07)
+      // a stockade is 4 cells of tall art: a wider, taller hit area than a one-cell building (2026-11-07)
       const wide = p.type === 'stockade' ? 11 : 5, up = p.type === 'stockade' ? 12 : 7, down = p.type === 'stockade' ? 6 : 3;
       if (dx <= wide * k && dy >= -up * k && dy <= down * k && dx + Math.abs(dy) < bestD) { best = p; bestD = dx + Math.abs(dy); }
     }
     return best;
   }
-  // a steam train under the pointer (Tim 2026-11-07: hover says it's a train, with some stats): engine to last car
-  // its cars after the engine and tender (train.consist, Tim 2026-11-07) and their lengths (render/rail_track.js CAR_ART)
+  // a steam train under the pointer (2026-11-07: hover says it's a train, with some stats): engine to last car
+  // its cars after the engine and tender (train.consist, 2026-11-07) and their lengths (render/rail_track.js CAR_ART)
   const CAR_LEN = { engine: 6.4, tender: 4.3, carriage: 6.3, goods: 4.2, guard: 5.4 };
   const consistOf = t => Array.isArray(t.consist) && t.consist.length ? t.consist : null;
   const trainLength = (t, T) => { const c = consistOf(t); return c ? ['engine', 'tender', ...c].reduce((a, k) => a + (CAR_LEN[k] ?? 5) + 0.35, 0) - 3.2 : 4.4 + (t.cars ?? 3) * (T.gap ?? 7); };
@@ -83,7 +83,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     if (mine) lines.push('Board at your station: Space');
     return { title: mine ? 'Steam train (yours)' : `Steam train · ${st.clans?.[t.owner]?.name || t.owner}`, lines };
   }
-  // the governor's salute cannons by your halls (Tim 2026-11-07): hover for a card (with the cooldown), click to fire
+  // the governor's salute cannons by your halls (2026-11-07): hover for a card (with the cooldown), click to fire
   const CANNON_NAMES = { cannon_field: 'Brass field gun', cannon_wooden: 'Wooden gun' };
   function cannonAt(x, y) {
     if (!onIsland()) return null;
@@ -116,7 +116,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     tipEl.hidden = false;
     tipEl.style.left = `${Math.min(innerWidth - 260, x + 16)}px`; tipEl.style.top = `${Math.min(innerHeight - 110, y + 16)}px`;
   }
-  // #gamemap (Tim 2026-11-25): the World map covers the town, so no cannon hover or salute click through it
+  // #gamemap (2026-11-25): the World map covers the town, so no cannon hover or salute click through it
   const UI = 'button, #townpanel, #townsoverview, #bar, #selpanel, #controls, #characterpage, #deploymentpanel, #garrisoncard, #warcamp, #townwar, #gamemap';
   const overUi = t => t?.closest?.(UI);
   // keeps the cooldown counting down while the pointer rests on a gun
@@ -132,7 +132,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     const blocked = overUi(e.target);
     const cn = blocked ? null : cannonAt(e.clientX, e.clientY);
     if (cn || hoverCannon) { showCannon(cn, e.clientX, e.clientY); if (cn) return; }
-    // trains only: buildings have no hover tooltip any more (Tim 2026-11-20: it got in the way of moving units); a left-click shows their card
+    // trains only: buildings have no hover tooltip any more (2026-11-20: it got in the way of moving units); a left-click shows their card
     const tr = blocked ? null : trainAt(e.clientX, e.clientY), info = tr ? trainInfo(tr) : null;
     if (!info) { tipEl.hidden = true; return; }
     const html = `<b>${info.title}</b>${info.lines.map(l => `<div>${l}</div>`).join('')}`;
@@ -144,14 +144,14 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   addEventListener('mousedown', e => {
     if (e.button !== 0 || e.ctrlKey || overUi(e.target)) return;
     const c = cannonAt(e.clientX, e.clientY);
-    if (!c) return;   // Tim 2026-11-12: then 2026-11-19: a left-click on your building opens its menu (menuAt); 2026-11-20: with its card beside it
+    if (!c) return;   // 2026-11-12: then 2026-11-19: a left-click on your building opens its menu (menuAt); 2026-11-20: with its card beside it
     e.stopImmediatePropagation(); e.preventDefault();
     send({ id: heroId, type: 'frontier', action: 'salute', settlement: c.town.id });
   }, { capture: true });
-  // a unit under the pointer (an enemy, or one of yours) wins over the building behind it (Tim 2026-11-19: right-click on an
+  // a unit under the pointer (an enemy, or one of yours) wins over the building behind it (2026-11-19: right-click on an
   // enemy attacking your building opened the building's menu instead of attacking it)
   const unitNear = (x, y) => Object.values(game.state.entities || {}).some(e => e.place === 'world' && !e.dead && !e.garrison && !e.hidden && e.type !== 'horse' && !e.stored && (() => { const u = view.unitToScreen(e.x, e.z, 1); return Math.hypot(u.x - x, u.y - y) < 26; })());
-  // right-click is always an order (Tim 2026-11-19): on your own buildings it is the crew's move order (no menu); Ctrl +
+  // right-click is always an order (2026-11-19): on your own buildings it is the crew's move order (no menu); Ctrl +
   // right-click your stockade sends them in; an enemy building of your war is attacked. Menus open on a left-click (menuAt).
   // capture phase so the crew's right-click "go there" order does not also fire
   addEventListener('mousedown', e => {
@@ -162,7 +162,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     // war checkpoint 6: right-click an enemy building of a war you are in (the town you attack, or the camp attacking
     // you): the selected crew walk over and attack it; with the hero selected or nothing selected he goes too
     if (!e.ctrlKey && p.kind === 'building' && (p.foreign || p.camp) && !(p.camp && game.state.frontier?.wars?.list?.[p.camp]?.attacker === owner())) {
-      if (e.shiftKey) return;   // Shift + right-click is Torch: crew_input.js hands it to ability_rows.js (Tim 2026-11-13: it was taken here as a plain attack)
+      if (e.shiftKey) return;   // Shift + right-click is Torch: crew_input.js hands it to ability_rows.js (2026-11-13: it was taken here as a plain attack)
       const w = p.camp ? game.state.frontier?.wars?.list?.[p.camp] : Object.values(game.state.frontier?.wars?.list || {}).find(x => x.town === p.town);
       const s = p.camp ? null : game.state.frontier?.settlements?.[p.town], b = (p.camp ? w?.camp?.buildings : s?.buildings)?.find(x => x.id === p.id);
       if (w && (p.camp ? w.defender === owner() : w.attacker === owner()) && b?.stage === 'built' && p.type !== 'war_banner') {
@@ -172,7 +172,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       }
       return;
     }
-    // Ctrl + right-click your finished stockade (Tim 2026-11-07, Ctrl since 2026-11-12): the selected go in (far ones walk
+    // Ctrl + right-click your finished stockade (2026-11-07, Ctrl since 2026-11-12): the selected go in (far ones walk
     // over first); the hero goes when he is selected or nothing is selected, and his following crew with him
     const s = p.camp ? null : game.state.frontier?.settlements?.[p.town], b = s?.buildings?.find(x => x.id === p.id);
     if (e.ctrlKey && !p.foreign && p.kind === 'building' && p.type === 'stockade' && b?.stage === 'built' && s.owner === owner()) {
@@ -185,14 +185,14 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
     }
     // anything else (your own buildings, a rival town's): the right-click goes on as a normal order
   }, { capture: true });
-  // left-click on one of your buildings with no unit there (Tim 2026-11-19): its menu. War camp buildings: the camp menu;
+  // left-click on one of your buildings with no unit there (2026-11-19): its menu. War camp buildings: the camp menu;
   // military buildings: their town war menu (the town hall too while your town is attacked); the stockade: its garrison
   // card. Anything else (the hall in peace, houses, farms, ruins): false, and the click shows the building's card as
   // before (frontier_build_ui.js town card, structure_card.js pane). True when a menu opened.
   function menuAt(x, y) {
     if (unitNear(x, y)) return false;
     const p = plotAt(x, y);
-    // your own war camp's plots are tagged foreign too (town_props.js drawableWarSites), so the camp check comes first (Tim 2026-11-25)
+    // your own war camp's plots are tagged foreign too (town_props.js drawableWarSites), so the camp check comes first (2026-11-25)
     if (!p || p.kind !== 'building') return false;
     if (p.camp) {
       const w = game.state.frontier?.wars?.list?.[p.camp], b = w?.camp?.buildings?.find(x => x.id === p.id);
@@ -215,7 +215,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
   function evacuate(town, building) { send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town, ...(building != null ? { building } : {}) }); }
   function evacuateAll() {
     for (const s of drawableTowns(game.state.frontier, owner())) if (garrisonCount(game.state.frontier, game.state.entities, s)) evacuate(s.id);
-    // the hero in a house, workshop, farmhouse or camp stockade (Tim 2026-11-19) steps out too; troops there stay
+    // the hero in a house, workshop, farmhouse or camp stockade (2026-11-19) steps out too; troops there stay
     const h = game.state.entities[heroId];
     if (h?.garrison?.zone) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', structure: h.garrison.key, units: [heroId] });
   }
@@ -234,7 +234,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       el.textContent = `Inside ${n}${cap ? ` / ${cap}` : ''} · Evacuate`; el.title = 'Everyone inside walks out (Shift+K)';
       el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
     }
-    // the town hall (Tim 2026-11-19): workers sheltering inside. Tim 2026-11-22: a small worker icon and the number, not
+    // the town hall (2026-11-19): workers sheltering inside. 2026-11-22: a small worker icon and the number, not
     // a big chip; it lets clicks through to the hall, whose card has the details, Back to work and (in a war) Send the
     // others in. A red rim while any hide from an attack.
     if (onIsland()) for (const s of drawableTowns(game.state.frontier, owner()).filter(t => t.owner === owner() && !t.capital)) {
@@ -251,7 +251,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       el.title = `${n} worker${n > 1 ? 's' : ''} in shelter. Click the hall for details and Back to work`;
       const u = view.unitToScreen(pl.x, pl.z, 3); el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
     }
-    // a tired work camp (Tim 2026-11-22): more workers on its spots than they keep busy (workers.js s.tiredCamps). An
+    // a tired work camp (2026-11-22): more workers on its spots than they keep busy (workers.js s.tiredCamps). An
     // amber pill that pulses over the camp, lets clicks through to it; its card has Move extras.
     if (onIsland()) for (const s of drawableTowns(game.state.frontier, owner()).filter(t => t.owner === owner() && !t.capital)) for (const c of s.tiredCamps || []) {
       const pl = townPlots([s]).find(q => q.id === c.id); if (!pl) continue;
@@ -263,7 +263,7 @@ export function createTownHover({ game, view, heroId, tipEl, flashEl, openTown, 
       el.title = `${c.n} workers on this camp's spots, which keep ${c.max} busy: ${c.extra} over the max. Click the camp, then Move extras`;
       const u = view.unitToScreen(pl.x, pl.z, 3); el.style.left = `${u.x}px`; el.style.top = `${u.y}px`;
     }
-    // a war camp's hall (Tim 2026-11-21): recall the camp's workers into it, and send them back, like a town hall
+    // a war camp's hall (2026-11-21): recall the camp's workers into it, and send them back, like a town hall
     if (onIsland()) for (const w of Object.values(game.state.frontier?.wars?.list || {})) {
       if (w.attacker !== owner() || !w.camp?.workers?.length) continue;
       const hall = (w.camp.buildings || []).find(x => x.type === 'camp_hall' && x.stage === 'built'); if (!hall || !Number.isFinite(hall.x)) continue;

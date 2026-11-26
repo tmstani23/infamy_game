@@ -5,7 +5,7 @@
 //   a town wall or gate cell                    key 't|<town id>|<cell>'
 //   a grown zone cell (house, workshop)         key 't|<town id>|<cell>'
 //   a built war camp building                   key 'c|<war id>|<building id>'
-//   a building site (Tim 2026-11-24)            key 't|<town id>|site:<project id>' or 'c|<war id>|<building id>', kind 'site':
+//   a building site (2026-11-24)            key 't|<town id>|site:<project id>' or 'c|<war id>|<building id>', kind 'site':
 //     war.structures.site health, easy to knock down; at 0 the site is gone and what was paid for it is lost
 // Health is kept only once something is damaged: on the building (b.hp), or in settlement.cellHp[cell]
 // for walls, gates and zone cells. The stockade keeps its own health: by town hall tier in a town
@@ -15,7 +15,7 @@
 // At 0 health: a building becomes stage 'ruined' (stops working and blocking; a training queue is lost),
 // a wall or gate cell becomes open ground (settlement.breaches lists them for the rubble), a zone cell
 // drops to an empty plot (stage 0) and regrows by the zone rules.
-// Torching (7c-2, Tim 2026-11-12): never automatic. Only units that can torch (war.structures.torch.types, and a
+// Torching (7c-2, 2026-11-12): never automatic. Only units that can torch (war.structures.torch.types, and a
 // melee hero; never riders) take a Torch order (a raze order with torch: true, from the Torch ability button).
 // At the structure the unit casts for torch.castTicks (order.cast = { until, last }); a tick in which it could not
 // act (stagger, stun, knockdown, charm, taunt) breaks the cast and it starts again, plain hits do not. A finished
@@ -106,7 +106,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     return list;
   }
   const siteMax = () => R()?.site ?? 0;
-  // Building sites (Tim 2026-11-24): kept out of list() (towers, morale, the general's lists go by built buildings);
+  // Building sites (2026-11-24): kept out of list() (towers, morale, the general's lists go by built buildings);
   // only attacks (targetsOf, find) and health bars (viewFor) see them. A town site: an authorized placed-building
   // project; a camp site: a camp building at stage 'site' (rail sections excepted).
   function townSites(s) {
@@ -206,7 +206,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   }
   const NAMES = { town_hall: 'Town hall', camp_hall: 'Camp hall', wall: 'Wall', gate: 'Gate', palisade: 'Palisade', housing: 'House', work: 'Workshop' };
   const nameOf = st => NAMES[st.type] || (st.type || 'building').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
-  // a site knocked down (Tim 2026-11-24): gone, and what was paid for it with it; a rebuild site leaves its ruin
+  // a site knocked down (2026-11-24): gone, and what was paid for it with it; a rebuild site leaves its ruin
   function razeSite(st) {
     if (st.p) {
       const s = st.s, i = s.projects.indexOf(st.p); if (i >= 0) s.projects.splice(i, 1);
@@ -251,7 +251,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     return true;
   }
 
-  // ---- town hall shelter (6-4; per worker, Tim 2026-11-19) ------------------------------------------------------
+  // ---- town hall shelter (6-4; per worker, 2026-11-19) ------------------------------------------------------
   // While a war is on a town, a worker with one of the attacker's units within shelter.nearRange of him (or of his job
   // spot) runs to the town hall and shelters inside; the others keep working. Inside: no gathering, farming or building,
   // cannot be attacked (unit.garrison with hall: true; area hits are absorbed, sim/frontier/garrison.js); a carried load
@@ -260,7 +260,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // one sent in by hand (the 'hallShelter' command, the badge over the hall or the worker panel) stays until Back to
   // work. The hall holds shelter.capacityByTier by town hall tier. Everyone comes out at once when the hall falls; the
   // automatic ones when the war ends.
-  // 2026-11-21 (Tim): war camps shelter too (camp hall), and a worker caught out runs to the nearest shelter of his
+  // 2026-11-21: war camps shelter too (camp hall), and a worker caught out runs to the nearest shelter of his
   // side: the hall, or one of its built work camps (lumber camp, quarry, food camp: shelter.workCampRoom each). A recall
   // by hand (the badge over the hall or camp hall, the worker panel) sends them to the hall. worker.shelter.b = the
   // building's id, .pt = where it stands. A shelter that is knocked down lets its workers out.
@@ -303,7 +303,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       .sort((p, q) => (toHall ? (q.b === hall) - (p.b === hall) : 0) || Math.hypot(p.pt[0] - here[0], p.pt[1] - here[1]) - Math.hypot(q.pt[0] - here[0], q.pt[1] - here[1]) || (String(p.b.id) < String(q.b.id) ? -1 : 1));
     const pick = open[0]; if (!pick) return false;
     const cell = s.grid?.cell || 11, isHall = pick.b === hall;
-    // Tim 2026-11-25: at a camp hall they gather in a short arc in front of it (as new camp workers do), clear of the
+    // 2026-11-25: at a camp hall they gather in a short arc in front of it (as new camp workers do), clear of the
     // hall art, not at its centre where they stood hidden behind it after Shelter
     const campFront = () => { const r = (data.war?.buildings?.camp_hall?.radius ?? 8) + (R()?.shelter?.campFront ?? 6), a = Math.PI / 2 + ((inside(s, pick.b) % 9) - 4) * 0.16; return { x: pick.pt[0] + Math.cos(a) * r, z: pick.pt[1] + Math.sin(a) * r }; };
     const to = isHall ? (s.camp ? campFront() : { x: s.x, z: s.z + cell }) : { x: pick.pt[0], z: pick.pt[1] };
@@ -313,16 +313,16 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     k.shelter = keep; flagOf(s).shelter ||= {};
     return true;
   }
-  // a worker's load goes into the stores as he goes in (Tim 2026-11-19: they stood in the hall holding it)
+  // a worker's load goes into the stores as he goes in (2026-11-19: they stood in the hall holding it)
   function handIn(s, k) {
     const res = k.cargoResource || k.trip?.resource, n = k.carrying || 0;
     if (n > 0 && res) { if (s.camp) addCampStock(s.war.camp, res, n); else world.change(s.id, res, n, 'gather'); s.workerIncome ||= {}; s.workerIncome[res] = (s.workerIncome[res] || 0) + n; }
     k.carrying = 0; delete k.cargoResource;
     const u = state.entities?.[k.entity]; if (u) u.carrying = 0;
   }
-  // { action: 'hallShelter', town, mode: 'enter' | 'leave', workers? } (Tim 2026-11-19): by hand, into the hall or back to
+  // { action: 'hallShelter', town, mode: 'enter' | 'leave', workers? } (2026-11-19): by hand, into the hall or back to
   // work; town = a town id, or a war id for that war's camp (2026-11-21)
-  // { action: 'workerPicked', picks: [[town or war id, worker id], ...] } (Tim 2026-11-25): the player's current worker
+  // { action: 'workerPicked', picks: [[town or war id, worker id], ...] } (2026-11-25): the player's current worker
   // selection; picked workers do not run for shelter by themselves. Every other worker of his loses the mark.
   function pickedCommand(e, c) {
     const fr = state.frontier, want = new Set((Array.isArray(c.picks) ? c.picks : []).map(p => Array.isArray(p) ? `${p[0]}|${p[1]}` : ''));
@@ -369,7 +369,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
           const at = workers.position?.(k) || k.departure || [s.x, s.z], job = spotAt(k.shelter ? k.shelter.spot : k.spot) || k.shelter?.from, pt = k.shelter?.pt || [s.x, s.z];
           const threat = foes.length && (close(at[0], at[1]) || (job && close(job[0], job[1])) || (k.shelter && close(pt[0], pt[1])));
           if (k.shelter) { if (threat) k.shelter.calm = now; else if (!k.shelter.manual && !k.shelter.wait && now - (k.shelter.calm ?? now) >= (S.calmTicks ?? 300)) releaseOne(s, k); }
-          else if (threat && !k.picked) shelterIn(s, k);   // Tim 2026-11-25: workers the player has selected stay on his orders (Shelter by hand still works)
+          else if (threat && !k.picked) shelterIn(s, k);   // 2026-11-25: workers the player has selected stay on his orders (Shelter by hand still works)
         }
         if (!sheltered(s)) { delete flag.shelter; continue; }
       }
@@ -518,7 +518,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     fight.cd = speed;
     return true;
   }
-  // 7c (Tim 2026-11-12: attackers converged and stacked on a building): each attacker of a clan on a structure takes its own
+  // 7c (2026-11-12: attackers converged and stacked on a building): each attacker of a clan on a structure takes its own
   // slot round it, at least slotGap (war.structures, default 1.3) from the others' slots; a unit takes the free one
   // nearest its own side. The spot is where a line from the centre at that angle leaves the solid boxes, plus a
   // step. Kept on the order (o.slot, o.sx, o.sz); o.noSlot: the slot could not be reached, use the nearest wall.
@@ -632,7 +632,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       for (const [l, mine, foe] of sides) for (const st of l) {
         if (st.type !== 'watchtower' || (st.b.shotAt ?? -Infinity) + (T.everyTicks ?? 30) > now) continue;
         // nearest foe in range; a tower on a castle terrace reaches further down (high ground, Z4h: rt.rangeScale)
-        // Tim 2026-11-25: a volley of T.arrows arrows, one at each of the nearest foes (round again when fewer are in range)
+        // 2026-11-25: a volley of T.arrows arrows, one at each of the nearest foes (round again when fewer are in range)
         const range = T.range ?? 16, from = { x: st.x, z: st.z, place: 'world' }, inRange = [];
         for (const e of Object.values(state.entities)) {
           if (e.owner !== foe || e.place !== 'world' || e.dead || e.downed || e.jailed || e.garrison || e.aboard || e.type === 'civilian' || e.type === 'horse' || e.guide) continue;
@@ -696,7 +696,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
   }
 
-  // Tim 2026-11-13: troops shot from a garrisoned house fight back at the house (they cannot reach the shooters inside).
+  // 2026-11-13: troops shot from a garrisoned house fight back at the house (they cannot reach the shooters inside).
   // The one hit and its idle mates within 8 (no order, a finished move or an attack-move, no live fight) get a raze
   // order on it; not the hero (the player steers him), workers, gatling crews or anyone already busy.
   function answerGarrison(t, a) {
@@ -725,7 +725,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       fr.garrisonShots = fr.garrisonShots.filter(s => s.until > now); if (!fr.garrisonShots.length) delete fr.garrisonShots;
     }
     if (now % 2) return;
-    // Tim 2026-11-25: a stockade still holds garrison.capacity, but only garrison.firingSlots of the ranged units inside
+    // 2026-11-25: a stockade still holds garrison.capacity, but only garrison.firingSlots of the ranged units inside
     // shoot (the first by id); the rest shelter and heal. Houses and towers are not limited here.
     const slots = data.buildings?.stockade?.garrison?.firingSlots, firing = new Map();
     if (slots > 0) for (const u of Object.values(state.entities)) {
@@ -757,7 +757,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     }
   }
 
-  // ---- workers repair and douse (7c-4, Tim 2026-11-12: manual) ----------------------------------------------------
+  // ---- workers repair and douse (7c-4, 2026-11-12: manual) ----------------------------------------------------
   // Workers sent by a 'work' order (sim/frontier/workers.js) to one of their own site's structures put its fire out
   // first (repair.douseWork worker ticks), then mend it: repair.hpPerTick health per worker a tick, paid per health
   // point from the site's stock (repair.cost; no stock, no repair). A ruined town hall is mended the same way: after
@@ -765,7 +765,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   // They can be attacked while at it (they do not shelter).
   const REP = () => R()?.repair || {};
   const ownSt = (s, key) => { const st = find(key); return st && (s.camp ? st.camp && st.war === s.id : !st.camp && st.town === s.id) ? st : null; };
-  // no mending a hall while the enemy hero is taking it (8a, Tim 2026-11-14): break his channel first
+  // no mending a hall while the enemy hero is taking it (8a, 2026-11-14): break his channel first
   const hallTaken = s => !s.camp && war.warOn(s.id)?.channel?.side === 'town';
   function hallRuin(s, key) {
     if (s.camp || typeof key !== 'string') return null;
@@ -775,7 +775,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   const ruinSpot = (s, b) => { const pts = cellsOf(b).map(i => cellToWorld(s, i)); return { x: pts.reduce((n, p) => n + p[0], 0) / pts.length, z: pts.reduce((n, p) => n + p[1], 0) / pts.length, r: Math.sqrt(pts.length) * (s.grid?.cell || 11) / 2 + 1 }; };
   // the key a worker order needs for a ruined town hall of this town (null when it stands)
   function hallRuinKey(s) { const b = (s?.buildings || []).find(x => x.type === 'town_hall' && x.stage === 'ruined'); return b ? `t|${s.id}|${cellsOf(b)[0]}` : null; }
-  // Town building sites (Tim 2026-11-15): key p|<town>|<project id>, an authorized placed-building project of a town.
+  // Town building sites (2026-11-15): key p|<town>|<project id>, an authorized placed-building project of a town.
   // Workers there add rates.workerBuildRate work a second each, at most rates.maxBuilders on one site, on top of the
   // townspeople (construction.js). An unpaid project, or one still being cleared, makes them wait.
   function townProject(s, key) {
@@ -798,7 +798,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
   const workWhy = (s, key) => hallRuin(s, key) && hallTaken(s) ? 'The hall is being taken: stop the enemy hero first' : ownSt(s, key) ? 'It is not damaged or burning' : find(key) ? 'Not one of your buildings' : 'Nothing to build, repair or put out there';
   // pay for `hp` health points of repair from the site's stock; false when it is short (whole units, the rest is kept as a debt)
   // at = { key, x, z } of what is mended: what it took is summed there and shown once a second (a 'repairSpend' cast
-  // { x, z, h, owner, spent: { timber, stone } }, h = the height of its health bar (structure_bars.js), Tim 2026-11-24: "-6 stone" pops over the building)
+  // { x, z, h, owner, spent: { timber, stone } }, h = the height of its health bar (structure_bars.js), 2026-11-24: "-6 stone" pops over the building)
   const spendPops = new Map();
   function payRepair(s, hp, at = null) {
     const cost = REP().cost || {}, debt = s.camp ? (s.war.camp.repairDebt ||= {}) : (s.repairDebt ||= {});
@@ -821,7 +821,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
       if (fire) { fire.doused = (fire.doused || 0) + n; if (fire.doused >= (REP().douseWork ?? 60)) douse(st); return 'working'; }
       const hp = hpOf(st);
       if (hp <= 0 || hp >= st.max) return 'done';
-      if (s.camp ? s.war?.terms : Object.values(f().wars?.list || {}).some(w => w.town === s.id && w.terms)) return 'waiting';   // Tim 2026-11-18: no repairs in a ceasefire
+      if (s.camp ? s.war?.terms : Object.values(f().wars?.list || {}).some(w => w.town === s.id && w.terms)) return 'waiting';   // 2026-11-18: no repairs in a ceasefire
       const gain = Math.min(st.max - hp, per);
       if (!payRepair(s, gain, st)) return 'waiting';
       if (hp + gain >= st.max - 1e-6) { clearHp(st); return 'done'; }
@@ -832,7 +832,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     if (tp) {
       if (tp.progress >= tp.need) return 'done';
       if (!tp.paid || tp.phase === 'clearing') return 'waiting';
-      if (Object.values(f().wars?.list || {}).some(w => w.town === s.id && w.terms)) return 'waiting';   // Tim 2026-11-18: no building in a ceasefire
+      if (Object.values(f().wars?.list || {}).some(w => w.town === s.id && w.terms)) return 'waiting';   // 2026-11-18: no building in a ceasefire
       tp.progress = Math.min(tp.need, tp.progress + n * (data.rates?.workerBuildRate ?? 1) / (data.cadenceTicks || 20));
       return 'working';
     }
@@ -856,7 +856,7 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     if (u?.garrison?.hall) delete u.garrison;
     delete w.shelter;
   }
-  // Tim 2026-11-22: a governor's worker with no spot beside a camp waits in the town hall while it has room (the
+  // 2026-11-22: a governor's worker with no spot beside a camp waits in the town hall while it has room (the
   // work camps stay free for war shelter). shelter.wait marks him: he stays in peace, and comes out when the
   // governor finds him a place or the player calls the hall out. false = no room (he waits outside).
   function waitIn(s, w) {

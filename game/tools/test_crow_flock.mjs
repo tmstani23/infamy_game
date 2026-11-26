@@ -1,4 +1,4 @@
-// Crows (src/crow_flock.js, wildlife W1, visual only, Tim 2026-11-24).
+// Crows (src/crow_flock.js, wildlife W1, visual only, 2026-11-24).
 // Run: node tools/test_crow_flock.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';

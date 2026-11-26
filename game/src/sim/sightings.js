@@ -1,4 +1,4 @@
-// Remembered sight (Tim 2026-11-18, war test item 7): you only know the parts of a rival town, or of an enemy war
+// Remembered sight (2026-11-18, war test item 7): you only know the parts of a rival town, or of an enemy war
 // camp, that your units or watchtowers have had in sight. Rules only: no DOM, no randomness, plain data in state.
 //   state.sightings = { <clan>: { 'town:<id>': { m: '0101…', b: { <building id>: record } },
 //                                 'camp:<war id>': { b: { <building id>: record } } } }
@@ -88,7 +88,7 @@ export function createSightings({ state, sight = {}, towers = () => [] }) {
 
 // For the snapshot: a rival town's grid with only the seen blocks filled in (ground is landscape and stays)
 // keep: use chars shown even in unseen blocks. Always the moat and cliffs; a rival castle also keeps its walls and
-// gates (Tim 2026-11-23: they show with the castle's ground, like the cliffs; the buildings inside still need sight)
+// gates (2026-11-23: they show with the castle's ground, like the cliffs; the buildings inside still need sight)
 export function maskGrid(g, mask, block = BLOCK, keep = 'mk') {
   if (!g?.n) return g;
   const n = g.n, nb = Math.ceil(n / block);

@@ -1,13 +1,13 @@
 {
   "version": 1,
   "date": "2026-11-03",
-  "status": "Completed and visually accepted by Tim 2026-11-03, including final water surface/reflection/inland banks and coastal playtest. Representative-load performance and documented edge checks remain.",
+  "status": "Completed and visually accepted by 2026-11-03, including final water surface/reflection/inland banks and coastal playtest. Representative-load performance and documented edge checks remain.",
   "setup": "Three.js 0.186.1 WebGLRenderer, fixed isometric OrthographicCamera, one custom painted ground ShaderMaterial per streamed chunk, shared time/day-night/lantern lighting, existing rounded water mask and coast ribbons.",
   "localFindings": [
     "Before the follow-up, island water scrolled a cropped photographic color texture through four repeat phases under a strong static noise warp. Color features blended into one another during animation.",
     "Before the follow-up, the shader had no changing surface normal or broad daylight wave highlights; its extra ripple expression only modulated nighttime lantern light.",
-    "Inference from code plus Tim's motion report: moving/morphing the color pattern without independently moving surface-light cues likely causes the thick or magma-like appearance. A still screenshot alone cannot verify the animation.",
-    "The seam correction works visually; retain its safe source window and independent-axis continuity. Tim likes the coastline and biome-ground transition, so preserve those."
+    "Inference from code plus the motion report: moving/morphing the color pattern without independently moving surface-light cues likely causes the thick or magma-like appearance. A still screenshot alone cannot verify the animation.",
+    "The seam correction works visually; retain its safe source window and independent-axis continuity. likes the coastline and biome-ground transition, so preserve those."
   ],
   "sources": [
     {
@@ -50,7 +50,7 @@
       "done": true
     },
     {
-      "task": "Tim manually reviews moving water at the same coast location, including paused/unpaused and day/night; confirm no reintroduced diagonals or thick morphing",
+      "task": "manually reviews moving water at the same coast location, including paused/unpaused and day/night; confirm no reintroduced diagonals or thick morphing",
       "done": true
     },
     {
@@ -120,7 +120,7 @@
       "done": true
     },
     {
-      "task": "Tim visual/performance review",
+      "task": "visual/performance review",
       "done": true
     }
   ],

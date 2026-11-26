@@ -6,7 +6,7 @@ import { msConcept } from './menu_shell.js';
 const title = s => s[0].toUpperCase() + s.slice(1);
 // Look of the hire page: the shared menu shell (menu_shell.css, menu restyle 2026-11-10) plus the size and place of this window
 const STYLE = `
-#hire.hm { left: 50%; top: 12vh; transform: translateX(-50%); width: min(860px, 94vw); min-width: min(800px, 94vw); }   /* min-width: a size saved for the old, narrower menu still fits the cards (Tim 2026-11-08) */
+#hire.hm { left: 50%; top: 12vh; transform: translateX(-50%); width: min(860px, 94vw); min-width: min(800px, 94vw); }   /* min-width: a size saved for the old, narrower menu still fits the cards (2026-11-08) */
 #hire.hm .ms-card { cursor: pointer; min-height: 150px; }
 #hire.hm .ms-pick { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 7px 10px; border: 1px solid #3d352a; border-radius: 7px; background: #0d1013; min-height: 40px; }
 #hire.hm .ms-pick.idle { justify-content: center; color: #8c8f8c; }
@@ -22,7 +22,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send, catalo
   const hireable = Object.keys(units.types).filter(type => !units.types[type].settler && game.clans.hirePrice(owner, type) !== null);   // settlers: Land Office (E1 2026-11-05)
   let open = false, shown = '', armedDismiss = null, dismissView = false;
   let queueShown = '';
-  let planned = null,quantity = 1,page = 0,dpage = 0;   // no scrollbars (Tim 2026-11-08): the list pages, picking a type opens its own confirm view
+  let planned = null,quantity = 1,page = 0,dpage = 0;   // no scrollbars (2026-11-08): the list pages, picking a type opens its own confirm view
   const hero = () => game.state.entities[heroId];
   const clan = () => game.state.clans[hero()?.owner];
   // the teahouse (Shinobi: the village dojo) the hero is standing in, if any
@@ -47,7 +47,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send, catalo
   }
 
   const maxQty = () => Math.max(units.rules.maxQueue, units.rules.settlers?.maxQueue || 10);
-  // typed hire count (Tim 2026-11-09: number settings are typeable boxes)
+  // typed hire count (2026-11-09: number settings are typeable boxes)
   panel.addEventListener('keydown', e => { if (e.target.closest?.('input')) { e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') e.target.blur(); } });
   panel.addEventListener('change', e => {
     if (!e.target.hasAttribute?.('data-hire-input')) return;
@@ -75,11 +75,11 @@ export function createHireMenu({ panel, money, game, units, heroId, send, catalo
     if (card) { pick(Number(card.dataset.pick)); card.blur(); }
   });
 
-  // concept art when the model has one (sharper, Tim 2026-11-10), else the sprite portrait
+  // concept art when the model has one (sharper, 2026-11-10), else the sprite portrait
   const face = (type, model) => { const t = units.types[type] || {}, m = model || t.sprite || type; return msConcept(m) || (catalog ? portrait(catalog, m, () => { shown = ''; queueShown = ''; }) : null); };
   const faceStyle = url => url ? ` style="background-image:url('${url}')"` : '';
   const cls = url => url && url.includes('/stills/') ? ' concept' : '';
-  // what waits behind the one in training, in order, same kinds grouped: portrait, name and count (Tim 2026-11-08)
+  // what waits behind the one in training, in order, same kinds grouped: portrait, name and count (2026-11-08)
   function queuedRow(queue) {
     const rest = queue.slice(1), runs = [];
     rest.forEach((q, i) => { const last = runs.at(-1); if (last?.unit === q.unit) { last.n++; last.end = i + 1; } else runs.push({ unit: q.unit, n: 1, end: i + 1 }); });
@@ -111,7 +111,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send, catalo
     if (!b) open = false;
     panel.hidden = !open;
     if (!open) return;
-    // the hire page (Tim 2026-11-08: easy to use, easy to see; restyled 2026-11-10 in the war camp panel look): the building and
+    // the hire page (2026-11-08: easy to use, easy to see; restyled 2026-11-10 in the war camp panel look): the building and
     // clan coins on the left, a grid of crew cards (portrait, name, short stats, price), one bar to choose how many and confirm,
     // then the training under way. Pages instead of a scrollbar when a clan has more than hirePerPage kinds.
     const per = units.rules.hirePerPage ?? 6, pages = Math.max(1, Math.ceil(hireable.length / per));
@@ -143,7 +143,7 @@ export function createHireMenu({ panel, money, game, units, heroId, send, catalo
         + `<button class="ms-btn" data-hire-cancel>Cancel</button><button class="ms-btn ms-go" data-hire-confirm ${ok ? '' : 'disabled'}>Hire ${quantity}</button></div>`;
     }
     const waiting = '<div data-hire-training></div><div data-hire-queue></div>';
-    // every crewman from any zone and in any state, and the clinic's patients (Tim 2026-11-08), plus Dismiss all
+    // every crewman from any zone and in any state, and the clinic's patients (2026-11-08), plus Dismiss all
     const nameOf = type => escapeHireText(units.types[type]?.name || title(type));
     const dbtn = (id, refund) => `<button class="ms-btn${armedDismiss === id ? ' ms-go' : ''}" data-dismiss="${id}">${armedDismiss === id ? `Confirm, ${refund} ryo` : `Dismiss, ${refund} ryo`}</button>`;
     const crewList = b.kind === 'hideout' ? game.clans.crewOf(c.id).filter(u => !u.dead) : [];

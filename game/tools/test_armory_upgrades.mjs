@@ -1,5 +1,5 @@
 // 8e-9 armory upgrades (sim/frontier/war_armory.js): bought at a built armory for one side of one war, troops only,
-// one group for all troops (Tim 2026-11-25, was four), weapons and armor tracks, ryo halved (50/100/150), gone with the war.
+// one group for all troops (2026-11-25, was four), weapons and armor tracks, ryo halved (50/100/150), gone with the war.
 // Run: node game/tools/test_armory_upgrades.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -30,7 +30,7 @@ const secs = Math.round(A.seconds * 20);
 
 const grunt = S.entities[War.spawnTroop(w, 'grunt', cx + 5, cz)], archer = S.entities[War.spawnTroop(w, 'archer', cx + 6, cz)];
 assert.ok(grunt && archer, 'troops');
-assert.deepEqual(A.cost.map(c => c.ryo), [50, 100, 150], 'ryo halved at every level (Tim 2026-11-25)');
+assert.deepEqual(A.cost.map(c => c.ryo), [50, 100, 150], 'ryo halved at every level (2026-11-25)');
 assert.equal(grunt.warUp, undefined, 'no upgrades yet');
 // buy melee weapons level 1: paid from the war chest and the camp stock
 let r = buy(hero, 'all', 'weapons');
@@ -38,7 +38,7 @@ assert.ok(r.ok, r.reason);
 assert.equal(w.camp.chest, 1000 - A.cost[0].ryo);
 assert.equal(w.camp.stock.timber, 500 - A.cost[0].timber);
 assert.equal(w.camp.stock.stone, 500 - A.cost[0].stone);
-// Tim 2026-11-18: a second buy waits in the queue, paid now; a waiting one cancels for its full price back
+// 2026-11-18: a second buy waits in the queue, paid now; a waiting one cancels for its full price back
 const chest1 = w.camp.chest, t1 = w.camp.stock.timber;
 r = buy(hero, 'all', 'armor');
 assert.ok(r.ok, r.reason);

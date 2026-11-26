@@ -1,4 +1,4 @@
-// Station clock (Tim 2026-11-08): over each of your railway stations, a small board says when the next train
+// Station clock (2026-11-08): over each of your railway stations, a small board says when the next train
 // comes in and where it goes, so you need not walk to the window and press Space. One row per line (up to 3):
 // a ring that fills as the train nears, then "Boarding · leaves 0:42" in gold while it stands there. Also draws
 // the All aboard zone while you call one, for a train or for the ship at the harbour pier or your castle dock (Z7).
@@ -35,12 +35,12 @@ export function createStationClock({ game, heroId, view }) {
       if (id === 'capital' && !rail.hubOf?.(owner)) {   // (a clan with a castle: the board stands at the castle station, Z4f)
         const st = game.gate?.station;
         if (place === 'street' && st) out.push({ id, x: st[0], z: st[1] });
-        else if (place === 'world' && !game.gate?.rail) { const p = rail.endpoint(owner, id); if (p) out.push({ id, x: p.x, z: p.z }); }   // no board out there: the train stands inside the wall (Tim 2026-11-10)
+        else if (place === 'world' && !game.gate?.rail) { const p = rail.endpoint(owner, id); if (p) out.push({ id, x: p.x, z: p.z }); }   // no board out there: the train stands inside the wall (2026-11-10)
       } else if (place === 'world') { const p = rail.endpoint(owner, id); if (p) out.push({ id, x: p.x, z: p.z }); }
     }
     return out;
   }
-  // the All aboard zone (Tim 2026-11-08): a big gold ring on the ground round where you called it, its edge running
+  // the All aboard zone (2026-11-08): a big gold ring on the ground round where you called it, its edge running
   // down as the call runs out, and a banner over it with the seconds left and how many of yours stand inside
   const canvas = document.createElement('canvas');
   Object.assign(canvas.style, { position: 'fixed', left: '0', top: '0', width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: '3' });   // CSS size set: the backing store is devicePixelRatio times bigger
@@ -51,7 +51,7 @@ export function createStationClock({ game, heroId, view }) {
     const shown = hero && !document.body.classList.contains('ui-hidden');
     const calls = [...(shown && rail ? rail.trains().filter(t => t.call && t.owner === hero.owner && t.call.place === hero.place).map(t => ({ c: t.call, n: () => rail.inZone(t).length, sub: 'Space boards now' })) : []),
       ...(shown && hero.shipCall?.place === hero.place && game.ferry ? [{ c: hero.shipCall, n: () => game.ferry.inZone(hero).length, sub: 'Space sails now' }] : []),
-      ...(shown && hero.shipBoard?.place === hero.place && game.ships?.ringCount ? [{ c: hero.shipBoard, n: () => game.ships.ringCount(hero), sub: 'Space boards now' }] : [])];   // your war ship's All aboard (ships S2; Tim 2026-11-23: it had no ring)
+      ...(shown && hero.shipBoard?.place === hero.place && game.ships?.ringCount ? [{ c: hero.shipBoard, n: () => game.ships.ringCount(hero), sub: 'Space boards now' }] : [])];   // your war ship's All aboard (ships S2; 2026-11-23: it had no ring)
     if (!calls.length) { if (drawn) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawn = false; } return; }
     const dpr = devicePixelRatio || 1;
     if (canvas.width !== innerWidth * dpr || canvas.height !== innerHeight * dpr) { canvas.width = innerWidth * dpr; canvas.height = innerHeight * dpr; }
@@ -62,14 +62,14 @@ export function createStationClock({ game, heroId, view }) {
       const pts = Array.from({ length: 64 }, (_, i) => { const a = i / 64 * Math.PI * 2; return view.unitToScreen(c.x + Math.sin(a) * c.r, c.z + Math.cos(a) * c.r, 0.05); });
       const pulse = 0.5 + 0.5 * Math.sin(now * 5);
       ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath();
-      ctx.fillStyle = `rgba(255,211,77,${0.07 + 0.03 * pulse})`; ctx.fill();   // faint (Tim 2026-11-08: less bright); the fill had slid into this comment, so no zone showed (Tim 2026-11-10)
+      ctx.fillStyle = `rgba(255,211,77,${0.07 + 0.03 * pulse})`; ctx.fill();   // faint (2026-11-08: less bright); the fill had slid into this comment, so no zone showed (2026-11-10)
       ctx.setLineDash([10, 7]); ctx.lineDashOffset = -now * 18; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,225,140,.28)'; ctx.stroke(); ctx.setLineDash([]);
       // the time left: a solid bright arc from the top of the ring, shrinking clockwise
       const m = Math.max(1, Math.round(64 * k));
       ctx.beginPath(); for (let i = 0; i <= m; i++) { const p = pts[(32 + i) % 64]; i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); }
       ctx.lineWidth = 3; ctx.strokeStyle = `rgba(236,196,92,${0.45 + 0.15 * pulse})`; ctx.shadowColor = '#000'; ctx.shadowBlur = 4; ctx.stroke(); ctx.shadowBlur = 0;
       // the banner over the far edge of the ring
-      // kept on the screen when the ring's far edge is off it (the zone is wider than a zoomed-in view, Tim 2026-11-10)
+      // kept on the screen when the ring's far edge is off it (the zone is wider than a zoomed-in view, 2026-11-10)
       const far = pts.reduce((a, p) => p.y < a.y ? p : a, pts[0]), top = { x: Math.max(160, Math.min(innerWidth - 160, far.x)), y: Math.max(150, Math.min(innerHeight - 40, far.y)) };
       const text = `ALL ABOARD!  ${Math.ceil(left)}`, sub = `${n} crew in the zone. ${z.sub}`;
       ctx.textAlign = 'center'; ctx.font = '800 20px system-ui,sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = '#1a1208';

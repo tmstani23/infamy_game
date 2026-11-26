@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "_note": "Railways (plan: project files steam_trains/plan.md). Placeholder numbers, Tim to tune. route: cost per world terrain code for laying track (m and w are impassable); bridge = river and water cells the track may cross; maxBridge = longest crossing in world units; reuse = cost factor on cells that already carry your track (branching); simplify = how far (world units) the drawn line may stray from the cell path; smooth = corner-rounding passes; clearance and minRadius: see _clearance.",
+  "_note": "Railways (plan: project files steam_trains/plan.md). Placeholder numbers, to tune. route: cost per world terrain code for laying track (m and w are impassable); bridge = river and water cells the track may cross; maxBridge = longest crossing in world units; reuse = cost factor on cells that already carry your track (branching); simplify = how far (world units) the drawn line may stray from the cell path; smooth = corner-rounding passes; clearance and minRadius: see _clearance.",
   "route": {
     "cost": {
       "p": 1,
@@ -22,19 +22,19 @@
     "reuse": 0.35,
     "simplify": 30,
     "smooth": 2,
-    "_clearance": "Tim 2026-11-07: track keeps clearance world units (one town cell) from mountains and other impassable cells, in the world and in towns; minRadius = tightest curve in world units (corners are rounded to arcs, no hairpins)",
+    "_clearance": "2026-11-07: track keeps clearance world units (one town cell) from mountains and other impassable cells, in the world and in towns; minRadius = tightest curve in world units (corners are rounded to arcs, no hairpins)",
     "clearance": 11,
     "minRadius": 24
   },
   "link": {
-    "_note": "placeholder, Tim to tune. A link is the whole track between two stations and always takes seconds to lay, whatever its length; paid a stretch at a time from the ordering town's stock (costPer100 per 100 units of track; waits when the stock runs short); minTier = town hall tier a town needs before it can link; maxBuilding = links one clan may lay at once.",
+    "_note": "placeholder, to tune. A link is the whole track between two stations and always takes seconds to lay, whatever its length; paid a stretch at a time from the ordering town's stock (costPer100 per 100 units of track; waits when the stock runs short); minTier = town hall tier a town needs before it can link; maxBuilding = links one clan may lay at once.",
     "seconds": 600,
     "stretch": 100,
     "costPer100": {
       "timber": 8,
       "goods": 3
     },
-    "campCostPer100": { "timber": 8, "stone": 3 }, "campSeconds": 240, "_campSecondsNote": "Tim 2026-11-25: a war camp spur takes campSeconds to lay (town lines keep seconds), and its drawn track and rail gang keep up with the true progress (no walking-pace cap for spurs).", "_campCostNote": "8e-4 (2026-11-16), placeholder: a war camp's spur is paid from the camp stores, which hold no goods, so stone stands in for the goods share.",
+    "campCostPer100": { "timber": 8, "stone": 3 }, "campSeconds": 240, "_campSecondsNote": "2026-11-25: a war camp spur takes campSeconds to lay (town lines keep seconds), and its drawn track and rail gang keep up with the true progress (no walking-pace cap for spurs).", "_campCostNote": "8e-4 (2026-11-16), placeholder: a war camp's spur is paid from the camp stores, which hold no goods, so stone stands in for the goods share.",
     "minTier": 2,
     "maxBuilding": 1
   },
@@ -44,7 +44,7 @@
     "model": "rail_worker",
     "spawnRadius": 300,
     "hammerSeconds": 2,
-    "_shownNote": "Tim 2026-11-22: the drawn track and the gang move at the gang's walking pace (speed, hammerSeconds); the line still opens after link.seconds and the rest of the track appears then.",
+    "_shownNote": "2026-11-22: the drawn track and the gang move at the gang's walking pace (speed, hammerSeconds); the line still opens after link.seconds and the rest of the track appears then.",
     "speed": 4.5,
     "anim": {
       "work": "hammer",
@@ -52,36 +52,36 @@
     }
   },
   "ship": {
-    "_note": "Rail shipments (Tim 2026-11-08), placeholders, Tim to tune. keep = default stock a town never ships out (per resource; later: upkeep plus next build); minOrder = smallest order; queueTrips (Tim 2026-11-09) = your own undelivered orders into a town may add up to this many trainloads per line at the town (trainload = goods wagons x wagonLoad; 3 x 480 = 1440 (Tim 2026-11-23: 240 a wagon, was 120 since 2026-11-17: at 240 a train a far town, 13 min round trip, got 18 a minute and could not cover one shortage; 480 gives it 37), about 3 round trips; maxAuto = open auto orders per town; budget = default auto-buy ryo per town at the port (a town may have this much tied up in open auto orders); buyPrice / sellPrice = ryo per unit at the port wholesale houses (buying costs more than selling pays); sell = what is above the keep goes to the capital (see sell._note); keepMax = highest keep a player can set.",
+    "_note": "Rail shipments (2026-11-08), placeholders, to tune. keep = default stock a town never ships out (per resource; later: upkeep plus next build); minOrder = smallest order; queueTrips (2026-11-09) = your own undelivered orders into a town may add up to this many trainloads per line at the town (trainload = goods wagons x wagonLoad; 3 x 480 = 1440 (2026-11-23: 240 a wagon, was 120 since 2026-11-17: at 240 a train a far town, 13 min round trip, got 18 a minute and could not cover one shortage; 480 gives it 37), about 3 round trips; maxAuto = open auto orders per town; budget = default auto-buy ryo per town at the port (a town may have this much tied up in open auto orders); buyPrice / sellPrice = ryo per unit at the port wholesale houses (buying costs more than selling pays); sell = what is above the keep goes to the capital (see sell._note); keepMax = highest keep a player can set.",
     "resources": ["food", "timber", "stone", "goods"],
     "keep": { "food": 40, "timber": 30, "stone": 10, "goods": 10 },
     "minOrder": 10,
     "wagonLoad": 240,
     "queueTrips": 3,
     "ryoPerTrain": 2000, "ryoMin": 10, "_ryoNote": "8e-1 (2026-11-16), placeholders: ryoPerTrain = ryo one train carries (guard car, no wagon room); ryoMin = smallest ryo order.",
-    "budget": 150, "budgetShare": 0.05, "_budgetShareNote": "Tim 2026-11-23, placeholder: last resort. When a town's workers cannot bring in more of a resource under its keep line (no hands to spare or no free spot in reach), its auto-buy budget for that resource is this share of the town's ryo, when that is more than budget, at most one trainload's price. A budget the player typed always stands.",
+    "budget": 150, "budgetShare": 0.05, "_budgetShareNote": "2026-11-23, placeholder: last resort. When a town's workers cannot bring in more of a resource under its keep line (no hands to spare or no free spot in reach), its auto-buy budget for that resource is this share of the town's ryo, when that is more than budget, at most one trainload's price. A budget the player typed always stands.",
     "buyPrice": { "food": 3, "timber": 4, "stone": 5, "goods": 8 },
     "sellPrice": { "food": 2, "timber": 2, "stone": 3, "goods": 5 },
     "sell": { "on": true, "resources": ["goods", "timber", "stone"], "batch": 240, "min": 60, "_note": "placeholder (2026-11-22): with Initiative on, each governor review sends what is above the keep (and above the next hall tier cost) to the capital, at most batch per resource per open order, only once at least min is spare; the keep is what stays, war or not; food is never sold on its own" },
     "maxAuto": 4,
     "keepMax": 100000,
-    "refillBelow": 0.5, "noCapitalBuy": ["goods"], "_refill": "placeholder (Tim 2026-11-22, fix list 13): the governor orders a refill only when a town's stock plus what is on its way falls below refillBelow of its keep, then orders back up to the keep in one go; auto refills of noCapitalBuy resources come from your own towns only, never bought at the capital",
+    "refillBelow": 0.5, "noCapitalBuy": ["goods"], "_refill": "placeholder (2026-11-22, fix list 13): the governor orders a refill only when a town's stock plus what is on its way falls below refillBelow of its keep, then orders back up to the keep in one go; auto refills of noCapitalBuy resources come from your own towns only, never bought at the capital",
     "keepShare": 0.5, "_keepShare": "default keep amount = this share of the town storage cap per resource (goods too: market hold-back); a keep the player sets wins"
   },
   "train": {
-    "_note": "placeholder, Tim to tune. Each open link gets one train (stand-in until stations build them): it runs station to station and back at speed (world units a second; the hero runs at 6), waiting stopSeconds at each end (Tim 2026-11-07: 60, long enough to walk over and board). cars = carriages and wagons behind the engine; gap = world units from one car's middle to the next (engine first). viewSpeed (Tim 2026-11-07) = its speed while someone rides it or a player hero is within viewRange of the engine (a little under a horse, 22.5); with nobody near it runs at speed, so arrival times hold.",
+    "_note": "placeholder, to tune. Each open link gets one train (stand-in until stations build them): it runs station to station and back at speed (world units a second; the hero runs at 6), waiting stopSeconds at each end (2026-11-07: 60, long enough to walk over and board). cars = carriages and wagons behind the engine; gap = world units from one car's middle to the next (engine first). viewSpeed (2026-11-07) = its speed while someone rides it or a player hero is within viewRange of the engine (a little under a horse, 22.5); with nobody near it runs at speed, so arrival times hold.",
     "speed": 36,
     "viewSpeed": 20,
     "viewRange": 140,
     "stopSeconds": 60,
     "cars": 3,
     "gap": 7,
-    "_consist": "Tim 2026-11-07: the cars behind the engine and tender, front to back: carriage (8 seats each, ride.seatsPerCar), goods (goods wagon), guard (brake van). Drawn from the train_* sprites; replaces cars and gap where set.",
+    "_consist": "2026-11-07: the cars behind the engine and tender, front to back: carriage (8 seats each, ride.seatsPerCar), goods (goods wagon), guard (brake van). Drawn from the train_* sprites; replaces cars and gap where set.",
     "consist": ["carriage", "carriage", "goods", "goods", "guard"]
   },
   "ride": {
-    "_note": "placeholder, Tim to tune (train plan step 4). Board at a station while the train stands there: you and your followers (within followRange) ride, and every standing Hero group crew within heroGroupRange, following or not (Tim 2026-11-07); seatsPerCar = riders per carriage (the engine, tender and last wagon carry none). The train leaves departSeconds after you board. skipSeconds = how long you ride before Skip takes you straight to the far station. The capital end lands you just inside the island gate. reach = how close to a town's station you must stand.",
-    "_boarding": "Tim 2026-11-08: picking a train calls All aboard: a zone of zoneRadius on the ground round the station for callSeconds, or until the train leaves if sooner; everyone of yours in it then gets on, Space again boards at once. followRange and heroGroupRange are no longer used.",
+    "_note": "placeholder, to tune (train plan step 4). Board at a station while the train stands there: you and your followers (within followRange) ride, and every standing Hero group crew within heroGroupRange, following or not (2026-11-07); seatsPerCar = riders per carriage (the engine, tender and last wagon carry none). The train leaves departSeconds after you board. skipSeconds = how long you ride before Skip takes you straight to the far station. The capital end lands you just inside the island gate. reach = how close to a town's station you must stand.",
+    "_boarding": "2026-11-08: picking a train calls All aboard: a zone of zoneRadius on the ground round the station for callSeconds, or until the train leaves if sooner; everyone of yours in it then gets on, Space again boards at once. followRange and heroGroupRange are no longer used.",
     "seatsPerCar": 8,
     "callSeconds": 10, "zoneRadius": 25,
     "followRange": 15, "heroGroupRange": 60,
@@ -91,7 +91,7 @@
     "gateReach": 6
   },
   "robbery": {
-    "_note": "Train robbery (Tim 2026-11-20, plan war_build/train_robbery/plan.md). R1 blasting: a hero standing within reach of any open line (anyone's, war or not) sets a charge; it blows after fuseSeconds. The line is closed closeDays (game days) while an untouchable repair crew (crew.size, model, anim; real units only within crew.spawnRadius of someone) hammers at the gap, and can't be blown or robbed again for cooldownDays from the blast. Not within 2 x stopGap of a station. A train running into the gap stops stopGap short of it, stands stopSeconds, then backs up to the last station it passed.",
+    "_note": "Train robbery (2026-11-20, plan war_build/train_robbery/plan.md). R1 blasting: a hero standing within reach of any open line (anyone's, war or not) sets a charge; it blows after fuseSeconds. The line is closed closeDays (game days) while an untouchable repair crew (crew.size, model, anim; real units only within crew.spawnRadius of someone) hammers at the gap, and can't be blown or robbed again for cooldownDays from the blast. Not within 2 x stopGap of a station. A train running into the gap stops stopGap short of it, stands stopSeconds, then backs up to the last station it passed.",
     "reach": 6,
     "fuseSeconds": 8,
     "closeDays": 0.5,
@@ -99,7 +99,7 @@
     "stopGap": 12,
     "stopSeconds": 180,
     "crew": { "size": 3, "model": "rail_worker", "anim": "hammer", "spawnRadius": 300, "delaySeconds": 60 },
-    "_robbery": "R2-R3 (Tim 2026-11-20): guards[faction] = the war roster units (frontier.json war.units) that get out of a train stopped at a blown track, round its freight wagon; the fallen are missing until it next reaches a station. A hero within wagonReach of the freight wagon of someone else's stopped train holds holdSeconds (placeholder) to take share of everything aboard, once per blast, into a stolen chest. Knocked out, the hero drops it; any hero picks it up within pickReach; cash it within cashReach of an own town hall or war camp banner. A dropped chest is gone after chestDays (placeholder). Guards attack any enemy they see within guardAggro and chase up to guardLeash from their spot (placeholders, Tim 2026-11-21: hyper aggressive).",
+    "_robbery": "R2-R3 (2026-11-20): guards[faction] = the war roster units (frontier.json war.units) that get out of a train stopped at a blown track, round its freight wagon; the fallen are missing until it next reaches a station. A hero within wagonReach of the freight wagon of someone else's stopped train holds holdSeconds (placeholder) to take share of everything aboard, once per blast, into a stolen chest. Knocked out, the hero drops it; any hero picks it up within pickReach; cash it within cashReach of an own town hall or war camp banner. A dropped chest is gone after chestDays (placeholder). Guards attack any enemy they see within guardAggro and chase up to guardLeash from their spot (placeholders, 2026-11-21: hyper aggressive).",
     "share": 0.5,
     "holdSeconds": 30,
     "guardAggro": 14,
@@ -108,7 +108,7 @@
     "pickReach": 2.5,
     "cashReach": 20,
     "chestDays": 2,
-    "bots": { "_note": "placeholder, Tim 2026-11-20 (train robbery R5, sim/war_general_brain.js): days = game days between a bot's robberies by its war strategy, [least, most], in a war and in peace (Raider about once a day or two in war; the others rarely). In a war it robs only that war's enemy inside the war circle (camp supply lines first) with escort war troops (escortMin or it waits); in peace it needs peaceCrew crew at the hero's side. reach = how far the hero walks to a line; waitSeconds beside the line for a loaded train (minLoad cargo); the hero starts the hold when holdGuards or fewer guards stand; maxSeconds for the whole try; retryDays before trying again after giving up. Any general sends up to defenders war troops within defendReach to its own train stopped at a blown track inside its war circle. A bot hero picks up a dropped chest within grabReach.",
+    "bots": { "_note": "placeholder, 2026-11-20 (train robbery R5, sim/war_general_brain.js): days = game days between a bot's robberies by its war strategy, [least, most], in a war and in peace (Raider about once a day or two in war; the others rarely). In a war it robs only that war's enemy inside the war circle (camp supply lines first) with escort war troops (escortMin or it waits); in peace it needs peaceCrew crew at the hero's side. reach = how far the hero walks to a line; waitSeconds beside the line for a loaded train (minLoad cargo); the hero starts the hold when holdGuards or fewer guards stand; maxSeconds for the whole try; retryDays before trying again after giving up. Any general sends up to defenders war troops within defendReach to its own train stopped at a blown track inside its war circle. A bot hero picks up a dropped chest within grabReach.",
       "days": { "raider": { "war": [1, 2], "peace": [6, 10] }, "default": { "war": [5, 8], "peace": [14, 20] } },
       "reach": 1500, "escort": 8, "escortMin": 4, "peaceCrew": 3, "waitSeconds": 240, "minLoad": 20, "holdGuards": 0, "maxSeconds": 720, "retryDays": 0.25, "defenders": 6, "defendReach": 500, "grabReach": 250 },
     "guards": {

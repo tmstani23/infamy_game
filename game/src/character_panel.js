@@ -18,10 +18,10 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
   document.body.appendChild(root);
   const $ = s => root.querySelector(s), rows = new Map(), abilities = new Map(), passiveRows = new Map();
   const command = (action, detail) => send({id:heroId, type:'inventory', action, ...detail});
-  // hovering an item: the item card beside it and the Attributes rows show what wearing it (or taking it off) would change (Tim 2026-11-24)
+  // hovering an item: the item card beside it and the Attributes rows show what wearing it (or taking it off) would change (2026-11-24)
   const card = createItemCard(); let hovered = null;   // { key, button, worn }
   const hover = worn => (key, button) => { if (button && !slip.hidden) return; hovered = button ? { key, button, worn } : null; if (!button) card.hide(); update(); };
-  // a bag item (Tim 2026-11-26): click wears it; right-click opens a slip, Wear or Drop; dragged out of the window it is dropped
+  // a bag item (2026-11-26): click wears it; right-click opens a slip, Wear or Drop; dragged out of the window it is dropped
   const drop = index => send({id:heroId, type:'groundItem', action:'drop', index});
   const slip = document.createElement('div'); slip.className = 'bag-slip'; slip.hidden = true; slip.setAttribute('role', 'menu');
   slip.innerHTML = '<b class="slip-name"></b><button type="button" role="menuitem" data-do="wear">Wear</button><button type="button" role="menuitem" data-do="drop">Drop on the ground</button><small class="slip-why"></small>';
@@ -55,7 +55,7 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
     button.addEventListener('focus', () => preview.focus(i)); button.addEventListener('blur', () => preview.focus(null));
   });
   $('.use-bandage').addEventListener('click',()=>{send({id:heroId,type:'item',action:'bandage'});setOpen(false);});
-  // horse whistles were taken out (Tim 2026-11-08): H calls your mount from anywhere, the Vehicles panel's Call picks another
+  // horse whistles were taken out (2026-11-08): H calls your mount from anywhere, the Vehicles panel's Call picks another
   let raidTarget;$('.use-lantern').addEventListener('click',()=>{if(raidTarget){send({id:heroId,type:'business',action:'raid',business:raidTarget});setOpen(false);}});
   function setOpen(on) {
     if (open === on) return;
@@ -89,7 +89,7 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
     $('.use-lantern').disabled=!raidTarget;
     $('.supplies-hint').textContent='Bandage: stand still for 6s; damage and actions interrupt. War Lantern: approach a rival business at night.';
     bag(inv.bag, inv.available); equipment(inv.equipment, inv.available && inv.bag?.includes(null), 'Remove to inventory');
-    // train robbery (Tim 2026-11-21): the stolen chest the hero carries, with what is inside (hover for the rules)
+    // train robbery (2026-11-21): the stolen chest the hero carries, with what is inside (hover for the rules)
     { const el = $('.stolen-chest'), loot = hero.chest?.loot, text = loot ? Object.entries(loot).filter(([, n]) => n >= 1).map(([r, n]) => `${Math.round(n)} ${r}`).join(', ') || 'Empty' : '';
       el.hidden = !loot;
       if (loot && el.dataset.loot !== text) { el.dataset.loot = text; el.querySelector('.chest-loot').textContent = text;

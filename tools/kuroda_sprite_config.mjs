@@ -1,4 +1,4 @@
-// Shared draft/production settings. Production export waits for Tim's review.
+// Shared draft/production settings. Production export waits for the review.
 export const KURODA_FRAMING = { size: 256, cellWorld: 4.8, feetUp: .9 };
 const clips = {
   idle: 'Great Sword Idle.fbx', walk: 'brawler/Walking.fbx', run: 'Run.fbx',

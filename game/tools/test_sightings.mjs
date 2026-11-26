@@ -1,4 +1,4 @@
-// Remembered sight (Tim 2026-11-18, war test item 7, sim/sightings.js): a rival town and an enemy camp show only what
+// Remembered sight (2026-11-18, war test item 7, sim/sightings.js): a rival town and an enemy camp show only what
 // your units or watchtowers have had in sight; buildings as you last saw them; grid layers only in seen blocks.
 // Run: node game/tools/test_sightings.mjs
 import assert from 'node:assert/strict';
@@ -73,7 +73,7 @@ assert.equal(own.settlements.tR.grid, grid, 'the owner sees his own town');
 // captured: the memory is dropped
 t.owner = 'player'; run();
 assert.equal(state.sightings.player['town:tR'], undefined);
-// a rival castle keeps its walls, gates, moat and cliffs in unseen blocks (Tim 2026-11-23); everything else is hidden
+// a rival castle keeps its walls, gates, moat and cliffs in unseen blocks (2026-11-23); everything else is hidden
 { const g = { n: 3, use: 'wgm.Bk.rw', zone: '.........', by: '.........', stage: '000000000' };
   assert.equal(maskGrid(g, null, BLOCK, 'mkwg').use, 'wgm..k..w');
   assert.equal(maskGrid(g, '0', BLOCK, 'mkwg').use, 'wgm..k..w');

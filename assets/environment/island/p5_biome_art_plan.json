@@ -1,10 +1,10 @@
 {
   "version": 1,
   "date": "2026-11-02",
-  "status": "Transparent prop sheets cropped and organized 2026-11-02. Tim requested runtime generator integration 2026-11-02.",
+  "status": "Transparent prop sheets cropped and organized 2026-11-02. requested runtime generator integration 2026-11-02.",
   "runtimeIntegration": {
     "cropRepair": {
-      "status": "All 57 re-cut, visually reviewed and imported after Tim reported clipping; 41 old cuts had opaque pixels on a crop boundary.",
+      "status": "All 57 re-cut, visually reviewed and imported after reported clipping; 41 old cuts had opaque pixels on a crop boundary.",
       "cause": "Generated objects crossed the assumed equal 512px cell boundaries. The importer also wrongly subtracted source trim offsets from anchors already in trimmed-image coordinates.",
       "pipeline": "tools/cut_biome_props.mjs uses reviewed crop_regions.json, rejects opaque extraction boundaries and preserves source alpha. tools/import_biome_props.mjs requires schema v2 with explicit trimmed-image anchors.",
       "review": "assets/environment/island/biome_props/review/crop_audit.json and crops_1.png through crops_3.png",
@@ -114,7 +114,7 @@
     },
     "oneSheetAtATime": true,
     "individualPromptRule": "Individual specifications are fallback guidance, not extra generations. Grouped generation was used; accepted sprites are now cut and imported.",
-    "authorization": "Tim approved sequential transparent-sheet generation 2026-11-02 and later requested cropping, organization and runtime generator integration.",
+    "authorization": "approved sequential transparent-sheet generation 2026-11-02 and later requested cropping, organization and runtime generator integration.",
     "exception": "Grouped sheets by default; singles only where truly necessary for usable resolution. World units are rough fitting guidance, not exact generator output.",
     "resolutionGuidance": "Request high resolution for cell detail and later sizing; requested resolution is not guaranteed output. Singles only where truly necessary; farmstead and shipwreck are candidates, not an approved expanded singles run.",
     "assignmentQueue": [
@@ -360,10 +360,10 @@
       "currentGlobalCandidateProbability": 0.752556,
       "rule": "The original one-candidate sampler plus bamboo is about 0.71383; the six additional common-prop rates add about 0.038726, for about 0.752556 total (<1). Biome replacements keep existing rates unchanged. Coast plants and rare oddities use separate deterministic world-space grids. Runtime throws if future common-rule rates push the cumulative candidate probability above 1. Never silently clip later rules or claim raw sums equal observed density."
     },
-    "performance": "Check chunk generation, active sprite count, draw calls and memory against the current accepted baseline before/after a small representative density change. Keep streamed bounds; no whole-island prop instantiation. No browser/headless automation; Tim checks in game."
+    "performance": "Check chunk generation, active sprite count, draw calls and memory against the current accepted baseline before/after a small representative density change. Keep streamed bounds; no whole-island prop instantiation. No browser/headless automation; checks in game."
   },
   "shorelineKits": {
-    "status": "Tim requested wet/dry/snow only, with odd-angle fitting and blending. Research recommends three neutral-lit top-down strips; prompts and blueprint audit drafted 2026-11-02.",
+    "status": "requested wet/dry/snow only, with odd-angle fitting and blending. Research recommends three neutral-lit top-down strips; prompts and blueprint audit drafted 2026-11-02.",
     "canonicalPlan": "assets/environment/island/coastline_art_plan.json",
     "promptDrafts": "assets/environment/island/coastline_prompts.txt",
     "families": [
@@ -738,13 +738,13 @@
       "blockerProposal": "none; appearance only, does not change water or buildability",
       "detail": "A continuous surface of compressed off-white snow, subtle grain, slightly darker compacted icy flecks and sparse exposed tiny grit. No recognizable repeating boot prints, directional path stripe or painted verge. This material fills a procedural trail mask, so all four tile edges must join the same compressed-snow material. Snow colour matches ground_snow; trail width and bank fade are added in code.",
       "output": "assets/environment/island/biome_props/packed_snow_trail.png",
-      "status": "draft item specification; pending Tim review; generation not approved; not imported",
+      "status": "draft item specification; pending review; generation not approved; not imported",
       "joiningSides": [
         "left/right",
         "top/bottom"
       ],
       "prompt": "Semi-realistic painted ground texture for the same muted 1870s Japanese island game. STRICT orthographic top-down, 90 degrees straight down, not an isometric scene. One opaque seamless PNG filling the full canvas; all four edges repeat continuously, with no transparency, border, vignette, text, horizon, standing objects, directional cast shadows or obvious central motif. Match the referenced existing ground materials in palette and small-detail scale. No sheet of multiple tiles.\n\nPIECE TYPE: SEAMLESS TILE. CANVAS: 1024 x 1024 pixels. IN-GAME TILE COVERAGE: 8 x 8 world units. SEAMLESS SIDES: left joins right and top joins bottom. A continuous surface of compressed off-white snow, subtle grain, slightly darker compacted icy flecks and sparse exposed tiny grit. No recognizable repeating boot prints, directional path stripe or painted verge. This material fills a procedural trail mask, so all four tile edges must join the same compressed-snow material. Snow colour matches ground_snow; trail width and bank fade are added in code.",
-      "generationMethod": "Optional separate opaque tile proposal; pending Tim review, later if approved"
+      "generationMethod": "Optional separate opaque tile proposal; pending review, later if approved"
     },
     {
       "biome": "plain",
@@ -843,13 +843,13 @@
       "blockerProposal": "none; appearance only, does not change water or buildability",
       "detail": "Muted dark brown fallow agricultural earth with small clods, tiny straw fragments and very shallow parallel furrows. The furrows intentionally continue across opposing edges at a constant spacing; no raised border, bund, field boundary, water, crops, road or farm building. For rare authored field patches, not for spreading over every meadow.",
       "output": "assets/environment/island/biome_props/fallow_field.png",
-      "status": "draft item specification; pending Tim review; generation not approved; not imported",
+      "status": "draft item specification; pending review; generation not approved; not imported",
       "joiningSides": [
         "left/right",
         "top/bottom"
       ],
       "prompt": "Semi-realistic painted ground texture for the same muted 1870s Japanese island game. STRICT orthographic top-down, 90 degrees straight down, not an isometric scene. One opaque seamless PNG filling the full canvas; all four edges repeat continuously, with no transparency, border, vignette, text, horizon, standing objects, directional cast shadows or obvious central motif. Match the referenced existing ground materials in palette and small-detail scale. No sheet of multiple tiles.\n\nPIECE TYPE: SEAMLESS TILE. CANVAS: 1024 x 1024 pixels. IN-GAME TILE COVERAGE: 8 x 8 world units. SEAMLESS SIDES: left joins right and top joins bottom. Muted dark brown fallow agricultural earth with small clods, tiny straw fragments and very shallow parallel furrows. The furrows intentionally continue across opposing edges at a constant spacing; no raised border, bund, field boundary, water, crops, road or farm building. For rare authored field patches, not for spreading over every meadow.",
-      "generationMethod": "Optional separate opaque tile proposal; pending Tim review, later if approved"
+      "generationMethod": "Optional separate opaque tile proposal; pending review, later if approved"
     },
     {
       "biome": "hills",

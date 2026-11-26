@@ -1,4 +1,4 @@
-// Clan castles on the island (Z4, Tim 2026-11-19): where each zone's castle stands and placing a clan's castle there.
+// Clan castles on the island (Z4, 2026-11-19): where each zone's castle stands and placing a clan's castle there.
 // The castle record and its layout come from sim/frontier/castle.js; the spots from data/campaign_zones.json.
 // frontierData.castleBlueprint = data/castle_default.json and frontierData.campaignZones = data/campaign_zones.json
 // (main.js and the tests lay both over frontier.json, like railways.json).
@@ -23,7 +23,7 @@ export function castleClearings(world, data) {
   return createCampaignZones({ rules, world }).castles().filter(c => Number.isFinite(c.x)).map(c => castleBox(bp, c.x, c.z, ROT[c.sea] ?? 0, cell));
 }
 
-// the castle ground over the island's water (Tim 2026-11-20, the dock past the harbour gate): every cell of a placed castle
+// the castle ground over the island's water (2026-11-20, the dock past the harbour gate): every cell of a placed castle
 // that stands on castle ground and is not sea or moat, as world boxes (one per run of such cells along a grid row). The
 // island's water under them does not block walking (sim/chunk_gen.js opts.walk); the castle's own walls, gates and sea
 // cells still block (town_grid.js). Kept rock under the sea side (ground 'x') stays as the island has it.
@@ -70,7 +70,7 @@ export function createCastles({ state, data, world, frontier }) {
     return { land: { x: lx, z: lz }, end: { x: sx, z: sz }, sea: { x: sx + (sx - lx) * 3, z: sz + (sz - lz) * 3 } };
   }
   // high ground (Z4h, plan Z8: "a small range bonus for shooters on a higher ring"): each terrace level a shooter stands
-  // above its target adds highGround.rangePerLevel of its range (placeholder, Tim to tune)
+  // above its target adds highGround.rangePerLevel of its range (placeholder, to tune)
   let ids = null;
   function levelAt(x, z) {
     ids ||= spots().map(c => `castle_${c.zone}`);

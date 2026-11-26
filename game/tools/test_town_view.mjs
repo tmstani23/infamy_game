@@ -1,4 +1,4 @@
-// View a town (Tim 2026-11-25): only your own founded frontier towns can be viewed, rival towns and the capital cannot;
+// View a town (2026-11-25): only your own founded frontier towns can be viewed, rival towns and the capital cannot;
 // the confirm and banner name the town; with no DOM the module is inert.
 import assert from 'node:assert/strict';
 import { viewableTown, confirmHtml, bannerHtml, createTownView, viewCommands } from '../src/town_view.js';
@@ -25,5 +25,5 @@ assert.ok(WATCH_BLOCKED.has('order') && WATCH_BLOCKED.has('deployment'));
 const off = createTownView({ game: { state }, view: {}, heroId: 'h' });
 assert.equal(off.isOn(), false); assert.equal(off.start('a'), false);
 assert.deepEqual(off.filterCommands([{ type: 'order' }]), [{ type: 'order' }]);
-assert.deepEqual(viewCommands([{ type: 'garage', action: 'recall', unit: 'u1' }, { type: 'mount' }], 'h', 'a'), [{ type: 'garage', action: 'recall', unit: 'u1' }], 'Recall works while viewing; mounting does not (Tim 2026-11-26)');
+assert.deepEqual(viewCommands([{ type: 'garage', action: 'recall', unit: 'u1' }, { type: 'mount' }], 'h', 'a'), [{ type: 'garage', action: 'recall', unit: 'u1' }], 'Recall works while viewing; mounting does not (2026-11-26)');
 console.log('town view ok');

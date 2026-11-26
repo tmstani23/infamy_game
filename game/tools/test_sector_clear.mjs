@@ -1,4 +1,4 @@
-// Sector cleared bonus (sim/rewards.js sectorTick, Tim 2026-10-29): node game/tools/test_sector_clear.mjs
+// Sector cleared bonus (sim/rewards.js sectorTick, 2026-10-29): node game/tools/test_sector_clear.mjs
 import assert from 'node:assert/strict';
 import { createRewards } from '../src/sim/rewards.js';
 
@@ -21,7 +21,7 @@ assert.equal(state.clans.a.ryo, 200, 'one claim per sector per cooldown');
 state.tick += 20 * 200; state.entities.b1.x = 5; rewards.sectorTick(at);
 state.entities.b1.x = 99; state.tick += 20; rewards.sectorTick(at);
 assert.equal(state.clans.a.ryo, 200, 'one rival unit leaving is not a clear');
-// rivals who only walk through and leave are not a clear (Tim 2026-11-11), and a rival put down by a third clan does not pay you
+// rivals who only walk through and leave are not a clear (2026-11-11), and a rival put down by a third clan does not pay you
 {
   const s = { tick: 0, news: [], ryoGains: [], casts: [], clans: { a: { id: 'a', ryo: 0 }, b: { id: 'b', ryo: 0 }, c: { id: 'c', ryo: 0 } },
     entities: { a1: unit('a1', 'a', 1), b1: unit('b1', 'b', 3), b2: unit('b2', 'b', 4), c1: unit('c1', 'c', 90) } };

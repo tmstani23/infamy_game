@@ -1,4 +1,4 @@
-// Tim 2026-11-21: guns take more troop places (war.units[unit].slots) and supply tents unlock per tier
+// 2026-11-21: guns take more troop places (war.units[unit].slots) and supply tents unlock per tier
 // (war.buildings.supply_tents.maxByTier: camp before / after the hall upgrade, town by town hall tier).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

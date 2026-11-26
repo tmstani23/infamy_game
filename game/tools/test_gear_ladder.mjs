@@ -1,4 +1,4 @@
-// The gear ladder (wildlife W7, Tim 2026-11-24): shop item < city drop (Fine) < frontier gear < castle heirloom,
+// The gear ladder (wildlife W7, 2026-11-24): shop item < city drop (Fine) < frontier gear < castle heirloom,
 // for every stat. Frontier gear and heirlooms have no fixed numbers (sim/gear_catalog.js works them out at load),
 // so this checks the order holds, that wolves and bears name real items, and that a fallen castle gives its blade.
 import assert from 'node:assert/strict';

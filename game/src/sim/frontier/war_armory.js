@@ -1,9 +1,9 @@
-// War step 8e-9 (Tim 2026-11-16): armory upgrades. Bought at a built armory (the war camp's, or the defending town's
+// War step 8e-9 (2026-11-16): armory upgrades. Bought at a built armory (the war camp's, or the defending town's
 // during its war), for that side of that war only: they end with the war, like the troops. Troops only; the hero and
-// crew are never changed. Tim 2026-11-25: one group for all troops (was four: melee, ranged, mounted, siege), two tracks:
+// crew are never changed. 2026-11-25: one group for all troops (was four: melee, ranged, mounted, siege), two tracks:
 // weapons (+war.armory.step damage a level) and armor (war.armory.step less damage taken a level), war.armory.levels
 // levels. A level costs war.armory.cost[level] (ryo from that side's war chest, timber and stone from the camp stock
-// or the town's stock) and takes war.armory.seconds while the armory stands; one in the work per side. Tim 2026-11-18:
+// or the town's stock) and takes war.armory.seconds while the armory stands; one in the work per side. 2026-11-18:
 // more can wait in a queue (war.armory.queue, work included), each paid when queued; a waiting one can be cancelled
 // for its full price back (command armoryCancel { war, index }), the one in the work cannot. A finished level
 // counts at once for every troop of that side, those on the field too (entity.warUp, read by stats.js).
@@ -13,7 +13,7 @@
 // createWarArmory({ state, data, war, world }) -> { command, tick, view, applyTo, groupOf }
 import { addCampStock } from './camp_stock.js';
 import { debitRyo, creditRyo } from '../treasury.js';
-export const ARMORY_GROUPS = ['all'];   // Tim 2026-11-25: condensed to one group, all troops
+export const ARMORY_GROUPS = ['all'];   // 2026-11-25: condensed to one group, all troops
 export const ARMORY_TRACKS = ['weapons', 'armor'];
 
 export function createWarArmory({ state, data, war, world }) {
@@ -145,7 +145,7 @@ export function createWarArmory({ state, data, war, world }) {
     if (c.action !== 'armoryUp') return null;
     return buy(e, c);
   }
-  // train robbery R2 (Tim 2026-11-20): a train guard gets the best upgrades its clan has for its group in any war on now
+  // train robbery R2 (2026-11-20): a train guard gets the best upgrades its clan has for its group in any war on now
   function applyGuard(e) {
     const group = groupOf(e?.warUnit);
     if (!group) return;

@@ -4,7 +4,7 @@ import { residents } from './sim/frontier/people.js';
 
 export const townName = value => String(value || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 
-// Town building site (Tim 2026-11-15): who builds it and how long it has left. The townspeople build the paid
+// Town building site (2026-11-15): who builds it and how long it has left. The townspeople build the paid
 // project at rates.townBuildRate each (1 in a bot town or with Automatic on); each worker at the site adds
 // rates.workerBuildRate, at most rates.maxBuilders workers.
 export function siteBuilders(s, p, data, clans = null) {
@@ -45,7 +45,7 @@ export function townCellTip(s, cell, data, clans = null) {
       if(st>0 && st<def.stages.length)lines.push(goods>0?`Next level needs goods (${goods} per economy tick)${s.goodsShort || !(s.stock.goods>0)?' · missing':''}`:'Next level: road and healthy zone');
       if(st>=def.stages.length)lines.push('Largest house');
     }
-    if(def.output) {   // Tim 2026-11-21: say what the zone makes, per second and per hour (one economy tick is cadenceTicks / 20 s)
+    if(def.output) {   // 2026-11-21: say what the zone makes, per second and per hour (one economy tick is cadenceTicks / 20 s)
       const sec=(data.cadenceTicks || 20)/20, n=v=>Number(v.toPrecision(3)), rate=v=>`${n(v/sec)}/s, ${n(v*3600/sec)}/hr`;
       const made=Object.entries(def.output).map(([r,v])=>`${r} ${rate(v)}`).join(' + '), now=zone?.output || 0;
       lines.push(`Output: ${made} per plot level at full workers${def.trait?' (soil changes it)':''}`);
@@ -56,7 +56,7 @@ export function townCellTip(s, cell, data, clans = null) {
     if(Number(g.stage[cell])<def.stages.length)lines.push(`Growth: ${s.zoneGrow?.[cell] || 0} / ${def.growTicks} healthy economy ticks`);
     if(zone?.abandoned)lines.push('Recovery: restore food/workers to raise zone health; road access is required for growth');
   } else lines.push('Zone state: not zoned');
-  if (!entry && !b && !p && 'rg'.includes(g.use[cell]) && data.zones?.roadsConnect) {   // Tim 2026-11-05: linked roads only
+  if (!entry && !b && !p && 'rg'.includes(g.use[cell]) && data.zones?.roadsConnect) {   // 2026-11-05: linked roads only
     const reach = Object.values(data.zones.kinds).find(k => k.needs?.roadReach)?.needs.roadReach ?? 3;
     lines.push(createZones({ data }).linkedRoads(s)[cell]
       ? `\u0001Linked to the town hall: zones within ${reach} cells can grow`
@@ -73,7 +73,7 @@ export function townCellTip(s, cell, data, clans = null) {
 }
 
 // One floating tooltip for anything with a data-tip attribute inside `root` (frontier F4: panel, overview).
-// Tips only go on things a player cannot guess or needs for a decision (Tim, 2026-11-02).
+// Tips only go on things a player cannot guess or needs for a decision (2026-11-02).
 // Tip text is plain; a line starting with GOOD_LINE or WARN_LINE shows in green or amber.
 export const GOOD_LINE = '\u0001', WARN_LINE = '\u0002';
 function showTip(el, text) {

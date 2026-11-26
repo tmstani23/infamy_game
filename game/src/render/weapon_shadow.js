@@ -12,10 +12,10 @@ export function createWeaponShadow(spriteUniforms) {
   const material=weaponShadowMaterial(spriteUniforms),mesh=new THREE.Mesh(geometry,material);
   mesh.frustumCulled=false;mesh.visible=false;
   let clock=0,history=[],lastSample=-1,critAt=-10,critAxis=null,lastAxis=null;
-  // loose wisps shed by the blade (Tim 2026-10-29 visual pass): idle they drift outward and down,
+  // loose wisps shed by the blade (2026-10-29 visual pass): idle they drift outward and down,
   // running they stream behind him, opposite the way he faces. Sprite-local units (0..1 of the quad).
   let motes=[],shedAt=0,puffs=[],puffAt=0;
-  const MAX_MOTES=44;   // more pronounced wisps (Tim 2026-10-30: too subtle)
+  const MAX_MOTES=44;   // more pronounced wisps (2026-10-30: too subtle)
   function critical(){critAt=clock;critAxis=lastAxis;}
   return {mesh,critical,
     update(dt,axis,swing=null,enabled=true,{anim='idle',dir=0}={}){
@@ -27,7 +27,7 @@ export function createWeaponShadow(spriteUniforms) {
       history=history.filter(h=>clock-h.time<.22);
       let count=0;
       function ribbon(blade,{bend=0,offset=0,width=.02,fade=.6,shrink=1,drift=0,steps=18}){
-        width*=1.3;   // soft edge falloff needs a slightly wider ribbon (Tim 2026-11-21)
+        width*=1.3;   // soft edge falloff needs a slightly wider ribbon (2026-11-21)
         const dx=(blade.tip.x-blade.base.x)*shrink,dy=(blade.tip.y-blade.base.y)*shrink;
         const len=Math.hypot(dx,dy);if(len<.008)return;
         const nx=-dy/len,ny=dx/len;
@@ -49,8 +49,8 @@ export function createWeaponShadow(spriteUniforms) {
       // the hero. Their tapered ends curl and breathe without a flashing halo.
       for(let i=0;i<2;i++){
         const side=i?1:-1;
-        ribbon(axis,{bend:side*(.035+.02*Math.sin(clock*1.1+i*3)),offset:side*.015,width:.012,   // hug the blade, no arcs round his head (Tim 2026-11-21)
-          fade:.66+.1*Math.sin(clock*1.4+i*2),drift:side});   // idle as noticeable as the attack cut (Tim 2026-10-30)
+        ribbon(axis,{bend:side*(.035+.02*Math.sin(clock*1.1+i*3)),offset:side*.015,width:.012,   // hug the blade, no arcs round his head (2026-11-21)
+          fade:.66+.1*Math.sin(clock*1.4+i*2),drift:side});   // idle as noticeable as the attack cut (2026-10-30)
       }
       // Shed wisps: idle a slow trickle drifting outward and down; running a steadier stream trailing
       // behind (facing from the sheet direction, same convention as sim dirIndex: screen right -sin, down cos).
@@ -73,7 +73,7 @@ export function createWeaponShadow(spriteUniforms) {
         const tail={x:m.x-m.vx/sp*len+sway,y:m.y-m.vy/sp*len};
         ribbon({base:tail,tip:{x:m.x,y:m.y}},{bend:.18*Math.sin(m.curl),width:.014*(.4+.6*k),fade:.75*Math.sin(Math.PI*Math.min(1,age*1.4+.15))*k+.02,steps:5});
       }
-      // Body smoke (Tim 2026-10-30): moving, soft dark curls peel off his body and drift behind him
+      // Body smoke (2026-10-30): moving, soft dark curls peel off his body and drift behind him
       if((running||walking)&&clock-puffAt>(running?.05:.1)&&puffs.length<24){
         puffAt=clock;
         puffs.push({x:.5+(Math.random()-.5)*.12,y:.22+Math.random()*.32,born:clock,life:running?.7:.9,curl:Math.random()*6,len:.05+Math.random()*.05});
@@ -86,7 +86,7 @@ export function createWeaponShadow(spriteUniforms) {
       }
       // A short dark cut persists at previous blade positions, then closes
       // inward. Keep the history bounded and sample independently of FPS.
-      // Attacks a little more visible (Tim 2026-10-29): wider, stronger cut.
+      // Attacks a little more visible (2026-10-29): wider, stronger cut.
       for(const h of history.filter((_,i)=>i%2===0).slice(-4)){
         const life=1-(clock-h.time)/.22;
         ribbon(h.axis,{bend:.25,width:.024*life,fade:.78*life,shrink:.9+.1*life});

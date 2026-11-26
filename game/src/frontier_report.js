@@ -22,7 +22,7 @@ export function frontierReport(frontier) {
 // town one refresh earlier, for the arrows), writes nothing, touches no DOM. ----
 const name = s => String(s).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const RES = ['food', 'timber', 'stone', 'goods', 'ryo'];
-// Tooltips only where a player cannot guess the meaning or needs it for a choice (Tim, 2026-11-02).
+// Tooltips only where a player cannot guess the meaning or needs it for a choice (2026-11-02).
 export const TIPS = {
   mood: 'How content the town is. Built from food, safety and taxes. Low for long and people start leaving.',
   food: 'Arrow shows whether food is going up or down since the last refresh. If it keeps falling, a farm is needed.',
@@ -33,7 +33,7 @@ export const TIPS = {
   jobs: 'Workers in each building. Idle people have no job; free jobs have no worker.\nIdle townsfolk pay half tax; give them work (zones, buildings) to collect full tax.'
 };
 const dir = (now, then) => then === undefined || Math.abs(now - then) < 0.05 ? 'flat' : now > then ? 'up' : 'down';
-// What a "Waiting for <resource>" chip can say: how full it is and how long it will take (frontier E5 polish, Tim 2026-11-04).
+// What a "Waiting for <resource>" chip can say: how full it is and how long it will take (frontier E5 polish, 2026-11-04).
 // Looks at the first authorized, unpaid project that is short of that resource; rate comes from the sim (report.rate, per second).
 export function waitInfo(s, w) {
   const res = RES.find(r => r === w);
@@ -45,7 +45,7 @@ export function waitInfo(s, w) {
   return { fill: Math.max(0, Math.min(1, have / need)), tip: `${name(p.type)} needs ${need} ${res}: ${f(have)} in stock, ${f(short)} short. ${eta}` };
 }
 
-// People in the town panel (Tim 2026-11-16): townspeople as a stock card, what each job type has and wants, and the
+// People in the town panel (2026-11-16): townspeople as a stock card, what each job type has and wants, and the
 // growth line (green with the time to the next person, red with what blocks it). data (frontier.json) is optional.
 export function peopleRows(s, prev, data = null) {
   const r = s.report || {}, g = r.growth || {}, mood = Math.round(s.mood ?? 0), B = data?.buildings || {};
@@ -150,7 +150,7 @@ export function overviewRows(frontier, clan, prev = {}, alerts = {}) {
       shortage: rep.waiting[0] || '', project: proj ? `${proj.label}, ${proj.status}` : '',
       road: road ? road.state : 'none', garrison: '-',
       priority: s.priority, tax: s.taxLocked ? s.taxLevel : 'auto', alerts: alerts[s.id] || [],
-      need: s.need?.level || 'ok', needScore: s.need?.score || 0, needWhy: (s.need?.why || []).map(w => w.text) };   // Tim 2026-11-06: sim/frontier/alerts.js townNeed
+      need: s.need?.level || 'ok', needScore: s.need?.score || 0, needWhy: (s.need?.why || []).map(w => w.text) };   // 2026-11-06: sim/frontier/alerts.js townNeed
   });
 }
 export const SORTS = { name: (a, b) => a.name.localeCompare(b.name), pop: (a, b) => b.popNum - a.popNum, mood: (a, b) => a.mood - b.mood, ryo: (a, b) => b.ryo - a.ryo, rank: (a, b) => a.rank - b.rank, need: (a, b) => b.needScore - a.needScore || a.rank - b.rank };
@@ -161,7 +161,7 @@ export function hoverCard(town, { clan = 'player', clanName = id => id, roads = 
   if (!town) return null;
   if (town.owner !== clan || !town.stock) {
     const n = v => Math.floor(v || 0), sub = town.owner ? `Held by ${clanName(town.owner)}` : 'No one holds it';
-    // a rival town one of your units is near (F6 war, Tim 2026-11-10): its stores and people
+    // a rival town one of your units is near (F6 war, 2026-11-10): its stores and people
     const lines = town.scouted && town.stock ? [['Pop', `${n(town.pop)} / ${n(town.housing)}`], ['Workers', n(town.workerCount)],
       ['Food', n(town.stock.food)], ['Timber', n(town.stock.timber)], ['Stone', n(town.stock.stone)], ['Goods', n(town.stock.goods)], ['Ryo', n(town.stock.ryo)]] : [];
     return { title: town.name, sub, lines, mine: false };

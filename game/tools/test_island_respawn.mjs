@@ -1,4 +1,4 @@
-// Tim 2026-11-06: knocked out on the island, the hero and his crew come round at the clan's nearest
+// 2026-11-06: knocked out on the island, the hero and his crew come round at the clan's nearest
 // town hall at low health (units.json rules.islandRespawn); Hero-group crew follow him again.
 // Without a town the hero wakes by the island side of the city gate.
 import assert from 'node:assert/strict';
@@ -64,7 +64,7 @@ assert.equal(clan.respawning.filter(x => x.island).length, before, 'street crew 
 
 console.log('island respawn: ok');
 
-// --- an infirmary in the town: come round there at full health; units near it heal faster (Tim 2026-11-06) -------
+// --- an infirmary in the town: come round there at full health; units near it heal faster (2026-11-06) -------
 {
   const town = g.state.frontier.settlements.tNear;
   g.step([]);   // the town gets its grid
@@ -83,7 +83,7 @@ console.log('island respawn: ok');
   for (let i = 0; i < 10; i++) g.step([]);
   assert.equal(hero.infirmary, undefined, 'not when far away');
   console.log('island respawn infirmary: ok');
-  // the governor stands by the hall by day, nobody's crew and not attackable; inside at night (Tim 2026-11-10)
+  // the governor stands by the hall by day, nobody's crew and not attackable; inside at night (2026-11-10)
   g.step([{ type: 'time', night: false }]);
   for (let i = 0; i < 20; i++) g.step([]);
   const gov = Object.values(g.state.entities).filter(e => e.governor === 'tNear');

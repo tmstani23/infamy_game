@@ -195,7 +195,7 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
   g.step([{ id: hero, type: 'attack', target: mine }]);
   assert.equal(S[hero].attackTarget, undefined);
 }
-// left-click elsewhere (Tim 2026-10-18): 'stopattack' drops the hero's locked target
+// left-click elsewhere (2026-10-18): 'stopattack' drops the hero's locked target
 {
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', 0, 1, { owner: 'player' });
@@ -207,7 +207,7 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
   assert.ok(S[hero].swing?.target !== foe || !S[hero].swing, 'swing at it cancelled');
   console.log('stop attack ok');
 }
-// Z (Tim 2026-10-18): stopped crew stay passive, no attacking even when hit, until any new order
+// Z (2026-10-18): stopped crew stay passive, no attacking even when hit, until any new order
 {
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', -6, 1, { owner: 'player', hp: 1e6 });
@@ -227,8 +227,8 @@ const alive = (g, id) => g.state.entities[id] && !g.state.entities[id].dead && !
 }
 console.log('combat tests passed');
 
-// T (resume, Tim 2026-10-19): a finished attack leaves player crew holding near the body, with or
-// without resume (Tim 2026-10-25, crew_recruiting_plan.md); only a second T restores the old order
+// T (resume, 2026-10-19): a finished attack leaves player crew holding near the body, with or
+// without resume (2026-10-25, crew_recruiting_plan.md); only a second T restores the old order
 {
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', -10, 1, { owner: 'player' });
@@ -247,7 +247,7 @@ console.log('combat tests passed');
 }
 console.log('T resume ok');
 
-// a second T calls the attack off: back to the old order at once (Tim 2026-10-19)
+// a second T calls the attack off: back to the old order at once (2026-10-19)
 {
   const g = newGame(), S = g.state.entities;
   const hero = g.spawn('hero', 'ronin', -10, 1, { owner: 'player' });
@@ -261,7 +261,7 @@ console.log('T resume ok');
 }
 console.log('T call-off ok');
 
-// Tim 2026-10-19: a player's hero and crew don't pick fights with enemies standing close; they
+// 2026-10-19: a player's hero and crew don't pick fights with enemies standing close; they
 // swing back once hit, and an attack-move still picks fights on the way
 {
   const g = newGame(), S = g.state.entities;
@@ -290,7 +290,7 @@ console.log('T call-off ok');
   console.log('attack-move ok');
 }
 
-// Tim 2026-10-20: crew back each other up (a mate or the boss hit within BACKUP_RANGE), the same for every clan
+// 2026-10-20: crew back each other up (a mate or the boss hit within BACKUP_RANGE), the same for every clan
 {
   const g = newGame(), S = g.state.entities;
   const boss = g.spawn('hero', 'ronin', -1, 1, { owner: 'kuroda', hp: 1e6 });

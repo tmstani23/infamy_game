@@ -1,15 +1,15 @@
-// Stable and omnibus station (Tim 2026-11-06, plan in project files omnibus_stable/plan.md): placed town
+// Stable and omnibus station (2026-11-06, plan in project files omnibus_stable/plan.md): placed town
 // buildings with a production bar, one job at a time, made by hand (nothing on its own, except one horse
 // for a bot clan's boss). Costs are town stock, never ryo.
 //  - stable (data.buildings.stable.stable): horses (kinds calico, black_beauty), rickshaws and omnibuses
-//    (kinds with vehicle: true; Tim 2026-11-07, the omnibus station no longer makes them). How many a clan can
+//    (kinds with vehicle: true; 2026-11-07, the omnibus station no longer makes them). How many a clan can
 //    have is room(): the sum over its towns with a built stable of stable.room[category][town tier - 1]
 //    (categories horse / rickshaw / omnibus); owned ones count, queued ones too, nothing is ever taken away.
 //    A finished horse waits at the stable for sim/mounts.js to bring it out (born()); a finished vehicle comes
 //    out empty and parks beside the stable (bornVehicles(), sim/omnibus.js).
 // Command (through the frontier hub): { id: <hero id>, type: 'frontier', action: 'stable', town,
 //   mode: 'horse' (kind) | 'rickshaw' | 'omnibus' | 'cancel' (the last job, refunded) | 'choose' (horse: id) }
-// The capital stable (Tim 2026-11-07, stable.capital): { ..., town: 'capital', mode, kind?, count } buys for clan ryo,
+// The capital stable (2026-11-07, stable.capital): { ..., town: 'capital', mode, kind?, count } buys for clan ryo,
 //   no waiting, once the clan holds or has used a founding permit; it waits on the island side of the gate (capitalYard)
 //   and the capital stable adds stable.capital.room to your room. It also stores what you recall (sim/vehicle_garage.js).
 // createStable({ state, data, world, capitalYard }) -> { command, tick, of, born, bornVehicles, horsesOf, jobsOf, centre, parkedAt, room, have, category, capitalAt, capitalOk }
@@ -113,7 +113,7 @@ export function createStable({ state, data, world, capitalYard = null }) {
     }
     const kind = c.mode === 'horse' ? c.kind : c.mode === 'rickshaw' || c.mode === 'omnibus' ? c.mode : null, spec = kind && C.kinds?.[kind];
     if (!spec || (c.mode === 'horse' && spec.vehicle)) return receipt(e, c, false, 'a horse, rickshaw or omnibus');
-    // count (Tim 2026-11-07): queue several at once; as many as room, the queue and stock allow
+    // count (2026-11-07): queue several at once; as many as room, the queue and stock allow
     const cat = category(kind), max = room(e.owner, cat), want = Math.max(1, Math.min(C.queue ?? 10, Math.floor(c.count) || 1));
     let made = 0, why = '';
     while (made < want) {

@@ -1,5 +1,5 @@
 {
-  "_about": "One recipe per building type for the room generator (game/src/sim/generate.js). Plan: docs/room_generator_plan.md. Ranges [a, b] are picked by the seed. Sizes are even cells. place: 'corners' (floor lamps), 'over' (hanging, over the listed props), 'wall' (against a far wall), 'back_room' (inside the back room); otherwise anywhere in the main room. top: a prop set on each one. picked: the seeds Tim chose from the preview (2026-10-16); buildings use one of these. Sizes and counts raised about 2.5x on 2026-10-18 (Tim), so the picked seeds now give new layouts.",
+  "_about": "One recipe per building type for the room generator (game/src/sim/generate.js). Plan: docs/room_generator_plan.md. Ranges [a, b] are picked by the seed. Sizes are even cells. place: 'corners' (floor lamps), 'over' (hanging, over the listed props), 'wall' (against a far wall), 'back_room' (inside the back room); otherwise anywhere in the main room. top: a prop set on each one. picked: the seeds chosen from the preview (2026-10-16); buildings use one of these. Sizes and counts raised about 2.5x on 2026-10-18, so the picked seeds now give new layouts.",
 
   "teahouse": {
     "picked": [2, 6, 11],

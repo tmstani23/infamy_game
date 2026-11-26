@@ -1,4 +1,4 @@
-// The clinic only takes someone who hasn't been hit for clinicUnhitSeconds (Tim 2026-10-20): the
+// The clinic only takes someone who hasn't been hit for clinicUnhitSeconds (2026-10-20): the
 // boss's menu waits, and crew sent with G wait at the door. Run: node tools/test_clinic_unhit.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';

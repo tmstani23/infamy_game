@@ -1,9 +1,9 @@
-// Town growth effects (economy balance B7, mock approved by Tim 2026-11-05). Draw only: reads the town
+// Town growth effects (economy balance B7, mock approved by 2026-11-05). Draw only: reads the town
 // records' fx list (sim/frontier/arrivals.js) and paints, on a 2D canvas over the world view:
 //   level  - a thin isometric scaffold round the house plus a muted dust cloud, and the new house's name
 //            rising in small gold letters (combat-text style)
 //   arrive - a small "+1" rising over the house a newcomer walked into
-//   fireworks - a town hall tier-up or a capture: rockets from the hall for fireworksTicks (Tim 2026-11-05, restyled 2026-11-25)
+//   fireworks - a town hall tier-up or a capture: rockets from the hall for fireworksTicks (2026-11-05, restyled 2026-11-25)
 // Positions are world points projected with view.unitToScreen(x, z, height), so the scaffold follows the
 // ground diamond of the cell. No glow, no textures. fxTicks (data.arrivals) sets how long each shows.
 import { cellToWorld, centreCell } from './sim/frontier/town_grid.js';
@@ -42,11 +42,11 @@ export function createTownGrowthFx({ view, data }) {
     }
     // one diagonal brace on each front face
     for (let i = 0; i < 4; i++) { const j = (i + 1) % 4; if (i !== back && j !== back) line(P(...corners[i], 0), P(...corners[j], top * 0.7), 1, 0.6 * fade); }
-    // combat-text style: the new house's name in small gold letters, rising and fading over about 2 s (Tim 2026-11-05)
+    // combat-text style: the new house's name in small gold letters, rising and fading over about 2 s (2026-11-05)
     const tk = k * life / 40;
     if (tk <= 1) { const name = stageName(f.stage); label(P(x, z, top + 1), name[0].toUpperCase() + name.slice(1), tk > 0.6 ? (1 - tk) / 0.4 : 1, tk * 22, 12, true); }
   }
-  // "+1 Homed" (Tim 2026-11-05: cooler than a plain +1): a pop, a ring of gold sparks, then the text drifts up
+  // "+1 Homed" (2026-11-05: cooler than a plain +1): a pop, a ring of gold sparks, then the text drifts up
   function homed(p, k) {
     const a = k > 0.65 ? (1 - k) / 0.35 : 1, pop = k < 0.12 ? 0.6 + 0.4 * Math.sin(k / 0.12 * Math.PI / 2) * 1.25 : 1;
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -67,7 +67,7 @@ export function createTownGrowthFx({ view, data }) {
     ctx.lineWidth = 3; ctx.strokeStyle = `rgba(30,24,18,${0.85 * alpha})`; ctx.fillStyle = gold ? `rgba(242,196,84,${alpha})` : `rgba(240,226,180,${alpha})`;
     ctx.strokeText(text, p.x, p.y - rise); ctx.fillText(text, p.x, p.y - rise);
   }
-  // Fireworks (restyled Tim 2026-11-25, capture mock /mnt/project-files/capture_moment/): chrysanthemum bursts, mostly
+  // Fireworks (restyled 2026-11-25, capture mock /mnt/project-files/capture_moment/): chrysanthemum bursts, mostly
   // gold with some in the town owner's colour (the victor's on a capture). Streaks shoot out from a hot core, droop,
   // end in a bright pearl and shed falling sparks; everything a little see-through. Rocket n launches every `every`
   // ticks from the hall, climbs for `climb` ticks, then bursts for `burst`. All derives from (f.tick, n), so every
@@ -135,7 +135,7 @@ export function createTownGrowthFx({ view, data }) {
     if (canvas.width !== innerWidth || canvas.height !== innerHeight) { canvas.width = innerWidth; canvas.height = innerHeight; }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!show) return;
-    // a town hall upgrade in progress: a big scaffold round the hall the whole time (Tim 2026-11-05)
+    // a town hall upgrade in progress: a big scaffold round the hall the whole time (2026-11-05)
     for (const s of towns || []) if (s.tierUpgrade && s.grid) {
       const big = { ...s, grid: { ...s.grid, cell: s.grid.cell * 2.2 } };
       scaffold(big, { cell: centreCell(s.grid.n), stage: 1 }, 0.6 + 0.1 * Math.sin(smooth / 30));

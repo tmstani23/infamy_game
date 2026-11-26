@@ -92,7 +92,7 @@ const explored = (g, clan, x, z) => g.vision.grid(clan).explored[g.vision.cellOf
   assert.deepEqual(JSON.parse(JSON.stringify(g.state)), g.state);
   console.log('plain state ok');
 }
-// island sight by day and night (Tim 2026-11-10): data/world_chunks.json sight
+// island sight by day and night (2026-11-10): data/world_chunks.json sight
 {
   const { createVision } = await import('../src/sim/vision.js');
   const sight = JSON.parse((await import('node:fs')).readFileSync(new URL('../data/world_chunks.json', import.meta.url), 'utf8')).sight;

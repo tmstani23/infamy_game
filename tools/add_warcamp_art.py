@@ -1,4 +1,4 @@
-"""Cut the war camp building sheet (Tim 2026-11-09/10) into game/art/buildings.
+"""Cut the war camp building sheet (2026-11-09/10) into game/art/buildings.
 
     python tools/add_warcamp_art.py [--preview out.png]
 

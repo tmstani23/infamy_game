@@ -1,4 +1,4 @@
-// The ship between the city harbour pier and the castle dock (Tim 2026-11-19, sim/frontier/ferry.js): the boss and his
+// The ship between the city harbour pier and the castle dock (2026-11-19, sim/frontier/ferry.js): the boss and his
 // party board at the pier, sail, land on the dock; back the same way; Space skips. Run: node game/tools/test_ship_ride.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -39,7 +39,7 @@ if (mate.deployment) mate.deployment.group = 'hero';
 const far = S.entities[g.spawn('thug', 'thug', px - 60, pz + 60, { owner: hero.owner })];
 assert.equal(ferry.at(hero), 'city');
 assert.equal(ferry.prompt(hero).text, 'Space  Ship to your castle');
-// All aboard (Tim 2026-11-20, as the trains): Use calls it, a zone round him; crew who walk in during the call come too
+// All aboard (2026-11-20, as the trains): Use calls it, a zone round him; crew who walk in during the call come too
 const late = S.entities[g.spawn('thug', 'thug', px + 40, pz, { owner: hero.owner })];
 if (late.deployment) late.deployment.group = 'hero';
 use('board');
@@ -56,7 +56,7 @@ assert.equal(hero.place, 'world');
 run(40);
 assert.ok(ferry.prompt(hero).riding, 'the prompt shows the crossing');
 g.step([{ id: hero.id, type: 'move', x: 5, z: 5 }]); assert.ok(hero.aboard, 'orders do nothing at sea');
-// a steady speed along a route that keeps to the sea (Tim 2026-11-20)
+// a steady speed along a route that keeps to the sea (2026-11-20)
 { const r = hero.shipRide, len = r.path.reduce((n, q, i) => i ? n + Math.hypot(q[0] - r.path[i - 1][0], q[1] - r.path[i - 1][1]) : 0, 0);
   assert.ok(Math.abs((r.until - r.since) - Math.round(Math.max(ship.minSeconds, len / ship.speed) * 20)) <= 1, 'route length / speed');
   run(r.until - g.state.tick + 1); }
@@ -71,7 +71,7 @@ const yard = cellToWorld(c, castleIndex(bp, c.grid.n, c.castle.rot)(13, 8));   /
 const path = g.areas.nav.workerPath(hero.x, hero.z, yard[0], yard[1]);
 assert.ok(path && path.length, 'a way on foot from the dock through the harbour gate into the yard');
 
-// anywhere on the dock's planks counts, out to its sea end; the castle yard does not (Tim 2026-11-20)
+// anywhere on the dock's planks counts, out to its sea end; the castle yard does not (2026-11-20)
 const keep = [hero.x, hero.z];
 Object.assign(hero, { x: dock.end.x, z: dock.end.z }); assert.equal(ferry.at(hero), 'castle', 'the sea end of the dock');
 Object.assign(hero, { x: yard[0], z: yard[1] }); assert.equal(ferry.at(hero), null, 'not from the castle yard');
@@ -86,7 +86,7 @@ Object.assign(hero, { x: spot[0] + 30 }); run(10 * 20 + 1);
 assert.ok(!hero.aboard && !hero.shipCall, 'called off: he left the dock');
 Object.assign(hero, { x: spot[0], z: spot[1] });
 use('board');
-// the zone lies at the sea end of the dock, its far edge reaching the ship (Tim 2026-11-20); he may call from anywhere on the dock
+// the zone lies at the sea end of the dock, its far edge reaching the ship (2026-11-20); he may call from anywhere on the dock
 const zc = hero.shipCall, dl = Math.hypot(dock.end.x - dock.land.x, dock.end.z - dock.land.z), ux = (dock.end.x - dock.land.x) / dl, uz = (dock.end.z - dock.land.z) / dl;
 assert.ok(Math.hypot(zc.x - (dock.end.x - ux * ship.zoneInset), zc.z - (dock.end.z - uz * ship.zoneInset)) < 0.01, 'zone at the dock end');
 assert.ok(Math.hypot(hero.x - zc.x, hero.z - zc.z) > zc.r, 'he called from the landward end, outside the zone');

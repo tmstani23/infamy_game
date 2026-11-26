@@ -1,4 +1,4 @@
-// The lieutenant at the island gate (goal steps, Tim 2026-11-06). Space at his ring opens four short lines on
+// The lieutenant at the island gate (goal steps, 2026-11-06). Space at his ring opens four short lines on
 // what he does; Show me opens Deployment at While I'm away, Later closes. Sends only { type: 'lieutenant',
 // guide: 'met' | 'opened' }; the steps and flags are in sim/campaign_goals.js and sim/lieutenant.js.
 import { lieutenantPortrait } from './lieutenant_portrait.js';
@@ -25,7 +25,7 @@ export function createLieutenantTalk({ panel, game, heroId, send, showOrders }) 
     panel.hidden = !open;
     if (!open) return;
     const clan = game.state.clans?.[hero()?.owner];
-    // menu restyle (Tim 2026-11-10): the shared shell, his 3D still on the left, his lines as speech
+    // menu restyle (2026-11-10): the shared shell, his 3D still on the left, his lines as speech
     const aside = msAside({ art: msConcept('lieutenant1') || lieutenantPortrait(clan), label: 'City captain', labelTip: 'He runs the city while you are out on the island.' });
     const body = `<div class="ms-speech">${LINES(clan).map(t => `<p>${msEsc(t)}</p>`).join('')}</div>`
       + `<div class="ms-foot"><span class="ms-small">Space or Esc closes</span><span><button class="ms-btn ms-go goal-flash" data-pick="show" title="Open Deployment at While I am away">Show me</button>${msBtn({ label: 'Later', data: 'data-pick="later"' })}</span></div>`;

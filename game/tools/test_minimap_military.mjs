@@ -1,4 +1,4 @@
-// Minimap military badges (Tim 2026-11-19): town and war camp military buildings get lettered badges, two letters
+// Minimap military badges (2026-11-19): town and war camp military buildings get lettered badges, two letters
 // where another badge has the first; enemy ones only as last seen (the snapshot sends remembered buildings only).
 import assert from 'node:assert/strict';
 import { majorBuildings, MAJOR_BUILDINGS, drawBuildingBadge } from '../src/minimap_icons.js';

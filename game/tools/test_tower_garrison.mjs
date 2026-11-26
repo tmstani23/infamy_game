@@ -1,4 +1,4 @@
-// Z4e (Tim 2026-11-19): watchtowers can be garrisoned: their own room (zoneGarrison.byType.watchtower.capacity) and
+// Z4e (2026-11-19): watchtowers can be garrisoned: their own room (zoneGarrison.byType.watchtower.capacity) and
 // ranged troops inside reach further (reach).   node game/tools/test_tower_garrison.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

@@ -1,4 +1,4 @@
-// Tim 2026-11-06: out on the island the hero arrives driving an omnibus with his settlers and Hero group
+// 2026-11-06: out on the island the hero arrives driving an omnibus with his settlers and Hero group
 // inside (sim/omnibus.js, units.json rules.omnibus): 8 seats each, a second one follows his track, 3x run
 // speed, nobody inside fights, hits land on the omnibus (wrecked: everyone piles out), Q / right-click
 // deploys and boards, founding a town steps everyone out and uses the omnibuses up.
@@ -22,7 +22,7 @@ assert.ok(g.omnibus, 'campaign games have the omnibus');
 
 // --- out through the gate with 5 settlers and 6 Hero-group crew: two omnibuses (12 people, 8 seats) ----
 Object.assign(hero, { place: 'street', x: g.gate.city[0], z: g.gate.city[1] });
-clan.settlersWaiting = 5; clan.permit = true;   // the gate opens with a founding permit (Tim 2026-11-10)
+clan.settlersWaiting = 5; clan.permit = true;   // the gate opens with a founding permit (2026-11-10)
 const crew = [];
 for (let k = 0; k < 6; k++) crew.push(S.entities[g.spawn('thug', 'thug', hero.x + 1, hero.z + k * 0.3, { owner: 'player', place: 'street', hp: 100, order: { kind: 'follow', target: hero.id } })]);
 g.step([{ id: hero.id, type: 'expedition', action: 'walk', units: crew.map(u => u.id) }]);
@@ -38,7 +38,7 @@ assert.equal(clan.omnibusFree, O.max - 2, 'both used');
 
 // --- driving: 3x run speed, riders stay inside, the second follows the track ------------------------------
 assert.ok(Math.abs(g.stats.movement(hero, 'run') - 6 * O.speed) < 1e-6, `3x run speed (${g.stats.movement(hero, 'run')})`);
-let x0 = hero.x;   // Tim 2026-11-07: trots at about run speed; Shift (walk) or Sprint gallops
+let x0 = hero.x;   // 2026-11-07: trots at about run speed; Shift (walk) or Sprint gallops
 for (let t = 0; t < 60; t++) g.step([{ id: hero.id, type: 'move', right: 1, down: 0 }]);
 assert.ok(hero.x - x0 > 6 && hero.x - x0 < 6 * 3 + 1, `trotted (${(hero.x - x0).toFixed(1)} in 3 s)`);
 x0 = hero.x;
@@ -53,7 +53,7 @@ assert.ok(turned > 0 && turned <= U.rules.omnibus.turnDegrees * Math.PI / 180 / 
 assert.equal(lead.dir, hero.dir, 'the omnibus shows the same row');
 for (const u of aboard(lead)) if (u !== hero) assert.ok(Math.hypot(u.x - lead.x, u.z - lead.z) < 1e-6, 'riders inside');
 const gap = Math.hypot(second.x - lead.x, second.z - lead.z);
-const want = O.length + (O.followClearance ?? 3);   // omnibus behind omnibus: a length plus clearance (Tim 2026-11-07)
+const want = O.length + (O.followClearance ?? 3);   // omnibus behind omnibus: a length plus clearance (2026-11-07)
 assert.ok(gap > want * 0.6 && gap < want * 1.3, `second follows ${want} behind (${gap.toFixed(1)})`);
 for (const u of aboard(second)) assert.ok(Math.hypot(u.x - second.x, u.z - second.z) < 1e-6, 'its riders inside');
 
@@ -74,7 +74,7 @@ assert.equal(rider.hp, riderHp, 'a rider attacked by a foe is untouched');
 assert.ok(lead.hp < busHp2, `the omnibus takes a foe's hits (${busHp2} -> ${lead.hp})`);
 delete S.entities[foe.id];
 
-// --- Q: everyone steps out, the omnibuses park; the crew wait beside them until told (Tim 2026-11-08) ------------
+// --- Q: everyone steps out, the omnibuses park; the crew wait beside them until told (2026-11-08) ------------
 g.step([{ id: hero.id, type: 'omnibus', action: 'deploy' }]);
 assert.ok(!hero.aboard && !hero.ride, 'hero out');
 assert.ok(buses().every(b => !aboard(b).length), 'everyone out');
@@ -91,7 +91,7 @@ g.step([{ id: hero.id, type: 'omnibus', action: 'board' }]);
 assert.equal(hero.aboard, lead.id, 'back in the first');
 assert.equal(Object.values(S.entities).filter(u => u.aboard).length, 12, 'all twelve back in');
 
-// --- right-click one seat on the vehicle card: only that rider steps out (Tim 2026-11-08) -------------------------
+// --- right-click one seat on the vehicle card: only that rider steps out (2026-11-08) -------------------------
 {
   const one = crew.find(u => u.aboard && u.type !== 'settler');
   g.step([{ id: hero.id, type: 'omnibus', action: 'deploy', vehicles: [one.aboard], units: [one.id, hero.id] }]);
@@ -107,7 +107,7 @@ assert.ok(!S.entities[lead.id], 'wrecked omnibus removed');
 assert.ok(!hero.aboard && !hero.ride, 'hero piled out');
 assert.ok(aboard(second).length > 0, 'the other omnibus still holds its riders');
 
-// --- vehicles work like crew (Tim 2026-11-07): follow on foot, move then stay, stop stays, Q empties only those --
+// --- vehicles work like crew (2026-11-07): follow on foot, move then stay, stop stays, Q empties only those --
 {
   Object.assign(second, { x: hero.x + 30, z: hero.z }); second.vorder = { kind: 'follow' };
   for (let t = 0; t < 60; t++) g.step([]);
@@ -120,7 +120,7 @@ assert.ok(aboard(second).length > 0, 'the other omnibus still holds its riders')
   assert.equal(second.vorder.kind, 'stay', 'then stays');
   for (let t = 0; t < 10; t++) g.step([]);
   assert.equal(second.anim, 'idle', 'stands still once there');
-  // held on the spot (turning, blocked, nudged): no wheels running in place (Tim 2026-11-10)
+  // held on the spot (turning, blocked, nudged): no wheels running in place (2026-11-10)
   second.anim = 'run'; for (let t = 0; t < 5; t++) g.step([]);
   assert.equal(second.anim, 'idle', 'a vehicle that is not getting anywhere stands still');
   Object.assign(hero, { x: hero.x - 25 }); const sx = second.x;

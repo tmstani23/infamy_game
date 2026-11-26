@@ -1,4 +1,4 @@
-// The numbers behind each war special, for hovers (Tim 2026-11-18: the train cards and ability buttons said how to
+// The numbers behind each war special, for hovers (2026-11-18: the train cards and ability buttons said how to
 // cast a special but not what it does in numbers). Reads the same unit definitions and defaults as the sim, so the
 // hover never drifts from the rules. No DOM: Node checks it (tools/test_special_stats.mjs).
 // specialNumbers(id, unitDef) -> one short sentence of numbers ('' when the unit has no such special)
@@ -8,7 +8,7 @@ import { RIFLE } from './sim/rifleman.js';
 import { TAUNT } from './sim/taunt.js';
 
 const s = t => `${Number(((t || 0) / 20).toFixed(1))} s`;
-const pct = f => `${Math.round(f * 100)} percent`;   // no special characters in game text (Tim 2026-11-10)
+const pct = f => `${Math.round(f * 100)} percent`;   // no special characters in game text (2026-11-10)
 
 export function specialNumbers(id, u = {}) {
   switch (id) {

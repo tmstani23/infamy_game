@@ -1,4 +1,4 @@
-// Upkeep and goods needs (economy balance B5, Tim 2026-11-05). Called once per economy tick from the
+// Upkeep and goods needs (economy balance B5, 2026-11-05). Called once per economy tick from the
 // zone tick of a grid town. Pays what the stock allows (never below zero, through world.change) and
 // returns how much of each bill was paid, so zones can turn short upkeep into lower health.
 // All numbers: data/frontier.json "upkeep". Towns without it pay nothing.

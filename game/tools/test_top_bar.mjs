@@ -1,4 +1,4 @@
-// Top bar standings model (Tim 2026-11-10): a chip per clan, you first then by rank; Influence and Renown in campaign, points in classic.
+// Top bar standings model (2026-11-10): a chip per clan, you first then by rank; Influence and Renown in campaign, points in classic.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';

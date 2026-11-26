@@ -20,7 +20,7 @@ const fresh = (kind, ryo = 3000) => {
   const run = (n, until = () => false) => { const sent = []; for (let i = 0; i < n && !until(); i++) { const out = mine.tick(); sent.push(...out); g.step(out); } return sent; };
   return { g, m, hero, L, mine, brains, away, run, clan: g.state.clans.player, S: g.state };
 };
-// Lieutenant raids (Tim 2026-11-08): with the boss away the captain buys a War Lantern, calls a Rally of the city
+// Lieutenant raids (2026-11-08): with the boss away the captain buys a War Lantern, calls a Rally of the city
 // groups, plants it at a rival business at night and the crew go in to hold the back room.
 {
   const t = fresh('yakuza', 6000), U = t.g.settings.units.types, S = t.S;
@@ -42,7 +42,7 @@ const fresh = (kind, ryo = 3000) => {
   assert.ok(log().some(x => /Raiding the/.test(x)), `planted the lantern: ${t.clan.notice?.text}`);
   const a = Object.values(S.attacks).find(x => x.clan === 'player');
   assert.ok(a, 'a raid is on');
-  // the owner starts knocking the War Lantern down (Tim 2026-11-10): the raiders go for him and the channel breaks
+  // the owner starts knocking the War Lantern down (2026-11-10): the raiders go for him and the channel breaks
   {
     const foeBoss = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === 'kuroda');
     const knocker = S.entities[t.g.spawn('thug', U.thug.sprite, a.lantern.x + 0.5, a.lantern.z, { owner: 'kuroda', hp: 1e5, maxHp: 1e5, holdFire: true })];
@@ -66,10 +66,10 @@ const fresh = (kind, ryo = 3000) => {
   t.run(3600, () => { const x = S.attacks[a.business]; if (x) inside = Math.max(inside, Object.values(S.entities).filter(u => u.owner === 'player' && u.place === x.room && !u.dead).length); return !S.attacks[a.business]; });
   console.log('most inside', inside, 'owner now', S.businesses[a.business].owner, t.clan.notice?.text);
   assert.ok(inside > 0, 'crew went in');
-  // they stay in and hold the back room until it is theirs (Tim 2026-11-10: they used to walk straight back out)
+  // they stay in and hold the back room until it is theirs (2026-11-10: they used to walk straight back out)
   assert.equal(S.businesses[a.business].owner, 'player', `the raid is won: ${t.clan.notice?.text}`);
   assert.doesNotMatch(t.clan.notice?.text || '', /full inside|Lantern planted|RALLY/, 'no boss prompts from the captain\'s raid');
-  // a rival clan with its boss away (Tim 2026-11-10): its captain runs the same raid, against a business of yours
+  // a rival clan with its boss away (2026-11-10): its captain runs the same raid, against a business of yours
   {
     const r = fresh('yakuza', 3000), S2 = r.S, heroOf = id => Object.values(S2.entities).find(e => e.type === 'hero' && e.owner === id);
     const rival = Object.keys(S2.clans).find(id => id !== 'player' && S2.clans[id].bot && S2.clans[id].kind !== 'ninja' && heroOf(id) && r.brains.some(b => b.config?.lieutenant && b.config.clan === id));
@@ -94,7 +94,7 @@ const fresh = (kind, ryo = 3000) => {
     assert.equal(S2.businesses[ra.business].owner, rival, 'the rival captain won the raid');
     console.log('rival captain raid: ok', S2.businesses[ra.business].kind);
   }
-  // defending with the boss away (Tim 2026-11-10): a rival plants a War Lantern at one of ours, our crew knock it down
+  // defending with the boss away (2026-11-10): a rival plants a War Lantern at one of ours, our crew knock it down
   {
     const d3 = fresh('yakuza', 3000), S3 = d3.S, foeBoss = Object.values(S3.entities).find(e => e.type === 'hero' && e.owner === 'kuroda');
     const ours = Object.values(S3.businesses).filter(b => !b.owner && !b.hideout && b.room && b.ring && d3.g.businesses.rules[b.kind])[0];

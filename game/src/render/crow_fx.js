@@ -1,6 +1,6 @@
-// Crows out on the island (wildlife W1, Tim 2026-11-24). Presentation only: src/crow_flock.js moves the birds,
+// Crows out on the island (wildlife W1, 2026-11-24). Presentation only: src/crow_flock.js moves the birds,
 // this draws them and feeds it what the camera shows. Video setting "Wildlife" turns it off.
-// - Flying crows: code-drawn silhouettes (crowOutline, the flock mock Tim approved), pure black, one mesh for all,
+// - Flying crows: code-drawn silhouettes (crowOutline, the flock mock approved), pure black, one mesh for all,
 //   drawn over the sprites, each with a soft blob shadow on the ground under it.
 // - Crows sitting on roofs, trees, walls, fences and the ground: the Blender crow sprite sheet (art/wildlife/crow.png,
 //   war_build/wildlife/crow/crow_render.py + w1/pack.py: idle, peck, hop, caw and fly, 8 directions), each a sprite
@@ -44,7 +44,7 @@ export function createCrowFx({ scene, world, groundY = () => 0, isBuilding = () 
   const flyCol = new Float32Array(MAX * TRIS * 9);
   flyGeo.setAttribute('position', new THREE.BufferAttribute(flyPos, 3).setUsage(THREE.DynamicDrawUsage));
   flyGeo.setAttribute('color', new THREE.BufferAttribute(flyCol, 3).setUsage(THREE.DynamicDrawUsage));
-  // very dark blue-black, a faint cool edge along the top of the body and the raised wings (Tim 2026-11-24: "ok lets try")
+  // very dark blue-black, a faint cool edge along the top of the body and the raised wings (2026-11-24: "ok lets try")
   const BASE = new THREE.Color().setRGB(0.038, 0.043, 0.062, THREE.SRGBColorSpace), EDGE = new THREE.Color().setRGB(0.2, 0.235, 0.31, THREE.SRGBColorSpace);
   const tone = f => [BASE.r + (EDGE.r - BASE.r) * f, BASE.g + (EDGE.g - BASE.g) * f, BASE.b + (EDGE.b - BASE.b) * f];
   const flyMesh = new THREE.Mesh(flyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.96, depthTest: false, depthWrite: false, side: THREE.DoubleSide }));
@@ -79,7 +79,7 @@ export function createCrowFx({ scene, world, groundY = () => 0, isBuilding = () 
   // ---- perch spots along the top edge of a host's picture (its roof, crown, wall or fence top)
   const lineCache = new WeakMap();
   // only a host's own mask (render/scenery.js big things); reading the picture back drew whole atlas pages per
-  // tree and froze the game on the island (Tim 2026-11-24), so a host without one gets no mask
+  // tree and froze the game on the island (2026-11-24), so a host without one gets no mask
   function maskOf(t) { return t.mask || null; }
   // offsets [right, up] from the host's centre (world units on screen) of points along its top edge, about 0.45 apart
   function topLine(t, kind) {

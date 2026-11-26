@@ -1,4 +1,4 @@
-// Steam and the waiting badge of a sprite train (Tim 2026-11-07), drawn by render/rail_track.js.
+// Steam and the waiting badge of a sprite train (2026-11-07), drawn by render/rail_track.js.
 //   const fx = createTrainFx(scene)
 //   fx.step(dt, engine, { mode: 'idle' | 'run' | null, speed, whistle, wait })
 //     engine: { x, z, fx, fz } its middle on the ground and the way it faces (unit), or null while it is out of sight
@@ -6,7 +6,7 @@
 //     brake: true on the frame it halts at a blown track: a blast of steam from the cylinders and the chimney
 //     whistle: true on the frame it whistles (pulling out): a thin, fast plume straight up for a moment
 //     wait: { left, full } seconds while it stands in a station: a flashing badge and a bar that runs down
-//   fx.lamps(head, tail, night): night lamps (Tim 2026-11-07): a warm headlamp on the engine's front and a red tail lamp
+//   fx.lamps(head, tail, night): night lamps (2026-11-07): a warm headlamp on the engine's front and a red tail lamp
 //     on the guard van; head / tail = { x, z, fx, fz } (that car's middle and facing) or null; night 0..1
 //   fx.lights: the two lamps as scene lights (render/view.js updateLights); off while hidden or by day
 //   fx.dispose()
@@ -18,7 +18,7 @@ const CHIMNEY = { fwd: 2.3, up: 3.55 };   // the chimney top from the engine's m
 const STEAM = {
   idle:    { every: 0.5, life: 3.8, rise: 1.0, size: [0.45, 2.8], alpha: 0.34, spread: 0.18, sway: 0.4 },
   run:     { every: 0.13, life: 2.1, rise: 2.6, size: [0.8, 3.4], alpha: 0.5, spread: 0.35, sway: 0.15 },
-  // an emergency stop at a blown track (Tim 2026-11-21): a hard blast of steam out of both cylinders, low by the front
+  // an emergency stop at a blown track (2026-11-21): a hard blast of steam out of both cylinders, low by the front
   // wheels, and a thick burst from the chimney, fading over a couple of seconds
   brake:   { every: 0.03, life: 1.9, rise: 0.5, size: [0.5, 3.6], alpha: 0.6, spread: 0.25, sway: 0.25, seconds: 2.2, out: 3.4 },
   whistle: { every: 0.025, life: 0.85, rise: 12, size: [0.3, 0.85], alpha: 0.9, spread: 0.05, sway: 0, seconds: 1.6 },

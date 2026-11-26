@@ -1,4 +1,4 @@
-// The capital's harbour piers drawn as wooden piers on piles like the castle docks (Tim 2026-11-23: "give them same
+// The capital's harbour piers drawn as wooden piers on piles like the castle docks (2026-11-23: "give them same
 // treatment"). Drawing only: the city's walkable ground is unchanged (the painted planks stay under it). Each pier is
 // a rectangle in city units from data/port_town.json docks.piers ([minX, minZ, maxX, maxZ] of the part over the water,
 // land = the side that meets the quay: 'N', 'S', 'E' or 'W'); docks.size overrides src/dock_shape.js DOCK (a city pier

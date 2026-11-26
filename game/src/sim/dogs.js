@@ -1,4 +1,4 @@
-// Yakuza dog handler (war checkpoint 7-3, Tim 2026-11-12): the Yakuza's second special, trained at the kennel.
+// Yakuza dog handler (war checkpoint 7-3, 2026-11-12): the Yakuza's second special, trained at the kennel.
 //  - He fights with his club like any crew member.
 //  - "Loose the dogs" (units.json dog_handler.dogs): count dogs run straight at one enemy like a projectile, bite for
 //    damage and knock it down for knockdownTicks, then are gone (a dust puff). Cooldown cooldownTicks.
@@ -17,7 +17,7 @@ export function createDogs({ state, units, vision, spawn, hit, hostile = () => f
   const ranged = t => { const u = units.types[t.type]; return !!(u?.projectile || u?.rifle || t.type === 'shinobi_geisha'); };
   const fleeing = t => !!t.fleeing || t.order?.kind === 'flee' || t.order?.kind === 'retreat';
   const valid = (e, t, R, req) => alive(t) && !t.jailed && t.owner !== e.owner && t.type !== 'civilian' && !t.animal && !t.cop && t.place === e.place && !t.garrison && !t.aboard
-    && hostile(e, t) && allowed(e, t) && vision.canSee(e.owner, t) && dist(e, t) <= (req ? R.castRange ?? R.range : R.range);   // asked for: castRange (Tim 2026-11-20)
+    && hostile(e, t) && allowed(e, t) && vision.canSee(e.owner, t) && dist(e, t) <= (req ? R.castRange ?? R.range : R.range);   // asked for: castRange (2026-11-20)
   function target(e, R, req) {
     let best = null, bd = Infinity;
     for (const t of Object.values(state.entities)) {

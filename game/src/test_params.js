@@ -1,4 +1,4 @@
-// The one test switch (Tim 2026-10-19: one param, nothing hidden anywhere else): ?test=<setup>
+// The one test switch (2026-10-19: one param, nothing hidden anywhere else): ?test=<setup>
 //   ?test=bot    see the whole rival clan fast: it starts with 5000 ryo (buys, hires, then a War
 //                Lantern raid on you); you start with the teahouse and 3000 ryo (enough for a lantern)
 //   ?test=ninja  skip the start menu and play the Shinobi clan for gameplay testing:

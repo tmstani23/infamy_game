@@ -1,4 +1,4 @@
-// Garrison slots (Tim 2026-11-25): every building troops can hold shows who is inside, one slot per place, in its
+// Garrison slots (2026-11-25): every building troops can hold shows who is inside, one slot per place, in its
 // menu (the town and war camp building menus) or its Building pane (houses). Right-click a unit's slot and that one
 // walks out. A stockade marks which ranged units hold its firing slots (data buildings.stockade.garrison.firingSlots,
 // the first by id, as sim/frontier/structures.js garrisonFire). Presentation only: leaving is the frontier 'garrison'

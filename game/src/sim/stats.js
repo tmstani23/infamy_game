@@ -16,7 +16,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
   const base = e => baseStats(units, e, roamers);
   const buff = (e, id) => { const b = e?.buffs?.[id]; return b && (b.until == null || b.until > state.tick) ? b : null; };
   const clamp = n => Math.max(0, Math.min(1, n));
-  const frontierDamage = e => e?.place === 'world' && e.type === 'hero' ? base(e).frontierDamage || 1 : 1;   // Frontier effect (Tim 2026-11-24): heroes hit harder on the island
+  const frontierDamage = e => e?.place === 'world' && e.type === 'hero' ? base(e).frontierDamage || 1 : 1;   // Frontier effect (2026-11-24): heroes hit harder on the island
   function damageMultiplier(e) { return (buff(e, 'lantern')?.damage || 1) * (buff(e, 'intimidated')?.damage || 1) * (buff(e, 'ambush')?.damage || 1) * (e.warDamage || 1) * (e.warUp?.damage || 1) * frontierDamage(e); }   // warDamage: war clan bonus (frontier.json war.clanBonus); warUp: armory upgrades (8e-9)
   function damage(e) { return (base(e).damage || 0) * gearMultiplier(e, 'damage') * damageMultiplier(e); }
   function attackInterval(e) { return (base(e).attackSpeed || 1) * gearMultiplier(e, 'attackInterval') / (buff(e, 'rally')?.boost || 1); }
@@ -28,7 +28,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
   const damageTaken = e => gearMultiplier(e, 'damageTaken') * Math.min(formationMultiplier(e), buff(e, 'sweep')?.taken || 1) * (buff(e, 'bulwark')?.taken || 1) * (e.warUp?.taken || 1);
   const lifesteal = e => buff(e, 'lantern')?.lifesteal || 0;
   function movement(e, gait) {
-    // riding (the omnibus, a horse; Tim 2026-11-06): run speed times the ride's factor, whatever the gait
+    // riding (the omnibus, a horse; 2026-11-06): run speed times the ride's factor, whatever the gait
     if (e.ride) return (base(e).run || 0) * (e.ride.speed || 1) * Math.min(buff(e, 'snared')?.speed ?? 1, buff(e, 'charmSnare')?.speed ?? 1);
     const b = base(e), turf = e.type !== 'hero' && state.clans[e.owner] && territory.inOwn(e) ? territory.rules.crewSpeed : 1;
     const pursuit = e.type === 'hero' && gait === 'run' ? buff(e, 'pursuit')?.runSpeed || 1 : 1;
@@ -41,7 +41,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     const clan = state.clans[e.owner]?.faction === 'kuroda' && fieldRest ? KURODA_FIELD_RECOVERY : 1;
     const home = atHome(e) ? rules.hideout?.restPerSecond || 0 : 0;
     const maxHp = e.maxHp ?? base(e).hp ?? 0, eligible = !e.dead && !e.downed && (!!e.garrison || state.tick - (e.hitAt ?? -Infinity) >= wait);
-    const shelter = Math.max(e.garrison?.heal || 1, e.infirmary || 1);   // stockade garrison, near an infirmary (Tim 2026-11-06)
+    const shelter = Math.max(e.garrison?.heal || 1, e.infirmary || 1);   // stockade garrison, near an infirmary (2026-11-06)
     const camp = e.sitting ? rules.campfire?.healPerSecond || 0 : 0;   // seated at a campfire (sim/campfire.js, world variety P1)
     return { base: maxHp * rate, rate: maxHp * (rate * turf * clan * shelter + home + camp), current: eligible ? maxHp * (rate * turf * clan * shelter + home + camp) : 0, shelter,
       eligible, waitSeconds: Math.max(0, (wait - (state.tick - (e.hitAt ?? -Infinity))) / 20), turf, clan, home, camp };

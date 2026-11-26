@@ -1,4 +1,4 @@
-"""Tier 1 town hall and stockade tiers from single large paintings (Tim 2026-11-22).
+"""Tier 1 town hall and stockade tiers from single large paintings (2026-11-22).
 
     python tools/add_tier_singles.py
     then: python tools/build_art_blockers.py

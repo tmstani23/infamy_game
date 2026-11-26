@@ -2,7 +2,7 @@
 // data.governor.reviewTicks economy ticks (same style as sim/bot.js). Players, bots and the
 // governor share one set of commands; the governor never orders armies or attacks.
 //
-// The governor MAINTAINS, it does not expand (Tim, 2026-11-02): rules 1-5 only write suggestions
+// The governor MAINTAINS, it does not expand (2026-11-02): rules 1-5 only write suggestions
 // (settlement.suggestions, at most 3, each with a reason) that wait for the player's OK. On its own it
 // always: repairs damaged buildings and rebuilds ruined ones on the same spot, keeps mood decent with
 // auto taxes (rule 6), and writes report.doing / report.next. With settlement.autoBuild = true a suggestion
@@ -55,7 +55,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (zk && zones.busy(s, zk)) return true;
     if (zk && s.autoBuild) {
       let r = zones.autoZone(s, zk, lane(s, zk));
-      // Tim 2026-11-05: with initiative the governor lays a short road out from its network when zones run out of road access
+      // 2026-11-05: with initiative the governor lays a short road out from its network when zones run out of road access
       if (!r.ok && /road/.test(r.reason) && roadSpur(s, zk)) r = { ok: true };
       if (!r.ok) s.report.next = `${reason} (${r.reason})`;
       return true;
@@ -66,7 +66,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return true;
   }
 
-  // Organic streets (Tim 2026-11-21, streets.js): the paths his streets would take next, and the lane of
+  // Organic streets (2026-11-21, streets.js): the paths his streets would take next, and the lane of
   // cells he keeps free of his own zones so the hall is never boxed in.
   const reachOf = kind => data.zones.kinds[kind]?.needs?.roadReach ?? 3;
   function streetPaths(s, kind) {
@@ -92,7 +92,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
   };
   const plot = createMilitaryPlot({ state, data, world, zones, placement, resourceIndex: workers?.index || null, lane: s => s.grid ? stationSide(s, new Set(laneCells(streetPaths(s, 'housing'), s.grid, G.streetAhead ?? 6))) : null });
 
-  // Tim 2026-11-21: his first road is a ring round the town hall, on the outer row of its road-only reserve
+  // 2026-11-21: his first road is a ring round the town hall, on the outer row of its road-only reserve
   // (town.roadReserve cells), so every street and the general's military road branch off it. Cells the player
   // touched, and cells a road may not take (cliff, unbuildable), are left; it is laid as the town can pay.
   const campsFirst = s => ['lumber_camp', 'quarry'].every(t => !data.buildings?.[t] || placedRoom(s, t, data) < 1
@@ -114,7 +114,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (pl.check(s, { kind: 'road', cells: run }).ok) gPlace(s, { kind: 'road', cells: run, by: 'g' });
   }
 
-  // Tim 2026-11-21: once the hall ring is down he sends straight streets out from it (the town's lanes, streets.js),
+  // 2026-11-21: once the hall ring is down he sends straight streets out from it (the town's lanes, streets.js),
   // a stretch of up to G.roadSpur cells per review, to the edge of the town ring, keeping G.streetKeep timber, so new
   // zones have road and later roads join them easily.
   function growStreets(s) {
@@ -183,7 +183,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return false;
   }
 
-  // Self-running governor (Tim 2026-11-05): with initiative, a lumber camp / quarry beside the spot its workers use
+  // Self-running governor (2026-11-05): with initiative, a lumber camp / quarry beside the spot its workers use
   // most, once that spot is far from every drop-off (shorter trips = much more income). One per review.
   function campRule(s) {
     if (!s.autoBuild || s.projects.some(p => !p.replaces) || !workers?.index || !placement()) return false;
@@ -216,15 +216,15 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return false;
   }
 
-  // Tim 2026-11-06 22:33: rich deposits. Once the town's own spots are full (a governor worker has no spot with room)
+  // 2026-11-06 22:33: rich deposits. Once the town's own spots are full (a governor worker has no spot with room)
   // and a camp slot is free, the governor puts a camp on the grid cell nearest the closest rich deposit it could then
   // reach (campReach), one per review, within the tier camp limit, so it never overextends. Ask first only reports it.
   function richCampRule(s) {
     if (!workers?.index || !placement() || s.projects.some(p => !p.replaces)) return false;
     const R = data.workers, reach = R.campReach || 0;
     if (!reach || !(s.workers || []).some(w => w.by !== 'p' && (w.wait || (!w.spot && !w.project && !w.order)))) return false;
-    // a camp only reaches its own resource (workers.campTakes, Tim 2026-11-07)
-    const camps = [...s.buildings.filter(b => b.stage !== 'ruined'), ...s.projects].filter(b => (R.gatherBuildings || []).includes(b.type) && Number.isInteger(b.cell)).map(b => [...cellToWorld(s, b.cell), b.type]);   // planned ones too (Tim 2026-11-22)
+    // a camp only reaches its own resource (workers.campTakes, 2026-11-07)
+    const camps = [...s.buildings.filter(b => b.stage !== 'ruined'), ...s.projects].filter(b => (R.gatherBuildings || []).includes(b.type) && Number.isInteger(b.cell)).map(b => [...cellToWorld(s, b.cell), b.type]);   // planned ones too (2026-11-22)
     // the work camp that takes a spot kind's resource (lumber camp, quarry, food camp)
     const campFor = kind => (R.gatherBuildings || []).find(t => data.buildings?.[t] && R.campTakes?.[t]?.includes(R.resources[kind]));
     const fits = (type, kind) => !R.campTakes?.[type] || R.campTakes[type].includes(R.resources[kind]);
@@ -244,7 +244,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     }
     return false;
   }
-  // Tim 2026-11-20: a work camp (lumber camp, quarry, food camp) the governor places goes out beside the nearest
+  // 2026-11-20: a work camp (lumber camp, quarry, food camp) the governor places goes out beside the nearest
   // matching spot a camp could reach, not on the next free town cell. Spots a built or planned camp of that type
   // already serves are skipped (a second camp goes to fresh ground). Returns the placed project id, or null (the
   // caller then falls back to the old nearest-free-cell queue). Shared by Initiative On towns and bot towns.
@@ -272,7 +272,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return null;
   }
   const isCamp = type => (data.workers?.gatherBuildings || []).includes(type);
-  // Tim 2026-11-22: never two work camps of one kind by the same resource. Where the town's camps of a type stand or
+  // 2026-11-22: never two work camps of one kind by the same resource. Where the town's camps of a type stand or
   // are planned (built, sites and projects), and whether a cell is too close to one (inside half a camp's reach)
   const sameCamps = (s, type) => [...s.buildings.filter(b => b.stage !== 'ruined'), ...s.projects].filter(b => b.type === type && Number.isInteger(b.cell)).map(b => cellToWorld(s, b.cell));
   const crowds = (s, type, i) => { const [x, z] = cellToWorld(s, i), r = (data.workers?.campReach || 0) * 0.5; return sameCamps(s, type).some(([cx, cz]) => Math.hypot(x - cx, z - cz) < r); };
@@ -294,7 +294,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return false;
   }
 
-  // Tim 2026-11-22: his workers keep to the spots beside their camps (workers.campSide), so the extra ones wait in
+  // 2026-11-22: his workers keep to the spots beside their camps (workers.campSide), so the extra ones wait in
   // the hall. While one waits he builds another camp beside a spot that has none: the scarcest resource first, a
   // rich deposit before an ordinary spot, then the nearest. The camp must end up serving that spot (within
   // workers.campNear, or as its nearest spot when the grid ends short of it). Within the tier camp limit; when he
@@ -341,7 +341,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     return say(short ? `saving for a ${short.replace('_', ' ')}` : 'no free ground beside another spot');
   }
 
-  // Tim 2026-11-11: no trees in worker reach (4 of the 60 sites) and the town can never earn timber: a bot town spent
+  // 2026-11-11: no trees in worker reach (4 of the 60 sites) and the town can never earn timber: a bot town spent
   // its start timber on a quarry and sat at 5 people for good. With initiative the governor first puts a lumber camp
   // on the grid toward the nearest trees a camp reaches. true = placed; 'save' = wanted but not affordable yet (the
   // other camp rules wait, so they never spend its timber).
@@ -409,18 +409,18 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const per = {}; for (const t of Object.values(f().settlements || {})) for (const w of t.workers || []) if (w.spot) per[w.spot] = (per[w.spot] || 0) + 1;
     const room = p => { const n = spotRules?.stages ? supportsWorkers(p, spotRules.stages) : null; return n == null || (per[p.id] || 0) < n; };
     const drop = p => Math.min(Math.hypot(p.x - s.x, p.z - s.z), ...camps.map(([x, z]) => Math.hypot(p.x - x, p.z - z)));
-    const side = workers.campSide?.(s)?.food;   // held to the food camps once there is one (Tim 2026-11-22)
+    const side = workers.campSide?.(s)?.food;   // held to the food camps once there is one (2026-11-22)
     const spot = [...near.values()].filter(p => R.resources[p.kind] === 'food' && (!side || side.has(p.id)) && room(p)).sort((a, b) => drop(a) - drop(b) || (a.id < b.id ? -1 : 1))[0];
     if (!spot || !workers.assign(s, [donor.id], spot.id, 'g')?.ok) return false;
     return true;
   }
 
-  // Tim 2026-11-05: with initiative the governor trains a worker when every worker is busy, people are idle,
+  // 2026-11-05: with initiative the governor trains a worker when every worker is busy, people are idle,
   // nobody is training and there is ryo and goods to spare (bots use the same rule).
   function trainWorker(s) {
     if (!s.autoBuild || !workers?.train || s.workerTraining?.length) return;
     const R = data.workers, idle = s.report.idle || 0;
-    if (idle < 1 || (s.workers || []).some(w => w.wait || (!w.spot && !w.project && !w.order))) return;   // nor while one waits for a spot (Tim 2026-11-22)
+    if (idle < 1 || (s.workers || []).some(w => w.wait || (!w.spot && !w.project && !w.order))) return;   // nor while one waits for a spot (2026-11-22)
     if ((s.stock.ryo || 0) < R.cost + (G.trainRyoKeep ?? 20) || (s.stock.goods || 0) < (R.goodsCost || 0) + (G.trainGoodsKeep ?? 10)) return;
     workers.train(s, 1);
     logAct(state, data, s, 'governor', 'work', 'Started training a worker', `Paid ${R.cost} ryo${R.goodsCost ? ` and ${R.goodsCost} goods` : ''} from town stock.`);
@@ -454,7 +454,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
       const need = nextTier(s, data)?.upgrade?.cost?.goods || 0, short = need - (s.stock.goods || 0);
       return Math.max(G.goodsProfitPerMin ?? 3, short > 0 && G.upgradeGoalMinutes ? short / G.upgradeGoalMinutes : 0);
     };
-    // 1b. goods not growing (Tim 2026-11-05: the governor runs the town at a slight profit so the hall upgrade
+    // 1b. goods not growing (2026-11-05: the governor runs the town at a slight profit so the hall upgrade
     // comes within reach): more work cells while there is room, idle people and no input shortage
     if (zones?.on(s) && !zones.busy(s, 'work')) {
       const k = data.zones.kinds.work, net = Object.entries(s.flow?.goods || {}).filter(([why]) => !ONCE_FLOW.has(why)).reduce((n, [, v]) => n + v, 0);
@@ -475,7 +475,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
         s.report.next = 'House: farms at the town hall tier limit (upgrade the hall for more farm cells)';
         return true;
       }
-      // Economy pass 2 fix (Tim 2026-11-05): at the tier's housing cell cap the limit is the hall, not free land.
+      // Economy pass 2 fix (2026-11-05): at the tier's housing cell cap the limit is the hall, not free land.
       const zk = zoneKind(s, 'house'), char = zk && data.zones.kinds[zk]?.char;
       if (char && zoneCells(s, char) >= cellCap(s, zk, data)) {
         s.suggestions = s.suggestions.filter(x => x.type !== 'house');
@@ -501,31 +501,31 @@ export function createGovernor({ state, data, world, economy, construction, zone
       if (room('storehouse') && data.resources.some(r => r !== 'ryo' && (s.stock[r] || 0) >= 0.8 * storageCap(s, data, r))) return suggest(s, 'storehouse', 'Storehouse: stock near its cap');
       if (room('market') && !has(s, 'market') && (s.stock.goods || 0) >= (data.market?.keep ?? 400)) return suggest(s, 'market', 'Market: goods to sell');
       if (room('infirmary') && !has(s, 'infirmary') && residents(s) >= 20) return suggest(s, 'infirmary', 'Infirmary: look after our people');
-      // 9 (Tim 2026-11-06): a stable once the town is a Village
+      // 9 (2026-11-06): a stable once the town is a Village
       if (room('stable') && !has(s, 'stable') && (s.tier || 1) >= 2) return suggest(s, 'stable', 'Stable: horses for the boss');
-      // 10 (Tim 2026-11-06): an omnibus station once the town is a Village
+      // 10 (2026-11-06): an omnibus station once the town is a Village
       if (room('station') && !has(s, 'station') && (s.tier || 1) >= 2) return suggest(s, 'station', 'Railway station: trains between our towns');
     }
     return false;
   }
 
   // Rebuilds ruins on the same spot, at normal cost; materials may be short, construction waits.
-  // 7c-4 (Tim 2026-11-12): only a governor set to build on its own, and a bot clan's town, give the Rebuild order
+  // 7c-4 (2026-11-12): only a governor set to build on its own, and a bot clan's town, give the Rebuild order
   // themselves. Otherwise the owner orders each ruin rebuilt (frontier command 'rebuild').
   function maintain(s) {
     if (s.projects.length) return;
     if (!s.autoBuild && !state.clans?.[s.owner]?.bot) return;
     // not while a war is on the town: there ruins come back by the owner's Rebuild order or the general's plan
-    // (Tim 2026-11-17, war_general_brain.js rebuildTown), never all at once
+    // (2026-11-17, war_general_brain.js rebuildTown), never all at once
     if (Object.values(state.frontier?.wars?.list || {}).some(w => w.town === s.id)) return;
-    // (a ruin whose type is at its limit again, a new one placed in the war, stays a ruin: Tim 2026-11-24)
+    // (a ruin whose type is at its limit again, a new one placed in the war, stays a ruin: 2026-11-24)
     const b = s.buildings.find(x => x.stage !== 'built' && !s.projects.some(p => p.replaces === x.id) && !militaryWhy(s, x.type, data, state) && placedRoom(s, x.type, data) >= 1);
     if (!b) return;
     construction.authorize(construction.queue(s.id, b.type, b.cell, { replaces: b.id }));
   }
 
   // no budget set (the town panel has no budget control): initiative spends up to governor.initiativeBudget per window (2026-11-06)
-  // Fix (Tim 2026-11-09, storehouse stuck "waiting for OK" forever): a project dearer than the whole budget may start
+  // Fix (2026-11-09, storehouse stuck "waiting for OK" forever): a project dearer than the whole budget may start
   // at the top of a fresh window (nothing spent yet) when you set no budget, and his own project left waiting is retried
   // every review.
   function tryAuthorize(s, pid) {
@@ -564,7 +564,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     const gov = s.gov;
     // a building finished or came back since the last review: give it time before judging food again
     const nBuilt = s.buildings.filter(b => b.stage === 'built').length;
-    // Economy pass 2 fix (Tim 2026-11-05): a full or well stocked store is never "food falling".
+    // Economy pass 2 fix (2026-11-05): a full or well stocked store is never "food falling".
     const foodCap = storageCap(s, data, 'food'), plenty = isFull(s, data, 'food') || (Number.isFinite(foodCap) && s.stock.food >= foodCap * (G.foodPlentyShare ?? 0.5));
     gov.falling = !plenty && nBuilt === gov.nBuilt && s.stock.food < gov.foodLast - EPS ? gov.falling + 1 : 0;
     gov.nBuilt = nBuilt;
@@ -578,7 +578,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     gov.inputKeep = null;   // campRule sets it again while it saves for a camp
     // roads wait for the lumber camp and quarry (each placed or sited), so the start timber goes to them first
     if (s.autoBuild && campsFirst(s)) { hallRing(s); growStreets(s); }
-    if (s.autoBuild) plot.run(s);   // the general's military quarter has first pick of new ground (Tim 2026-11-21)
+    if (s.autoBuild) plot.run(s);   // the general's military quarter has first pick of new ground (2026-11-21)
     maintain(s);
     trainWorker(s);
     const timber = timberCampRule(s), food = timber ? false : foodCampRule(s);
@@ -591,7 +591,7 @@ export function createGovernor({ state, data, world, economy, construction, zone
     if (!s.report.next && s.report.spare) s.report.next = s.report.spare;
     if (!s.report.next && s.suggestions.length) s.report.next = s.suggestions[0].reason;
     upgradeHint(s);
-    if (s.autoBuild) ship.clerk?.(s);   // rail shipments S3: the rail clerk works only while the governor is on auto (Tim 2026-11-09)
+    if (s.autoBuild) ship.clerk?.(s);   // rail shipments S3: the rail clerk works only while the governor is on auto (2026-11-09)
   }
 
   // B3: when the town presses on a tier limit and can afford the next tier, say so. The upgrade itself is

@@ -1,13 +1,13 @@
 # Documentation role
 
-How docs are kept in this folder (set up 2026-10-17 at Tim's request). One "Docs keeper" thread writes every doc change, following this file.
+How docs are kept in this folder (set up 2026-10-17 at the request). One "Docs keeper" thread writes every doc change, following this file.
 
 ## Approval flow
 
-1. A thread that wants a doc changed sends the path and a short summary of the change to the project's channel session. It does not ask Tim in its own thread.
-2. The channel session asks Tim in the main project chat.
-3. On Tim's OK, the channel session forwards the change to the Docs keeper thread.
-4. The Docs keeper writes it following the rules below. Nothing is written without Tim's OK.
+1. A thread that wants a doc changed sends the path and a short summary of the change to the project's channel session. It does not ask in its own thread.
+2. The channel session asks in the main project chat.
+3. On the OK, the channel session forwards the change to the Docs keeper thread.
+4. The Docs keeper writes it following the rules below. Nothing is written without the OK.
 
 The ownership rule in [START_HERE.md](../START_HERE.md#working-rules) (the codebase is yours to keep building) applies to the Docs keeper too: merge repeated doc text and fix nearby doc problems found while writing a change.
 
@@ -54,34 +54,35 @@ Each topic lives in one doc. Other docs link to it rather than repeating it.
 
 - Put it in the doc that owns the topic. If two seem to fit, pick the narrower one and link from the other.
 - Images that docs link to (sketches, diagrams) go in `docs/images/`.
-- Every new test URL parameter gets a row in `test_params.md` in the same batch it is built (Tim 2026-10-19).
+- Every new test URL parameter gets a row in `test_params.md` in the same batch it is built (2026-10-19).
 - Make a new doc only for a new topic big enough to need its own page, and add it to the table above and to `START_HERE.md`'s doc table in the same change.
 
 ## Writing rules
+- Never write the project owner's name (or any personal name) in docs, code comments or data notes; the repo is public. Record what was decided and the date, for example "(2026-11-26)". Remove a name wherever you come across one (2026-11-26).
 
-- **Dates:** decisions and status lines carry the date as YYYY-MM-DD, for example "Settled (Tim, 2026-10-16)".
-- **Replace, don't stack:** when a decision or status changes, rewrite the old line with the new one and its new date. Keep the old version only when Tim wants it, in a short "Superseded" note.
+- **Dates:** decisions and status lines carry the date as YYYY-MM-DD, for example "Settled (2026-10-16)".
+- **Replace, don't stack:** when a decision or status changes, rewrite the old line with the new one and its new date. Keep the old version only when wanted it, in a short "Superseded" note.
 - **Link, don't copy:** say a fact once in its owner doc; elsewhere write a one-line link to it.
 - **Short and plain:** short sentences, plain words, no filler. Tables and lists over long paragraphs.
 - **Index:** keep `START_HERE.md`'s doc table current whenever a doc is added, renamed or removed.
 
 ## Sweeps
 
-When the channel session asks for a sweep (daily while work is happening), the Docs keeper reads the docs without changing them and sends the channel session a short list of new stale or duplicated lines with proposed fixes. Fixes are written only after Tim OKs them.
+When the channel session asks for a sweep (daily while work is happening), the Docs keeper reads the docs without changing them and sends the channel session a short list of new stale or duplicated lines with proposed fixes. Fixes are written only after OKs them.
 
 To keep sweeps cheap, each one reads only docs and code changed since the last sweep. Commits are rare here, so it goes by file modification time (plus `git log` when there are new commits), then updates the line below.
 
 Last sweep: 2026-10-19 00:35 UTC, after the 2x map, Rally and looting batch (last commit before it: 86873e1).
 
-## Commits (Tim, 2026-10-17)
+## Commits (2026-10-17)
 
 - The Docs keeper is the only thread that commits, locally, in phases after big changes or when the channel session says a feature or batch is done. Group commits sensibly (docs, game code, art).
-- Never push: Tim pushes.
-- Leave `to_delete/` out of commits. Files over about 50 MB, or ones that don't belong in git, are left out and flagged to Tim.
-- The folder blocks deletes, so git leaves its lock and temp files behind. Run git with `-c core.createObject=rename -c gc.auto=0 -c maintenance.auto=false` and move any leftovers into `.git/stale_tmp/` (Tim can empty it).
+- Never push: pushes.
+- Leave `to_delete/` out of commits. Files over about 50 MB, or ones that don't belong in git, are left out and flagged to .
+- The folder blocks deletes, so git leaves its lock and temp files behind. Run git with `-c core.createObject=rename -c gc.auto=0 -c maintenance.auto=false` and move any leftovers into `.git/stale_tmp/` (can empty it).
 
 ## How the Docs keeper writes
 
 1. Re-read the file right before writing, since other threads may have changed it.
-2. Update docs in place (Tim, 2026-10-31): replace outdated statements and avoid duplicating existing information. Remove text only when redundant, obsolete or unclear; preserve useful decisions, rationale and unresolved issues. Keep cleanup within the section being edited, without unrelated scans, deletion quotas, negative-diff targets or deletion bookkeeping.
+2. Update docs in place (2026-10-31): replace outdated statements and avoid duplicating existing information. Remove text only when redundant, obsolete or unclear; preserve useful decisions, rationale and unresolved issues. Keep cleanup within the section being edited, without unrelated scans, deletion quotas, negative-diff targets or deletion bookkeeping.
 3. Read the file back afterwards to check the edit landed.

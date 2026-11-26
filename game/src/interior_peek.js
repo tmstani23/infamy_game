@@ -1,4 +1,4 @@
-// Interior view (Tim 2026-11-10): look inside a building your crew is in without the boss being there, in
+// Interior view (2026-11-10): look inside a building your crew is in without the boss being there, in
 // Watch the city or while following crew from the street. Presentation only: the camera does the work
 // (render/view.js roomView / leaveRoom); this is the Inside / Outside button, the End key and the
 // double-click on a building. Only rooms holding living units of yours can be looked into.

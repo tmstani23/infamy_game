@@ -1,7 +1,7 @@
 import { bossAway } from './sim/util.js';
 import { standingsModel, createStandingsBar } from './top_bar_standings.js';
 import { sharedKeybinds } from './keybinds.js';
-const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
+const keybinds = sharedKeybinds();   // key text follows rebinding (2026-11-12)
 // Top bar paints once per frame; observe preserves each tick's badge events.
 // Rally, Unstuck, jail banner, heat, ryo and the season
 // score (moved out of main.js, phase 7 split, 2026-10-29). Reads the state only.
@@ -10,7 +10,7 @@ export function createTopBar({ game, heroId, $, TICK_RATE, heatBadge, ryoBadge, 
   const paintStandings = createStandingsBar($('score'), onClan);   // clock block + clan chips (src/top_bar_standings.js)
   function update() {
     { const r = game.rally.status(game.state.entities[heroId].owner), b = $('rallybtn');
-      const away = bossAway(game.state.entities[heroId]);   // the lieutenant runs the city while you're out (Tim 2026-11-08)
+      const away = bossAway(game.state.entities[heroId]);   // the lieutenant runs the city while you're out (2026-11-08)
       b.disabled = away || r.active || r.cooldown > 0; b.textContent = r.active ? `Rally, ${r.seconds}s` : r.cooldown ? `Rally, ${r.cooldown}s` : 'Call Rally';
       b.title = away ? "The lieutenant runs the city while you're away: come back to call a Rally" : 'Calls your remembered groups (all groups on first use). Configure groups in Deployment.'; }
     { const s = game.unstuck.status(game.state.entities[heroId]), b = $('unstuckbtn');

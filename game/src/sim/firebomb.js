@@ -1,4 +1,4 @@
-// Shinobi fire-bomb thrower (war 7c-2, Tim 2026-11-12, the 2026-11-09 rule): his normal attack is a weak knife.
+// Shinobi fire-bomb thrower (war 7c-2, 2026-11-12, the 2026-11-09 rule): his normal attack is a weak knife.
 // The fire bomb is his special (sim/special_cast.js: auto switch, a cast the player asks for):
 //  - He channels for bomb.channelTicks facing the spot; a marker shows on the ground where the bomb will land
 //    (cast event firebombMark, drawn by render/crewfx.js). The spot is fixed when the channel starts.

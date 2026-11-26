@@ -65,7 +65,7 @@ assert.deepEqual(g.state.news.filter(n => n.kind === 'businessAttack'), [
 // the doors stay shut during the warm-up
 g.step([{ id: hero, type: 'use', units: crew }]);
 assert.equal(h.place, 'street', 'no way in during the warm-up');
-// the boss knocked out in the warm-up doesn't end the raid (Tim 2026-10-20); only the lantern knocked down does
+// the boss knocked out in the warm-up doesn't end the raid (2026-10-20); only the lantern knocked down does
 Object.assign(h, { hp: 0, dead: true, diedAt: g.state.tick });
 // This fixture sets KO directly rather than going through hit(); reproduce its
 // crew-hold side effect so they do not follow the respawned hero into his HQ.
@@ -84,7 +84,7 @@ g.step([{ id: hero, type: 'use', units: crew }]);
 assert.equal(h.place, den.room, 'in after the warm-up');
 assert.ok(crew.every(id => g.state.entities[id].place === den.room), 'crew came along');
 console.log('warm-up keeps raiders out ok');
-// inside a raided business everyone fights on their own (Tim 2026-10-20): the raiding crew go for a
+// inside a raided business everyone fights on their own (2026-10-20): the raiding crew go for a
 // defender who never touched them
 {
   const [x, z] = [a.hold.x, a.hold.z];

@@ -1,4 +1,4 @@
-// Ships for the sail between the city harbour and the castle docks (Z7, Tim 2026-11-20): until a passenger ship is
+// Ships for the sail between the city harbour and the castle docks (Z7, 2026-11-20): until a passenger ship is
 // made, the coastal ship model (ship_coastal, 8 directions) drawn a size larger. One lies at the city harbour pier
 // (city coordinates), one at each castle's dock (island), and while a clan's party is at sea (sim/frontier/ferry.js,
 // riders aboard 'ship:<owner>') a sailing one is drawn where they are, and that clan's moored ships are hidden.
@@ -26,7 +26,7 @@ export function castleBerth(dock, B = {}) {
 }
 
 // where a ship at sea is drawn this frame: along its route at the frame's time between sim ticks (alpha), so the ship,
-// its riders and the camera all glide on the same spot (Tim 2026-11-20: very jerky at every zoom)
+// its riders and the camera all glide on the same spot (2026-11-20: very jerky at every zoom)
 export function seaSpot(state, r, alpha = 1) {
   const k = Math.min(1, Math.max(0, ((state.tick ?? 0) - 1 + alpha - r.since) / Math.max(1, r.until - r.since)));
   return alongRoute(r.path || [r.from, r.dest], k);   // round the island by sea (sim/frontier/sea_route.js)

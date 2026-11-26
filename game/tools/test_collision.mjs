@@ -24,7 +24,7 @@ const art = F.townArt, names = Object.entries(art).filter(([k, v]) => !k.startsW
 for (const name of new Set(names)) {
   const bs = artBoxes(F, name);
   assert.ok(Array.isArray(bs), `${name} has a blocking shape`);
-  if (name === 'war_banner') { assert.equal(bs.length, 0, 'the war banner blocks nothing (Tim 2026-11-11)'); continue; }
+  if (name === 'war_banner') { assert.equal(bs.length, 0, 'the war banner blocks nothing (2026-11-11)'); continue; }
   assert.ok(bs.length > 0 && bs.length <= 16, `${name}: a few boxes (${bs.length})`);
   if (opt.catalog.items[name].blockShape) continue;   // a hand-made outline (stockade, town hall) is cut to the art itself by the tool, not to the measured footprint
   // no blocked edge reaches beyond the art's own footprint

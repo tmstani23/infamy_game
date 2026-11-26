@@ -1,4 +1,4 @@
-// Watch the city (Tim 2026-11-08): while the boss is on the island, { type: 'watchCity', on } makes the capital think at full speed and drops crew orders.
+// Watch the city (2026-11-08): while the boss is on the island, { type: 'watchCity', on } makes the capital think at full speed and drops crew orders.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';

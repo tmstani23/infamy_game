@@ -1,4 +1,4 @@
-// Wandering folk (world variety P2, Tim 2026-11-26; plan in project files war_build/world_variety/plan.md part E).
+// Wandering folk (world variety P2, 2026-11-26; plan in project files war_build/world_variety/plan.md part E).
 // People out on the island doing their own thing. They ask nothing of the player; they are there to be worth watching.
 // Like the deer (sim/wild_animals.js) they come to the player: now and then a scene is put down out of sight round one of
 // the player's own units, by the kind of place it needs (a road, a bridge or ford, a pass, open country) and by the
@@ -105,7 +105,7 @@ export function createWanderingFolk({ state, data, world = null, areas, roads = 
   // ---- Where scenes may come ---------------------------------------------------------------------------------------
   // spread-out spots among the player's own units on the island (the hero first); none in a war circle or a town
   // which way each of them is going (since the last look, every thinkSeconds), so a scene can start ahead of a rider
-  // instead of behind him (Tim 2026-11-26: riding past, you would miss them)
+  // instead of behind him (2026-11-26: riding past, you would miss them)
   const seen = new Map();
   function anchors() {
     const out = [], gap = R.anchorGap ?? 120, moved = R.headingMove ?? 3;
@@ -175,7 +175,7 @@ export function createWanderingFolk({ state, data, world = null, areas, roads = 
   function member(sc, model, x, z, extra = {}) {
     const p = free(x, z) || [x, z], bandit = extra.bandit;
     delete extra.bandit;
-    if (!bandit && R.names?.length) {   // each his own name (Tim 2026-11-26): "Genzo the pilgrim"
+    if (!bandit && R.names?.length) {   // each his own name (2026-11-26): "Genzo the pilgrim"
       const used = members(sc).map(e => e.given), left = R.names.filter(n => !used.includes(n)), given = pick(left.length ? left : R.names);
       extra = { ...extra, given, name: extra.name ? `${given} the ${extra.name.toLowerCase()}` : given };
     }
@@ -251,7 +251,7 @@ export function createWanderingFolk({ state, data, world = null, areas, roads = 
   // A log to sit on (the 'sit' clip sits on a seat, render/view.js lifts the sitter by SIT_LIFT): lying under the sitter
   // and along his facing, the way render/campfire_fx.js lays the seat logs round a fire
   const seatLog = (x, z, fx, fz) => ({ art: 'rotten_log', x, z, s: 0.5, flip: Math.abs(z - fz) > Math.abs(x - fx), depthBias: (x - fx) + (z - fz) > 0 ? 1.5 : -1.5, seat: true, fx, fz });
-  // The wandering hermit (Tim 2026-11-26: no log, no fire; each scene its own thing): an old herbalist the animals
+  // The wandering hermit (2026-11-26: no log, no fire; each scene its own thing): an old herbalist the animals
   // trust. A few deer come along with him (real deer, sim/wild_animals.js: they keep him as their home and do not
   // mind him) and the crows come down by him (render/crow_fx.js, e.crowFriend). He roams from one patch to the next,
   // stooping to pick herbs; with enough picked he stops to mix them in his flasks, and that goes off: a pop, a flash
@@ -321,7 +321,7 @@ export function createWanderingFolk({ state, data, world = null, areas, roads = 
         m.fed = false;
         const p = HERMIT.patch(sc, e, people);
         if (!p) { m.until = state.tick + secs(2); return; }
-        // what he is after stands there to be seen: a little clump of mushrooms (hermit.herbs, island art; Tim 2026-11-26).
+        // what he is after stands there to be seen: a little clump of mushrooms (hermit.herbs, island art; 2026-11-26).
         // He stops a step short of it and stoops to it; it is gone from the ground part way through the stoop
         sc.props = sc.props.filter(q => !q.herb);
         const hd = Math.hypot(p[0] - e.x, p[1] - e.z) || 1, short = H.herbReach ?? 0.7;
@@ -551,7 +551,7 @@ export function createWanderingFolk({ state, data, world = null, areas, roads = 
         if (!v || vm?.mode === 'leave') return;
         const by = state.entities[sc.by];
         v.anim = 'bow'; if (by) face(v, by.x, by.z);
-        // saved, he opens his pack to his rescuers for a while (Tim 2026-11-26): the hero walks up and trades with him as
+        // saved, he opens his pack to his rescuers for a while (2026-11-26): the hero walks up and trades with him as
         // with a town's merchant (sim/item_services.js merchantNear, e.peddlerShop)
         if (state.tick >= sc.until) { v.peddlerShop = true; Object.assign(sc, { phase: 'trade', until: state.tick + secs(P.tradeSeconds ?? 120) }); speak(sc, v, 'trade'); }
         return;
@@ -575,7 +575,7 @@ export function createWanderingFolk({ state, data, world = null, areas, roads = 
         return;
       }
       if (!v) { for (const b of gang) leave(b, sc); sc.phase = 'robbed'; return; }
-      // nobody stepped in (Tim 2026-11-26): one of them walks up and cuts him down, they take his goods and go
+      // nobody stepped in (2026-11-26): one of them walks up and cuts him down, they take his goods and go
       if (sc.phase === 'kill') {
         const b = gang.find(g => g.id === sc.killer) || gang[0];
         if (!b) { sc.phase = 'threat'; return; }
@@ -599,7 +599,7 @@ export function createWanderingFolk({ state, data, world = null, areas, roads = 
         return;
       }
       // the hold-up: back to their places round him if a fight pulled them off, leaning on him, watching whoever comes
-      // he cowers, pleads with them now and then, and doubles over when one of them lands a blow (Tim 2026-11-26: "the bandits
+      // he cowers, pleads with them now and then, and doubles over when one of them lands a blow (2026-11-26: "the bandits
       // arent even attacking him")
       v.anim = state.tick >= (sc.hurtFrom ?? Infinity) && state.tick < (sc.hurtUntil ?? 0) ? 'bow' : Math.floor((state.tick + sc.born) / secs(P.pleadEvery ?? 3)) % 3 === 0 ? 'talk' : 'scared';
       if (sc.hitAt != null && state.tick >= sc.hitAt) {   // the blow lands: a little blood (render/view.js 'folkHit'), now and then coins
@@ -777,7 +777,7 @@ export function createWanderingFolk({ state, data, world = null, areas, roads = 
 
   // A night camp just off a road: travellers sit on logs round a fire, nobody armed, and one of them is on his feet,
   // strolling round the camp and stopping for a word by the fire. Riders, or a band of three or more, coming near: he
-  // turns on them and calls out; the rest stay sitting (Tim 2026-11-26: sitting and having a chat, no swords out).
+  // turns on them and calls out; the rest stay sitting (2026-11-26: sitting and having a chat, no swords out).
   // At dawn they put the fire out and go on.
   const CAMP = {
     where: 'nearRoad',

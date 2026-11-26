@@ -1,4 +1,4 @@
-// Resource glow (Tim 2026-11-05): a soft pulsing ground glow under every discovered resource spot
+// Resource glow (2026-11-05): a soft pulsing ground glow under every discovered resource spot
 // (small) and resource node (big), tinted by kind, so they read even at far zoom. Render only:
 // additive flat discs on the ground, no effect on rules or navigation. Numbers: frontier.json townArt._spots.glow.
 import * as THREE from 'three';
@@ -14,7 +14,7 @@ function glowTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
-// Rich deposits (Tim 2026-11-06): a bigger, soft, warm wash with no rim and no pulse (lamplight on earth,
+// Rich deposits (2026-11-06): a bigger, soft, warm wash with no rim and no pulse (lamplight on earth,
 // not magic), plus a flat painted badge with the kind's character that stays readable at far zoom and
 // fades out as you zoom in. Numbers: glow.rich in frontier.json.
 export const RICH_GLYPH = { quarry: '石', ore: '鉱', forest: '木', fishing: '魚', fertile: '稲' };

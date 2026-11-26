@@ -48,7 +48,7 @@ export function createDeploymentRally({ state, deployment }) {
     for(const e of participants)if(e.deployment.transfer){e.deployment.group=e.deployment.transfer.to;delete e.deployment.transfer;e.order={kind:'stop'};}
     Object.assign(r, { active: true, startedAt: state.tick, endsAt: state.tick + RALLY_TICKS, readyAt: 0, groups,
       participants: participants.map(e => ({ id: e.id, group: e.deployment.transfer?.to || e.deployment.group })) });
-    // HQ reserves come out to the boss on their own (Tim 2026-11-08): no second select-and-Follow. Not when he is
+    // HQ reserves come out to the boss on their own (2026-11-08): no second select-and-Follow. Not when he is
     // knocked out or out on the island (a remote Rally); other groups still wait for Follow or movement orders.
     const homeCrew = r.participants.filter(p => p.group === 'home').map(p => state.entities[p.id]).filter(e => e && !e.downed && !e.dead && !e.jailed);
     if (!h.dead && !h.downed && !h.jailed && h.place !== 'world') for (const e of homeCrew) {

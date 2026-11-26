@@ -3,7 +3,7 @@
 // own art) and the capital (just outside the island gate). The game picks the route (rail_route.js); a link
 // is the whole track between two stations and always takes data.railways.link.seconds to lay, whatever its
 // length. It is paid a stretch at a time from the ordering town's stock and waits while that stock is short.
-// Enemies nearby never stop it (Tim 2026-11-07). The rail gang (a few laborers) works at the railhead; they
+// Enemies nearby never stop it (2026-11-07). The rail gang (a few laborers) works at the railhead; they
 // are real units only near someone on the island, like town workers, and pure decoration for now.
 // State: state.frontier.rail = { seq, links: { id: { id, owner, from, to, payer, points, dist, length, bridges,
 //   built, paid, started, done, waiting, gang: [entity ids] } },
@@ -43,7 +43,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
   const T = () => R?.train || {};
   const linksOf = owner => Object.values(rec().links).filter(l => l.owner === owner);
   const town = id => id === 'capital' ? null : state.frontier.settlements?.[id];
-  // Z4f (Tim 2026-11-19): a clan with a castle has its rail hub there. The node is still called 'capital' (shipments,
+  // Z4f (2026-11-19): a clan with a castle has its rail hub there. The node is still called 'capital' (shipments,
   // orders and saves keep working), but its track ends at the castle's station like a town's, and you board and get
   // off there on the island. A clan with no castle (rivals until Z5) keeps the city end.
   const hub = owner => owner == null ? null : Object.values(state.frontier.settlements || {}).find(s => s.castle && s.owner === owner && stable?.of(s, 'station')) || null;
@@ -51,7 +51,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
   const hubReach = t => t.castle ? (Math.hypot(...(data.castleBlueprint?.size || [36, 43])) / 2 + 4) * t.grid.cell : undefined;
   const secs = () => Math.max(1, data.cadenceTicks || 20) / 20;
   const isCamp = id => typeof id === 'string' && id.startsWith('camp:');
-  // Tim 2026-11-25: a camp spur lays in link.campSeconds (town lines in link.seconds)
+  // 2026-11-25: a camp spur lays in link.campSeconds (town lines in link.seconds)
   const layFor = l => l?.seconds ?? (isCamp(l?.from) ? L().campSeconds ?? L().seconds ?? 600 : L().seconds ?? 600);
   const warOfNode = id => state.frontier.wars?.list?.[String(id).slice(5)] || null;
   const campStation = w => w?.camp?.buildings?.find(b => b.type === 'camp_station' && b.stage === 'built' && !(b.hp <= 0)) || null;
@@ -59,7 +59,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
   // where a station's track ends: the capital end just outside the island gate, a town's at its station
   function endpoint(owner, id) {
     if (id === 'capital' && hub(owner)) return stationEnd(hub(owner));
-    if (id === 'capital') { const g = runtime?.gate?.rail || runtime?.gate?.island; return g ? { x: g[0], z: g[1] } : null; }   // east of the city station (Tim 2026-11-10), else the gate
+    if (id === 'capital') { const g = runtime?.gate?.rail || runtime?.gate?.island; return g ? { x: g[0], z: g[1] } : null; }   // east of the city station (2026-11-10), else the gate
     if (isCamp(id)) { const w = warOfNode(id), b = campStation(w); return b && (owner == null || w.attacker === owner) ? { x: b.x, z: b.z } : null; }   // 8e-4
     const s = town(id);
     return s && s.owner === owner ? stationEnd(s) : null;
@@ -81,7 +81,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
   function stationEnd(s) {
     const b = stable?.of(s, 'station');
     if (!b) return null;
-    const parts = stationParts(s, b);   // the 3x2 station (Tim 2026-11-07): the line ends in its shed
+    const parts = stationParts(s, b);   // the 3x2 station (2026-11-07): the line ends in its shed
     if (parts) return { x: s.x + parts.shed[0], z: s.z + parts.shed[1] };
     const [x, z] = stable.centre(s, b);
     return { x, z };
@@ -118,7 +118,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     if (!relay && linked(owner, from, to)) return { error: 'Those stations are already linked' };
     const g = G();
     if (!g) return { error: 'no railway data' };
-    // the capital: routed to a point out in front of the wall, then straight in through it to the end (Tim 2026-11-10)
+    // the capital: routed to a point out in front of the wall, then straight in through it to the end (2026-11-10)
     const H = to === 'capital' ? hub(owner) : null, dest = H || town(to);   // the far end's town grid, if it has one
     const ap = to === 'capital' && !H && runtime?.gate?.rail && runtime.gate.railApproach, target = ap ? { x: ap[0], z: ap[1] } : b;
     // a camp station off the route grid: from the nearest open cell, then a short straight run to the station
@@ -126,8 +126,8 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     let coarse = routeRail(g, open0 || a, target, { reuse: linksOf(owner).filter(l => l !== relay) });
     if (coarse && open0) coarse = { ...coarse, points: [[a.x, a.z], ...coarse.points] };
     if (!coarse) return { error: 'No way to lay track there' };
-    // inside the end towns the track takes a fine path round buildings and houses (Tim 2026-11-07)
-    // a 3x2 station (Tim 2026-11-07): out of the shed straight through the railway slot, then round the town
+    // inside the end towns the track takes a fine path round buildings and houses (2026-11-07)
+    // a 3x2 station (2026-11-07): out of the shed straight through the railway slot, then round the town
     const exitOf = (t, route) => { const st = stable.of(t, 'station'), parts = st && stationParts(t, st);
       if (!parts) return townExit(t, data, st ? (st.cells || [st.cell]) : [], route, { reach: hubReach(t) });
       const far = [t.x + parts.slotFar[0], t.z + parts.slotFar[1]], r = townExit(t, data, parts.slotCells, [far, ...route.slice(1)], { dir: parts.dir, reach: hubReach(t) });
@@ -141,14 +141,14 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       if (!back) return { error: boxed(dest) };
       pts = back.reverse();
     } else if (ap) pts.push([b.x, b.z]);
-    // a castle end (Tim 2026-11-19): dead straight from the station through the middle of the rail gate and over the rail
+    // a castle end (2026-11-19): dead straight from the station through the middle of the rail gate and over the rail
     // bridge, out to open ground beyond the moat, and only there does the track turn toward the route
     if (H?.castle) { const st = castleStraight(H); if (st) {
       const box = castleBox(data.castleBlueprint, H.x, H.z, H.castle.rot, H.grid.cell), inBox = ([x, z]) => x > box.minX - H.grid.cell && x < box.maxX + H.grid.cell && z > box.minZ - H.grid.cell && z < box.maxZ + H.grid.cell;
       let j = pts.length - 2; while (j > 0 && inBox(pts[j])) j--;
       pts = [...pts.slice(0, j + 1), st.out, [b.x, b.z]];
     } }
-    // round every corner to a curve a train could take (Tim 2026-11-08), keeping clear of rock, water and buildings
+    // round every corner to a curve a train could take (2026-11-08), keeping clear of rock, water and buildings
     const ends = [s, dest].filter(t => t?.grid).map(t => { const st = stable.of(t, 'station'); return [t, new Set(st ? (st.cells || [st.cell]) : [])]; });
     // strict first (a cell clear of rock and water), then just off rock and buildings where the strict curve won't fit
     const ok = [(p, q) => openRun(g, p, q) && ends.every(([t, mine]) => clearRun(t, p, q, mine, true)),
@@ -187,7 +187,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     return receipt(e, true, `Rail gang heading out: ${town(c.town).name} to ${c.to === 'capital' ? 'the capital' : town(c.to).name}`);
   }
 
-  // a town's railway lines, laid or being laid (Tim 2026-11-07: removing its station tears them up; lay them again
+  // a town's railway lines, laid or being laid (2026-11-07: removing its station tears them up; lay them again
   // from the new station). Riders get off where the train is.
   const linesAt = (owner, id) => linksOf(owner).filter(l => l.from === id || l.to === id);
   function tearUp(owner, id) {
@@ -266,7 +266,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     let dIn = 0;
     for (let d = 0; d <= l.length; d += 4) { const p = pointAt(l, d); if (Math.hypot(p.x - t.x, p.z - t.z) <= R0) dIn = d; else break; }
     if (dIn <= 0) dIn = Math.min(l.length, 40);
-    // Tim 2026-11-17: N short pieces in a row just outside the camp (sectionStart from the camp station, sectionLength
+    // 2026-11-17: N short pieces in a row just outside the camp (sectionStart from the camp station, sectionLength
     // each, sectionGap between), squeezed to fit when less track lies inside the war circle. The red piece is what is hit.
     const S = W8().supply || {}, r1 = v => Math.round(v * 10) / 10;
     let start = S.sectionStart ?? 60, len = S.sectionLength ?? 30, gap = S.sectionGap ?? 10;
@@ -282,11 +282,11 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
         rail: { link: l.id, d0: r1(d0), d1: r1(d1) }, hitBoxes: boxes, n: k + 1, of: N });
     }
     w.camp.sectionsMade = l.id;
-    // once per clan (Tim 2026-11-17): a one-time tip to a player defending against a camp whose spur just linked (no notice)
+    // once per clan (2026-11-17): a one-time tip to a player defending against a camp whose spur just linked (no notice)
     const dc = state.clans?.[w.defender];
     if (dc && !dc.bot && !dc.supplyTipSeen) { dc.supplyTipSeen = true; (state.news ||= []).push({ kind: 'supplyLineTip', clan: w.defender, war: w.id, townName: t.name }); }
   }
-  // Tim 2026-11-17: a town whose railway station is a ruin runs no trains. Every finished line at that town is
+  // 2026-11-17: a town whose railway station is a ruin runs no trains. Every finished line at that town is
   // closed (cutBy 'station', cutAt the town) until the station is rebuilt; routes through the town are blocked with
   // it (shipments route over open lines only), open orders wait. Both sides of a war on the town get a notice.
   const stationDown = id => { const st = (town(id)?.buildings || []).filter(b => b.type === 'station'); return st.length > 0 && st.every(b => b.stage === 'ruined'); };
@@ -311,7 +311,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       if (!l.done || !c) continue;
       if (c.sectionsMade !== l.id) makeSections(w, l);
       const secs = c.buildings.filter(b => b.type === 'rail_section' && b.rail?.link === l.id);
-      const cut = down(c.buildings.find(b => b.type === 'camp_station')) || secs.some(down);   // Tim 2026-11-17: any break stops the trains; all must be whole again
+      const cut = down(c.buildings.find(b => b.type === 'camp_station')) || secs.some(down);   // 2026-11-17: any break stops the trains; all must be whole again
       const say2 = text => { for (const o of [w.attacker, w.defender]) { const cl = state.clans?.[o]; if (cl) cl.notice = { tick: state.tick, text }; } };
       if (cut && !l.closed) { l.closed = true; l.cutBy = 'war'; c.station = { ...(c.station || {}), linked: false, cut: true }; cutHook?.(l.from, l.id); say2(`The ${placeName(l.from).replace(/^the /, '')} is cut off from the rail network`); }
       else if (!cut && l.closed && l.cutBy === 'war') { l.closed = false; delete l.cutBy; c.station = { ...(c.station || {}), linked: true, cut: false }; }
@@ -364,15 +364,15 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       if (!l?.done) { for (const u of ridersOf(t.id)) { delete u.aboard; delete u.railRide; } delete rec().trains[t.id]; continue; }
       t.speed = T().speed ?? 36;
       if (T().consist) t.consist = T().consist; else delete t.consist;   // its cars, for the renderer (render/rail_track.js)
-      // Tim 2026-11-07: on screen it runs a little slower than a horse (train.viewSpeed); with nobody near it
+      // 2026-11-07: on screen it runs a little slower than a horse (train.viewSpeed); with nobody near it
       // runs at full speed, so shipments keep their arrival times. Checked twice a second.
       if (!((state.tick ?? 0) % 10) || t.seen === undefined) t.seen = watched(t, l);
       const v = t.seen ? Math.min(t.speed, T().viewSpeed ?? 20) : t.speed;
       t.v = v;
       if (t.call && (state.tick ?? 0) >= t.call.until) allAboard(t);   // the boarding call ran out
       // a closed line (its camp's supply line cut, or a town station in ruins): the train stays at the station it is
-      // at, or runs on to the next one and stays there (Tim 2026-11-17)
-      // Tim 2026-11-21: a line blown by a charge still lets its train set out once (it stops at the gap, guards out, then
+      // at, or runs on to the next one and stays there (2026-11-17)
+      // 2026-11-21: a line blown by a charge still lets its train set out once (it stops at the gap, guards out, then
       // backs up to its station and is held there until the repair), so the blast need not be timed
       if (l.closed && (t.d <= 0 || t.d >= l.length) && !(l.cutBy === 'blast' && l.blast && !l.blast.sortie)) t.wait = Math.max(t.wait, 2);
       if (!l.closed && t.held) { delete t.held; arriveHook?.(t, l, t.d <= 0 ? l.from : l.to); }   // open again: it unloads and loads where it stood
@@ -389,7 +389,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       for (const u of ridersOf(t.id)) { u.x = head.x; u.z = head.z; u.place = 'world'; u.anim = 'idle'; }
     }
   }
-  // the 2026-11-07 rule (built with train robbery, Tim 2026-11-20): anyone standing on the track where the engine passes
+  // the 2026-11-07 rule (built with train robbery, 2026-11-20): anyone standing on the track where the engine passes
   // goes down (heroes and crew come round at their nearest town hall, island_respawn.js). Townsfolk, workers and the
   // rail crews step aside. Only near someone on the island (unwatched units are not on the track).
   function runOver(t, l, d0) {
@@ -402,7 +402,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       const k = Math.max(0, Math.min(1, ((u.x - a.x) * dx + (u.z - a.z) * dz) / len2));
       if (Math.hypot(a.x + dx * k - u.x, a.z + dz * k - u.z) > r) continue;
       u.anim = 'death'; delete u.order; runtime?.forget?.(u.id);
-      // Tim 2026-11-25: a train death looks like any other: health to nothing (the bar shows red) and a killing hit, so
+      // 2026-11-25: a train death looks like any other: health to nothing (the bar shows red) and a killing hit, so
       // the renderer sprays the usual blood (render/view.js addHits) and the death thud plays
       const hp = u.hp || 0; u.hp = 0;
       (state.hits ||= []).push({ a: null, t: u.id, damage: Math.round(hp), crit: true, kill: true, x: u.x, z: u.z, dir: 0, kind: 'train' });
@@ -424,7 +424,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
   const RIDE = () => R?.ride || {};
   const say = (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; return true; };
   const ridersOf = id => Object.values(state.entities).filter(u => u.aboard === `rail:${id}`);
-  // seats: the carriages of train.consist (Tim 2026-11-07), else every car but the last
+  // seats: the carriages of train.consist (2026-11-07), else every car but the last
   const seats = t => Math.max(1, T().consist ? T().consist.filter(k => k === 'carriage').length : (t.cars ?? 3) - 1) * (RIDE().seatsPerCar ?? 8);
   const placeName = id => id === 'capital' ? 'the capital' : isCamp(id) ? `the ${town(warOfNode(id)?.town)?.name || ''} camp`.replace('the  camp', 'the camp') : town(id)?.name || id;
   const robRefs = {};   // war, shipments, world: set by frontier.js (setRobbery), made after the rail
@@ -435,8 +435,8 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
   function atStation(e, owner, id) {
     if (id === 'capital' && !hub(owner)) {
       const g = runtime?.gate; if (!g) return false;
-      const st = g.station || g.city;   // the city railway station (Tim 2026-11-07), else the gate
-      // with a city station the train stands inside the wall: boarding only at the station in the city (Tim 2026-11-10)
+      const st = g.station || g.city;   // the city railway station (2026-11-07), else the gate
+      // with a city station the train stands inside the wall: boarding only at the station in the city (2026-11-10)
       return (e.place === 'street' && Math.hypot(e.x - st[0], e.z - st[1]) <= (RIDE().gateReach ?? 6))
         || (!g.rail && e.place === 'world' && Math.hypot(e.x - (g.rail || g.island)[0], e.z - (g.rail || g.island)[1]) <= (RIDE().reach ?? 18) + 6);
     }
@@ -453,7 +453,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     }).filter(Boolean);
   }
   // every train serving one station of this owner: standing there now (eta 0) or seconds until it comes in
-  // (the station clock over each station reads this too, Tim 2026-11-08)
+  // (the station clock over each station reads this too, 2026-11-08)
   function serviceAt(owner, at) {
     const stop = (T().stopSeconds ?? 60) * 20;
     return Object.values(rec().trains).filter(t => t.owner === owner).flatMap(t => {
@@ -472,24 +472,24 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     const ids = [...new Set(linksOf(e.owner).flatMap(l => [l.from, l.to]))].filter(id => atStation(e, e.owner, id));
     return ids.flatMap(id => serviceAt(e.owner, id)).sort((a, b) => a.eta - b.eta);
   }
-  // Boarding (Tim 2026-11-08): picking a train calls "All aboard!": a big zone (ride.zoneRadius) shows on the ground
+  // Boarding (2026-11-08): picking a train calls "All aboard!": a big zone (ride.zoneRadius) shows on the ground
   // round the station for ride.callSeconds, or less if the train leaves sooner. When it runs out, everyone of yours standing in
   // the zone gets on (horses and vehicles stay at the station), so crew you leave outside stay in town. Picking the
   // train again (Space) boards at once. The hero must still be in the zone.
   function board(e, trainId) {
     if (e.type !== 'hero' || e.dead || e.downed || e.jailed) return;
     if (String(e.aboard || '').startsWith('rail:')) return say(e.owner, 'Already on a train');   // in a rickshaw or omnibus: he steps out to board
-    if (e.chest) return say(e.owner, 'No stolen chest on the train: ride or run it home');   // train robbery (Tim 2026-11-20)
+    if (e.chest) return say(e.owner, 'No stolen chest on the train: ride or run it home');   // train robbery (2026-11-20)
     const t = rec().trains[trainId], at = t && (stationOf(t) || gapAt(t, e));
     if (t?.call?.hero === e.id) return allAboard(t);   // Space again: on at once (anywhere in the zone)
     if (!t || t.owner !== e.owner || !at || !atStation(e, e.owner, at)) return say(e.owner, 'No train standing here');
-    // no leaving the capital with a Rally up (Tim 2026-11-10): rallied sector crew rode out, the Hero group went far over
+    // no leaving the capital with a Rally up (2026-11-10): rallied sector crew rode out, the Hero group went far over
     // six on the island and the city was left short. Once the Rally is over only the Hero group boards (inZone).
     if (at === 'capital' && !hub(e.owner) && e.place === 'street' && rallyUp(e.owner)) return say(e.owner, 'A Rally is up: the train waits until your crew are back at their posts');
     if (t.call) return say(e.owner, 'Boarding is already called');
-    // the call never holds the train (Tim 2026-11-08): with less than callSeconds before it leaves, that is all you get
+    // the call never holds the train (2026-11-08): with less than callSeconds before it leaves, that is all you get
     const ticks = Math.max(1, Math.min(Math.round((RIDE().callSeconds ?? 10) * 20), t.wait - 1));
-    // the zone lies on the ground round the station (Tim 2026-11-08): a town's shed, the city railway station, or the
+    // the zone lies on the ground round the station (2026-11-08): a town's shed, the city railway station, or the
     // line's end outside the island gate
     const g = runtime?.gate, p = at === 'gap' ? { x: e.x, z: e.z } : at === 'capital' && !hub(e.owner) ? (e.place === 'street' ? (g?.station && { x: g.station[0], z: g.station[1] }) : endpoint(e.owner, 'capital')) : endpoint(e.owner, at);
     t.call = { hero: e.id, x: p?.x ?? e.x, z: p?.z ?? e.z, place: e.place, r: RIDE().zoneRadius ?? 25, until: (state.tick ?? 0) + ticks, ticks };
@@ -503,7 +503,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     // crew sitting in a rickshaw or omnibus count where the vehicle stands (they climb out; it stays, empty)
     const at = u => { const v = vehicleOf(u); return v || u; };
     // in the capital only the boss's own party boards: Hero group (or Rally) crew and settlers, never sector crew or
-    // HQ reserves walking past the station (Tim 2026-11-08: sector crew rode out to the island and could not be ordered)
+    // HQ reserves walking past the station (2026-11-08: sector crew rode out to the island and could not be ordered)
     const party = u => u.place !== 'street' || !u.deployment || (!u.deployment.transfer && (u.deployment.group || 'hero') === 'hero');
     const ok = u => u.owner === e.owner && u.type !== 'hero' && !u.dead && !u.downed && !u.jailed && !u.garrison && (!u.aboard || vehicleOf(u)) && !u.worker && !u.railGang && party(u)
       && u.type !== 'horse' && u.type !== 'rickshaw' && u.type !== 'omnibus' && !u.vehicle && at(u).place === c.place && Math.hypot(at(u).x - c.x, at(u).z - c.z) <= c.r;
@@ -535,7 +535,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     if (!party.length) return say(e.owner, 'The train is full');
     const head = pointAt(rec().links[t.link], t.d);
     for (const u of party) {
-      leaveVehicle(u);   // rickshaws and omnibuses stay at the station, empty (Tim 2026-11-08)
+      leaveVehicle(u);   // rickshaws and omnibuses stay at the station, empty (2026-11-08)
       if (u.mounted) { delete u.mounted; delete u.ride; }   // crew horses stay at the station
       delete u.order; delete u.attackTarget; delete u.swing; delete u.execute; runtime?.forget?.(u.id);
       Object.assign(u, { aboard: `rail:${t.id}`, railRide: { train: t.id, since: state.tick ?? 0 }, place: 'world', x: head.x, z: head.z, anim: 'idle' });
@@ -562,7 +562,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     const l = rec().links[t.link], at = t.d >= l.length ? l.to : l.from;
     t.dir = at === l.to ? -1 : 1; t.wait = Math.round((T().stopSeconds ?? 20) * 20);
     t.arrived = { at, tick: state.tick ?? 0 };
-    if (l.closed) t.held = true;   // a closed line: its cargo stays aboard until the line opens again (Tim 2026-11-17)
+    if (l.closed) t.held = true;   // a closed line: its cargo stays aboard until the line opens again (2026-11-17)
     else arriveHook?.(t, l, at);   // shipments: unload and load cargo
     const riders = ridersOf(t.id);
     if (!riders.length) return;
@@ -572,7 +572,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     else { const p = endpoint(t.owner, at) || pointAt(l, t.d); px = p.x + 6; pz = p.z + 6; }
     letOff(riders, place, px, pz, `Arrived at ${placeName(at)}`);
   }
-  // train robbery (Tim 2026-11-20): riders get off beside a train stopped at a blown track, to fight
+  // train robbery (2026-11-20): riders get off beside a train stopped at a blown track, to fight
   function gapOff(t, l) {
     const riders = ridersOf(t.id);
     if (!riders.length) return;
@@ -593,7 +593,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     say(hero.owner, text);
   }
 
-  // a train of yours standing at a blown track, with e near it: 'gap' (train robbery, Tim 2026-11-20)
+  // a train of yours standing at a blown track, with e near it: 'gap' (train robbery, 2026-11-20)
   const gapAt = (t, e) => { if (!t.stopped || t.owner !== e.owner || e.place !== 'world') return null; const l = rec().links[t.link], p = l && pointAt(l, t.d); return p && Math.hypot(p.x - e.x, p.z - e.z) <= (RIDE().zoneRadius ?? 25) ? 'gap' : null; };
   // which station a standing train is at (null while it runs)
   const stationOf = t => { const l = rec().links[t.link]; return !l || t.wait <= 0 ? null : (t.d <= 0 ? l.from : t.d >= l.length ? l.to : null); };
@@ -603,7 +603,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     l.gang = [];
   }
 
-  // the drawn railhead's pace (Tim 2026-11-22): what the gang can follow at its walking pace (gang.speed over the share
+  // the drawn railhead's pace (2026-11-22): what the gang can follow at its walking pace (gang.speed over the share
   // of the cycle spent walking, less a margin), never ahead of the true progress; the line opens at link.seconds
   function walkPace() {
     const g = GANG(), hammer = Math.round((g.hammerSeconds ?? 3) * 20), cycle = hammer + 40, walkShare = Math.max(0.2, (cycle - hammer) / cycle);
@@ -620,7 +620,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
     const anchors = enabled ? Object.values(state.entities).filter(e => e.place === 'world' && !e.worker && !e.railGang && e.type !== 'civilian' && e.owner && !e.dead && !e.downed) : [];
     for (const l of Object.values(rec().links)) {
       if (l.done) continue;
-      // lines begun before 2026-11-22 show what is laid; a camp spur's drawn track keeps up with the true progress (Tim 2026-11-25)
+      // lines begun before 2026-11-22 show what is laid; a camp spur's drawn track keeps up with the true progress (2026-11-25)
       l.shown = isCamp(l.from) ? l.built : Math.min(l.built, (l.shown ?? l.built) + walkPace() / 20);
       l.gang = (l.gang || []).filter(id => { const e = state.entities?.[id]; return e && !e.dead; });
       laidStretches(l).forEach(([, d], c) => {
@@ -647,9 +647,9 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
       // while hammering they keep their spot; then they run up to their place beside the new railhead
       if (!working || e.railSpot == null) e.railSpot = at;
       const spot = gangSpot(l, k, e.railSpot), dx = spot.x - e.x, dz = spot.z - e.z, d = Math.hypot(dx, dz);
-      // they walk at gang.speed (below the hero's run, Tim 2026-11-07); the drawn railhead moves at walkPace, so they
-      // keep up between swings (Tim 2026-11-22); a long gap (spawning in) closes at once
-      // a camp spur's railhead moves faster than a walk (Tim 2026-11-25): its gang moves fast enough to keep up between swings
+      // they walk at gang.speed (below the hero's run, 2026-11-07); the drawn railhead moves at walkPace, so they
+      // keep up between swings (2026-11-22); a long gap (spawning in) closes at once
+      // a camp spur's railhead moves faster than a walk (2026-11-25): its gang moves fast enough to keep up between swings
       const pace = isCamp(l.from) ? l.length / Math.max(1, layFor(l)) * cycle / Math.max(1, cycle - (g.hammerSeconds ?? 3) * 20) * 1.1 : 0;
       const v = Math.max(g.speed ?? 4.5, pace) / 20;
       if (d > 40) { e.x = spot.x; e.z = spot.z; }
@@ -666,7 +666,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
   }
 
   function attach(services) { runtime = services; }
-  // Lines laid before the capital end moved from the gate to the station (Tim 2026-11-10): routed again to the new end,
+  // Lines laid before the capital end moved from the gate to the station (2026-11-10): routed again to the new end,
   // once; trains and laying progress keep their share of the way. A line with no way there keeps its old end.
   function capitalEnds() {
     const city = endpoint(null, 'capital'), r = rec(); if (!city) return;
@@ -692,7 +692,7 @@ export function createRail({ state, data, world, worldData, stable, dayTicks = 1
   // a charge on the track; a robbery in progress shows its count down
   function prompt(e) {
     if (!e || e.place !== 'world') return null;
-    if (e.robbing) return null;   // the ROBBING channel bar shows instead (Tim 2026-11-21)
+    if (e.robbing) return null;   // the ROBBING channel bar shows instead (2026-11-21)
     if (e.chest) return robbery.cashPoint(e) ? { mode: 'cashChest', text: 'Space  Cash in the stolen chest' } : null;
     if (typeof robbery.robCheck(e) !== 'string') return { mode: 'rob', text: 'Space  Rob the freight wagon' };
     if (typeof blast.layCheck(e) !== 'string') return { mode: 'blast', text: 'Space  Set a charge on the line' };

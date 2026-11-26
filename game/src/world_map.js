@@ -10,12 +10,12 @@ import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots } from './resource_spot_props.js';
 import { drawZoneGround, drawZoneLabels, drawZoneGoal } from './zone_map.js';
 // Extend the map UI without changing the accepted atlas or its glyph system.
-// Railways (Tim 2026-11-08): your lines get their own switch and a key entry
+// Railways (2026-11-08): your lines get their own switch and a key entry
 export const WORLD_LAYERS = [...ATLAS_LAYERS, { id: 'spots', label: 'Spots', on: false }, { id: 'rail', label: 'Railways', on: true }, { id: 'zones', label: 'Zones', on: true }];
 export const worldFeatureName = it => it?.kind === 'spot' ? `${it.featureKind} spot · ${it.id}` : atlasFeatureName(it);
-// Resource markers (brighter, Tim 2026-11-05): a soft glow, a dark rim and a bright dot; big = rich spot or node.
+// Resource markers (brighter, 2026-11-05): a soft glow, a dark rim and a bright dot; big = rich spot or node.
 export const SPOT_COLORS = { timber: '#8ff09a', forest: '#8ff09a', stone: '#f2eee2', quarry: '#f2eee2', ore: '#ffb35c', fish: '#7fe2ff', fishing: '#7fe2ff', forage: '#ffe07a', fertile: '#d4f57a' };
-// Rich deposits (Tim 2026-11-23, replaces the kanji badges of 2026-11-06): a sea-chart symbol inked straight onto the
+// Rich deposits (2026-11-23, replaces the kanji badges of 2026-11-06): a sea-chart symbol inked straight onto the
 // map, iron-gall ink with hatching inside a pale paper halo, so they read on any ground and need no reading: a pine
 // for timber, a cut rock for a quarry, pick and hammer for ore, a fish for fishing, an ear of grain for
 // farmland. Small spots keep the plain dot.
@@ -66,7 +66,7 @@ export function drawSpotMarker(ctx, x, y, kind, big = false) {
     drawRichSymbol(ctx, RICH_SYMBOL[kind], u, true); drawRichSymbol(ctx, RICH_SYMBOL[kind], u, false);
     ctx.restore(); return;
   }
-  // small spots: the same symbol, smaller and lighter (Tim 2026-11-23: no plain dots)
+  // small spots: the same symbol, smaller and lighter (2026-11-23: no plain dots)
   ctx.translate(x, y); ctx.globalAlpha = 0.85; const u = 0.8;
   drawRichSymbol(ctx, RICH_SYMBOL[kind], u, true); drawRichSymbol(ctx, RICH_SYMBOL[kind], u, false);
   ctx.restore();
@@ -107,7 +107,7 @@ export function canvasToWorld(px, py, view) { return { x: (px - view.w / 2) / vi
 export function worldTransform(view) { const k = view.scale; return [k, 0, 0, k, view.w / 2 - k * view.cx, view.h / 2 - k * view.cz]; }
 // Nearest item ({ x, z }) within maxPx pixels of (px, py), or null.
 export function hitTest(items, px, py, view, maxPx = 8) {
-  let best = null, bd = Infinity;   // the capital's seal is big, so it answers further out (Tim 2026-11-23)
+  let best = null, bd = Infinity;   // the capital's seal is big, so it answers further out (2026-11-23)
   for (const it of items) { const p = worldToCanvas(it.x, it.z, view); const d = Math.hypot(p.px - px, p.py - py); if (d <= (it.kind === 'capital' ? Math.max(maxPx, 14) : maxPx) && d <= bd) { bd = d; best = it; } }
   return best;
 }
@@ -183,7 +183,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       }
       ctx.globalAlpha=.24; transform(); ctx.drawImage(biomeCache,0,0,world.size.w,world.size.h); cssTransform(); ctx.globalAlpha=1;
     }
-    // campaign zones (Z3, Tim 2026-11-19): holder tint and dashed borders under the marks (src/zone_map.js)
+    // campaign zones (Z3, 2026-11-19): holder tint and dashed borders under the marks (src/zone_map.js)
     const zproj = (x, z) => worldToCanvas(x, z, view);
     if (layers.zones && st.zones) drawZoneGround(ctx, world, st.zoneRules, st.zones, zproj);
     ctx.lineJoin = 'round';
@@ -208,14 +208,14 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       ctx.restore();
     }
     for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.deposit ? it.nodeKind || it.featureKind : it.featureKind,!!it.deposit); else if (it.kind === 'resource') drawSpotMarker(ctx,p.px,p.py,it.featureKind,true); else if (it.kind === 'town') drawTownBadge(ctx,p.px,p.py,it.color,it.mine); else if (it.kind === 'capital') drawCapitalBadge(ctx,p.px,p.py); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id) || it.kind==='camp' && !!st.campsCleared?.[it.id],it.featureKind); }
-    // your railway lines (Tim 2026-11-07): laid track glows, the rest of the route dashed, progress at the railhead
+    // your railway lines (2026-11-07): laid track glows, the rest of the route dashed, progress at the railhead
     if (st.rail && layers.rail) drawRailLines(ctx, st.rail.links, (x, z) => { const p = worldToCanvas(x, z, view); return [p.px, p.py]; }, { width: 3, seconds: st.rail.seconds, wars: st.rail.wars, me: st.rail.me, clans: st.rail.clans, inked: true });
-    // Rail ledger (Tim 2026-11-08): the selected shipment's train glows
+    // Rail ledger (2026-11-08): the selected shipment's train glows
     const tr = st.rail?.highlight && st.rail.trains?.[st.rail.highlight], tl = tr && st.rail.links?.[tr.link];
     if (tl?.points?.length > 1) { const q = pointAt(tl, tr.d), p = worldToCanvas(q.x, q.z, view), r = 9 + 3 * Math.sin(performance.now() / 180);
       ctx.save(); ctx.shadowColor = 'rgba(255,224,156,.95)'; ctx.shadowBlur = 14; ctx.strokeStyle = '#ffe09c'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.px, p.py, r, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = '#ffe09c'; ctx.beginPath(); ctx.arc(p.px, p.py, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.restore(); dirty = true; }
-    // rival towns, roughly (goals pass, Tim 2026-11-19, mock rival_marks_mock.png): an ink wash, a dashed brush ring and a
+    // rival towns, roughly (goals pass, 2026-11-19, mock rival_marks_mock.png): an ink wash, a dashed brush ring and a
     // red question mark; the town stands somewhere inside, never under the mark
     for (const h of st.rivalHints || []) {
       const p = worldToCanvas(h.x, h.z, view), R = Math.max(16, h.r * view.scale);
@@ -232,7 +232,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       ctx.fillStyle = '#b03424'; ctx.fillText('?', p.px, p.py);
       ctx.restore();
     }
-    // the Found card's site picks (Tim 2026-11-20): a pulsing gold ring and a gold ! like the goal marks, hover for the site
+    // the Found card's site picks (2026-11-20): a pulsing gold ring and a gold ! like the goal marks, hover for the site
     if (st.goalSites?.length) { const t = performance.now() / 300;
       for (const g of st.goalSites) { const p = worldToCanvas(g.x, g.z, view), r = 13 + 2.5 * Math.sin(t);
         ctx.save(); ctx.shadowColor = 'rgba(255,214,110,.9)'; ctx.shadowBlur = 12; ctx.strokeStyle = '#f0c85a'; ctx.lineWidth = 3;
@@ -244,7 +244,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     for (const m of st.robbery || []) { const p = worldToCanvas(m.x, m.z, view); drawRobberyMark(ctx, m, p.px, p.py, 1.5); }   // train robbery: last down spot, dropped chest
     if (st.shore?.length) drawShore(ctx, st.shore, (x, z) => { const p = worldToCanvas(x, z, view); return [p.px, p.py]; }, 2.2, 6.5);   // ships S6b: landable shore while your people are afloat
     if (st.hero) { const p=worldToCanvas(st.hero.x,st.hero.z,view); drawAtlasGlyph(ctx,'hero',p.px,p.py); }
-    // the surveyor's tour stop (Tim 2026-11-06 20:45): a gold ring the size of the area a town draws its nodes from
+    // the surveyor's tour stop (2026-11-06 20:45): a gold ring the size of the area a town draws its nodes from
     if (st.highlight) { const h=st.highlight, p=worldToCanvas(h.x,h.z,view); ctx.save(); ctx.strokeStyle='rgba(240,200,90,.95)'; ctx.lineWidth=2.5; ctx.setLineDash([6,4]);
       ctx.beginPath(); ctx.arc(p.px,p.py,Math.max(14,(h.r||0)*view.scale),0,Math.PI*2); ctx.stroke(); ctx.restore(); }
     ctx.restore(); cssTransform();
@@ -288,7 +288,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       const local = e => { const r = canvas.getBoundingClientRect(); return { px: (e.clientX - r.left) * view.w / r.width, py: (e.clientY - r.top) * view.h / r.height }; };
       canvas.addEventListener('wheel', e => { e.preventDefault(); const p = local(e); zoomAt(world, view, p.px, p.py, e.deltaY < 0 ? 1.15 : 1 / 1.15); dirty = true; }, { passive: false });
       // Pointer capture keeps the release on this canvas even if other game handlers swallow it
-      // (Tim 2026-11-02: drag stuck to the cursor); a move with no button held also ends the drag.
+      // (2026-11-02: drag stuck to the cursor); a move with no button held also ends the drag.
       const end = e => { if (drag) lastMoved = drag.moved; drag = null; try { canvas.releasePointerCapture?.(e.pointerId); } catch {} };
       canvas.addEventListener('pointerdown', e => { if (e.button !== 0) return; const p = local(e); lastMoved = false; drag = { x: p.px, y: p.py, cx: view.cx, cz: view.cz, moved: false }; try { canvas.setPointerCapture?.(e.pointerId); } catch {} });
       canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end); canvas.addEventListener('lostpointercapture', end);

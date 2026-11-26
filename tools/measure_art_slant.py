@@ -1,4 +1,4 @@
-"""Measure how far each building's painted base is rotated off the 2:1 ground diagonal (Tim 2026-11-07: frontier
+"""Measure how far each building's painted base is rotated off the 2:1 ground diagonal (2026-11-07: frontier
 buildings like the town hall look slightly turned because the concept art doesn't hold a perfect diagonal).
 
     python tools/measure_art_slant.py [name ...] [--write]

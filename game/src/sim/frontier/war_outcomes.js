@@ -1,4 +1,4 @@
-// What taking a town does (frontier plan F6, checkpoint 8a-4, Tim 2026-11-14). Rules only. Called by war_end.js
+// What taking a town does (frontier plan F6, checkpoint 8a-4, 2026-11-14). Rules only. Called by war_end.js
 // when the attacking hero's channel at the ruined town hall completes; each returns a note for the 'warEnded' news.
 //   captured: the town changes owner with everything in it: people, workers, stores, zones, buildings (ruins stay
 //             ruins) and its governor settings. It is cut from the old owner's railway: every line ending at it is
@@ -9,7 +9,7 @@
 //             stays with its clan, its ruins as they are.
 //   burned:   the town is wiped: its record, people, lines and roads go (world.removeTown) and its site is free to
 //             found on again under the usual rules.
-// Any town can be captured, sacked or burned, a clan's last one too (Z2, Tim 2026-11-19).
+// Any town can be captured, sacked or burned, a clan's last one too (Z2, 2026-11-19).
 // The old owner's horses and vehicles stored in a town he no longer holds move to another of his stables
 // (sim/vehicle_garage.js).
 // createWarOutcomes({ state, data, war, world, rail, garrison }) -> { captured, sacked, burned, attach }

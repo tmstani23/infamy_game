@@ -1,4 +1,4 @@
-// Town window Stable tab (Tim 2026-11-23, mock project files stable_tab/stable_tab_mock.png): the stable shown right in
+// Town window Stable tab (2026-11-23, mock project files stable_tab/stable_tab_mock.png): the stable shown right in
 // the town window instead of an "Open stable" button. Three columns (two or one on a narrow window):
 //  - this town's stables (max 2), each with Go to (camera only); room over all your stables (owned + queued); town stock
 //  - buy cards (cost from town stock when queued, refunded on cancel, no upkeep) and the queue of the town's first stable

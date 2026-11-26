@@ -1,5 +1,5 @@
-// Surrender and terms (frontier plan F6, war checkpoint 8c; Tim 2026-11-09 and 2026-11-15). Rules only: no DOM, and
-// every roll is seeded. Numbers: data.war.surrender (placeholders, Tim to tune).
+// Surrender and terms (frontier plan F6, war checkpoint 8c; 2026-11-09 and 2026-11-15). Rules only: no DOM, and
+// every roll is seeded. Numbers: data.war.surrender (placeholders, to tune).
 //
 // Either side of a war can surrender at any time. It cannot be taken back and the war then always ends in that
 // side's loss. From that moment there is a ceasefire: nobody attacks, towers hold fire, fires go out, channels stop
@@ -24,7 +24,7 @@
 //   { id, type: 'frontier', action: 'warLeave', war }                   the surrendering side: leave without terms
 //   { id, type: 'frontier', action: 'warAnswer', war, answer: 'accept' | 'no' | 'never' }   the other side
 //   { id, type: 'frontier', action: 'warOutcome', war, outcome: 'capture' | 'sack' | 'burn' }   the attacker, after a defender's surrender
-// The estimate (Tim 2026-11-09): a clan guesses its chance to win only from what it has met: the other side's troops
+// The estimate (2026-11-09): a clan guesses its chance to win only from what it has met: the other side's troops
 // it has spotted in this war (war.spotted[clan], fading), the buildings still standing on both morale bars, the other
 // clan's towns it has found on the map and its hold on the city. Never a war chest. A seeded noise of
 // surrender.noise is added. A judge's price is the worth of what it would gain (the town, or its guess of the

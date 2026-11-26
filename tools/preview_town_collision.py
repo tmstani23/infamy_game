@@ -1,4 +1,4 @@
-"""Preview of building blocking against the art (war collision checkpoint 5b-0, Tim 2026-11-11).
+"""Preview of building blocking against the art (war collision checkpoint 5b-0, 2026-11-11).
 
 Frontier town and war camp buildings: today a placed building blocks a square share of its grid tiles
 (townGrid.buildingCollide), whatever the shape of its art, so long buildings block empty ground beside them.
@@ -18,7 +18,7 @@ ALPHA = 60                            # a pixel counts as painted above this alp
 
 
 S = math.sqrt(0.5)
-# Proposed per-art blocked boxes (Tim 2026-11-11): one or more boxes per art, each [a0, a1, b0, b1] in shares of the
+# Proposed per-art blocked boxes (2026-11-11): one or more boxes per art, each [a0, a1, b0, b1] in shares of the
 # art's half footprint measured from its centre: a runs from the lower right edge (-1) to the upper left edge (+1),
 # b from the lower left edge (-1) to the upper right edge (+1). Missing = one box at the art's solid share.
 # Would live in art.json as "solidBoxes".

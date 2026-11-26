@@ -1,4 +1,4 @@
-// Campaign zones (Z1, Tim 2026-11-19): the island's six zones, who holds each, and the castle siege check.
+// Campaign zones (Z1, 2026-11-19): the island's six zones, who holds each, and the castle siege check.
 // Pure module: no DOM, no randomness, reads state only. Data: game/data/campaign_zones.json (zones as groups of
 // world.json regions). Not the town zoning (frontier.json 'zones', sim/frontier/placement.js).
 // Rules (docs/frontier_campaign_plan.md): a clan holds a zone when it has a town there and no other clan has one;

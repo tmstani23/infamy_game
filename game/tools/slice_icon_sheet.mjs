@@ -17,7 +17,7 @@ export const SHEETS = {
   3: ['battle_hardened', 'shadowcraft', 'attack', 'snared', 'stunned', 'downed', 'charmed', 'intimidated', 'critsurge', 'shroud', 'pursuit', 'watchtower'],
 };
 const COLS = 4, ROWS = 3;
-// rounded corners (Tim 2026-11-23: "round the corners a bit"): radius as a share of the icon side, cut into the alpha
+// rounded corners (2026-11-23: "round the corners a bit"): radius as a share of the icon side, cut into the alpha
 export const CORNER = 0.12;
 const rounded = (buf, size) => sharp(buf).ensureAlpha().composite([{ input: Buffer.from(
   `<svg width="${size}" height="${size}"><rect width="${size}" height="${size}" rx="${Math.round(size * CORNER)}" fill="#fff"/></svg>`), blend: 'dest-in' }]).png().toBuffer();

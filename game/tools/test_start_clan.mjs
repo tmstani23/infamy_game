@@ -145,7 +145,7 @@ for (const q of g.territory.quarters) {
   members.at(-1).owner = 'player';
 }
 assert.equal(new Set(g.territory.quarters.flatMap(q => q.businesses)).size, 10);
-assert.equal(g.clans.crewCap('player'), Math.min(g.settings.units.rules.maxCrew, g.settings.units.rules.baseCap + (g.state.season.day - 1) * g.settings.units.rules.capPerDawn + 20), 'all ten businesses grow capacity up to the maxCrew ceiling (phase 6, Tim 2026-10-29)');
+assert.equal(g.clans.crewCap('player'), Math.min(g.settings.units.rules.maxCrew, g.settings.units.rules.baseCap + (g.state.season.day - 1) * g.settings.units.rules.capPerDawn + 20), 'all ten businesses grow capacity up to the maxCrew ceiling (phase 6, 2026-10-29)');
 assert.equal(g.territory.score('player'), 24);
 console.log('all four quarter memberships, partial/full/lost bonuses and expanded crew capacity ok');
 

@@ -3,11 +3,11 @@ import { CAM_QUAT, CAM_UP, VIEW_DIR } from './iso.js';
 import { shared, FOG_QUAD } from './shading.js';
 import { groundY } from '../castle_height.js';
 
-// A burning HQ (Tim OK'd the mock 2026-10-26): one quad over the building draws
+// A burning HQ (approved the mock 2026-10-26): one quad over the building draws
 // smoke, ragged flames on the roof and round the base, licks that break off the
 // tips and float up, embers and a soft glow.
 // Each flame's height and thickness keep changing, and tongues curl apart with
-// deep U gaps between them (Tim 2026-10-26), so the fire never settles.
+// deep U gaps between them (2026-10-26), so the fire never settles.
 // The quad sits in the building's sorted extras so units in front still draw over it.
 export const PAD_W = 1.25, PAD_H = 1.9;      // quad size relative to the building art
 const SOURCES = 72;
@@ -65,7 +65,7 @@ void main() {
     float h = s.z * (0.25 + 1.5 * pow(wobble(t * (1.1 + fract(s.w * 0.37) * 2.2) + s.w * 13.0), 1.6));
     vec2 d = vec2(q.x - s.x * uAspect, q.y - s.y);
     float v = d.y / h;
-    // thickness: small flames only, never a blob (Tim 2026-10-26); each swells and slims as it burns
+    // thickness: small flames only, never a blob (2026-10-26); each swells and slims as it burns
     float width = s.z * (0.16 + 0.1 * fract(s.w * 0.53)) * (0.75 + 0.45 * wobble(t * 1.3 + s.w * 5.0));
     // curl: the flame bends side to side more the higher it goes
     float u = d.x / width + sin(v * 3.5 - t * 2.6 + s.w) * 0.6 * clamp(v, 0.0, 1.0);
@@ -103,7 +103,7 @@ void main() {
   float fo = fa * 0.92;
   col = col * (1.0 - fo) + ramp(f) * fa; a = a * (1.0 - fo) + fo;
   col += vec3(1.0, 0.42, 0.12) * halo * 0.1 * mix(0.4, 1.0, uNight) + vec3(1.0, 0.55, 0.2) * ember;
-  // uSoft (structure fires on the island, Tim 2026-11-13: too stark against the painted art): toned toward warm
+  // uSoft (structure fires on the island, 2026-11-13: too stark against the painted art): toned toward warm
   // umber and see-through; 0 keeps the HQ raid fire as approved
   col = mix(col, vec3(dot(col, vec3(0.3, 0.55, 0.15))) * vec3(1.1, 0.82, 0.6), uSoft * 0.4);
   col *= 1.0 - uSoft * 0.4; a *= 1.0 - uSoft * 0.4;
@@ -125,10 +125,10 @@ void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(
 }
 
 // Where flames start, in art space (x 0..1 across, y up from the art's bottom; sizes in
-// art heights). Only small flames (Tim 2026-10-26): a big fire is a cluster of them,
+// art heights). Only small flames (2026-10-26): a big fire is a cluster of them,
 // tallest in the middle and shorter towards its edges. Clusters sit on the roof and round
 // the front base (the two lower edges of the footprint diamond). The biggest flames are always round the
-// base, smaller ones up on the roof (Tim 2026-11-15). The first ROOF_SOURCES are the roof's.
+// base, smaller ones up on the roof (2026-11-15). The first ROOF_SOURCES are the roof's.
 export const ROOF_SOURCES = 42;
 export function fireSources(aspect) {
   const r = Math.random, out = [];

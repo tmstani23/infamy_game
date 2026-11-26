@@ -1,4 +1,4 @@
-// Captain hiring mix (Tim 2026-11-10): with the boss away the captain cycles the clan's real units, buys a basic
+// Captain hiring mix (2026-11-10): with the boss away the captain cycles the clan's real units, buys a basic
 // unit only while money is tight, and at the crew cap lets a basic crewman go once he can afford better.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -64,7 +64,7 @@ for (const kind of Object.keys(REAL)) {
   assert.ok(REAL.yakuza.some(k => t.count()[k]), 'a real unit hired in his place');
   assert.ok(t.g.clans.crewCount('player') + t.clan.queue.length <= cap, 'never over the cap');
 }
-// the captain fights back (Tim 2026-11-10: he stood there and died to bandits): whoever hit him is attacked first
+// the captain fights back (2026-11-10: he stood there and died to bandits): whoever hit him is attacked first
 {
   const t = fresh('yakuza', 6000);
   t.run(400, () => !!t.L.captainOf('player'));
@@ -76,7 +76,7 @@ for (const kind of Object.keys(REAL)) {
   assert.ok(ordered, `the captain was sent at his attacker: ${JSON.stringify(cap.order)}`);
   assert.ok(foe.hp < 400, 'and hit him');
 }
-// one captain only (Tim 2026-11-10 "2 city captains"): a knocked-out captain is gone for good and replaced, and a
+// one captain only (2026-11-10 "2 city captains"): a knocked-out captain is gone for good and replaced, and a
 // leftover captain from an old save (back from the clinic as crew) is cleared
 {
   const t = fresh('yakuza', 6000);

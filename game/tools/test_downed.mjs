@@ -115,7 +115,7 @@ console.log('downed tests passed');
     run(g, 3);
     assert.ok(S[bot].execute === undefined || ![cheap, dear].includes(S[bot].execute?.target) || false, 'no execute while unsafe');
   }
-  { // a bot that rolls no keeps rolling: at aggression 0.5 it still finishes both (the bug Tim hit 2026-10-17)
+  { // a bot that rolls no keeps rolling: at aggression 0.5 it still finishes both (the bug hit 2026-10-17)
     const { g, S, cheap, dear } = setup(0.5);
     run(g, 20);
     assert.ok(!S[cheap] && !S[dear], 'a no is not forever');
@@ -160,7 +160,7 @@ console.log('bot tests passed');
   assert.equal(S[t], undefined, 'carried off');
   assert.equal(C.player.clinic.length, 1);
   assert.equal(g.clans.crewCount('player'), 1, 'still counts for the cap');
-  // recovered crew wait at the clinic until the boss pays to revive them there (Tim 2026-10-19)
+  // recovered crew wait at the clinic until the boss pays to revive them there (2026-10-19)
   const ryo = C.player.ryo, cost = Math.round(units.types.thug.price * R.recoverCostShare);
   run(g, units.types.thug.recoverSeconds + 5);
   assert.equal(C.player.clinic.length, 1, 'never walks out on its own');
@@ -173,7 +173,7 @@ console.log('bot tests passed');
   const back = Object.values(S).find(e => e.type === 'thug' && e.owner === 'player');
   const clinic = g.clans.clinicOf();
   assert.ok(back && back.hp === back.maxHp && Math.hypot(back.x - clinic.door[0], back.z - clinic.door[1]) < 6, 'walked out at full health');
-  assert.equal(back.order, undefined, 'holds until ordered (Tim 2026-10-25)');
+  assert.equal(back.order, undefined, 'holds until ordered (2026-10-25)');
   console.log('carry off ok');
 }
 

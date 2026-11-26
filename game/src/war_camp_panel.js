@@ -1,12 +1,12 @@
 // War camp panel (frontier plan F6, checkpoint 4): presentation only, the sim checks every command again.
-// 7c-3 (Tim 2026-11-12): one menu per building. A left-click on the camp hall (or the red war coin) opens the hall:
+// 7c-3 (2026-11-12): one menu per building. A left-click on the camp hall (or the red war coin) opens the hall:
 // tabs Build (camp building cards with their art, under-construction list), War chest, Hall (hall upgrade), and the
 // worker hire box. A left-click on any other camp building opens only its own menu: a training building shows a card
 // per unit it trains (sprite still, health, damage a second, range, speed, cost, time; abilities in the hover) and
 // its queue; a site shows its progress; the rest say what they do. Picking a building card places it: its art follows the mouse with a green or red ring and the
 // reason in a hint; left-click places (Shift keeps placing), right-click or Esc cancels. No scrollbars: pages.
 const CSS = `
-/* Tim 2026-11-25: the camp station Orders tab (the town card's rail ledger), fitted to the lantern window: plain ruled rows, serif times, no boxed buttons */
+/* 2026-11-25: the camp station Orders tab (the town card's rail ledger), fitted to the lantern window: plain ruled rows, serif times, no boxed buttons */
 #warcamp .campledger{font-size:15px}
 #warcamp .campledger .lgtabs button,#warcamp .campledger .lgscope button{border:none!important;background:none!important;box-shadow:none!important;padding:4px 2px 5px!important;color:#c9b896;font-size:14px}
 #warcamp .campledger .lgtabs button[aria-pressed="true"],#warcamp .campledger .lgscope button[aria-pressed="true"]{color:#f6e8cf;border-bottom:2px solid #c9473d!important}
@@ -109,8 +109,8 @@ import { listVehicles } from './vehicles_panel.js';
 import { sharedKeybinds } from './keybinds.js';
 import { drawBuildArea } from './camp_build_area.js';
 import { campWorkerCap } from './sim/frontier/camp_worker_cap.js';
-import { shelterTabHtml, shelterTabSig, SHELTER_CSS } from './camp_shelter_tab.js';   // Tim 2026-11-25: the camp hall's Shelter tab
-import { createRailLedger } from './rail_ledger.js';   // the camp station's Orders tab (Tim 2026-11-25)
+import { shelterTabHtml, shelterTabSig, SHELTER_CSS } from './camp_shelter_tab.js';   // 2026-11-25: the camp hall's Shelter tab
+import { createRailLedger } from './rail_ledger.js';   // the camp station's Orders tab (2026-11-25)
 import { chestSendHtml, chestSendSig, chestSendClick, CHEST_SEND_CSS } from './war_chest_send.js';   // 8e-3
 import { armoryHtml, armorySig, ARMORY_CSS } from './war_armory_menu.js';
 import { logRowHtml, logPageHtml, logHover, logTurn, LOG_CSS } from './action_log_ui.js';   // 8e-9   // 7c-4: one merged build outline, darkened outside
@@ -154,7 +154,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   const style = document.createElement('style'); style.textContent = CSS + SURRENDER_CSS('#warcamp') + GENERAL_CSS('#warcamp') + CHEST_SEND_CSS('#warcamp') + ARMORY_CSS('#warcamp') + LOG_CSS('#warcamp') + SHELTER_CSS; document.head.append(style);
   const war = () => game.frontier?.war;
   const W = () => war()?.data || frontierData?.war || {};
-  // Tim 2026-11-13: camp workers in training show in the hall menu like the town's (a bar, the seconds left, how many more)
+  // 2026-11-13: camp workers in training show in the hall menu like the town's (a bar, the seconds left, how many more)
   const workerLeft = c => { const q = c?.workerTraining || []; return q.length ? Math.max(0, Math.ceil((q[0].readyAt - (game.state.tick ?? 0)) / 20)) : -1; };
   function workerQueueHtml(c) {
     const q = c?.workerTraining || []; if (!q.length) return '';
@@ -181,10 +181,10 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   const F = frontierData || {}, Zg = () => W().structures?.zoneGarrison || F.war?.structures?.zoneGarrison || {};
   const garCap = t => t === 'stockade' ? (F.buildings?.stockade?.garrison?.capacity ?? 0) : (Zg().types || []).includes(t) ? (Zg().byType?.[t]?.capacity ?? Zg().capacity ?? 0) : 0;
   let stab = 'train', ypage = 0;
-  // Tim 2026-11-25: the camp station menu has tabs Spur and Orders; Orders is the town card's rail ledger (open, delivered,
+  // 2026-11-25: the camp station menu has tabs Spur and Orders; Orders is the town card's rail ledger (open, delivered,
   // losses) for this camp's node, with This camp / All towns
   let sttab = 'spur', spage = 0;   // spage: Shelter tab page
-  const campLedger = createRailLedger({ game, data: frontierData, inCard: true, head: false, here: 'This camp' });   // a camp stable's own tabs: Train (cavalry) and Yours (your horses and vehicles, Tim 2026-11-14)
+  const campLedger = createRailLedger({ game, data: frontierData, inCard: true, head: false, here: 'This camp' });   // a camp stable's own tabs: Train (cavalry) and Yours (your horses and vehicles, 2026-11-14)
   const counts = {};   // typed train / hire counts by box, kept across refreshes
   function show(id, buildingId = null) { if (!rec(id) || rec(id).attacker !== hero()?.owner) return false; const b = buildingId && rec(id).camp.buildings.find(x => x.id === buildingId); bid = b && b.type !== 'camp_hall' ? b.id : null; gpage = 0; open = id; logOpen = false; lpage = 0; tab = 'build'; stab = 'train'; sttab = 'spur'; spage = 0; campLedger.clear(); page = tpage = ypage = 0; why = ''; sig = ''; root.hidden = false; onStart(); fill(); return true; }
   function close() { open = null; bid = null; root.hidden = true; }
@@ -204,12 +204,12 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const yoursOn = bld?.type === 'stable' && bld.stage === 'built', mineV = yoursOn ? listVehicles(game, heroId) : [];
     const workersH = !bld && tab === 'workers' ? (ensureWorkerCss(), buildUI()?.campWorkersHtml?.(open) || '<div class="small" style="padding:8px 0">The worker list is not ready yet.</div>') : '';
     const strat = game.frontier?.warGeneral?.strategyOf?.(w.attacker) || 'siege';
-    // a camp building troops can hold (watchtower, stockade): its garrison slots (Tim 2026-11-25)
+    // a camp building troops can hold (watchtower, stockade): its garrison slots (2026-11-25)
     const garSt = bld && bld.stage === 'built' && garCap(bld.type) ? stOf(bld) : null, gar = garSt ? garrisonSlotsHtml({ game, heroId, catalog, units, frontierData: F, st: garSt, cap: garCap(bld.type), page: gpage, perPage: 14, cols: 7, size: garCap(bld.type) <= 7 ? 76 : 64, onPortrait: () => { sig = ''; } }) : null; if (gar) gpage = gar.page;
     const next = JSON.stringify([gar?.sig, open, bid, tab, page, tpage, why, sttab, bld?.type === 'camp_station' && sttab === 'orders' ? campLedger.html(c.station?.node || `camp:${w.id}`) : '', confirm, !!w.terms, strat, Math.floor(clan?.ryo ?? 0), clan?.treasuryKeep, Math.floor(c.chest), Math.floor(c.stock.timber), Math.floor(c.stock.stone), v, (c.workers || []).length, (c.workerTraining || []).length, workerLeft(c),
       c.buildings.map(b => [b.id, b.stage, Math.floor(100 * (b.upgrade || b).progress / Math.max(1, (b.upgrade || b).need) || 0), b.queue?.length || 0, b.tier || 1, builders(b.id)]), list.map(x => x.ok), placing?.kind,
       bld?.queue?.[0] ? Math.ceil(bld.queue[0].left / 20) : 0, bld ? Math.ceil(ST?.find?.(`c|${open}|${bld.id}`) ? ST.hpOf(ST.find(`c|${open}|${bld.id}`)) : 0) : 0, workersH, stab, ypage, tab === 'shelter' ? [spage, shelterTabSig(c)] : '', mineV.map(v => [v.e.id, v.status, v.where]), chestSendSig(game, w, w.attacker), armorySig(game, w, w.attacker), stOrder, stSell, logOpen, lpage, w.log?.general?.length || 0, w.log?.general?.[0]?.tick, Math.floor((game.state.tick || 0) / 1200), JSON.stringify(c.station || null), (() => { const l = game.state.frontier?.rail?.links?.[c.station?.link]; return l ? [Math.floor(100 * l.built / Math.max(1, l.length)), l.waiting, l.done, l.closed] : null; })(),
-      Object.values(game.state.frontier?.shipping?.orders || {}).filter(o => o.camp && o.war === w.id && o.state === 'open').map(o => [o.id, o.got])]);   // the queue countdown ticks every second (Tim 2026-11-12: it stalled for seconds)
+      Object.values(game.state.frontier?.shipping?.orders || {}).filter(o => o.camp && o.war === w.id && o.state === 'open').map(o => [o.id, o.got])]);   // the queue countdown ticks every second (2026-11-12: it stalled for seconds)
     if (next === sig) return;
     if (held) return;   // keep the old buttons while a mouse button is down; the redraw comes on the next frame after release
     sig = next;
@@ -220,7 +220,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       const model = (typeof e.model === 'string' ? e.model : e.model?.[faction] || Object.values(e.model || {})[0]) || u.sprite || t;
       const dps = u.gatling ? u.gatling.damage * 20 / Math.max(1, u.gatling.everyTicks) : (u.damage || 0) / Math.max(0.1, u.attackSpeed || 1);
       const range = u.rifle?.range ?? u.gatling?.range ?? u.attackRange ?? 1;
-      const abil = Object.entries(SPECIALS).filter(([, S]) => S.has(u, { type: t })).map(([id, S]) => specialHover(id, S.name, ABOUT[id], u));   // with its numbers (Tim 2026-11-18)
+      const abil = Object.entries(SPECIALS).filter(([, S]) => S.has(u, { type: t })).map(([id, S]) => specialHover(id, S.name, ABOUT[id], u));   // with its numbers (2026-11-18)
       if (TRAITS[t]) abil.push(TRAITS[t]);
       return { t, u, model, name: u.name || nice(key), hp: u.hp ?? 0, dps, range, speed: u.run ?? 0, abil };
     };
@@ -233,7 +233,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
           <div class="small" style="margin-top:8px">${Math.round(100 * (j.progress || 0) / Math.max(1, j.need))}% built. Camp workers build it.</div>
           ${b.upgrade ? '' : `<div style="margin-top:10px"><button data-cancel="${esc(b.id)}" title="${esc(j.progress ? 'Cancel: work has started, nothing comes back' : 'Cancel: everything paid comes back')}">Cancel</button></div>`}`;
       }
-      if (b.stage === 'ruined' && b.type !== 'camp_station') return `<div class="sec"><span>Ruin</span></div><div class="small" style="margin-top:8px">It takes no building slot. Erase it (Eraser on the camp hall menu) to build on this spot again.</div>`;   // Tim 2026-11-17
+      if (b.stage === 'ruined' && b.type !== 'camp_station') return `<div class="sec"><span>Ruin</span></div><div class="small" style="margin-top:8px">It takes no building slot. Erase it (Eraser on the camp hall menu) to build on this spot again.</div>`;   // 2026-11-17
       if (b.type === 'camp_station') return stationTabs();
       if (b.type === 'armory') return armoryHtml({ game, war: w, owner: w.attacker, artUrl, chip: (r, n) => chips({ [r]: n }, c) });
       const list = war()?.trainsAt(b.type, mine) || [];
@@ -260,7 +260,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const num = (key, d = 1) => `<input class="num" type="text" inputmode="numeric" data-n="${esc(key)}" value="${esc(counts[key] ?? d)}">`;
     // 8e-4 (mock F): the camp station's menu: the spur being laid or linked, and timber and stone ordered in by train
     const SHIP = () => game.frontier?.data?.railways?.ship || {};
-    // Tim 2026-11-25: Spur (the line, orders in, sales) and Orders (the rail ledger for this camp)
+    // 2026-11-25: Spur (the line, orders in, sales) and Orders (the rail ledger for this camp)
     function stationTabs() {
       const node = c.station?.node || `camp:${w.id}`, live = Object.values(game.state.frontier?.shipping?.orders || {}).filter(o => o.state === 'open' && (o.to === node || o.sellFrom === node)).length;
       const T = (t, n) => `<button class="tab${sttab === t ? ' on' : ''}" data-sttab="${t}">${n}</button>`;
@@ -279,7 +279,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
         h += `<div class="small" style="margin-top:8px">Being laid, ${p}%. Paid from the camp stores as it goes.</div><div class="prog" style="margin-top:6px"><i style="width:${p}%"></i></div>
           <div class="cost" style="justify-content:flex-start;margin-top:6px">${chips(per, c)}<span class="small" title="Timber and stone from the camp stores for every 100 of track">per 100 of track</span>${l.waiting ? `<span class="small" style="color:#ee8a7c">Waiting for ${esc(l.waiting)}</span>` : ''}</div>`;
       } else h += `<div class="small" style="margin-top:8px;color:${l.closed ? '#ee8a7c' : '#9ad48f'}">${l.closed ? 'Cut off from the rail network: rebuild the station and every rail section to run trains again.' : `Linked by rail to ${esc(toName(l.to))}.`}</div>`;
-      // Tim 2026-11-17: the pieces of the supply line that are down, each rebuilt here (camp workers build it like a site)
+      // 2026-11-17: the pieces of the supply line that are down, each rebuilt here (camp workers build it like a site)
       const pieces = c.buildings.filter(b => (b.type === 'camp_station' && (b.stage === 'ruined' || b.rebuild)) || (b.type === 'rail_section' && b.stage !== 'built'));
       if (l?.done && pieces.length) {
         h += `<div class="sec"><span>Supply line down</span><b>${pieces.length} to rebuild</b></div>`;
@@ -295,12 +295,12 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       h += `<div style="margin-top:10px"><button class="go" data-campord="open"${linked ? '' : ' disabled title="Needs the spur linked"'}>Order timber and stone</button></div>`;
       if (stOrder && linked) {
         for (const r of ['timber', 'stone']) h += `<div class="rrow"><div><div class="rn">${r[0].toUpperCase() + r.slice(1)}</div><div class="rk">Camp stores ${Math.floor(c.stock?.[r] || 0)}. From your towns' spare stock.</div></div>${num(`co:${r}`, 200)}<button class="go" data-campord="${r}">Order</button></div>`;
-        // Tim 2026-11-17: what your towns cannot spare may be bought at the capital, paid from the war chest
+        // 2026-11-17: what your towns cannot spare may be bought at the capital, paid from the war chest
         h += `<div class="rrow" title="${esc(`Ryo from the war chest each new order may spend buying at the capital (timber ${SHIP().buyPrice?.timber ?? 4}, stone ${SHIP().buyPrice?.stone ?? 5} ryo each) when your towns cannot spare enough. 0 = your towns only.`)}"><div><div class="rn">Buy at the capital</div><div class="rk">Up to this much ryo from the war chest (${Math.floor(c.chest || 0)}).</div></div>${num('co:ryo', 0)}<span></span></div>`;
         const on = Object.values(game.state.frontier?.shipping?.orders || {}).filter(o => o.camp && o.war === w.id && o.state === 'open');
         if (on.length) h += `<div class="rsrc">On order: ${esc(on.map(o => `${o.resource} ${Math.floor(o.amount - o.got)}`).join(', '))}</div>`;
       }
-      // Tim 2026-11-17: the camp sells spare stores at the capital by train; the ryo goes into its war chest
+      // 2026-11-17: the camp sells spare stores at the capital by train; the ryo goes into its war chest
       h += `<div style="margin-top:10px"><button class="go" data-campsell="open"${linked ? '' : ' disabled title="Needs the spur linked"'}>Sell to the capital</button></div>`;
       if (stSell && linked) {
         const sellable = ['timber', 'stone', 'food', 'goods'].filter(r => r === 'timber' || r === 'stone' || (c.stock?.[r] || 0) > 0);
@@ -311,7 +311,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       return h;
     }
     const coin = (cls, n, label, tip) => `<div class="coin ${cls}" title="${esc(tip)}"><b>${n}</b><span>${label}</span></div>`;
-    // a built camp stable (Tim 2026-11-14): Yours lists every horse and vehicle you own; Take out brings a stored one
+    // a built camp stable (2026-11-14): Yours lists every horse and vehicle you own; Take out brings a stored one
     // out beside this stable (from any stable), Recall sends one to your nearest stable. It makes none and adds no room.
     function yoursBody() {
       const PER = 5, all = ['horse', 'rickshaw', 'omnibus'].flatMap(k => mineV.filter(v => v.kind === k)), ps = Math.max(1, Math.ceil(all.length / PER)); ypage = Math.max(0, Math.min(ypage, ps - 1));
@@ -348,7 +348,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       body = logOpen ? logPageHtml('General\'s log', w.log?.general, lpage, game.state.tick) : generalTab({ strategy: strat, rules: game.frontier?.warGeneral?.rules?.() || W().general || {}, camp: true,
         treasury: { ryo: clan?.ryo ?? 0, keep: clan?.treasuryKeep ?? W().supply?.treasuryKeep ?? 1000, room: game.frontier?.shipments?.autoRoom?.(clan) ?? 0, typing: counts.tkeep }, share: W().supply?.autoShare })
         + logRowHtml('General\'s log', w.log?.general, game.state.tick, 'Nothing yet: he logs what he builds and his pushes while he runs this camp');
-    } else if (tab === 'chest') {   // Tim 2026-11-25: ryo sends moved to the camp station menu (Ryo tab); here a pointer only
+    } else if (tab === 'chest') {   // 2026-11-25: ryo sends moved to the camp station menu (Ryo tab); here a pointer only
       body = `<div class="chestbox"><div class="chestcoin" title="Ryo for troops and camp workers. Every troop trained at a camp building and every camp worker hired is paid from here; camp buildings are paid in timber and stone. Only this war can spend it; what is left comes home when the war ends."><b>${Math.floor(c.chest || 0)}</b><span>ryo in the war chest</span></div>
         <div class="chestgo"><span>Ryo comes in by train: send it from the camp station, with your other rail orders.</span>${c.buildings.some(b => b.type === 'camp_station' && b.stage === 'built') ? '<button class="go" data-stationopen="1">To the camp station</button>' : '<span class="small">Build a camp station first.</span>'}</div></div>
         ${surrenderFoot({ side: 'attacker', town: town?.name || 'the town', terms: !!w.terms, confirm })}`;
@@ -382,13 +382,13 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   root.addEventListener('mousedown', e => { const st = open && bid ? game.frontier?.structures?.find?.(`c|${open}|${bid}`) : null; if (garrisonSlotOut(e, { heroId, st, send })) { sig = ''; fill(); } });
   root.addEventListener('contextmenu', e => { if (e.target.closest?.('[data-gout]')) e.preventDefault(); });
   for (const ev of ['keyup', 'pointerdown', 'mousedown', 'wheel']) root.addEventListener(ev, e => e.stopPropagation());
-  // Tim 2026-11-25: a redraw between mouse down and up (the queue countdown redraws every second) swapped the Train button out, so the click was lost
+  // 2026-11-25: a redraw between mouse down and up (the queue countdown redraws every second) swapped the Train button out, so the click was lost
   let held = false;
   root.addEventListener('pointerdown', () => { held = true; });
   for (const ev of ['pointerup', 'pointercancel', 'blur']) addEventListener(ev, () => { held = false; }, { capture: true });
   const count = key => { const n = Math.floor(Number(counts[key] ?? 1)); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
   // 7c-4: the Workers tab's buttons and group boxes belong to the worker pane (frontier_build_ui.js)
-  // Tim 2026-11-25: a click anywhere on a worker card selects it (not only the portrait); the group box and buttons keep their own clicks
+  // 2026-11-25: a click anywhere on a worker card selects it (not only the portrait); the group box and buttons keep their own clicks
   const actOf = e => e.target.closest?.('[data-act]') || (e.target.closest?.('select, input, button, a') ? null : e.target.closest?.('.campworkers .wcard')?.querySelector('button.wface'));
   root.addEventListener('click', e => { const a = actOf(e); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s && ui.click(a.dataset, s, e)) { sig = ''; fill(); } });
   root.addEventListener('dblclick', e => { const a = actOf(e); if (!a || !open) return; const ui = buildUI(), s = ui?.campSite?.(open); if (s) ui.doubleClick?.(a.dataset, s); });
@@ -398,13 +398,13 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     const b = e.target.closest?.('[data-gpage],[data-logopen],[data-logback],[data-lpage],[data-close],[data-tab],[data-stab],[data-ypage],[data-takeout],[data-recall],[data-recallall],[data-page],[data-tpage],[data-build],[data-erase],[data-cancel],[data-armcancel],[data-train],[data-untrain],[data-upgrade],[data-hire],[data-surrender],[data-terms],[data-strategy],[data-rsend],[data-rcancel],[data-armup],[data-campord],[data-campsell],[data-rebuild],[data-sttab],[data-campledger],[data-stationopen],[data-shelterone],[data-shelterall],[data-spage]'); if (!b || !open) return;
     const d = b.dataset; why = ''; sig = '';
     if (d.rsend || d.rcancel) { why = chestSendClick(d, { war: rec(open), heroId, counts, send }) || ''; fill(); return; }   // 8e-3
-    if (d.armcancel != null && open) { send({ id: heroId, type: 'frontier', action: 'armoryCancel', war: open, index: Number(d.armcancel) }); fill(); return; }   // armory queue (Tim 2026-11-18)
+    if (d.armcancel != null && open) { send({ id: heroId, type: 'frontier', action: 'armoryCancel', war: open, index: Number(d.armcancel) }); fill(); return; }   // armory queue (2026-11-18)
     if (d.armup) { const [group, track] = d.armup.split(':'); send({ id: heroId, type: 'frontier', action: 'armoryUp', war: open, group, track }); fill(); return; }   // 8e-9
     if (d.campord) { if (d.campord === 'open') stOrder = !stOrder; else { const n = Math.floor(Number(counts[`co:${d.campord}`] ?? 200)) || 0, ryo = Math.max(0, Math.floor(Number(counts['co:ryo'] ?? 0)) || 0); const node = rec(open)?.camp?.station?.node; if (n && node) send({ id: heroId, type: 'frontier', action: 'ship', mode: 'order', town: node, resource: d.campord, amount: n, ...(ryo ? { ryo } : {}) }); else why = 'Type how much'; } fill(); return; }   // 8e-5
-    if (d.campsell) { if (d.campsell === 'open') stSell = !stSell; else { const n = Math.floor(Number(counts[`cs:${d.campsell}`] ?? 100)) || 0; const node = rec(open)?.camp?.station?.node; if (n && node) send({ id: heroId, type: 'frontier', action: 'ship', mode: 'sell', town: node, resource: d.campsell, amount: n }); else why = 'Type how much'; } fill(); return; }   // Tim 2026-11-17
+    if (d.campsell) { if (d.campsell === 'open') stSell = !stSell; else { const n = Math.floor(Number(counts[`cs:${d.campsell}`] ?? 100)) || 0; const node = rec(open)?.camp?.station?.node; if (n && node) send({ id: heroId, type: 'frontier', action: 'ship', mode: 'sell', town: node, resource: d.campsell, amount: n }); else why = 'Type how much'; } fill(); return; }   // 2026-11-17
     if (d.stationopen) { const st = rec(open)?.camp?.buildings.find(x => x.type === 'camp_station' && x.stage === 'built'); if (st) { bid = st.id; sttab = 'ryo'; campLedger.clear(); } fill(); return; }
     if (d.sttab) { sttab = d.sttab; campLedger.clear(); fill(); return; }
-    if (d.shelterone || d.shelterall) { send({ id: heroId, type: 'frontier', action: 'hallShelter', town: open, mode: d.shelterall || 'leave', ...(d.shelterone ? { workers: [d.shelterone] } : {}) }); fill(); return; }   // Tim 2026-11-25: Shelter tab
+    if (d.shelterone || d.shelterall) { send({ id: heroId, type: 'frontier', action: 'hallShelter', town: open, mode: d.shelterall || 'leave', ...(d.shelterone ? { workers: [d.shelterone] } : {}) }); fill(); return; }   // 2026-11-25: Shelter tab
     if (d.spage) { spage = Math.max(0, spage + Number(d.spage)); fill(); return; }
     if (d.campledger) { const r = campLedger.click(d.campledger); if (r?.cancel) send({ id: heroId, type: 'frontier', action: 'ship', mode: 'cancel', order: r.cancel }); fill(); return; }
     if (d.logopen || d.logback) { logOpen = !!d.logopen; lpage = 0; fill(); return; }
@@ -424,7 +424,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     else if (d.build) { const x = (war()?.campBuildList(open) || []).find(y => y.type === d.build); if (x?.need.length) why = `Needs ${x.need.join(' and ')}`; else startPlacing(open, d.build); }
     else if (d.erase) startPlacing(open, 'eraser');
     else if (d.cancel) send({ id: heroId, type: 'frontier', action: 'campCancel', war: open, building: d.cancel });
-    else if (d.rebuild) send({ id: heroId, type: 'frontier', action: 'campRebuild', war: open, building: d.rebuild });   // Tim 2026-11-17
+    else if (d.rebuild) send({ id: heroId, type: 'frontier', action: 'campRebuild', war: open, building: d.rebuild });   // 2026-11-17
     else if (d.train) { const n = count(`t:${d.train}:${d.unit}`); if (n) send({ id: heroId, type: 'frontier', action: 'campTrain', war: open, building: d.train, unit: d.unit, count: n }); else why = 'Type how many'; }
     else if (d.strategy) send({ id: heroId, type: 'frontier', action: 'warStrategy', strategy: d.strategy });
     else if (d.untrain) send({ id: heroId, type: 'frontier', action: 'campUntrain', war: open, building: d.untrain });
@@ -440,7 +440,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
   ghost.hidden = hint.hidden = true; document.body.append(ghost, hint);
   let placing = null, mouse = null, preview = null, key = '';
   const keybinds = sharedKeybinds();
-  // a gold diamond where a run or a gate has locked onto the end of a wall (Tim 2026-11-15)
+  // a gold diamond where a run or a gate has locked onto the end of a wall (2026-11-15)
   const lockMark = (ctx, q) => { if (!q) return; const c = view.unitToScreen(q.x, q.z, 0); ctx.beginPath(); ctx.moveTo(c.x, c.y - 9); ctx.lineTo(c.x + 11, c.y); ctx.lineTo(c.x, c.y + 9); ctx.lineTo(c.x - 11, c.y); ctx.closePath(); ctx.fillStyle = '#ffd34d55'; ctx.fill(); ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 2.5; ctx.stroke(); };
   function startPlacing(warId, kind) { placing = { war: warId, kind }; root.hidden = true; key = ''; draw(); }
   function cancelPlacing(reopen = true) { const was = placing; placing = null; mouse = null; preview = null; key = ''; ghost.hidden = hint.hidden = true; if (reopen && was && open) { root.hidden = false; sig = ''; fill(); } }
@@ -458,7 +458,7 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
     if (!mouse) { hint.hidden = true; return; }
     const p = view.screenToGround(mouse.x, mouse.y); if (!p) { hint.hidden = true; return; }
     const next = `${Math.round(p.x)},${Math.round(p.z)}|${game.state.frontier?.econTick}|${w.camp.buildings.length}|${placing.from ? `${placing.from.x},${placing.from.z}` : ''}`;
-    // the Eraser (Tim 2026-11-15): the camp building under the cursor shows red with what comes back
+    // the Eraser (2026-11-15): the camp building under the cursor shows red with what comes back
     if (placing.kind === 'eraser') {
       const nextE = `${Math.round(p.x * 2)},${Math.round(p.z * 2)}|${game.state.frontier?.econTick}|${w.camp.buildings.length}`;
       if (nextE !== key) { key = nextE; preview = war()?.campEraseCheck(placing.war, p); }
@@ -515,18 +515,18 @@ export function createWarCampPanel({ game, heroId, view, catalog, frontierData, 
       if (!placing.from) { if (preview?.ok || preview?.points?.length) { placing.from = here; key = ''; draw(); } return; }
       if (!preview?.ok) return;
       send({ id: heroId, type: 'frontier', action: 'campLine', war: placing.war, x0: placing.from.x, z0: placing.from.z, x1: here.x, z1: here.z });
-      if (e.shiftKey) { placing.from = here; key = ''; } else { cancelPlacing(false); close(); }   // 7c: placing closes the build menu (Tim 2026-11-12)
+      if (e.shiftKey) { placing.from = here; key = ''; } else { cancelPlacing(false); close(); }   // 7c: placing closes the build menu (2026-11-12)
       return;
     }
     if (!preview?.ok) return;
     // a gate goes by the cursor spot again, so the sim makes the same pick the preview showed
     if (placing.kind === 'gate') { const p = view.screenToGround(e.clientX, e.clientY); if (!p) return; send({ id: heroId, type: 'frontier', action: 'campPlace', war: placing.war, kind: 'gate', x: p.x, z: p.z, turn: !!placing.turn }); }
     else send({ id: heroId, type: 'frontier', action: 'campPlace', war: placing.war, kind: placing.kind, x: preview.point.x, z: preview.point.z });
-    if (!e.shiftKey) { cancelPlacing(false); close(); }   // 7c: placing closes the build menu (Tim 2026-11-12)
+    if (!e.shiftKey) { cancelPlacing(false); close(); }   // 7c: placing closes the build menu (2026-11-12)
   }, { capture: true });
   addEventListener('contextmenu', e => { if (placing && e.target?.closest?.('canvas#view')) consume(e); }, { capture: true });
   addEventListener('keydown', e => { if (placing && e.code === 'Escape') { cancelPlacing(); consume(e); } }, { capture: true });
-  // R (Turn a building while placing) turns a camp gate between the two wall directions (Tim 2026-11-15)
+  // R (Turn a building while placing) turns a camp gate between the two wall directions (2026-11-15)
   addEventListener('keydown', e => { if (placing?.kind === 'gate' && !blocked() && !e.repeat && !e.target?.closest?.('input,select,textarea') && keybinds.lookup(e, ['build']) === 'rotateBuilding') { placing.turn = !placing.turn; key = ''; draw(); consume(e); } }, { capture: true });
   addEventListener('blur', () => { if (placing) cancelPlacing(); });
 

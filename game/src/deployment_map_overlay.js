@@ -76,7 +76,7 @@ export function createDeploymentMapOverlay({ game, clan, data, selectedSector, f
     selection(args);
   }
   function selection({ ctx, toMap, now = 0 }) {
-    // Goal guide (Tim 2026-11-06): during a Shakedown or Sweep goal, your sectors with crew pulse gold (main.js sets game.goalGuide)
+    // Goal guide (2026-11-06): during a Shakedown or Sweep goal, your sectors with crew pulse gold (main.js sets game.goalGuide)
     const guided = game.goalGuide?.sectors || [];
     if (guided.length) {
       const q = (now / 1000) % 1.2 / 1.2;

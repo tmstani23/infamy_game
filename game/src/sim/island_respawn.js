@@ -1,4 +1,4 @@
-// Knocked out on the island (Tim 2026-11-06): the hero and his crew come round at their clan's
+// Knocked out on the island (2026-11-06): the hero and his crew come round at their clan's
 // nearest founded town hall at low health, instead of back in the city. Without a town the hero
 // wakes at the island side of the city gate and crew fall back to the city rules (sim/clans.js).
 // Rules: units.json rules.islandRespawn { hpShare, crewSeconds }.
@@ -29,7 +29,7 @@ export function createIslandRespawn({ state, areas, gate, rules = {}, cellSize =
     return null;
   }
   const campFront = w => { const h = campHall(w); return [h.x, h.z + cellSize * 1.2]; };
-  // the town's finished infirmary (Tim 2026-11-06): come round there at full health; else the hall, at low health
+  // the town's finished infirmary (2026-11-06): come round there at full health; else the hall, at low health
   const infirmaryAt = s => { const I = typeof infirmary === 'function' ? infirmary() : infirmary, b = I?.of(s); return b ? I.centre(s, b) : null; };
   const wakeAt = s => { const inf = s && infirmaryAt(s); return inf ? { spot: [inf[0], inf[1] + cellSize * 0.9], share: 1, where: 'infirmary' } : { spot: s ? hallFront(s) : null, share: R.hpShare, where: 'hall' }; };
 
@@ -97,7 +97,7 @@ export function createIslandRespawn({ state, areas, gate, rules = {}, cellSize =
       }
     }
   }
-  // Unstuck on the island (Tim 2026-11-07): the nearest of your town halls, or null when the city gate is closer
+  // Unstuck on the island (2026-11-07): the nearest of your town halls, or null when the city gate is closer
   function unstuckSpot(e, probe = false) {   // probe: only whether there is one (cheap, for the button)
     if (!areas || e.place !== 'world') return null;
     const s = nearestHall(e.owner, e.x, e.z);
@@ -107,7 +107,7 @@ export function createIslandRespawn({ state, areas, gate, rules = {}, cellSize =
     const [x, z] = probe ? hall : spotNear(...hall);
     return { x, z, place: 'world', town: s.name || 'your town' };
   }
-  // A war camp fell (sim/frontier/war_end.js, Tim 2026-11-14): the clan's hero and crew standing within r of (x, z)
+  // A war camp fell (sim/frontier/war_end.js, 2026-11-14): the clan's hero and crew standing within r of (x, z)
   // fall back to their nearest own town hall (the island side of the city gate without a town), health as it is.
   // prepare(e) gets each one off his mount or vehicle first. Returns { town, n } or null.
   // opts (8c): skip = a town id not to fall back to (a defender leaving the town he surrendered); why = 'surrender' |

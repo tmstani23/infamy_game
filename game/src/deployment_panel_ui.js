@@ -4,7 +4,7 @@ import { syncChildren } from './stable_list.js';
 import { portrait } from './portraits.js';
 import { bossAway } from './sim/util.js';
 import { sharedKeybinds } from './keybinds.js';
-const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
+const keybinds = sharedKeybinds();   // key text follows rebinding (2026-11-12)
 const setText=(el,text)=>{if(el.textContent!==text)el.textContent=text;};
 
 // One focused command group. Transfer destination picking never changes the
@@ -45,7 +45,7 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
     $('.'+name+'-pages').hidden=count===1;setText($('.'+name+'-page'),(page.index+1)+' / '+count);
     $('.'+name+'-prev').disabled=page.index===0;$('.'+name+'-next').disabled=page.index===count-1;
   }
-  // out on the island (Tim 2026-11-08): the panel stays readable, orders wait until the boss is back in the city
+  // out on the island (2026-11-08): the panel stays readable, orders wait until the boss is back in the city
   const away = () => bossAway(game.state.entities[heroId]);
   const issue = c => {
     if (away()) { $('.acceptance').hidden=false; $('.acceptance').className='acceptance rejected'; $('.acceptance').textContent=$('.away-note').textContent; return; }
@@ -155,7 +155,7 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
     root.hidden=!open;button.setAttribute('aria-expanded',String(open));if(!open)return;
     root.classList.toggle('away',away());$('.away-note').hidden=!away();
     if(away()&&['duty','rally','reserves'].includes(root.dataset.page))setPage('crew');   // those pages are orders only
-    // on the island and not watching the city (Tim 2026-11-08): only While I'm away is left; Watch the city shows the crew too
+    // on the island and not watching the city (2026-11-08): only While I'm away is left; Watch the city shows the crew too
     const island=away()&&!document.body.classList.contains('city-watching');root.classList.toggle('away-island',island);
     if(island&&root.dataset.page!=='away')root.querySelector('.show-away')?.click();
     $('.first-zone').hidden=!first;
@@ -178,7 +178,7 @@ export function createDeploymentPanel({ root, button, game, units, catalog, hero
     $('.group-summary span').textContent=task?`${TASK_LABELS[task.task]}, ${task.recovery?.state||task.operation?.state||list.find(e=>e.deployment.duty?.status)?.deployment.duty.status||'On duty'}`:'Command your selected crew';
     const allIds=new Set(members().map(e=>e.id));for(const [id,r]of rows)if(!allIds.has(id)){r.el.remove();rows.delete(id);}
     for(const [id,r]of incomingRows)if(!allIds.has(id)){r.el.remove();incomingRows.delete(id);}
-    const inbound=members().filter(e=>e.deployment.transfer?.to===focus&&e.deployment.group!==focus);   // on their way in: shown here as Transferring (Tim 2026-11-08)
+    const inbound=members().filter(e=>e.deployment.transfer?.to===focus&&e.deployment.group!==focus);   // on their way in: shown here as Transferring (2026-11-08)
     const ordered=[...list.filter(e=>!e.deployment.transfer),...inbound].map(e=>{
       const r=row(e);r.check.checked=selected.has(e.id);r.check.disabled=!available(e);setText(r.name,`${unitName(units,e.type)} #${e.id}`);setText(r.hp,`${Math.ceil(e.hp)}/${e.maxHp}`);
       if(catalog){const image=portrait(catalog,e.model);if(image&&image!==r.image){r.image=image;r.name.style.backgroundImage='url('+image+')';r.name.classList.add('has-portrait');}}

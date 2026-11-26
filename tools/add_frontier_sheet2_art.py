@@ -1,4 +1,4 @@
-"""Cut the second frontier building sheet and the gates/walls sheet (Tim 2026-11-06) into game/art/buildings.
+"""Cut the second frontier building sheet and the gates/walls sheet (2026-11-06) into game/art/buildings.
 
     python tools/add_frontier_sheet2_art.py [--preview out.png]
 
@@ -7,8 +7,8 @@ watchtower; palisade, gatehouse, mine) and assets/environment/gates_walls_fronti
 rows, palisade wall views in the bottom two; 4 x 2 each).
 Pieces are found as connected alpha blobs (stray specks dropped), cropped, scaled and saved like
 tools/add_frontier_building_art.py does, and their anchors appended to game/art/cutouts.json (names already there are skipped).
-Pieces Tim called inaccurate or crooked are listed in DROP and not cut.
-The angled views did not share one angle, so (Tim 2026-11-06, option B) the diagonal pieces are made from one master
+Pieces called inaccurate or crooked are listed in DROP and not cut.
+The angled views did not share one angle, so (2026-11-06, option B) the diagonal pieces are made from one master
 each and its mirror, at the game's ground-grid angle on screen (GRID_DEG, 24.1 deg: ELEVATION atan(0.5), camera yaw 45).
 A wall along world x falls to the right on screen, one along world z rises to the right. Straight-on views (v1, v5)
 stand for walls along the world diagonal. A vertical shear sets a piece's ground slope and keeps its stakes upright.

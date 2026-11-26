@@ -47,7 +47,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     return false;
   }
   function waitingPoint(s,w,building=null) {
-    // Tim 2026-11-12: a new camp worker steps out in front of the camp hall, not inside it; side by side in a short arc
+    // 2026-11-12: a new camp worker steps out in front of the camp hall, not inside it; side by side in a short arc
     const hall=!building && s.camp && s.buildings.find(b=>b.type==='camp_hall');
     if(hall && Number.isFinite(hall.x)) {
       const r=(data.war?.buildings?.camp_hall?.radius ?? 8)+1.5,k=s.workers.filter(o=>o.fresh).length,a=Math.PI/2+((k%7)-3)*0.22;
@@ -62,7 +62,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     for(let dz=-search;dz<=search;dz++)for(let dx=-search;dx<=search;dx++) {
       const p=[origin[0]+dx*s.grid.cell,origin[1]+dz*s.grid.cell];
       const i=worldToCell(s,...p);
-      if(i<0 || s.grid.ground[i]==='x' || s.grid.zone[i]!=='.' || planBlocked(...p))continue;   // padded like routes: a bigger town hall (Tim 2026-11-21) left the point free but the walker stuck on its corner
+      if(i<0 || s.grid.ground[i]==='x' || s.grid.zone[i]!=='.' || planBlocked(...p))continue;   // padded like routes: a bigger town hall (2026-11-21) left the point free but the walker stuck on its corner
       const occupied=!building && s.workers.some(other=>other!==w && other.departure && distance(other.departure,p)<1);
       candidates.push({p,d:dx*dx+dz*dz,occupied});
     }
@@ -78,10 +78,10 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   function attach(services) {
     runtime=services.areas ? services : null;
-    // lag fix (Tim 2026-11-08): build the island route graph now, while loading, not on the first worker detour (~100 ms)
+    // lag fix (2026-11-08): build the island route graph now, while loading, not on the first worker detour (~100 ms)
     runtime?.areas.ensureGraph?.();
   }
-  // worker routes keep R.buildingPad further from town buildings than their hard blocking box (Tim 2026-11-10: they
+  // worker routes keep R.buildingPad further from town buildings than their hard blocking box (2026-11-10: they
   // cut through the corners of the art); the ends of a route may still sit closer (the planner starts from the nearest free cell)
   const planBlocked = (x,z) => { const k=R.buildingPad || 0; return townBlocksBox(state.frontier,x-k,z-k,x+k,z+k,data); };
   const planCells=cell=>townBlockedCells(state.frontier,data,R.buildingPad || 0,cell),townCells=cell=>townBlockedCells(state.frontier,data,0,cell);
@@ -140,12 +140,12 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   const on=s=>!!R && Number.isFinite(s.x) && Number.isFinite(s.z);
   const walkTicks=d=>Math.ceil(d/R.speed*HZ);
   const point=(s,b)=>s.grid && Number.isInteger(b.cell) ? cellToWorld(s,b.cell) : Number.isFinite(b.x) && Number.isFinite(b.z) ? [b.x,b.z] : [s.x,s.z];
-  // Tim 2026-11-07: a work camp takes only its own resource (R.campTakes: lumber camp timber, quarry stone); res unknown = any
+  // 2026-11-07: a work camp takes only its own resource (R.campTakes: lumber camp timber, quarry stone); res unknown = any
   const takes=(b,res)=>!res || !R.campTakes?.[b.type] || R.campTakes[b.type].includes(res);
   const dropoffs=(s,res)=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type) && !campFull(data,b) && takes(b,res));
   const homeDrops=s=>s.buildings.filter(b=>b.stage==='built' && R.dropoffs.includes(b.type) && !isCamp(data,b));
   // a site without a town grid (a war camp): hand in at the edge of the building, on the side the worker comes from
-  // (Tim 2026-11-10: they walked into the middle of the camp hall)
+  // (2026-11-10: they walked into the middle of the camp hall)
   function edgePoint(s,b,from) {
     const c=point(s,b),r=data.war?.buildings?.[b.type]?.radius || 0,d=distance(c,[from.x,from.z]);
     if(!r || d<=r)return c;
@@ -155,10 +155,10 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   function nearestDropoff(s,spot,res=R.resources[spot?.kind]) {
     return dropoffs(s,res).map(b=>({b,p:s.grid || !spot ? waitingPoint(s,null,b) : edgePoint(s,b,spot)})).sort((a,b)=>distance(a.p,[spot.x,spot.z])-distance(b.p,[spot.x,spot.z]) || compare(a.b.id,b.b.id))[0] || null;
   }
-  // Reach (Tim 2026-11-06, rich nodes): within R.range of the hall, or within R.campReach of a built work camp.
+  // Reach (2026-11-06, rich nodes): within R.range of the hall, or within R.campReach of a built work camp.
   const camps=s=>s.buildings.filter(b=>b.stage==='built' && (R.gatherBuildings || []).includes(b.type));
-  // war camp reach (Tim 2026-11-10): anywhere inside the war circle, but outside the town's build ring (that ground is the town's)
-  // Safety net (Tim 2026-11-21: "they can walk to any nearest trees", never inside the town's ring): besides the war
+  // war camp reach (2026-11-10): anywhere inside the war circle, but outside the town's build ring (that ground is the town's)
+  // Safety net (2026-11-21: "they can walk to any nearest trees", never inside the town's ring): besides the war
   // circle, a camp's workers may use the war.camp.farSpots nearest spots of each resource to the camp (within
   // war.camp.farReach of it), wherever they are outside the ring
   const farCache=new Map();
@@ -205,14 +205,14 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     for(let i=0;i<count;i++)s.workerTraining.push({id:world.newId('w'),readyAt:readyAt+=R.trainTicks});
     return result();
   }
-  // Camp workers cost ryo from the war chest only, up to a fixed cap (Tim 2026-11-10); training time as in a town.
+  // Camp workers cost ryo from the war chest only, up to a fixed cap (2026-11-10); training time as in a town.
   function trainCamp(s,count) {
     const C=CW(),c=s.war.camp;
     if(!Number.isSafeInteger(count) || count<1)return result('count must be a positive integer');
     if(!s.buildings.some(b=>b.type==='camp_hall' && b.stage==='built' && !(b.hp===0)))return result('the camp hall is down');
     const cost=(C.workerCost ?? 0)*count;
     if((c.chest || 0)<cost)return result('the war chest cannot afford workers');
-    const cap=campWorkerCap(s,data);   // Tim 2026-11-25: 24 before the camp hall upgrade, 40 after
+    const cap=campWorkerCap(s,data);   // 2026-11-25: 24 before the camp hall upgrade, 40 after
     if(s.workers.length+s.workerTraining.length+count>cap)return result(`a war camp holds at most ${cap} workers${cap<campWorkerCap({buildings:[{type:'camp_hall',tier:9}]},data) ? ' before the camp hall upgrade' : ''}`);
     c.chest=Math.round(((c.chest || 0)-cost)*100)/100;
     let readyAt=Math.max(state.tick || 0,s.workerTraining.at(-1)?.readyAt || 0);
@@ -233,7 +233,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     }
     // A new harvest assignment returns existing cargo before collecting another resource.
     for(const w of selected) {
-      if(w.wait)endWait(s,w);else if(w.shelter && by==='p')jobs?.leave?.(s,w);   // Tim 2026-11-25: sent to work by hand, he comes out
+      if(w.wait)endWait(s,w);else if(w.shelter && by==='p')jobs?.leave?.(s,w);   // 2026-11-25: sent to work by hand, he comes out
       w.by=by;delete w.fresh;delete w.offSpot;
       delete w.order;delete w.nextOrder;delete w.status;delete w.retryAt;
       if(w.carrying>0){setReturnTrip(w,returns.get(w));w.nextSpot=spot.id;}
@@ -242,13 +242,13 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     }
     return result();
   }
-  // Tim 2026-11-22: a governor's worker takes the spot nearest a drop-off that takes its resource (the hall, or a work
+  // 2026-11-22: a governor's worker takes the spot nearest a drop-off that takes its resource (the hall, or a work
   // camp of that kind), not the one nearest the hall: a timber hand works beside the lumber camp, not past the town
   function dropDist(s) {
     const at={},pos=b=>Number.isFinite(b.x) ? [b.x,b.z] : Number.isInteger(b.cell) && s.grid ? cellToWorld(s,b.cell) : [s.x,s.z];
     return p=>{const res=R.resources[p.kind];at[res] ||= dropoffs(s,res).map(pos);const L=at[res].length ? at[res] : [[s.x,s.z]];return Math.min(...L.map(q=>distance(q,[p.x,p.z])));};
   }
-  // Tim 2026-11-22: where a town has a built work camp of a kind, the governor's workers take that resource only at
+  // 2026-11-22: where a town has a built work camp of a kind, the governor's workers take that resource only at
   // the spots beside one: within R.campNear of the camp, or the camp's one nearest spot inside campReach when none is
   // that close (a camp built toward far trees). No camp of a kind, or a camp with nothing in reach: any spot in reach.
   // { timber: Set of spot ids, ... } for the kinds that are held to their camps; null for a war camp.
@@ -284,21 +284,21 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(s.camp && !s.workers.some(w=>!w.spot && !w.project && !w.order && w.by!=='p'))return;   // camps check every second: skip the spot search when nobody is idle
     const spots=reachSpots(s).filter(p=>R.resources[p.kind]);
     const resources=[...new Set(Object.values(R.resources))].filter(r=>(!s.camp || campRes().includes(r)) && !full(s,r)).sort((a,b)=>s.stock[a]-s.stock[b] || compare(a,b));
-    // Tim 2026-11-06: the governor never puts more workers on a spot than it keeps busy (supportsWorkers) and moves
+    // 2026-11-06: the governor never puts more workers on a spot than it keeps busy (supportsWorkers) and moves
     // its own extras off an overworked one; the player's own picks stay put.
     // (a worker handing in his load before a new spot, w.nextSpot, already counts there)
     const count={};for(const t of sites())for(const w of t.workers || []){const id=w.nextSpot || w.spot;if(id)count[id]=(count[id] || 0)+1;}
     const room=p=>{const n=spotRules?.stages ? supportsWorkers(p,spotRules.stages) : null;return n==null || (count[p.id] || 0)+1<=n;},dd=dropDist(s);   // +1: with him there the spot must not be over (a spot good for 1.5 took a second worker, who was then one too many and moved off again every review)
     const side=campSide(s),now=state.tick || 0;
     const goal=s.camp ? {} : nextTier(s,data)?.upgrade?.cost || {},short=r=>(s.stock[r] || 0)<(goal[r] || R.shortBelow || 200);
-    // lag (Tim 2026-11-22: 90 workers were called back in one review, each a new route): he moves at most
+    // lag (2026-11-22: 90 workers were called back in one review, each a new route): he moves at most
     // R.campMovesPerReview workers from far spots to camp spots per review
     let moves=R.campMovesPerReview ?? 2;
     for(const w of s.workers) {
       // B2: governor-placed workers on a full resource are moved; the player's own picks stay put.
       const sp=w.spot && index.get(w.spot),cap=sp && spotRules?.stages ? supportsWorkers(sp,spotRules.stages) : null;
       const extra=w.by==='g' && cap!=null && count[w.spot]>cap && !w.carrying && !w.trip;
-      // off in the wild while his kind has a camp: he comes back between trips (Tim 2026-11-22)
+      // off in the wild while his kind has a camp: he comes back between trips (2026-11-22)
       // (one already told to a new spot once his load is in, w.nextSpot, is left alone: ordering him again every
       // review restarted his walk and worked his route out again, 2026-11-22 lag)
       const away=w.by!=='p' && !!sp && !sideOk(side,sp) && !w.order && !w.project && !w.nextSpot;
@@ -321,7 +321,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         // No more camps can be built (governor: s.gov.campsDone) and the town is short of something for its next
         // hall tier: rather than wait he works the nearest free spot of it in reach, as before the camp rule
         // (2026-11-22 soak: a hill town with all its camp slots used sat at 25 workers with no timber)
-        // Tim 2026-11-22 05:26Z: one already working away from the camps keeps going until a camp spot has room
+        // 2026-11-22 05:26Z: one already working away from the camps keeps going until a camp spot has room
         // (a new camp, or a place freed), then he is moved there
         if(away && !extra)continue;
         if(s.gov?.campsDone) {
@@ -334,7 +334,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       } else if(extra) {count[w.spot]--;w.spot=null;}
     }
   }
-  // Tim 2026-11-05 (self-running governor): move one governor-placed worker per call from a well stocked
+  // 2026-11-05 (self-running governor): move one governor-placed worker per call from a well stocked
   // resource to the lowest one that needs hands (the player's own picks never move).
   function rebalance(s) {
     if(s.gov)delete s.gov.campWant;
@@ -347,12 +347,12 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const goal=nextTier(s,data)?.upgrade?.cost || {},fill=r=>(s.stock[r] || 0)/Math.max(50,goal[r] || 200);
     const low=[...kinds].sort((a,b)=>fill(a)-fill(b) || compare(a,b))[0];
     const met=r=>fill(r)>=1 && fill(low)<1;   // a resource already at its goal gives hands to one still short
-    // Tim 2026-11-23 (Kagemura: 23 hands on stone at 9,800 while timber sat at 0): a resource above its keep line
+    // 2026-11-23 (Kagemura: 23 hands on stone at 9,800 while timber sat at 0): a resource above its keep line
     // gives hands to one below its own, whatever the head counts, down to R.keepHands workers left on it
     const line=r=>s.keep?.[r] ?? defaultKeep(s,data,r),over=r=>line(r)>0 && (s.stock[r] || 0)>line(r) && (s.stock[low] || 0)<line(low) && count(r)>(R.keepHands ?? 2);
     const donor=kinds.filter(r=>r!==low && (met(r) ? count(r)>0 : over(r) || fill(r)>fill(low)*2+0.1 && count(r)>(count(low)===0?0:count(low)+1)))
       .sort((a,b)=>count(b)-count(a) || compare(a,b))[0];
-    // s.gov.handsDone (Tim 2026-11-23): the lowest resource is under its keep line and no more hands can go to it
+    // s.gov.handsDone (2026-11-23): the lowest resource is under its keep line and no more hands can go to it
     // (nobody to spare, or no free spot in reach): only then the rail clerk's auto-buy budget grows with the town's ryo
     // (kept until a move works again or that resource is back over its line, so it does not flicker between reviews)
     const done=()=>{ if(s.gov && line(low)>0 && (s.stock[low] || 0)<line(low))s.gov.handsDone=low; };
@@ -361,7 +361,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const w=mine.filter(w=>res(w)===donor).sort((a,b)=>(a.carrying || 0)-(b.carrying || 0) || compare(a.id,b.id))[0];if(!w)return;
     const side=campSide(s),held=side && Object.keys(side).length,per={};
     if(held)for(const t of sites())for(const k of t.workers || [])if(k.spot)per[k.spot]=(per[k.spot] || 0)+1;
-    // held to the camps (Tim 2026-11-22): only to a spot beside one that still has room
+    // held to the camps (2026-11-22): only to a spot beside one that still has room
     const room=p=>{const n=held && spotRules?.stages ? supportsWorkers(p,spotRules.stages) : null;return n==null || (per[p.id] || 0)+1<=n;};
     const dd=dropDist(s),all=reachSpots(s).filter(p=>R.resources[p.kind]===low && room(p)).sort((a,b)=>dd(a)-dd(b) || compare(a.id,b.id));
     // no camp spot left for it and no more camps can be built (s.gov.campsDone): the nearest free spot in reach, as
@@ -372,11 +372,11 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     // governor's moreCampRule builds another camp for it this review (gone again when the move works)
     else if(s.gov) { s.gov.campWant=low;if(s.gov.campsDone)done(); }
   }
-  // Lag fix (Tim 2026-11-08): working out new routes is the costly part, so only one worker sets out on a
+  // Lag fix (2026-11-08): working out new routes is the costly part, so only one worker sets out on a
   // new trip per tick (defer); the next tries again a tick later. This counts trips, not uncached routes, so a
   // loaded save (empty route cache) makes the same choices. Reroutes and return trips never wait.
   let startTick=-1;
-  // Fishing poles (Tim 2026-11-23): a fish spot's cast point (world_spots.json, out on open water) spread along the shore
+  // Fishing poles (2026-11-23): a fish spot's cast point (world_spots.json, out on open water) spread along the shore
   // a little per worker, so a crowd of anglers fans out instead of casting at one spot. Presentation only: the harvest
   // itself is unchanged (render/fishing_fx.js draws the pole, line and float).
   function castPoint(spot,w) {
@@ -393,9 +393,9 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const out=walkTicks(length(outPath)),back=walkTicks(length(backPath));
     const stages=spotRules?.stages, saved=state.frontier.spots?.[spot.id];
     const base=stages ? Math.ceil(R.harvestTicks*spot.pieces.length/spotYield(spot,saved,stages)) : R.harvestTicks;
-    const harvest=s.camp ? Math.ceil(base/Math.max(0.01,CW().gatherSpeed ?? 1)) : base;   // camp-only gather speed (Tim 2026-11-10); town workers never change
+    const harvest=s.camp ? Math.ceil(base/Math.max(0.01,CW().gatherSpeed ?? 1)) : base;   // camp-only gather speed (2026-11-10); town workers never change
     w.trip={origin:backPath.at(-1),destination:outPath.at(-1),outPath,backPath,out,harvest,back,total:Math.max(1,out+back+harvest),resource:R.resources[spot.kind],load:R.load,harvested:false};
-    if(spot.cast)w.trip.cast=castPoint(spot,w);   // fishing poles (Tim 2026-11-23): the water point this worker casts at
+    if(spot.cast)w.trip.cast=castPoint(spot,w);   // fishing poles (2026-11-23): the water point this worker casts at
     delete w.departure;
     w.dropoff=drop.b.id;w.elapsed=0;w.phase=0;return true;
   }
@@ -421,7 +421,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!Array.isArray(ids) || !ids.length || new Set(ids).size!==ids.length)return result('workers must list each id once');
     const selected=ids.map(id=>s.workers?.find(w=>w.id===id));
     if(selected.some(w=>!w))return result('unknown worker');
-    if(kind!=='group')for(const w of selected) { delete w.fresh;if(w.wait)endWait(s,w);else if(w.shelter)jobs?.leave?.(s,w); }   // an order by hand ends a wait for a spot, and a shelter (Tim 2026-11-25)
+    if(kind!=='group')for(const w of selected) { delete w.fresh;if(w.wait)endWait(s,w);else if(w.shelter)jobs?.leave?.(s,w); }   // an order by hand ends a wait for a spot, and a shelter (2026-11-25)
     if(kind==='drop') {
       if(confirm!==true)return result('Confirm: dropped resources are permanently lost');
       for(const w of selected) {
@@ -436,7 +436,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(plans.some(p=>!p.route || !p.resource))return result('No walking route to a resource drop-off');
       for(const plan of plans) {
         const {w}=plan;setReturnTrip(w,plan);w.by='p';
-        if(w.spot && !w.order)delete w.nextOrder;else w.nextOrder={kind:'hold'};   // Tim 2026-11-12: a harvester goes back to its spot after unloading
+        if(w.spot && !w.order)delete w.nextOrder;else w.nextOrder={kind:'hold'};   // 2026-11-12: a harvester goes back to its spot after unloading
         delete w.order;delete w.nextSpot;delete w.project;delete w.buildAt;delete w.job;delete w.status;delete w.retryAt;
       }
       return result();
@@ -446,7 +446,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       for(const w of selected)w.group=group;
       return result();
     }
-    // 7c-4 (Tim 2026-11-12): builders, repair and douse are manual. kind 'work', target = a camp building site (or the
+    // 7c-4 (2026-11-12): builders, repair and douse are manual. kind 'work', target = a camp building site (or the
     // camp hall while it is upgraded) to build, or the key of one of this site's structures to douse and repair
     // (sim/frontier/structures.js workTarget / workOn). More workers work faster. They stay on it until it is done.
     if(kind==='work') {
@@ -455,9 +455,9 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       if(!b && !job)return result(jobs?.why?.(s,target) || 'nothing to build, repair or put out there');
       const at=b ? {x:b.x,z:b.z,r:(data.war?.buildings?.[b.type]?.radius ?? 8)*0.8} : job;
       const others=s.workers.filter(w=>!selected.includes(w) && (b ? w.project===b.id : w.job?.key===target)).length;
-      // Tim 2026-11-14: at most war.builderCap workers (4) build one site or hall upgrade, the nearest of those sent;
+      // 2026-11-14: at most war.builderCap workers (4) build one site or hall upgrade, the nearest of those sent;
       // the rest stay as they were. Repair and douse have no limit.
-      const cap=b ? data.war?.builderCap ?? 4 : jobs?.cap?.(s,target) ?? Infinity;   // a town building site: rates.maxBuilders (Tim 2026-11-15)
+      const cap=b ? data.war?.builderCap ?? 4 : jobs?.cap?.(s,target) ?? Infinity;   // a town building site: rates.maxBuilders (2026-11-15)
       if(others>=cap)return result(`${cap} workers are already building that`);
       const team=Number.isFinite(cap) ? [...selected].map(w=>({w,d:distance(currentPoint(w) || [s.x,s.z],[at.x,at.z])})).sort((p,q)=>p.d-q.d || compare(p.w.id,q.w.id)).slice(0,cap-others).map(x=>x.w) : selected;
       let sent=0;
@@ -519,7 +519,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(w.rerouteAt>state.tick) {w.status ||= 'Stuck';return false;}
     w.rerouteAt=state.tick+(R.rerouteTicks || 20);
     if(reroute(s,w) && (walk(w,w.elapsed+1) || unstick(w) && walk(w,w.elapsed+1))) {delete w.status;delete w.stuckTries;return true;}
-    // Tim 2026-11-05: after stuckGiveUp failed tries, jump to open ground further away; if that fails too, back to a drop-off, idle
+    // 2026-11-05: after stuckGiveUp failed tries, jump to open ground further away; if that fails too, back to a drop-off, idle
     if((w.stuckTries=(w.stuckTries || 0)+1)>=(R.stuckGiveUp || 3)) {
       w.stuckTries=0;
       if(unstick(w,R.rescueReach || 25) && reroute(s,w) && walk(w,w.elapsed+1)) {delete w.status;return true;}
@@ -560,7 +560,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const p=next<=t.out ? t.outPath : next>t.out+t.harvest ? t.backPath : null;
     const target=position({...w,elapsed:next});
     if(!target)return true;
-    // Check the planned legs this step touches with the planner's own line test (Tim 2026-11-05 mini-freeze fix):
+    // Check the planned legs this step touches with the planner's own line test (2026-11-05 mini-freeze fix):
     // testing entity -> interpolated point sampled the grid differently, so lines the planner passed clipped tree
     // corners, the worker froze up to a second and hopped. A leg is checked once per town geometry revision.
     if(p) {
@@ -576,7 +576,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         (t.legOk ||= {})[key]=1;
       }
     }
-    // each gathering worker keeps its own lane beside the route (Tim 2026-11-10): drawn position only, the trip clock
+    // each gathering worker keeps its own lane beside the route (2026-11-10): drawn position only, the trip clock
     // above is untouched. e.lane = the offset now, eased toward the worker's own fixed offset plus a small sway.
     const L=R.lane,was=e.lane || [0,0];
     const dx=target[0]-(e.x-was[0]),dz=target[1]-(e.z-was[1]);
@@ -626,8 +626,8 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const t=w.trip;w.elapsed++;
     const e=state.entities?.[w.entity];
     if(e && !t.kind && !t.harvested && w.elapsed>=t.out) {
-      if(t.cast) {e.anim='idle';e.fishing=t.cast;e.dir=dirIndex(t.cast[0]-e.x,t.cast[1]-e.z);}   // fishing poles (Tim 2026-11-23): stands facing the water and casts
-      else e.anim='hammer';   // hammer swing while collecting (Tim 2026-11-08): same ticks as before, so the harvest rate is unchanged
+      if(t.cast) {e.anim='idle';e.fishing=t.cast;e.dir=dirIndex(t.cast[0]-e.x,t.cast[1]-e.z);}   // fishing poles (2026-11-23): stands facing the water and casts
+      else e.anim='hammer';   // hammer swing while collecting (2026-11-08): same ticks as before, so the harvest rate is unchanged
     }
     if(!t.harvested && w.elapsed>=t.out+t.harvest) {harvest(spot);w.carrying=t.load;w.cargoResource=t.resource;t.harvested=true;if(e)e.harvestedAt=state.tick;}
     w.phase=Math.min(1,w.elapsed/t.total);
@@ -657,7 +657,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const cells=p.cells || [p.cell], over=()=>cells.filter(i=>s.grid.ground[i]==='o');
     if(!over().length) {p.phase='cleared';return new Set();}
     const selected=s.workers.filter(w=>w.project===p.id).slice(0,data.rates.maxBuilders);
-    // one waiting in the hall for a spot (w.wait, Tim 2026-11-22) clears ground too: he comes out for it
+    // one waiting in the hall for a spot (w.wait, 2026-11-22) clears ground too: he comes out for it
     for(const w of s.workers)if(selected.length<data.rates.maxBuilders && !selected.includes(w) && !w.carrying && (!w.order || w.wait) && !w.job) {
       if(w.wait)endWait(s,w);
       w.departure=position(w) || w.departure || (runtime ? [s.x,s.z] : null);
@@ -672,11 +672,11 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     if(!left.length) {p.phase='cleared';delete p.clearWork;for(const w of selected)delete w.project;}
     return new Set(selected);
   }
-  // War camp construction (checkpoint 4; 7c-4, Tim 2026-11-12: manual). Workers sent by a 'work' order walk to the
+  // War camp construction (checkpoint 4; 7c-4, 2026-11-12: manual). Workers sent by a 'work' order walk to the
   // building site (or the camp hall while it is upgraded) and build it, one progress point per worker per tick at the
   // site: more workers build faster. A site with nobody on it is marked b.idle (it flashes on screen). Only a bot
   // clan's camp still sends up to war.builders idle workers by itself. Returns the busy builders.
-  // Tim 2026-11-12 playtest: the player's workers wait where they are for orders (a new worker outside the hall, a
+  // 2026-11-12 playtest: the player's workers wait where they are for orders (a new worker outside the hall, a
   // builder or repairer by the finished job) unless the site runs itself (a bot clan, or a town with Automatic on)
   const selfRun=s=>!!state.clans?.[s.owner]?.bot || (!s.camp && !!s.autoBuild);
   function waitHere(s,w) {
@@ -716,9 +716,9 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
         if(e) {e.anim='hammer';e.dir=dirIndex(b.x-e.x,b.z-e.z);}
       }
       if(crew.length)delete b.idle;else b.idle=true;
-      if(!s.war?.terms)job.progress=Math.min(job.need,(job.progress || 0)+work);   // Tim 2026-11-18: no building in a ceasefire
+      if(!s.war?.terms)job.progress=Math.min(job.need,(job.progress || 0)+work);   // 2026-11-18: no building in a ceasefire
       if(job.progress>=job.need) {
-        if(b.upgrade) {   // Tim 2026-11-25: the upgrade adds its extra health; a damaged hall (and camp stockade) keeps only the damage it took
+        if(b.upgrade) {   // 2026-11-25: the upgrade adds its extra health; a damaged hall (and camp stockade) keeps only the damage it took
           const S=data.war?.structures || {},at=(l,t)=>l?.length ? l[Math.min(l.length,Math.max(1,t))-1] || 0 : 0,t0=b.tier || 1;
           b.tier=t0+1;delete b.upgrade;
           for(const x of s.buildings) {
@@ -726,11 +726,11 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
             if(l && Number.isFinite(x.hp)) x.hp+=Math.max(0,at(l,t0+1)-at(l,t0));
           }
         }
-        else {b.stage='built';delete b.progress;delete b.need;delete b.rebuild;delete b.hp;}   // (a site's own low health goes, Tim 2026-11-24)
+        else {b.stage='built';delete b.progress;delete b.need;delete b.rebuild;delete b.hp;}   // (a site's own low health goes, 2026-11-24)
         delete b.idle;
         for(const w of crew) {
           delete w.project;delete w.buildAt;
-          // Tim 2026-11-15: a palisade run is one job: its builders go on to the nearest piece of the run still to build
+          // 2026-11-15: a palisade run is one job: its builders go on to the nearest piece of the run still to build
           const cap=data.war?.builderCap ?? 4,here=currentPoint(w) || [b.x,b.z];
           const next=b.line ? s.buildings.filter(x=>x.line===b.line && x.stage==='site' && s.workers.filter(o=>o.project===x.id).length<cap)
             .map(x=>({x,d:distance(here,[x.x,x.z])})).sort((p,q)=>p.d-q.d || compare(p.x.id,q.x.id))[0]?.x : null;
@@ -772,7 +772,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   // nearest hall or storehouse to a camp, for its carts
   const cartHome=(s,b)=>{const p=point(s,b),h=homeDrops(s).map(x=>point(s,x)).sort((a,c)=>distance(a,p)-distance(c,p))[0];return h || [s.x,s.z];};
-  // Move extras (Tim 2026-11-22), the camp card and Workers view button: on each spot that counts for the camp
+  // Move extras (2026-11-22), the camp card and Workers view button: on each spot that counts for the camp
   // (camp_load.js: its kind, in reach, this camp the nearest), the workers past the spot's max (supportsWorkers, the
   // number the governor fills it to) go back to the governor (by 'g'): his own first, then those with no load. One
   // with no load leaves the spot now, one carrying hands it in first (w.offSpot). Then the governor places them (a
@@ -816,7 +816,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
     const err=buyCart(s,data,b,cost=>{if(Object.entries(cost).some(([r,v])=>(s.stock[r] || 0)<v))return false;for(const [r,v] of Object.entries(cost))world.change(s.id,r,-v,'cart');return true;});
     return err ? result(err) : result();
   }
-  // where a drawn cart starts and stops: the edges of the camp and of the hall or storehouse, not their centres (Tim 2026-11-10)
+  // where a drawn cart starts and stops: the edges of the camp and of the hall or storehouse, not their centres (2026-11-10)
   function cartEnds(s,b) {
     const a=point(s,b),h=cartHome(s,b),d=distance(a,h),cell=s.grid?.cell || data.townGrid?.cellSize || 11,k=cartRules(data).stopEdge ?? 0.5;
     const hb=homeDrops(s).find(x=>distance(point(s,x),h)<1e-6),ra=cell*k*(data.buildings?.[b.type]?.size || 1),rh=cell*k*(data.buildings?.[hb?.type]?.size || 1);
@@ -847,14 +847,14 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
             if(state.clans?.[s.owner])state.clans[s.owner].notice={tick:state.tick ?? 0,text:`An ox cart of ${s.name} was destroyed`};
             runtime.remove(e.id);wreckCart(data,c);continue;
           }
-          // Tim 2026-11-07: carts stay drawn out to carts.viewRadius (about 1.25 zoomed-out screens), never hidden by fog
+          // 2026-11-07: carts stay drawn out to carts.viewRadius (about 1.25 zoomed-out screens), never hidden by fog
           const cr=cartRules(data).viewRadius ?? R.spawnRadius;
           if(!at || !anchors.some(u=>distance(at,[u.x,u.z])<=cr)) {if(e)runtime.remove(e.id);c.entity=null;continue;}
           if(!e) {if(spawned>=R.spawnPerTick)continue;spawned++;c.entity=runtime.spawn('civilian',cartRules(data).model || 'ox_cart',at[0],at[1],{place:'world',area:'world',cart:b.id,town:s.id,cartOwner:s.owner,seenBy:s.owner,holdFire:true,hp:cartRules(data).hp ?? 200,maxHp:cartRules(data).hp ?? 200});continue;}
           [e.x,e.z]=at;e.dir=dirIndex(at[2],at[3]);e.anim='run';
         }
       }
-      // Tim 2026-11-22: a town over its hall tier's worker limit (an old save, after the Town limit went from 90 to
+      // 2026-11-22: a town over its hall tier's worker limit (an old save, after the Town limit went from 90 to
       // 60) lets the extra ones go back to the townspeople: those in training first, then the governor's idle ones,
       // the player's own picks and anyone carrying or on a job last
       if(!s.camp && (state.tick || 0)%20===0) {
@@ -872,13 +872,13 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       s.workers=s.workers.filter(w=>{
         if(w.entity===null)return true;
         const e=state.entities?.[w.entity];
-        if(!e || e.dead || e.downed || e.hp<=0) {if(e && !e.dead)runtime?.remove(e.id);return false;}   // a dead one lies there as a body (sim/game.js cleanUpDead, Tim 2026-11-13)
+        if(!e || e.dead || e.downed || e.hp<=0) {if(e && !e.dead)runtime?.remove(e.id);return false;}   // a dead one lies there as a body (sim/game.js cleanUpDead, 2026-11-13)
         return true;
       });
       while(s.workerTraining.length && s.workerTraining[0].readyAt<=(state.tick || 0)) {
         const job=s.workerTraining.shift(),w={id:job.id,spot:null,dropoff:null,phase:0,carrying:0,entity:null,elapsed:0,trip:null};
         if(enabled)w.departure=waitingPoint(s,w);
-        if(s.camp && !selfRun(s))w.fresh=true;   // Tim 2026-11-12: a new camp worker waits outside the hall for orders (a town's waits unless Automatic is on)
+        if(s.camp && !selfRun(s))w.fresh=true;   // 2026-11-12: a new camp worker waits outside the hall for orders (a town's waits unless Automatic is on)
         s.workers.push(w);
       }
       const busy=s.camp ? campBuild(s) : clear(s),onJob=jobWork(s);
@@ -905,7 +905,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
             if(w.elapsed>=w.trip.total) {w.departure=[...w.trip.destination];w.trip=null;w.order={kind:'hold'};w.phase=0;}
           }
         } else if(!w.order && !w.trip && !w.spot && !w.project && !w.job && !w.garrison && !w.shelter && w.carrying>0 && !busy.has(w)) {
-          // Tim 2026-11-19: an idle worker with a load (no job, no order) walks it to the nearest drop-off instead of standing with it
+          // 2026-11-19: an idle worker with a load (no job, no order) walks it to the nearest drop-off instead of standing with it
           if(!(w.retryAt>state.tick)) {const plan=returnPlan(s,w);if(plan.route && plan.resource)setReturnTrip(w,plan);else w.retryAt=state.tick+(R.retryTicks || 100);}
         } else if(!w.order && !busy.has(w) && !w.project && (w.spot || w.trip?.kind==='return'))gather(s,w);
         else if(state.entities?.[w.entity] && !(s.camp && busy.has(w)))state.entities[w.entity].anim='idle';
@@ -918,7 +918,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
       spaceOut(s);
     }
   }
-  // Tim 2026-11-13: workers standing still (waiting, holding, building) never stack on one spot: any two closer than
+  // 2026-11-13: workers standing still (waiting, holding, building) never stack on one spot: any two closer than
   // workers.restSpacing ease apart a little each tick, onto open ground only; the new spot becomes where they rest
   function spaceOut(s) {
     const S=R.restSpacing ?? 0.8,nav=runtime?.areas?.nav,still=s.workers.filter(w=>!w.trip && state.entities?.[w.entity]);
@@ -938,7 +938,7 @@ export function createWorkers({state,data,world,spotData=null,spotRules=null}) {
   }
   function econTick() {
     if(!R || !spotRules?.stages)return;
-    // Tim 2026-11-22: each town's work camps over their max (town alert, map marker, Workers view)
+    // 2026-11-22: each town's work camps over their max (town alert, map marker, Workers view)
     { const count=spotCount();for(const t of towns())if(!t.camp)refreshTired(t,count); }
     for(const [id,chars] of Object.entries(state.frontier.spots || {})) {
       const spot=index.get(id);if(!spot)continue;

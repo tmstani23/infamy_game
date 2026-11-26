@@ -22,7 +22,7 @@ export function createSweep({ state, deployment, rally, clearCombat, hostile, se
   const rivals = (e,op) => Object.values(state.entities).filter(t=>alive(t)&&t.owner===op.targetClan
     &&t.type!=='civilian'&&!t.cop&&!t.wild&&e.place==='street'&&t.place==='street'
     &&deployment.sectorAt(t.x,t.z)===op.targetSector&&distance(e,t)<=7&&hostile(e,t)&&sees(e,t));
-  // self-defence (Tim 2026-11-10: a sweep squad stood still while bandits hit it): whoever hit this crew member or a
+  // self-defence (2026-11-10: a sweep squad stood still while bandits hit it): whoever hit this crew member or a
   // squad mate in the last few seconds (bandits, any clan), in any sweep state
   const attacker = (e,op) => op.units.map(id=>state.entities[id]).filter(u=>alive(u)&&u.hitBy&&state.tick-u.hitBy.tick<80)
     .map(u=>state.entities[u.hitBy.id]).filter(t=>alive(t)&&t.owner!==e.owner&&t.type!=='civilian'&&!t.cop&&t.place===e.place&&distance(e,t)<=9&&sees(e,t))

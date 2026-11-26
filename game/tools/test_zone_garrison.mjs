@@ -1,4 +1,4 @@
-// War 7c-3b (Tim 2026-11-12): garrisons in houses, workshops and farmhouses: the owner's troops go in (up to capacity),
+// War 7c-3b (2026-11-12): garrisons in houses, workshops and farmhouses: the owner's troops go in (up to capacity),
 // ranged ones shoot out, melee ones do not, and when the house falls everyone piles out.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -56,7 +56,7 @@ assert.equal(GA.inZone(st.key).length, frontier.war.structures.zoneGarrison.capa
 cmd({ action: 'garrison', mode: 'leave', structure: st.key, units: more.filter(u => u.garrison).map(u => u.id) });
 assert.equal(GA.inZone(st.key).length, 4, 'leave lets the named ones out');
 for (const u of more) u.dead = true;
-// Tim 2026-11-19: the hero may garrison a house too, and steps out again
+// 2026-11-19: the hero may garrison a house too, and steps out again
 { const was = { x: hero.x, z: hero.z }; Object.assign(hero, { x: st.x + 4, z: st.z + 5 });
   const rh = cmd({ action: 'garrison', mode: 'enter', structure: st.key, units: [hero.id] });
   assert.ok(rh?.ok && hero.garrison?.zone && hero.garrison.key === st.key, `the hero goes in (${rh?.reason})`);

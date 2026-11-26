@@ -31,7 +31,7 @@ export function spotState(spot, stateStr) {
 
 // Rich deposits (spots linked to a world.json node) work faster and regrow faster: stages.rich factors.
 export const isRich = spot => !!spot?.deposit;
-// Display names for rich deposits by world.json node kind (Tim 2026-11-06: always called "Rich ...").
+// Display names for rich deposits by world.json node kind (2026-11-06: always called "Rich ...").
 export const RICH_NAME = { quarry: 'Rich stone vein', ore: 'Rich ore vein', forest: 'Rich forest', fishing: 'Rich fishing ground', fertile: 'Rich fertile ground' };
 export const RICH_GIVES = { quarry: 'stone', ore: 'stone (iron later)', forest: 'timber', fishing: 'food', fertile: 'food' };
 // Reach for a rich deposit. anchors: [{ town, name, x, z, r, camp }] = each town hall (r = workers.range) and each built

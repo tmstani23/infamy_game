@@ -145,8 +145,8 @@ export function createGame(options) {
     if (b.business === 'land_office' && b.door && options.frontier && options.world) {
       const [rx, rz] = ringAt(b), ox = b.door[0] - b.x, oz = b.door[1] - b.z, l = Math.hypot(ox, oz) || 1;
       doors.push({ x: rx, z: rz, menu: 'land_office', business: `b${i}`, place: 'street', label: 'Open the Land Office' });
-      // the old surveyor beside the Land Office door (Tim 2026-11-06 20:45): talk after a permit, he shows you sites.
-      // Further from the office door and a reach round his figure (Tim 2026-11-20: the two used to run together)
+      // the old surveyor beside the Land Office door (2026-11-06 20:45): talk after a permit, he shows you sites.
+      // Further from the office door and a reach round his figure (2026-11-20: the two used to run together)
       doors.push({ x: rx - oz / l * 7, z: rz + ox / l * 7, r: 2.2, menu: 'surveyor', business: `b${i}`, place: 'street', label: 'Talk to the old surveyor' });
     }
     if (b.business === 'police_hq' && b.door) doors.push({ x: ringAt(b)[0], z: ringAt(b)[1], menu: 'police_hq', business: `b${i}`, place: 'street', label: 'Open the police HQ' });
@@ -188,7 +188,7 @@ export function createGame(options) {
   const rewards = createRewards(state, units?.rules);
   const inventory = createInventory({state,baseHp:e=>stats.base(e).hp||0});
   const itemServices = createItemServices({state,inventory,raidRules:units?.rules?.raid,spawn,nav:{nearestFree:(...p)=>nav.nearestFree(...p)},removeUnit:id=>removeUnit(id),cellSize:options.frontier?.townGrid?.cellSize||11});
-  const groundItems = createGroundItems({ state, give: (owner, id) => itemServices.give(owner, id), moveTo: (...a) => moveTo(...a) });   // dropped bag items (Tim 2026-11-26)
+  const groundItems = createGroundItems({ state, give: (owner, id) => itemServices.give(owner, id), moveTo: (...a) => moveTo(...a) });   // dropped bag items (2026-11-26)
   // territory: the street around each owned business, quarters and the season score (sim/territory.js)
   const scoreOf = Object.fromEntries(Object.entries(units?.rules?.businesses || {}).map(([k, v]) => [k, v.score || 0]));
   const leader = createLeader({ state, standings: () => territory?.standings() || [], rules: units?.rules?.leader });   // ganging up on the leader (sim/leader.js)
@@ -218,42 +218,42 @@ export function createGame(options) {
     const mx = (b.minX + b.maxX) / 2 - gd.x, mz = (b.minZ + b.maxZ) / 2 - gd.z, ml = Math.hypot(mx, mz) || 1;
     return { city: [gd.x, gd.z], inside: [gd.x + mx / ml * 3, gd.z + mz / ml * 3], island: [x, z], side };
   })() : null;
-  // knocked out on the island: up again at the nearest own town hall (sim/island_respawn.js, Tim 2026-11-06)
+  // knocked out on the island: up again at the nearest own town hall (sim/island_respawn.js, 2026-11-06)
   const islandRespawn = areas ? createIslandRespawn({ state, areas, gate, rules: units?.rules?.islandRespawn, cellSize: options.frontier?.townGrid?.cellSize, warRadius: options.frontier?.war?.circleRadius,
     spawn: (...a) => spawn(...a), freeSlot: (...a) => freeSlot(...a), followOffset: (...a) => followOffset(...a), say: (clan, text) => { clan.notice = { tick: state.tick, text }; }, infirmary: () => frontier?.infirmary }) : null;
-  // the omnibus out on the island (sim/omnibus.js, Tim 2026-11-06): settlers and the Hero group ride in with the hero
+  // the omnibus out on the island (sim/omnibus.js, 2026-11-06): settlers and the Hero group ride in with the hero
   const omnibus = areas ? createOmnibus({ state, rules: units?.rules, spawn: (...a) => spawn(...a), remove: id => removeUnit(id), nav: () => navOf('world'),
     freeSlot: (...a) => freeSlot(...a), followOffset: (...a) => followOffset(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; },
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; },
     homeAt: () => gate?.island, danger: e => state.tick - (e.hitAt ?? -Infinity) < 200 || Object.values(state.entities).some(u => u.place === e.place && Math.hypot(u.x - e.x, u.z - e.z) <= 12 && baseHostile(u, e)) }) : null;
-  // horses from the stable and the hero's mount (sim/mounts.js, Tim 2026-11-06): H to ride, island only
+  // horses from the stable and the hero's mount (sim/mounts.js, 2026-11-06): H to ride, island only
   const mounts = areas ? createMounts({ state, rules: units?.rules, spawn: (...a) => spawn(...a), nav: () => navOf('world'), born: () => frontier?.stable?.born() || [],
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
-  // make camp on the island (world variety P1, Tim 2026-11-25, sim/campfire.js): not in a war circle, not in a town ring
+  // make camp on the island (world variety P1, 2026-11-25, sim/campfire.js): not in a war circle, not in a town ring
   const campfires = areas ? createCampfires({ state, rules: units?.rules, nav: () => navOf('world'), dismount: u => mounts?.dismount(u), moveTo: (...a) => moveTo(...a),
     inWarCircle: (x, z) => !!frontier?.war?.warsAt?.(x, z)?.length,
     inTown: (x, z) => { const rings = options.frontier?.tiers?.list || []; return Object.values(state.frontier?.settlements || {}).some(s => Number.isFinite(s.x) && Math.hypot(x - s.x, z - s.z) <= (rings[(s.tier || 1) - 1]?.ring ?? 150)); },
     say: (owner, text, good = false) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text, camp: good ? 'good' : 'no' }; } }) : null;   // camp: main.js shows it as a callout
-  // recall and store horses and vehicles at your stables (Tim 2026-11-07, sim/vehicle_garage.js)
+  // recall and store horses and vehicles at your stables (2026-11-07, sim/vehicle_garage.js)
   const garage = areas ? createGarage({ state, rules: units?.rules, nav: () => navOf('world'), stable: () => frontier?.stable, omnibus, mounts,
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
-  // rickshaw travel between omnibus stations and the capital (sim/station_travel.js, Tim 2026-11-06)
+  // rickshaw travel between omnibus stations and the capital (sim/station_travel.js, 2026-11-06)
   const stationTravel = areas ? createStationTravel({ state, data: () => frontier?.data, rules: units?.rules, frontier: () => frontier, omnibus, gate, areas, navOf: p => navOf(p),
     followOffset: (...a) => followOffset(...a), freeSlot: (...a) => freeSlot(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; },
     danger: (e, r) => Object.values(state.entities).some(u => u.place === e.place && Math.hypot(u.x - e.x, u.z - e.z) <= r && baseHostile(u, e)),
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
-  // the lieutenant's spot by the gate (goal steps, Tim 2026-11-06): Space here talks to him (sim/lieutenant.js guide)
-  // Tim 2026-11-20: he stood behind the gate roof and was hard to see: now out along the road toward the railway
+  // the lieutenant's spot by the gate (goal steps, 2026-11-06): Space here talks to him (sim/lieutenant.js guide)
+  // 2026-11-20: he stood behind the gate roof and was hard to see: now out along the road toward the railway
   // station (placed below, once gate.station is known), with a reach round his figure
   const ltDoor = gate && { place: 'street', menu: 'lieutenant', r: 2.2, label: 'Talk to your lieutenant' };
   if (ltDoor) { const [gx, gz] = gate.city, [ix, iz] = gate.inside, dx = ix - gx, dz = iz - gz, l = Math.hypot(dx, dz) || 1;
     Object.assign(ltDoor, { x: gx + dx / l * 3 - dz / l * 4, z: gz + dz / l * 3 + dx / l * 4 }); doors.push(ltDoor); }
-  // the city's railway station by the gate (Tim 2026-11-07): Space at its door ring opens the station menu;
+  // the city's railway station by the gate (2026-11-07): Space at its door ring opens the station menu;
   // trains from your towns let you off here (sim/frontier/rail.js uses gate.station)
   const railStation = gate && district.buildings.find(b => b.railStation && b.door);
-  // the ticket hall beside it (Tim 2026-11-07, railway_station art): its window ring opens the menu and trains let you off there
+  // the ticket hall beside it (2026-11-07, railway_station art): its window ring opens the menu and trains let you off there
   const ticketHall = railStation && district.buildings.find(b => b.ticketHall && b.door);
-  // the capital end of the lines on the island (Tim 2026-11-10): level with the station's open east front. The track comes
+  // the capital end of the lines on the island (2026-11-10): level with the station's open east front. The track comes
   // straight in from railApproach, through its own opening in the city wall, and ends railRun inside (gate.rail), so a
   // train rolls into the city and stands at the station; nobody boards out there (sim/frontier/rail.js endpoint, preview)
   if (railStation && gate.side === 'E') { const rz = areas.city.minZ - district.bounds.minZ + railStation.z;
@@ -261,20 +261,20 @@ export function createGame(options) {
   if (railStation) { gate.station = ringAt(ticketHall || railStation); doors.push({ x: gate.station[0], z: gate.station[1], place: 'street', menu: 'rail_station', label: 'Railway station: trains to your towns' });
     if (ltDoor) { const [gx, gz] = gate.city, dx = gate.station[0] - gx, dz = gate.station[1] - gz, l = Math.hypot(dx, dz) || 1, k = Math.min(9, l * 0.6);
       Object.assign(ltDoor, { x: gx + dx / l * k, z: gz + dz / l * k }); } }
-  // the capital stable (Tim 2026-11-07, the old rickshaw station): Space at its ring opens the stable menu (src/stable_menu.js)
+  // the capital stable (2026-11-07, the old rickshaw station): Space at its ring opens the stable menu (src/stable_menu.js)
   const capitalStable = gate && district.buildings.find(b => b.capitalStable && b.door);
   if (capitalStable) { const [x, z] = ringAt(capitalStable); doors.push({ x, z, place: 'street', menu: 'capital_stable', label: 'Capital stable: horses, rickshaws and omnibuses' }); }
   if (gate) doors.push({ x: gate.city[0], z: gate.city[1], to: { x: gate.island[0], z: gate.island[1] }, place: 'world', label: 'Out to the island', gate: true },
     { x: gate.island[0], z: gate.island[1], to: { x: gate.inside[0], z: gate.inside[1] }, place: 'street', label: 'Into the city', gate: true });
   const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: (x, z, r) => { const l = areas.lightsNear(x, z, r), c = campfires?.lightsNear(x, z, r); return c?.length ? l.concat(c) : l; }, towers: () => frontier?.structures?.watchers?.() });
   const discovery = createDiscovery({ state, world: options.world });   // island fog and scouting (frontier W2.3)
-  const sightings = options.world ? createSightings({ state, sight: options.worldChunks?.sight || {}, towers: () => frontier?.structures?.watchers?.() || [] }) : null;   // remembered sight of rival towns and camps (Tim 2026-11-18)
+  const sightings = options.world ? createSightings({ state, sight: options.worldChunks?.sight || {}, towers: () => frontier?.structures?.watchers?.() || [] }) : null;   // remembered sight of rival towns and camps (2026-11-18)
   const frontier = options.frontier ? createFrontier({ state, data: options.frontier, world: options.world, spotData:options.resourceSpots, spotRules:options.resourceSpotRules, removeUnit, capitalYard: gate?.island || null, civilians: civData, dayTicks: dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000 }) : null;   // settlement economy (sim/frontier/, F2.3)
   const stats = createStats({ state, units, roamers: banditData?.types, territory, atHome: e => atHome(e),
     formationMultiplier: e => kuroda.damageTaken(e), stealthRules: () => stealth.rules });
   // Shinobi stealth: hidden ninja, lantern light, snuffing lanterns (sim/stealth.js)
   const opaqueStreet = scenery.filter(s => s.solid && !s.indoor && s.item?.kind === 'buildings').map(s => s.solid);
-  // frontier stealth (Tim 2026-11-09): cover = forest, bamboo and marsh ground; light at night = inside a town ring, by a
+  // frontier stealth (2026-11-09): cover = forest, bamboo and marsh ground; light at night = inside a town ring, by a
   // war camp building or a bandit camp (rules.stealth.frontier coverTerrain, campLight)
   const FST = units?.rules?.stealth?.frontier || {}, coverCodes = new Set(FST.coverTerrain || ['f', 'b', 'k']);
   const islandCover = (x, z) => !!options.world?.terrain && coverCodes.has(terrainAt(options.world, x, z));
@@ -283,14 +283,14 @@ export function createGame(options) {
     for (const s of Object.values(state.frontier?.settlements || {})) if (Number.isFinite(s.x) && !s.capital && Math.hypot(x - s.x, z - s.z) <= (rings[(s.tier || 1) - 1]?.ring ?? 150)) return true;
     for (const w of Object.values(state.frontier?.wars?.list || {})) for (const b of w.camp?.buildings || []) if (Math.hypot(x - b.x, z - b.z) <= L) return true;
     for (const c of options.world?.camps || []) if (Math.hypot(x - c.x, z - c.z) <= L) return true;
-    // the guard's red lantern on a stopped train's freight wagon lights wagonLight round it (Tim 2026-11-21, render/stolen_chest.js)
+    // the guard's red lantern on a stopped train's freight wagon lights wagonLight round it (2026-11-21, render/stolen_chest.js)
     if (campfires?.litAt(x, z, options.worldChunks?.sight?.fireRadius ?? 18)) return true;   // a camp's fire (sim/campfire.js)
     const WL = FST.wagonLight ?? 5;
     for (const t of Object.values(state.frontier?.rail?.trains || {})) if (t.stopped && t.wagonSpot && Math.hypot(x - t.wagonSpot.x, z - t.wagonSpot.z) <= WL) return true;
     return false;
   };
   // the guard's lantern of a stopped train shows every hidden enemy within wagonReveal of the freight wagon to the train's
-  // owner, whichever way the guards face, like a watchtower (Tim 2026-11-21; placeholder number)
+  // owner, whichever way the guards face, like a watchtower (2026-11-21; placeholder number)
   const trainLanterns = () => Object.values(state.frontier?.rail?.trains || {}).filter(t => t.stopped && t.wagonSpot).map(t => ({ owner: t.owner, x: t.wagonSpot.x, z: t.wagonSpot.z, range: FST.wagonReveal ?? 8 }));
   const stealth = createStealth({ islandCover, islandLit, inWarCircle: (x, z) => !!frontier?.war?.warsAt?.(x, z)?.length, warRules: e => units?.types?.[e?.type]?.kunoichi || null, detectOf: e => units?.types?.[e?.type]?.detect || 0, towers: () => [...(frontier?.structures?.watchers?.() || []), ...trainLanterns()], lanterns: () => trainLanterns(), state, scenery, rooms, rules: units?.rules?.stealth,
     observerKnown: (e, u) => vision.canSee(e.owner, u),
@@ -330,7 +330,7 @@ export function createGame(options) {
       { minX: r.origin.x, minZ: r.origin.z, maxX: r.origin.x + r.size[0], maxZ: r.origin.z + r.size[1] }, navSettings(r));
   }
 
-  // Back windows (ninja build phase 3, Tim 2026-10-20): every business with a room gets a second way
+  // Back windows (ninja build phase 3, 2026-10-20): every business with a room gets a second way
   // in on the far side from its door, for the Shinobi clan only; it lands near the back of the room
   district.buildings.forEach((b, i) => {
     const room = rooms.find(r => r.name === roomOf[i]), foot = scenery.find(s => s.building === i)?.foot;
@@ -443,7 +443,7 @@ export function createGame(options) {
   // Smoke Bomb (Shinobi R, state.smokes): inside a cloud nobody but its clan picks or keeps a
   // target, and nobody outside sees in
   const inSmoke = (s, e) => s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r;
-  // except that its own clan's units attacking or knocking down a War Lantern in it can be seen and hit (Tim 2026-10-26)
+  // except that its own clan's units attacking or knocking down a War Lantern in it can be seen and hit (2026-10-26)
   const blind = (a, b) => !!state.smokes && state.smokes.some(s => a.owner !== s.clan && (inSmoke(s, a) || inSmoke(s, b))
     && !(b && b.owner === s.clan && stealth.exposed(b)));
   // (a.rout: war troops running off after their war ended, sim/frontier/war_end.js: they fight nobody and nobody chases them)
@@ -463,13 +463,13 @@ export function createGame(options) {
     if (here.some(truce)) return true;
     return here.length > 0 && !here.some(sides);
   }
-  // Tim 2026-11-13: an enemy clan's workers in a war on their town are combatants (attack-move and auto-attack pick them; they belong to no clan, so baseHostile alone skips them)
+  // 2026-11-13: an enemy clan's workers in a war on their town are combatants (attack-move and auto-attack pick them; they belong to no clan, so baseHostile alone skips them)
   const warWorker = (a, b) => !!b?.worker && !!a?.owner && b.workerOwner !== a.owner && a !== b && !a.garrison && !a.aboard && !a.guide && !b.dead && !b.downed && a.place === b.place && !blind(a, b) && atWarWith(a.owner, b) && deployment.canActAt(a, b.x, b.z, b.place);
   const hostile=(a,b)=>!b?.shopkeeper&&!b?.animal&&!b?.untouchable&&(baseHostile(a,b)||warWorker(a,b))&&!charmProtected(a,b,state);
   // Townsfolk belong to no clan: never picked as a fight on their own, but anyone in a clan
   // can be told to attack (and finish off) one. That is what makes heat.
   const civ = t => t?.type === 'civilian';
-  // Frontier (Tim 2026-11-10): heroes and crews of different clans may fight anywhere out there, but frontier
+  // Frontier (2026-11-10): heroes and crews of different clans may fight anywhere out there, but frontier
   // townsfolk are never fair game and a town's workers only for the other side of a war on that town
   const atWarWith = (clan, b) => { const w = frontier?.war?.byId(b.town) || frontier?.war?.warOn(b.town); return !!w && !w.terms && ((w.attacker === clan && w.defender === b.workerOwner) || (w.defender === clan && w.attacker === b.workerOwner)); };
   // 7c-5: an ox cart is fair game only for the attacker of a war on its town (it is destroyed at 0 health)
@@ -486,7 +486,7 @@ export function createGame(options) {
   // castle high ground (Z4h, sim/castles.js): a little more reach down from a higher terrace
   const reachOf = (a, b) => (statsOf(a).attackRange || 1) * (castles?.rangeScale(a, b) ?? 1) + statsOf(b).radius;
 
-  // City decisions at a lower rate while no player is in the city (lag step 1, Tim 2026-11-05).
+  // City decisions at a lower rate while no player is in the city (lag step 1, 2026-11-05).
   // Away = no hero of a non-bot clan anywhere but the island ('world'); checked at the start of
   // every tick, so walking, travel, Unstuck or a load into the city is full rate on that tick.
   // Only searches (who to fight, whom to chase) slow down; movement and swings stay at 20 Hz.
@@ -494,7 +494,7 @@ export function createGame(options) {
   const awayHz = options.settings?.cityDecisions?.awayHz ?? 2;
   const thinkEvery = awayHz > 0 && awayHz < TICK_RATE ? Math.round(TICK_RATE / awayHz) : 1;
   let cityAway = false;
-  const watchingCity = new Set();   // owners looking at their city from the island (Watch the city, Tim 2026-11-08): the city thinks at full speed for them; not saved
+  const watchingCity = new Set();   // owners looking at their city from the island (Watch the city, 2026-11-08): the city thinks at full speed for them; not saved
   const updateCityAway = () => { cityAway = thinkEvery > 1 && !Object.values(state.entities).some(e => e.type === 'hero' && (e.place !== 'world' || watchingCity.has(e.owner)) && state.clans?.[e.owner] && !state.clans[e.owner].bot);
     if (!cityAway && thinkCache.size) thinkCache.clear(); };
   const thinkSlot = new Map();   // unit id -> its tick slot, so units spread their thinking over the period
@@ -548,7 +548,7 @@ export function createGame(options) {
   // a downed hero (only the police knock one down) can only be arrested, never executed
   const downedFoe = (a, t) => t && t.downed && !t.dead && a.owner && a.place === t.place && (civ(t) || (t.owner && a.owner !== t.owner))
     && (t.type !== 'hero' || cop(a));
-  // --- Looting (Tim 2026-10-19) -------------------------------------------------------
+  // --- Looting (2026-10-19) -------------------------------------------------------
   // A bandit's body carries its ryo (body.loot). A nearby hero takes it; otherwise
   // the nearest selected crew member goes, with non-following selected crew escorting.
   const LOOT_REACH = 1.6;
@@ -598,8 +598,8 @@ export function createGame(options) {
     for (const e of Object.values(state.entities)) {
       if (!e.dead) continue;
       const secs = (state.tick - e.diedAt) * DT;
-      // a knocked-out officer lies there downedMinSeconds too before he is taken away (Tim 2026-10-20)
-      // on the island the fallen lie there islandCorpseSeconds (Tim 2026-11-13: troops, workers and enemies leave a body for a while)
+      // a knocked-out officer lies there downedMinSeconds too before he is taken away (2026-10-20)
+      // on the island the fallen lie there islandCorpseSeconds (2026-11-13: troops, workers and enemies leave a body for a while)
       const lie = e.loot ? (banditData?.rules?.lootSeconds ?? 60) : cop(e) ? (units?.rules?.downedMinSeconds ?? 10) : e.place === 'world' ? (units?.rules?.islandCorpseSeconds ?? 20) : CORPSE_SECONDS;
       if (e.type !== 'hero' && secs >= lie) {
         delete state.entities[e.id];
@@ -607,7 +607,7 @@ export function createGame(options) {
         for (const u of Object.values(state.entities)) if (u.order?.target === e.id && (u.order.kind === 'attack' || u.order.kind === 'loot')) { if (u.order.kind === 'attack') endAttack(u); else u.order = u.order.prev || { kind: 'move', x: u.x, z: u.z }; }
       }
       // a knocked-out hero comes round inside his clan's hideout after heroRespawnSeconds (rival bot plan),
-      // else at the clinic's door ring (Tim 2026-10-17), or at home when the map has no clinic
+      // else at the clinic's door ring (2026-10-17), or at home when the map has no clinic
       if (e.type === 'hero' && secs >= (units?.rules?.heroRespawnSeconds ?? 20) * leader.respawnFactor(e.owner)) {
         if (islandRespawn?.hero(e)) continue;   // knocked out on the island: up at the nearest town hall, low health
         const hd = doors.find(d => d.to && d.place === hideoutOf(e.owner)?.room);
@@ -624,13 +624,13 @@ export function createGame(options) {
     }
   }
 
-  // the governor stands in front of each player town hall by day and is inside at night (Tim 2026-11-10). He is
+  // the governor stands in front of each player town hall by day and is inside at night (2026-11-10). He is
   // nobody's crew (no owner, so he cannot be selected or ordered) and not attackable (guide). Space beside him or at
   // the hall talks to him, day or night. Look: units.json rules.governorModel; spot: rules.governorSpot (in cells).
   function townGovernors() {
     if (!state.frontier || state.tick % 20) return;
     const model = units?.rules?.governorModel || 'merchant', cell = options.frontier?.townGrid?.cellSize || 11;
-    const [ox, oz] = units?.rules?.governorSpot || [0.43, -1.77];   // about 20 units out in front of the hall (Tim 2026-11-20; was [0.15, -0.62])
+    const [ox, oz] = units?.rules?.governorSpot || [0.43, -1.77];   // about 20 units out in front of the hall (2026-11-20; was [0.15, -0.62])
     for (const s of Object.values(state.frontier.settlements || {})) {
       const g = s.governorNpc && state.entities[s.governorNpc];
       const want = !state.night && s.founded && s.owner && !state.clans?.[s.owner]?.bot && Number.isFinite(s.x);
@@ -641,7 +641,7 @@ export function createGame(options) {
       else Object.assign(g, { x, z, place: 'world', anim: 'idle' });
     }
   }
-  // the old surveyor outside the Land Office (Tim 2026-11-06 20:45): one figure, nobody's crew, not attackable (guide),
+  // the old surveyor outside the Land Office (2026-11-06 20:45): one figure, nobody's crew, not attackable (guide),
   // there while any player clan plays a founding mode. Placeholder look: units.json rules.surveyorModel (the fisherman).
   function landSurveyor() {
     if (!landOffice || state.tick % 20) return;
@@ -653,7 +653,7 @@ export function createGame(options) {
     if (!g) state.surveyorNpc = spawn('city_captain', model, d.x, d.z, { owner: null, place: 'street', guide: true, surveyor: true, holdFire: true, hp: 100, name: 'Old surveyor' });
     else Object.assign(g, { x: d.x, z: d.z, place: 'street', anim: 'idle' });
   }
-  // mounts waiting at your castle dock (Tim 2026-11-20): once, for a player clan with a castle and no town yet, your
+  // mounts waiting at your castle dock (2026-11-20): once, for a player clan with a castle and no town yet, your
   // horse, two horses for crew and two omnibuses, free, just inside the harbour gate where the ship lands;
   // clan.castleMounts = { x, z, rode, out } is where they wait (the Mount up goal), rode once the boss rides, out once he
   // is through the land gate (castles.approach: the Ride out of your castle goal, sim/campaign_goals.js). They come out
@@ -680,7 +680,7 @@ export function createGame(options) {
   }
   const cannons = createCannonSalute({ state, spawn: (...a) => spawn(...a), removeUnit: id => removeUnit(id), cell: options.frontier?.townGrid?.cellSize || 11, rules: units?.rules?.cannonSalute });
   const townCount = owner => Object.values(state.frontier?.settlements || {}).filter(s => s.owner === owner && s.founded !== undefined).length;
-  // Space at your town hall talks to its governor (Tim 2026-11-07): within reach of the hall's middle
+  // Space at your town hall talks to its governor (2026-11-07): within reach of the hall's middle
   const governorNear = (id, reach = null) => { const h = state.entities[id]; if (!h || h.place !== 'world') return null;
     const cell = options.frontier?.townGrid?.cellSize || 11, r = reach ?? cell * 1.5;
     const fig = s => state.entities[s.governorNpc];   // standing beside the governor himself also counts
@@ -690,7 +690,7 @@ export function createGame(options) {
 
   // Crew each tick: duties, pursuit, indoor duty and going through doors: sim/crew_step.js
   function crewStep(...a) { return crewSteps.crewStep(...a); }
-  // units standing on each other ease apart; on the island too (Tim 2026-11-07: crew following the hero stacked
+  // units standing on each other ease apart; on the island too (2026-11-07: crew following the hero stacked
   // there), for clan units on foot or horseback (a horse takes more room); riders inside vehicles, horses, vehicles
   // and scenery keep their places. Each place separately: street and island coordinates overlap
   const looseOnIsland = e => e.owner && !e.aboard && !e.ship && !e.guide && !e.garrison && e.type !== 'horse' && e.type !== 'omnibus' && e.type !== 'rickshaw';
@@ -727,7 +727,7 @@ export function createGame(options) {
     return spawn(type, model, dx, dz, extra);
   }
 
-  // Crew through a door with their hero (Tim 2026-10-17): going in, the crew listed in the
+  // Crew through a door with their hero (2026-10-17): going in, the crew listed in the
   // 'use' command (the player's selection) who are near the hero come along; the rest stay
   // outside. When leaving, only selected crew explicitly told to Follow while
   // indoors come along. Others stay until ordered to move to the street.
@@ -763,7 +763,7 @@ export function createGame(options) {
       && (ids || []).includes(u.id) && (!out || (u.order?.kind === 'follow' && u.order.target === hero.id && u.order.exitWithHero))
       && deployment.canActAt(u, d.to.x, d.to.z, d.place)
       && (out || Math.hypot(u.x - d.x, u.z - d.z) < BRING_RADIUS))
-      .slice(0, out ? Infinity : d.ninja&&!rally.status(hero.owner).active ? 6 : businesses?.crewSlots(hero.owner, d.place) ?? Infinity);   // selected ninja crew climb in through a back window too (Tim 2026-10-21)   // a raid takes at most maxCrewInside crew in
+      .slice(0, out ? Infinity : d.ninja&&!rally.status(hero.owner).active ? 6 : businesses?.crewSlots(hero.owner, d.place) ?? Infinity);   // selected ninja crew climb in through a back window too (2026-10-21)   // a raid takes at most maxCrewInside crew in
     const r0 = 0.3;
     const clear = (x, z) => !blockers.some(k => x + r0 > k.minX && x - r0 < k.maxX && z + r0 > k.minZ && z - r0 < k.maxZ);
     crew.forEach((u, k) => {
@@ -778,20 +778,20 @@ export function createGame(options) {
       delete u.patrol;
       delete u.indoorDuty;
       if (fight[u.id]) delete fight[u.id].target;
-      // player crew hold once through (Tim 2026-10-25); a bot's crew stay its mobile squad and can leave with it again
+      // player crew hold once through (2026-10-25); a bot's crew stay its mobile squad and can leave with it again
       if (state.clans?.[hero.owner]?.bot) u.order = { kind: 'follow', target: hero.id, slot: freeSlot(hero.id, u.id), ...(out ? {} : { exitWithHero: true }) };
       else if (!out || u.order?.kind !== 'follow' || u.order.target !== hero.id) u.order = { kind: 'move', x: u.x, z: u.z, arrived: true };
       else u.order = { kind: 'follow', target: hero.id, slot: freeSlot(hero.id, u.id) };
     });
   }
 
-  // E1 (Tim 2026-11-05): out of the island gate with settlers only (crew stay in the city). action 'walk'
+  // E1 (2026-11-05): out of the island gate with settlers only (crew stay in the city). action 'walk'
   // steps through the gate on foot; action 'site' puts the hero and settlers at a chosen open site.
   function expedition(e, c) {
     const clan = state.clans?.[e.owner], r = landOffice.expeditionCheck(e, c);
     if (!r.ok) { if (clan) clan.notice = { tick: state.tick, text: r.reason }; return; }
     const from = e.place, old = { x: e.x, z: e.z };
-    // Tim 2026-11-06: the Hero group goes with the hero; crew following from other groups stay in the city
+    // 2026-11-06: the Hero group goes with the hero; crew following from other groups stay in the city
     for (const u of Object.values(state.entities)) if (u.owner === e.owner && u.type !== 'settler' && u.type !== 'hero' && u.order?.kind === 'follow' && u.order.target === e.id && !r.crew.includes(u))
       u.order = { kind: 'move', x: u.x, z: u.z, arrived: true };
     let to = { x: gate.island[0], z: gate.island[1] };
@@ -807,7 +807,7 @@ export function createGame(options) {
     delete paths[e.id]; delete intents[e.id];
     areas.update(Object.values(state.entities));
     const grid = navOf('world'), st = units?.types?.settler;
-    if (r.waiting && st && clan) {   // Tim 2026-11-06: settlers held safe at the HQ step out here
+    if (r.waiting && st && clan) {   // 2026-11-06: settlers held safe at the HQ step out here
       for (let k = 0; k < r.waiting; k++) r.settlers.push(state.entities[spawn('settler', st.sprite, e.x, e.z, { owner: e.owner, hp: st.hp, holdFire: true, place: 'world' })]);
       clan.settlersWaiting = 0;
     }
@@ -819,7 +819,7 @@ export function createGame(options) {
       u.order = { kind: 'follow', target: e.id }; u.order.slot = freeSlot(e.id, u.id);
     });
     areas.update(Object.values(state.entities));
-    const buses = omnibus?.ride(e, [...r.settlers, ...r.crew]) || 0;   // everyone into the omnibus (Tim 2026-11-06)
+    const buses = omnibus?.ride(e, [...r.settlers, ...r.crew]) || 0;   // everyone into the omnibus (2026-11-06)
     const by = buses ? ` by omnibus${buses > 1 ? ' (two)' : ''}: Q to step out` : '';
     if (clan) clan.notice = { tick: state.tick, text: r.site ? `Arrived at site ${r.site.id} with ${r.settlers.length} settlers and ${r.crew.length} crew${by}` : `Out on the island with ${r.settlers.length} settlers and ${r.crew.length} crew${by}` };
   }
@@ -828,7 +828,7 @@ export function createGame(options) {
   function doorNear(id) {
     const e = state.entities[id];
     // back windows (d.ninja) are only a way in for the Shinobi clan (sim/stealth.js)
-    // the closest door in reach wins (Tim 2026-11-20: Space by the old surveyor opened the Land Office); a door may
+    // the closest door in reach wins (2026-11-20: Space by the old surveyor opened the Land Office); a door may
     // carry its own reach (d.r, the surveyor's is his figure)
     if (!e) return null;
     let best = null, bd = Infinity;
@@ -908,7 +908,7 @@ export function createGame(options) {
     world: options.world, dayTicks: dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000,
     attack: (e, t) => { const u = statsOf(e); if (swingStep(e, u)) return true; if (!t) return false; engage(e, u, t); return true; },
     tame: (owner, horse) => mounts?.adopt(owner, horse), gear: (owner, id) => itemServices.grant(owner, id) }) : null;   // W4 wolves and bears: dens on the world map, hunts
-  // wandering folk (world variety P2, Tim 2026-11-26, sim/wandering_folk.js): scenes round the player's people, kept to the drawn roads
+  // wandering folk (world variety P2, 2026-11-26, sim/wandering_folk.js): scenes round the player's people, kept to the drawn roads
   const folkPaint = options.worldChunks?.paint?.enabled ? options.worldChunks.paint : null;
   const folk = areas && options.folk ? createWanderingFolk({ state, data: options.folk, world: options.world, areas,
     roads: options.world ? roadLines(options.world, folkPaint?.paths?.list || [], folkPaint?.trail?.strips || null) : [],
@@ -922,7 +922,7 @@ export function createGame(options) {
   const influence = createInfluence({ state, rules: options.settings?.influence, businessesHeld: id => Object.values(state.businesses).filter(b => b.owner === id && !b.hideout && units?.rules?.businesses?.[b.kind]).length });
   const castles = frontier ? createCastles({ state, data: options.frontier, world: options.world, frontier }) : null;
   frontier?.rivalCampaign?.setCastles(castles);   // Z4: clan castles on the island
-  // the ship between the city harbour pier and your castle dock (Tim 2026-11-19): a skippable sail, sim/frontier/ferry.js
+  // the ship between the city harbour pier and your castle dock (2026-11-19): a skippable sail, sim/frontier/ferry.js
   const shipRules = options.frontier?.campaignZones;
   const ferry = castles && shipRules?.ship && options.world?.capital?.port ? createFerry({ state, rules: shipRules, world: options.world, pier: shipRules.ship.pier, seaGate: options.world.capital.port, castles,
     navOf: p => navOf(p), followOffset: (...a) => followOffset(...a), freeSlot: (...a) => freeSlot(...a), forget: id => { delete paths[id]; delete intents[id]; if (fight[id]) delete fight[id].target; }, areas, mounts: { dismount: e => mounts?.dismount(e) },
@@ -1006,7 +1006,7 @@ export function createGame(options) {
     const far = patrolSpots(b).slice().sort((p, q) => Math.hypot(q.x - room.spawn.x, q.z - room.spawn.z) - Math.hypot(p.x - room.spawn.x, p.z - room.spawn.z))[0];
     return far ? { x: far.x, z: far.z } : { x: room.spawn.x, z: room.spawn.z };
   };
-  // the Steal stash (Tim 2026-10-21: not by the back window, so the thief has to sneak past the guards):
+  // the Steal stash (2026-10-21: not by the back window, so the thief has to sneak past the guards):
   // the floor spot furthest from where the back window lets you in, kept 3 away from the front door
   const stashOf = b => {
     const room = b && roomOfBusiness(b), win = room && doors.find(d => d.ninja && d.place === room.name);
@@ -1016,7 +1016,7 @@ export function createGame(options) {
     return far ? { x: far.x, z: far.z } : backRoomOf(b);
   };
   const unstuck = createUnstuck({ state, rules: units?.rules?.unstuck,
-    // on the island: the nearest of your town halls, or your HQ in the capital when the city gate is closer (Tim 2026-11-07)
+    // on the island: the nearest of your town halls, or your HQ in the capital when the city gate is closer (2026-11-07)
     destination: (e, probe) => { const t = islandRespawn?.unstuckSpot(e, probe); if (t) return t; const d = doors.find(d => d.to && d.place === hideoutOf(e.owner)?.room); return d && { x: d.to.x, z: d.to.z, place: d.place }; },
     moving: e => Math.hypot(intents[e.id]?.right || 0, intents[e.id]?.down || 0) >= 0.1 || !!e.snuffing || !!e.lootTarget,
     holding: e => { const job = state.contracts?.active?.[e.owner]; return !!e.markScrub || !!e.lootTarget || (['mark', 'steal'].includes(job?.kind) && state.businesses[job.business]?.room === e.place); },
@@ -1072,7 +1072,7 @@ export function createGame(options) {
     rewards.renownTick(lastNews);   // property-clan Renown for the same moments
     if (state.clock && --state.clock.left <= 0) setNight(!state.night);
     // notices raised by a lieutenant's own commands ("War Lantern planted", "Rally accepted") are not shown to the
-    // boss as if he had given them (Tim 2026-11-10): his log has them; results (won, failed) still come through
+    // boss as if he had given them (2026-11-10): his log has them; results (won, failed) still come through
     const ltNotice = new Map(), ownCommand = new Set();
     for (const c of commands) {
       if (c.type === 'time') { setNight(typeof c.night === 'boolean' ? c.night : !state.night); continue; }
@@ -1082,10 +1082,10 @@ export function createGame(options) {
       else if (!ltNotice.has(e.owner) && state.clans?.[e.owner] && !state.clans[e.owner].bot) ltNotice.set(e.owner, state.clans[e.owner].notice);
       if (c.type === 'catchHorse') { if (e.type === 'hero') wildAnimals?.catchHorse(e); continue; }   // Space beside a wild horse: catch her (wildlife W6)
       if (c.type === 'sellHides') { if (e.type === 'hero') wildAnimals?.sell(e); continue; }   // Space at an own market (sim/wild_animals.js, wildlife W5)
-      if (c.type === 'guide') { if (c.read === 'fieldGuide' && e.type === 'hero' && state.clans?.[e.owner]) (state.clans[e.owner].milestones ||= {}).fieldGuide = 1; continue; }   // Field guide goal (Tim 2026-11-25): he opened it
+      if (c.type === 'guide') { if (c.read === 'fieldGuide' && e.type === 'hero' && state.clans?.[e.owner]) (state.clans[e.owner].milestones ||= {}).fieldGuide = 1; continue; }   // Field guide goal (2026-11-25): he opened it
       if (c.type === 'watchCity') { if (c.on && e.type === 'hero') watchingCity.add(e.owner); else watchingCity.delete(e.owner); continue; }
       if (watchingCity.has(e.owner) && !c.by && (c.type === 'order' || c.type === 'deployment')) continue;   // watching only: no crew orders
-      // the boss out on the island gives the city no orders (Tim 2026-11-08): the lieutenant runs it (his commands carry
+      // the boss out on the island gives the city no orders (2026-11-08): the lieutenant runs it (his commands carry
       // by), crew out on the island still take orders. Bots out there have their lieutenant brain instead.
       if (bossAway(e) && !c.by && !state.clans?.[e.owner]?.bot && !watchingCity.has(e.owner)
         && (c.type === 'deployment' || (c.type === 'order' && Array.isArray(c.units)))) {
@@ -1099,16 +1099,16 @@ export function createGame(options) {
       }
       // C2: a lieutenant's command runs only inside its standing orders and budget (sim/lieutenant.js)
       if (c.by === 'lieutenant' && !lieutenant?.gate(e, c).ok) continue;
-      if (c.type === 'lieutenant' && c.guide === 'governor') cannons.firstTalk(state.frontier?.settlements?.[governorNear(e.id)?.governor]);   // first talk in a town: a salute (Tim 2026-11-07)
-      // a goal talk only counts while its card is up (Tim 2026-11-10: he always stands at the gate now, so an early chat
+      if (c.type === 'lieutenant' && c.guide === 'governor') cannons.firstTalk(state.frontier?.settlements?.[governorNear(e.id)?.governor]);   // first talk in a town: a salute (2026-11-07)
+      // a goal talk only counts while its card is up (2026-11-10: he always stands at the gate now, so an early chat
       // must not skip Meet your lieutenant or Give him his orders)
       if (c.type === 'lieutenant' && (c.guide === 'met' || c.guide === 'opened') && goals?.current(e.owner)?.key !== (c.guide === 'met' ? 'lieutenant' : 'orders')) continue;
       if (c.type === 'lieutenant') { lieutenant?.command(e, c); continue; }
       itemServices.interrupt(e,c);
       // a hero lying down or in jail can still order his crew, nothing else
-      if ((e.dead || e.downed || e.jailed) && !['order', 'special', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment', 'world', 'frontier'].includes(c.type)) continue;   // special: the troops' own abilities (Tim 2026-11-25)
+      if ((e.dead || e.downed || e.jailed) && !['order', 'special', 'move', 'business', 'clinic', 'police', 'contract', 'loot', 'execute', 'deployment', 'world', 'frontier'].includes(c.type)) continue;   // special: the troops' own abilities (2026-11-25)
       // inside the omnibus (sim/omnibus.js): no fighting or looting; a door (the gate) steps everyone out first
-      // on horseback everything works (Tim 2026-11-14: attacks and abilities from the saddle); only a vehicle seat blocks
+      // on horseback everything works (2026-11-14: attacks and abilities from the saddle); only a vehicle seat blocks
       if (ferry?.riding(e) && c.type !== 'frontier') continue;   // at sea: nothing but skipping the crossing
       if (e.aboard && ['attack', 'ability', 'execute', 'loot', 'snuff', 'interiorDoor', 'item'].includes(c.type)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'Step out of the omnibus first (Q)' }; continue; }
       if (c.type === 'use' && e.type === 'hero' && !e.dead && !e.downed && !e.jailed && ships?.use(e)) continue;   // aboard a ship at the shore: step off; beside one: All aboard
@@ -1127,11 +1127,11 @@ export function createGame(options) {
         const d = doorNear(c.id);
         // raiders wait outside a raided business until the warm-up ends (sim/businesses.js)
         if (d?.gate && !modeRules(state).island) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'The gate to the island opens in a campaign' }; }
-        // out to the island only with a founding permit, or once you have a town (Tim 2026-11-10)
+        // out to the island only with a founding permit, or once you have a town (2026-11-10)
         else if (d?.gate && d.place === 'world' && landOffice && !landOffice.mayLeave(e.owner)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'The island gate opens once you hold a founding permit (telegraph office)' }; }
         // Z7: and once you have chosen your home with the old surveyor
         else if (d?.gate && d.place === 'world' && landOffice?.needsHome(e.owner)) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'Choose your home with the old surveyor first' }; }
-        // nor with a Rally up (Tim 2026-11-10): rallied crew would follow him out and leave the city short
+        // nor with a Rally up (2026-11-10): rallied crew would follow him out and leave the city short
         else if (d?.gate && d.place === 'world' && e.type === 'hero' && rally.status(e.owner)?.active) { const clan = state.clans?.[e.owner]; if (clan) clan.notice = { tick: state.tick, text: 'A Rally is up: the gate opens once your crew are back at their posts' }; }
         else if (d?.to && deployment.canActAt(e, d.to.x, d.to.z, d.place) && (!businesses || businesses.mayEnter(e, d.place))) {   // menu doors (the clinic) have no room
           const from = e.place;
@@ -1145,7 +1145,7 @@ export function createGame(options) {
       }
       if (c.type === 'interiorDoor' && !stunned(e, state.tick)) toggleInteriorDoor(e);
       if (c.type === 'world') discovery.command(e, c);   // island map pins (sim/discovery.js)
-      // Dev-only instant travel (Tim 2026-11-02, for testing the island): campaign, dev build, hero on the
+      // Dev-only instant travel (2026-11-02, for testing the island): campaign, dev build, hero on the
       // street or the island; the hero's group comes along like through the gate.
       if (c.type === 'travel' && areas && options.frontier?.dev && modeRules(state).island && e.type === 'hero' && !e.dead && !e.downed
         && (e.place === 'street' || e.place === 'world') && (c.city ? gate : Number.isFinite(c.x) && Number.isFinite(c.z))) {
@@ -1177,7 +1177,7 @@ export function createGame(options) {
       if (c.type === 'rickshaw') stationTravel?.command(e, c);
       if (c.type === 'frontier' && c.action === 'salute') { const st = state.frontier?.settlements?.[c.settlement]; if (st?.owner === e.owner) cannons.salute(st, true); continue; }
       if (c.type === 'frontier' && frontier) {   // towns keep running while the hero is down
-        // founding from the omnibus: everyone steps out first; a new town takes the clan's omnibuses (Tim 2026-11-06)
+        // founding from the omnibus: everyone steps out first; a new town takes the clan's omnibuses (2026-11-06)
         const founding = c.action === 'found' && omnibus, before = founding ? townCount(e.owner) : 0;
         if (founding && e.aboard) omnibus.deploy(e);
         frontier.command(e, c);
@@ -1188,18 +1188,18 @@ export function createGame(options) {
       if (c.type === 'business' && businesses) businesses.command(e, c);
       // war checkpoint 6: right-click on an enemy structure of a war (sim/frontier/structures.js)
       // ships in a raze order (a right-click on the ground at war) sail there instead (sim/frontier/ships.js, ships S2)
-      // Tim 2026-11-25: the war troops still take orders while the hero is dead, down or jailed (a right-click at war comes as
+      // 2026-11-25: the war troops still take orders while the hero is dead, down or jailed (a right-click at war comes as
       // a raze with a move fallback); the hero himself only joins when he is up (structures.order checks him)
       if (c.type === 'order' && c.kind === 'raze' && ships && e.type === 'hero') { const rc = ships.order(e, c); if (rc !== c) c.units = rc.units; }
       if (c.type === 'order' && c.kind === 'raze') { if (e.type === 'hero') { for (const id of c.units || []) { const u = state.entities[id]; if (u?.owner === e.owner && u.type !== 'hero') manualCrew(u); } const razed = frontier?.structures?.order(e, c); if (razed && e.order?.kind === 'raze' && heroMode(e)) e.attackMode = true; if (!razed && (c.fallback === 'move' || c.fallback === 'station') && c.units?.length) { omnibus?.orderVehicles(e, { ...c, kind: c.fallback }); giveOrder(e, { ...c, kind: c.fallback }); } } continue; }
       if (c.type === 'order') { const cc = ships ? ships.order(e, c) : c; omnibus?.orderVehicles(e, cc); giveOrder(e, cc); }   // ships take their own (sim/frontier/ships.js)
-      // X with the hero in the selection on the frontier: he attack-moves too, in attack mode (Tim 2026-11-15); a plain move
+      // X with the hero in the selection on the frontier: he attack-moves too, in attack mode (2026-11-15); a plain move
       // order to the selection does not move him (WASD does)
       if (c.type === 'order' && c.kind === 'attackmove' && e.type === 'hero' && Array.isArray(c.units) && c.units.includes(e.id) && heroMode(e) && !e.dead && !e.downed && !e.jailed && Number.isFinite(c.x) && Number.isFinite(c.z)) { e.order = { kind: 'attackmove', x: c.x, z: c.z }; e.attackMode = true; delete e.attackTarget; delete paths[e.id]; }
       if (c.type === 'deployment') { if(shakedown.command(e,c)||sweep.command(e,c))continue; deployment.command(e, c); assignments.command(e, c); rally.command(e, c); shinobiAssignments.command(e, c); diversion.command(e, c); }
       if (c.type === 'ability') useAbility(e, c);
       // war checkpoint 7-1: a special ability of selected crew or troops cast by the player, or its auto switch (sim/special_cast.js)
-      if (c.type === 'special' && e.type === 'hero') {   // Tim 2026-11-25: troops cast their specials while the hero is dead or down too
+      if (c.type === 'special' && e.type === 'hero') {   // 2026-11-25: troops cast their specials while the hero is dead or down too
         specialCommand({ state, units }, e, c);
         // the slowing arrow rides on the archer's next shot: send the asked ones at the enemy nearest the spot
         if (c.ability === 'hamstring' && typeof c.auto !== 'boolean' && Number.isFinite(c.x) && Number.isFinite(c.z)) {
@@ -1232,10 +1232,10 @@ export function createGame(options) {
         setAssistCrew(e, c.assist ? c.units : []);
         for (const id of e.assistCrew || []) { const u = state.entities[id]; delete u.smokePassive; delete u.holdFire; allowCharmAttack(u,state.entities[c.target],state); }
         e.attackTarget = c.target; delete e.holdFire;
-        if (heroMode(e)) e.attackMode = true;   // frontier attack mode (Tim 2026-11-15)
+        if (heroMode(e)) e.attackMode = true;   // frontier attack mode (2026-11-15)
       }
-      // left-click elsewhere (Tim 2026-10-18): the hero drops his locked target and stops swinging at it
-      // frontier attack mode ends on Esc, Z or a cancel; a left-click elsewhere leaves it and its target alone (Tim 2026-11-15)
+      // left-click elsewhere (2026-10-18): the hero drops his locked target and stops swinging at it
+      // frontier attack mode ends on Esc, Z or a cancel; a left-click elsewhere leaves it and its target alone (2026-11-15)
       if ((c.type === 'cancel' || (c.type === 'attackmode' && !c.on)) && e.type === 'hero' && e.attackMode) { delete e.attackMode; delete e.attackTarget; if (e.order?.kind === 'raze' || e.order?.kind === 'attackmove') delete e.order; delete paths[e.id]; }
       if ((c.type === 'stopattack' || c.type === 'cancel') && e.type === 'hero' && !(c.type === 'stopattack' && e.attackMode)) {
         if (Array.isArray(c.units)) setAssistCrew(e, c.units);
@@ -1266,7 +1266,7 @@ export function createGame(options) {
     clans?.tick(DT, spawnOutside);
     islandRespawn?.tick(DT, units?.types);
     townGovernors();
-    itemServices.merchants();   // the frontier merchant's stall keeper in each player town (Tim 2026-11-26)
+    itemServices.merchants();   // the frontier merchant's stall keeper in each player town (2026-11-26)
     cannons.tick();
     landSurveyor();
     lieutenant?.tick();   // C2: the city captain takes charge / stands down
@@ -1302,7 +1302,7 @@ export function createGame(options) {
         if (Object.values(state.attacks || {}).some(a => a.knock?.by === e.id)) { e.anim = 'idle'; continue; }
         // taking a hall at the end of a war (sim/frontier/war_end.js): he stands and channels; WASD or an order breaks it off
         if (e.hallChannel && !e.order) { e.anim = 'idle'; delete e.swing; continue; }
-        // right-click on your stockade (Tim 2026-11-10): the hero walks over; frontier/garrison.js admits him on arrival
+        // right-click on your stockade (2026-11-10): the hero walks over; frontier/garrison.js admits him on arrival
         if (e.type === 'hero' && e.order?.garrisonGo && !e.order.arrived) { delete e.swing; delete e.execute; if (moveTo(e, unit, e.order.x, e.order.z, false)) continue; e.order.arrived = true; }
         if (e.lootTarget) { if (lootStep(e, unit, e.lootTarget)) continue; delete e.lootTarget; delete paths[e.id]; }
         if (e.fetchBundle) { if (groundItems.fetchStep(e, unit)) continue; delete paths[e.id]; }   // right-clicked a dropped bundle (sim/ground_items.js)
@@ -1312,9 +1312,9 @@ export function createGame(options) {
         if (e.type === 'hero' && e.order?.kind === 'raze' && e.order.from === 'attackmove' && e.attackMode) { const n = nearestEnemy(e, e.x, e.z, AGGRO), foe = n && (n.owner || n.workerOwner); if (n && Object.values(state.frontier?.wars?.list || {}).some(w => (w.attacker === e.owner && w.defender === foe) || (w.defender === e.owner && w.attacker === foe))) { if (e.swing?.structure) delete e.swing; e.order = { kind: 'attackmove', x: e.order.ax, z: e.order.az }; e.attackTarget = n.id; } }
         if (e.type === 'hero' && e.order?.kind === 'raze') { if (frontier?.structures?.step(e, unit)) continue; if (e.order?.kind !== 'attackmove') delete e.order; }
         if (swingStep(e, unit)) continue;
-        // frontier attack mode (Tim 2026-11-15): after a right-click on an enemy the hero chases it, and when it is down or
+        // frontier attack mode (2026-11-15): after a right-click on an enemy the hero chases it, and when it is down or
         // gone he goes for the nearest war enemy in range as crew do; WASD only breaks the chase. A building that falls ends it
-        // there, as for crew: the next one takes a new right-click, or an attack-move (X) goes on building to building (Tim 2026-11-15)
+        // there, as for crew: the next one takes a new right-click, or an attack-move (X) goes on building to building (2026-11-15)
         if (e.attackMode && !heroMode(e)) delete e.attackMode;
         if (e.attackMode) {
           let t = state.entities[e.attackTarget];
@@ -1331,13 +1331,13 @@ export function createGame(options) {
             if (!e.order.arrived) { if (moveTo(e, unit, e.order.x, e.order.z, false)) continue; e.order.arrived = true; }
           }
         }
-        // a locked target (Ctrl + right-click): no chasing (Tim 2026-10-17), the hero hits it
+        // a locked target (Ctrl + right-click): no chasing (2026-10-17), the hero hits it
         // whenever it is in reach and the player keeps him there with WASD; the lock drops when
         // the target is down or gone, or more than LOCK_RANGE away
         const target = state.entities[e.attackTarget];
         if (!fair(e, target) || !sees(e, target) || Math.hypot(target.x - e.x, target.z - e.z) > LOCK_RANGE) delete e.attackTarget;
         else if (Math.hypot(target.x - e.x, target.z - e.z) <= reachOf(e, target)) { engage(e, unit, target, false); continue; }
-        // otherwise standing still: swing back at whoever hit him lately, if in reach (Tim 2026-10-19:
+        // otherwise standing still: swing back at whoever hit him lately, if in reach (2026-10-19:
         // no picking fights with any enemy who happens to stand close; that takes a target)
         const by = e.hitBy && state.tick - e.hitBy.tick < secs(RETALIATE_SECONDS) && state.entities[e.hitBy.id];
         const t = !e.holdFire && unit.damage && by && hostile(e, by) && (!cop(by) || by.wave) && Math.hypot(by.x - e.x, by.z - e.z) <= reachOf(e, by) + 0.6 ? by : null;
@@ -1355,7 +1355,7 @@ export function createGame(options) {
       if (e.ride) {   // driving or riding: cart-like steering (sim/vehicle_steer.js), the vehicle turns, slows in sharp turns
         const kind = e.ride.kind === 'horse' ? 'mount' : state.entities[e.aboard]?.type || 'omnibus';
         // a horse, rickshaw or omnibus trots at rules.<kind>.trot x run speed; the sprint toggle (Shift or the Sprint
-        // button, src/input.js) gallops at full ride speed (Tim 2026-11-07: a toggle, not held, so Shift+right-click works)
+        // button, src/input.js) gallops at full ride speed (2026-11-07: a toggle, not held, so Shift+right-click works)
         const gallop = !!c.sprint, trot = !gallop ? (units?.rules?.[kind]?.trot ?? 1) / (e.ride.speed || 1) : 1;
         e.gallop = !!gallop;
         const s = steer(e, Math.atan2(dx, dz), { turnDegrees: units?.rules?.[kind]?.turnDegrees ?? 120 }, DT), d = stats.movement(e, 'run') * DT * s.slow * Math.min(1, trot);
@@ -1378,7 +1378,7 @@ export function createGame(options) {
     police?.tick();
     businesses?.tick();
     hqRaids?.tick();
-    // a won Shinobi HQ raid: a few seconds after the reward the raiders are put out of the front door (Tim 2026-10-26)
+    // a won Shinobi HQ raid: a few seconds after the reward the raiders are put out of the front door (2026-10-26)
     for (const r of Object.values(state.hqRaids || {})) if (r.ejectAt === state.tick) {
       const b = state.businesses[r.business], room = rooms.find(m => m.name === b?.room);
       const d = room && doors.find(d => d.place === 'street' && d.to && d.x === room.exit.x && d.z === room.exit.z);
@@ -1419,7 +1419,7 @@ export function createGame(options) {
       state.smokes = state.smokes.filter(s => s.until > state.tick);
       if (!state.smokes.length) delete state.smokes;
     }
-    // inside their own Smoke Bomb the clan's units heal s.heal of their health a second (Tim 2026-10-20; buff 'shroud' for the look)
+    // inside their own Smoke Bomb the clan's units heal s.heal of their health a second (2026-10-20; buff 'shroud' for the look)
     if (state.smokes && state.tick % secs(1) === 0) for (const s of state.smokes) for (const u of Object.values(state.entities))
       if (u.owner === s.clan && s.heal && !u.dead && !u.downed && u.maxHp && inSmoke(s, u)
         && rally.buffEligible(state.entities[s.hero] || Object.values(state.entities).find(e => e.owner === s.clan && e.type === 'hero'), u)) { u.hp = Math.min(u.maxHp, u.hp + u.maxHp * s.heal); addBuff(u, 'shroud', 1.1); }
@@ -1465,7 +1465,7 @@ export function createGame(options) {
     frontier?.tick();
     itemServices.castles();   // a fallen castle's heirloom blade (wildlife W7)
     ferry?.tick();   // the ship to the castle
-    for (const v of frontier?.stable?.bornVehicles?.() || []) {   // built at a station: parked there, empty (Tim 2026-11-06)
+    for (const v of frontier?.stable?.bornVehicles?.() || []) {   // built at a station: parked there, empty (2026-11-06)
       omnibus?.park(v.owner, v.kind, v.x, v.z);
       const clan = state.clans?.[v.owner], town = state.frontier.settlements?.[v.town];
       if (clan && v.town !== 'capital' && !v.quiet) clan.notice = { tick: state.tick, text: `${town?.name || 'Your town'}: a new ${v.kind} is parked at the station` };   // capital stable: its own notice
@@ -1476,7 +1476,7 @@ export function createGame(options) {
     campfires?.tick();
     garage?.tick(DT);
     castleMounts();
-    // quest log milestones (campaign only); at the end of the tick so loot, raids and buys made by units this tick count (Tim 2026-11-06)
+    // quest log milestones (campaign only); at the end of the tick so loot, raids and buys made by units this tick count (2026-11-06)
     goals.record(state.news, state.casts, state.ryoLosses);
     state.tick++;
   }

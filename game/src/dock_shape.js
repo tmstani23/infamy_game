@@ -1,4 +1,4 @@
-// The castle dock drawn as a real wharf on piles (Tim 2026-11-23, look B in /mnt/project-files/dock_look): drawing
+// The castle dock drawn as a real wharf on piles (2026-11-23, look B in /mnt/project-files/dock_look): drawing
 // only, the sim's dock cells (blueprint pier, use '.') stay as they are. No three.js here, so Node tests can check it.
 //   dockShape(c) -> { land, water, boardsAlongX } or null: c is a castle prepared by src/castle_height.js (x, z, n, cell,
 //     mid, use, pier); land / water = merged cell edges of the dock against the castle ground / the sea, each
@@ -7,7 +7,7 @@
 //   deckY(shape, x, z): the deck height, rising from DOCK.lip at the land edge to DOCK.deck over DOCK.ramp units
 //   dockPieces(c, shape, out): pushes quads into out.pier (deck boards), dockBeam (edge beam), dockPile (piles),
 //     dockWet (wet tide band on the piles), dockDark (bracing) for render/world_ground.js
-// DOCK: placeholders, Tim to tune (world units)
+// DOCK: placeholders, to tune (world units)
 export const DOCK = {
   deck: 1.6,       // deck height over the water
   lip: 0.3,        // deck height where it meets the castle ground

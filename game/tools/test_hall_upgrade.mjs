@@ -1,4 +1,4 @@
-// hall upgrade block (Tim 2026-11-25): have / need per requirement, what is short, button names what is missing
+// hall upgrade block (2026-11-25): have / need per requirement, what is short, button names what is missing
 import assert from 'assert';
 import fs from 'fs';
 import { hallUpgradeRows, hallUpgradeHTML } from '../src/hall_upgrade.js';

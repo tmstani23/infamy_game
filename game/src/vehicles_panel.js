@@ -1,4 +1,4 @@
-// The Vehicles panel (Tim 2026-11-07): Shift+Y or the Vehicles icon. Menu restyle 2026-11-10: shared shell, a tab per kind, pages. Every horse, rickshaw and omnibus you own: where it is,
+// The Vehicles panel (2026-11-07): Shift+Y or the Vehicles icon. Menu restyle 2026-11-10: shared shell, a tab per kind, pages. Every horse, rickshaw and omnibus you own: where it is,
 // who is aboard, and Look (camera), Select (vehicles: they take crew orders), Call (horses), Recall (back to your
 // nearest stable and stored there) or Take out (parked beside its stable). Commands: sim/vehicle_garage.js,
 // sim/mounts.js whistle. Room per stable comes from the town tiers (sim/frontier/stable.js).

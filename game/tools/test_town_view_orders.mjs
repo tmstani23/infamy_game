@@ -1,4 +1,4 @@
-// View a town (Tim 2026-11-25): while you view one of your own frontier towns you run it as if your hero were there.
+// View a town (2026-11-25): while you view one of your own frontier towns you run it as if your hero were there.
 // The sim side: orders stamped view: <own town> reach your crew out on the island with the hero in the city, and a
 // right-click raze reaches a structure; without the stamp, or for a rival town or the capital, they do not.
 // The client side (viewCommands): the hero is taken out of every command and city / hero-only commands drop.

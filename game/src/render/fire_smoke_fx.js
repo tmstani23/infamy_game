@@ -1,4 +1,4 @@
-// Camp fire life (Tim 2026-11-26): every lit camp fire on the island, the crew's own (state.campfires, sim/campfire.js) and
+// Camp fire life (2026-11-26): every lit camp fire on the island, the crew's own (state.campfires, sim/campfire.js) and
 // a wandering folk night camp's (state.world.folk scene props, sim/wandering_folk.js), gets flame tongues licking up, a
 // few sparks, and a long thin column of smoke that climbs and drifts off on the wind. A fire put out (out = tick) loses
 // its flames at once and its smoke thins away over emberSeconds. All of it somewhat see-through.

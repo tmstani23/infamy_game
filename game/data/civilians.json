@@ -1,5 +1,5 @@
 {
-  "_note": "Townsfolk (docs/civilians_plan.md). Each type walks between the map's pois whose tags it likes, stays a while, then picks the next. nightOut = share that stays out at night (the rest walk home, homeSpeed times their walking speed, and go in). Counts cut 25% 2026-10-17 (Tim); nightOut 0.1 so about 90% go in at night (Tim). Counts raised to 30 for the 2x map 2026-10-18 (plan 0a); homes list the old and the new map's poi ids (ids a map lacks are skipped). reactSeconds = at most one scared / chat reaction per townsperson in that time. Seconds and world units; tune in playtests.",
+  "_note": "Townsfolk (docs/civilians_plan.md). Each type walks between the map's pois whose tags it likes, stays a while, then picks the next. nightOut = share that stays out at night (the rest walk home, homeSpeed times their walking speed, and go in). Counts cut 25% 2026-10-17; nightOut 0.1 so about 90% go in at night. Counts raised to 30 for the 2x map 2026-10-18 (plan 0a); homes list the old and the new map's poi ids (ids a map lacks are skipped). reactSeconds = at most one scared / chat reaction per townsperson in that time. Seconds and world units; tune in playtests.",
   "rules": {
     "staySeconds": [4, 12],
     "bowSeconds": 2,
@@ -14,10 +14,10 @@
     "returnPerSecond": 1,
     "hp": 60,
     "replaceSeconds": 300,
-    "_homes": "a type's homes are poi ids in front of the buildings it lives in (default: every home poi); townsfolk start there, go in there at night and come out there; by day they walk anywhere they like (Tim 2026-10-18)",
+    "_homes": "a type's homes are poi ids in front of the buildings it lives in (default: every home poi); townsfolk start there, go in there at night and come out there; by day they walk anywhere they like (2026-10-18)",
     "homeSpeed": 1.25,
-    "vehicles": { "_note": "town traffic driving (Tim 2026-11-06): speed = share of a walker's speed, turnDegrees = most the heading turns in a second, gapAhead = how close someone in front makes them wait, waitSeconds = then they creep on slowly", "speed": 0.85, "turnDegrees": 120, "gapAhead": 2.2, "waitSeconds": 2 },
-    "_vehicles": "types with vehicle: true are town traffic (rickshaws, ox carts, omnibus; Tim 2026-11-06): they drive between spots, never chat, bow or freeze, and just pull away from a fight"
+    "vehicles": { "_note": "town traffic driving (2026-11-06): speed = share of a walker's speed, turnDegrees = most the heading turns in a second, gapAhead = how close someone in front makes them wait, waitSeconds = then they creep on slowly", "speed": 0.85, "turnDegrees": 120, "gapAhead": 2.2, "waitSeconds": 2 },
+    "_vehicles": "types with vehicle: true are town traffic (rickshaws, ox carts, omnibus; 2026-11-06): they drive between spots, never chat, bow or freeze, and just pull away from a fight"
   },
   "types": {
     "foreign_visitor": {"model": "gunslinger", "count": 1, "likes": ["docks", "pier", "market", "teahouse"], "nightOut": 0, "homes": ["dock_warehouse", "customs_house"]},
@@ -34,7 +34,7 @@
 
     "rickshaw":  { "model": "rickshaw",  "count": 2, "likes": ["street", "market", "teahouse"],   "nightOut": 0, "homes": ["rickshaw_station", "inn", "teahouse"], "vehicle": true },
     "ox_cart":   { "model": "ox_cart",   "count": 2, "likes": ["warehouse", "docks", "market"],   "nightOut": 0, "homes": ["rice_storehouse", "warehouse", "brewery"], "vehicle": true },
-    "town_dog": { "model": "tosa", "count": 5, "animal": true, "likes": ["street", "market", "docks", "shrine"], "nightOut": 0.2, "_note": "Tim 2026-11-10: a few dogs among the townsfolk (and in frontier towns); never chat, bow or freeze, can't be hit" },
+    "town_dog": { "model": "tosa", "count": 5, "animal": true, "likes": ["street", "market", "docks", "shrine"], "nightOut": 0.2, "_note": "2026-11-10: a few dogs among the townsfolk (and in frontier towns); never chat, bow or freeze, can't be hit" },
     "omnibus":   { "model": "omnibus",   "count": 1, "likes": ["street", "market", "docks"],      "nightOut": 0, "homes": ["customs_house", "western_office", "dock_warehouse"], "vehicle": true }
   }
 }

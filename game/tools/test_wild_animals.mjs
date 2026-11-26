@@ -1,4 +1,4 @@
-// Deer and boar on the island (sim/wild_animals.js, wildlife W3, Tim 2026-11-24).
+// Deer and boar on the island (sim/wild_animals.js, wildlife W3, 2026-11-24).
 // Run: node tools/test_wild_animals.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -111,7 +111,7 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   assert.ok(!e.gearItem, 'no gear rolled off an animal');
 }
 
-// a deer can be run down: chased off again and again it tires, then stands spent and the hero lands his blows (Tim 2026-11-24)
+// a deer can be run down: chased off again and again it tires, then stands spent and the hero lands his blows (2026-11-24)
 {
   const e = animals().find(a => a.species === 'deer' && !a.dead);
   if (e) {
@@ -168,7 +168,7 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
   Object.assign(hero, { x: mare.x + 2, z: mare.z });
   assert.ok(g.wildAnimals.catchPrompt(hero)?.text.includes('Catch'), 'Space catches her');
   const coats = Object.fromEntries(ids.map(id => [id, S.entities[id].coat])), clan = S.clans[hero.owner], had = (clan.whistles || []).length;
-  // Space starts a short catch (Tim 2026-11-26): moving ends it and she bolts
+  // Space starts a short catch (2026-11-26): moving ends it and she bolts
   S.casts = [];
   g.step([{ type: 'catchHorse', id: hero.id }]);
   assert.ok(hero.catchCast, 'the catch has started');

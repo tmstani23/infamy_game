@@ -1,4 +1,4 @@
-// A new war camp building site flashes until it has workers (7c-4, Tim 2026-11-12: builders are manual).
+// A new war camp building site flashes until it has workers (7c-4, 2026-11-12: builders are manual).
 // Also marks your burning buildings in a war with nobody sent to put them out. Presentation only: small pulsing
 // markers over the spot, in the structure bar layer. sim/frontier/workers.js sets building.idle on a site with no crew.
 const CSS = `.siteflash{position:fixed;transform:translate(-50%,-50%);pointer-events:none;border-radius:50%;border:3px solid #ffd76a;box-shadow:0 0 10px #ffb400,inset 0 0 8px #ffb40088;animation:siteflash 1s ease-in-out infinite}

@@ -1,4 +1,4 @@
-"""Cut the six frontier buildings (Tim 2026-11-06) out of assets/environment/frontier_buildings1.png.
+"""Cut the six frontier buildings (2026-11-06) out of assets/environment/frontier_buildings1.png.
 
     python tools/add_frontier_building_art.py
 

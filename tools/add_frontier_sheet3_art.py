@@ -1,4 +1,4 @@
-"""Cut the third frontier building sheet (Tim 2026-11-07) into game/art/buildings.
+"""Cut the third frontier building sheet (2026-11-07) into game/art/buildings.
 
     python tools/add_frontier_sheet3_art.py [--preview out.png]
 

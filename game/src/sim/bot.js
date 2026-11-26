@@ -6,7 +6,7 @@ import { charmProtected } from './charm_rules.js';
 // Strategic goals balance property value/travel, hiring, raid savings and camp income.
 // Defense and recovery preempt routine work; stale and unreachable goals are reconsidered.
 // ai_support supplies fog-safe camp observations and navigation on streets and in rooms.
-// Knobs per difficulty: data/bots.json (Tim 2026-10-19: easy for now, built for all three).
+// Knobs per difficulty: data/bots.json (2026-10-19: easy for now, built for all three).
 // tick() returns this tick's commands for game.step.
 import { createAISupport } from './ai_support.js';
 import { isShinobiHQ } from './hq_raids.js';
@@ -37,13 +37,13 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const ai = createAISupport(game, clan, hero, B);
   const deploymentAI = createDeploymentAI(game, { clan, hero });
   const expedition = createBotExpedition(game, { clan, hero, ai });   // E6: founding its frontier town (campaign only)
-  // how often its crew finish off a downed enemy on their own when it is safe (game.js botExecute), per difficulty (Tim 2026-10-20)
+  // how often its crew finish off a downed enemy on their own when it is safe (game.js botExecute), per difficulty (2026-10-20)
   if (B.aggression !== undefined && state.clans[clan]) state.clans[clan].aggression = B.aggression;
   if (B.hideoutGuards !== undefined && state.clans[clan]) state.clans[clan].hideoutGuards = B.hideoutGuards;
   const U = game.settings.units.rules, reach = (U.buyReach ?? 2.5) - 0.6;
   const RD = game.businesses.raidRules;
   let goal = null, nextThink = 0, nextReact = 0, last = null, still = 0, raidPlan = false;
-  const downs = [];   // rival bosses cutting its crew down: { by, tick } (revenge, Tim 2026-10-19)
+  const downs = [];   // rival bosses cutting its crew down: { by, tick } (revenge, 2026-10-19)
   const seen = {};   // memory: business id -> { defenders, tick } (what it last saw there)
   let r = seed;
   const rnd = () => ((r = (r * 16807) % 2147483647) / 2147483647);
@@ -65,10 +65,10 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
   const priceOf = b => game.businesses.rules[b.kind]?.price;
   const raidTarget = b => !b.hideout || (isShinobiHQ(state, b) && !(state.hqRaids?.[b.id]?.protectedUntil > state.tick));
   const order = (units, kind, extra = {}) => units.length ? [{ id: hero, type: 'order', units: units.map(u => u.id), kind, ...extra }] : [];
-  // hiring mix (Tim 2026-11-10): the boss cycles the clan's real units like the city captain (sim/hire_mix.js);
+  // hiring mix (2026-11-10): the boss cycles the clan's real units like the city captain (sim/hire_mix.js);
   // thugs only while the treasury cannot cover the wanted unit
   const hireType = () => bossHire(game, clan, game.lieutenant?.rules?.hireBasic) || B.hireType;
-  // a Shinobi clan ahead of it on the public Standings draws raids on its HQ (Tim 2026-11-11: their Renown shows how
+  // a Shinobi clan ahead of it on the public Standings draws raids on its HQ (2026-11-11: their Renown shows how
   // fat the longhouse is; the bot never reads their treasury). ahead(b) = how far ahead, for their HQ only.
   const ahead = b => { if (!isShinobiHQ(state, b)) return 0; const t = game.territory?.standings?.() || [], s = id => t.find(r => r.clan === id)?.score || 0; return Math.max(0, s(b.owner) - s(clan)); };
   // with a raiding crew and no War Lantern it saves the lantern money (it spent everything on crew and never raided)
@@ -81,7 +81,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     // One opening recruit is enough to earn the first property. Later keep an
     // escort and garrisons, with six available once raiding is the next expansion.
     const open = biz().some(b => (!ai.known(b) || !b.owner) && priceOf(b));
-    // Once it owns property it fills fillShare of its cap (Tim 2026-10-28: easy 0.8, medium 0.9, hard 1).
+    // Once it owns property it fills fillShare of its cap (2026-10-28: easy 0.8, medium 0.9, hard 1).
     // With no property and nothing left to buy it builds a raiding crew to win one back (phase 6: it used to stop at 1 for good).
     const desired = owned ? Math.max(Math.ceil(game.clans.crewCap(clan) * (B.fillShare ?? 1)), open ? 0 : B.raidMinCrew) : open ? 1 : B.raidMinCrew;
     return count < desired && crewRoom() && price !== null && myClan().ryo - price >= (savingForHQ() ? RD.lanternPrice + B.raidReserve : count ? B.reserve : 0) && myClan().queue.length < (U.maxQueue ?? 5);
@@ -113,9 +113,9 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     // bribe the police at Wanted
     const box = game.doors.find(d => d.menu === 'police_box');
     if (box && !ai.blocked('bribe:') && c.heat >= B.bribeAtHeat && c.ryo >= (game.police?.bribeCost(clan) ?? Infinity)) return { kind: 'bribe' };
-    // fetch its downed crew from the clinic once they have recovered (cheapest then; Tim 2026-10-19)
+    // fetch its downed crew from the clinic once they have recovered (cheapest then; 2026-10-19)
     if (readyPatient(c) >= 0 && !ai.blocked('revive:')) return { kind: 'revive' };
-    // bail its cheapest prisoner out of the police HQ (Tim 2026-11-11: a rival's arrested crew sit in jail like yours)
+    // bail its cheapest prisoner out of the police HQ (2026-11-11: a rival's arrested crew sit in jail like yours)
     if (cheapestPrisoner(c) >= 0 && !ai.blocked('bail:')) return { kind: 'bail' };
     const income = biz().filter(b => b.owner === clan && !b.hideout).reduce((n, b) => n + (game.businesses.rules[b.kind]?.payout || 0), 0);
     if (expedition?.saving()) return null;   // E6: saving up for permit, settlers and founding
@@ -143,7 +143,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     const lead = game.leader?.leader(), leadFirst = (a, b) => (b.owner === lead) - (a.owner === lead);
     // their HQ goes first and the raid is likelier the further a Shinobi clan is ahead (ahead(), above)
     const targets = biz().filter(b => ai.known(b) && rivalClan(b.owner) && raidTarget(b) && b.room && !state.attacks?.[b.id] && !state.raidsTonight?.[clan]?.includes(b.owner) && !ai.blocked(`raid:${b.id}`)
-      && (game.lieutenant?.raidable?.(clan, b.owner) ?? true)).sort((a, b) => ahead(b) - ahead(a) || leadFirst(a, b));   // an absent boss is raided less (Tim 2026-11-06)
+      && (game.lieutenant?.raidable?.(clan, b.owner) ?? true)).sort((a, b) => ahead(b) - ahead(a) || leadFirst(a, b));   // an absent boss is raided less (2026-11-06)
     const hqLead = Math.max(0, ...targets.map(ahead));
     const able = targets.length && crew().length >= B.raidMinCrew && ((c.lanterns || 0) > 0 || c.ryo >= RD.lanternPrice + B.raidReserve);
     if (!able) raidPlan = false;
@@ -261,7 +261,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
           goal.sent = a.phase;
         } else if (goal.sent !== a.phase) goal.sent = false;   // the doors opened: send them in
         if (a.phase === 'hold') { if (walk(out, b.ring[0], b.ring[1], 0.8)) out.push({ id: hero, type: 'use', units: [] }); return false; }
-        // hit while knocking it down (Tim 2026-10-20): fight back first, the lantern again once whoever
+        // hit while knocking it down (2026-10-20): fight back first, the lantern again once whoever
         // hit him is down or has stopped hitting for a few seconds (no more standing there re-channelling)
         const by = h.hitBy && state.tick - h.hitBy.tick < secs(5) && state.entities[h.hitBy.id];
         if (by && standing(by) && by.place === h.place && rivalClan(by.owner)) { out.push({ id: hero, type: 'attack', target: by.id }); return false; }
@@ -308,7 +308,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
       if (!a || a.clan !== clan || a.phase === 'over') return true;        // won, lost or given up
       const open = raid ? a.phase === 'hold' : true;
       if (!open) {
-        // someone is knocking the War Lantern down (Tim 2026-11-10): the boss and his crew go for him at once
+        // someone is knocking the War Lantern down (2026-11-10): the boss and his crew go for him at once
         const k = a.knock && state.entities[a.knock.by];
         if (standing(k) && k.place === 'street') {
           if (h.place === 'street') out.push({ id: hero, type: 'attack', target: k.id });
@@ -354,7 +354,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
     }
     const fighters = mine.filter(u => u.order?.kind !== 'heal' && u.order?.kind !== 'enter');
     const fighting = foes.filter(e => close(e, 6));
-    // focus fire (hard) or go for the rival boss (hard). Revenge, any level (Tim 2026-10-19): a rival
+    // focus fire (hard) or go for the rival boss (hard). Revenge, any level (2026-10-19): a rival
     // boss who cuts down revengeDowns of its crew near its own boss within revengeSeconds gets everyone on him
     const by = h.hitBy && state.tick - h.hitBy.tick < secs(5) && state.entities[h.hitBy.id];
     const angry = (standing(by) && rivalClan(by.owner) && sees(by) && by.place === h.place && dist(h, by) < 6 ? by : null)
@@ -412,7 +412,7 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
       if (t === h && a?.type === 'hero' && rivalClan(a.owner)) for (let k = 0; k < B.revengeDowns; k++) downs.push({ by: a.id, tick: state.tick });
     }
     while (downs.length && state.tick - downs[0].tick > secs(B.revengeSeconds)) downs.shift();
-    // a thief seen in its hideout: medium/hard send a couple of crew home (Tim 2026-10-20)
+    // a thief seen in its hideout: medium/hard send a couple of crew home (2026-10-20)
     for (const n of state.news || []) if (n.kind === 'stealAlert' && n.clan === clan && B.defendHome) {
       const b = state.businesses[n.business], sent = crew().filter(u => u.place !== b?.room && !u.downed && !u.dead).slice(0, B.defendHome === true ? 2 : B.defendHome);
       if (b && sent.length) out.push(...order(sent, 'enter', { business: b.id }));
@@ -423,9 +423,9 @@ export function createBot(game, { clan, hero, rules = {}, seed = 4242 }) {
       out.push({ id: hero, type: 'move', right: 0, down: 0 });
       return out;
     }
-    // badly hurt: run home to the hideout and rest there (its crew stay and cover), Tim 2026-10-19
+    // badly hurt: run home to the hideout and rest there (its crew stay and cover), 2026-10-19
     const hq = home();
-    // medium/hard never run off in the middle of their own raid; easy still does (Tim 2026-10-19)
+    // medium/hard never run off in the middle of their own raid; easy still does (2026-10-19)
     const raiding = !B.fleeInRaid && (goal?.kind === 'raid' || Object.values(state.attacks || {}).some(a => a.mode === 'raid' && a.clan === clan));
     const tired = goal?.kind === 'hunt' && h.hp < h.maxHp * B.huntRetreatHp;
     if (hq && B.fleeHp > 0 && !raiding && (h.hp < h.maxHp * B.fleeHp || tired) && goal?.kind !== 'flee' && h.place !== hq.room) {

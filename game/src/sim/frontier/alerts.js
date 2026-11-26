@@ -9,7 +9,7 @@
 import { isFull } from './storage.js';
 import { residents } from './people.js';
 import { upgradeCheck, nextTier } from './tiers.js';
-// Tim 2026-11-06: how badly each town needs you, so the all-towns window (Y) can list the worst first
+// 2026-11-06: how badly each town needs you, so the all-towns window (Y) can list the worst first
 // and a pile of alerts from many towns folds into one line. Pure: reads the town, its roads and its
 // alert latches. Weights live in frontier.json alerts.need.
 export const NEED_LEVELS = [['urgent', 'Urgent'], ['high', 'High'], ['medium', 'Medium'], ['low', 'Low'], ['ok', 'OK']];
@@ -69,12 +69,12 @@ export function createAlerts({ state, data }) {
       // (a short gap before the next timber cart came every cooldown and read as a bug)
       st.milRun = s.militaryShort ? (st.milRun || 0) + 1 : 0;
       cond('militaryUpkeep', st.milRun >= (A.militaryShortTicks ?? 1));
-      // Tim 2026-11-22: a work camp with more workers on its spots than they keep busy (workers.js econTick: s.tiredCamps)
+      // 2026-11-22: a work camp with more workers on its spots than they keep busy (workers.js econTick: s.tiredCamps)
       const tired = s.tiredCamps?.[0];
       if (tired && !st.on.campTired) { const label = data.buildings?.[tired.type]?.name || tired.type.replace(/_/g, ' '); say('campTired', `${s.name} ${label.toLowerCase()}: ${tired.extra} worker${tired.extra > 1 ? 's' : ''} over the max`); }
       st.on.campTired = !!tired;
       if (s.tierUpAt === f.econTick) say('tier');   // B3
-      // Tim 2026-11-05: a repeating reminder while the hall upgrade is affordable (the player starts it)
+      // 2026-11-05: a repeating reminder while the hall upgrade is affordable (the player starts it)
       if (data.tiers?.list && upgradeCheck(s, data, state).ok) {
         if (st.upAt === undefined || f.econTick - st.upAt >= (A.upgradeEveryEcon ?? 120)) {
           st.upAt = f.econTick;

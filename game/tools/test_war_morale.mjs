@@ -1,4 +1,4 @@
-// War checkpoint 8a-1 (Tim 2026-11-14): the morale bar of each side of a war (sim/frontier/war_morale.js).
+// War checkpoint 8a-1 (2026-11-14): the morale bar of each side of a war (sim/frontier/war_morale.js).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';

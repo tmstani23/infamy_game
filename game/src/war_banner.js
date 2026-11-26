@@ -3,7 +3,7 @@
 // Pack for war; inside a rival town's war circle it plants the war camp banner (placement ghost with
 // the banner band drawn on the ground); anywhere else it is greyed with the reason on hover.
 // Also the red war coin above the ryo coin while a pack is carried, and the War declared splash.
-// No special characters in game text (Tim 2026-11-10); long text lives in hover titles.
+// No special characters in game text (2026-11-10); long text lives in hover titles.
 import { modeRules } from './sim/modes/index.js';
 import { campWorkerCap } from './sim/frontier/camp_worker_cap.js';
 const FLAG = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M5 2v20" stroke="#3a2614" stroke-width="2.4"/><path d="M5 2v20" stroke="#c9a46a" stroke-width="1.2"/>
@@ -82,7 +82,7 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     const v = w.packView(h);
     if (v.ok) return { kind: 'pack', view: v };
     if (h.place === 'world') {
-      const own = ownCamp(); if (own) return { kind: 'planted', war: own };   // Tim 2026-11-12: your banner already stands here
+      const own = ownCamp(); if (own) return { kind: 'planted', war: own };   // 2026-11-12: your banner already stands here
       const t = rivalTownNear(h); if (t) return { kind: 'plant', town: t };
     }
     return { kind: 'off', why: 'Pack for war in the city or one of your towns. Plant the banner near a rival town (inside its war circle).' };
@@ -134,7 +134,7 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
     want = { ryo: v.pack?.ryo || 0, timber: v.pack?.timber || 0, stone: v.pack?.stone || 0 };
     root.hidden = false; $('.why').textContent = '';
     const img = $('aside img'), model = hero()?.model;
-    // the hero's sharp concept cut-out (menu_shell msConcept, Tim 2026-11-10: the sprite crop was blurry), else the sprite portrait
+    // the hero's sharp concept cut-out (menu_shell msConcept, 2026-11-10: the sprite crop was blurry), else the sprite portrait
     const sprite = () => import('./portraits.js').then(({ portrait }) => { const u = portrait(catalog, model, () => { img.src = portrait(catalog, model) || ''; }); if (u) img.src = u; }).catch(() => {});
     import('./menu_shell.js').then(({ msConcept }) => { const u = msConcept?.(model); if (u) { img.onerror = () => { img.onerror = null; sprite(); }; img.src = u; } else sprite(); }).catch(sprite);
     fill();
@@ -273,14 +273,14 @@ export function createWarBanner({ button, game, heroId, view, catalog, send, blo
       if (dsig !== coinSig) {
         coinSig = dsig; coin.hidden = false;
         const tn = game.state.frontier.settlements?.[def.town]?.name || 'your town';
-        coin.innerHTML = `<div><b>Defend</b><small>TOWN WAR</small>${tn}</div>`;   // ryo shows on the money badge in the war circle (Tim 2026-11-24: no second war chest number)
+        coin.innerHTML = `<div><b>Defend</b><small>TOWN WAR</small>${tn}</div>`;   // ryo shows on the money badge in the war circle (2026-11-24: no second war chest number)
         coin.title = `War chest of ${tn}: ${chest} ryo to train defenders. Put money in from the town coffers at the town hall, or send ryo by train from the Clan treasury and your other towns (War chest tab). What is left goes back to the coffers when the war ends. Click to open the town war window.`;
       }
     } else if (!pack && camp) {
       if (csig !== coinSig) {
         coinSig = csig; coin.hidden = false;
         const k = camp.camp, n = k.workers.length, tr = (k.workerTraining || []).length;
-        coin.innerHTML = `<div><b>Camp</b><small>WAR CAMP</small>${n} workers</div>`;   // the camp button; its ryo is on the money badge (Tim 2026-11-24)
+        coin.innerHTML = `<div><b>Camp</b><small>WAR CAMP</small>${n} workers</div>`;   // the camp button; its ryo is on the money badge (2026-11-24)
         coin.title = `Your war camp: ${Math.floor(k.chest)} ryo in the war chest, ${Math.floor(k.stock.timber)} timber and ${Math.floor(k.stock.stone)} stone in the camp stores, ${n} workers${tr ? ` (${tr} in training)` : ''}. With a linked camp station, ryo, timber and stone come in by train (War chest tab and station). Camp workers gather timber and stone anywhere in the war circle outside the town ring and drop it at the camp hall. A camp holds at most ${campWorkerCap(k, { war: W() })} workers. Click to open the camp panel.`;
       }
     } else if (sig !== coinSig) {

@@ -1,6 +1,6 @@
-// Unstuck (phase 5 of docs/playtest_followup_plan.md, Tim 2026-10-29): a hero caught on the map stands
+// Unstuck (phase 5 of docs/playtest_followup_plan.md, 2026-10-29): a hero caught on the map stands
 // still for channelSeconds and comes out inside his own hideout (on the island: by his nearest town hall when
-// that is closer than the city gate, Tim 2026-11-07). Once per cooldownSeconds. A hit, moving,
+// that is closer than the city gate, 2026-11-07). Once per cooldownSeconds. A hit, moving,
 // attacking, a door or being downed cancels it (pressing again too). Not allowed within combatSeconds of
 // hitting or being hit, while his HQ is raided, or while he is in the room of his Sabotage/Steal job.
 // Every use is logged in state.stuckSpots (where it was used) so map snags can be fixed.

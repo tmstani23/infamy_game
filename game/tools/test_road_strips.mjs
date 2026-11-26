@@ -1,4 +1,4 @@
-// Built-in island roads as textured strips (src/road_strips.js, Tim 2026-11-21).
+// Built-in island roads as textured strips (src/road_strips.js, 2026-11-21).
 //   node game/tools/test_road_strips.mjs
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -16,7 +16,7 @@ assert.equal(roadLines(world, pc.paths?.list).length, world.corridors.length + (
 const lines = roadLines(world, pc.paths?.list, RS), NW = RS.network;
 assert.ok(NW, 'roads are joined and shaped (strips.network)');
 assert.strictEqual(roadLines(world, pc.paths?.list, RS), lines, 'the network is built once');
-// natural roads (Tim 2026-11-25): every piece belongs to exactly one joined road, fewer roads than pieces
+// natural roads (2026-11-25): every piece belongs to exactly one joined road, fewer roads than pieces
 const pieces = lines.flatMap(l => l.id.split('+'));
 assert.equal(new Set(pieces).size, pieces.length, 'no piece is drawn twice');
 assert.equal(pieces.length, world.corridors.length + (pc.paths?.list.length || 0), 'every corridor and path is drawn');
@@ -36,7 +36,7 @@ for (const l of lines.filter((_, i) => i % 5 === 0)) {
     assert.ok(cos > 0.5, `road ${l.id} has no sharp kink`);
   }
 }
-// roads onto bridges and fords (Tim 2026-11-26): every crossing a road runs through gets that road dead straight
+// roads onto bridges and fords (2026-11-26): every crossing a road runs through gets that road dead straight
 // across it, square to the flow, over the water on both sides
 {
   const { riverDirection } = await import('../src/world_features.js');

@@ -158,7 +158,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
     }
     return true;
   }
-  // Tim 2026-11-25: a shot from off the walk grid (a ship's deck Gatling, out on the water) is stopped only by town and
+  // 2026-11-25: a shot from off the walk grid (a ship's deck Gatling, out on the water) is stopped only by town and
   // camp blockers (palisades, walls, buildings) on its line, not by the water it starts on. skip: the first stretch from
   // the shooter (its own dock or deck) that does not count.
   function wallLine(ax, az, bx, bz, skip = 0) {
@@ -519,7 +519,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
       // centre can clip a blocked neighbour when started at an arbitrary fractional point.
       const ac=centre(...start);
       const finish=iterator=>{let next;do{next=iterator.next();}while(!next.done);return next.value;};
-      // Lag fix (Tim 2026-11-08): a fine search that cannot get round an obstacle used to try the full
+      // Lag fix (2026-11-08): a fine search that cannot get round an obstacle used to try the full
       // maxSearchSteps before falling back to the island route (~200 ms). Worker routes first try only
       // workerSearchSteps; a leg or route that still fails then gets the full search, as before.
       const full=fn=>{const saved=searchSteps;searchSteps=null;try{return fn();}finally{searchSteps=saved;}};

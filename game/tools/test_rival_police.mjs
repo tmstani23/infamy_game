@@ -1,4 +1,4 @@
-// Tim 2026-11-11: rival clans handle the police like a player. The Shinobi rival bribes at Wanted (the Yakuza and
+// 2026-11-11: rival clans handle the police like a player. The Shinobi rival bribes at Wanted (the Yakuza and
 // Kuroda rivals already did), a rival's arrested crew go to jail and its boss bails them out, and a rival boss
 // never swings back at a patrol officer.
 import assert from 'node:assert/strict';

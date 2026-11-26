@@ -1,7 +1,7 @@
 {
   "version": 2,
   "date": "2026-11-03",
-  "status": "Tim approved the v2 illustration look and selected Map first (2026-11-03). Runtime atlas installed; Tim's full overlay/alignment playtest remains pending.",
+  "status": "approved the v2 illustration look and selected Map first (2026-11-03). Runtime atlas installed; the full overlay/alignment playtest remains pending.",
   "tool": "Built-in image_gen edit",
   "file": "atlas_illustration_v2.png",
   "actualPixels": [
@@ -48,5 +48,5 @@
   "runtimeChanges": true,
   "runtimeImage": "game/art/maps/world_atlas_v2.png",
   "runtimeRegistration": "game/data/world_atlas.json",
-  "next": "Tim checks runtime artwork/overlay alignment, layers/key, exact biome hover, discovery, pins, pan/zoom and City tab."
+  "next": "checks runtime artwork/overlay alignment, layers/key, exact biome hover, discovery, pins, pan/zoom and City tab."
 }

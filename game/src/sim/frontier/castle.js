@@ -1,4 +1,4 @@
-// Castles (Z4a, Tim 2026-11-19): a clan's castle is a settlement stamped onto the normal town grid from a blueprint
+// Castles (Z4a, 2026-11-19): a clan's castle is a settlement stamped onto the normal town grid from a blueprint
 // (data/castle_default.json), so walls, gates, buildings, garrisons and the war rules are the town ones.
 // grid.level: one char a cell, the terrace level ('.' outside, 0 yard, 1 inner, 2 keep) for the drawing; grid.slope marks the
 // land bridge ramps (the side each rises toward), whose open sides are fenced off (town_grid.js) so the only way on is an end. Two extra cell kinds in grid.use: 'm' moat and 'k' cliff. Both block everyone (town_grid.js cellBoxesOf) and

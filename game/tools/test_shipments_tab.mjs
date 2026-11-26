@@ -36,7 +36,7 @@ assert.ok(!/overflow|scroll/.test(h), 'no scrolling');
 assert.match(h, /class="shres low"/, 'an empty town lights up its low rows');
 assert.match(h, /class="shmeter"/); assert.match(h, /~\d+ ryo/, 'cost chip'); assert.match(h, /Order cap/);
 
-// type the amount, Order opens the slip (Tim 2026-11-25), nothing is sent until Send order
+// type the amount, Order opens the slip (2026-11-25), nothing is sent until Send order
 assert.ok(tab.input({ id: 'amt:timber' }, '50'));
 press('open:timber');
 assert.equal(open().length, 0, 'Order only opens the slip');
@@ -71,7 +71,7 @@ assert.match(tab.html(B), /data-id="keep:food"/);
 press('autobuy'); assert.equal(B.autoBuy, false, 'auto-buy off');
 assert.ok(tab.input({ id: 'keep:food' }, '2500', B)); assert.equal(B.keep.food, 2500, 'typed keep'); assert.ok(tab.input({ id: 'keep:goods' }, '2000', B)); assert.equal(B.marketKeep, 2000, 'typed goods keep'); assert.ok(tab.input({ id: 'bud' }, '900', B)); assert.equal(B.shipBudget, 900, 'typed budget');
 
-// Ledger tab (Tim 2026-11-23: replaces the Open tab): your own orders can be cancelled there
+// Ledger tab (2026-11-23: replaces the Open tab): your own orders can be cancelled there
 press('sub:ledger');
 assert.match(tab.html(B), new RegExp(`data-id="lg~cancel:${o.id}"`)); assert.match(tab.html(B), /YOURS/);
 press('lg~cancel:' + o.id);

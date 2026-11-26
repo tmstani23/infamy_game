@@ -1,4 +1,4 @@
-// Tim 2026-11-25: a stockade holds garrison.capacity but only garrison.firingSlots of the ranged troops inside shoot;
+// 2026-11-25: a stockade holds garrison.capacity but only garrison.firingSlots of the ranged troops inside shoot;
 // the hero on his horse can go in (he gets off).   node game/tools/test_stockade_slots.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -49,7 +49,7 @@ const foe = troop('grunt', st.x + 8, st.z, rival); foe.hp = foe.maxHp = 500000; 
 const shooters = new Set(); for (let i = 0; i < 200; i++) { foe.x = st.x + 8; foe.z = st.z; foe.hp = 500000; g.step([]); for (const p of g.state.projectiles || []) if (p.garrison && p.t === foe.id) shooters.add(p.a); }
 assert.equal(shooters.size, R.firingSlots, `only ${R.firingSlots} shoot (saw ${shooters.size})`);
 cmd({ action: 'garrison', mode: 'leave', town: 'myTown', building: 'myTown:fort' });
-// the hero on horseback goes in too, off his horse (Tim 2026-11-25)
+// the hero on horseback goes in too, off his horse (2026-11-25)
 foe.dead = true;
 const horse = Object.values(g.state.entities).find(e => e.type === 'horse') || (() => { const id = 'testHorse'; g.state.entities[id] = { id, type: 'horse', model: 'horse', x: hero.x, z: hero.z, place: 'world', hp: 100, maxHp: 100 }; return g.state.entities[id]; })();
 Object.assign(hero, { x: st.x + 60, z: st.z, mounted: true, ride: { kind: 'horse', horse: horse.id } }); horse.rider = hero.id;

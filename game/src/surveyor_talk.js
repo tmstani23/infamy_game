@@ -1,8 +1,8 @@
-// The old surveyor outside the Land Office (Tim 2026-11-06 20:45). Space beside him: without a permit he says
+// The old surveyor outside the Land Office (2026-11-06 20:45). Space beside him: without a permit he says
 // to buy one; with a new permit "Show me on the map" sends { type: 'landOffice', action: 'survey' } (sim/frontier/
 // land_office.js survey: the nearest sites become known) and then walks you round them on the World map, one
 // stop at a time, with a short word on resources the first time. "Show me again" replays the last report.
-// Goals pass (Tim 2026-11-19): once after your first town (clan.warTalkDue, the "News of rival towns" goal) he talks
+// Goals pass (2026-11-19): once after your first town (clan.warTalkDue, the "News of rival towns" goal) he talks
 // about the rival towns and making war, a page at a time; the last page sends { type: 'landOffice', action: 'rivals' }
 // (sim/frontier/land_office.js rivalsTalk: a question mark area for each rival on your World map).
 // Reads the state and sends commands only. Wording on resources only states what the rules do today.
@@ -88,7 +88,7 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map, home 
   });
   function act(a) {
     const c = clan();
-    if (a === 'home' && needsHome(c) && homePick) { send({ id: heroId, type: 'landOffice', action: 'home', zone: homePick }); close(); return; }   // his report comes with it: done here (Tim 2026-11-20)
+    if (a === 'home' && needsHome(c) && homePick) { send({ id: heroId, type: 'landOffice', action: 'home', zone: homePick }); close(); return; }   // his report comes with it: done here (2026-11-20)
     else if (a === 'survey' && c?.surveyPending) { waitFor = (c.survey?.n || 0) + 1; send({ id: heroId, type: 'landOffice', action: 'survey' }); }
     else if (a === 'again') startTour();
     else if (a === 'wnext') page++;
@@ -112,7 +112,7 @@ export function createSurveyorTalk({ panel, card, game, heroId, send, map, home 
     if (open && !at()) open = false;
     panel.hidden = !open;
     if (!open) return;
-    // menu restyle (Tim 2026-11-10): the shared shell with his 3D still
+    // menu restyle (2026-11-10): the shared shell with his 3D still
     const aside = msAside({ art: msConcept('surveyor1') || '', label: 'Land Office', labelTip: 'He walks you round the sites a founding permit shows.' });
     const choosing = needsHome(c);
     if (choosing && !homePick) homePick = homeSites().find(s => s.free)?.zone || null;

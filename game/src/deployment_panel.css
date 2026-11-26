@@ -1,4 +1,4 @@
-/* Deployment menu, docked on the right of the open game map (Tim 2026-10-27) */
+/* Deployment menu, docked on the right of the open game map (2026-10-27) */
 #deploymentpanel { position: fixed; z-index: 32; right: 14px; top: 14px; bottom: 14px; width: min(370px, calc(100vw - 28px)); overflow: auto; box-sizing: border-box; padding: 12px 14px; background: rgba(10,12,16,.97); border: 1px solid #a3834d; border-radius: 10px; color: #e7dfce; box-shadow: 0 12px 40px #000a; font: 12.5px/1.35 system-ui, sans-serif; display: flex; flex-direction: column; gap: 8px; }
 #deploymentpanel[hidden] { display: none; }
 #deploymentpanel header { display: flex; align-items: center; justify-content: space-between; }
@@ -119,7 +119,7 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 #gamesettings { position:fixed; inset:0; z-index:70; display:grid; place-items:center; padding:20px; background:#05080cbf; color:#e9dfc8; font:14px system-ui; }
 #gamesettings[hidden] { display:none; }
 #gamesettings .settings-window { width:min(880px,calc(100vw - 64px)); padding:22px; background:#151c23; border:1px solid #8b7953; border-radius:8px; }
-/* Tim 2026-11-09: wider, two columns (Save and load | Video and Audio) so it is not so long */
+/* 2026-11-09: wider, two columns (Save and load | Video and Audio) so it is not so long */
 #gamesettings .settings-cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:0 36px; align-items:start; }
 #gamesettings header { display:flex; justify-content:space-between; align-items:center; }
 #gamesettings h2 { margin:0; font-size:22px; }
@@ -215,7 +215,7 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
   #deploymentpanel .sweep-preview,#deploymentpanel .shakedown-preview,#deploymentpanel .ambush-preview {font-size:12px;}
 }
 
-/* the crew section stays while Traveling crew is open: it used to hide, and once the travellers were gone the page stayed blank (Tim 2026-11-08) */
+/* the crew section stays while Traveling crew is open: it used to hide, and once the travellers were gone the page stayed blank (2026-11-08) */
 #deploymentpanel .active-transfers summary {font-size:14px;padding:5px;}
 
 #deploymentpanel .crew-focus-actions {display:flex;flex-direction:column;gap:5px;}
@@ -224,7 +224,7 @@ input,textarea,[contenteditable="true"] { user-select:text; -webkit-user-select:
 #partyframes .crew.grouped .mate {width:68px;min-width:68px;box-sizing:border-box;}
 #partyframes .crew.grouped .mate .name {max-width:64px;}
 #partyframes .crew.grouped .mate .crew-status {max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 9px/12px system-ui;color:#bdd5cc;}
-/* out on the island or watching the city (Tim 2026-11-08): orders are not available. The order tabs and controls are
+/* out on the island or watching the city (2026-11-08): orders are not available. The order tabs and controls are
    hidden and a status line shows instead; the group tabs, crew lists, Traveling crew, View crew and While I'm away stay */
 #deploymentpanel .away-note { margin: 0; padding: 6px 8px; border: 1px solid #a3834d; border-radius: 6px; background: rgba(163,131,77,.15); color: #f0d9a8; font-weight: 600; }
 #deploymentpanel.away :is(.show-duty, .show-rally, .show-reserves, .pane-duty, .pane-rally, .pane-reserves, .first-zone, .staffing-goal,

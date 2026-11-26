@@ -12,7 +12,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     const r=unit.projectile,hamstring=!!r.hamstring&&(e.hamstringReadyAt||0)<=state.tick&&!t.cop&&t.type!=='civilian'&&(autoOn(e)||!!castWanted(state,e));
     if(hamstring){e.hamstringReadyAt=state.tick+r.hamstring.cooldownTicks;delete e.castReq;}
     const duration=Math.max(2,Math.ceil(Math.hypot(t.x-e.x,t.z-e.z)/r.speed*20)),crit=rng()<stats.criticalChance(e);
-    const p={kind:r.kind,a:e.id,t:t.id,x:e.x,z:e.z,tx:t.x,tz:t.z,place:e.place,at:state.tick,until:state.tick+duration,damage:Math.round(stats.damage(e)*(crit?unit.critMultiplier||2:1)*(unit.siege?unit.unitShare??1:1)),crit,hamstring};   // a cannonball on a unit: unitShare of its damage (Tim 2026-11-14: half), buildings take it whole (frontier/structures.js)
+    const p={kind:r.kind,a:e.id,t:t.id,x:e.x,z:e.z,tx:t.x,tz:t.z,place:e.place,at:state.tick,until:state.tick+duration,damage:Math.round(stats.damage(e)*(crit?unit.critMultiplier||2:1)*(unit.siege?unit.unitShare??1:1)),crit,hamstring};   // a cannonball on a unit: unitShare of its damage (2026-11-14: half), buildings take it whole (frontier/structures.js)
     state.projectiles.push(p);state.casts.push({...p,kind:r.kind,flightTicks:duration});stealth.reveal(e,true);
     if(unit.siege)state.casts.push({kind:'cannonFire',a:e.id,x:e.x,z:e.z,place:e.place,dir:e.dir||0,brass:!!unit.brass});   // war cannon (7-2): the salute's flash and boom
   }
@@ -142,7 +142,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
   // Who this crew member should be fighting right now, if anyone
   function crewTarget(e) {
     const o = e.order || {};
-    // passive (Z): never picks a fight. On the island only a real Z is passive (Tim 2026-11-25): a stop the game itself
+    // passive (Z): never picks a fight. On the island only a real Z is passive (2026-11-25): a stop the game itself
     // gives (pulled back at the war circle edge, a ceasefire, off an omnibus, queued to board a ship) is a plain hold
     if (o.kind === 'stop' && (e.place !== 'world' || o.z || e.boardShip)) return null;
     if (e.holdFire || e.smokePassive) return null;        // smoke escort stays passive until an explicit combat order
@@ -186,13 +186,13 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
       const by=attacker(u);if(by)return by;
     }
     // crew of every clan, bots too, only pick fights on an attack-move, while stationed in a business, or
-    // inside a business being raided or attacked (Tim 2026-10-19/20). Otherwise they swing back at whoever
+    // inside a business being raided or attacked (2026-10-19/20). Otherwise they swing back at whoever
     // hit them, or at whoever hit their boss or a mate within BACKUP_RANGE. House guards keep auto-aggro
     const raidRoom = e.place !== 'street' && Object.values(state.attacks || {}).some(a => a.room === e.place && a.phase !== 'over');
-    // on the island (Tim 2026-11-13) a unit standing or following attacks any enemy that comes in range unless told Z (stop);
+    // on the island (2026-11-13) a unit standing or following attacks any enemy that comes in range unless told Z (stop);
     // only a move it is still walking (and heal, enter, loot) keeps it from turning off its way
     // (only against the other side of a war its clan is in: rival clans out on the island are not picked on sight)
-    // Tim 2026-11-25: within war.spot.range (not the 6 step AGGRO), and it keeps the chase out to war.spot.leash
+    // 2026-11-25: within war.spot.range (not the 6 step AGGRO), and it keeps the chase out to war.spot.leash
     const islandReady = e.place === 'world' && (!o.kind || o.kind === 'follow' || o.kind === 'stop' || (o.kind === 'move' && o.arrived));
     if (!e.guard && o.kind !== 'attackmove' && o.kind !== 'station' && !raidRoom && !islandReady) {
       // the first mate (in unit order) near enough who was hit lately by someone this unit may fight
@@ -209,7 +209,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     const f = fight[e.id];
     const old = f && state.entities[f.target];
     // e.aggro / e.leash: a unit's own, wider ranges (train guards, sim/frontier/rail_robbery.js); a train guard drops a
-    // target that went into hiding and takes the next one it can see (Tim 2026-11-21)
+    // target that went into hiding and takes the next one it can see (2026-11-21)
     // the wider spot range also for a post (station) and an attack-move out on the island
     const island = e.place === 'world' && !e.guard && (islandReady || o.kind === 'station' || o.kind === 'attackmove'), SPOT = options?.frontier?.war?.spot || {};
     const atWar = t => { const foe = t.owner || t.workerOwner; return Object.values(state.frontier?.wars?.list || {}).some(w => (w.attacker === e.owner && w.defender === foe) || (w.defender === e.owner && w.attacker === foe)); };
@@ -228,7 +228,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     if(!attackAllowed(e,t)){delete e.swing;if(fight[e.id])delete fight[e.id].target;return;}
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return; }
     const f = fight[e.id] ||= { cd: 0 };
-    // never chase into another place (Tim 2026-10-28: ambush ninja kept running into a building's wall after a target who went inside)
+    // never chase into another place (2026-10-28: ambush ninja kept running into a building's wall after a target who went inside)
     if (t.place !== e.place) { delete f.target; if (!e.swing) e.anim = 'idle'; return; }
     f.target = t.id; if (onAt === state.tick) putOn(e.id, t.id);
     if (e.swing) return;                                   // mid-swing: finish it (see swingStep)
@@ -281,7 +281,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return true; }
     const w = e.swing;
     if (!w) return false;
-    // a melee swing at a target that runs on (a fleeing deer, a mounted hero riding alongside; Tim 2026-11-26) keeps after it
+    // a melee swing at a target that runs on (a fleeing deer, a mounted hero riding alongside; 2026-11-26) keeps after it
     // through the wind-up, so the strike lands if the attacker keeps pace; before, he stood still and the target was out of reach
     if (w.chase && !unit.projectile && state.tick <= w.strike) {
       const t = state.entities[w.target];
@@ -289,7 +289,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     }
     if (state.tick === w.strike) {
       const t = state.entities[w.target];
-      // a chase swing that started in reach lands even if the target ran a step out during the wind-up (Tim 2026-11-26: "it should hit")
+      // a chase swing that started in reach lands even if the target ran a step out during the wind-up (2026-11-26: "it should hit")
       const slack = w.chase && !unit.projectile ? CHASE_SLACK : 0.6;
       if (t && attackAllowed(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + slack && (!unit.projectile||clearShot(e,t))) {
         if(unit.projectile){launch(e,t,unit);}
@@ -350,7 +350,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
 
   function hit(a, t, damage, crit = false, kind = null) {
     if(t.shopkeeper||t.animal||t.untouchable||charmProtected(a,t,state))return;   // town dogs can't be hit either (sim/civilians.js); nor a rail repair crew (train robbery R1)
-    if ((t.garrison || t.aboard || t.ship) && shelter(t, damage, a)) return;   // ships S4: a hit on a ship goes to its hull (sim/frontier/ships.js)   // inside a stockade, an omnibus or a rickshaw: it takes the hit (Tim 2026-11-06; vehicles fixed 2026-11-09)
+    if ((t.garrison || t.aboard || t.ship) && shelter(t, damage, a)) return;   // ships S4: a hit on a ship goes to its hull (sim/frontier/ships.js)   // inside a stockade, an omnibus or a rickshaw: it takes the hit (2026-11-06; vehicles fixed 2026-11-09)
     // Assassinate's explicit current-health rule stays exact inside a formation.
     { const amb = stealth.ambush?.(a, t); if (amb) damage = Math.round(damage * amb); }   // a kunoichi's first hit from hiding (war checkpoint 7-5)
     if (kind !== 'assassinate') damage = Math.round(damage * stats.damageTaken(t));
@@ -368,7 +368,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     // Red Lantern: heal part of the damage dealt
     const steal = stats.lifesteal(a);
     if (steal && !a.dead && a.maxHp) a.hp = Math.min(a.maxHp, a.hp + damage * steal);
-    // townsfolk out on the island raise no city heat: the city police stop at the gate (Tim 2026-11-08, heat climbed
+    // townsfolk out on the island raise no city heat: the city police stop at the gate (2026-11-08, heat climbed
     // to 1487 from frontier fights; frontier heat is a later phase)
     if (civ(t) && t.place !== 'world') addHeat(a.owner, heatFor('hit'), 'Assault');
     if (civ(t) && t.place !== 'world' && t.hp <= 0) addHeat(a.owner, heatFor('down'), 'Townsperson beaten down');
@@ -402,7 +402,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     // an officer knocked out is taken away (the HQ sends another)
     if (cop(t)) { t.dead = true; t.diedAt = state.tick; police.knockedOut(t); return; }
     // house guards (sim/businesses.js) die outright; the business sends a new one later
-    if (t.guard || t.type === 'settler' || t.warTroop || t.worker) { t.dead = true; t.diedAt = state.tick; return; }   // settlers who fall are gone for good (frontier E1); a frontier worker too, and he falls and lies there like the rest (Tim 2026-11-13)
+    if (t.guard || t.type === 'settler' || t.warTroop || t.worker) { t.dead = true; t.diedAt = state.tick; return; }   // settlers who fall are gone for good (frontier E1); a frontier worker too, and he falls and lies there like the rest (2026-11-13)
     // crew go down, not dead: an enemy can finish them with an execute (see executeStep)
     if (t.type !== 'hero') { t.downed = true; t.downedAt = state.tick; leader.downed(a, t); return; }
     // the police knock the hero down instead, and an officer arrests him (a channel only his crew can break)

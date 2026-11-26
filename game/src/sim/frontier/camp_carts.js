@@ -1,4 +1,4 @@
-// Camp storage and ox carts (Tim 2026-11-06, rich nodes CP5). Pure sim, integer ticks, no randomness.
+// Camp storage and ox carts (2026-11-06, rich nodes CP5). Pure sim, integer ticks, no randomness.
 // Work camps (workers.gatherBuildings) keep what workers drop off in b.store. Each camp has `free` carts on a relay
 // (cart k starts k x tripTicks / carts later, so one leaves as the next arrives); a cart arriving at the camp loads
 // `share` of each stored resource (at most `maxLoad` in total), drives to the town's nearest hall or storehouse at
@@ -6,7 +6,7 @@
 // workers walk to the hall or a storehouse instead. A 3rd cart can be bought at the camp (buyCart, cost from data).
 // Numbers: frontier.json workers.carts.
 // Moving carts show as an ox cart near the player's units (cartPoint; spawned by workers.js).
-// 7c-5 (Tim 2026-11-12): a cart can be recalled (orderCarts 'recall'): it finishes its delivery or turns round, drives
+// 7c-5 (2026-11-12): a cart can be recalled (orderCarts 'recall'): it finishes its delivery or turns round, drives
 // to the town and stays parked there (at: 'parked'), also during a war; 'send' sends parked carts back to their camp.
 // In a war on the town the attacker can destroy a cart on the road (workers.js: its unit at 0 health): it is a wreck
 // (at: 'wrecked', its load lost) and a new one stands at the camp after carts.replaceTicks.
@@ -36,7 +36,7 @@ export function stepCarts(s, data, change, pos, home) {
     const h = home(s, b); if (!h) continue;
     const oneWay = tripTicks(C, pos(s, b), h);
     b.cartTicks = oneWay;
-    // carts leave the camp at least a round trip / carts apart (Tim 2026-11-07: after an empty camp they all left
+    // carts leave the camp at least a round trip / carts apart (2026-11-07: after an empty camp they all left
     // together and drove on top of each other)
     if (b.cartGap > 0) b.cartGap--;
     const carts = ensureCarts(C, b, oneWay);

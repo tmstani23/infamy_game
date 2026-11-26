@@ -1,4 +1,4 @@
-// Frontier weather, purely visual (Tim 2026-11-20): which weather shows where the camera is.
+// Frontier weather, purely visual (2026-11-20): which weather shows where the camera is.
 // No game state: picked from the half-day (day or night of the clock day) and the biome under the
 // camera with a fixed hash, so every client shows the same weather and saves need nothing.
 // Numbers in data/weather.json; drawn by render/weather.js. Node tests: tools/test_weather.mjs.

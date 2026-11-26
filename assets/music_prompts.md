@@ -1,6 +1,6 @@
 # Music prompts
 
-Suno prompts for the game's background music (Tim, 2026-10-29). Set Suno to **Instrumental** and put `vocals, singing, lyrics` in Exclude styles. Make release tracks on a paid Suno plan (free-plan tracks are not licensed for commercial use).
+Suno prompts for the game's background music (2026-10-29). Set Suno to **Instrumental** and put `vocals, singing, lyrics` in Exclude styles. Make release tracks on a paid Suno plan (free-plan tracks are not licensed for commercial use).
 
 Runtime files go in `assets/music/` with plain snake_case names (no spaces or Japanese characters; keep the display title in the manifest). MP3 is preferred; WAV is also supported by the streamed music player. Keep source originals in `assets/sounds/new_sounds/`. The playlist is not scanned from the folder: menu tracks go in `INTRO_TRACKS` and gameplay-only tracks in `GAME_TRACKS` in `game/src/menu_music.js` (the in-game shuffle in `game/src/game_music.js` plays `GAME_TRACKS`, which includes the intro tracks). The rotation preserves both intro songs and the previous gameplay songs, and avoids adjacent repeats.
 
@@ -10,7 +10,7 @@ House style: traditional Japanese instruments (shamisen, shakuhachi, koto, taiko
 
 ## Main menu theme (used for the current tracks)
 
-`intro_rain_city.mp3` (雨の街の静寂), `intro_rain_night.mp3`. Partial prompt as Tim saved it:
+`intro_rain_city.mp3` (雨の街の静寂), `intro_rain_night.mp3`. Partial prompt as saved it:
 
 ```
 Instrumental Japanese crime-game main-menu theme, slow confident 75 BPM groove, dark atmospheric shamisen phrases carrying a memorable clear Japanese melodic hook, breathy shakuhachi responses, sparse koto plucks, restrained taiko accents blended with subtle trap hi-hats, warm sub-bass, dub echo, textured electronica, rain-soaked late-night street mood, lantern-lit tension and quiet swagger, Gradual entrance, spacious evolving layers, organic timbres against understated modern beat, seamless loop-ready ending, polished cinematic game soundtrack mix

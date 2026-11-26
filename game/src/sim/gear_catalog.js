@@ -77,21 +77,21 @@ const aboutOf=b=>Object.entries(b).map(([k,v])=>({normalDamage:`+${percent(v)} n
 for (const id of SHOP_ITEM_IDS) for (const rarity of ['common','green']) {
   const source=GEAR[id], scale=RARITIES[rarity].bonusScale, b=Object.fromEntries(Object.entries(source.bonuses).map(([k,v])=>[k,v*scale]));
   const modifiers=toModifiers(b), about=aboutOf(b);
-  // weapons (Tim 2026-11-01): common = edge glint, green = embers
+  // weapons (2026-11-01): common = edge glint, green = embers
   ITEMS[rarity==='green'?`${id}_green`:id]={...source, id, rarity, modifiers, about,
     name:(rarity==='green'?'Fine ':'')+source.name, sell:source.sell,
     visual:{...source.visual,...(source.slot==='weapon'?(rarity==='green'?{kind:'weaponEmbers',color:[1,.52,.18]}:{kind:'weaponGlint'}):{}),strength:RARITIES[rarity].visualStrength},glow:source.slot==='weapon'?source.visual.color:undefined};
 }
 
-// Frontier gear and castle heirlooms (wildlife W7, Tim 2026-11-24). No fixed numbers: every stat is worked out here
+// Frontier gear and castle heirlooms (wildlife W7, 2026-11-24). No fixed numbers: every stat is worked out here
 // at load from the gear above, so the ladder holds whatever the shop numbers become:
 //   shop item < city drop (Fine) < frontier gear < heirloom.
 // Frontier: for each stat the item gives, the best shop item or city drop with that stat (same slot first, else any
 // slot; a stat no shop item or drop gives, such as less incoming damage, starts from the starter gear) plus FRONTIER_PLUS
 // points (a flat stat such as maximum HP: plus that share). Heirloom: the best shop weapon for its stat plus HEIRLOOM_PLUS points.
-// Tim 2026-11-24 (hero frontier thread): raised from 2 and 5 so they are felt, in the city too.
+// 2026-11-24 (hero frontier thread): raised from 2 and 5 so they are felt, in the city too.
 export const FRONTIER_PLUS = 0.10, HEIRLOOM_PLUS = 0.25;
-// `fixed` keeps a drawback as it is (none now: Tim 2026-11-24 took the bear coat's slower running off). Wolves and bears drop them (sim/wild_animals.js
+// `fixed` keeps a drawback as it is (none now: 2026-11-24 took the bear coat's slower running off). Wolves and bears drop them (sim/wild_animals.js
 // killed, data/wildlife.json species gear); a castle's heirloom goes to whoever takes it (sim/item_services.js).
 export const FRONTIER_GEAR = {
   wolf_fur_cloak: { name: 'Wolf fur cloak', slot: 'armor', stats: ['maxHpFlat', 'movement'], sell: 90, icon: 'lightweight_wraps', visual: { kind: 'movementWisps', color: [.78,.8,.84] } },
@@ -99,7 +99,7 @@ export const FRONTIER_GEAR = {
   wolf_fang_charm: { name: 'Wolf fang charm', slot: 'accessory', stats: ['dodgeChanceFlat'], sell: 90, icon: 'travelers_charm', visual: { kind: 'fangDodge', color: [.72,.78,.86] } },
   bear_claw_charm: { name: 'Bear claw charm', slot: 'accessory', stats: ['normalDamage'], sell: 120, icon: 'focus_charm', visual: { kind: 'clawStrike', color: [.7,.4,.2] } },
 };
-// one per castle clan, by faction; never sold (a keepsake). Each swing leaves its own arc (render/gear_fx.js heirloomArc, Tim 2026-11-25).
+// one per castle clan, by faction; never sold (a keepsake). Each swing leaves its own arc (render/gear_fx.js heirloomArc, 2026-11-25).
 export const HEIRLOOMS = {
   yakuza: { name: 'Benikiri', about0: 'The Yakuza boss blade, taken with their castle.', stat: 'normalDamage', visual: { kind: 'heirloomArc', style: 'benikiri', color: [.62,.08,.08] } },
   kuroda: { name: 'Shimotsuki', about0: 'The Kuroda lord blade, taken with their castle.', stat: 'normalAttackRate', visual: { kind: 'heirloomArc', style: 'shimotsuki', color: [.6,.78,.96] } },
@@ -130,14 +130,14 @@ export const heirloomFor = clan => clan ? `heirloom_${HEIRLOOMS[clan.faction] ? 
       modifiers: toModifiers(b), about: `${aboutOf(b)}. ${h.about0}`, visual: { ...h.visual, strength: RARITIES.heirloom.visualStrength }, glow: h.visual.color };
   }
 }
-// Dropped bag items (sim/ground_items.js, Tim 2026-11-26): a bundle lies 15 minutes; Space within reach picks it up.
+// Dropped bag items (sim/ground_items.js, 2026-11-26): a bundle lies 15 minutes; Space within reach picks it up.
 export const GROUND_ITEMS = { lifeSeconds: 900, reach: 2.5 };
-// Frontier merchant (Tim 2026-11-26): a market stall beside the hall of each of your founded frontier towns (sim/item_services.js).
+// Frontier merchant (2026-11-26): a market stall beside the hall of each of your founded frontier towns (sim/item_services.js).
 // Sells the plain shop gear and bandages at blacksmith prices; buys bag items at buyShare of the shop price (Fine items: their
 // plain item's price), never less than the blacksmith pays (wolf and bear gear). Heirlooms are never sold.
 // spot: in town grid cells from the hall's middle, off the hall's front right wall; model: the stall keeper's look.
 export const FRONTIER_MERCHANT = { name: 'Merchant', spot: [2.2, 0.6], reach: 4.5, model: 'old_woman', buyShare: 0.5, stock: [...SHOP_ITEM_IDS, 'bandage'] };
-// Where the stall keeper stands (Tim 2026-11-26: never on a building): the middle of the free town grid cell (no building,
+// Where the stall keeper stands (2026-11-26: never on a building): the middle of the free town grid cell (no building,
 // road, wall, zone or building site, buildable ground) nearest the spot, on rings 2 to 4 round the hall; the market stall
 // stands 2.2 units behind him (town_props.js). Pure, so the sim and the drawing agree; it moves on if that cell is built on.
 export function merchantSpot(s, cellSize = 11) {

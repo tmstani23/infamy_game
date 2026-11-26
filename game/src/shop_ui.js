@@ -1,9 +1,9 @@
 import {ITEMS, SHOP_ITEM_IDS, CONSUMABLES, INVENTORY_SLOTS, FRONTIER_MERCHANT as FM, merchantPays} from './sim/gear_catalog.js';
 import {itemOf, itemArt, detailHtml} from './item_detail.js';
 
-// Blacksmith (Tim 2026-11-01): Buy / Sell tabs, even tiles, click to select (hover previews),
+// Blacksmith (2026-11-01): Buy / Sell tabs, even tiles, click to select (hover previews),
 // a detail pane with stats and the equipped effect, then a confirm button sends the command.
-// The same window serves the frontier merchant (Tim 2026-11-26): a stall by your town hall with the plain gear and
+// The same window serves the frontier merchant (2026-11-26): a stall by your town hall with the plain gear and
 // bandages, buying bag items at half the shop price (gear_catalog.js FRONTIER_MERCHANT). Which one opened stays set
 // while the window is open (mode).
 export function createShopUI({game,heroId,view,send,onOpen=()=>{},onClose=()=>{},hidden=()=>false}){

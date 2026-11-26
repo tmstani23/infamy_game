@@ -1,4 +1,4 @@
-// Work camp load (Tim 2026-11-22): the spots that count for a work camp, the workers on them and the camp's max.
+// Work camp load (2026-11-22): the spots that count for a work camp, the workers on them and the camp's max.
 // One rule for the sim (tired camps, Move extras), the camp card, the Workers view, the map marker and the governor:
 // - a spot's max is supportsWorkers, the fixed number the governor fills a spot to, whatever the walk (a max that
 //   shrank with a long walk called healthy far spots over, and the governor put back whoever Move extras took off);

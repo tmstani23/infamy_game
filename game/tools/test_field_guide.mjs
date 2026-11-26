@@ -1,4 +1,4 @@
-// Field guide (Tim 2026-11-25): every number on the page comes from the data, and every damage kind in the
+// Field guide (2026-11-25): every number on the page comes from the data, and every damage kind in the
 // tables has a named row. Run: node tools/test_field_guide.mjs
 import { readFileSync } from 'node:fs';
 import { fieldGuideData, fieldGuideHtml, KNOWN_KINDS } from '../src/field_guide.js';

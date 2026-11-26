@@ -1,12 +1,12 @@
-// The look of a hall being taken at the end of a war (war checkpoint 8a, Tim OK'd the mock 2026-11-15:
+// The look of a hall being taken at the end of a war (war checkpoint 8a, approved the mock 2026-11-15:
 // /mnt/project-files/war_build/cp8a/hall_channel_look_mock.jpg). Drawing only: reads the war records in the state.
 //  - Burn (and the defender taking a war camp hall): the HQ fire (render/hq_fire.js) grows on the ruin with the
-//    channel, base fires first, then the whole ruin; the biggest flames always sit round the base (Tim 2026-11-15).
+//    channel, base fires first, then the whole ruin; the biggest flames always sit round the base (2026-11-15).
 //  - Sack: mostly smoke with small base fires; after the sack they die down over afterSeconds.
 //  - Capture: the attacker's war banner, in his clan colour, tilts up from lying flat to upright on the ruin; it
 //    stays standing on a captured town's ruined hall until the hall is rebuilt.
 //  - A ring at the channelling hero's feet fills with the channel, so the other side sees whom to hit.
-// The capture moment (Tim 2026-11-25, mock /mnt/project-files/capture_moment/):
+// The capture moment (2026-11-25, mock /mnt/project-files/capture_moment/):
 //  - A ruined hall your hero can take now (its side's morale at 0, no channel on it) pulses slow pale gold: a soft gold
 //    edge round the ruin, its timbers lit a little and a faint gold light on the ground. setTakeable(fn) names them.
 //  - The capture banner is dyed in the victor's colour with his clan seal, at a bit over half the old size.
@@ -24,7 +24,7 @@ import { drawCrest } from './banners.js';
 const AFTER_SECONDS = 40;
 const OUTCOME_LOOK = { burn: 'burn', sack: 'sack', capture: 'capture' };
 const ease = t => t * t * (3 - 2 * t);
-const BANNER_SCALE = 0.95;   // was 1.6 (Tim 2026-11-25: about half)
+const BANNER_SCALE = 0.95;   // was 1.6 (2026-11-25: about half)
 const PULSE_SECONDS = 2.4, FLARE_TICKS = 70;
 const GOLD = new THREE.Color(1, 0.86, 0.52), GOLD_EDGE = 0xffe08c;
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;

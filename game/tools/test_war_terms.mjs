@@ -1,4 +1,4 @@
-// War checkpoint 8c (Tim 2026-11-09 and 2026-11-15): surrender and terms. The one-way surrender, the ceasefire,
+// War checkpoint 8c (2026-11-09 and 2026-11-15): surrender and terms. The one-way surrender, the ceasefire,
 // offers and answers, the ransom and who pays it, both endings for both sides, the estimate, bots answering and
 // surrendering, timeouts and save parity. (sim/frontier/war_terms.js, war_end.js finish, game.js warNeutral)
 import assert from 'node:assert/strict';
@@ -50,7 +50,7 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
 
 { // data
   const D = data('data/frontier.json').war;
-  assert.equal(D.cooldownDays, 3, 'Tim 2026-11-15: 3 days after any war');
+  assert.equal(D.cooldownDays, 3, '2026-11-15: 3 days after any war');
   assert.equal(D.surrender.cooldownDays, 3);
   assert.ok(D.surrender.offerSeconds === 60 && D.surrender.bot.lossAt >= 0.8 && D.surrender.bot.chance <= 0.1, 'a 60 s offer; bots surrender rarely');
 }
@@ -77,7 +77,7 @@ const dayTicks = s => Math.round((s.options.settings.dayNight.daySeconds + s.opt
   assert.equal(s.ST.damage(rival, hallSt, 50, 'melee'), false, 'no damage to buildings during the ceasefire');
   r = s.cmd({ action: 'warTakeCamp', war: 'w1' }); assert.equal(r.reason, 'A ceasefire is on: terms are on the table');
   r = s.cmd({ action: 'townTrain', war: 'w1', building: 'x', unit: 'grunt', count: 1 }); assert.equal(r.reason, 'A ceasefire is on: the war is ending');
-  // Tim 2026-11-18: nobody builds in the ceasefire: no camp placing, no town placing, a camp site does not grow
+  // 2026-11-18: nobody builds in the ceasefire: no camp placing, no town placing, a camp site does not grow
   { const NB = /nobody builds/;
     assert.match(s.war.campCheck('w1', 'barracks', { x: s.cx + 60, z: s.cz }).reason || '', NB, 'no camp placing');
     const P = createPlacement({ data: s.frontier, state: S, construction: {} });

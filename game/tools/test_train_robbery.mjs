@@ -44,7 +44,7 @@ const want = B.guards[faction].map(u => frontier.war.units[u]).map(u => typeof u
 assert.deepEqual(guards().map(e => e.type).sort(), want, `${faction} guard mix`);
 assert.ok(guards().every(e => e.owner === rival), 'guards are the owner\'s');
 
-// the guards go for a robber they can see, hidden or not at the wagon (lantern), and chase (Tim 2026-11-21: they were
+// the guards go for a robber they can see, hidden or not at the wagon (lantern), and chase (2026-11-21: they were
 // bound to the city as 'home' crew and never fought)
 { const w0 = g.frontier.rail.robbery.wagonAt(t, l), hp0 = hero.hp;
   Object.assign(hero, { x: w0.x + 3, z: w0.z, hp: 1e6, maxHp: 1e6 }); hero.order = { kind: 'stop' };
@@ -61,11 +61,11 @@ Object.assign(hero, { x: w.x + 1, z: w.z }); hero.order = { kind: 'stop' };
 assert.equal(g.frontier.rail.prompt(hero)?.mode, 'rob', 'Space robs at the wagon');
 cmd('rob'); assert.ok(hero.robbing, 'hold started');
 assert.ok(t.robbing && t.wagonSpot, 'wagon marked to flash');
-assert.equal(g.frontier.rail.prompt(hero), null, 'no Space prompt while the ROBBING bar runs (Tim 2026-11-21)');
+assert.equal(g.frontier.rail.prompt(hero), null, 'no Space prompt while the ROBBING bar runs (2026-11-21)');
 assert.match(S.clans[rival].notice?.text || '', /being robbed/i, 'owner told');
 // stepping off breaks it
 Object.assign(hero, { x: w.x + 20, z: w.z }); run(1); assert.ok(!hero.robbing && /broken/i.test(notice()), 'stepping off breaks it');
-// any damage breaks it (Tim 2026-11-21)
+// any damage breaks it (2026-11-21)
 Object.assign(hero, { x: w.x + 1, z: w.z }); cmd('rob'); assert.ok(hero.robbing, 'hold started again');
 run(1); hero.hitAt = S.tick; run(1); assert.ok(!hero.robbing && /hit/i.test(notice()), 'a hit breaks it');
 Object.assign(hero, { x: w.x + 1, z: w.z }); cmd('rob');
@@ -85,7 +85,7 @@ assert.ok(S.clans[hero.owner].lastDown && Math.abs(S.clans[hero.owner].lastDown.
 hero.downed = false; Object.assign(hero, { x: ground[0].x + 0.5, z: ground[0].z }); run(1);
 assert.ok(hero.chest && !Object.keys(F.rail.chests).length, 'picked back up');
 assert.ok(S.clans[hero.owner].lastDown, 'down mark stays while the hero never left it');
-{ const d = S.clans[hero.owner].lastDown, at = { x: hero.x, z: hero.z };   // Tim 2026-11-25: walk away and back clears it
+{ const d = S.clans[hero.owner].lastDown, at = { x: hero.x, z: hero.z };   // 2026-11-25: walk away and back clears it
   Object.assign(hero, { x: d.x + 30 }); run(1); assert.ok(S.clans[hero.owner].lastDown, 'still marked while away');
   Object.assign(hero, { x: d.x + 2, z: d.z }); run(1); assert.ok(!S.clans[hero.owner].lastDown, 'cleared on return');
   S.clans[hero.owner].lastDown = { x: d.x, z: d.z, at: S.tick - 13000 }; run(1); assert.ok(!S.clans[hero.owner].lastDown, 'cleared after a game day');
@@ -107,7 +107,7 @@ assert.ok(!hero.chest, 'chest cashed');
 { const c = (S.casts || []).find(x => x.kind === 'chestCashed'); assert.ok(c && c.tx === P.x && c.tz === P.z && c.loot.ryo > 0, 'the loot flies into the hall (cast)'); }
 assert.equal(Math.round(S.clans.player.ryo - ryo0), 200, 'ryo to the treasury');
 assert.equal(Math.round((P.stock.timber || 0) - tim0), 100, 'timber into the town');
-// at your war camp (Tim 2026-11-25): ryo into the war chest, and a chest gain for the badge (coins fly in from the camp)
+// at your war camp (2026-11-25): ryo into the war chest, and a chest gain for the badge (coins fly in from the camp)
 {
   const wx = P.x + 4000, wz = P.z;
   (F.wars ||= {}).list ||= {};

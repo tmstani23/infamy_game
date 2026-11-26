@@ -62,7 +62,7 @@ delete enemy.holdFire; mine.holdFire = true;
 { enemy.holdFire = true; const h = enemy.hp; run(400); assert.equal(enemy.hp, h, 'Z: no fire'); }
 // a ceasefire holds fire
 { delete mine.holdFire; rec.terms = { by: foe }; const h = enemy.hp; run(400); assert.equal(enemy.hp, h, 'ceasefire: no fire'); delete rec.terms; }
-// gun slots (Tim 2026-11-23): Broadside auto off holds it; an aimed click fires it at the enemy nearest the click
+// gun slots (2026-11-23): Broadside auto off holds it; an aimed click fires it at the enemy nearest the click
 { const { specialView } = await import('../src/sim/special_cast.js');
   delete mine.holdFire; enemy.holdFire = true; mine.gunAt = {};
   const special = c => g.step([{ id: hero.id, type: 'special', units: [mine.id], ...c }]);
@@ -74,14 +74,14 @@ delete enemy.holdFire; mine.holdFire = true;
   for (let i = 0; i < 60 && enemy.hp === h; i++) g.step([]); assert.ok(enemy.hp < h, 'the aimed volley lands');
   assert.ok(!mine.gunReq, 'the aim is used up');
   special({ ability: 'broadside', auto: true }); assert.ok(!mine.gunAuto, 'auto back on'); }
-// the deck Gatling aimed at a spot (Tim 2026-11-23, as the land Unload): it sweeps the spot even with nobody there
+// the deck Gatling aimed at a spot (2026-11-23, as the land Unload): it sweeps the spot even with nobody there
 { const special = c => g.step([{ id: hero.id, type: 'special', units: [mine.id], ...c }]); let shots = 0;
   delete mine.gat; special({ ability: 'deckgun', x: mine.x + 9, z: mine.z + 3 });
   for (let i = 0; i < 60; i++) { g.step([]); shots += (S.casts || []).filter(c => c.kind === 'gatlingShot' && c.a === mine.id && c.deck).length; }
   assert.ok(shots > 3, `the deck gun fires at an empty spot (${shots})`); run(80); assert.ok(!mine.gat, 'the burst ends');
   special({ ability: 'deckgun', x: mine.x + 9, z: mine.z + 3 }); run(30); assert.ok(mine.gat, 'a second burst');
   const back = { x: mine.x, z: mine.z }; mine.x += 60; g.step([]); g.step([]); assert.ok(!mine.gat, 'out of range of its spot it winds down'); Object.assign(mine, back); }
-// aimed, an enemy building in the circle takes buildingShot a shot as melee (Tim 2026-11-23: light, about one grunt hitting it)
+// aimed, an enemy building in the circle takes buildingShot a shot as melee (2026-11-23: light, about one grunt hitting it)
 { const special = c => g.step([{ id: hero.id, type: 'special', units: [mine.id], ...c }]), T = g.frontier.structures, keep = { near: T.near, damage: T.damage }, hits = [];
   const spot = { x: mine.x + 20, z: mine.z + 4 }, st = { key: 'test:bld', x: spot.x + 2, z: spot.z, r: 3 };
   T.near = (clan, x, z, r) => clan === mine.owner && Math.hypot(x - st.x, z - st.z) <= r + st.r ? st : null;
@@ -90,13 +90,13 @@ delete enemy.holdFire; mine.holdFire = true;
   const R = options().units.types.gatling_crew.gatling;
   assert.ok(hits.length >= Math.floor(R.burstTicks / R.everyTicks) - 1 && hits.every(([k, a, kd]) => k === st.key && a === GU.deckGatling.buildingShot && kd === 'melee'), `a building in the circle takes buildingShot a shot (${hits.length})`);
   assert.ok(GU.deckGatling.range >= 24, 'deck Gatling reach 24'); }
-// aimed at an enemy ship: its hull takes the burst at the gatling share (one hull table, Tim 2026-11-23)
+// aimed at an enemy ship: its hull takes the burst at the gatling share (one hull table, 2026-11-23)
 { const special = c => g.step([{ id: hero.id, type: 'special', units: [mine.id], ...c }]), at = { x: enemy.x, z: enemy.z };
   Object.assign(enemy, { x: mine.x + 8, z: mine.z + 2 }); enemy.holdFire = true; const gunAt0 = mine.gunAt; mine.gunAt = { broadside: S.tick + 1e6 }; const h = enemy.hp;   // the Gatling alone
   special({ ability: 'deckgun', x: enemy.x, z: enemy.z }); run(140);
   const lost = h - enemy.hp; assert.ok(lost > 0 && lost <= 140 * H.gatling + 1, `a little hull damage (${lost})`);
   Object.assign(enemy, at); mine.gunAt = gunAt0; }
-// a right-click on an enemy (Tim 2026-11-24): in range the ship lies where it is, turns in place side on and fires;
+// a right-click on an enemy (2026-11-24): in range the ship lies where it is, turns in place side on and fires;
 // out of range it sails only until it is in range
 { enemy.hp = enemy.maxHp; const at = { x: mine.x, z: mine.z }, h0 = enemy.hp, gunAt0 = mine.gunAt; delete mine.gunAt; delete mine.gat; enemy.holdFire = true;
   g.step([{ id: hero.id, type: 'order', units: [mine.id], place: 'world', kind: 'attack', target: enemy.id }]);
@@ -145,7 +145,7 @@ if (near.length) {
 // --- a watchtower shoots a ship only with nobody else in range (rule in structures.js towers) ---
 const src = readFileSync(new URL('../src/sim/frontier/structures.js', import.meta.url), 'utf8');
 assert.ok(src.includes('ships S4: a ship only with nobody else in range'));
-// Tim 2026-11-25: the deck Gatling does not shoot through palisades, walls or buildings (areas wallLine), water does not stop it
+// 2026-11-25: the deck Gatling does not shoot through palisades, walls or buildings (areas wallLine), water does not stop it
 { const n = g.areas.nav, wl = n.wallLine;
   assert.equal(wl(hall.x - 12, hall.z, hall.x + 12, hall.z), false, 'a line through the camp hall is stopped');
   assert.equal(wl(hall.x - 12, hall.z, hall.x + 12, hall.z, 30), true, 'unless that stretch is skipped');

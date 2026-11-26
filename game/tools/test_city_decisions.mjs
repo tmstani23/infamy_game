@@ -1,5 +1,5 @@
 // City decisions at 2 Hz while no player is in the city (lag step 1, 2026-11-05).
-// Safety net: Tim's heavy save run twice from the same file. 'home' = the player hero put in the
+// Safety net: the heavy save run twice from the same file. 'home' = the player hero put in the
 // city (full-rate thinking, must never change); 'away' = as saved, hero out on the island.
 // 'away' runs with the lower rate switched off (must match the old behaviour); the 2 Hz run is timed
 // and checked for the away flag only (its results differ on purpose).

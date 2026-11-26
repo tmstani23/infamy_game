@@ -1,4 +1,4 @@
-// Stealth for the Shinobi clan (ninja build phase 3, Tim 2026-10-20): its units (the ninja leader
+// Stealth for the Shinobi clan (ninja build phase 3, 2026-10-20): its units (the ninja leader
 // and ninja crew) are hidden unless an enemy stands within detection range: darkRange in the dark,
 // litRange in lantern light or by day, indoorRange in a room, times runFactor while running; only
 // enemies facing it (viewAngle cone) count, except within closeRange, where facing doesn't matter.
@@ -31,9 +31,9 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
   const canHide = e => ninja(e) && !e.dead && !e.downed && !e.jailed;
   const suspicion = new Map();
   // who can spot a hidden unit: any armed unit not on its side (other clans, police, house guards, bandits)
-  // horses, vehicles and animals never spot a ninja (Tim 2026-11-21: loose horses showed a suspicion meter)
+  // horses, vehicles and animals never spot a ninja (2026-11-21: loose horses showed a suspicion meter)
   const spotter = (u, e) => u.owner !== e.owner && u.type !== 'civilian' && u.type !== 'horse' && !u.vehicle && !u.animal && !u.dead && !u.downed && !u.jailed && u.place === e.place;
-  // Frontier stealth (Tim 2026-11-09, built 2026-11-15; numbers in rules.stealth.frontier, placeholders): out on the island
+  // Frontier stealth (2026-11-09, built 2026-11-15; numbers in rules.stealth.frontier, placeholders): out on the island
   // a ninja is seen from dayRange by day; at night from darkRange, or litRange near any light (a town inside its ring, a war
   // camp, a bandit camp: islandLit); trees, bamboo and marsh (islandCover) shorten it by coverFactor. Riding reveals him.
   const FR = { dayRange: 8, darkRange: 2, litRange: 5, coverFactor: 0.5, ...(R.frontier || {}) };
@@ -46,7 +46,7 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
   }
   // hiddenAt: when it last went hidden (Assassinate needs a few seconds of it); seen = from scratch
   const veiled = e => canHide(e) && (e.buffs?.veil?.until ?? -1) > state.tick;
-  // in plain sight whatever the cover (Tim 2026-10-26): knocking down a War Lantern always; attacking
+  // in plain sight whatever the cover (2026-10-26): knocking down a War Lantern always; attacking
   // only matters inside its clan's Smoke Bomb (see tick), so cancelling the attack hides it again
   const knocking = e => Object.values(state.attacks || {}).some(a => a.knock?.by === e.id);
   const inOwnSmoke = e => !!state.smokes?.some(s => s.clan === e.owner && s.place === e.place && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r);
@@ -58,7 +58,7 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
     e.revealUntil = state.tick + secs(R.revealSeconds); e.hidden = false; e.hiddenAt = null;
   }
 
-  // ---- war stealth (war checkpoint 7-5, Tim 2026-11-12): the Shinobi kunoichi (units.json kunoichi.kunoichi) ----------
+  // ---- war stealth (war checkpoint 7-5, 2026-11-12): the Shinobi kunoichi (units.json kunoichi.kunoichi) ----------
   // On the island she is hidden until she acts: e.hidden as for city ninja (enemies neither see nor target her, her own
   // side sees her faded). Attacking or being hit shows her for revealTicks (reveal above). Vanish: shown and sent away
   // with a move order, she hides again at once, every vanishCooldownTicks. Ambush: her first hit from hiding does
@@ -97,7 +97,7 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
 
   function tick() {
     let lanternList = null;   // train guard lanterns, fetched once a tick when a ninja is out on the island
-    // a snuff in progress: done after snuffSeconds; walking on doesn't cancel it (Tim 2026-10-21:
+    // a snuff in progress: done after snuffSeconds; walking on doesn't cancel it (2026-10-21:
     // the puff went off while moving and the lantern stayed lit), only being knocked down
     for (const e of Object.values(state.entities)) {
       const s = e.snuffing;
@@ -106,7 +106,7 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
       if (state.tick >= s.until) {
         delete e.snuffing;
         const clan = state.clans[e.owner];
-        // the whole lantern area goes dark, not just the light nearest the click (Tim 2026-10-21): every
+        // the whole lantern area goes dark, not just the light nearest the click (2026-10-21): every
         // lantern within snuffArea of it, for one snuff
         const near = lights.filter(l => l.place===s.place&&(l.prop === s.prop || Math.hypot(l.x - s.lx, l.z - s.lz) <= R.snuffArea)).map(l => l.prop).filter(p => !state.lightsOut.includes(p));
         if (near.length) { state.lightsOut.push(...new Set(near)); clan.snuffs = (clan.snuffs || 0) + 1; state.news.push({ kind: 'snuffed', clan: clan.id, prop: s.prop }); }
@@ -118,12 +118,12 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
     const all = Object.values(state.entities);
     for (const e of all) {
       { const K = warRules(e); if (K) { warStep(e, K, all); continue; } }
-      // riding a horse reveals a ninja (Tim 2026-11-09)
+      // riding a horse reveals a ninja (2026-11-09)
       if (e.mounted && canHide(e)) { if (e.hidden) { e.hidden = false; e.hiddenAt = null; } delete e.stealthStatus; suspicion.delete(e.id); continue; }
-      // Smoke Bomb (Tim 2026-11-09): the ninja hero in his own smoke is veiled, and stays so smokeLinger s after he walks
+      // Smoke Bomb (2026-11-09): the ninja hero in his own smoke is veiled, and stays so smokeLinger s after he walks
       // out of it or until he attacks; while veiled Assassinate needs no hidden time (hero_abilities.js). City and island.
       if (e.type === 'hero' && canHide(e) && inOwnSmoke(e) && !exposed(e)) (e.buffs ||= {}).veil = { until: state.tick + secs(R.smokeLinger ?? 6) };
-      // inside a war circle only the kunoichi is hidden (Tim 2026-11-12), and the ninja hero while his smoke veils him
+      // inside a war circle only the kunoichi is hidden (2026-11-12), and the ninja hero while his smoke veils him
       if (e.place === 'world' && canHide(e) && inWarCircle(e.x, e.z)) {
         if (e.type === 'hero' && veiled(e) && !exposed(e)) { e.hidden = true; e.stealthStatus = { lighting: 'smoke', movement: 'still', range: 0, concealment: 1, suspicion: 0, observers: [], mode: 'veil' }; suspicion.delete(e.id); continue; }
         if (e.hidden) { e.hidden = false; e.hiddenAt = null; } delete e.stealthStatus; suspicion.delete(e.id); continue; }

@@ -1,4 +1,4 @@
-// Garrison card (Tim 2026-11-10): left-click one of your finished buildings that has garrison data
+// Garrison card (2026-11-10): left-click one of your finished buildings that has garrison data
 // (data.buildings.<type>.garrison, today the stockade) to see who is inside and the empty slots.
 // Generic: later garrisonable buildings (town hall, war-update houses) only need garrison data.
 // Reads the snapshot; leaving goes through the same frontier 'garrison' command as the town panel.
@@ -56,7 +56,7 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
     firing = firingOf(mem, R);
     const pages = Math.max(1, Math.ceil(cap / PER_PAGE)); page = Math.min(page, pages - 1);
     // rebuild the grid only when who is inside, the page or the capacity changes; health just updates in place,
-    // so the native tooltip under the cursor is not destroyed every time someone heals (Tim 2026-11-10)
+    // so the native tooltip under the cursor is not destroyed every time someone heals (2026-11-10)
     const key = [site.town, site.building, page, cap, ...mem.map(m => m.id)].join();
     root.hidden = false;
     const hp = b.hp ?? max;
@@ -92,7 +92,7 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
       if (el.title !== t) el.title = t;
     }
   }
-  // a stockade's firing slots (Tim 2026-11-25): the first garrison.firingSlots ranged units by id shoot (sim/frontier/structures.js)
+  // a stockade's firing slots (2026-11-25): the first garrison.firingSlots ranged units by id shoot (sim/frontier/structures.js)
   let firing = null;
   const shoots = e => !firing ? '' : firing.has(e.id) ? ', shooting' : (units?.types?.[e.type] || units?.[e.type])?.projectile || (units?.types?.[e.type] || units?.[e.type])?.rifle ? ', waiting for a firing slot' : '';
   function firingOf(mem, R) {
@@ -108,18 +108,18 @@ export function createGarrisonCard({ game, heroId, frontierData, units, catalog,
   root.addEventListener('mousedown', ev => {
     ev.stopPropagation();
     const slot = ev.target.closest('.s[data-id]');
-    if (ev.button === 2 && slot) { send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town, building: site.building, units: [slot.dataset.id] }); sig = ''; render(); return; }   // right-click a unit: it walks out (Tim 2026-11-25, as on every garrison building)
+    if (ev.button === 2 && slot) { send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town, building: site.building, units: [slot.dataset.id] }); sig = ''; render(); return; }   // right-click a unit: it walks out (2026-11-25, as on every garrison building)
     if (ev.button !== 0) return;
     const a = ev.target.closest('[data-act]')?.dataset.act;
     if (a === 'close') return close();
     if (a === 'prev') page--; else if (a === 'next') page++;
-    else if (a === 'in-sel' || a === 'in-crew') {   // Tim 2026-11-11: moved here from the Governor tab
+    else if (a === 'in-sel' || a === 'in-crew') {   // 2026-11-11: moved here from the Governor tab
       const mine = game.state.entities[heroId]?.owner;
       const ids = a === 'in-sel' ? selected() : Object.values(game.state.entities).filter(u => u.owner === mine && !u.garrison && u.place === 'world' && !u.worker && u.type !== 'civilian').map(u => u.id);
       if (ids.length) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'enter', town: site.town, building: site.building, units: ids });
     }
     else if (a === 'out') send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town, building: site.building });
-    else if (slot) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town, building: site.building, units: [slot.dataset.id] });   // click a unit: it walks out (Tim 2026-11-10)
+    else if (slot) send({ id: heroId, type: 'frontier', action: 'garrison', mode: 'leave', town: site.town, building: site.building, units: [slot.dataset.id] });   // click a unit: it walks out (2026-11-10)
     sig = ''; render();
   });
   setInterval(render, 250);

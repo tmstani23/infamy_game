@@ -6,7 +6,7 @@
 //   gun range of water its ships can reach in the circle, enemy ships, or (attacker) a landing past the walls or much
 //   nearer the town hall than the camp.
 // - yard: the slipway goes into the camp's plan once a barracks stands (slipWanted, slipSpot); a rival's town at war
-//   builds a shipyard by its harbour (yardWanted, yardCell). A player's town at war builds nothing new (Tim 2026-11-22).
+//   builds a shipyard by its harbour (yardWanted, yardCell). A player's town at war builds nothing new (2026-11-22).
 // - train: byStrategy ships, one at a time, once the army has `after` troops.
 // - use: warships mend at their yard, board, go at enemy ships, shell, else lie at the yard; transports land troops.
 // - detached(): troops in a boarding or landing party, which the land army leaves alone.

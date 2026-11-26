@@ -1,4 +1,4 @@
-// GPU-compressed (KTX2, UASTC) copies of the sprite pages (Tim 2026-11-15: high quality, far zoom only by default).
+// GPU-compressed (KTX2, UASTC) copies of the sprite pages (2026-11-15: high quality, far zoom only by default).
 //
 //   node tools/make_ktx2_pages.mjs            compress every half page that is missing or older than its PNG
 //   node tools/make_ktx2_pages.mjs --full     also compress the full pages (for the "Everywhere" setting)

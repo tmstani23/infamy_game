@@ -85,7 +85,7 @@ const routine = g => Object.values(g.state.entities).filter(e => e.routine && !e
 {
   const g = world({ night: true }); run(g, 15); assert.equal(routine(g).length, 0);
   g.step([{ type: 'time', night: false }]); run(g, 20);
-  const patrol = routine(g); assert.equal(patrol.length, 4);   // boxes keep no day patrol (Tim 2026-11-20)
+  const patrol = routine(g); assert.equal(patrol.length, 4);   // boxes keep no day patrol (2026-11-20)
   const stations = Object.groupBy(patrol, o => o.station);
   assert.deepEqual(Object.fromEntries(Object.entries(stations).map(([id, list]) => [g.state.businesses[id].kind + ':' + id, list.length])),
     { 'police_hq:b3': 4 });

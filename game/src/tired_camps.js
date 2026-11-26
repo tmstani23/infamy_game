@@ -1,4 +1,4 @@
-// Work camps over their max (Tim 2026-11-22): the camps of a clan's towns with more workers on their spots than those
+// Work camps over their max (2026-11-22): the camps of a clan's towns with more workers on their spots than those
 // keep busy (sim workers.js econTick: s.tiredCamps). Numbered 1, 2, ... across the clan's towns, so the Workers view
 // rows and the minimap diamonds share a number.
 import { cellToWorld } from './sim/frontier/town_grid.js';

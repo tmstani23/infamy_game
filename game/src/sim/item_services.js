@@ -13,9 +13,9 @@ export function createItemServices({state,raidRules={},spawn,nav,removeUnit=null
     spawn('civilian','merchant',...p,{name:SHOP.name,shopkeeper:true,holdFire:true,hp:60});   // hp only so frames read right; he can never be hit (combat.js, game.js hostile/attackAllowed)
   }
   const near=e=>!!e&&canInteract(e)&&e.type==='hero'&&e.place==='street'&&!!shop()&&Math.hypot(e.x-shop().x,e.z-shop().z)<=SHOP.reach;
-  // the frontier merchant (Tim 2026-11-26): the stall keeper of one of e's own towns, within reach
+  // the frontier merchant (2026-11-26): the stall keeper of one of e's own towns, within reach
   const merchantNear=e=>{if(!e||!canInteract(e)||e.type!=='hero'||e.place!=='world'||e.aboard)return null;
-    return Object.values(state.entities).find(m=>(m.peddlerShop&&!m.dead||m.merchantOf&&state.frontier?.settlements?.[m.merchantOf]?.owner===e.owner)&&Math.hypot(e.x-m.x,e.z-m.z)<=FM.reach)||null;};   // or a peddler he saved on the road (sim/wandering_folk.js, Tim 2026-11-26)
+    return Object.values(state.entities).find(m=>(m.peddlerShop&&!m.dead||m.merchantOf&&state.frontier?.settlements?.[m.merchantOf]?.owner===e.owner)&&Math.hypot(e.x-m.x,e.z-m.z)<=FM.reach)||null;};   // or a peddler he saved on the road (sim/wandering_folk.js, 2026-11-26)
   // one stall keeper per founded town of a player clan, day and night (wars are a race: never wait for the shop)
   function merchants(){
     if(!state.frontier||state.tick%20||!spawn)return;
@@ -30,7 +30,7 @@ export function createItemServices({state,raidRules={},spawn,nav,removeUnit=null
     }
   }
   const inv=e=>state.clans[e?.owner]?.inventory;
-  // rival bots wear what they win (Tim 2026-11-24): an item better than the one in its slot goes straight on (by rarity:
+  // rival bots wear what they win (2026-11-24): an item better than the one in its slot goes straight on (by rarity:
   // shop < city drop < frontier < heirloom), the old one into the bag if there is room.
   const RANK={green:1,frontier:2,heirloom:3}, rank=id=>RANK[ITEMS[id]?.rarity]||0;
   function botWear(owner,v,id){const slot=ITEMS[id].slot,cur=v.equipment?.[slot];if(!(slot in(v.equipment||{}))||(cur&&rank(id)<=rank(cur)))return false;
@@ -112,7 +112,7 @@ export function createItemServices({state,raidRules={},spawn,nav,removeUnit=null
     const l=state.gearLoot||={seed:72437,first:{},recent:{},camps:{}};
     for(const c of state.banditCamps||[])if(c.clearedAt!=null&&c.gearWinner&&l.camps[c.id]!==c.clearedAt){l.camps[c.id]=c.clearedAt;accomplishment(c.gearWinner,'banditCamp',c.id);}
   }
-  // a castle falls (Z6): its clan's heirloom blade goes to the clan that took it (wildlife W7, Tim 2026-11-24).
+  // a castle falls (Z6): its clan's heirloom blade goes to the clan that took it (wildlife W7, 2026-11-24).
   // Called after the frontier tick (sim/game.js), which ends the wars.
   function castles(){for(const n of state.news||[])if(n.kind==='warEnded'&&n.result==='fell'&&state.clans[n.attacker]){const id=heirloomFor(state.clans[n.defender]);if(ITEMS[id])grant(n.attacker,id);}}
   function claim(e){if(!near(e)&&!merchantNear(e))return;const v=inv(e);while(v?.pending?.length&&v.bag.includes(null))give(e.owner,v.pending.shift());}

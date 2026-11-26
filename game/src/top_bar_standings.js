@@ -1,5 +1,5 @@
 import { modeRules } from './sim/modes/index.js';
-// Top bar standings (Tim 2026-11-10): a clock block and one chip per clan, you first then by rank.
+// Top bar standings (2026-11-10): a clock block and one chip per clan, you first then by rank.
 // Campaign: Influence is the big number, Renown the small one. Classic: season points.
 // standingsModel reads the state only (no DOM, tested in tools/test_top_bar.mjs).
 // Renown as it counts toward Influence (a Shinobi clan's counts at a reduced rate, sim/influence/influence.js)

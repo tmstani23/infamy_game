@@ -27,7 +27,7 @@ assert.equal(S[crew], undefined);
 assert.equal(clan.ryo - before, Math.floor(data('data/units.json').types.thug.price * DISMISS_REFUND_SHARE));
 assert.equal(g.clans.crewCount('player'), count - 1);
 
-// Hurt, downed and jailed crew can be dismissed too (Tim 2026-11-08), and clinic patients by index.
+// Hurt, downed and jailed crew can be dismissed too (2026-11-08), and clinic patients by index.
 for (const flags of [{ hp: 1 }, { downed: true }, { jailed: true }]) {
   const u = g.spawn('thug', 'thug', -5, 0, { owner: 'player' }); Object.assign(S[u], flags);
   assert.match(g.clans.dismiss(S[hero], u, home.id), /Thug dismissed/); assert.equal(S[u], undefined);
@@ -63,7 +63,7 @@ const panel = () => { const handlers = {}; return { hidden: true, innerHTML: '',
 const hirePanel = panel(), hireSent = [];
 const hire = createHireMenu({ panel: hirePanel, money: { textContent: '' }, game: g, units: data('data/units.json'), heroId: hero, send: c => hireSent.push(c) });
 hire.toggle();
-assert.match(hirePanel.innerHTML,/Instant Taunt: Automatically forces all nearby enemies within 5 steps/,'hiring exposes the Yakuza Taunt radius (card hover, Tim 2026-11-08 redesign)');
+assert.match(hirePanel.innerHTML,/Instant Taunt: Automatically forces all nearby enemies within 5 steps/,'hiring exposes the Yakuza Taunt radius (card hover, 2026-11-08 redesign)');
 const nextCrew = g.spawn('thug', 'thug', -2, 0, { owner: 'player' });
 hire.update();
 hirePanel.click({closest:sel=>sel==='[data-crew-view]'?{dataset:{crewView:'dismiss'}}:null});
@@ -89,7 +89,7 @@ for (const group of ['hero', 'home', g.state.deployment.sectors[0].id]) {
   assert.equal(g.clans.crewOf('player').length, 0); assert.equal(clan.clinic.length, 0); assert.ok(S[hero]);
   assert.ok(Object.keys(S).length < keep + 1); }
 
-// Cancel a queued hire: full refund of what was paid, queue order kept (Tim 2026-11-08).
+// Cancel a queued hire: full refund of what was paid, queue order kept (2026-11-08).
 { clan.ryo = 5000; clan.queue.length = 0; const r0 = clan.ryo;
   g.step([{ id: hero, type: 'hire', business: home.id, unit: 'thug', count: 3 }]);
   assert.equal(clan.queue.length, 3); const paid = r0 - clan.ryo;
@@ -110,7 +110,7 @@ clinic.toggle();
 const releaseButton = { closest: sel => sel === '[data-release]' ? { dataset: { release: '0' } } : null, blur() {} };
 clinicPanel.click(releaseButton); clinicPanel.click(releaseButton);
 assert.deepEqual(clinicSent[0], { id: hero, type: 'clinic', action: 'release', patient: 0 });
-// Jailed crew can be dismissed from the hideout too (Tim 2026-11-10): leaves jail, refund, frees the slot.
+// Jailed crew can be dismissed from the hideout too (2026-11-10): leaves jail, refund, frees the slot.
 {
   S[hero].place = home.room; const before = clan.ryo; clan.jail = [{ id: 'jailX', unit: 'thug', model: 'thug', bail: 50 }];
   assert.match(g.clans.dismiss(S[hero], null, home.id, null, 0) || '', /dismissed from jail/);

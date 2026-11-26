@@ -14,9 +14,9 @@ const flat = (geo, color, opacity) => {
   return onFxLayer(m);
 };
 const WAVE_GEO = new THREE.RingGeometry(0.86, 1, 64), DISC_GEO = new THREE.CircleGeometry(1, 40), AURA_GEO = new THREE.RingGeometry(0.57, 0.77, 48);
-// Rally's outward ring is 40% thinner than the others (Tim 2026-10-19)
-const THIN_WAVE_GEO = new THREE.RingGeometry(0.958, 1, 64);   // halved again (Tim 2026-10-19)
-// Rally, Intimidate and Red Lantern rings, auras and halos 50% thinner (Tim 2026-10-19: they hid the characters)
+// Rally's outward ring is 40% thinner than the others (2026-10-19)
+const THIN_WAVE_GEO = new THREE.RingGeometry(0.958, 1, 64);   // halved again (2026-10-19)
+// Rally, Intimidate and Red Lantern rings, auras and halos 50% thinner (2026-10-19: they hid the characters)
 const HALF_WAVE_GEO = new THREE.RingGeometry(0.93, 1, 64), BUFF_AURA_GEO = new THREE.RingGeometry(0.67, 0.77, 48);
 const AMBUSH_AURA_GEO = new THREE.RingGeometry(0.61, 0.79, 64);
 const STREAK_GEO = new THREE.PlaneGeometry(1, 1);
@@ -36,7 +36,7 @@ const AURAS = {
 };
 
 const STEEL = [0.8, 0.9, 1], WHITE = [1, 1, 1], GOLD = [1, 0.8, 0.35], PURPLE = [0.6, 0.3, 1];
-// the Shinobi kit (Tim 2026-10-20): black smoke, purples and blues only as dark, muted highlights
+// the Shinobi kit (2026-10-20): black smoke, purples and blues only as dark, muted highlights
 const GUNSMOKE = [[0.62, 0.61, 0.58], [0.52, 0.52, 0.5], [0.72, 0.7, 0.66]], MUZZLE = [[1, 0.92, 0.6], [1, 0.7, 0.3], [1, 0.5, 0.15]];
 const SOOT = [[0.04, 0.035, 0.06], [0.06, 0.05, 0.08], [0.03, 0.025, 0.04]], SOOT_TINT = [[0.13, 0.08, 0.2], [0.09, 0.1, 0.18]];
 const DUSK = [[0.36, 0.24, 0.6], [0.22, 0.3, 0.52], [0.46, 0.36, 0.66]], MIST_BLUE = [0.5, 0.58, 0.76];
@@ -82,7 +82,7 @@ const outlineMesh = (color) => {
   return onFxLayer(m);
 };
 
-const LANTERN_GEO = new THREE.PlaneGeometry(0.62, 0.93), HALO_GEO = new THREE.PlaneGeometry(1.23, 1.23);   // halo 50% thinner (Tim 2026-10-19)   // 20% smaller (Tim 2026-10-19)
+const LANTERN_GEO = new THREE.PlaneGeometry(0.62, 0.93), HALO_GEO = new THREE.PlaneGeometry(1.23, 1.23);   // halo 50% thinner (2026-10-19)   // 20% smaller (2026-10-19)
 // round soft glow for lantern halos
 let haloTex = null;
 const HALO_TEX = () => haloTex ||= (() => {

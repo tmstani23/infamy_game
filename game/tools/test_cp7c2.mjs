@@ -1,4 +1,4 @@
-// War 7c-2 (Tim 2026-11-12): torch rules (1 second cast, who can torch, the fire burns until doused), the fire bomb as a
+// War 7c-2 (2026-11-12): torch rules (1 second cast, who can torch, the fire burns until doused), the fire bomb as a
 // channelled special with a ground marker, and a spearman for every clan.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -127,7 +127,7 @@ brute.dead = enf.dead = true;
   assert.ok(out != null, `they put the fire out (${out} ticks)`);
   assert.equal(ST.hpOf(sc), sc.max, `and repair it to full (${t} ticks, from ${hpLow})`);
   assert.ok(rec.camp.stock.timber < t0, 'repairs are paid from the camp stock');
-  assert.ok(spent.timber > 0 && spent.timber <= t0 - rec.camp.stock.timber, 'the spend pops show what it took (Tim 2026-11-24): ' + JSON.stringify(spent));
+  assert.ok(spent.timber > 0 && spent.timber <= t0 - rec.camp.stock.timber, 'the spend pops show what it took (2026-11-24): ' + JSON.stringify(spent));
   run(5); assert.ok(rec.camp.workers.every(w => !w.job), 'the job ends when it is done');
   assert.match(war.campCheck(rec.id, 'barracks', { x: campHall.x + W.chainDistance + 60, z: campHall.z }).reason || '', /Outside the build area/);
   assert.match(war.campCheck(rec.id, 'lumber_camp', { x: campHall.x + W.chainDistance + 60, z: campHall.z }).reason || 'ok', /must stand by|ok|circle|ring|close/, 'a lumber camp out there only needs its resource'); }

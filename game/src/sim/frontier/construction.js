@@ -102,7 +102,7 @@ export function createConstruction({ state, data, world,resourceIndex }) {
 
   const townRate = s => state.clans?.[s.owner]?.bot || s.autoBuild ? 1 : data.rates?.townBuildRate ?? 0.5;
   const sentBuilders = (s, p) => (s.workers || []).some(w => w.job?.key === `p|${s.id}|${p.id}` && !w.trip);
-  // once per clan (Tim 2026-11-15): the first time one of the player's towns starts a placed building, say that
+  // once per clan (2026-11-15): the first time one of the player's towns starts a placed building, say that
   // workers can be sent to build it faster (news buildSiteTip, news_callouts.js)
   function siteTip(s, p) {
     const c = state.clans?.[s.owner];
@@ -113,7 +113,7 @@ export function createConstruction({ state, data, world,resourceIndex }) {
   function econTick(s) {
     // One project moves at a time: one already paid for, else the first that the stock can pay now,
     // else the first in line (which then waits for its materials). A costly project waiting for timber
-    // must not block a cheap one that can be built (Tim's playtest 2026-11-04).
+    // must not block a cheap one that can be built (the playtest 2026-11-04).
     const auth = s.projects.filter(x => x.authorized);
     if (auth.length && warUpgradeBuilding(s)) { wait(s, 'war upgrade'); return; }   // 8b: the builders are on the hall war upgrade; projects wait their turn
     const p = auth.find(x => x.paid) || auth.find(x => Object.entries(x.cost).every(([r, n]) => s.stock[r] + EPS >= n)) || auth[0];
@@ -132,9 +132,9 @@ export function createConstruction({ state, data, world,resourceIndex }) {
     }
     // finished work retries completion even with no builders left (a unit stood on the plot when it first finished)
     if (p.progress >= p.need) { finish(s, p); return; }
-    // Tim 2026-11-15: the townspeople build a player's placed building at rates.townBuildRate each (half speed); workers
+    // 2026-11-15: the townspeople build a player's placed building at rates.townBuildRate each (half speed); workers
     // he sends add their own work (structures.js workOn). A bot clan's town, or one with Automatic on, builds at full speed.
-    if (Object.values(f()?.wars?.list || {}).some(w => w.town === s.id && w.terms)) { wait(s, 'ceasefire'); return; }   // Tim 2026-11-18: no building in a ceasefire
+    if (Object.values(f()?.wars?.list || {}).some(w => w.town === s.id && w.terms)) { wait(s, 'ceasefire'); return; }   // 2026-11-18: no building in a ceasefire
     if (!s.builders) { if (!sentBuilders(s, p)) wait(s, 'builders'); return; }
     p.progress = Math.min(p.need, p.progress + s.builders * townRate(s));
     if (p.progress >= p.need) finish(s, p);

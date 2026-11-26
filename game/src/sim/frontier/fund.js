@@ -1,7 +1,7 @@
-// Safety fund (Tim 2026-11-21, war_build/town_plan/town_plan_spec.md section 4). Each frontier town sets aside one
+// Safety fund (2026-11-21, war_build/town_plan/town_plan_spec.md section 4). Each frontier town sets aside one
 // percentage of its gains of timber, stone and ryo (the income reasons in data war.general.fund.from) into
 // s.fund. The town's general spends only from it: his military quarter road, his list of military buildings and
-// the hall war upgrade. Tim 2026-11-22: the share is always set aside, whatever he is saving for (no cap; before,
+// the hall war upgrade. 2026-11-22: the share is always set aside, whatever he is saving for (no cap; before,
 // the fund stopped at the cost of the rest of his list, so ryo stayed at 0 once the hall war upgrade was done).
 // s.fund.cap is now only what the rest of his list at this tier needs (shown on the General tab). When the town is
 // attacked the fund pours into its war chest (ryo) and its stock (timber, stone): war_defense.js. A share of 0
@@ -39,7 +39,7 @@ export function takeShare(s, data, state, resource, delta, reason) {
   if (!(delta > 0) || !FUND_RES.includes(resource) || !isGain(data, reason)) return 0;
   const f = fundOf(s, data, state); if (!f) return 0;
   const pct = fundPct(s, data, state); if (!(pct > 0)) return 0;
-  const take = delta * pct / 100;   // always (Tim 2026-11-22): not held to what his list needs
+  const take = delta * pct / 100;   // always (2026-11-22): not held to what his list needs
   f[resource] = (f[resource] || 0) + take;
   return take;
 }

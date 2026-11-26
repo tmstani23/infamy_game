@@ -1,4 +1,4 @@
-// The outcome picker (war checkpoint 8a-3, Tim 2026-11-14): presentation only, the sim checks every command again.
+// The outcome picker (war checkpoint 8a-3, 2026-11-14): presentation only, the sim checks every command again.
 // When every counted building of the enemy town is down and its hall is a ruin, your hero at the hall ruin opens
 // this with the Use key (Space): three art cards, Capture, Sack and Burn. Picking one starts the hero's channel at
 // the hall; the channel carries the choice out (sim/frontier/war_end.js). Long text sits in the hovers.

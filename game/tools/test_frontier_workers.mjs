@@ -8,7 +8,7 @@ import {makeSave,loadSave} from '../src/sim/save.js';
 import {createAreas} from '../src/sim/areas.js';
 const read=f=>JSON.parse(readFileSync(new URL('../'+f,import.meta.url)));
 const base=read('data/frontier.json');
-// the spots here sit 10 to 20 units from the hall; keep it the old one-cell size (the hall art grew to fill its inner ring, Tim 2026-11-21)
+// the spots here sit 10 to 20 units from the hall; keep it the old one-cell size (the hall art grew to fill its inner ring, 2026-11-21)
 base.townArt._placedFootprint.town_hall=1;
 function fixture({saved=null,changes={},spots=null,stages=null}={}) {
   const data=structuredClone(base);delete data.storage;data.settlements={};data.roads={};data.rates.food=0;data.rates.growthTicks=1e9;data.rates.maxBuilders=1;data.mood.reviewTicks=1e9;
@@ -155,7 +155,7 @@ function walking({saved=null,near=true,obstacle=true}={}) {
   const run=n=>{for(let i=0;i<n;i++){
     const previous=Object.fromEntries(Object.values(f.state.entities).filter(e=>e.worker).map(e=>[e.id,[e.x,e.z]]));
     areas.update(Object.values(f.state.entities));f.run(1);
-    for(const e of Object.values(f.state.entities))if(e.worker && previous[e.id])assert.ok(Math.hypot(e.x-previous[e.id][0],e.z-previous[e.id][1])<=f.data.workers.speed/20+0.25,'loaded navigation never teleports or exceeds worker speed (plus the lane easing, Tim 2026-11-10)');
+    for(const e of Object.values(f.state.entities))if(e.worker && previous[e.id])assert.ok(Math.hypot(e.x-previous[e.id][0],e.z-previous[e.id][1])<=f.data.workers.speed/20+0.25,'loaded navigation never teleports or exceeds worker speed (plus the lane easing, 2026-11-10)');
   }};
   f.state.entities.hero.x=near?1000:1800;
   const train=count=>{f.send({action:'train',count});run(count*f.data.workers.trainTicks);return f.s.workers;};
@@ -213,7 +213,7 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
   for(let i=0;i<100 && !w.carrying;i++)f.run(1);
   assert.equal(w.carrying,3);
   const count=f.s.workers.length,id=w.entity;f.state.entities[id].dead=true;f.run(1);
-  assert.equal(f.s.workers.length,count-1);assert.ok(f.state.entities[id]?.dead !== false,'carried cargo dies with its worker');assert.ok(!f.s.workers.some(x=>x.entity===id),'the body is no longer a worker (it lies there until sim/game.js cleanUpDead takes it, Tim 2026-11-13)');
+  assert.equal(f.s.workers.length,count-1);assert.ok(f.state.entities[id]?.dead !== false,'carried cargo dies with its worker');assert.ok(!f.s.workers.some(x=>x.entity===id),'the body is no longer a worker (it lies there until sim/game.js cleanUpDead takes it, 2026-11-13)');
   assert.equal(f.fr.world.checkInvariants(),true);
 }
 // A real game starts, restores walking entities without duplicating them, and normal combat
@@ -234,7 +234,7 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
   // Keep the combat fixture beside the hero's safe position, outside the solid hall.
   victim.spot=null;victim.trip=null;victim.carrying=0;Object.assign(e,{hp:1,x:g.state.entities[id].x+0.5,z:g.state.entities[id].z});
   g.step([{id,type:'attack',target:e.id}]);for(let i=0;i<80 && s.workers.includes(victim);i++)g.step([]);
-  assert.equal(s.workers.length,1,'real combat knockout removes one worker record');assert.ok(g.state.entities[e.id]?.dead,'he falls and lies there (Tim 2026-11-13)');
+  assert.equal(s.workers.length,1,'real combat knockout removes one worker record');assert.ok(g.state.entities[e.id]?.dead,'he falls and lies there (2026-11-13)');
   for(let i=0;i<20*21;i++)g.step([]);assert.equal(g.state.entities[e.id],undefined,'the body is gone after islandCorpseSeconds');
 }
 {
@@ -264,7 +264,7 @@ const units=f=>Object.values(f.state.entities).filter(e=>e.worker);
   assert.equal(f.send({action:'workerOrder',workers:[w.id],kind:'return'}).ok,true);
   const saved=JSON.parse(JSON.stringify(f.state)),h=fixture({saved,changes:{harvestTicks:20}});
   for(let i=0;i<100;i++){f.run(1);h.run(1);assert.deepEqual(h.s.workers,f.s.workers);assert.deepEqual(h.s.stock,f.s.stock);}
-  assert.ok(f.s.stock.timber>=stock+3);assert.equal(w.spot,'far','a harvester goes back to its spot after Return (Tim 2026-11-12)');assert.ok(!w.order);
+  assert.ok(f.s.stock.timber>=stock+3);assert.equal(w.spot,'far','a harvester goes back to its spot after Return (2026-11-12)');assert.ok(!w.order);
   assert.ok(f.s.workerLog.some(n=>n.worker===w.id && n.amount===3 && n.resource==='timber'));
   assert.deepEqual(h.s.workerLog,f.s.workerLog,'delivery history survives save/load without duplication');
   assert.ok(!(f.state.news || []).some(n=>n.event==='delivery'),'routine deliveries never create alert popups');

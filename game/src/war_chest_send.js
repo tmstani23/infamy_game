@@ -1,4 +1,4 @@
-// 8e-3 (mock A and B, Tim 2026-11-16): the War chest tab's "Send by train" rows, shared by the war camp panel and the
+// 8e-3 (mock A and B, 2026-11-16): the War chest tab's "Send by train" rows, shared by the war camp panel and the
 // town war window. Ryo from the Clan treasury, or from another of your towns' coffers, rides the next train into this
 // war's chest (sim/frontier/shipments.js ryo orders). Each row says what the pot keeps after sending (red below its
 // keep line); a pot with no rail line to the chest is greyed with the reason. Then the orders on the way (Cancel before
@@ -38,7 +38,7 @@ function reaches(game, owner, from, to) {
 const ordersOf = (game, w, owner) => Object.values(game.state.frontier?.shipping?.orders || {}).filter(o => o.kind === 'ryo' && o.owner === owner && o.war === w.id && o.state === 'open');
 function whereIs(game, o) {
   const F = game.state.frontier || {}, name = id => id === 'capital' ? 'the capital' : F.settlements?.[id]?.name || id;
-  // Tim 2026-11-17: a cut line (a camp's supply line broken, or a town's station in ruins) holds the order until it is mended
+  // 2026-11-17: a cut line (a camp's supply line broken, or a town's station in ruins) holds the order until it is mended
   if (Object.values(F.rail?.links || {}).some(l => l.owner === o.owner && l.done && l.closed && (l.from === o.to || l.to === o.to))) return { text: 'line cut: waiting', on: false };
   for (const t of Object.values(F.rail?.trains || {})) if ((t.freight || []).some(c => c.order === o.id && c.amount > 0)) return { text: 'on the train', on: true };
   for (const [at, yard] of Object.entries(F.shipping?.yards || {})) if ((yard || []).some(c => c.order === o.id && c.amount > 0)) return { text: `waiting at ${name(at)} station`, on: false };

@@ -193,7 +193,7 @@ void main() {
     wet = hw < 0.0 ? 1.0 : 1.0 - smoothstep(0.0, uSea.w, hw);
   }
   float under = 0.0, lip = 0.0;
-  if (uSea.w < 0.0) {   // afloat (Tim 2026-11-23): the hull below the waterline sinks from sight into the sea, a broken foam lip at the line
+  if (uSea.w < 0.0) {   // afloat (2026-11-23): the hull below the waterline sinks from sight into the sea, a broken foam lip at the line
     vec3 sw = vWorld - uSea.xyz;
     float sx = dot(sw, CAM_RIGHT), hw = dot(sw, CAM_UP) - uSeaSlope * sx + 0.04 * sin(sx * 2.3 + uTime * 1.7) + 0.025 * sin(sx * 6.1 - uTime * 2.6);
     under = 1.0 - smoothstep(uSea.w, 0.03, hw);
@@ -248,7 +248,7 @@ export function hiddenMaterial(uniforms, packed = false) {
   });
 }
 
-// A thin glowing edge round a sprite's silhouette (Tim 2026-11-25: the dog handler's loosed dogs, easy to spot): every
+// A thin glowing edge round a sprite's silhouette (2026-11-25: the dog handler's loosed dogs, easy to spot): every
 // screen pixel just outside the picture (1 px, fwidth) takes the colour, a little see-through; shares the frame uniforms.
 // spread widens it (the capturable hall's soft gold edge uses about 2.5)
 export function outlineMaterial(uniforms, color, packed = false, alpha = 0.6, spread = 1) {
@@ -279,7 +279,7 @@ export function outlineMaterial(uniforms, color, packed = false, alpha = 0.6, sp
 
 // Faint weapon glow over a character: the exporter's _glow sheet (weapon alone, white halo)
 // tinted per weapon type and added on top; shares the sprite's frame, depth and opacity uniforms
-// shimmerColor: hero weapons only (Tim 2026-10-28): a band of light that sweeps up the blade (uShimmer = band position, < -0.5 off)
+// shimmerColor: hero weapons only (2026-10-28): a band of light that sweeps up the blade (uShimmer = band position, < -0.5 off)
 export function weaponGlowMaterial(spriteUniforms, map, color, strength, { void: isVoid = false, dark = false, coreColor = color, coreStrength = 0, shimmerColor = [1, 1, 1], packed = false } = {}) {
   return new THREE.ShaderMaterial({
     defines: packed ? {PACKED_SPRITE: 1} : {},
@@ -364,7 +364,7 @@ export function weaponLightningMaterial(spriteUniforms) {
 }
 
 // Shadow blade ribbons: a dark translucent centre with a soft glowing violet edge and a slow pulse
-// (Tim 2026-11-21: he likes the dark look, but the old hard violet outline read as a flat texture).
+// (2026-11-21: he likes the dark look, but the old hard violet outline read as a flat texture).
 // Premultiplied blend: the centre darkens what is behind it, the rim adds light. Scaled by the
 // character's opacity, so it never shows more than the body does.
 export function weaponShadowMaterial(spriteUniforms) {
@@ -722,13 +722,13 @@ void main() {
       float dU = texture2D(uDepth, suv).r * uWaterDepth.x, nd = (over.r - 0.5) * 8.0;
       // The mask distance nd is exact at the bank but flattens toward its 4 unit limit (2.5 unit map pixels), and the baked
       // dU is only right away from the bank, so the two are blended over 1.5 to 3.5 units. A hard switch left a step in
-      // the distance there, which cut the foam and the shallows off along a line (Tim 2026-11-23 23:33Z).
+      // the distance there, which cut the foam and the shallows off along a line (2026-11-23 23:33Z).
       // Where the mask dips with no bank near (water against a cliff: dU stays large), the baked distance wins outright.
       float dB = mix(nd, max(dU, nd), smoothstep(1.5, 3.5, max(nd, dU - 0.7))), dW = dB;
       if (uWaterDepth.w > 0.0) {
         base = mix(base, base * 0.55 + uWaterShallow * 0.75, (1.0 - smoothstep(1.0, uWaterDepth.y, dB)) * 0.7);
         base *= 1.0 - 0.3 * smoothstep(uWaterDepth.y, uWaterDepth.z, dB);
-        // Tim 23:07Z: never a straight edge. The bank distance the wet band and the foam read is wobbled at three scales,
+        // 23:07Z: never a straight edge. The bank distance the wet band and the foam read is wobbled at three scales,
         // so neither runs parallel to a straight stretch of coast (dB itself stays true for the shallows).
         dW = dB + (vnz(p / 7.0, 47u) - 0.5) * 2.2 + (vnz(p / 2.3, 48u) - 0.5) * 1.1 + (vnz(p / 0.9, 49u) - 0.5) * 0.45;
         float wb = (dW - 2.2) / 1.2; base *= 1.0 - 0.2 * exp(-wb * wb);
@@ -736,9 +736,9 @@ void main() {
       water = waterSurfaceLight(base, waterNormal);
       if (uWaterDepth.w > 0.0) {
         // soft broken lapping foam: a line at the bank that breathes in and out, and a fainter one a little way out; never opaque
-        // Tim 2026-11-23: not uniform. Width swings from a thin rim to a wide wash along the coast (two noise scales),
+        // 2026-11-23: not uniform. Width swings from a thin rim to a wide wash along the coast (two noise scales),
         // and whole stretches of shore have no foam at all (slow presence noise); the outer line comes and goes on its own.
-        // Tim 23:06Z: it goes with the waves. Each wave rolling in along the wind (half the swell length) pushes the foam
+        // 23:06Z: it goes with the waves. Each wave rolling in along the wind (half the swell length) pushes the foam
         // out and lets it slide back, travelling along the coast; the foam breaks up on the same drifting chop as the water.
         float along = vnz(p / 3.0, 41u);
         float gaps = smoothstep(0.3, 0.75, 0.6 * gWaterH + 0.4 * vnz(p / 1.4 + uWaterPaint2.xy * uTime * 0.06, 42u));
@@ -887,11 +887,11 @@ export function coastlineMaterial({ textures, available, rows, bounds, cfg }) {
         float wd = -vCoastUv.y;
         if (wd > 0.0) {
           float lap = 0.5 + 0.5 * sin(uTime * 1.1 + vCoastUv.x * 37.0 + sin(vCoastUv.x * 91.0) * 1.3);
-          // Tim 23:07Z: never a straight edge: the rim's reach swings with world noise and its outer edge is ragged
+          // 23:07Z: never a straight edge: the rim's reach swings with world noise and its outer edge is ragged
           float rag = 0.5 + 0.3 * sin(p.x * 1.7 + sin(p.y * 1.3) * 2.0) * sin(p.y * 1.9 + sin(p.x * 1.1) * 2.0) + 0.2 * sin(p.x * 4.3 - p.y * 3.7);
           float reach = vCoastSize.y * (0.12 + 0.5 * lap * rag + 0.25 * (0.5 + 0.5 * sin(p.x * 0.41 + sin(p.y * 0.33) * 2.0)));
           float foam = (1.0 - smoothstep(reach * 0.1, reach, wd)) * (0.55 + 0.45 * sin(vCoastUv.x * 143.0 + uTime * 0.7));
-          // sea look (Tim 2026-11-23): the bank rim also comes and goes along the coast instead of one even line
+          // sea look (2026-11-23): the bank rim also comes and goes along the coast instead of one even line
           foam *= smoothstep(0.35, 0.65, 0.5 + 0.25 * sin(p.x * 0.27 + sin(p.y * 0.19) * 2.0) + 0.25 * sin(p.y * 0.23 + sin(p.x * 0.17) * 2.0));
           foam = clamp(foam, 0.0, 1.0) * 0.55 * vCoastClear;
           col = mix(col, vec3(0.82, 0.88, 0.88), foam / max(foam + alpha, 0.0001));
@@ -1155,7 +1155,7 @@ export function roomFloorMaterial(map, { origin, size, pattern = 'tatami', tint 
   });
 }
 
-// Built-in island roads (src/road_strips.js, Tim 2026-11-21): a ribbon textured from the six-road strip atlas, the
+// Built-in island roads (src/road_strips.js, 2026-11-21): a ribbon textured from the six-road strip atlas, the
 // road type blended per vertex (wA = plains, hills, forest; wB = marsh, dry, snow), lit and fogged like the ground.
 export function roadStripMaterial(map, tone) {
   return new THREE.ShaderMaterial({

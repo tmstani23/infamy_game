@@ -1,4 +1,4 @@
-"""Cut the town hall and stockade tier art (Tim 2026-11-20) into game/art/buildings.
+"""Cut the town hall and stockade tier art (2026-11-20) into game/art/buildings.
 
     python tools/add_tier_art.py [--preview out.png]
 

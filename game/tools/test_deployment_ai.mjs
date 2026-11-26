@@ -23,7 +23,7 @@ g.step(out);assert.equal(st.deployment.clans[clan].sectors[s.id].operation.state
 st.tick+=40;out=ai.tick();assert.ok(!out.some(c=>c.action==='armAmbush'),'bot never replaces an already armed/committed coordinated order');
 delete st.deployment.clans[clan].sectors[s.id].operation;
 const geisha=st.entities[g.spawn('shinobi_geisha','shinobi_geisha',s.anchor.x,s.anchor.z,{owner:clan,deployment:{group:s.id}})];
-// the geisha acts on her own now (Tim 2026-10-27): the bot sends no geisha commands
+// the geisha acts on her own now (2026-10-27): the bot sends no geisha commands
 st.tick+=40;out=ai.tick();assert.ok(!out.some(c=>c.action==='dance'||c.task==='diversion'));g.step(out);
 const home=Object.values(st.businesses).find(b=>b.hideout===clan),attacker=st.entities[heroId];
 Object.assign(attacker,{x:home.ring[0],z:home.ring[1],place:'street'});st.clans.player.lanterns=1;st.night=true;

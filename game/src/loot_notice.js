@@ -1,4 +1,4 @@
-// Loot notice (Tim 2026-11-01): gear put in the hero's bag (drops, body loot, claimed rewards;
+// Loot notice (2026-11-01): gear put in the hero's bag (drops, body loot, claimed rewards;
 // not shop buys) shows a short "Looted" toast over the Inventory button, and the item's icon
 // flies from the hero into that button, which pulses. Reads state.itemGains (one tick's list).
 import { ITEMS } from './sim/inventory.js';

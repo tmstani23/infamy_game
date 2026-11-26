@@ -1,6 +1,6 @@
 # Image prompts
 
-Saved prompts for Gemini / ChatGPT, copied word for word from the chat with Tim.
+Saved prompts for Gemini / ChatGPT, copied word for word from the chat.
 
 ## How to keep the style consistent
 
@@ -156,7 +156,7 @@ Using the attached image as a style reference, make a sheet of separate item con
 
 ## Island art (W3.8, frontier)
 
-Drafted and approved 2026-11-02 (mountains are cliff pieces plus high-ground textures, 25 images). All 25 files exist in `assets/environment/island/`; W3.8 art generation is complete. W3.9 import/fitting/placement is implemented; texture tiling, scale and overall appearance still need Tim’s in-game review.
+Drafted and approved 2026-11-02 (mountains are cliff pieces plus high-ground textures, 25 images). All 25 files exist in `assets/environment/island/`; W3.8 art generation is complete. W3.9 import/fitting/placement is implemented; texture tiling, scale and overall appearance still need the in-game review.
 
 For the separate P5 biome-prop planning pass, use the [P5 prompt sheets below](#p5-biome-art-plan-only-2026-11-02); full draft basic prompts and planning data are in [`p5_biome_art_plan.json`](environment/island/p5_biome_art_plan.json). This does not change the W3.8 status above.
 
@@ -296,7 +296,7 @@ a low rocky lip from behind.
     hanging paper lantern on each post, a worn dirt road running through it from the lower left to
     the upper right, a few pines behind. The posts are about three people tall.
 
-### Before and after generating (for Tim)
+### Before and after generating (for )
 
 - **Before:** attach `game/art/props/pine_tree.png` and one game screenshot in the same message as
   this file, so ChatGPT matches the style and tree size.
@@ -308,7 +308,7 @@ a low rocky lip from behind.
 
 ### Walkthrough follow-up art prompts (2026-11-02)
 
-For each item, prepend its shared prompt, attach the listed references, then append the exact item description. Shared text is shown once to avoid duplicating the full prompt for every file. The machine-readable source prompts remain in [`lake_edges_prompts.json`](environment/island/lake_edges_prompts.json) and [`walkthrough_art_prompts.json`](environment/island/walkthrough_art_prompts.json). All 21 follow-up assets have been generated and Tim accepted them for later mapping review. They are in the existing `assets/environment/island/` source folder; no importer, placement, or game-code integration is included here.
+For each item, prepend its shared prompt, attach the listed references, then append the exact item description. Shared text is shown once to avoid duplicating the full prompt for every file. The machine-readable source prompts remain in [`lake_edges_prompts.json`](environment/island/lake_edges_prompts.json) and [`walkthrough_art_prompts.json`](environment/island/walkthrough_art_prompts.json). All 21 follow-up assets have been generated and accepted them for later mapping review. They are in the existing `assets/environment/island/` source folder; no importer, placement, or game-code integration is included here.
 
 #### Lake-bank segments
 
@@ -329,12 +329,12 @@ For each item, prepend its shared prompt, attach the listed references, then app
 | `lake_edge_7.png` | West straight | Vertical shore boundary from (512,0) to (512,1024). Land is LEFT of the line; lake water is RIGHT. Keep the water area transparent. |
 | `lake_edge_8.png` | Northwest bevel | Straight diagonal shoreline from BOTTOM LEFT (0,1024) to TOP RIGHT (1024,0). This bevel connects west and north shores. Land lies NORTHWEST (above/left); water lies SOUTHEAST (below/right). Water area stays transparent. A diagonal bank segment, not a rounded island or L-shaped wall. |
 
-All lake pieces are 1254 × 1254 with genuine transparency (the source prompts requested 1024 × 1024). Numeric order is N, NE, E, SE, S, SW, W, NW; these names identify assets only, not calibrated placement. `lake_edge_1.png` is the approved north v3, matching retained `lake_edge_n_v3.png`. `lake_edge_n_initial.png` and the original `lake_edge.png` are preserved. `lake_edge_n_v2.png` was moved to `to_delete/` at Tim’s request. The engine supplies water; bank placement and collision must follow the mapped shoreline.
+All lake pieces are 1254 × 1254 with genuine transparency (the source prompts requested 1024 × 1024). Numeric order is N, NE, E, SE, S, SW, W, NW; these names identify assets only, not calibrated placement. `lake_edge_1.png` is the approved north v3, matching retained `lake_edge_n_v3.png`. `lake_edge_n_initial.png` and the original `lake_edge.png` are preserved. `lake_edge_n_v2.png` was moved to `to_delete/` at the request. The engine supplies water; bank placement and collision must follow the mapped shoreline.
 
 #### Opposite-bank rims
 
 **References:** the approved `assets/environment/island/rim_<biome>.png` and `game/art/props/pine_tree.png`.
-All four saved opposite-bank rims are 1536 × 1024 with genuine transparency. The mirrored companions are separately generated reverse-orientation art, not exact pixel flips; Tim accepted this.
+All four saved opposite-bank rims are 1536 × 1024 with genuine transparency. The mirrored companions are separately generated reverse-orientation art, not exact pixel flips; accepted this.
 
 **Shared prompt:**
 
@@ -388,15 +388,15 @@ Each B file is a separately generated alternate arrangement matching its A textu
 
 ## Atlas illustration reference (2026-11-03)
 
-Current geography is the applied mountain/lake/Ashen Wash reshape (2026-11-03): [effective blueprint review v2](environment/island/atlas/atlas_review_v2.png), [clean terrain v2](environment/island/atlas/atlas_blueprint_v2.png), [reference manifest v2](environment/island/atlas/atlas_reference_manifest_v2.json). Run `node tools/prepare_atlas_reference.mjs --check --version v2` before new illustration work. Tim confirmed the new geography is visible and looks nice (2026-11-03); traversal coverage is not claimed. [Updated terrain illustration trial v2](environment/island/atlas/atlas_illustration_v2.png) is generated using [exact prompt v2](environment/island/atlas/atlas_illustration_prompt_v2.txt), with v2 blueprint as geometry and v1 painting as style only. [Manifest v2](environment/island/atlas/atlas_illustration_manifest_v2.json) records native dimensions and reference hashes. Tim approved the v2 illustration look (2026-11-03); complete overlay/runtime registration remains pending. Atlas layout mock offers Map first / Sidebar with actual feature data; not installed in the game yet.
+Current geography is the applied mountain/lake/Ashen Wash reshape (2026-11-03): [effective blueprint review v2](environment/island/atlas/atlas_review_v2.png), [clean terrain v2](environment/island/atlas/atlas_blueprint_v2.png), [reference manifest v2](environment/island/atlas/atlas_reference_manifest_v2.json). Run `node tools/prepare_atlas_reference.mjs --check --version v2` before new illustration work. confirmed the new geography is visible and looks nice (2026-11-03); traversal coverage is not claimed. [Updated terrain illustration trial v2](environment/island/atlas/atlas_illustration_v2.png) is generated using [exact prompt v2](environment/island/atlas/atlas_illustration_prompt_v2.txt), with v2 blueprint as geometry and v1 painting as style only. [Manifest v2](environment/island/atlas/atlas_illustration_manifest_v2.json) records native dimensions and reference hashes. approved the v2 illustration look (2026-11-03); complete overlay/runtime registration remains pending. Atlas layout mock offers Map first / Sidebar with actual feature data; not installed in the game yet.
 
-The [v1 terrain trial](environment/island/atlas/atlas_illustration_v1.png) has Tim's style approval but represents the pre-reshape geography. Preserve its original reference, [exact prompt](environment/island/atlas/atlas_illustration_prompt_v1.txt) and [generation manifest](environment/island/atlas/atlas_illustration_manifest_v1.json); do not install it as current map art. Future painting uses v2 terrain as the edit target, without the review-sheet header. Labels, roads, features and crossings stay in separate data layers. Phases: [frontier plan](../docs/frontier_build_steps.md#mountain-and-lake-reshape-before-atlas-completion-tim-2026-11-03).
+The [v1 terrain trial](environment/island/atlas/atlas_illustration_v1.png) has the style approval but represents the pre-reshape geography. Preserve its original reference, [exact prompt](environment/island/atlas/atlas_illustration_prompt_v1.txt) and [generation manifest](environment/island/atlas/atlas_illustration_manifest_v1.json); do not install it as current map art. Future painting uses v2 terrain as the edit target, without the review-sheet header. Labels, roads, features and crossings stay in separate data layers. Phases: [frontier plan](../docs/frontier_build_steps.md#mountain-and-lake-reshape-before-atlas-completion-tim-2026-11-03).
 
 ## P5 biome art plan only (2026-11-02)
 
-Completed (Tim, 2026-11-02): ten accepted transparent sheets and 57 named sprites, cut, imported and integrated. Tim reviewed the repaired previews and said they look awesome. Original approved prompt wording follows as the source brief; units are rough fitting guidance, not exact generator output.
+Completed (2026-11-02): ten accepted transparent sheets and 57 named sprites, cut, imported and integrated. reviewed the repaired previews and said they look awesome. Original approved prompt wording follows as the source brief; units are rough fitting guidance, not exact generator output.
 
-### Sheet assignment queue (Tim, 2026-11-02)
+### Sheet assignment queue (2026-11-02)
 
 Completed inventory is in [cutouts_manifest.json](environment/island/biome_props/cutouts/cutouts_manifest.json); all sources/cutouts live in `assets/environment/island/biome_props/`. Generation chat/image names omit P5; W3.11 P5 remains the phase identifier. Exclusive one-sheet ownership was used during generation.
 
@@ -415,7 +415,7 @@ Completed inventory is in [cutouts_manifest.json](environment/island/biome_props
 
 Five rejected opaque v1 sheets and obsolete cuts are archived in root `to_delete/`, excluded from commits. Snow oddity hut/well reuse snow-feature outputs; no duplicate generation.
 
-**Crop repair:** Tim found clipping in game. The old equal-cell method clipped 41 of 57 cutouts. All 57 were re-cut using reviewed per-object regions in [crop_regions.json](environment/island/biome_props/crop_regions.json), preserving source alpha. Review images: [1](environment/island/biome_props/review/crops_1.png), [2](environment/island/biome_props/review/crops_2.png), [3](environment/island/biome_props/review/crops_3.png); [audit](environment/island/biome_props/review/crop_audit.json). Old cuts: `to_delete/biome_props_fixed_grid_cuts_2026-11-02/`.
+**Crop repair:** found clipping in game. The old equal-cell method clipped 41 of 57 cutouts. All 57 were re-cut using reviewed per-object regions in [crop_regions.json](environment/island/biome_props/crop_regions.json), preserving source alpha. Review images: [1](environment/island/biome_props/review/crops_1.png), [2](environment/island/biome_props/review/crops_2.png), [3](environment/island/biome_props/review/crops_3.png); [audit](environment/island/biome_props/review/crop_audit.json). Old cuts: `to_delete/biome_props_fixed_grid_cuts_2026-11-02/`.
 
 `tools/cut_biome_props.mjs` uses object regions, not assumed 512px cells. `tools/import_biome_props.mjs` requires schema v2 and explicit trimmed-image ground anchors; it no longer subtracts trim offsets from already-local anchors. All 57 runtime PNGs match source cuts, metadata dimensions/anchors match, and no opaque pixels touch extraction boundaries. JS syntax and JSON checks passed; full gameplay/performance regression testing is not claimed.
 
@@ -429,7 +429,7 @@ Implemented (2026-11-03): wet v2, dry v1 and snow v1 are imported as byte-identi
 
 `game/data/coastline.json`, pure `game/src/world_coast.js`, `render/coastline.js` and shader/main/world-ground wiring fit mitered continuous ribbons to the exact authoritative 50-unit terrain ocean border. Rendering blends local wet/dry/snow materials and repeat phases, feathers land/water edges, fades harbors, excludes lakes/cliffs/river mouths, and disposes streamed chunk geometry/materials. The original ribbon import left collision unchanged; P3 now shares rounded ocean geometry with terrain and movement. See the finishing status below.
 
-P3/P4 complete (Tim, 2026-11-03): coast rounding/blending, diagonal-seam removal, water reflection/surface/depth/foam/caustics and inland banks accepted. Coastal cliffs/dry-range playtest passed. [Water record](environment/island/water_surface_plan.json) owns details. Old paused checkpoint is archived under to_delete/.
+P3/P4 complete (2026-11-03): coast rounding/blending, diagonal-seam removal, water reflection/surface/depth/foam/caustics and inland banks accepted. Coastal cliffs/dry-range playtest passed. [Water record](environment/island/water_surface_plan.json) owns details. Old paused checkpoint is archived under to_delete/.
 
 Clustering is implemented for 28 families and visually accepted; current-world performance seems good. Representative-load cost with mobs/camps remains open. [Clustering record](environment/island/groundcover_clustering_plan.json) owns the implementation and tuning.
 

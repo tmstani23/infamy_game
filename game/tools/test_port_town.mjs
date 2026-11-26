@@ -64,7 +64,7 @@ assert.ok(g.nav.free(hx, hz), 'hero starts on open ground');
   const den = g.civilians.spots.find(p => p.id === 'den');
   const path = [[hx, hz], ...g.nav.findPath(hx, hz, den.x, den.z)];
   // the quarter wall: south side z 13 with the gate (x 25.6-30.4), west x 6 and east x 51 sides
-  // with a side opening at z 29.5-34.7 (Tim 2026-10-21, c6c8653)
+  // with a side opening at z 29.5-34.7 (2026-10-21, c6c8653)
   let gate = false;
   for (let i = 1; i < path.length; i++) {
     const [ax, az] = path[i - 1], [bx, bz] = path[i];

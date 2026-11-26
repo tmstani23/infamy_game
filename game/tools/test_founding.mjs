@@ -35,17 +35,17 @@ g.step([{ id: hero.id, type: 'hire', business: hq.id, unit: 'settler' }]);
 assert.equal(clan.queue.length, 0, 'E1: no settlers at HQ any more');
 const office = Object.values(g.state.businesses).find(b => b.kind === 'land_office');
 Object.assign(hero, { place: 'street', x: office.ring[0], z: office.ring[1] });
-// no settlers before a founding permit (Tim 2026-11-10)
+// no settlers before a founding permit (2026-11-10)
 g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler' }]);
 assert.equal(clan.queue.length, 0); assert.match(clan.notice?.text || '', /founding permit first/);
 clan.permit = true;
 const crewBefore = g.clans.crewCount('player'), ryoBefore = clan.ryo;
 for (let i = 0; i < 5; i++) g.step([{ id: hero.id, type: 'hire', business: office.id, unit: 'settler' }]);
-assert.equal(clan.queue.length, 0, 'they sign up at once (Tim 2026-11-20)');
+assert.equal(clan.queue.length, 0, 'they sign up at once (2026-11-20)');
 assert.equal(clan.ryo, ryoBefore - 5 * U.types.settler.price, 'flat price each');
 assert.equal(g.clans.hirePrice('player', 'settler'), U.types.settler.price, 'price does not climb');
 for (let i = 0; i < 1300 && (clan.settlersWaiting || 0) < 5; i++) g.step([]);
-assert.equal(clan.settlersWaiting, 5, 'settlers wait safely at the HQ (Tim 2026-11-06)');
+assert.equal(clan.settlersWaiting, 5, 'settlers wait safely at the HQ (2026-11-06)');
 assert.equal(g.clans.settlersOf('player').length, 0, 'no settler units in the city');
 assert.equal(g.clans.crewCount('player'), crewBefore, 'settlers are not crew');
 // the gate turns them into units beside the hero (test_land_office); here they are placed directly
@@ -56,7 +56,7 @@ assert.equal(settlers.length, 5);
 assert.equal(g.clans.crewOf('player').filter(u => u.type === 'settler').length, 0);
 for (const u of settlers) u.order = { kind: 'follow', target: hero.id };
 assert.ok(!settlers[0].deployment, 'settlers are outside the deployment groups');
-// Regression (Tim 2026-11-05): right-clicking with settlers and crew selected while deployment rules are on
+// Regression (2026-11-05): right-clicking with settlers and crew selected while deployment rules are on
 // must not crash ("u.deployment is undefined"); settlers count as the hero group.
 {
   const restricted = g.state.deployment.restrictionsEnabled;
@@ -107,7 +107,7 @@ assert.ok(town.traits.soil >= 1 && town.traits.soil <= 3 && town.traits.water >=
 assert.deepEqual(town.buildings.map(b => b.type), ['town_hall']); assert.equal(town.housing, 6);
 assert.deepEqual(town.projects, [], 'founding leaves the next construction choice to the player');
 assert.equal((town.workerTraining?.length || 0) + (town.workers?.length || 0), frontier.founding.startWorkers, 'economy pass 2: new towns start with free workers');
-assert.ok(town.grid && town.roadReserve === 2, 'new town reserves a road ring one cell out from the hall (Tim 2026-11-21)');
+assert.ok(town.grid && town.roadReserve === 2, 'new town reserves a road ring one cell out from the hall (2026-11-21)');
 assert.ok(town.stock.ryo >= frontier.workers.cost, 'starter stock can train the first worker');
 assert.equal(town.buildings[0].cell, (town.grid.n * town.grid.n - 1) / 2, 'town hall takes the centre cell');
 assert.notDeepEqual(townSlot(0), townSlot(1)); assert.equal(new Set([...Array(40).keys()].map(i => townSlot(i).join())).size, 40, 'slots are all different');
@@ -116,7 +116,7 @@ g.frontier.world.checkInvariants();
 const after = snap(); put(plain[0] + 400, plain[1]);
 hero.owner = 'player'; settlers.forEach(u => { u.dead = false; g.state.entities[u.id] = u; }); clan.permit = true;
 const r2 = found(); assert.ok(r2 && !r2.ok && /Too close to/.test(r2.reason), r2?.reason);
-// Tim 2026-11-06: the capital keeps only capitalSpacing (600), not the 1600 between towns
+// 2026-11-06: the capital keeps only capitalSpacing (600), not the 1600 between towns
 {
   const C = world.capital, gap = frontier.founding.capitalSpacing, at = (dx, dz) => { put(C.x + dx, C.z + dz); return g.frontier.founding.check(hero, undefined, { x: C.x + dx, z: C.z + dz }).reason || ''; };
   assert.ok(gap < frontier.founding.minSpacing, 'capital gap is the smaller one');

@@ -1,4 +1,4 @@
-// Frontier weather picker (src/weather_pick.js, visual only, Tim 2026-11-20).
+// Frontier weather picker (src/weather_pick.js, visual only, 2026-11-20).
 // Run: node tools/test_weather.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
@@ -44,7 +44,7 @@ for (let i = 0; i < 400; i++) w = easeWeather(w, b, 0.5, 12);
 assert.equal(w.tint, 'dust');
 assert.ok(Math.abs(w.fog - 0.55) < 0.01 && Math.abs(w.wind.speed - 2) < 0.01);
 
-// fog on about one night in six, at random, so runs of fog or of clear nights happen (Tim 2026-11-20, halved 2026-11-21)
+// fog on about one night in six, at random, so runs of fog or of clear nights happen (2026-11-20, halved 2026-11-21)
 for (const b of Object.keys(cfg.biomes)) {
   let foggy = 0; for (let d = 1; d <= 1000; d++) if (pickWeather(cfg, b, d, true).fog > 0) foggy++;
   assert.ok(foggy > 120 && foggy < 230, `${b}: fog on ${foggy} of 1000 nights`);

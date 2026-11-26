@@ -1,7 +1,7 @@
 {
   "version": 2,
   "date": "2026-11-03",
-  "status": "MR1 revision: L1/L2 shapes approved by Tim; mountains/river revised toward fewer asymmetric bends and irregular shoulders, awaiting confirmation.",
+  "status": "MR1 revision: L1/L2 shapes approved; mountains/river revised toward fewer asymmetric bends and irregular shoulders, awaiting confirmation.",
   "coordinates": "World x east, z south; range knots [x,z,halfWidth]. Smooth interpolated corridors with explicit taper; lake outline control points.",
   "baseline": "reshape_baseline_v1.json",
   "preservation": "All source/mouth/ford/pass anchors and authored locations remain fixed in this proposal. Mountain clearances reserved around protected points; final terrain/routes/nav verification belongs to MR2-MR4.",
@@ -467,7 +467,7 @@
       ]
     ]
   },
-  "lakeShapeApproval": "Tim 2026-11-03: L1 and L2 look good. Preserve these exact outline control points.",
+  "lakeShapeApproval": "2026-11-03: L1 and L2 look good. Preserve these exact outline control points.",
   "spurs": [
     {
       "parent": "R1",

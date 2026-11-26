@@ -1,4 +1,4 @@
-// Usage page model (Tim 2026-11-05 redesign). Pure and read-only: turns a town record into the rows
+// Usage page model (2026-11-05 redesign). Pure and read-only: turns a town record into the rows
 // the town panel's Usage page draws. Per-minute rates come from s.flow (flow.js); one-time costs and
 // map focus points come from resourceUsage (resource_usage.js).
 import { resourceUsage } from './resource_usage.js';

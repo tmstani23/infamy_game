@@ -23,7 +23,7 @@ export function chainWeightPose(phase,attacking){
 // Verlet integration + position-based distance constraints. The exporter samples
 // animated hand anchors in chronological order, then reuses this track for 8 views.
 // anchorAt may return {pin, belt}: out of attacks the weight hangs from the belt
-// (Tim 2026-11-01) and the slack chain is coiled into the weight; attacks cast
+// (2026-11-01) and the slack chain is coiled into the weight; attacks cast
 // from the belt and return to it.
 export function bakeChainTrack({duration,anchorAt,attacking=true,hz=240,links=CHAIN_LINKS,length=CHAIN_LENGTH}){
  const count=links,step=length/(count-1),dt=1/hz,points=[],previous=[];

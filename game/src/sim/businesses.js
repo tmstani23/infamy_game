@@ -88,7 +88,7 @@ export function createBusinesses({ state, units, clans, campaignCity = null, pay
     const cooldown = modeRules(state).campaignCity ? campaignCity?.raidCooldownDays ?? 0 : 0;
     if (cooldown && b.raidedDay != null && (state.clock?.day ?? 1) - b.raidedDay < cooldown) return { ok: false, why: `Raided lately: safe for ${cooldown - ((state.clock?.day ?? 1) - b.raidedDay)} more day(s)` };
     if (!state.night) return { ok: false, why: 'Raid at night' };
-    if (clan && state.raidsTonight?.[clan.id]?.includes(b.owner)) return { ok: false, why: `Already raided ${state.clans[b.owner]?.name || 'them'} tonight` };   // once per rival per night (Tim 2026-10-30)
+    if (clan && state.raidsTonight?.[clan.id]?.includes(b.owner)) return { ok: false, why: `Already raided ${state.clans[b.owner]?.name || 'them'} tonight` };   // once per rival per night (2026-10-30)
     if (!able(e) || !clan || !canInteract(leader(clan.id))) return { ok: false, why: 'Your clan cannot raid now' };
     if (clan.kind === 'ninja') return { ok: false, why: 'Shinobi do not capture businesses' };
     if (!(clan.lanterns > 0)) return { ok: false, why: 'Needs a War Lantern (moneylender)' };
@@ -111,7 +111,7 @@ export function createBusinesses({ state, units, clans, campaignCity = null, pay
 
   // Doors: raiders wait out the warm-up outside; once open, at most maxCrewInside of their crew inside
   function entryStatus(e, place) {
-    // a clan's home hideout is closed to every other clan (Tim 2026-10-20); the police can still follow in
+    // a clan's home hideout is closed to every other clan (2026-10-20); the police can still follow in
     const home = Object.values(state.businesses).find(b => b.room === place && b.hideout);
     const a = Object.values(state.attacks).find(a => a.mode === 'raid' && a.phase !== 'over' && a.room === place && a.clan === e.owner);
     if (home && state.clans?.[e.owner] && home.hideout !== e.owner
@@ -229,7 +229,7 @@ export function createBusinesses({ state, units, clans, campaignCity = null, pay
       delete state.attacks[a.business];
       return;
     }
-    // the attack's heat is set once, win or lose (fighting the waves gives none, Tim 2026-10-19)
+    // the attack's heat is set once, win or lose (fighting the waves gives none, 2026-10-19)
     const want = a.heatBefore + A.heatAfterLoss;
     addHeatGain(clan.id, want - (clan.heat || 0), 'Failed attack');
     clan.heat = want;
@@ -250,11 +250,11 @@ export function createBusinesses({ state, units, clans, campaignCity = null, pay
       }
       else if (won) { clans.setOwner(b.id, clan.id); say(clan, `The ${name(b)} is yours`); const d = state.clans[a.defender]; if (d) say(d, `You lost the ${name(b)}`); }
       else say(clan, `Raid on the ${name(b)} failed: ${why}`);
-      // every clan hears about a won raid (Tim 2026-10-26): "X successfully raided Y's HQ / teahouse"
+      // every clan hears about a won raid (2026-10-26): "X successfully raided Y's HQ / teahouse"
       if (won) state.news.push({ kind: 'raidWon', business: b.id, raider: a.clan, defender: a.defender, hq: !!a.hq, name: name(b) });
     };
     if (b.owner !== a.defender) return end(false, 'it changed hands');
-    // the raiding boss going down doesn't end it (Tim 2026-10-20): during the warm-up only knocking
+    // the raiding boss going down doesn't end it (2026-10-20): during the warm-up only knocking
     // the War Lantern down does
     if (a.knock) {
       const k = a.knock, u = state.entities[k.by], def = state.clans[a.defender];
@@ -268,20 +268,20 @@ export function createBusinesses({ state, units, clans, campaignCity = null, pay
       } else k.hp = u.hp;   // healing doesn't count as a hit
     }
     // the doors open: the War Lantern burns out and the fight moves to the back room, where everyone is
-    // (Tim 2026-10-19: nobody inside can see a lantern out on the street); a.spot keeps where it stood
+    // (2026-10-19: nobody inside can see a lantern out on the street); a.spot keeps where it stood
     if (a.phase === 'warmup') {
       if (state.tick >= a.opensAt) { a.phase = 'hold'; a.spot = a.lantern; a.lantern = null; delete a.knock; a.away = 0; state.news.push({ kind: 'doorsOpen', business: b.id, raider: a.clan }); }
       return;
     }
     // once the doors are open: nobody of yours inside for leaveSeconds in a row = lost (the screen
-    // counts it down: get inside, Tim 2026-10-20)
+    // counts it down: get inside, 2026-10-20)
     const ours = Object.values(state.entities).filter(u => u.owner === a.clan && u.place === a.room && standing(u));
     a.away = ours.length ? 0 : a.away + 1;
     if (a.away > secs(RD.leaveSeconds)) return end(false, 'nobody got inside');
     const theirs = Object.values(state.entities).filter(u => u.owner === a.defender && u.place === a.room && standing(u));
     const inZone = list => list.some(u => Math.hypot(u.x - a.hold.x, u.z - a.hold.z) <= a.hold.r);
     a.holding = inZone(ours) && !inZone(theirs);
-    // alerts (Tim 2026-10-19): raiders step onto the back-room spot, or the owner's side steps in to contest it
+    // alerts (2026-10-19): raiders step onto the back-room spot, or the owner's side steps in to contest it
     const zone = inZone(ours) ? (inZone(theirs) ? 'contested' : 'taking') : 'empty';
     if (zone !== 'empty' && zone !== a.zone) state.news.push({ kind: 'backRoom', state: zone, business: b.id, raider: a.clan, defender: a.defender });
     a.zone = zone;
@@ -331,7 +331,7 @@ export function createBusinesses({ state, units, clans, campaignCity = null, pay
     if (!spawn || (!guardCount && !G.hideoutCount)) return;
     const all = Object.values(state.entities).filter(e => e.guard);
     for (const b of Object.values(state.businesses)) {
-      // hideouts get their own guards too, patrolling the room (Tim 2026-10-20 harder steal):
+      // hideouts get their own guards too, patrolling the room (2026-10-20 harder steal):
       // clan.hideoutGuards (bot difficulty) or houseGuards.hideoutCount
       if (!R[b.kind] && !b.hideout) continue;
       const n = b.hideout ? (state.clans?.[b.owner]?.hideoutGuards ?? G.hideoutCount ?? 0) : guardCount;
@@ -387,7 +387,7 @@ export function createBusinesses({ state, units, clans, campaignCity = null, pay
     if (!e.guard && e.order?.garrison && e.place !== 'street') patrol({ room: e.place }, [e]);
   }
 
-  // Diminishing payouts (settings.json payouts, Tim 2026-10-30): each clan's fullCount best-paying
+  // Diminishing payouts (settings.json payouts, 2026-10-30): each clan's fullCount best-paying
   // businesses pay full, each one after pays step less than the one before, never below floor
   const DIM = units?.rules?.payoutDiminish;
   function payoutRanks() {

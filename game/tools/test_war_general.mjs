@@ -1,4 +1,4 @@
-// War checkpoint 8d-1 (Tim 2026-11-15): the bot general's core.
+// War checkpoint 8d-1 (2026-11-15): the bot general's core.
 // (sim/frontier/war_general.js, sim/war_general_brain.js, save.js makeBots)
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -15,7 +15,7 @@ const options = () => ({ district: data('data/port_town.json'), catalog: data('d
   units: U, civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
   settings: data('data/settings.json'), world, worldChunks: data('data/world_chunks.json'), resourceSpots: data('data/world_spots.json'), resourceSpotRules: data('data/resource_spots.json'), frontier: frontierData() });
 
-// the general builds only from a town's safety fund (Tim 2026-11-21, fund.js); scene towns have no income, so a test fills it (his look trims it to his list)
+// the general builds only from a town's safety fund (2026-11-21, fund.js); scene towns have no income, so a test fills it (his look trims it to his list)
 const fill = s => { s.fund = { pct: 10, timber: 6000, stone: 6000, ryo: 3000, cap: { timber: 6000, stone: 6000, ryo: 3000 }, next: '' }; };
 function scene(seed = 47, tune = null) {
   const o = options(); tune?.(o.frontier);
@@ -190,7 +190,7 @@ function scene(seed = 47, tune = null) {
   assert.notEqual(brainR.view().wars[w.id].defender.mode, 'sortie', 'outmatched: no sally');
   assert.ok(brainR.view().wars[w.id].defender.rest > S.tick, 'and a rest before the next');
   for (const e of big) e.hp = 0, e.dead = true;
-  // Tim 2026-11-17: at its troop cap with ryo to train more, the town puts up supply tents (more than its list names)
+  // 2026-11-17: at its troop cap with ryo to train more, the town puts up supply tents (more than its list names)
   const tents = () => town.buildings.filter(b => b.type === 'supply_tents').length + (town.projects || []).filter(p => p.type === 'supply_tents').length;
   const listed = want.build.filter(x => x === 'supply_tents').length, cap0 = g.frontier.war.defense.troopCap(w.id);
   n = 0;
@@ -205,7 +205,7 @@ function scene(seed = 47, tune = null) {
     const ruin = town.buildings.find(b => b.type === 'watchtower' && b.stage === 'ruined');
     assert.ok(ruin, 'a watchtower is knocked down');
     for (const r of ['timber', 'stone', 'goods']) town.stock[r] = Math.max(town.stock[r] || 0, 900);
-    // Tim 2026-11-24 (replaces 2026-11-17): no Rebuild in a war; the general places a new one from scratch instead
+    // 2026-11-24 (replaces 2026-11-17): no Rebuild in a war; the general places a new one from scratch instead
     const fresh = () => (town.projects || []).some(p => p.type === 'watchtower' && !p.replaces) || towers() >= before;
     n = 0;
     while (!fresh() && n++ < 60) t.run(20);
@@ -293,7 +293,7 @@ function scene(seed = 47, tune = null) {
     assert.ok(plot.length >= 6 && !s.milPlot.player, 'the general reserved a military quarter');
     assert.ok(mil.length >= 1 && mil.every(x => (x.cells || [x.cell]).some(c => plot.includes(c))), 'and builds inside it');
     assert.ok([...s.grid.zone].every((c, k) => c !== 'm' || plot.includes(k)), 'one block only'); }
-  // the player erased the quarter: it is not painted again and nothing is built. Tim 2026-11-22: the fund keeps what
+  // the player erased the quarter: it is not painted again and nothing is built. 2026-11-22: the fund keeps what
   // it has (the share is always set aside, whatever he is saving for; a share of 0 hands it back, above)
   { const u = scene(), s = u.S.frontier.settlements.tP; fill(s); Object.assign(s.fund, { timber: 300, stone: 300, ryo: 300 }); Object.assign(s.stock, { timber: 100, stone: 100 }); s.milPlot = { tier: 1, cells: [1], road: [], erased: true }; s.autoBuild = true; u.run(1300);
     assert.ok(!s.grid.zone.includes('m') && ![...s.projects, ...s.buildings].some(x => isMil(x.type)), 'erased: no quarter, no building');
@@ -374,7 +374,7 @@ function scene(seed = 47, tune = null) {
   assert.equal(brain.view().wars[w.id].attacker.fort, true, 'the camp digs in when the fight draws out');
   assert.ok(w.camp.buildings.some(b => b.type === 'watchtower'), 'a watchtower'); assert.ok(w.camp.buildings.some(b => b.type === 'palisade'), 'and a palisade');
   console.log('ok pack by tier, specials, dug in');
-  // Tim 2026-11-17: at its troop cap with ryo to train more, the camp puts up supply tents before the rest of its plan
+  // 2026-11-17: at its troop cap with ryo to train more, the camp puts up supply tents before the rest of its plan
   { const tune2 = f => { tune(f); const G = f.war.general; G.attack.packByTier[1] = { ryo: 2400, timber: 330, stone: 100 }; G.attack.fortify.afterSeconds = 1e6; G.buildOn = [];
       G.strategies.rush.attack.build = ['barracks', 'stockade']; G.strategies.rush.attack.mix = { grunt: 1 }; G.strategies.rush.attack.pushAt = 99; };
     const t2 = scene(47, tune2), x2 = set(t2), War2 = t2.g.frontier.war;
@@ -387,7 +387,7 @@ function scene(seed = 47, tune = null) {
     assert.equal(x2.brain.view().wars[w2.id].attacker.want?.timber, t2.o.frontier.war.buildings.stockade.cost.timber, 'it saves for the stockade (ordered by train once linked)'); }
   console.log('ok supply tents on demand');
 }
-// ---- 8d-9: the stockade as a fortress (Tim 2026-11-16): generals build it, ranged troops hold it and shoot out ----
+// ---- 8d-9: the stockade as a fortress (2026-11-16): generals build it, ranged troops hold it and shoot out ----
 {
   const F0 = frontierData(), ST = F0.war.general.strategies, cnt = l => (l || []).filter(x => x === 'stockade').length;
   assert.deepEqual(['siege', 'raider', 'rush'].map(k => cnt(ST[k].defend.build)), [3, 1, 0], 'Siege every stockade, Raider one, Rush none');
@@ -488,7 +488,7 @@ function scene(seed = 47, tune = null) {
   assert.ok(siege().length || queued(), 'siege guns are trained');
   console.log('ok siege answer, plan before pushes');
 }
-// ---- finish 8e (Tim 2026-11-17): a general's temperament, and early pushes before its list is built ----------------
+// ---- finish 8e (2026-11-17): a general's temperament, and early pushes before its list is built ----------------
 {
   // the roll: seeded per war and side, kept on the war, odds by strategy
   const t0 = scene(47), Gen = t0.g.frontier.warGeneral;
@@ -549,7 +549,7 @@ function scene(seed = 47, tune = null) {
   const ot = orders().find(o => o.kind === 'ryo' && o.war === w.id && o.state === 'open');
   assert.ok(ot && ot.from === 'capital' && ot.auto, 'treasury order: ' + JSON.stringify(ot));
   assert.ok(ot.amount <= (5000 - 1000) * t.o.frontier.war.supply.autoShare, 'within the daily share');
-  // Tim 2026-11-17: and one from the town coffers beside it, sized to what the camp can spend (never under refill)
+  // 2026-11-17: and one from the town coffers beside it, sized to what the camp can spend (never under refill)
   for (k = 0; k < 20 && !orders().some(o => o.kind === 'ryo' && o.war === w.id && o.state === 'open' && !o.auto); k++) t.run(20);
   const oc2 = orders().find(o => o.kind === 'ryo' && o.war === w.id && o.state === 'open' && !o.auto);
   assert.ok(oc2 && oc2.from === 'tR' && oc2.amount >= t.o.frontier.war.supply.refill, 'coffers order beside the treasury order: ' + JSON.stringify(oc2));
@@ -570,7 +570,7 @@ function scene(seed = 47, tune = null) {
   const od = orders().find(o => o.kind === 'ryo' && o.owner === 'player');
   assert.ok(od && od.defend && od.auto && od.to === 'tP', 'defending chest order: ' + JSON.stringify(od));
   assert.ok(S.clans.player.ryo >= 1000, 'the treasury keeps its keep line');
-  // Tim 2026-11-17: the player's defending general also pulls ryo by train from his other towns, never below each town's keep line
+  // 2026-11-17: the player's defending general also pulls ryo by train from his other towns, never below each town's keep line
   const site2 = t.sites.find(x => [tP, tR].every(s => Math.hypot(x.x - s.x, x.z - s.z) > 900));
   g.frontier.world.addTown({ id: 'tP2', name: 'tP2', owner: 'player', x: site2.x, z: site2.z, pop: 14, founded: true, tier: tP.tier,
     stock: { food: 5000, ryo: 2000, timber: 1000, stone: 1000, goods: 0 }, buildings: [{ type: t.o.frontier.founding.townHall, stage: 'built', cell: 0 }] });
@@ -588,7 +588,7 @@ function scene(seed = 47, tune = null) {
   if (!Object.values(S.entities).some(e => e.warTroop === w.id && e.owner === rival && !e.dead)) War.spawnTroop(w, 'grunt', w.camp.x + 5, w.camp.z);
   for (k = 0; k < 30 && !w.armory?.attacker?.work; k++) t.run(20);
   assert.ok(w.armory?.attacker?.work, 'the general bought an armory upgrade');
-  // Tim 2026-11-17: a cut line is mended first (station, then sections); a ruin of a planned building is cleared and built over
+  // 2026-11-17: a cut line is mended first (station, then sections); a ruin of a planned building is cleared and built over
   const sec = w.camp.buildings.find(b => b.type === 'rail_section'); sec.stage = 'ruined';
   w.camp.chest = 3000; w.camp.stock.timber = 3000; w.camp.stock.stone = 3000;
   for (k = 0; k < 30 && sec.stage === 'ruined'; k++) t.run(20);
@@ -597,9 +597,9 @@ function scene(seed = 47, tune = null) {
   for (k = 0; k < 120 && w.camp.buildings.includes(bk); k++) t.run(20);   // (the section site and the supply tents it is short of come first: two sites at a time)
   assert.ok(!w.camp.buildings.includes(bk), 'the ruin is cleared');
   assert.ok(w.camp.buildings.some(b => b.type === 'barracks' && b.stage !== 'ruined' && b.x === at[0] && b.z === at[1]), 'a new barracks on its spot');
-  // Tim 2026-11-17: its own list done, the camp goes on: supply tents beyond the one it names, then general.buildOn
+  // 2026-11-17: its own list done, the camp goes on: supply tents beyond the one it names, then general.buildOn
   assert.ok(w.camp.buildings.filter(b => b.type === 'supply_tents' && b.stage !== 'ruined').length > 1, 'more supply tents after its list');
-  // Tim 2026-11-17: it counts as needed only what the next attack.supply.planAhead buildings of its plan cost, and sells the rest
+  // 2026-11-17: it counts as needed only what the next attack.supply.planAhead buildings of its plan cost, and sells the rest
   const brain = t.bots.find(b => b.config.clan === rival), am = () => brain.view().wars[w.id]?.attacker || {};
   const list = War.campBuildList(w.id), ahead = t.o.frontier.war.general.attack.supply.planAhead, up = t.o.frontier.war.hallUpgrade?.campCost || t.o.frontier.war.hallUpgrade?.cost || {};
   const most = r => list.map(x => x.cost?.[r] || 0).sort((a, b) => b - a).slice(0, ahead).reduce((a, b) => a + b, 0) + (up[r] || 0);

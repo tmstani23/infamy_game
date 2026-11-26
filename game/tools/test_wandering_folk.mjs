@@ -1,4 +1,4 @@
-// Wandering folk (world variety P2, Tim 2026-11-26, sim/wandering_folk.js): scenes come round the player's people out
+// Wandering folk (world variety P2, 2026-11-26, sim/wandering_folk.js): scenes come round the player's people out
 // on the island, out of sight; nobody can hit the folk; they react to who passes; shots, armies and war circles scatter
 // them; they go once nobody of the player's is near.
 // Run: node tools/test_wandering_folk.mjs
@@ -57,7 +57,7 @@ assert.ok(near > FOLK.rules.spawnRing[0] * 0.7, `out of sight when it comes (${n
 for (const sc of g.folk.scenes()) g.folk.end(sc.id);
 S.world.folk.rest = {};
 
-// on the move, a scene starts ahead of him, not behind (Tim 2026-11-26)
+// on the move, a scene starts ahead of him, not behind (2026-11-26)
 for (let k = 0; k < 4; k++) { S.world.folk.rest = {};
   const heading = k * Math.PI / 2, sc = g.folk.startScene('hermit', { x: hero.x, z: hero.z, heading });
   if (!sc) continue;
@@ -175,7 +175,7 @@ S.world.folk.rest = {};
 }
 // the peddler held up: real bandits round a trader nobody can hurt
 const peddler = () => { S.world.folk.rest = {}; const sc = g.folk.startScene('peddler', { x: hero.x, z: hero.z }); assert.ok(sc, 'a hold-up'); return sc; };
-// ride past: one of them cuts him down, they take his goods and go; he lies there and is no shop (Tim 2026-11-26)
+// ride past: one of them cuts him down, they take his goods and go; he lies there and is no shop (2026-11-26)
 { const sc = peddler();
   const v = S.entities[sc.victim], gang = sc.members.map(id => S.entities[id]).filter(e => e.owner === 'bandits');
   assert.equal(v.model, 'merchant');

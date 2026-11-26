@@ -1,4 +1,4 @@
-// The general's, governor's and lieutenant's logs (Tim 2026-11-22): sim/frontier/action_log.js and src/action_log_ui.js.
+// The general's, governor's and lieutenant's logs (2026-11-22): sim/frontier/action_log.js and src/action_log_ui.js.
 // Run: node game/tools/test_action_log.mjs
 import assert from 'node:assert/strict';
 import { logAct, generalLine, aName } from '../src/sim/frontier/action_log.js';

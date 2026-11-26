@@ -1,4 +1,4 @@
-// Special abilities of crew and war troops as the player sees them (war checkpoint 7-1, Tim 2026-11-12):
+// Special abilities of crew and war troops as the player sees them (war checkpoint 7-1, 2026-11-12):
 // which ability a unit has, when it is ready, the auto-cast switch and a cast asked for by the player.
 // The abilities themselves stay in their own modules (sim/diversion.js Charm, sim/rifleman.js Aimed Shot,
 // sim/taunt.js Taunt, sim/combat.js the Yumi archer's slowing arrow, sim/dogs.js Loose the dogs, sim/firebomb.js Fire bomb); they read two fields from the unit:
@@ -15,7 +15,7 @@ export const SPECIALS = {
   aimed: { name: 'Aimed Shot', targeted: true, has: u => !!u?.rifle, readyAt: e => e.rifle?.aim ? e.rifle.aim.until + 1 : e.rifle?.readyAt ?? 0 },   // aiming = busy until the shot
   taunt: { name: 'Taunt', targeted: false, has: (u, e) => e.type === 'yakuza_enforcer' || !!u?.taunt, readyAt: e => e.taunt?.readyAt ?? 0 },
   dogs: { name: 'Loose the dogs', targeted: true, has: u => !!u?.dogs, readyAt: e => e.dogsReadyAt ?? 0 },   // sim/dogs.js (7-3)
-  gatling: { name: 'Unload', targeted: true, has: u => !!u?.gatling, readyAt: e => e.gatReadyAt ?? 0 },   // sim/gatling.js (7-4, reworked Tim 2026-11-21)
+  gatling: { name: 'Unload', targeted: true, has: u => !!u?.gatling, readyAt: e => e.gatReadyAt ?? 0 },   // sim/gatling.js (7-4, reworked 2026-11-21)
   firebomb: { name: 'Fire bomb', targeted: true, has: u => !!u?.bomb, readyAt: e => e.bomb?.channel ? e.bomb.channel.until + 1 : e.bomb?.readyAt ?? 0 },   // sim/firebomb.js (7c-2)
   hamstring: { name: 'Slowing arrow', targeted: true, has: u => !!u?.projectile?.hamstring, readyAt: e => e.hamstringReadyAt ?? 0 },
   // ships S8 (sim/frontier/boarding.js): a warship with troops aboard boards an enemy ship; while it goes or fights the
@@ -23,7 +23,7 @@ export const SPECIALS = {
   board: { name: 'Board', targeted: true, noAuto: true, has: (u, e) => !!e.ship && e.warUnit === 'warship' && !e.board, readyAt: e => e.boardReadyAt ?? 0,
     able: (state, e) => !e.locked && !e.leave && e.sorder?.kind !== 'unload' && Object.values(state.entities).some(u => u.inShip === e.id && !u.dead) },
   breakoff: { name: 'Break off', targeted: false, noAuto: true, has: (u, e) => !!e.ship && !!e.board && e.board.role !== 'd', readyAt: e => e.board?.offAt ?? 0 },
-  // ships (Tim 2026-11-23): the guns as slots beside Board. Auto (default) = they pick their own targets as before;
+  // ships (2026-11-23): the guns as slots beside Board. Auto (default) = they pick their own targets as before;
   // off = they fire only when asked. A click aims the next volley (cannons) or the next bursts (Gatling) at the
   // target nearest the click (sim/frontier/ships.js). A ship has several of these, so its auto is per gun (e.gunAuto).
   broadside: { name: 'Broadside', targeted: true, ship: true, gun: 'broadside', has: (u, e) => !!e.ship && e.warUnit === 'warship', readyAt: e => e.gunAt?.broadside ?? 0,
@@ -60,7 +60,7 @@ export const autoOn = e => e?.autoCast !== false;
 export const nearerToCast = (req, a, b) => !Number.isFinite(req?.x) ? null : Math.hypot(a.x - req.x, a.z - req.z) <= Math.hypot(b.x - req.x, b.z - req.z) ? a : b;
 
 // { id: heroId, type: 'special', ability, units: [...], x?, z? }     cast: ONE of the listed units of the hero's clan that has it ready
-//                                    (one press, one caster, Tim 2026-11-12): the one nearest the spot; a targeted ability needs the spot,
+//                                    (one press, one caster, 2026-11-12): the one nearest the spot; a targeted ability needs the spot,
 //                                    an instant one takes it as the pointer's place (none given = the first listed). A unit on cooldown never queues.
 // { id: heroId, type: 'special', ability, units: [...], auto: bool } switch auto-cast for the listed units that have it
 export function specialCommand({ state, units }, hero, c) {
@@ -96,7 +96,7 @@ export function specialView({ state, units }, ability, ids) {
     const e = state.entities[id];
     if (!e || !usable(e) || !specialsOf(units, e).includes(ability)) continue;
     have++; if (S.ship ? gunAuto(e, ability) : autoOn(e)) auto++;
-    // a ship gun in a fight: its slot flashes red from its first shot until the ship has nothing left in reach (Tim 2026-11-24; ships.js s.fighting)
+    // a ship gun in a fight: its slot flashes red from its first shot until the ship has nothing left in reach (2026-11-24; ships.js s.fighting)
     if (S.ship && (S.gun === 'deckGatling' ? !!e.gat : now - (e.gunFired?.[S.gun] ?? -1e9) < (e.fighting ? 500 : 24))) firing++;
     const at = able(S, state, e) ? S.readyAt(e) : Infinity;
     if (at <= now) ready++; else next = Math.min(next, at);

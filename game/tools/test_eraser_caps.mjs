@@ -1,4 +1,4 @@
-// The eraser frees a building's tier cap (Tim 2026-11-07): for every building type a town hall tier limits
+// The eraser frees a building's tier cap (2026-11-07): for every building type a town hall tier limits
 // (frontier.json tiers.list[].placed), placing one uses a slot and erasing it, as a plan or finished, gives the
 // slot back. A new capped building type is covered here automatically; one the eraser cannot free fails.
 // Run: node game/tools/test_eraser_caps.mjs

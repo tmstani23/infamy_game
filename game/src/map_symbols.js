@@ -1,4 +1,4 @@
-// Map symbols (Tim 2026-11-23: "we shouldn't have any basic shapes"): every feature mark on the World map and the
+// Map symbols (2026-11-23: "we shouldn't have any basic shapes"): every feature mark on the World map and the
 // minimap drawn as a small old sea-chart symbol, iron-gall ink inside a pale paper halo so it reads on any ground,
 // with a touch of colour only where it carries meaning. No text, no glyph characters.
 //   site     a surveyor's stake with an ochre ribbon (faded = not scouted yet)

@@ -32,7 +32,7 @@ export function createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack,
     } else if (a.kind === 'rally') {
       for (const u of Object.values(state.entities)) {
         if (u.dead || !rally.buffEligible(e, u) || u.place !== e.place || Math.hypot(u.x - e.x, u.z - e.z) > a.radius) continue;
-        // heal over time (Tim 2026-10-19): a.heal in all, in healTicks equal parts, the first at once, then one a second
+        // heal over time (2026-10-19): a.heal in all, in healTicks equal parts, the first at once, then one a second
         const n = a.healTicks || 1;
         addBuff(u, 'rally', a.seconds, { boost: a.attackSpeed, heal: a.heal / n, ticksLeft: n, nextHeal: state.tick });
       }
@@ -42,7 +42,7 @@ export function createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack,
       // Shadow Step (Shinobi Q): gone in a puff, out again up to range toward the mouse; stops at
       // the first wall or water on the way, and he stays hidden
       // with a target (c.target: the one in the target frame) he can see within range, he steps onto it instead
-      // (Tim 2026-10-21: not the mouse), lands next to it with a sure crit, then auto attacks it
+      // (2026-10-21: not the mouse), lands next to it with a sure crit, then auto attacks it
       const ct = state.entities[c.target];
       const t = ct && fair(e, ct) && sees(e, ct) && Math.hypot(ct.x - e.x, ct.z - e.z) <= a.range + 1 ? ct : null;
       const grid = navOf(e.place), dx = aim ? aim[0] - e.x : 0, dz = aim ? aim[1] - e.z : 0, len = Math.hypot(dx, dz);
@@ -86,7 +86,7 @@ export function createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack,
         t.distracted = { x: sx, z: sz, lookX: x, lookZ: z, investigateTicks: secs(4), travelUntil: state.tick + secs(20), until: state.tick + secs(24) };
         delete paths[t.id];
       }
-      // ...and it is a scatter of caltrops (Tim 2026-10-20): every enemy close to it is slowed, bosses too
+      // ...and it is a scatter of caltrops (2026-10-20): every enemy close to it is slowed, bosses too
       if (a.snareRadius) for (const t of Object.values(state.entities))
         if (t.owner !== e.owner && !civ(t) && t.place === e.place && !t.dead && !t.downed && !t.jailed && Math.hypot(t.x - x, t.z - z) <= a.snareRadius)
           addBuff(t, 'snared', a.snareSeconds, { speed: a.snareSpeed });
@@ -94,7 +94,7 @@ export function createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack,
     } else if (a.kind === 'smoke') {
       // Smoke Bomb (Shinobi R): a cloud round him (radius, seconds); see blind() for what it does.
       // Every unit of his clan holds its attacks, hitting back too, until given a new order
-      // (Tim 2026-10-20), so nobody breaks stealth on his own
+      // (2026-10-20), so nobody breaks stealth on his own
       const cloud = { x: e.x, z: e.z, r: a.radius, place: e.place, clan: e.owner, hero: e.id, until: state.tick + secs(a.seconds), heal: a.heal || 0, fadeSeconds: a.fadeSeconds || 0 };
       (state.smokes ||= []).push(cloud);
       for (const u of Object.values(state.entities)) {
@@ -111,7 +111,7 @@ export function createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack,
       // bossShare of their current HP, rounded to whole HP without a finishing blow.
       const clan = state.clans?.[e.owner], tell = text => { if (clan) clan.notice = { tick: state.tick, text }; };
       if (!e.hidden || (!stealth.veiled(e) && (e.hiddenAt == null || state.tick - e.hiddenAt < secs(a.hiddenSeconds)))) return tell(`Assassinate: stay hidden ${a.hiddenSeconds} s first`);
-      // the target in the target frame first, else whoever is at the mouse; townsfolk and police too (Tim 2026-10-21)
+      // the target in the target frame first, else whoever is at the mouse; townsfolk and police too (2026-10-21)
       const inReach = u => u && fair(e, u) && Math.hypot(u.x - e.x, u.z - e.z) <= reachOf(e, u) + a.reach;
       const picked = inReach(state.entities[c.target]) ? state.entities[c.target] : null;
       let t = picked, bd = 2;
@@ -123,7 +123,7 @@ export function createHeroAbilities({ addBuff, civ, cop, damageScale, endAttack,
       if (!t) return tell('Assassinate: nobody in reach at the mouse');
       const remaining = Math.min(t.hp, Math.max(1, Math.round(t.hp * a.bossShare)));
       const dmg = t.type === 'hero' ? t.hp - remaining : t.hp;
-      // a quick lunge onto him first (Tim 2026-10-20: longer reach, so he strikes before he is spotted)
+      // a quick lunge onto him first (2026-10-20: longer reach, so he strikes before he is spotted)
       const fx = e.x, fz = e.z, tl = Math.hypot(t.x - e.x, t.z - e.z), stop = Math.max(0, tl - (a.landGap ?? 0.9)), grid = navOf(e.place);
       for (let i = 1, m = Math.ceil(stop / 0.25); grid && i <= m; i++) {
         const px = fx + (t.x - fx) / (tl || 1) * stop * i / m, pz = fz + (t.z - fz) / (tl || 1) * stop * i / m;

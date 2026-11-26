@@ -1,4 +1,4 @@
-// Rail ledger (rail shipments S5, Tim 2026-11-08/09). Tim 2026-11-23 (mock project files ledger_merge/mock_final.png):
+// Rail ledger (rail shipments S5, 2026-11-08/09). 2026-11-23 (mock project files ledger_merge/mock_final.png):
 // one ledger for the World map panel and the town card's Shipments, Ledger tab (that tab replaces the old Open tab).
 // Tabs Open / Delivered / Losses, pages (no scrollbars). Every open row has its status with a live countdown under it
 // (sim/frontier/ship_eta.js): TRAIN n (exact when it rides straight to the town), WAITING about ... (an estimate),
@@ -13,7 +13,7 @@ const cap1 = r => r[0].toUpperCase() + r.slice(1);
 // 42s, 2m 05s, 1h 04m
 export const clock = s => s == null ? '' : s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${Math.floor(s / 3600)}h ${String(Math.floor(s / 60) % 60).padStart(2, '0')}m`;
 
-export function createRailLedger({ game, data = null, inCard = false, head = true, here = 'This town' }) {   // inCard: inside the town card (no map glow); head false: no title line; here: the scope button's label (the camp station: This camp, Tim 2026-11-25)
+export function createRailLedger({ game, data = null, inCard = false, head = true, here = 'This town' }) {   // inCard: inside the town card (no map glow); head false: no title line; here: the scope button's label (the camp station: This camp, 2026-11-25)
   let tab = 'open', page = 0, sel = null, scope = 'town';
   const PAGE = inCard ? 5 : 6;
   const F = () => game.state.frontier || {};

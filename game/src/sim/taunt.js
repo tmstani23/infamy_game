@@ -1,4 +1,4 @@
-// Yakuza irezumi enforcer (Tim 2026-10-28): the Yakuza clan's special crew, on a par with the Shinobi
+// Yakuza irezumi enforcer (2026-10-28): the Yakuza clan's special crew, on a par with the Shinobi
 // geisha (sim/diversion.js) and the Kuroda rifleman (sim/rifleman.js).
 //  - Taunt is his "auto attack": every cooldownTicks he bellows at all visible enemy crew members or
 //    house guard within radius (first anyone hitting a weaker clanmate, then anyone near his clan, then

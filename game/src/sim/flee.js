@@ -1,4 +1,4 @@
-// Running away from a threat (geisha, rifleman; Tim 2026-10-28: geisha got stuck in trees).
+// Running away from a threat (geisha, rifleman; 2026-10-28: geisha got stuck in trees).
 // Picks one escape spot and keeps it for holdTicks instead of a new spot 5 steps ahead every tick
 // (a goal that moves every tick keeps the straight last leg of moveTo aimed through trees).
 // Spots with a clear straight line come first; otherwise any spot the walk grid can path to.

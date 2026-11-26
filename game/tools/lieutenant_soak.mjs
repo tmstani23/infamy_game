@@ -1,4 +1,4 @@
-// Lieutenant soak (Tim 2026-11-06): the player's boss goes out to the island at the start and stays away; the rival
+// Lieutenant soak (2026-11-06): the player's boss goes out to the island at the start and stays away; the rival
 // bots play as usual and the player's city runs on its lieutenant (today's standing orders, default budget).
 // Starts from a weak, average or strong city and prints every clan at each dawn, so you can see whether a city left
 // alone drifts toward the rivals, collapses or gets stripped. Headless, rules only.

@@ -1,7 +1,7 @@
-// Boats tied up at every castle dock, for the look only (Tim 2026-11-23: "1 fishing boat and coastal ship and sometimes
+// Boats tied up at every castle dock, for the look only (2026-11-23: "1 fishing boat and coastal ship and sometimes
 // a warship at the dock too, just as art though not usable"). The coastal ship is the ferry (render/ferry_ships.js);
 // this adds fishing boats (boat_river) along the sides, a cargo ship (ship_coastal) lying at anchor offshore, and on
-// some days a warship (ship_war) off one side (Tim 2026-11-23: "some fishing boats and a stalled cargo ship").
+// some days a warship (ship_war) off one side (2026-11-23: "some fishing boats and a stalled cargo ship").
 // Nothing in the sim: they cannot be selected or boarded. Placement: data/campaign_zones.json ship.berth.moored
 // (placeholders): fishing = [[across, along, turn], ...], cargo / war = [across, along] in dock positions
 // (src/dock_shape.js dockFrame: across 0..1, outside = the water beside the dock; along 0 at the land edge to 1 at the

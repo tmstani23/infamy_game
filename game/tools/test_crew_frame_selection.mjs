@@ -1,4 +1,4 @@
-// Crew frame selection (Tim 2026-10-30): gold box + dimming, "N selected" header, tabs 1-4,
+// Crew frame selection (2026-10-30): gold box + dimming, "N selected" header, tabs 1-4,
 // click = one member + target frame, Shift+click toggles, drag feedback and refused-drop flash. Node only.
 import assert from 'node:assert/strict';
 import { createGroupedCrew } from '../src/grouped_crew.js';
@@ -56,14 +56,14 @@ try {
   root.emit('drop', ev(harbor.children[0]));
   assert.deepEqual(sent.at(-1), { id: 'h', type: 'deployment', action: 'transfer', units: ['a', 'b'], to: 'nw' }, 'selected crew move together');
   for(const e of crew)e.deployment.group='nw';sel=[];g.update(crew,[],[]);
-  assert.equal(hero.style.display,'','the hero group always shows: the hero heads it (Tim 2026-11-15)');
+  assert.equal(hero.style.display,'','the hero group always shows: the hero heads it (2026-11-15)');
   assert.ok(hero.children[1].children.some(c=>c.dataset?.id==='h'&&c.classes.has('hero')&&!c.draggable),'the hero card: selectable, not draggable');
   assert.equal(harbor.style.display,'','the other group shows its crew');
   root.emit('dragstart',ev(pip('d')));
   assert.equal(hero.style.display,'block','the hero group is a drop target');
   root.emit('drop',ev(hero.children[0]));
   assert.deepEqual(sent.at(-1),{id:'h',type:'deployment',action:'transfer',units:['d'],to:'hero'},'one crew can transfer into an empty hero group');
-  // out on the frontier there is one group, Frontier crew: the hero first, then his crew, riders and war troops left out (Tim 2026-11-15)
+  // out on the frontier there is one group, Frontier crew: the hero first, then his crew, riders and war troops left out (2026-11-15)
   { for(const e of crew){e.deployment.group='hero';e.place='world';} S.h.place='world';
     crew[2].mounted=true;crew[2].ride={kind:'horse',horse:'hz'};S.hz={id:'hz',type:'horse',name:'Calico'};
     S.cav={id:'cav',owner:'player',type:'thug',place:'world',warTroop:'w1',cavalry:true,mounted:true,ride:{kind:'horse',horse:'hc'},hp:5,maxHp:5};

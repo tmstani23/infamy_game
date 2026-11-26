@@ -1,4 +1,4 @@
-// Camp storage + ox carts (Tim 2026-11-06). Run: node game/tools/test_camp_carts.mjs
+// Camp storage + ox carts (2026-11-06). Run: node game/tools/test_camp_carts.mjs
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createFrontier} from '../src/sim/frontier/frontier.js';
@@ -23,7 +23,7 @@ assert.ok(C.free===2 && C.max===3 && C.share===0.6 && C.maxLoad===150 && C.cap==
   assert.equal(b.carts[0].load.stone,150,'load capped at maxLoad');
   assert.equal(campFull(data,{store:{stone:400}}),true);assert.equal(campFull(data,{store:{stone:399}}),false);
   assert.ok(cartWorkerLimit(data,b,10)>=1);
-  // Tim 2026-11-07: carts waiting together at an empty camp never leave together (they drove on top of each other)
+  // 2026-11-07: carts waiting together at an empty camp never leave together (they drove on top of each other)
   const b2={id:'q2',type:'quarry',stage:'built',store:{}},s2={id:'t2',buildings:[b2]};
   for(let i=0;i<200;i++)stepCarts(s2,data,change,()=>[0,0],()=>[0,300]);
   assert.ok(b2.carts.every(c=>c.at==='camp'),'both wait at the empty camp');

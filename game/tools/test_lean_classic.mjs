@@ -1,4 +1,4 @@
-// Lean Classic (Tim 2026-11-05): main.js gives a Classic match no island data, so the sim builds no island
+// Lean Classic (2026-11-05): main.js gives a Classic match no island data, so the sim builds no island
 // areas, camps, gate or frontier. Checks that such a match runs, and that a Classic save made by an
 // older build (island data present) still loads and runs in the lean game.
 import assert from 'node:assert/strict';

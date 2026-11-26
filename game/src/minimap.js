@@ -74,7 +74,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     const t = game.territory, st = game.state;
     if (!t || !layers.territory) { const changed=turf!==null;turf=null;turfKey=null;return changed; }
     const tg = t.cellGrid(), vg = game.vision.grid(clan);
-    // a rival's area shows once you have seen its business (Tim 2026-10-19 rule for owner colours)
+    // a rival's area shows once you have seen its business (2026-10-19 rule for owner colours)
     const shown = tg.areas.map(a => a.clan === clan || !fogOn() || vg.explored[game.vision.cellOf(a.x, a.z)] === 1);
     const key = tg.areas.map((a, i) => `${a.business}:${a.clan}:${shown[i]}`).join(',');
     if (key === turfKey) return;
@@ -117,7 +117,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   function colorOf(e, me) {
     if (e.id === heroId) return ['#ffcd50', 3.4];
     if (e.owner === me) return ['#50d2c8', 2.4];
-    if (e.type === 'civilian' && e.folk) return ['#ffe9b0', 2.6];   // wandering folk (sim/wandering_folk.js): bigger warm paper dots, so a scene near you is noticed (Tim 2026-11-26)
+    if (e.type === 'civilian' && e.folk) return ['#ffe9b0', 2.6];   // wandering folk (sim/wandering_folk.js): bigger warm paper dots, so a scene near you is noticed (2026-11-26)
     if (e.type === 'civilian') return ['#ebe8dc', 1.5];
     if (e.cop || e.owner === 'police') return [policeMapColor(e, me, game.state), 2.4];
     if (e.wildlife) return (e.angry?.[me] ?? -1) > game.state.tick ? ['#ff4632', 2.2] : ['#c9b48a', 1.3];   // wild animals: small tan dots, red while a boar charges you
@@ -125,7 +125,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     return ['#ff4632', 2.6];
   }
 
-  // Island: turned to match the camera like the city map (Tim 2026-11-19); the World map (M) stays north up.
+  // Island: turned to match the camera like the city map (2026-11-19); the World map (M) stays north up.
   let islandImg = null, islandHits = [];
   // the painted atlas illustration (same file as the World map) replaces the flat terrain drawing once loaded
   let illustration = null;
@@ -167,7 +167,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   });
   canvas.addEventListener('mouseleave', () => { tipBox.style.display = 'none'; });
   const ISLAND_SPAN = 450;   // units from the middle of the minimap to its edge
-  // the island window pages (Tim 2026-11-10): it stays put until the camera nears an edge, then recentres on the camera
+  // the island window pages (2026-11-10): it stays put until the camera nears an edge, then recentres on the camera
   let islandC = null;
   function islandCentre() {
     const me = game.state.entities[heroId], cam = view.cameraXZ?.() || me, half = ISLAND_SPAN / islandZoom;
@@ -178,7 +178,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     return islandC;
   }
   const spotIndex = resourceSpots ? makeSpotIndex(resourceSpots) : null;
-  // castles (Tim 2026-11-20): the real castle ground from its town grid (sim/frontier/castle.js), one pixel a cell:
+  // castles (2026-11-20): the real castle ground from its town grid (sim/frontier/castle.js), one pixel a cell:
   // moat and harbour water, the yard, inner and keep terraces, land bridges, walls, gates, the dock and buildings.
   // Kept per castle and redrawn only when its grid changes (a wall broken or rebuilt)
   const CASTLE_COL = { water: [52, 92, 118], wall: [52, 46, 40], gate: [128, 88, 50], pier: [160, 122, 72], building: [92, 74, 56], ramp: [138, 122, 92], level: [[150, 140, 118], [176, 166, 140], [202, 192, 162]] };
@@ -215,7 +215,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   }
   function drawGuides(list, project, ps) {
     const q = (performance.now() / 1000) % 1.5 / 1.5, arrows = [];
-    guideHits = [];   // hover: what each edge arrow points to (Tim 2026-11-26)
+    guideHits = [];   // hover: what each edge arrow points to (2026-11-26)
     for (const [x, z, name, note] of list) {
       const [u, v] = project(x, z), ar = edgeArrow(u, v, size, 11 * ps);
       if (ar) { arrows.push(ar); guideHits.push([ar.u, ar.v, 10 * ps, name, note]); continue; }
@@ -228,7 +228,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     const me = game.state.entities[heroId], ic = islandCentre();
     if (!islandImg) islandImg = worldTerrainCache(world);
     const kk = size / 2 / ISLAND_SPAN * islandZoom;   // + / - zoom in on the island too
-    // turned like the camera (Tim 2026-11-19): screen right = x - z, screen down = x + z, so running down the screen moves down the minimap
+    // turned like the camera (2026-11-19): screen right = x - z, screen down = x + z, so running down the screen moves down the minimap
     const at = (x, z) => [size / 2 + ((x - ic.x) - (z - ic.z)) * S * kk, size / 2 + ((x - ic.x) + (z - ic.z)) * S * kk];
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, size, size);
@@ -252,7 +252,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     // corridors as faint trails, the city as an outline
     ctx.strokeStyle = 'rgba(90,70,45,.8)'; ctx.lineWidth = 1.2;
     for (const c of world.corridors) { ctx.beginPath(); c.points.forEach(([x, z], i) => { const [u, v] = at(x, z); if (i) ctx.lineTo(u, v); else ctx.moveTo(u, v); }); ctx.stroke(); }
-    // your railway lines (Tim 2026-11-07): laid track glows; the railhead is a dot
+    // your railway lines (2026-11-07): laid track glows; the railhead is a dot
     drawRailLines(ctx, game.state.frontier?.rail?.links, at, { width: 1.6, label: false, wars: game.state.frontier?.wars?.list, me: clan, clans: game.state.clans });
     for (const w of shoreWanted(game, game.state.entities[heroId]?.owner)) drawShore(ctx, shoreLine(world, w.box, w.water), at, 1.1 * Math.sqrt(islandZoom), 4.5);   // ships S6b: landable shore while your people are afloat
     const o = world.capital.cityOffset || {}, b = district.bounds, cx = world.capital.x + (o.x || 0), cz = world.capital.z + (o.z || 0);
@@ -261,7 +261,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     ctx.closePath(); ctx.stroke();
     // camps, ruins, caches, sites and nodes appear once you are close (within the minimap's reach)
     const reach = ISLAND_SPAN * Math.SQRT2 / islandZoom * 1.25, camps = state.world?.camps || {};
-    // fog of war (Tim 2026-11-10): other clans' units, camps and buildings show only where you currently see or have revealed
+    // fog of war (2026-11-10): other clans' units, camps and buildings show only where you currently see or have revealed
     const grid = game.state.world?.discovered?.[clan] ?? '0';   // enemy units are already cut to what you see by fog.seen (data/world_chunks.json sight)
     const revealed = f => (f.owner && f.owner === clan) || isDiscovered(world, grid, f.x, f.z);
     const nearAll = list => list.filter(f => Math.abs(f.x - ic.x) < reach && Math.abs(f.z - ic.z) < reach), near = list => nearAll(list).filter(revealed);
@@ -277,7 +277,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     for (const t of near(world.sites || [])) { const [u, v] = at(t.x, t.z); islandHits.push([u, v, 8, 'site', t, tipCtx]); drawMapSymbol(ctx, 'site', u, v, { scale: 0.9, faded: !tipCtx.scouted.includes(t.id) }); }
     for (const f of near(world.fords || [])) {   // bridges and fords
       const [u, v] = at(f.x, f.z); islandHits.push([u, v, 8, f.kind === 'bridge' ? 'bridge' : 'ford', f, tipCtx]);
-      drawMapSymbol(ctx, f.kind === 'bridge' ? 'bridge' : 'ford', u, v, { scale: 0.9 });   // ink chart symbols (Tim 2026-11-23)
+      drawMapSymbol(ctx, f.kind === 'bridge' ? 'bridge' : 'ford', u, v, { scale: 0.9 });   // ink chart symbols (2026-11-23)
     }
     for (const p of near(world.passes || [])) {   // mountain passes (the chart sign for a pass)
       const [u, v] = at(p.x, p.z); islandHits.push([u, v, 8, 'pass', p, tipCtx]);
@@ -287,7 +287,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       const [u, v] = at(c.x, c.z), done = camps[c.id]?.cleared; islandHits.push([u, v, 9, 'camp', c, tipCtx]);
       drawMapSymbol(ctx, ['ruin', 'cache'].includes(c.kind) ? c.kind : 'bandit', u, v, { scale: 0.95, faded: !!done });
     }
-    // major buildings of the towns (Tim 2026-11-07): lettered badges, name on hover; they show once you are close enough to tell
+    // major buildings of the towns (2026-11-07): lettered badges, name on hover; they show once you are close enough to tell
     if (islandZoom >= 0.6) for (const b of near(majorBuildings(game.state.frontier))) {
       const [u, v] = at(b.x, b.z); if (u < 0 || v < 0 || u > size || v > size) continue;
       drawBuildingBadge(ctx, u, v, b.letter, b.owner ? state.clans?.[b.owner]?.color : null, 8 + Math.min(4, (islandZoom - 1) * 2), b.military);
@@ -296,15 +296,15 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     for (const e of Object.values(state.entities)) {
       if (e.place !== 'world' || e.dead) continue;
       if(e.worker && e.workerOwner === me.owner)continue;   // yours are drawn below from the worker records
-      const [col, r] = e.worker ? ['#ff4632', 2.2] : colorOf(e, me.owner), [u, v] = at(e.x, e.z);   // an enemy worker in sight: a red dot (Tim 2026-11-12)
-      if (e.folk && e.type === 'civilian') {   // wandering folk: a soft halo that breathes about once a second, so the scene catches the eye (Tim 2026-11-26)
+      const [col, r] = e.worker ? ['#ff4632', 2.2] : colorOf(e, me.owner), [u, v] = at(e.x, e.z);   // an enemy worker in sight: a red dot (2026-11-12)
+      if (e.folk && e.type === 'civilian') {   // wandering folk: a soft halo that breathes about once a second, so the scene catches the eye (2026-11-26)
         const k = 0.5 + 0.5 * Math.sin(performance.now() / 180);
         ctx.beginPath(); ctx.arc(u, v, (r + 1.5 + 2.5 * k) * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = `rgba(255,233,176,${(0.12 + 0.3 * k).toFixed(3)})`; ctx.fill();
       }
       ctx.beginPath(); ctx.arc(u, v, r * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
-      ctx.lineWidth = 1; ctx.strokeStyle = e.warTroop && e.owner === me.owner ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.8)'; ctx.stroke();   // your war troops: a white rim (Tim 2026-11-12)
+      ctx.lineWidth = 1; ctx.strokeStyle = e.warTroop && e.owner === me.owner ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.8)'; ctx.stroke();   // your war troops: a white rim (2026-11-12)
     }
-    // your workers: town workers and war camp workers (Tim 2026-11-12: camp workers were missing)
+    // your workers: town workers and war camp workers (2026-11-12: camp workers were missing)
     const workerSites = [...Object.values(game.state.frontier?.settlements || {}).filter(s => s.owner === clan), ...Object.values(game.state.frontier?.wars?.list || {}).filter(w => w.attacker === clan && w.camp).map(w => w.camp)];
     for(const s of workerSites)for(const w of s.workers || []) {
       const p=workerLocation(w,game.state.entities);if(!p)continue;
@@ -314,9 +314,9 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     }
     // train robbery: your last down spot and your dropped chest, always shown (hover names them)
     for (const m of robberyMarks(game.state, clan)) { const [u, v] = at(m.x, m.z); if (u < 0 || v < 0 || u > size || v > size) continue; drawRobberyMark(ctx, m, u, v); islandHits.push([u, v, 8, 'building', { name: m.name }]); }
-    // your work camps over their max (Tim 2026-11-22): a numbered red diamond with a pulsing glow, as in the Workers view
+    // your work camps over their max (2026-11-22): a numbered red diamond with a pulsing glow, as in the Workers view
     { const t = performance.now(); for (const c of tiredCamps(game.state.frontier, clan)) { const [u, v] = at(c.x, c.z); if (u < 0 || v < 0 || u > size || v > size) continue; drawTiredCamp(ctx, u, v, c.num, t); islandHits.push([u, v, 9, 'building', { name: `${c.name}, ${c.townName}: ${c.extra} too many workers (${c.n} working, max ${c.max})` }]); } }
-    // goal pings and pins (Tim 2026-11-06 / 2026-11-20): gold pulse when in the box, a gold edge arrow when not
+    // goal pings and pins (2026-11-06 / 2026-11-20): gold pulse when in the box, a gold edge arrow when not
     drawGuides(guideTargets(true), at, 1);
     // what the camera sees (island coordinates)
     const corners = [[0, 0], [innerWidth, 0], [innerWidth, innerHeight], [0, innerHeight]].map(([x, y]) => view.screenToGround(x, y));
@@ -330,7 +330,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       ctx.beginPath(); ctx.arc(ox, oy, r + 5, 0, Math.PI * 2); ctx.fillStyle = 'rgba(10,20,27,.8)'; ctx.fill(); ctx.strokeStyle = '#6b5a38'; ctx.lineWidth = 1; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(ox + nx * r, oy + ny * r); ctx.lineTo(ox - ny * 6 - nx * 7, oy + nx * 6 - ny * 7); ctx.lineTo(ox + ny * 6 - nx * 7, oy - nx * 6 - ny * 7); ctx.closePath(); ctx.fillStyle = '#f3dfae'; ctx.fill();
       ctx.font = '700 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f3dfae'; ctx.fillText('N', ox + nx * (r + 11), oy + ny * (r + 11)); }
-    ctx.font = '700 13px Lantern, Georgia, serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = 'rgba(26,17,11,.88)'; ctx.fillRect(4, size - 24, 100, 20);   // lantern style wood plate (Tim 2026-11-23)
+    ctx.font = '700 13px Lantern, Georgia, serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = 'rgba(26,17,11,.88)'; ctx.fillRect(4, size - 24, 100, 20);   // lantern style wood plate (2026-11-23)
     ctx.fillStyle = '#f3dfae'; ctx.fillText(`World, ${gridLabel(ic.x, ic.z)}`, 10, size - 10);
   }
 
@@ -360,7 +360,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     ctx.restore();
     if (layers.deployment) overlay?.ground({ ctx, toMap, size, zoom, now: nowMs, dpr });
     // every business, as a letter, even under the fog so you can find them (W warehouse, T teahouse, D den, C clinic, P police)
-    // quarters (sim/territory.js, Tim 2026-10-20): a white dotted outline round each, its name in the middle
+    // quarters (sim/territory.js, 2026-10-20): a white dotted outline round each, its name in the middle
     // (big map); once one clan holds every business in it (and you can tell) the outline is in its colour
     if (game.territory && layers.territory) for (const q of game.territory.quarters) {
       const o = shownHolder(q), [x0, z0, x1, z1] = q.box;
@@ -381,7 +381,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       if (!letter) continue;
       if (b.kind.startsWith('police') ? !layers.police : !layers.businesses) continue;
       const [u, v] = toMap(b.x, b.z);
-      // once you have seen it, an owned business shows in its owner's colour (Tim 2026-10-19)
+      // once you have seen it, an owned business shows in its owner's colour (2026-10-19)
       const vg = game.vision.grid(clan), cell = game.vision.cellOf(b.x, b.z);
       const ownerColor = b.owner && (b.owner === clan || (cell >= 0 && vg.explored[cell])) ? state.clans?.[b.owner]?.color : null;
       ctx.fillStyle = ownerColor || 'rgba(0,0,0,.65)'; ctx.fillRect(u - bs / 2, v - bs / 2, bs, bs);
@@ -430,7 +430,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
         ctx.strokeStyle = `rgba(255,70,50,${(1 - q) * 0.9})`; ctx.lineWidth = 1.6; ctx.stroke();
       }
     }
-    // your active Shinobi contract (Tim 2026-10-27): a violet diamond on the target; when it is off
+    // your active Shinobi contract (2026-10-27): a violet diamond on the target; when it is off
     // the map's edge, an arrow on the edge points toward it
     const job = game.state.contracts?.active?.[clan];
     if (job) {

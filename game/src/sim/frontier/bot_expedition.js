@@ -1,4 +1,4 @@
-// Bot expeditions (frontier plan E6, Tim 2026-11-05). A rival bot founds its town with exactly the
+// Bot expeditions (frontier plan E6, 2026-11-05). A rival bot founds its town with exactly the
 // player's commands: buy a permit and hire settlers at the Land Office, walk to the island gate,
 // choose a site ('expedition'), then 'found' there. It leaves once the player has founded a first town
 // (or by founding.bots.fallbackDay), staggered staggerDays apart per bot, and only when it can pay for
@@ -28,11 +28,11 @@ export function createBotExpedition(game, { clan, hero, ai }) {
     return (c.permit ? 0 : (D.permit?.ryo || 0)) + missing * L.settlerPrice() + D.cost + (D.bots?.reserve ?? 0);
   };
   const due = () => L.botDue(clan, Math.max(0, order()));
-  // Tim 2026-11-11: a Yakuza or Kuroda bot holds bots.minBusinesses before it saves and leaves (it left with none and
+  // 2026-11-11: a Yakuza or Kuroda bot holds bots.minBusinesses before it saves and leaves (it left with none and
   // its capital stayed empty), for at most bots.businessWaitDays past its day
   const held = () => Object.values(state.businesses).filter(b => b.owner === clan && !b.hideout).length;
   const building = () => myClan().kind !== 'ninja' && held() < (D.bots?.minBusinesses ?? 0) && L.day() < L.botDay(Math.max(0, order())) + (D.bots?.businessWaitDays ?? 0);
-  // Tim 2026-11-17: it takes its Hero group along (2026-11-06), so it does not leave before that group holds at least
+  // 2026-11-17: it takes its Hero group along (2026-11-06), so it does not leave before that group holds at least
   // founding.bots.heroCrew standing crew; while it is short the city brain may hire (it is not saving)
   const heroCrew = () => Object.values(state.entities).filter(u => u.owner === clan && u.type !== 'hero' && u.type !== 'settler' && !u.dead && !u.downed
     && !u.guard && !u.warTroop && !u.captain && inHeroParty(game, u)).length;

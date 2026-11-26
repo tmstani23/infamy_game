@@ -1,8 +1,8 @@
 // Railway track on the island (train plan step 2): a ribbon along each of your links, drawn from its first
 // station up to how far the rail gang has got (link.built), with a plank deck under the rails where the line
-// crosses water. Painted seamless strips (Tim 2026-11-07): art/ground/rail_track.png and rail_bridge.png,
+// crosses water. Painted seamless strips (2026-11-07): art/ground/rail_track.png and rail_bridge.png,
 // copied from assets/concepts/mounts_vehicles/*_tile.png at half size, rails along the image. Reads the frontier view only (state.frontier.rail.links); never changes the sim.
-// Trains (Tim 2026-11-07): each car is a sprite from the Tencent models (train_engine, train_tender, train_carriage,
+// Trains (2026-11-07): each car is a sprite from the Tencent models (train_engine, train_tender, train_carriage,
 // train_goods, train_guard; 8 directions, wheels turning in 'run'), engine and tender first, then the train's
 // consist (data/railways.json train.consist), coupled end to end along the track. Without carSprite (or for a
 // car whose sheet has not loaded yet) the old code-built boxes stand in. Their position is predicted between
@@ -41,8 +41,8 @@ function ribbon(line, d0, d1, width, y) {
   return { geo, n };
 }
 
-// Tim 2026-11-07 (track looked pasted on): round the corners a few more times (render only). fade = share of the
-// width each side that fades out (0 = hard edges, as Tim preferred).
+// 2026-11-07 (track looked pasted on): round the corners a few more times (render only). fade = share of the
+// width each side that fades out (0 = hard edges, as preferred).
 function smoothLine(l, passes = 3) {
   let p = l.points;
   for (let n = 0; n < passes && p.length > 2; n++) {
@@ -61,7 +61,7 @@ function smoothLine(l, passes = 3) {
 
 function groundMaterial(tex, fade = 0) {
   const m = spriteMaterial(tex);
-  // the ballast edge fade was taken back out (Tim 2026-11-07: the track looked less 3D); fade 0 keeps hard edges
+  // the ballast edge fade was taken back out (2026-11-07: the track looked less 3D); fade 0 keeps hard edges
   if (fade > 0) m.fragmentShader = m.fragmentShader.replace('float a = t.a * uOpacity;', `float a = t.a * uOpacity * smoothstep(0.0, ${fade.toFixed(2)}, vUv.x) * smoothstep(1.0, ${(1 - fade).toFixed(2)}, vUv.x);`);
   m.fragmentShader = m.fragmentShader.replace('grade(t.rgb, vWorld, true, uSelfLight)', 'grade(t.rgb, vWorld, false, uSelfLight)');
   m.depthWrite = false; m.transparent = true; m.side = THREE.DoubleSide;
@@ -87,7 +87,7 @@ function carGeometries() {
   CARS = { engine: merge([engine, stack, dome, cab, buffer]), tender: shadedBox(2.2, 1.6, 3.2, 0x2a2622), carriage: shadedBox(2.4, 2.4, 6, 0x6b4630), wagon: shadedBox(2.4, 1.2, 5, 0x5a4a3a) };
   return CARS;
 }
-// Tim 2026-11-07 (train not sitting on the rails): everything here is drawn as sprites without a depth test, in the
+// 2026-11-07 (train not sitting on the rails): everything here is drawn as sprites without a depth test, in the
 // order render/draw_order.js gives them, and the track ribbon is one of those. So the cars are drawn the same way
 // (no depth test, back faces culled, so each box still looks solid) and take part in that sort as movers.
 const carMaterial = () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthTest: false, depthWrite: false });
@@ -130,10 +130,10 @@ function carPose(sp, dx, dz) {
   sp.row = row; sp.heading = a; sp.roll = Math.max(-MAX_ROLL, Math.min(MAX_ROLL, r));
 }
 
-// the painted blown-up stretch (Tim's art 2026-11-20, art/ground/rail_track_blown.png and _snow): 1024 x 1536, rails
+// the painted blown-up stretch (the art 2026-11-20, art/ground/rail_track_blown.png and _snow): 1024 x 1536, rails
 // 220 px apart, drawn over the gap while the line is repaired (sim/frontier/rail_blast.js)
 const BLOWN_W = 1024 / 220 * GAUGE, BLOWN_L = BLOWN_W * 1536 / 1024;
-export function createRailTrack({ scene, carSprite = null, hide = null, snow = null }) {   // snow(x, z): the snow biome, for the blown track art   // hide(x, z): behind the city wall, where cars are not drawn (Tim 2026-11-10)
+export function createRailTrack({ scene, carSprite = null, hide = null, snow = null }) {   // snow(x, z): the snow biome, for the blown track art   // hide(x, z): behind the city wall, where cars are not drawn (2026-11-10)
   let track = null, bridge = null; const blown = [null, null];
   const shown = new Map();   // link id -> { key, meshes: [{ mesh, d0, n }] }
   const mats = () => { track ||= groundMaterial(stripTexture('art/ground/rail_track.png')); bridge ||= groundMaterial(stripTexture('art/ground/rail_bridge.png')); };
@@ -144,7 +144,7 @@ export function createRailTrack({ scene, carSprite = null, hide = null, snow = n
     // ballast track everywhere except over the bridges (spans widened a little onto the banks)
     const spans = (l.bridges || []).map(([b0, b1]) => [Math.max(0, b0 - 3), Math.min(l.length, b1 + 3)]).sort((a, b) => a[0] - b[0]);
     const GAP = BLOWN_L - 0.4, holes = l0.gap == null ? spans : [...spans, [l0.gap * l.k - GAP / 2, l0.gap * l.k + GAP / 2]].sort((a, b) => a[0] - b[0]);   // no track across a blown gap
-    // each crew's stretch (laidStretches, Tim 2026-11-22) gets its own pieces, so each can show its own laid part
+    // each crew's stretch (laidStretches, 2026-11-22) gets its own pieces, so each can show its own laid part
     const cuts = (l0.starts || []).map(d => d * l.k).filter(d => d > 0.5 && d < l.length - 0.5);
     let from = 0;
     for (const [a, b] of [...holes, [l.length, l.length]]) {
@@ -220,14 +220,14 @@ export function createRailTrack({ scene, carSprite = null, hide = null, snow = n
       s.d += (predicted - s.d) * Math.min(1, dt * 8);
       // cars trail behind the engine, toward where it came from
       if (s.sprites) {
-        const moving = (t.wait ?? 0) <= 0 && !t.stopped, L = l.length * kk, head = s.d * kk + t.dir * NOSE;   // (stopped at a blown track: wheels still, Tim 2026-11-21)
+        const moving = (t.wait ?? 0) <= 0 && !t.stopped, L = l.length * kk, head = s.d * kk + t.dir * NOSE;   // (stopped at a blown track: wheels still, 2026-11-21)
         let eng = null, tail = null;
         for (const c of s.cars) {
           if (!c.sprite) continue;
-          // Tim 2026-11-07 (cars at odd diagonals, not coupled): each car rests on two bogies on the rails, so it sits on
+          // 2026-11-07 (cars at odd diagonals, not coupled): each car rests on two bogies on the rails, so it sits on
           // the chord between them and faces along it, like a real coupled car going round a curve
           const mid = head - t.dir * c.off;
-          // Tim 2026-11-07: a train in a station stands inside it with only the engine's nose out of the front; cars
+          // 2026-11-07: a train in a station stands inside it with only the engine's nose out of the front; cars
           // go in and come out at the station (SHED of track at each end), the engine shows once it faces out
           const in0 = mid < SHED, inL = mid > L - SHED, out = c.kind === 'engine' && ((in0 && t.dir > 0) || (inL && t.dir < 0));
           if ((in0 || inL) && !out) { c.sprite.thing.mesh.visible = c.sprite.shadow.visible = false; c.glow?.hide(); continue; }
@@ -310,22 +310,22 @@ export function createRailTrack({ scene, carSprite = null, hide = null, snow = n
   return { update, things, lights, focus, carSpots: () => carSpots, dispose };
 }
 
-// The capital's railway station (Tim 2026-11-07): a track out of the station's open east front over the edge of the city
+// The capital's railway station (2026-11-07): a track out of the station's open east front over the edge of the city
 // map, and the real trains of your lines to the capital, drawn as in a town station: they roll in from the edge, stand
 // inside with only the engine's nose out (steam, flashing badge, wait bar), then pull out with their cars off the edge.
 // The city stretch is drawn 1:1 with the line's distance from the capital end. Scenery only: no units move here.
 // Once you have founded a frontier town and while no clan's line reaches the capital, a scenery train (nobody can
-// board it) comes in every SCENERY.every seconds, stands, and leaves (Tim 2026-11-07); before that the station is empty.
+// board it) comes in every SCENERY.every seconds, stands, and leaves (2026-11-07); before that the station is empty.
 // createCityStation({ scene, carSprite, station: { x, z }, edgeX }) -> { update(frontier, show, dt, owner), things(), dispose() }
 const CITY_SHED = 4.6, CITY_NOSE = 4.6, CITY_RUN = 70;   // inside the station / the engine's middle standing / drawn track
 const SCENERY = { every: 240, stand: 40, speed: 18 };
 const LANE_GAP = TRACK_W + 0.4;      // seconds between scenery trains, seconds standing, units a second
-// Tim 2026-11-07: the station's open front faces east (port_town.json flip), the first line's track runs out through it;
+// 2026-11-07: the station's open front faces east (port_town.json flip), the first line's track runs out through it;
 // further lines get a siding along the station's north side, where their train stands idling in the open. SIDE_BACK: how far
 // west of the station's middle a siding starts (the telegraph office is beyond); SIDE_FIRST: the first siding off its middle.
 const SIDE_LANES = 3, SIDE_BACK = 34, SIDE_FIRST = 4.1 + 0.6 + TRACK_W / 2;
 export function createCityStation({ scene, carSprite, station, edgeX }) {
-  // one track (lane) per line to the capital, side by side, so trains standing at once never stack (Tim 2026-11-07)
+  // one track (lane) per line to the capital, side by side, so trains standing at once never stack (2026-11-07)
   const x1 = Math.max(station.x + 8, edgeX) + CITY_RUN, length = x1 - station.x, edgeU = Math.max(8, edgeX - station.x);
   const laneLine = i => { const back = i ? SIDE_BACK : 0, z = station.z - (i ? SIDE_FIRST + (i - 1) * LANE_GAP : 0), x0 = station.x - back;
     return { points: [[x0, z], [x1, z]], dist: [0, x1 - x0], length: x1 - x0, back }; };
@@ -371,7 +371,7 @@ export function createCityStation({ scene, carSprite, station, edgeX }) {
     setLanes(Math.max(1, capital.length));
     for (const l of lanes) l.mesh.visible = show;
     const founded = Object.values(frontier?.settlements || {}).some(t => t.owner === owner && t.founded);
-    if (show && founded && !capital.length) {   // dummy trains until a real line reaches the capital (Tim 2026-11-07)
+    if (show && founded && !capital.length) {   // dummy trains until a real line reaches the capital (2026-11-07)
       links.scenery = { done: true, from: 'capital', to: 'scenery', length: 1e4 };
       const st = sceneryTrain(); if (st) list.push(st);
     }

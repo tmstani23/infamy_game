@@ -3,13 +3,13 @@
 // facing toward fx, fz, the way render/campfire_fx.js lays its logs), and a night camp's fire ({ fire: true }: the campfire
 // art, its flames and its light). A fire put out (out = tick) loses its flames at once and its glow shrinks away over
 // emberSeconds. A scene's props go with the scene.
-// The hermit's brew going off ('folkPop' cast, Tim 2026-11-26): a white flash, a ring of sparks, and a cloud of coloured
+// The hermit's brew going off ('folkPop' cast, 2026-11-26): a white flash, a ring of sparks, and a cloud of coloured
 // smoke that billows up and drifts off, with a turning star in the flash, a ring of glitter and motes left winking in the
 // air; a big one throws more of everything, and the shrinking one winds glitter round him. Somewhat see-through. While he mixes, little
 // scrolls slip out of his sleeves, tumble off to either side and lie on the ground a while ('folkPaper').
 // createFolkFx({ scene, lights, artThing, emberSeconds }) -> { update(state, show, dt), cast(c), things() }
 //   artThing(prop): a new world-ground thing for an art name (render/world_ground.js), added to the scene here
-// Seat logs as render/campfire_fx.js lays them (Tim 2026-11-26): at the seat, always drawn behind the sitter, moved a little
+// Seat logs as render/campfire_fx.js lays them (2026-11-26): at the seat, always drawn behind the sitter, moved a little
 // toward what he faces when his back is to the camera; the sitter's lift and leg cut are campfire_fx.js SIT (render/view.js)
 import * as THREE from 'three';
 import { createParticles, SHAPE } from './vfx.js';
@@ -31,11 +31,11 @@ const getScrollTex = () => {
   scrollTex = new THREE.CanvasTexture(c); scrollTex.colorSpace = THREE.SRGBColorSpace;
   return scrollTex;
 };
-const SCROLL = { max: 14, w: 0.38, h: 0.19, liesSeconds: 9, fadeSeconds: 1.5, gravity: 7, out: [0.9, 1.9], up: [1.3, 2.3], opacity: 0.8, tint: 0xb3aa92 }   // smaller and toned down to sit in the painted ground (Tim 2026-11-26);
+const SCROLL = { max: 14, w: 0.38, h: 0.19, liesSeconds: 9, fadeSeconds: 1.5, gravity: 7, out: [0.9, 1.9], up: [1.3, 2.3], opacity: 0.8, tint: 0xb3aa92 }   // smaller and toned down to sit in the painted ground (2026-11-26);
 const rand = (a, b) => a + Math.random() * (b - a);
 // A few words over somebody's head (cast 'folkSay': { a: entity id, text }): a dark slip with a brass edge and cream
 // letters in the menus' style, a little see-through, with a small tail down to the speaker. It follows him, holds a
-// few seconds and fades. One at a time per speaker. Plain words only (Tim 2026-11-26)
+// few seconds and fades. One at a time per speaker. Plain words only (2026-11-26)
 const SAY = { seconds: 2.8, fade: 0.5, rise: 0.25, up: 3.05, pxPerUnit: 105, font: '600 24px Lantern, Georgia, serif', opacity: 0.9, max: 8 };
 function sayTexture(text) {
   const probe = document.createElement('canvas').getContext('2d'); probe.font = SAY.font;
@@ -130,7 +130,7 @@ export function createFolkFx({ scene, lights = [], artThing = () => null, emberS
       }
       return;
     }
-    if (c.kind === 'folkCoins' && c.x !== undefined) {   // a few coins shaken out of the peddler, hopping over to the bandit who hit him (Tim 2026-11-26)
+    if (c.kind === 'folkCoins' && c.x !== undefined) {   // a few coins shaken out of the peddler, hopping over to the bandit who hit him (2026-11-26)
       const dx = (c.tx ?? c.x + 1) - c.x, dz = (c.tz ?? c.z) - c.z, d = Math.hypot(dx, dz) || 1, n = 3 + Math.floor(Math.random() * 3);
       for (let i = 0; i < n; i++) {
         const life = rand(0.55, 0.75), v = d / life * rand(0.85, 1.05), side = rand(-0.35, 0.35);

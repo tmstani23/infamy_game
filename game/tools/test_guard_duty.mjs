@@ -10,7 +10,7 @@ const options = () => ({ district: data('data/port_town.json'), catalog: data('d
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'), police: data('data/police.json'),
   settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: data('data/world_chunks.json'), frontier: data('data/frontier.json') });
 import { createDeploymentAI } from '../src/sim/deployment_ai.js';
-// Guard duty (Tim 2026-11-10): each day half the sectors where the clan holds a business guard their most expensive
+// Guard duty (2026-11-10): each day half the sectors where the clan holds a business guard their most expensive
 // one and the others patrol; the halves swap each day. A business under a raid or shakedown is guarded at once.
 // Going back to patrol restores the old patrol point. A guard duty set by hand is left alone.
 const g = createGame(options());

@@ -1,4 +1,4 @@
-// Kuroda Gatling gun crew (war checkpoint 7-4, Tim 2026-11-12; reworked Tim 2026-11-21): the Kuroda's second special,
+// Kuroda Gatling gun crew (war checkpoint 7-4, 2026-11-12; reworked 2026-11-21): the Kuroda's second special,
 // trained at the foundry. One unit: the gun with its two crew (units.json gatling_crew.gatling). Slow and heavy.
 //  - It moves like any slow unit (no setup or pack up) and never fires on the move. Standing (stopped, arrived, or an
 //    enemy within deployRange on an attack-move) with an enemy in range, it spins up for spinTicks, then fires a burst
@@ -20,7 +20,7 @@ import { castWanted, autoOn } from './special_cast.js';
 export function createGatling({ state, units, vision, hit, moveTo, hostile = () => false, allowed = () => true, reveal = () => {}, clearLine = () => true, paths = {} }) {
   const rulesOf = e => units.types[e?.type]?.gatling || null;
   const foes = (e, R, range) => Object.values(state.entities).filter(t => alive(t) && !t.jailed && t.owner && t.owner !== e.owner && t.type !== 'civilian' && !t.animal && !t.cop
-    && t.place === e.place && !t.garrison && !t.aboard && hostile(e, t) && allowed(e, t) && vision.canSee(e.owner, t) && dist(e, t) <= range && clearLine(e, t));   // walls and buildings stop it, as arrows and rifles (Tim 2026-11-25)
+    && t.place === e.place && !t.garrison && !t.aboard && hostile(e, t) && allowed(e, t) && vision.canSee(e.owner, t) && dist(e, t) <= range && clearLine(e, t));   // walls and buildings stop it, as arrows and rifles (2026-11-25)
   const nearest = (e, list) => list.reduce((b, t) => !b || dist(e, t) < dist(e, b) || (dist(e, t) === dist(e, b) && t.id < b.id) ? t : b, null);
   function stopFire(e) { if (e.gat?.firing != null) state.casts.push({ kind: 'gatlingStop', a: e.id, x: e.x, z: e.z, place: e.place, dir: e.dir || 0 }); delete e.gat; }
   function face(e, ang) { e.gat.ang = ang; e.dir = dirIndex(Math.cos(ang), Math.sin(ang)); }

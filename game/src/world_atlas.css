@@ -56,7 +56,7 @@
   #gamemap .atlas-legend { justify-content:flex-start; max-width:none; }
   #gamemap .atlas-hover { font-size:12px; }
 }
-/* World map overlay (Tim 2026-11-23): hover line on a sign at the bottom middle, a small foldable key at the bottom left
+/* World map overlay (2026-11-23): hover line on a sign at the bottom middle, a small foldable key at the bottom left
    hung from a cloth tab. Both somewhat see-through so the painted map shows under them. */
 body #gamemap.game-map.world .mapbox { position:relative; }
 body #gamemap .atlas-hud { position:absolute; inset:0; pointer-events:none; z-index:3; }

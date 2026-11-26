@@ -112,7 +112,7 @@ export function createPaint(world, cfg) {
     return best;
   }
   const setExtraWater = list => { extra = (list || []).filter(g => g && g.use && g.n); };
-  // the moat's bank (Tim 2026-11-20: "it looks really sharp"): the bank line wobbles a little like a real shore
+  // the moat's bank (2026-11-20: "it looks really sharp"): the bank line wobbles a little like a real shore
   // (cfg.moatBank.ragged units), and the ground beside it takes the coast's wet tint and bank mud (paintChunk, bankAt)
   const MB = cfg.moatBank || {};
   const moatWet = (x, z) => { const e = extraWet(x, z); return e === -Infinity ? e : e + (fbm(x, z, MB.noiseScale || 9, seed + 73) - 0.5) * 2 * (MB.ragged || 0); };

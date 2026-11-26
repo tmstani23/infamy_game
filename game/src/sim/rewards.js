@@ -32,7 +32,7 @@ export function createRewards(state, rules = {}) {
     state.ryoGains.push({ clan: clan.id, amount, target: victim.id, reason: 'Rival leader defeated' });
     state.casts.push({ kind: 'loot', a: attacker.id, x: victim.x, z: victim.z, ryo: amount });
   }
-  // Sector cleared (Tim 2026-10-29): rival clans had at least clearMinRivals units standing on a sector's streets
+  // Sector cleared (2026-10-29): rival clans had at least clearMinRivals units standing on a sector's streets
   // together with yours, and now only yours are left. Once a second; one claim per clan and sector per cooldown.
   state.sectorFights ||= {};
   const fight = s => state.sectorFights[s] ||= { most:{} };
@@ -65,7 +65,7 @@ export function createRewards(state, rules = {}) {
       if (s && s !== 'village') ((present[s] ||= {})[e.owner] = (present[s][e.owner] || 0) + 1);
     }
     const F = state.sectorFights;
-    // a clear needs a fight (Tim 2026-11-11: rivals walking through and leaving paid a bystander): while clans share a
+    // a clear needs a fight (2026-11-11: rivals walking through and leaving paid a bystander): while clans share a
     // sector, note whose blow put a clan's unit down there ('*' = unknown)
     for (const e of Object.values(state.entities)) {
       if (!state.clans?.[e.owner] || e.guard || e.place !== 'street' || !(e.downed || e.dead)) continue;
@@ -81,7 +81,7 @@ export function createRewards(state, rules = {}) {
         const winner = state.clans[ids[0]], rivals = Object.entries(F[s].most).filter(([id]) => id !== ids[0]).reduce((n, [, c]) => n + c, 0);
         F[s].claimed ||= {};
         if (rivals >= minRivals && (F[s].downs?.[ids[0]] || F[s].downs?.['*']) && state.tick >= (F[s].claimed[ids[0]] ?? -Infinity)) {
-          // a Shinobi clan gets a share of it (Tim 2026-11-11: they hold no businesses and their ryo piled up)
+          // a Shinobi clan gets a share of it (2026-11-11: they hold no businesses and their ryo piled up)
           const pay = winner.kind === 'ninja' ? Math.round(bonus * (rules.sectorClearShinobiShare ?? 1)) : bonus;
           award(winner.id,s,pay,'clear');
           state.news.push({ kind: 'sectorCleared', clan: winner.id, sector: s, ryo: pay });
@@ -91,7 +91,7 @@ export function createRewards(state, rules = {}) {
       } else if (F[s] && !ids.length) { F[s].most = {}; delete F[s].downs; }
     }
   }
-  // Property clans earn Renown toward season points too (Tim 2026-10-30, phase 8), not crew slots.
+  // Property clans earn Renown toward season points too (2026-10-30, phase 8), not crew slots.
   // news: last tick's big moments (sim/game.js passes them before clearing)
   const PROPERTY_RENOWN = { raidWon: ['raider', 'raid', 'Raid won'], shakedownSuccess: ['clan', 'shakedown', 'Shakedown success'],
     sweepSuccess: ['clan', 'sweep', 'Sweep secured'],

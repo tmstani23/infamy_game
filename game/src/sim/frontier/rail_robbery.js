@@ -1,4 +1,4 @@
-// Train robbery R2 + R3 (Tim 2026-11-20; plan in project files war_build/train_robbery/plan.md).
+// Train robbery R2 + R3 (2026-11-20; plan in project files war_build/train_robbery/plan.md).
 // Guards: a train stopped at a blown track (rail_blast.js) puts out its guard squad (robbery.guards[faction]: war
 //  roster units of the owner's clan, Kuroda 2 spearmen + 2 Teppo + 2 Gatling, Yakuza 2 riflemen + 2 Irezumi + 2 dog
 //  handlers, Shinobi 2 riflemen + 2 geisha + 2 kunoichi). They hold round the freight wagon (order station) and fight
@@ -28,7 +28,7 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
 
   // the freight wagon: the last goods car (beside the guard van), placed where render/rail_track.js draws it: the
   // engine's middle stands NOSE ahead of t.d, each car its art length plus a coupling behind the one before
-  // (Tim 2026-11-21: the old spot, gap x cars, landed behind the guard van)
+  // (2026-11-21: the old spot, gap x cars, landed behind the guard van)
   const CAR_LEN = { engine: 6.4, tender: 4.3, carriage: 6.3, goods: 4.2, wagon: 4.2, guard: 5.4 }, COUPLING = 0.35, NOSE = 6.5;
   function wagonAt(t, l) {
     const kinds = ['engine', 'tender', ...(t.consist?.length ? t.consist : T().consist || [])].filter(k => CAR_LEN[k]);
@@ -44,7 +44,7 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
     const list = (B().guards?.[factionOf(t.owner)] || []).slice(t.guardsLost || 0);
     const w = wagonAt(t, l), nx = Math.cos(w.heading), nz = -Math.sin(w.heading), ax = Math.sin(w.heading), az = Math.cos(w.heading);
     t.guards = [];
-    t.wagonSpot = { x: Math.round(w.x * 10) / 10, z: Math.round(w.z * 10) / 10 };   // the robbable wagon flashes until it is robbed (render/stolen_chest.js, Tim 2026-11-20)
+    t.wagonSpot = { x: Math.round(w.x * 10) / 10, z: Math.round(w.z * 10) / 10 };   // the robbable wagon flashes until it is robbed (render/stolen_chest.js, 2026-11-20)
     list.forEach((unit, k) => {
       const u = UD()[unit]; if (!u) return;
       const f = factionOf(t.owner), type = typeof u.type === 'string' ? u.type : u.type?.[f] || Object.values(u.type || {})[0];
@@ -90,7 +90,7 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
     if (typeof p === 'string') return say(e.owner, p);
     const { t, l } = p;
     e.robbing = { train: t.id, start: now(), until: now() + Math.round((B().holdSeconds ?? 30) * 20) };
-    const w = wagonAt(t, l); t.robbing = { by: e.id, x: w.x, z: w.z };   // the wagon flashes while the hold runs (Tim 2026-11-20)
+    const w = wagonAt(t, l); t.robbing = { by: e.id, x: w.x, z: w.z };   // the wagon flashes while the hold runs (2026-11-20)
     say(t.owner, `Your train on ${lineName(l)} is being robbed!`);
     return say(e.owner, 'Robbing the freight wagon. Hold on!');
   }
@@ -98,7 +98,7 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
     const t = rec().trains[e.robbing.train], l = t && rec().links[t.link];
     const w = t && l && wagonAt(t, l);
     const broken = !t?.stopped || e.dead || e.downed || e.place !== 'world' || !w || Math.hypot(w.x - e.x, w.z - e.z) > (B().wagonReach ?? 5);
-    // Tim 2026-11-21: any damage breaks the hold, like a bandage (the guards are not a gate, they interrupt)
+    // 2026-11-21: any damage breaks the hold, like a bandage (the guards are not a gate, they interrupt)
     const hurt = (e.hitAt ?? -1) >= (e.robbing.start ?? Infinity);
     if (broken || hurt) { delete e.robbing; if (t?.robbing?.by === e.id) delete t.robbing; return say(e.owner, hurt ? 'Hit! The robbery was broken off' : 'The robbery was broken off'); }
     if (now() < e.robbing.until) return;
@@ -150,14 +150,14 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
       if (!(n > 0)) continue;
       if (r === 'ryo' && p.war) {
         p.war.camp.chest = Math.round(((p.war.camp.chest || 0) + n) * 100) / 100;
-        // Tim 2026-11-25: the war chest badge shows it (coins fly from the camp into it, ryo_badge.js)
+        // 2026-11-25: the war chest badge shows it (coins fly from the camp into it, ryo_badge.js)
         (state.ryoGains ||= []).push({ clan: e.owner, amount: Math.round(n), reason: 'Stolen chest', pot: 'chest', from: { x: p.war.x, z: p.war.z } });
       }
       else if (r === 'ryo') { if (clan) creditRyo(state, clan, n, 'stolen chest'); }
       else if (p.war) addCampStock(p.war.camp, r, n);
       else if (world?.change) world.change(p.town.id, r, n, 'stolen chest');
     }
-    // Tim 2026-11-21: the loot flies from the hero into the town hall (or the camp banner) as little icons, ryo as coins
+    // 2026-11-21: the loot flies from the hero into the town hall (or the camp banner) as little icons, ryo as coins
     const to = p.war ? { x: p.war.x, z: p.war.z } : { x: p.town.x, z: p.town.z };
     (state.casts ||= []).push({ kind: 'chestCashed', x: e.x, z: e.z, tx: to.x, tz: to.z, loot: { ...loot }, place: 'world', by: e.owner });
     delete e.chest;
@@ -173,7 +173,7 @@ export function createRailRobbery({ state, data, rec, pointAt, say, placeName, d
       // the hero's last down spot on the island (maps and minimap show it to its clan until he returns to it, a day passes or he goes down again)
       if (e.type === 'hero' && e.place === 'world' && (e.dead || e.downed)) { if (!e.downMarked) { e.downMarked = true; const c = state.clans?.[e.owner]; if (c) c.lastDown = { x: Math.round(e.x), z: Math.round(e.z), at: now() }; } }
       else if (e.downMarked) delete e.downMarked;
-      // Tim 2026-11-25: the mark clears once the hero, back on his feet, walks away and then returns to it
+      // 2026-11-25: the mark clears once the hero, back on his feet, walks away and then returns to it
       const d = e.type === 'hero' && !e.dead && !e.downed && e.place === 'world' && state.clans?.[e.owner]?.lastDown;
       if (d) { const far = Math.hypot(d.x - e.x, d.z - e.z); if (far > 20) d.left = true; else if (d.left && far <= 6) delete state.clans[e.owner].lastDown; }
     }

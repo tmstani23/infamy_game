@@ -1,4 +1,4 @@
-// Railway lines on the World map and the island minimap (Tim 2026-11-07): laid track glows amber, the rest of a
+// Railway lines on the World map and the island minimap (2026-11-07): laid track glows amber, the rest of a
 // line still being laid shows as a faint dashed route, and the railhead (the rail gang) gets a dot with
 // "42% · 6 min" beside it. Reads the frontier view only (state.frontier.rail.links, your own links).
 // drawRailLines(ctx, links, at, { width, label, seconds }) where at(x, z) -> [px, py] in canvas pixels.
@@ -41,15 +41,15 @@ export function supplySectionAt(links, wars, x, z, r) {
   }
   return best;
 }
-// me + clans (train robbery, Tim 2026-11-21): a rival's line (on ground you have discovered) glows in its clan's colour
-// Clan colours toned for the painted World map (Tim 2026-11-21: not so primary): mixed toward a warm sepia and eased in
+// me + clans (train robbery, 2026-11-21): a rival's line (on ground you have discovered) glows in its clan's colour
+// Clan colours toned for the painted World map (2026-11-21: not so primary): mixed toward a warm sepia and eased in
 // saturation, so purple reads as a dusty plum and red as a brick red. Accepts #rrggbb; anything else comes back unchanged.
 export function mapTint(hex, k = 0.42) {
   const m = /^#([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return hex;
   const n = parseInt(m[1], 16), c = [n >> 16, (n >> 8) & 255, n & 255], grey = (c[0] + c[1] + c[2]) / 3, sepia = [138, 104, 72];
   return '#' + c.map((v, i) => Math.round((v * 0.8 + grey * 0.2) * (1 - k) + sepia[i] * k).toString(16).padStart(2, '0')).join('');
 }
-// inked (World map, Tim 2026-11-21): laid track drawn like a map's railway symbol to suit the painted atlas: a soft wash in
+// inked (World map, 2026-11-21): laid track drawn like a map's railway symbol to suit the painted atlas: a soft wash in
 // the owner's clan colour, a dark ink rail and cream ties, no glow
 export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds = 600, wars = null, me = null, clans = null, inked = false } = {}) {
   const list = Object.values(links || {}).filter(l => l.points?.length > 1 && l.dist?.length === l.points.length && l.length > 0);
@@ -59,7 +59,7 @@ export function drawRailLines(ctx, links, at, { width = 3, label = true, seconds
   for (const l of list) {
     const built = l.done ? l.length : Math.max(0, Math.min(l.length, l.built || 0));
     if (built < l.length) {   // the route still to lay: faint, dashed
-      // a dark casing under bright dashes, so it reads over any ground (Tim 2026-11-08: hard to see)
+      // a dark casing under bright dashes, so it reads over any ground (2026-11-08: hard to see)
       const parts = laidStretches(l), rest = stretch(l, parts.length > 1 ? 0 : built, l.length), dw = Math.max(1.5, width * 0.8);
       if (inked) {   // planned route: a faint wash in the owner's toned colour under sepia ink dashes
         ctx.globalAlpha = 0.3; ctx.strokeStyle = mapTint(clans?.[l.owner]?.color) || '#c49a5a'; ctx.lineWidth = width * 2.2; stroke(ctx, rest, at); ctx.globalAlpha = 1;

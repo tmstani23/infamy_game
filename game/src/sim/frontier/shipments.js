@@ -1,4 +1,4 @@
-// Rail shipments, step S1 (Tim 2026-11-08; rules in docs/frontier_campaign_plan.md, "Rail shipments rules").
+// Rail shipments, step S1 (2026-11-08; rules in docs/frontier_campaign_plan.md, "Rail shipments rules").
 // Orders, keep amounts and reserved stock only: no trains carry anything yet (S2), no clerk (S3).
 //  - keep: per town and resource, s.keep[res] (default data.railways.ship.keep[res]). A town gives nothing
 //    below keep + reserved: free(s, res) = stock - keep - reserved.
@@ -15,12 +15,12 @@
 //  (railways.ship.wagonLoad), then fills the spare room in the same order; what does not fit waits for the next
 //  train. A closed line holds cargo; nothing is lost. A cancelled order's cargo still on its way is delivered.
 // S3 (rail clerk): clerk(s) runs from the governor's review of a town, ONLY while that town's governor is on auto
-//  (s.autoBuild, Tim 2026-11-09). It makes auto orders for what a town lacks against its keep amount, finds sources
+//  (s.autoBuild, 2026-11-09). It makes auto orders for what a town lacks against its keep amount, finds sources
 //  (a pinned town, else the nearest town with surplus by line length, else the capital: port wholesale houses
 //  "tonya", paid from the town's ryo within its auto-buy budget s.shipBudget, buying costs more than selling pays),
 //  and sells spare goods to the capital (kind 'sell'). Manual orders are covered first. Prices: railways.ship.
 // Command { type: 'frontier', action: 'ship', mode: 'order', town, resource, amount, [pin, urgent, ryo, auto] }
-//   (pin: a town of yours, or 'capital' = buy it all there, Tim 2026-11-25)
+//   (pin: a town of yours, or 'capital' = buy it all there, 2026-11-25)
 //   | { mode: 'cancel', order } | { mode: 'keep', town, resource, keep } | { mode: 'budget', town, ryo, [autoBuy] }
 // createShipments({ state, data, world }) -> { command, linked, keepOf, reservedOf, free, openIncoming, accept, release }
 import { storageCap, defaultKeep } from './storage.js';
@@ -46,7 +46,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
   const orders = () => Object.values(rec().orders);
   const town = id => id === 'capital' ? null : state.frontier.settlements?.[id];
   // 8e-5: a linked war camp takes timber and stone orders like a town (node 'camp:<war id>', stock = the camp stores,
-  // no storage cap, never a source for other orders). Tim 2026-11-17: it may sell its stores to the capital (the ryo
+  // no storage cap, never a source for other orders). 2026-11-17: it may sell its stores to the capital (the ryo
   // goes into its war chest) and buy at the capital with ryo from its war chest (an order's ryo offer)
   const isCampNode = id => typeof id === 'string' && id.startsWith('camp:');
   function campDest(id, owner) {
@@ -56,11 +56,11 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
   }
   const dest = (id, owner) => town(id) || campDest(id, owner);
 
-  // goods: ONE level with the market's hold-back (Tim 2026-11-09), s.marketKeep (default data.market.keep)
+  // goods: ONE level with the market's hold-back (2026-11-09), s.marketKeep (default data.market.keep)
   const keepOf = (s, res) => (res === 'goods' && data.market ? s.marketKeep : s.keep?.[res]) ?? defaultKeep(s, data, res);
   const reservedOf = (s, res) => s.reserved?.[res] ?? 0;
   const free = (s, res, o = null) => Math.max(0, (s.stock?.[res] ?? 0) - keepFor(s, res, o) - reservedOf(s, res));
-  // Tim 2026-11-17: a bot's town fills its own camp's orders down to war.supply.botCampKeepShare of its storage (it
+  // 2026-11-17: a bot's town fills its own camp's orders down to war.supply.botCampKeepShare of its storage (it
   // keeps that share of its coffers for ryo too); other orders, and a player's towns, keep the town's keep amount
   function keepFor(s, res, o) {
     const k = keepOf(s, res);
@@ -91,7 +91,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
   }
   // the node list from a to b over open lines (breadth first), or null
   // sortie: a line closed only by a blast whose train has not made its one run to the gap yet counts as open, so that
-  // train loads as usual (Tim 2026-11-21: it sets out, stops at the gap, and the cargo stays aboard until the repair)
+  // train loads as usual (2026-11-21: it sets out, stops at the gap, and the cargo stays aboard until the repair)
   function route(owner, a, b, sortie = false) {
     const open = l => !l.closed || (sortie && l.cutBy === 'blast' && l.blast && !l.blast.sortie);
     const links = Object.values(state.frontier.rail?.links || {}).filter(l => l.owner === owner && l.done && open(l));
@@ -182,7 +182,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       if (isRyo) ryoRoom -= n; else room -= n;
       return n;
     };
-    // Tim 2026-11-22 (fix list 17): your own orders ride first: urgent ones, then your other orders, then auto orders
+    // 2026-11-22 (fix list 17): your own orders ride first: urgent ones, then your other orders, then auto orders
     // (oldest first in each). Each group gets one wagon-load per order in turn, then the spare room, before the next.
     const rank = o => !o ? 3 : o.auto ? 2 : o.urgent ? 0 : 1;
     const orderOf = w => w.from === 'yard' ? rec().orders[w.c.order] : w.o;
@@ -197,7 +197,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     for (const o of Object.values(rec().orders)) o.sources = o.sources.filter(x => x.amount > 0);
   }
 
-  // Tim 2026-11-17: a camp's sale pays into its side's war chest; the war over, into the Clan treasury
+  // 2026-11-17: a camp's sale pays into its side's war chest; the war over, into the Clan treasury
   function campSale(o, pay) {
     const w = warOf(o.war);
     if (w?.camp && w.attacker === o.owner) { w.camp.chest = Math.round(((w.camp.chest || 0) + pay) * 100) / 100; addSource(w.camp.sources ||= {}, 'sale', pay); return; }
@@ -222,7 +222,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     return true;
   };
 
-  // Tim 2026-11-09: sell by hand. Any resource, up to the stock not reserved (your call, keep amounts aside), rides the
+  // 2026-11-09: sell by hand. Any resource, up to the stock not reserved (your call, keep amounts aside), rides the
   // next train to the capital and pays sellPrice each on arrival. Same queue cap as your orders (trainloads per line).
   function sellOrder(e, c) {
     const s = typeof c.town === 'string' ? town(c.town) || campDest(c.town, e.owner) : null;
@@ -257,7 +257,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       const open = orders().filter(o => o.state === 'open' && o.to === s.id && o.auto).length;
       if (open >= (S().maxAuto ?? 4)) return receipt(e, false, 'Too many open auto orders');
     }
-    if (c.pin === 'capital') {   // Tim 2026-11-25: capital only, buy it all (order slip)
+    if (c.pin === 'capital') {   // 2026-11-25: capital only, buy it all (order slip)
       if (!route(e.owner, 'capital', s.id)) return receipt(e, false, 'Needs a rail line to the capital');
     } else if (c.pin != null) {
       const p = town(c.pin);
@@ -269,7 +269,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     if (s.camp && !['timber', 'stone'].includes(c.resource)) return receipt(e, false, 'A camp takes timber and stone');
     const room = (s.camp ? Infinity : storageCap(s, data, c.resource)) - (s.stock[c.resource] ?? 0) - openIncoming(s.id, c.resource);
     if (amount > room + 1e-9) return receipt(e, false, room > 0 ? `Storage has room for ${Math.floor(room)}` : 'Storage is full');
-    // Tim 2026-11-09: queue cap. Your own undelivered orders into a town may add up to queueTrips trainloads per
+    // 2026-11-09: queue cap. Your own undelivered orders into a town may add up to queueTrips trainloads per
     // line at that town (one trainload = goods wagons x wagonLoad), so a new order arrives within a few trips.
     if (!auto) {
       const T = data.railways?.train || {}, load = Math.max(1, T.consist ? T.consist.filter(k => k === 'goods').length : 1) * (S().wagonLoad ?? 60);
@@ -385,7 +385,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       release(o); o.state = 'cancelled'; o.done = state.tick ?? 0;
       return receipt(e, true, 'Order cancelled');
     }
-    // the ryo an open order may spend buying at the capital (Tim 2026-11-17; a camp's comes from its war chest)
+    // the ryo an open order may spend buying at the capital (2026-11-17; a camp's comes from its war chest)
     if (c.mode === 'offer') {
       const o = rec().orders[c.order], s = o && dest(o.to, e.owner);
       if (!o || o.owner !== e.owner || o.state !== 'open' || o.kind === 'ryo' || o.kind === 'sell' || !s) return receipt(e, false, 'No such open order');
@@ -412,7 +412,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       const w = warOf(c.war);
       if (!w || (w.attacker !== e.owner && w.defender !== e.owner)) return receipt(e, false, 'Not your war');
       // held: ryo of a camp chest the general keeps back for the camp hall upgrade (never more than its price); the
-      // chest counts as low without it (Tim 2026-11-17: a camp saving for the upgrade still gets its refill)
+      // chest counts as low without it (2026-11-17: a camp saving for the upgrade still gets its refill)
       autoChest(e.owner, w, w.attacker === e.owner ? Math.max(0, Math.min(+c.held || 0, W().hallUpgrade?.cost?.ryo || 0)) : 0);
       return true;
     }
@@ -433,12 +433,12 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     return receipt(e, false, 'order, cancel, keep or budget');
   }
 
-  // ---- S6: robbery (Tim 2026-11-07 design). rob(train, share) takes `share` (0-1) of everything aboard; the loss
+  // ---- S6: robbery (2026-11-07 design). rob(train, share) takes `share` (0-1) of everything aboard; the loss
   // is split equally between the orders aboard (a small one gives what it has, the rest share the remainder). Each
   // order keeps o.lost and stays open, so its town (or the clerk) re-sends the shortfall; bought cargo stolen is
   // ryo lost. Returns the loot { resource: amount } for the robbers. The robbery itself (charge on the freight
   // wagon, hold ~30 s, caps) is rail step 6 and calls this.
-  // perLoad (train robbery, Tim 2026-11-20 "50% of all"): share of every load aboard, so each order loses the same share
+  // perLoad (train robbery, 2026-11-20 "50% of all"): share of every load aboard, so each order loses the same share
   function rob(t, share, by = null, perLoad = false) {
     const freight = (t?.freight || []).filter(c => c.amount > 0);
     if (perLoad) { const k = Math.max(0, Math.min(1, share)); return takeLoot(t, freight, new Map(freight.map(c => [c, c.amount * k])), by); }
@@ -481,7 +481,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     for (let i = 1; i < p.length; i++) n += lineLen(owner, p[i - 1], p[i]);
     return n;
   }
-  // Tim 2026-11-23 (last resort): a town whose workers cannot supply a resource any more (workers.js rebalance:
+  // 2026-11-23 (last resort): a town whose workers cannot supply a resource any more (workers.js rebalance:
   // s.gov.handsDone) buys it with a budget of ship.budgetShare of its ryo, when that is more than the flat budget.
   // A budget the player typed always stands.
   const trainload = () => { const T = data.railways?.train || {}; return Math.max(1, T.consist ? T.consist.filter(k => k === 'goods').length : 1) * wagonLoad(); };
@@ -494,14 +494,14 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     const peers = o.pin === 'capital' ? [] : o.pin ? [town(o.pin)] : Object.values(state.frontier.settlements).filter(t => t.owner === s.owner && !t.capital && t.id !== s.id);
     const cand = peers.filter(t => t && free(t, o.resource, o) > 0).map(t => [routeLen(s.owner, t.id, s.id), t]).filter(([d]) => d < Infinity).sort((a, b) => a[0] - b[0]);
     for (const [, t] of cand) { if (need() <= 0) return; accept(o.id, t.id, need()); }
-    if (need() <= 0 || (o.pin && o.pin !== 'capital') || (s.camp && !(o.ryo > 0))) return;   // a camp buys only with a ryo offer (Tim 2026-11-17)
-    if (o.auto && (S().noCapitalBuy || ['goods']).includes(o.resource)) return;   // Tim 2026-11-22: goods refills come from your own towns only
+    if (need() <= 0 || (o.pin && o.pin !== 'capital') || (s.camp && !(o.ryo > 0))) return;   // a camp buys only with a ryo offer (2026-11-17)
+    if (o.auto && (S().noCapitalBuy || ['goods']).includes(o.resource)) return;   // 2026-11-22: goods refills come from your own towns only
     const price = S().buyPrice?.[o.resource] ?? 5, left = o.auto ? (s.autoBuy === false ? 0 : budgetOf(s, o.resource) - spentOf(s)) : (o.ryo || 0) - (o.ryoPaid || 0);
     const n = Math.min(need(), Math.floor(left / price));
     if (n > 0 && route(s.owner, 'capital', s.id)) accept(o.id, 'capital', n);
   }
 
-  // Your own orders ship whatever the governor setting (Tim 2026-11-09): sources are found when placed and again
+  // Your own orders ship whatever the governor setting (2026-11-09): sources are found when placed and again
   // every governor review (stock that turned up since), before the clerk's auto orders.
   function coverManual() {
     const open = orders().filter(o => o.state === 'open' && !o.auto && o.kind !== 'sell' && o.kind !== 'ryo').sort((a, b) => b.urgent - a.urgent || a.created - b.created);
@@ -539,7 +539,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     for (const w of Object.values(state.frontier.wars?.list || {})) if (w.defender === owner && w.town === s.id) autoChest(owner, w);   // 8e-2
     if (!Object.values(state.frontier.rail?.links || {}).some(l => l.owner === owner && l.done && !l.closed && (l.from === s.id || l.to === s.id))) return;
     const min = S().minOrder ?? 10;
-    // 1. auto orders for what the town lacks against its keep amount. Tim 2026-11-22 (fix list 13): only once the stock
+    // 1. auto orders for what the town lacks against its keep amount. 2026-11-22 (fix list 13): only once the stock
     // (with what is already on its way) falls below ship.refillBelow of the keep, then one order back up to the keep, so
     // the market selling down to the keep never sets off small refills from far away
     const below = S().refillBelow ?? 0.5;
@@ -558,9 +558,9 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
       const short = o.amount - o.got - inFlight(o.id) - o.sources.reduce((a, x) => a + x.amount, 0);
       if (short > 0) { o.amount -= short; if (o.amount <= 1e-9) delete rec().orders[o.id]; }
     }
-    // 3. Tim 2026-11-22 (replaces the 2026-11-17 full-store rule): what is above the keep goes to the capital for ryo,
+    // 3. 2026-11-22 (replaces the 2026-11-17 full-store rule): what is above the keep goes to the capital for ryo,
     // goods, timber and stone (ship.sell.resources), one batch per resource at a time, only once at least sell.min is
-    // spare. The keep (plus reserved stock and the next hall tier cost) is what stays, war or not (Tim 2026-11-22: the
+    // spare. The keep (plus reserved stock and the next hall tier cost) is what stays, war or not (2026-11-22: the
     // keep can be raised for a war); food is never sold on its own.
     const sell = S().sell || {};
     if (sell.on !== false && s.autoBuy !== false && route(owner, s.id, 'capital')) {
@@ -604,7 +604,7 @@ export function createShipments({ state, data, world, dayTicks = 12000 }) {
     }
   }
 
-  // a camp cut off from the rail network (Tim 2026-11-17: orders wait and resume, as at a town whose station is a
+  // a camp cut off from the rail network (2026-11-17: orders wait and resume, as at a town whose station is a
   // ruin; before, they stopped and undelivered ryo went back): open orders into it stay open, cargo on a train or in
   // a yard waits there, and all carries on when the line is whole again. A war that ends first settles them as
   // before (econTick, trainGone).

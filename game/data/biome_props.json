@@ -495,7 +495,7 @@
       ],
       "block": 0,
       "grove": "any",
-      "_note": "placeholder, Tim to tune (2026-11-03: bleached_log art was never placed)"
+      "_note": "placeholder, to tune (2026-11-03: bleached_log art was never placed)"
     }
   ],
   "coast": {
@@ -609,7 +609,7 @@
       "plain": 0.32,
       "hills": 0.32
     },
-    "_noteChance": "chanceByBiome (Tim 2026-11-03): snow, forest, plain and hills oddities at twice the base chance; other biomes use chance."
+    "_noteChance": "chanceByBiome (2026-11-03): snow, forest, plain and hills oddities at twice the base chance; other biomes use chance."
   },
   "marshSupplement": {
     "grid": 6,
@@ -682,7 +682,7 @@
     ]
   },
   "mountainTops": {
-    "_note": "Art-only props on flat mountain tops (blocked, not walkable), kept inset units in from the rim so they stay clear of the cliff art. Own seeded grid. Placeholder, Tim to tune (2026-11-03).",
+    "_note": "Art-only props on flat mountain tops (blocked, not walkable), kept inset units in from the rim so they stay clear of the cliff art. Own seeded grid. Placeholder, to tune (2026-11-03).",
     "grid": 14,
     "chance": 0.85,
     "inset": 22,
@@ -740,7 +740,7 @@
     }
   },
   "propScale": {
-    "_note": "Tim 2026-11-03: every ordinary island prop except trees and oddities is drawn at `factor` x its rule scale; its walk blocker shrinks to match (sim/chunk_gen.js scalePaintedProps). `keep` = tree kinds left at full size.",
+    "_note": "2026-11-03: every ordinary island prop except trees and oddities is drawn at `factor` x its rule scale; its walk blocker shrinks to match (sim/chunk_gen.js scalePaintedProps). `keep` = tree kinds left at full size.",
     "factor": 0.5,
     "keep": [
       "cedar",
@@ -763,7 +763,7 @@
     ]
   },
   "clustering": {
-    "_note": "Ordinary-prop clustering (assets/environment/island/groundcover_clustering_plan.json; sim/prop_clusters.js). enabled false = the old scatter. per1000 = final sprites per 1000 sq u before biome/clearing rejection, calibrated against the old scatter x vsOld (game/tools/prop_census.mjs). Placeholder numbers, Tim to tune.",
+    "_note": "Ordinary-prop clustering (assets/environment/island/groundcover_clustering_plan.json; sim/prop_clusters.js). enabled false = the old scatter. per1000 = final sprites per 1000 sq u before biome/clearing rejection, calibrated against the old scatter x vsOld (game/tools/prop_census.mjs). Placeholder numbers, to tune.",
     "enabled": true,
     "version": 1,
     "seed": 200,
@@ -1721,7 +1721,7 @@
         ],
         "mixShare": 0.5,
         "zone": "wooded",
-        "_note": "Tim 2026-11-03: a lot more marsh trees (about 3x)"
+        "_note": "2026-11-03: a lot more marsh trees (about 3x)"
       },
       {
         "id": "marsh_roots",
@@ -1896,7 +1896,7 @@
     ]
   },
   "noMirror": {
-    "_note": "Tim 2026-11-03: kinds always drawn as painted, never mirrored (render/world_ground.js).",
+    "_note": "2026-11-03: kinds always drawn as painted, never mirrored (render/world_ground.js).",
     "kinds": [
       "jungle_large_buttress_tree",
       "jungle_large_broad_canopy_tree",

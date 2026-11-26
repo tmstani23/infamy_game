@@ -1,9 +1,9 @@
-// War checkpoint 8b-1 (Tim 2026-11-15): military buildings in towns.
+// War checkpoint 8b-1 (2026-11-15): military buildings in towns.
 // A town builds the war camp's military buildings (frontier.json buildings with military: true) inside its ring at
 // any time, from town stock, through the normal placement and construction. Both sides share one set of limits:
 // max, needs and clan come from war.buildings[type]. needs 'upgrade' = the town hall war upgrade (s.warHall), bought
 // at the hall for war.hallUpgrade.cost from town stock (ryo from the coffers), then built by the town builders: war.town.upgradeWork
-// builder work (s.warUpgrade = { left, total } while it runs; other projects wait meanwhile), at any tier. Limits may grow with the town hall tier (tierMax, Tim 2026-11-21).
+// builder work (s.warUpgrade = { left, total } while it runs; other projects wait meanwhile), at any tier. Limits may grow with the town hall tier (tierMax, 2026-11-21).
 // Plain functions of the town and the data, so the sim and the build bar (on the snapshot) give the same answers.
 
 import { yardWater } from './shipyard.js';
@@ -14,8 +14,8 @@ export const isMilitary = (type, data) => !!data?.buildings?.[type]?.military;
 export const militaryTypes = data => Object.keys(data?.buildings || {}).filter(k => data.buildings[k]?.military);
 export const warHallDone = s => !!s?.warHall;
 // how many of a military type a town (kind 'town', tier = townMilitaryTier: 1, 2 after the town hall war upgrade) or a war camp (kind 'camp', camp hall tier 1-2) may have:
-// war.buildings[type].maxByTier[kind][tier - 1] (past the end: the last), else .max (Tim 2026-11-21: supply tents unlock per tier, no early rush)
-export const townMilitaryTier = s => warHallDone(s) ? 2 : 1;   // Tim 2026-11-21: the war upgrade, like the camp hall upgrade
+// war.buildings[type].maxByTier[kind][tier - 1] (past the end: the last), else .max (2026-11-21: supply tents unlock per tier, no early rush)
+export const townMilitaryTier = s => warHallDone(s) ? 2 : 1;   // 2026-11-21: the war upgrade, like the camp hall upgrade
 // the tier a town's limit for this type goes by: the town hall tier for tierBy 'hall' (ships S5: the cannon tower), else townMilitaryTier
 export const townTierFor = (s, def) => def?.tierBy === 'hall' ? s?.tier || 1 : townMilitaryTier(s);
 export function tierMax(def, kind, tier) {
@@ -33,7 +33,7 @@ export function militaryFor(s, data, state, world = null) {
   return militaryTypes(data).filter(t => { const c = data.war?.buildings?.[t]?.clan; return (!c || !f || c === f) && (!data.buildings[t]?.shore || !world || yardWater(world, s, data.war?.buildings?.[t])); });
 }
 
-// how many of a type the town has or has under way (Tim 2026-11-24: ruins no longer count, so a razed one can be
+// how many of a type the town has or has under way (2026-11-24: ruins no longer count, so a razed one can be
 // placed new in a war; a rebuild under way counts, its ruin does not)
 export function militaryCount(s, type) {
   return (s?.buildings || []).filter(b => b.type === type && b.stage !== 'ruined').length + (s?.projects || []).filter(p => p.type === type).length;
@@ -44,7 +44,7 @@ export function militaryNeeds(s, type, data) {
   const out = [];
   for (const n of data.war?.buildings?.[type]?.needs || []) {
     if (n === 'upgrade') { if (!warHallDone(s)) out.push('the town hall war upgrade'); }
-    else if (n === 'tier2') { if ((s?.tier || 1) < 2) out.push('a town hall at tier 2'); }   // Tim 2026-11-15: kennel and hidden dojo
+    else if (n === 'tier2') { if ((s?.tier || 1) < 2) out.push('a town hall at tier 2'); }   // 2026-11-15: kennel and hidden dojo
     else if (!(s?.buildings || []).some(b => b.type === n && b.stage === 'built')) out.push(`a built ${nice(n)}`);
   }
   return out;

@@ -1,4 +1,4 @@
-// Safety fund (Tim 2026-11-21, src/sim/frontier/fund.js): the share, the cap, paying, pouring out. No graphics.
+// Safety fund (2026-11-21, src/sim/frontier/fund.js): the share, the cap, paying, pouring out. No graphics.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fundOf, fundPct, takeShare, fundHas, fundPay, fundEmpty, setFundPct, setFundCap } from '../src/sim/frontier/fund.js';
@@ -16,7 +16,7 @@ const world = s => ({ change: (id, r, v) => { s.stock[r] += v; }, fundIn: (id, r
   assert.equal(fundOf(town(), data, state).pct, 25, 'the next town copies his last value');
   for (const no of [{ capital: true }, { camp: true }, { castle: true }]) assert.equal(fundOf(town('p', no), data, state), null, 'capital, castle and war camp have none');
 }
-{ // Tim 2026-11-22: the share of an income is always set aside, whatever his list needs; other gains, other resources and spending are not
+{ // 2026-11-22: the share of an income is always set aside, whatever his list needs; other gains, other resources and spending are not
   const s = town(); fundOf(s, data, state); s.fund.pct = 10;
   assert.equal(takeShare(s, data, state, 'stone', 100, 'gather'), 10, 'before the general has looked, and with no stone on his list');
   setFundCap(s, world(s), { timber: 15, ryo: 50 }, 'barracks');

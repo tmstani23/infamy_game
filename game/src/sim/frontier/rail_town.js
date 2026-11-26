@@ -1,4 +1,4 @@
-// Track through a town (Tim 2026-11-07: "track is going right through buildings"). The world route runs on
+// Track through a town (2026-11-07: "track is going right through buildings"). The world route runs on
 // 50-unit cells and knows nothing of towns, so inside each end town the track takes a fine path over the
 // town grid instead: out of the station, round buildings, houses and workshops (blocked), across roads and
 // fields if it must (dearer), out to where the world route leaves the town. The cells under the finished
@@ -10,7 +10,7 @@
 import { cellToWorld, worldToCell, ringRadius } from './town_grid.js';
 
 // cost to step onto cell i of town s (Infinity = blocked). With `clear` a cell next to water or cliffs is blocked
-// too (Tim 2026-11-08: the track keeps one cell from mountains), except the station's own cells.
+// too (2026-11-08: the track keeps one cell from mountains), except the station's own cells.
 function cellCost(s, i, mine, clear = false) {
   const g = s.grid;
   if (mine.has(i)) return 0.5;                       // the station itself
@@ -35,7 +35,7 @@ function nextToRock(s, i) {
   return false;
 }
 
-// the 8 headings, as [dc, dr] steps; a step may turn at most 45 degrees (Tim 2026-11-08: no turn a train couldn't take)
+// the 8 headings, as [dc, dr] steps; a step may turn at most 45 degrees (2026-11-08: no turn a train couldn't take)
 const HEAD = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
 const TURN = 0.35;   // extra cost of each 45 degree bend, so the line keeps straight where it can
 export const headingOf = dir => { const k = HEAD.findIndex(([c, r]) => c === Math.sign(Math.round(dir[0])) && r === Math.sign(Math.round(dir[1]))); return k; };

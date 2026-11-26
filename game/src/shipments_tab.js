@@ -1,8 +1,8 @@
-// Town card Shipments tab (rail shipments S4, Tim 2026-11-08/09; mock project files shipments_mock/
-// shipments_menus_mock_v2.png). Menu restyle (Tim 2026-11-10): one row per resource with an icon, a stock bar to the
+// Town card Shipments tab (rail shipments S4, 2026-11-08/09; mock project files shipments_mock/
+// shipments_menus_mock_v2.png). Menu restyle (2026-11-10): one row per resource with an icon, a stock bar to the
 // storage cap with a tick at the keep amount, a typeable amount box, one Order button and the cost as a coin chip.
 // Low rows light up red; a row that can't order says why instead of greying out. Tabs Order / Sell / Keep / Ledger
-// (Tim 2026-11-23: the old Open tab merged into the Rail ledger, with This town / All towns and a countdown per row). Reads the snapshot only and sends
+// (2026-11-23: the old Open tab merged into the Rail ledger, with This town / All towns and a countdown per row). Reads the snapshot only and sends
 // { type: 'frontier', action: 'ship', ... } commands (sim/frontier/shipments.js).
 // createShipmentsTab({ game, data, cmd, usage }) -> { html(s), click(dataset, s), input(dataset, value, s) }   (usage = resourceUsage)
 import { createRailLedger } from './rail_ledger.js';
@@ -15,11 +15,11 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const SH = () => data?.railways?.ship || {};
   const RES = () => SH().resources || ['food', 'timber', 'stone', 'goods'];
   let sub = 'new';
-  const ledger = createRailLedger({ game, data, inCard: true, head: false });   // the Ledger tab (Tim 2026-11-10; replaces Open 2026-11-23)
+  const ledger = createRailLedger({ game, data, inCard: true, head: false });   // the Ledger tab (2026-11-10; replaces Open 2026-11-23)
   const amts = {}, samts = {};   // typed amounts per resource (Order and Sell rows)
   let ryoAmt = 500;   // 8e-3: the Ryo row's typed amount (from the Clan treasury)
   const amt = r => amts[r] ?? 100, samt = r => samts[r] ?? 100;
-  const form = { urgent: false, ryo: null };   // shared order options (the source is picked in the order slip); ryo null = full: enough to buy it all (Tim 2026-11-09)
+  const form = { urgent: false, ryo: null };   // shared order options (the source is picked in the order slip); ryo null = full: enough to buy it all (2026-11-09)
   const F = () => game.state.frontier || {};
   const orders = () => Object.values(F().shipping?.orders || {});
   const links = owner => Object.values(F().rail?.links || {}).filter(l => l.owner === owner && l.done && !l.closed);
@@ -35,7 +35,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const treasury = s => Math.floor(game.state.clans?.[s.owner]?.ryo ?? 0);
   const keepLine = s => game.state.clans?.[s.owner]?.treasuryKeep ?? data?.war?.supply?.treasuryKeep ?? 1000;
   const RYO_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#e8b23a" stroke="#8a5e12" stroke-width="2"/><rect x="9.5" y="9.5" width="5" height="5" fill="#8a5e12"/></svg>';
-  // 8e-3 (mock d, Tim 2026-11-16): ryo sent by train from the Clan treasury into this town's coffers
+  // 8e-3 (mock d, 2026-11-16): ryo sent by train from the Clan treasury into this town's coffers
   function ryoRow(s) {
     const n = ryoAmt, left = treasury(s) - n, kl = keepLine(s);
     const w = !toCapital(s) ? ['Needs a line', 'Needs a rail line from the capital to this town (through any of your towns)'] : n > treasury(s) ? ['Treasury short', `The Clan treasury has only ${treasury(s)} ryo`] : null;
@@ -103,7 +103,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
     const top = Number.isFinite(cap) ? cap : Math.max(have, keep, 1) * 1.25, pc = x => Math.round(Math.max(0, Math.min(1, x / Math.max(1, top))) * 100);
     return `<span class="shmeter"${tip(`Stock ${Math.floor(have)}${Number.isFinite(cap) ? ` of ${Math.floor(cap)} storage` : ''}. The tick is your keep amount, ${keep}.`)}><i style="width:${pc(have)}%"></i><b style="left:${pc(keep)}%"></b></span>`;
   }
-  // why a row can't order or sell right now, said in the row (Tim 2026-11-10), or '' when it can
+  // why a row can't order or sell right now, said in the row (2026-11-10), or '' when it can
   function why(n, rm, q, spare = null) {
     if (spare != null && spare < n) return spare < (SH().minOrder ?? 10) ? ['Nothing spare', 'No spare stock to sell (reserved stock is already promised to a train)'] : [`Spare ${spare}`, `Only ${spare} spare to sell: type a smaller amount`];
     if (rm != null && rm < n) return rm < (SH().minOrder ?? 10) ? ['Storage full', 'Storage is full, counting what is already on the way. Storehouses and a bigger town hall raise it.'] : [`Room for ${rm}`, `Storage has room for only ${rm} more (stock plus what is on the way): type a smaller amount`];
@@ -113,7 +113,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
   const act = (id, label, go, t) => `<button class="shgo${go ? ' go' : ''}" data-act="ship" data-id="${id}"${tip(t)}>${label}</button>`;
   const blocked = w => `<span class="shwhy red"${tip(w[1])}>${esc(w[0])}</span>`;
 
-  // ---- the order slip (Tim 2026-11-25, mock project files order_confirm/mock_r5.png): Order, Sell and Send ryo open
+  // ---- the order slip (2026-11-25, mock project files order_confirm/mock_r5.png): Order, Sell and Send ryo open
   // a paper slip beside the row: pick the source (Nearest first / one of your towns / the capital), see what each
   // sends, the cost and about when it arrives, then Send (Enter) or close (Esc). Nothing is sent before that.
   let slip = null;   // { kind: 'order'|'sell'|'ryo', r, town, pin: null|townId|'capital' }
@@ -251,7 +251,7 @@ export function createShipmentsTab({ game, data, cmd, usage = null }) {
 
   function html(s) {
     let h = `<h1>${esc(s.name)}</h1>`;
-    // Tim 2026-11-09: say clearly, and briefly, that auto ordering is the governor's job and only while he is on auto
+    // 2026-11-09: say clearly, and briefly, that auto ordering is the governor's job and only while he is on auto
     h += s.autoBuild
       ? `<div class="shauto on"${tip('While the governor is on auto, his rail clerk orders what this town lacks (below its keep amounts), takes spare stock from your other towns first, buys the rest from the capital within the auto-buy budget, and sells goods, timber and stone above your keep amounts to the capital.')}>Auto orders <b>on</b>, the governor keeps stock at your keep amounts</div>`
       : `<div class="shauto"${tip('Turn the governor to auto (Governor tab, Initiative On) and his rail clerk orders what this town lacks by himself. Your own orders always ship.')}>Auto orders <b>off</b>, governor not on auto</div>`;

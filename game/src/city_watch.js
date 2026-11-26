@@ -1,4 +1,4 @@
-// "Watch the city" (Tim 2026-11-08): the boss stays on the island while the camera looks at the capital.
+// "Watch the city" (2026-11-08): the boss stays on the island while the camera looks at the capital.
 // Presentation only: the camera shows the capital street (render/view.js setCityWatch), what you see is what
 // your city units see (fog is per clan), you can pan, click crew and businesses for status and open the
 // lieutenant's orders, but no orders reach the crew (filterCommands). The sim is told with { type: 'watchCity', on }
@@ -22,7 +22,7 @@ export function createCityWatch({ game, view, heroId, send, notify = () => {}, s
   style.textContent = '#citywatch{position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:16px;padding:10px 18px;'
     + 'background:rgba(10,12,16,.9);border:2px solid #e9c27a;border-radius:6px;color:#f3e6c4;font-size:15px;box-shadow:0 0 24px rgba(233,194,122,.45)}'
     + '#citywatch[hidden]{display:none}#citywatch button{padding:10px 20px;font-size:17px;font-weight:700;color:#14110a;background:#e9c27a;border:0;border-radius:4px;cursor:pointer}'
-    + 'body.city-watching #attackbar{top:164px;z-index:61}'   // the raid bar (doors, back room hold timer) sits under the watch banner and the Outside button, not behind them (Tim 2026-11-10)
+    + 'body.city-watching #attackbar{top:164px;z-index:61}'   // the raid bar (doors, back room hold timer) sits under the watch banner and the Outside button, not behind them (2026-11-10)
     + '#citywatch button:hover{background:#ffd98f}body.city-watching::after{content:"";position:fixed;inset:0;z-index:55;pointer-events:none;box-shadow:inset 0 0 0 4px rgba(233,194,122,.55),inset 0 0 90px rgba(233,194,122,.25)}';
   document.head.appendChild(style); document.body.appendChild(banner);
   function start() {

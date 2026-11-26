@@ -61,7 +61,7 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = n
   const blockers = [];
   const shore = world.terrain.shoreline?.radius ? shorelineTopology(world) : null;
   // cells drawn with fine rectangles below: rounded ocean corners, and river cells holding part of a ford bar
-  // or bridge deck (only the crossing art is walkable, Tim 2026-11-20)
+  // or bridge deck (only the crossing art is walkable, 2026-11-20)
   const fineCell = (i, j) => !!shore?.affectedCell(x0 / tc + j, z0 / tc + i) || crossingCell(world, x0 + (j + 0.5) * tc, z0 + (i + 0.5) * tc);
   for (let i = 0; i < n; i++) {
     let start = -1;
@@ -97,7 +97,7 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = n
       previous = current;
     }
   }
-  // castle ground over water (Tim 2026-11-20): the dock planks run out over the sea, so the water under a placed castle's
+  // castle ground over water (2026-11-20): the dock planks run out over the sea, so the water under a placed castle's
   // ground (walk, sim/castles.js castleWalkBoxes) is cut out of the terrain blockers and the whole dock is walkable
   const piers = (walk || []).filter(b => b.maxX > x0 && b.minX < x0 + size && b.maxZ > z0 && b.minZ < z0 + size);
   for (const p of piers) for (let k = blockers.length - 1; k >= 0; k--) {
@@ -162,7 +162,7 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = n
   return { id: chunkId(cx, cz), cx, cz, x0, z0, size, cells, blockers, props, art:islandArt(world,cfg,cx,cz) };
 }
 
-// Tim 2026-11-03: ordinary props other than trees (propScale.keep) and oddities are drawn at
+// 2026-11-03: ordinary props other than trees (propScale.keep) and oddities are drawn at
 // propScale.factor x their scale, and their walk blockers (centred on the prop) shrink by the same factor.
 function scalePaintedProps(props, blockers, ps) {
   if (!ps?.factor || ps.factor === 1) return;

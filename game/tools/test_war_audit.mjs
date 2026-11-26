@@ -1,4 +1,4 @@
-// War audit 2026-11-15 (Tim: build every agreed rule that was missing): come round at the camp hall during a war,
+// War audit 2026-11-15 (build every agreed rule that was missing): come round at the camp hall during a war,
 // the winner's unused materials back, the Burn card's founding-limit line, war circle neutrality for other clans,
 // riders as heavy units. (island_respawn.js, war_end.js materialsBack, war_outcome_menu.js, game.js warNeutral)
 import assert from 'node:assert/strict';

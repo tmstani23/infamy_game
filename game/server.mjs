@@ -17,7 +17,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 const server = createServer(async (req, res) => {
   try {
     if (await handleSaves(req, res, join(ROOT, 'saves'))) return;   // save files (F1.6)
-    // the movable HUD saves its layouts in saves/layouts (Tim 2026-11-16); the game never writes into its own folders
+    // the movable HUD saves its layouts in saves/layouts (2026-11-16); the game never writes into its own folders
     if (await handleLayouts(req, res, join(ROOT, 'saves', 'layouts'), join(ROOT, 'to_delete', 'layouts'))) return;
     let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     let file = normalize(join(ROOT, path));

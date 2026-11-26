@@ -77,5 +77,5 @@ export function spatialIndex(state, cell = 6, slack = 3) {
   };
 }
 // The boss is away from the city (out on the island): his city orders are not available, the lieutenant runs it
-// (Tim 2026-11-08). One definition for the sim (game.js command filter) and the UI (Deployment panel, Rally button).
+// (2026-11-08). One definition for the sim (game.js command filter) and the UI (Deployment panel, Rally button).
 export const bossAway = hero => hero?.type === 'hero' && hero.place === 'world';

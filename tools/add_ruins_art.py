@@ -1,4 +1,4 @@
-"""Cut the ruin sheet (Tim 2026-11-12, war checkpoint 6) into game/art/buildings.
+"""Cut the ruin sheet (2026-11-12, war checkpoint 6) into game/art/buildings.
 
     python tools/add_ruins_art.py [--preview out.png]
 

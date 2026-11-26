@@ -1,4 +1,4 @@
-// War camp build area while placing a camp building (7c-4, Tim 2026-11-12: the rings go).
+// War camp build area while placing a camp building (7c-4, 2026-11-12: the rings go).
 // One outline round the whole buildable area (the ground within chainDistance of a normal camp building, merged
 // into one shape), and the ground outside it is darkened. Resource camps (lumber camp, quarry) do not extend the
 // area, so they are not part of the outline; a new building near the edge pushes the outline out once it stands

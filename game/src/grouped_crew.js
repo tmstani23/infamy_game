@@ -2,9 +2,9 @@ import { unitName,unitStatus } from './selection_panel.js';
 import { crewCommandGroup } from './sim/deployment_rally.js';
 import { syncChildren } from './stable_list.js';
 
-// Tim 2026-10-28: double-click a group header = the camera follows that group; drag a pip onto
+// 2026-10-28: double-click a group header = the camera follows that group; drag a pip onto
 // another group = transfer (the crew take that group's duty from the Deployment menu)
-// Tim 2026-10-30: selected crew get a gold box and the rest of their group dims; tabs 1-4 show the
+// 2026-10-30: selected crew get a gold box and the rest of their group dims; tabs 1-4 show the
 // control groups (click selects, Ctrl+click assigns, again dissolves); a drag shows gold where the crew
 // fit and red where they don't, and a refused drop flashes red with the reason.
 const CSS=`
@@ -53,7 +53,7 @@ let cssAdded=false;
 export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},watchGroup=()=>{},where=()=>''}) {
   if(!cssAdded&&document.head){cssAdded=true;const st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);}
   const sections=new Map(),pips=new Map(),medical=new Map();
-  // health left as numbers under each bar, mounted or not (Tim 2026-11-15)
+  // health left as numbers under each bar, mounted or not (2026-11-15)
   const hpText=e=>`${Math.max(0,Math.ceil(e.hp))} / ${e.maxHp}`;
   const tabs=document.createElement('div');tabs.className='crew-tabs';
   const tabButtons=[1,2,3,4].map(n=>{const b=document.createElement('button');b.type='button';b.className='crew-tab';b.dataset.n=n;
@@ -65,18 +65,18 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     const el=document.createElement('section'),head=document.createElement('button'),list=document.createElement('div');
     el.className='crew-section';el.dataset.group=id;head.className='crew-group-select';head.type='button';list.className='crew-group-pips';
     head.addEventListener('dblclick',()=>watchGroup(id));
-    // right-click the Frontier crew header (Tim 2026-11-10): everyone gets off, out of every vehicle and off every horse
+    // right-click the Frontier crew header (2026-11-10): everyone gets off, out of every vehicle and off every horse
     if(id==='vehicles')head.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();
       const owner=game.state.entities[heroId]?.owner,O=game.omnibus,all=Object.values(game.state.entities);
       const vs=O?all.filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length).map(v=>v.id):[];
       if(vs.length)send({id:heroId,type:'omnibus',action:'deploy',vehicles:vs});
       for(const u of all)if(u.owner===owner&&u.type!=='hero'&&!u.warTroop&&u.mounted&&u.ride?.horse&&!u.dead)send({id:heroId,type:'mount',horse:u.ride.horse,units:[u.id]});});
     head.addEventListener('click',()=>{
-      // a header selects just what its section shows (Tim 2026-11-08): the vehicles header its vehicles, a group
+      // a header selects just what its section shows (2026-11-08): the vehicles header its vehicles, a group
       // header its crew on foot or horseback (riders show in their vehicle's card)
       const owner=game.state.entities[heroId]?.owner,O=game.omnibus;
       if(id==='vehicles'){const me=game.state.entities[heroId],out=!!me&&!me.dead&&me.place==='world';crewInput.select([...(out&&!me.aboard?[heroId]:[]),...(out?Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&!e.guard&&!e.warTroop&&!e.dead&&!e.downed&&!e.jailed&&!e.aboard&&!e.mounted&&!e.deployment?.transfer&&key(e)==='hero').map(e=>e.id):[]),...(O?Object.values(game.state.entities).filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length).map(v=>v.id):[]),
-        ...Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&!e.warTroop&&e.mounted&&!e.dead).map(e=>e.id)]);return;}   // war cavalry are troops, not crew (Tim 2026-11-15)
+        ...Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&!e.warTroop&&e.mounted&&!e.dead).map(e=>e.id)]);return;}   // war cavalry are troops, not crew (2026-11-15)
       const crew=Object.values(game.state.entities).filter(e=>e.owner===owner&&e.type!=='hero'&&!e.guard&&!e.warTroop&&!e.dead&&!e.downed&&!e.jailed&&!e.aboard&&!e.deployment?.transfer&&key(e)===id);
       const me=game.state.entities[heroId];crewInput.select([...(id==='hero'&&me&&!me.dead&&!me.aboard?[heroId]:[]),...crew.map(e=>e.id)]);
     });const note=document.createElement('div');note.className='crew-drop-note';el.append(head,list,note);root.appendChild(el);const s={el,head,list,label,note,headKey:''};sections.set(id,s);return s;
@@ -112,13 +112,13 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
       b.classList.toggle('empty',!n);b.classList.toggle('on',!!n&&picked.length>0&&crew.every(e=>(crewInput.groupOf(e.id)===i+1)===selected.has(e.id)));});
     ordered.push(tabs);
     // out on the frontier there is one group, Frontier crew: the hero first, then his crew on foot, the loaded vehicles and
-    // the riders (Tim 2026-11-15); in the city the hero heads his Hero group as before
+    // the riders (2026-11-15); in the city the hero heads his Hero group as before
     const hm=game.state.entities[heroId],merged=!!hm&&!hm.dead&&hm.place==='world';let heroNodes=[],heroChosen=0;
     for(const [id,label0]of Object.entries(names)){
       const label=id==='hero'&&merged?'Frontier crew':label0;
-      // the hero heads his own group (Tim 2026-11-15: selectable, with his health like the crew, mounted or not)
+      // the hero heads his own group (2026-11-15: selectable, with his health like the crew, mounted or not)
       const me=game.state.entities[heroId],withHero=id==='hero'&&me&&!me.dead&&!me.aboard?[me]:[];
-      const members=[...withHero,...crew.filter(e=>key(e)===id&&!e.aboard&&!e.mounted)];   // riders show in their vehicle's card, horsemen as mounts (Tim 2026-11-08)
+      const members=[...withHero,...crew.filter(e=>key(e)===id&&!e.aboard&&!e.mounted)];   // riders show in their vehicle's card, horsemen as mounts (2026-11-08)
       const s=createSection(id,label),chosen=members.filter(e=>selected.has(e.id)).length,partial=chosen>0&&chosen<members.length,headKey=`${label}|${members.length}|${partial?chosen:''}`;s.count=members.length;
       if(s.headKey!==headKey){s.headKey=headKey;s.head.textContent=`${label} · ${members.length}`;if(partial){const b=document.createElement('b');b.textContent=` · ${chosen} selected`;s.head.appendChild(b);}}
       const waiting=id==='home'&&members.some(e=>e.deployment?.awaitingAssignment);s.el.classList.toggle('crew-waiting',!!waiting);if(waiting)s.note.textContent='Crew waiting to be assigned';else if(s.note.textContent==='Crew waiting to be assigned')s.note.textContent='';
@@ -132,13 +132,13 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
       });if(id==='hero'&&merged){heroNodes=nodes;heroChosen=chosen;continue;}   // shown in the Frontier crew section below
       syncChildren(s.list,nodes);ordered.push(s.el);
     }
-    // Frontier crew (Tim 2026-11-07): each loaded rickshaw or omnibus is one card with its shared health and a seat per
+    // Frontier crew (2026-11-07): each loaded rickshaw or omnibus is one card with its shared health and a seat per
     // place (2 or 8): riders show in their seats, empty seats faintly. Clicking the card selects the vehicle.
     const owner=game.state.entities[heroId]?.owner,O=game.omnibus;
-    // your loaded ships are cards here too, as the omnibus (Tim 2026-11-23): a seat per place in the hold
+    // your loaded ships are cards here too, as the omnibus (2026-11-23): a seat per place in the hold
     const SH=game.ships,boats=SH?Object.values(game.state.entities).filter(v=>v.ship&&v.owner===owner&&!v.dead&&SH.riders(v).length):[];
     const vehicles=[...(O?Object.values(game.state.entities).filter(v=>O.isVehicle(v)&&v.omnibusOwner===owner&&!v.dead&&O.riders(v).length):[]),...boats];
-    // crew on horseback show here too, one Mount card each (Tim 2026-11-08): click selects the rider, right-click gets him off
+    // crew on horseback show here too, one Mount card each (2026-11-08): click selects the rider, right-click gets him off
     const mounts=crew.filter(e=>e.mounted&&e.ride?.kind==='horse'&&!e.dead);
     const vs=createSection('vehicles','Frontier crew');vs.count=heroNodes.length+vehicles.length+mounts.length;
     const vChosen=heroChosen+vehicles.filter(v=>selected.has(v.id)).length+mounts.filter(u=>selected.has(u.id)).length;
@@ -149,9 +149,9 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
       let p=pips.get('veh:'+v.id);
       if(!p){const el=document.createElement('div'),name=document.createElement('div'),hp=document.createElement('div'),seats=document.createElement('div');
         const hpt=document.createElement('small');el.className='mate veh';el.dataset.out='⏏ Unload';name.className='vname';hp.className='pip';hpt.className='hpt';seats.className='seats';el.append(name,hp,hpt,seats);el.hpt=hpt;
-        el.addEventListener('mousedown',e=>e.stopPropagation());el.addEventListener('click',()=>{crewInput.select([v.id]);crewInput.look?.(v.id);});el.addEventListener('dblclick',()=>crewInput.watch?.(v.id));   // like a click on it in the world: it shows in the target frame (Tim 2026-11-08)
-        // right-click the card: everyone in it steps out, the same as right-clicking it in the world (Tim 2026-11-08)
-        // a vehicle or ship card does not unload on a right-click (Tim 2026-11-24): only a seat (that one rider), Q, or its Unload all button
+        el.addEventListener('mousedown',e=>e.stopPropagation());el.addEventListener('click',()=>{crewInput.select([v.id]);crewInput.look?.(v.id);});el.addEventListener('dblclick',()=>crewInput.watch?.(v.id));   // like a click on it in the world: it shows in the target frame (2026-11-08)
+        // right-click the card: everyone in it steps out, the same as right-clicking it in the world (2026-11-08)
+        // a vehicle or ship card does not unload on a right-click (2026-11-24): only a seat (that one rider), Q, or its Unload all button
         el.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();});
         {el.classList.add('ship');const b=document.createElement('span');b.className='unl';b.textContent='Unload all';b.title=v.ship?'Everyone steps off; a ship out on the water sails in to shore first':'Everyone steps out and waits beside it';b.addEventListener('mousedown',e=>e.stopPropagation());b.addEventListener('click',e=>{e.stopPropagation();send(v.ship?{id:heroId,type:'ship',action:'unload',ships:[v.id]}:{id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id]});});el.append(b);}
         p={el,name,hp,seats,key:''};pips.set('veh:'+v.id,p);}
@@ -160,7 +160,7 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
       p.hp.style.setProperty('--hp',`${Math.max(0,v.hp/v.maxHp*100)}%`);{const t=hpText(v);if(p.el.hpt.textContent!==t)p.el.hpt.textContent=t;}
       if(p.key!==k){p.key=k;p.seats.replaceChildren(...Array.from({length:n},(_,i)=>{const r=rs[i],d=document.createElement('span');
         d.className='seat'+(r?(r.type==='hero'?' hero':r.type==='settler'?' settler':''):' empty');if(r){d.textContent=unitName(units,r.type).slice(0,1);d.title=unitName(units,r.type)+(r.type==='hero'?'':' · right-click: only he steps out');
-          // right-click one rider's seat: only he steps out and waits (Tim 2026-11-08); the hero's seat lets only him out (Tim 2026-11-10)
+          // right-click one rider's seat: only he steps out and waits (2026-11-08); the hero's seat lets only him out (2026-11-10)
           if(r.type==='hero'){d.title='You · right-click: only you step out';d.addEventListener('mouseenter',()=>{const c=d.closest('.veh');if(c){c.dataset.out='You out';c.classList.add('one');}});d.addEventListener('mouseleave',()=>{const c=d.closest('.veh');if(c){c.dataset.out='⏏ Unload';c.classList.remove('one');}});d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();send(v.ship?{id:heroId,type:'ship',action:'unload',ships:[v.id],only:r.id}:{id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id],units:[r.id],hero:true});});}
           if(r.type!=='hero'){const nm=unitName(units,r.type);d.addEventListener('mouseenter',()=>{const c=d.closest('.veh');if(c){c.dataset.out=`${nm} out`;c.classList.add('one');}});d.addEventListener('mouseleave',()=>{const c=d.closest('.veh');if(c){c.dataset.out='⏏ Unload';c.classList.remove('one');}});d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();send(v.ship?{id:heroId,type:'ship',action:'unload',ships:[v.id],only:r.id}:{id:heroId,type:'omnibus',action:'deploy',vehicles:[v.id],units:[r.id]});});}}return d;}));}
       p.el.classList.toggle('picked',selected.has(v.id));
@@ -183,9 +183,9 @@ export function createGroupedCrew({root,game,heroId,units,crewInput,send=()=>{},
     syncChildren(vs.list,[...heroNodes,...vnodes,...mnodes]);if(merged||vehicles.length||mounts.length)ordered.splice(1,0,vs.el);
     if(clinic.length||jail.length){
       const s=createSection('medical','Unavailable');s.count=clinic.length+jail.length;s.head.textContent=`Clinic ${clinic.length} · Jail ${jail.length}`;s.head.disabled=true;
-      const records=[...clinic.map((c,i)=>({key:`clinic-${i}`,name:unitName(units,c.unit),title:`Clinic · ${Math.ceil(c.left)}s`,id:null})),...jail.map(p=>({key:`jail-${p.id}`,name:unitName(units,p.unit),title:`Jail · bail ${p.bail}`,tip:`In jail at the Police HQ: bail ${p.bail} ryo (Space at its door)`,id:p.id}))];   // Tim 2026-11-07: the long line wrapped to 3 lines and crowded the cards
+      const records=[...clinic.map((c,i)=>({key:`clinic-${i}`,name:unitName(units,c.unit),title:`Clinic · ${Math.ceil(c.left)}s`,id:null})),...jail.map(p=>({key:`jail-${p.id}`,name:unitName(units,p.unit),title:`Jail · bail ${p.bail}`,tip:`In jail at the Police HQ: bail ${p.bail} ryo (Space at its door)`,id:p.id}))];   // 2026-11-07: the long line wrapped to 3 lines and crowded the cards
       const keys=new Set(records.map(r=>r.key));for(const [id,p]of medical)if(!keys.has(id)){p.el.remove();medical.delete(id);}
-      const cards=records.map(r=>{let p=medical.get(r.key);if(!p){const el=document.createElement('div'),name=document.createElement('span'),status=document.createElement('small');name.className='name';status.className='crew-status';el.append(name,status);p={el,name,status};medical.set(r.key,p);}p.el.classList.add('mate','away');p.el.classList.toggle('jailed',!!r.id);if(p.name.textContent!==r.name)p.name.textContent=r.name;if(p.status.textContent!==r.title)p.status.textContent=r.title;/* keep the page's layout-page-hidden class: resetting className every frame showed the card, then paging hid it again, so the panel flashed (Tim 2026-11-07) */p.el.title=r.tip||r.title;if(r.id)p.el.dataset.id=r.id;else delete p.el.dataset.id;return p.el;});syncChildren(s.list,cards);ordered.push(s.el);
+      const cards=records.map(r=>{let p=medical.get(r.key);if(!p){const el=document.createElement('div'),name=document.createElement('span'),status=document.createElement('small');name.className='name';status.className='crew-status';el.append(name,status);p={el,name,status};medical.set(r.key,p);}p.el.classList.add('mate','away');p.el.classList.toggle('jailed',!!r.id);if(p.name.textContent!==r.name)p.name.textContent=r.name;if(p.status.textContent!==r.title)p.status.textContent=r.title;/* keep the page's layout-page-hidden class: resetting className every frame showed the card, then paging hid it again, so the panel flashed (2026-11-07) */p.el.title=r.tip||r.title;if(r.id)p.el.dataset.id=r.id;else delete p.el.dataset.id;return p.el;});syncChildren(s.list,cards);ordered.push(s.el);
     }
     syncChildren(root,ordered);showDestinations();
   }

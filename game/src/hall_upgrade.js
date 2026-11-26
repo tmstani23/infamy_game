@@ -1,4 +1,4 @@
-// The town hall upgrade block (Tim 2026-11-25, mock town_upgrade_reqs): one line per requirement with have / need,
+// The town hall upgrade block (2026-11-25, mock town_upgrade_reqs): one line per requirement with have / need,
 // a bar, what is short and roughly how long at the current rate; the Upgrade button names what is still missing.
 // Used by the town hall card (frontier_build_ui.js) and the town panel (frontier_panel.js). Presentation only:
 // the rule is upgradeCheck in sim/frontier/tiers.js, the numbers here read the same fields it does.

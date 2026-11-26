@@ -1,4 +1,4 @@
-// Frontier E6 (Tim 2026-11-05): rival bots found their towns with the player's commands (permit and
+// Frontier E6 (2026-11-05): rival bots found their towns with the player's commands (permit and
 // settlers at the Land Office, Choose site at the gate, found). They wait for the player's first town or
 // fallbackDay, leave staggerDays apart, never pick the same site, never issue a rejected found, and their
 // site picks change with the game seed. Classic bots never try.
@@ -43,7 +43,7 @@ const botTowns = g => Object.values(g.state.frontier.settlements).filter(s => s.
   g.state.clock.day = B.fallbackDay;
   assert.equal(g.landOffice.botDue('kuroda', 0), true, 'fallbackDay: they go anyway');
   assert.equal(g.landOffice.botDue('kuroda', 1), false, 'the second bot leaves staggerDays later');
-  // Tim 2026-11-11: after the player's first town the first bot waits afterPlayerDays
+  // 2026-11-11: after the player's first town the first bot waits afterPlayerDays
   g.state.clock.day = 3; g.state.frontier.firstPlayerTownDay = 3;
   assert.equal(g.landOffice.botDue('kuroda', 0), B.afterPlayerDays === 0, 'the player is first');
   g.state.clock.day = 3 + B.afterPlayerDays;
@@ -74,11 +74,11 @@ const botTowns = g => Object.values(g.state.frontier.settlements).filter(s => s.
   for (const id of ['landOffice:permit', 'hire:settler', 'expedition:site', 'frontier:found']) assert.ok(cmds.includes(id), `used ${id}`);
   for (const t of towns) assert.equal(g.state.clans[t.owner].permit, false);
   const bossesOut = Object.values(g.state.entities).filter(e => e.type === 'hero' && g.state.clans[e.owner]?.bot && e.place === 'world');
-  for (const b of bossesOut) assert.ok(Object.values(g.state.entities).some(u => u.owner === b.owner && u.type !== 'hero' && u.type !== 'settler' && u.place === 'world'), 'a bot takes its Hero group along (Tim 2026-11-06)');
+  for (const b of bossesOut) assert.ok(Object.values(g.state.entities).some(u => u.owner === b.owner && u.type !== 'hero' && u.type !== 'settler' && u.place === 'world'), 'a bot takes its Hero group along (2026-11-06)');
   assert.equal(bossesOut.length, 2, 'the bosses stay out at their towns (C2: lieutenants run the city)');
   for (let i = 0; i < 400; i++) g.step(bots.flatMap(b => b.tick()));
   for (const t of towns) assert.equal(t.autoBuild, true, 'a bot town\'s governor takes initiative');
-  // the omnibus (Tim 2026-11-06): bots ride out in it too; founding steps everyone out and uses it up
+  // the omnibus (2026-11-06): bots ride out in it too; founding steps everyone out and uses it up
   for (const t of towns) assert.equal(g.state.clans[t.owner].omnibusFree, 0, 'a bot rode out by omnibus');
   assert.ok(!Object.values(g.state.entities).some(e => e.type === 'omnibus' && towns.some(t => t.owner === e.omnibusOwner)), 'their omnibuses are used up');
   assert.ok(!Object.values(g.state.entities).some(e => e.aboard), 'nobody left inside');

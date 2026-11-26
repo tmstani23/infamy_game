@@ -21,8 +21,8 @@ assert.equal(specialOf(units, { type: 'gatling_crew' }), 'gatling');
 assert.deepEqual(frontier.war.units.gatling.at, ['foundry']); assert.equal(frontier.war.units.gatling.clan, 'kuroda');
 const run = (n, fn) => { for (let i = 0; i < n; i++) { g.step(); if (fn?.()) return i + 1; } return n; };
 const gun = mine('gatling_crew', 'gatling', 0, 0, { holdFire: false });
-// ---- reworked Tim 2026-11-21: a spin up, then a burst, then a spin up again ------------------------------
-const a = foe('thug', 'thug', 7, 0), b = foe('thug', 'thug', 7, 1.2), side = foe('thug', 'thug', 0, -8)   /* (0, 8) is behind a wall: Tim 2026-11-25 */, close = foe('thug', 'thug', 1.5, 0);
+// ---- reworked 2026-11-21: a spin up, then a burst, then a spin up again ------------------------------
+const a = foe('thug', 'thug', 7, 0), b = foe('thug', 'thug', 7, 1.2), side = foe('thug', 'thug', 0, -8)   /* (0, 8) is behind a wall: 2026-11-25 */, close = foe('thug', 'thug', 1.5, 0);
 const hp = () => [a, b, side, close].map(e => e.hp), hp0 = hp();
 for (const e of [a, b, side, close]) e.hp = e.maxHp = 100000;
 const H0 = hp();
@@ -57,7 +57,7 @@ assert.equal(specialView({ state: st, units }, 'gatling', [gun.id]).ready, 0, 'o
   run(R.spinTicks + 4); assert.ok(g2.gat?.unload, 'auto Unload with 3 in the cone'); g.step([{ id: hero.id, type: 'order', kind: 'move', units: [g2.id], x: gun.x, z: gun.z - 30 }]); }
 // ---- it never fights hand to hand ------------------------------------------------------------------------------
 { g.step([{ id: hero.id, type: 'order', kind: 'attack', units: [gun.id], target: a.id }]); run(10); assert.notEqual(gun.order?.kind, 'attack'); assert.equal(gun.swing, undefined); }
-// ---- Tim 2026-11-25: a wall or building between stops it, as for arrows and rifles ---------------------------------
+// ---- 2026-11-25: a wall or building between stops it, as for arrows and rifles ---------------------------------
 { const n = g.nav; let spot = null;
   for (let r = 6; r <= 11 && !spot; r += 0.5) for (let k = 0; k < 64 && !spot; k++) {
     const gx = ax + 30 * Math.cos(k), gz = az + 30 * Math.sin(k);   // somewhere off the earlier fight

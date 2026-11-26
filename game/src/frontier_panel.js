@@ -4,7 +4,7 @@
 // Talk to the governor is a button for now; the Space-at-the-town-hall version arrives with the town in the world (E5).
 import { bindTips } from './frontier_tips.js';
 import {resourceUsage} from './sim/frontier/resource_usage.js';
-// Lantern style (Tim 2026-11-23): the game's painted props stand on the storehouse shelf in the Town panel
+// Lantern style (2026-11-23): the game's painted props stand on the storehouse shelf in the Town panel
 const STOCK_ART = { food: 'art/props/sake_barrels.png', timber: 'art/props/firewood.png', stone: 'art/props/sandstone_stones.png', goods: 'art/props/crates.png', ryo: 'art/props/iron_chest.png', fish: 'art/props/barrels.png', people: 'art/buildings/tenements.png' };
 import { usageView, housingView, flowFocus } from './sim/frontier/usage_view.js';
 import { reportRows, peopleRows, governorSays, talkCommand } from './frontier_report.js';
@@ -17,24 +17,24 @@ import { createShipmentsTab } from './shipments_tab.js';
 import { createStableTab, STABLE_TAB_CSS } from './stable_tab.js';
 import { msPaginate, msConcept } from './menu_shell.js';
 import { sharedKeybinds } from './keybinds.js';
-import { logRowHtml, logPageHtml, logHover, logTurn, LOG_CSS } from './action_log_ui.js';   // governor's log (Tim 2026-11-22)
-const keybinds = sharedKeybinds();   // key text follows rebinding (Tim 2026-11-12)
+import { logRowHtml, logPageHtml, logHover, logTurn, LOG_CSS } from './action_log_ui.js';   // governor's log (2026-11-22)
+const keybinds = sharedKeybinds();   // key text follows rebinding (2026-11-12)
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const tip = t => t ? ` data-tip="${esc(t)}"` : '';
-const arrow = { up: '<span class="up tri"></span>', down: '<span class="dn tri"></span>', flat: '<span class="dim">-</span>' }   // drawn triangles, no glyphs (Tim 2026-11-10);
+const arrow = { up: '<span class="up tri"></span>', down: '<span class="dn tri"></span>', flat: '<span class="dim">-</span>' }   // drawn triangles, no glyphs (2026-11-10);
 
 export function ownTowns(frontier, clan) {
   return Object.values(frontier?.settlements || {}).filter(s => s.owner === clan && !s.capital && s.stock);
 }
 
-// Plain one-line effects of each steering choice (Tim 2026-11-05: what do the focus buttons actually do?)
-// Short captions shown under each choice (Tim 2026-11-08: no long lines across the card); the full lines above are tooltips
+// Plain one-line effects of each steering choice (2026-11-05: what do the focus buttons actually do?)
+// Short captions shown under each choice (2026-11-08: no long lines across the card); the full lines above are tooltips
 const SHORT = {
   focus: { grow: 'Farms first, more farms and houses', produce: 'Workshops first, builds for your scarcest material', trade: 'Workshops first, more goods to sell', fortify: 'Builds a stockade first' },
   tax: { low: 'Little ryo, happier town', normal: 'Steady ryo', high: 'Most ryo, mood falls', auto: 'Kept where mood stays healthy' },
   initiative: { off: 'He suggests, you approve', on: 'He builds by himself' }
 };
-// Governor tab redesign (Tim 2026-11-11): drawn focus icons, no glyphs
+// Governor tab redesign (2026-11-11): drawn focus icons, no glyphs
 const FOCUS_ICON = {
   grow: '<svg viewBox="0 0 28 24"><g stroke="#24331a" stroke-width="1"><path d="M14 23V9M14 15c-4-1-7-4-8-8 4 0 7 3 8 7M14 13c4-1 7-4 8-8-4 0-7 3-8 7M14 10c-2-2-2-5 0-8 2 3 2 6 0 8" fill="#7fae4e"/></g><path d="M7 23h14" stroke="#6e5428" stroke-width="2"/></svg>',
   produce: '<svg viewBox="0 0 28 24"><g stroke="#2a1d10" stroke-width="1"><path d="M12 9 21 22l2-1.5L14 7.5Z" fill="#a8784a"/><path d="M5 6.5 13.5 2l4 4.5L9 11Z" fill="#9c988c"/><path d="M5 6.5 9 11 7 12.5 3.5 8Z" fill="#7d796f"/></g></svg>',
@@ -62,9 +62,9 @@ const STEER = {
   }
 };
 export function createFrontierPanel({ root, game, heroId, clan = 'player', send, buildUI = null, miniRoot = null, nearbyTown = null, selected: pickedUnits = () => [], focus=()=>{}, onOpen = () => {}, onClose = () => {}, onStable = null, onTownWar = null, afterRender = () => {} }) {
-  // Tim 2026-11-07: the old "More: projects & steering" page is gone; each part is a tab along the top (like Workers)
-  // Tim 2026-11-07: Steer merged into Governor (his talk, focus, taxes, market, stockade and initiative on one tab)
-  const TABS = [['town', 'Overview'], ['governor', 'Governor'], ['stable', 'Stable'], ['ship', 'Shipments']];   // Shipments: rail shipments S4 (Tim 2026-11-09)
+  // 2026-11-07: the old "More: projects & steering" page is gone; each part is a tab along the top (like Workers)
+  // 2026-11-07: Steer merged into Governor (his talk, focus, taxes, market, stockade and initiative on one tab)
+  const TABS = [['town', 'Overview'], ['governor', 'Governor'], ['stable', 'Stable'], ['ship', 'Shipments']];   // Shipments: rail shipments S4 (2026-11-09)
   let selected = null, mode = 'town', tab = 'town', prevStock = {}, prevAt = 0, lastHtml = '', failure = null;
   // A press on the panel holds its redraw until the mouse is let go (2026-11-22: the once-a-second redraw swapped the
   // button out from under a press and the click was lost, about one press in ten on the Workers view). Never over 2 s.
@@ -75,13 +75,13 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   let govLog = false, glpage = 0;   // the governor's log: open view and its page
   if (typeof document !== 'undefined' && document.head) { const st = document.createElement('style'); st.textContent = LOG_CSS('#townpanel'); document.head.append(st); const st2 = document.createElement('style'); st2.textContent = STABLE_TAB_CSS; document.head.append(st2); }
   const tips = bindTips(root); if (miniRoot) bindTips(miniRoot);
-  // pages instead of a scrollbar (menu restyle, Tim 2026-11-10): the body splits by height, per tab
+  // pages instead of a scrollbar (menu restyle, 2026-11-10): the body splits by height, per tab
   const pageState = { page: 0 }; let pageKey = '';
   if (typeof addEventListener === 'function') addEventListener('resize', () => paginate());
   // Lantern style: the serif face loads its weights on first use and text grows, so the pages are cut again then
   if (typeof document !== 'undefined') document.fonts?.addEventListener?.('loadingdone', () => paginate());
   // room in screen pixels (msPaginate measures boxes on screen): the window's own max height and frame, shrunk by a layout
-  // scale, bound the body as well as the screen does (Lantern style frame, Tim 2026-11-23)
+  // scale, bound the body as well as the screen does (Lantern style frame, 2026-11-23)
   const paginate = () => { const body = root.querySelector?.('.pbody'); if (!body || typeof innerHeight === 'undefined') return;
     const rr = root.getBoundingClientRect?.(), cs = typeof getComputedStyle === 'function' ? getComputedStyle(root) : null, sc = rr && root.offsetHeight ? rr.height / root.offsetHeight || 1 : 1;
     const bt = body.getBoundingClientRect().top, screen = innerHeight - 24 - bt;
@@ -92,7 +92,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
   const usageTip=(s,r)=>{
     if(!data)return '';
     const u=resourceUsage(s,r,data);
-    // Tim 2026-11-22 (fix list 13-15, item 14): one line per kind ("31 farm plots, 1.0/s, all working"), not one per plot
+    // 2026-11-22 (fix list 13-15, item 14): one line per kind ("31 farm plots, 1.0/s, all working"), not one per plot
     const groups=new Map();
     for(const e of u.entries){
       const kind=e.name.replace(/\s+\d+$/,''),key=kind+(e.once?':once':''),g=groups.get(key)||{kind,n:0,rate:0,once:0,states:{}};
@@ -108,7 +108,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       +(shown.length?'\n'+shown.join('\n'):'')+(more>0?`\nand ${more} more`:'')+'\nClick for the Usage page.';
   };
   const cmd = c => send({ id: heroId, type: 'frontier', ...c });
-  // Typed keep and fund boxes (Tim 2026-11-22): Enter always sends, even the number already shown (the browser fires no
+  // Typed keep and fund boxes (2026-11-22): Enter always sends, even the number already shown (the browser fires no
   // 'change' then), and the box holds the typed number until the sim has it, so it does not flash the old value.
   const pending = {};
   const shown = (s, act, res, now) => {
@@ -130,14 +130,14 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     lastHtml = ''; render(); return true;
   }
   const shipTab = createShipmentsTab({ game, data, cmd, usage: resourceUsage });
-  const stableTab = createStableTab({ game, heroId, send, data, focus });   // Stable tab shows the stable itself (Tim 2026-11-23)
+  const stableTab = createStableTab({ game, heroId, send, data, focus });   // Stable tab shows the stable itself (2026-11-23)
   const towns = () => ownTowns(game.state.frontier, clan);
   function pick() {
     const list = towns();
     if (!list.find(s => s.id === selected)) selected = nearbyTown ? nearbyTown() : list[0]?.id ?? null;
     return list.find(s => s.id === selected) || null;
   }
-  // Usage page (Tim 2026-11-05 redesign): one tab per resource plus Housing. Rates per minute.
+  // Usage page (2026-11-05 redesign): one tab per resource plus Housing. Rates per minute.
   const pm = v => { const a = Math.abs(v); return (v < 0 ? '-' : '+') + (a >= 10 ? Math.round(a) : a >= 1 ? a.toFixed(1) : a.toFixed(2)); };
   const num = v => Math.floor(v).toLocaleString();
   const stateCls = t => /short|abandoned|unhealthy|empty/.test(t) ? 'bad' : /paid|fed|producing|making/.test(t) ? 'good' : 'dim';
@@ -168,8 +168,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (v.limits.length) h += '<div class="lab">Limits</div>' + v.limits.map(x => `<div class="row"><span>${esc(x.name)}</span><b class="${x.full ? 'warn' : 'gold'}">${esc(x.value)}${x.note ? ` <small class="dim">(${esc(x.note)})</small>` : ''}</b></div>`).join('');
     return h;
   }
-// the Governor tab's steering rows (Tim 2026-11-07: were the Steer tab): taxes, goods keep, initiative.
-  // Redesign (Tim 2026-11-11): one strip per choice, captions in hovers; the stockade buttons moved to the stockade card
+// the Governor tab's steering rows (2026-11-07: were the Steer tab): taxes, goods keep, initiative.
+  // Redesign (2026-11-11): one strip per choice, captions in hovers; the stockade buttons moved to the stockade card
   // (send in selected, hero and crew) and the Workers pane (To stockade).
   function steerExtras(s, rows) {
     const st = rows.steer, taxNow = st.taxLocked ? st.tax : 'auto';
@@ -177,8 +177,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     let x = '<div class="lab">Steer</div>';
     x += `<div class="gst"><span class="gstl"${tip(SHORT.tax[taxNow] + (st.taxLocked ? '' : `, now ${st.tax}`) + (st.tips.tax ? '\n' + st.tips.tax : ''))}>Taxes<span class="gchip">${esc(cap1(st.tax))}</span></span>`
       + seg('tax', [...['low', 'normal', 'high'].map(p => [p, cap1(p), st.taxLocked && st.tax === p, STEER.tax[p]]), ['auto', 'Auto', !st.taxLocked, STEER.tax.auto]]) + '</div>';
-    // Economy pass 2 D, Tim 2026-11-09: one keep for the market and rail shipments, shown with a market or a rail line.
-    // Tim 2026-11-22 (fix list 15): goods, timber and stone each have a box, on their own card like the safety fund.
+    // Economy pass 2 D, 2026-11-09: one keep for the market and rail shipments, shown with a market or a rail line.
+    // 2026-11-22 (fix list 15): goods, timber and stone each have a box, on their own card like the safety fund.
     const hasMarket = s.buildings?.some(x => x.type === 'market' && x.stage === 'built');
     let keepCard = '';
     if (data?.market && (hasMarket || railLinked(s))) {
@@ -192,8 +192,8 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     }
     x += `<div class="gst"><span class="gstl"${tip(SHORT.initiative[st.autoBuild ? 'on' : 'off'] + (st.tips.initiative ? '\n' + st.tips.initiative : ''))}>Initiative</span>`
       + seg('auto', [['off', 'Asks first', !st.autoBuild, STEER.initiative.off], ['on', 'Builds himself', st.autoBuild, STEER.initiative.on]]) + '</div>';
-    // Safety fund (Tim 2026-11-21, sim/frontier/fund.js): a typed share of timber, stone and ryo income for the general.
-    // Tim 2026-11-22: the safety fund itself is set on the Military window's General tab (war_general_tab.js); here a
+    // Safety fund (2026-11-21, sim/frontier/fund.js): a typed share of timber, stone and ryo income for the general.
+    // 2026-11-22: the safety fund itself is set on the Military window's General tab (war_general_tab.js); here a
     // one-line row says what he saves for and opens it, with the red reason when he has no room
     const f = s.fund;
     if (f && !s.capital && !s.camp) {
@@ -206,13 +206,13 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     return x;
   }
   const railLinked = s => Object.values(game.state.frontier?.rail?.links || {}).some(l => l.done && !l.closed && (l.from === s.id || l.to === s.id));
-  // suggestions (Approve) first, then projects under way (Tim 2026-11-09: one section in the Governor tab)
+  // suggestions (Approve) first, then projects under way (2026-11-09: one section in the Governor tab)
   function plansHtml(s, rows) {
     if (!rows.projects.length && !rows.suggestions.length) return '<div class="hint">Nothing planned right now.</div>';
     return '<div class="gplans">' + rows.suggestions.map(x => `<div class="gplan ask"><span><b>${esc(x.label)}</b><small>${esc(x.reason)}</small></span><button class="go" data-act="approve" data-id="${x.index}">Approve</button></div>`).join('')
       + rows.projects.map(p => `<div class="gplan"><span><b>${esc(p.label)}</b><small>${esc(p.status)}${p.canAuthorize ? ', ' + esc(p.cost) : ''}</small></span><span>${p.canAuthorize ? `<button data-act="authorize" data-id="${p.id}">OK</button> ` : ''}<button class="no" data-act="cancel" data-id="${p.id}">Cancel</button></span></div>`).join('') + '</div>';
   }
-  // Tim 2026-11-10: while the build bar is open only the small Build box shows (the rest of the HUD hides via body.buildmode)
+  // 2026-11-10: while the build bar is open only the small Build box shows (the rest of the HUD hides via body.buildmode)
   let miniHtml = '';
   function showMini(on, s) {
     document.body?.classList?.toggle('buildmode', !!on);
@@ -241,7 +241,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       const say = governorSays(rows), face = msConcept('governer1');
       h += `<div class="govhead"><div class="govface"${face ? ` style="background-image:url('${face}')"` : ''}></div><div class="govmain"><div class="goveye">Governor</div><h1>${esc(rows.title)}</h1><div class="chat">"${esc(say.text)}"</div></div></div>`
         + '<div class="choices">' + say.choices.filter(c => c.id !== 'close').map(c => `<button data-act="talk" data-id="${c.id}">${esc(c.label)}</button>`).join('') + '</div>';
-      // Tim 2026-11-09: projects live here now (no separate tab), open under a plain header; approving matters most
+      // 2026-11-09: projects live here now (no separate tab), open under a plain header; approving matters most
       h += `<div class="lab"${tip('What the governor wants to build (Approve starts it) and what is being built now. With Initiative On he starts them himself, within his budget.')}>Building plans</div>` + plansHtml(s, rows);
       // focus cards with drawn icons; what each does is in its hover, the chosen one is spelled out under the cards
       const st = rows.steer, pri = s.priority || st.priority;
@@ -260,25 +260,25 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
         const what = t => t ? `ring ${t.ring}, housing ${t.cells.housing} / farm ${t.cells.farm} / work ${t.cells.work} cells, ${t.workers} workers, storehouses ${t.placed.storehouse}, camps ${t.placed.camps}` : '';
         h += `<div class="row"><span${tip('Town hall tier limits:\n' + what(tier))}>Town hall: <b>${esc(tier.name)}</b> <span class="dim">(tier ${s.tier || 1}), workers ${workerCount(s)} / ${tier.workers}</span></span>`
           + (next ? '' : '<span class="dim">Highest tier</span>') + '</div>'
-          + (next ? hallUpgradeHTML(s, data, game.state, { act: 'upgrade' }) : '');   // Tim 2026-11-25: the requirements block, as on the hall card
+          + (next ? hallUpgradeHTML(s, data, game.state, { act: 'upgrade' }) : '');   // 2026-11-25: the requirements block, as on the hall card
       }
       // war 8b: the town's military buildings, war chest and hall war upgrade live in the town war window
       if (onTownWar && data?.war?.town) h += `<div class="row"><span${tip('Military buildings go inside the town ring and are built by town builders. Some need the town hall war upgrade. Troops train only while a war is on this town, paid from its war chest.')}>War upgrade: <b>${s.warHall ? 'Done' : s.warUpgrade ? (s.builders ? `Building, about ${warUpgradeSeconds(s, data)} s` : 'Waiting for builders') : 'Not bought'}</b></span></div>`;
       const people = peopleRows(s, prevStock[s.id]?.prev, data);
       h += '<div class="lab">Stock <button data-act="usage" data-id="timber">Usage</button></div><div class="stock">' + rows.stock.map(r => `<div${tip((r.tip || '')+'\n'+usageTip(s,r.key))}${(s.stock[r.key] ?? 0) < 50 ? ' class="low"' : ''}>${STOCK_ART[r.key] ? `<img class="sprop" src="${STOCK_ART[r.key]}" alt="">` : ''}<button data-act="usage" data-id="${r.key}">${esc(r.label)}</button><b${r.full ? ' class="full"' : ''}>${r.value}</b>${r.cap != null ? `<span class="dim cap">/ ${r.cap}${r.full ? ' full' : ''}</span>` : ''}${arrow[r.arrow]}</div>`).join('')
-        // Tim 2026-11-16: townspeople are a stock too; the hover says what they do and how the town grows
+        // 2026-11-16: townspeople are a stock too; the hover says what they do and how the town grows
         + `<div class="ppl"${tip(people.tip)}><img class="sprop" src="${STOCK_ART.people}" alt=""><button data-act="usage" data-id="housing">People</button><b>${people.pop}</b><span class="dim cap">/ ${people.beds} beds</span>${arrow[people.arrow]}</div>` + '</div>';
-      // Tim 2026-11-16: the growth line (green, or red with what blocks it) and one chip per job type, short ones red
+      // 2026-11-16: the growth line (green, or red with what blocks it) and one chip per job type, short ones red
       h += `<div class="lab">People</div><div class="row"><span>${esc(rows.pop.text)}</span><span class="${people.growth.bad ? 'pwarn' : 'pgood'}">${esc(people.growth.text)}</span></div><div class="bar"><i style="width:${Math.round(rows.pop.fill * 100)}%"></i></div>`
         + (people.chips.length ? `<div class="pjobs"${tip(rows.jobsTip)}>` + people.chips.map(c => `<span class="pjob${c.short ? ' short' : ''}">Job: ${esc(c.label)} <b>${c.want == null ? c.have : `${c.have} / ${c.want}`}</b>${c.short ? ` <i>short ${c.short}</i>` : ''}</span>`).join('') + '</div>' : '')
         + `<div class="row"><span class="dim">Idle: ${people.idle}${people.idle ? ' (half tax)' : ''}</span><span class="dim">${people.short ? `Short ${people.short} people for jobs` : 'Every job filled'}</span></div>`;
       if (rows.pop.goodsWait) h += '<div class="hint">Houses need goods to level up (workshops make goods)</div>';   // B7
       h += `<div class="row" style="margin-top:5px"><span>Mood</span><span class="dim"${tip(mood.why.map(w=>w.tip).join('\n'))}>${mood.why.length ? esc(mood.why.map(w => w.text).join(', ')) : 'Content'}</span></div><div class="bar m"><i style="width:${mood.value}%"></i></div>`;
       if (mood.why.length) h += '<div class="hint">' + esc(mood.why.map(w => w.hint).join(', ')) + '</div>';
-      h += buildUI?.workersHtml?.(s) || '';   // Tim 2026-11-16: training and first steps, as their own section
+      h += buildUI?.workersHtml?.(s) || '';   // 2026-11-16: training and first steps, as their own section
       h += `<div class="govnote"><div class="lab">From the governor</div><div>Doing: <b>${esc(rows.doing || 'Nothing yet')}</b></div>` + (rows.next ? `<div>Next: <span class="dim">${esc(rows.next)}</span></div>` : '')
         + rows.waiting.map((w, i) => { const wi = rows.waitingInfo?.[i]; return `<span class="pill red"${wi ? tip(wi.tip) + ` style="background:linear-gradient(90deg,#3d5a2a ${Math.round(wi.fill * 100)}%,#2a1714 ${Math.round(wi.fill * 100)}%)"` : ''}>${esc(w)}</span>`; }).join(' ') + '</div>';
-      { // 7c-5 (Tim 2026-11-12): the town's ox carts in their own section: recall them into the town (also in a war), send parked ones out again
+      { // 7c-5 (2026-11-12): the town's ox carts in their own section: recall them into the town (also in a war), send parked ones out again
         const camps = (s.buildings || []).filter(b => b.stage === 'built' && (b.carts || []).length), all = camps.flatMap(b => b.carts);
         if (all.length) {
           const parked = all.filter(c => c.at === 'parked').length, wrecked = all.filter(c => c.at === 'wrecked').length, coming = all.filter(c => c.recall).length, road = all.length - parked - wrecked - coming;
@@ -290,10 +290,10 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       if (!rows.projects.length && !rows.suggestions.length) h += '<div class="hint">No projects or suggestions right now.</div>';
       if (rows.projects.length) h += '<div class="lab">Projects</div>' + rows.projects.map(p => `<div class="row"><span>${esc(p.label)} <span class="dim">, ${esc(p.status)}${p.canAuthorize ? ', ' + esc(p.cost) : ''}</span></span><span>${p.canAuthorize ? `<button data-act="authorize" data-id="${p.id}">OK</button> ` : ''}<button class="no" data-act="cancel" data-id="${p.id}">Cancel</button></span></div>`).join('');
       if (rows.suggestions.length) h += `<div class="lab"${tip(rows.suggestionsTip)}>Suggestions</div>` + rows.suggestions.map(x => `<div class="row"><span>${esc(x.label)} <span class="dim">, ${esc(x.reason)}</span></span><button data-act="approve" data-id="${x.index}">Approve</button></div>`).join('');
-      // Tim 2026-11-05: every choice says what it does (hover) and the current one is spelled out under its row
+      // 2026-11-05: every choice says what it does (hover) and the current one is spelled out under its row
       const b = (act, val, label, on, t = '') => `<button data-act="${act}" data-id="${val}" class="${on ? 'on' : ''}"${t ? tip(t) : ''}>${label}</button>`;
       projectsH = `<h1>${esc(rows.title)}</h1>` + h; h = '';
-      if (hasStable) stableH = stableTab.html(s);   // Tim 2026-11-23: the whole stable in the tab (src/stable_tab.js)
+      if (hasStable) stableH = stableTab.html(s);   // 2026-11-23: the whole stable in the tab (src/stable_tab.js)
     }
     if (mode === 'town' && tab !== 'governor') {
       // h now holds the steer section; pick the body of the current tab
@@ -304,12 +304,12 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     if (mode === 'town') {
       tabsH = '<div class="ptabs">' + TABS.filter(([id]) => id !== 'stable' || hasStable).map(([id, label]) => `<button data-act="tab" data-id="${id}" class="${!rosterOpen && tab === id ? 'on' : ''}${id === 'ship' && !railLinked(s) ? ' dimtab' : ''}"${id === 'ship' && !railLinked(s) ? ' title="Needs a rail line"' : id === 'governor' && rows.suggestions.length ? ` title="${rows.suggestions.length} suggestion(s) waiting for your Approve"` : ''}>${label}${id === 'governor' && rows.suggestions.length ? ` <span class="badge">${rows.suggestions.length}</span>` : ''}</button>`).join('')
         + `<button data-act="build-workers" class="${rosterOpen ? 'on' : ''}"${s.tiredCamps?.length ? tip(`${s.tiredCamps.length} work camp${s.tiredCamps.length > 1 ? 's' : ''} over their max: open Workers to move the extras`) : ''}>Workers (${s.workers?.length || 0})${s.tiredCamps?.length ? `<i class="wcount">${s.tiredCamps.length}</i>` : ''}</button></div>`;
-      // Tim 2026-11-22: the Military window opens from a big button beside the Build bar
+      // 2026-11-22: the Military window opens from a big button beside the Build bar
       const warBtn = onTownWar && data?.war?.town ? `<button data-act="townwar" class="warbig"${tip('Military: build barracks and other war buildings, fill the war chest, buy the hall war upgrade and pick how your general fights.')}><svg class="warico" viewBox="0 0 20 20" aria-hidden="true"><g stroke-linecap="round" fill="none"><path d="M4.5 15.5 L16.5 2.5" stroke="#f3e3bd" stroke-width="2.2"/><path d="M15.5 15.5 L3.5 2.5" stroke="#f3e3bd" stroke-width="2.2"/><path d="M2.5 17.5 L5.5 14.5" stroke="#e6c47a" stroke-width="3"/><path d="M17.5 17.5 L14.5 14.5" stroke="#e6c47a" stroke-width="3"/><path d="M3.5 12.5 L7 15.8" stroke="#e6c47a" stroke-width="2.2"/><path d="M16.5 12.5 L13 15.8" stroke="#e6c47a" stroke-width="2.2"/></g></svg>Military</button>` : '';
       const build = (tab === 'town' || rosterOpen) ? buildUI?.html(s, false, warBtn) || '' : '';
       h = rosterOpen ? build : build + h;
     }
-    // Tim 2026-11-08: a close button on the panel itself (O and Esc still work)
+    // 2026-11-08: a close button on the panel itself (O and Esc still work)
     h = CLOSE + tabsH + `<div class="pbody${mode === 'town' && tab === 'stable' && !rosterOpen ? ' stabbody' : ''}">` + h + (failure && Date.now() - failure.at < 5000 ? `<div class="why">${esc(failure.text)}</div>` : '') + '</div>';
     const key = h + tab;
     if (['keepinput', 'shipinput', 'fundinput'].includes(document.activeElement?.dataset?.act) && root.contains(document.activeElement)) return;   // typing a keep level
@@ -323,7 +323,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       if (b && s && buildUI?.click(b.dataset, s, e)) { lastHtml = ''; render(); b.blur?.(); }
     });
   }
-  // Tim 2026-11-20: a click anywhere on a worker card selects it (not only the portrait); the group dropdown and buttons keep their own clicks
+  // 2026-11-20: a click anywhere on a worker card selects it (not only the portrait); the group dropdown and buttons keep their own clicks
   const btnOf = e => e.target.closest('button[data-act]') || (e.target.closest('select, input, button, a') ? null : e.target.closest('.wcard')?.querySelector('button.wface'));
   root.addEventListener('mousedown', e => {
     pressedAt = performance.now(); e.stopPropagation();
@@ -336,7 +336,7 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
     const b=btnOf(e),s=pick();
     if(b && s && buildUI?.doubleClick?.(b.dataset,s)){lastHtml='';render();}
   });
-  // order slip (Tim 2026-11-25): Enter sends, Esc closes the slip (before the panel's own Esc)
+  // order slip (2026-11-25): Enter sends, Esc closes the slip (before the panel's own Esc)
   window.addEventListener('keydown', e => {
     if (root.hidden || mode !== 'town' || tab !== 'ship' || !shipTab.slipOpen()) return;
     if (shipTab.key(e, pick())) { e.preventDefault(); e.stopImmediatePropagation(); lastHtml = ''; render(); }
@@ -384,10 +384,10 @@ export function createFrontierPanel({ root, game, heroId, clan = 'player', send,
       case 'garrison-out': cmd({ action: 'garrison', mode: 'leave', town: sid }); break;
       case 'openstable': onStable?.(sid); break;
       case 'townwar': onTownWar?.(sid); break;   // war 8b
-      case 'townwar-general': onTownWar?.(sid, 'general'); break;   // the safety fund row (Tim 2026-11-22)
+      case 'townwar-general': onTownWar?.(sid, 'general'); break;   // the safety fund row (2026-11-22)
       case 'stable': cmd(id.startsWith('choose:') ? { action: 'stable', mode: 'choose', town: sid, horse: id.slice(7) } : id === 'cancel' || id === 'omnibus' ? { action: 'stable', mode: id, town: sid } : { action: 'stable', mode: 'horse', kind: id, town: sid }); break;
       case 'keep': cmd({ action: 'setMarketKeep', settlement: sid, keep: Number(id) }); break;   // economy pass 2 D
-      case 'keepstep': if (s) {   // Keep in town card -/+ (Tim 2026-11-22)
+      case 'keepstep': if (s) {   // Keep in town card -/+ (2026-11-22)
         const [r, d] = id.split(':'), now = shown(s, 'keepinput', r, r === 'goods' ? s.marketKeep ?? defaultKeep(s, data, 'goods') : s.keep?.[r] ?? defaultKeep(s, data, r));
         keepCmd(s, r, Math.max(0, Math.min(data?.market?.keepMax ?? 100000, now + Number(d))));
       } break;

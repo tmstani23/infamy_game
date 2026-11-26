@@ -36,7 +36,7 @@
 #shopmarker{position:fixed;z-index:12;transform:translate(-50%,-100%);border:1px solid #e2bf6e;border-radius:20px;background:#18202de8;color:#ffe1a0;padding:6px 13px;box-shadow:0 0 15px #e7b84c55;font-weight:bold}#shopmarker:disabled{opacity:.8}
 #blacksmithshop{position:fixed;inset:0;z-index:100;background:#03080bb0;display:grid;place-items:center}#blacksmithshop[hidden],#shopmarker[hidden]{display:none}
 .character-supplies{margin:12px 0}.character-supplies button{margin:4px;color:#f2dfb5;background:#223740;border:1px solid #b89a60;border-radius:6px;cursor:pointer;padding:8px}.character-supplies button:disabled{opacity:.5}.supplies-hint{font-size:12px;color:#bdcac9}
-/* Blacksmith shop (Tim 2026-11-01): tabs, even tiles, detail pane + confirm */
+/* Blacksmith shop (2026-11-01): tabs, even tiles, detail pane + confirm */
 .shop-window{box-sizing:border-box;width:min(1040px,95vw);max-height:calc(100vh - 32px);overflow:auto;scrollbar-gutter:stable;padding:18px 20px;background:linear-gradient(140deg,#18272e,#0b1117);border:1px solid #bf9b58;border-radius:14px;color:#f1e4c7;box-shadow:0 20px 80px #000b;font:14px system-ui}
 .shop-window header{display:flex;justify-content:space-between;align-items:end;gap:16px;border-bottom:1px solid #bf9b5866}.shop-window header small{color:#e8c783;letter-spacing:.15em;font-size:11px}.shop-window h2{margin:2px 0 10px;font-weight:500}
 .shop-window button{color:#f2dfb5;background:#223740;border:1px solid #b89a60;border-radius:6px;cursor:pointer;padding:8px}.shop-window button:disabled{opacity:.45;cursor:default}.shop-close{margin-bottom:10px;padding:4px 10px!important}
@@ -47,7 +47,7 @@
 .shop-tile .tile-art{width:62px;height:62px;display:grid;place-items:center}.shop-tile .tile-art img,.shop-tile .tile-art svg{width:62px;height:62px;object-fit:contain}.item-emoji{font-size:42px;line-height:1}
 .shop-tile .tile-slot{position:absolute;left:6px;top:4px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#9fb3b5}.shop-tile .tile-name{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.shop-tile .tile-price{font-size:11px;color:#e8c783}
 .shop-window .shop-tile:hover:not(:disabled){background:#283037;border-color:#ead19b}.shop-window .shop-tile.picked{border-color:#ffe1a0;background:#24333a;box-shadow:0 0 0 2px #e8c78388,inset 0 0 18px #e8c78322}.shop-tile.unavailable .tile-art,.shop-tile.unavailable .tile-name{opacity:.45}.shop-tile.empty{opacity:.35}.shop-tile.green-item{border-color:#75b974}.shop-tile.green-item .tile-name{color:#9adb95}
-/* fixed-size pane: filling it on hover never resizes the window (Tim 2026-11-01) */
+/* fixed-size pane: filling it on hover never resizes the window (2026-11-01) */
 .shop-detail{box-sizing:border-box;border:1px solid #bf9b58aa;border-radius:10px;background:#0e171d;padding:16px;align-self:start;height:400px;display:flex;flex-direction:column}.shop-detail .detail-body{flex:1;min-height:0;overflow-y:auto;scrollbar-gutter:stable}.detail-empty{color:#9fb3b5;font-size:13px}
 .detail-top{display:flex;gap:12px;align-items:center}.detail-art{width:72px;height:72px;flex:none;display:grid;place-items:center;border:1px solid #4b4b44;border-radius:8px;background:#1a242a}.detail-art.green{border-color:#75b974}.detail-art img,.detail-art svg{width:64px;height:64px;object-fit:contain}
 .detail-top small{font-size:11px;color:#9fb3b5;text-transform:uppercase;letter-spacing:.1em}.detail-top h3{margin:2px 0 0;color:#ffe1a0;font-weight:500;font-size:17px}
@@ -74,7 +74,7 @@
 @keyframes loot-toast { 0% { opacity:0; transform:translateY(8px); } 10%, 78% { opacity:1; transform:none; } 100% { opacity:0; transform:translateY(-6px); } }
 #utilitymenu .utility-button.loot-pulse { animation:loot-pulse .7s ease-out; }
 @keyframes loot-pulse { 0% { box-shadow:0 0 0 0 #ffe0a1cc; border-color:#ffe0a1; } 100% { box-shadow:0 0 0 10px #ffe0a100; } }
-/* train robbery (Tim 2026-11-21): the stolen chest the hero carries, with a subtle glitter */
+/* train robbery (2026-11-21): the stolen chest the hero carries, with a subtle glitter */
 #characterpage .stolen-chest{display:flex;align-items:center;gap:12px;margin-top:10px;padding:8px 12px;border:1px solid #a18a58;border-radius:3px;background:linear-gradient(145deg,#1a242a,#10161b);color:#ded5bf;font:12px/1.3 system-ui,sans-serif;box-shadow:inset 0 0 16px #a17c2518}
 #characterpage .stolen-chest[hidden]{display:none}
 #characterpage .stolen-chest b{display:block;color:#f0d79a;font-size:13px}

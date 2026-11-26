@@ -27,7 +27,7 @@ const bots = data('data/bots.json');
   assert.equal(g.businesses.canBuy(h, iz.id).ok, false);
   g.step([{ type: 'time', night: true }]);
   assert.equal(g.businesses.canAttack(h, iz.id).ok, false);
-  // a rival's hideout is shut to you, and yours to them (Tim 2026-10-20)
+  // a rival's hideout is shut to you, and yours to them (2026-10-20)
   Object.assign(H, { x: iz.ring[0], z: iz.ring[1] });
   g.step([{ id: h, type: 'use', units: [] }]);
   assert.equal(H.place, 'street', "can't walk into the rival's hideout");
@@ -132,7 +132,7 @@ const setup = ({ ryo = 0, crew = 0, level = 'easy', rules = {}, own = [], night 
   console.log('B3 bribe ok');
 }
 
-// clinic: its downed crew wait at the clinic until the boss walks there and pays (Tim 2026-10-19)
+// clinic: its downed crew wait at the clinic until the boss walks there and pays (2026-10-19)
 {
   const t = setup({ ryo: 500, rules: { patrolChance: 0, attackChance: 0, raidChance: 0, huntBandits: false } });
   const c = t.g.state.clans.kuroda;
@@ -192,12 +192,12 @@ const setup = ({ ryo = 0, crew = 0, level = 'easy', rules = {}, own = [], night 
   h.S[foes[1]].hp = 20;
   h.run(0.05);
   assert.ok(h.ids.every(id => h.S[id].order?.kind === 'attack' && h.S[id].order.target === foes[1]), 'focus fire on the weakest');
-  // executes on their own when safe: how often follows the difficulty (Tim 2026-10-20)
+  // executes on their own when safe: how often follows the difficulty (2026-10-20)
   assert.deepEqual(['easy', 'medium', 'hard'].map(l => setup({ level: l }).g.state.clans.kuroda.aggression), [0.25, 0.5, 0.8]);
   console.log('B5 difficulty knobs ok');
 }
 
-// revenge (Tim 2026-10-19, any level): it leaves your boss alone, until he cuts down its crew nearby
+// revenge (2026-10-19, any level): it leaves your boss alone, until he cuts down its crew nearby
 {
   const t = setup({ crew: 3, rules: { patrolChance: 0, raidChance: 0, attackChance: 0 } });
   const you = t.g.spawn('hero', 'ronin', t.B.x + 1.5, t.B.z + 1.5, { owner: 'player' });
@@ -209,7 +209,7 @@ const setup = ({ ryo = 0, crew = 0, level = 'easy', rules = {}, own = [], night 
   console.log('revenge on your boss ok');
 }
 
-// hit its boss and he fights back; badly hurt he runs home to his hideout and rests (Tim 2026-10-19)
+// hit its boss and he fights back; badly hurt he runs home to his hideout and rests (2026-10-19)
 {
   const t = setup({ crew: 0, rules: { patrolChance: 0, raidChance: 0, attackChance: 0 } });
   const iz = Object.values(t.g.state.businesses).find(b => b.hideout === 'kuroda');

@@ -1,4 +1,4 @@
-// Frontier weather on screen, purely visual (Tim 2026-11-20). Reads the clock and the camera, never the
+// Frontier weather on screen, purely visual (2026-11-20). Reads the clock and the camera, never the
 // rules. src/weather_pick.js picks the weather; numbers in data/weather.json.
 // - Fog: a few soft banks lying on the ground, drifting with the wind and wrapping round the view, so a
 //   bank leaving one side of the screen comes back in upwind. Drawn just above the ground decals and
@@ -62,7 +62,7 @@ void main() {
   vec2 c2 = c + (warp - 0.5) * 2.2 - vec2(t * 0.09, 0.0);                    // curls stream through the bank
   float dens = wFbm(c2 * 1.3);
   float th = mix(0.6, 0.33, clamp(uAmount, 0.0, 1.0));
-  // a wide ramp and a base haze spread the fog evenly instead of in thick swirls (Tim 2026-11-21);
+  // a wide ramp and a base haze spread the fog evenly instead of in thick swirls (2026-11-21);
   // the veil over the sprites carries most of it, so buildings and trees fade with the ground
   float soft = smoothstep(th - 0.25, th + 0.45, dens);
   float a = uVeil > 0.0 ? (0.45 + 0.55 * soft) * uVeil : soft * 0.35;

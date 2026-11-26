@@ -1,4 +1,4 @@
-// The town railway station (Tim 2026-11-07): one 3x2 placement with the ticket hall, the engine shed and the
+// The town railway station (2026-11-07): one 3x2 placement with the ticket hall, the engine shed and the
 // railway slot in a row along the track. rot 0..3 = the track leaves toward +x, +z, -x, -z (R turns the ghost
 // while placing, src/frontier_build_ui.js). The slot is kept clear for the track; the line ends in the shed.
 // A station with no rot (or not 6 cells) is an old 2x2 one and keeps working as before.

@@ -1,4 +1,4 @@
-// Hiring mix (Tim 2026-11-10), shared by the city captain (sim/lieutenant.js) and the rival bosses (sim/bot.js,
+// Hiring mix (2026-11-10), shared by the city captain (sim/lieutenant.js) and the rival bosses (sim/bot.js,
 // sim/ninja_bot.js): hire the clan's real unit it has fewest of (crew, hire queue, clinic and jail counted; cheapest
 // first on a tie), so a clan cycles one of each. The basic units (thug, brute) are left out of the cycle and are
 // only the fallback while money is tight. With no other unit to hire the basic units are the cycle.

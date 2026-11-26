@@ -26,7 +26,7 @@ assert.match(L.html(), /No shipments on the way/);
 g.step([{ id: hero.id, type: 'frontier', action: 'ship', mode: 'order', town: 'tB', resource: 'timber', amount: 50 }]);
 const o = Object.values(F.shipping.orders)[0];
 assert.match(L.html(), /Open 1/); assert.match(L.html(), /Timber 50/); assert.match(L.html(), /tA to tB/);
-// Tim 2026-11-23: every open row has a countdown; while it waits at tA it is an estimate
+// 2026-11-23: every open row has a countdown; while it waits at tA it is an estimate
 assert.match(L.html(), /WAITING<\/small><b>about \d+(s|m \d\ds)<\/b>/);
 const e0 = shipEta({ frontier: F, data: g.frontier.data, tick: S.tick, order: o }), t0 = S.tick;
 assert.equal(e0.status, 'waiting'); assert.ok(e0.secs > 0 && !e0.exact, 'waiting: an estimate');

@@ -25,7 +25,7 @@ const seen=[];for(let i=0;i<60;i++){g.step();seen.push(...st.hits.filter(h=>h.t=
 if(process.env.DBG)console.log(JSON.stringify(seen),big.hp,big.maxHp);
 assert.ok(big.hp<big.maxHp,'taunted enemy attacks the enforcer');
 const mateHp=mate.hp;for(let i=0;i<12;i++)g.step();assert.equal(mate.hp,mateHp,'and leaves the clanmate alone');
-for(let i=0;i<12;i++)g.step();assert.ok(!foe.taunted,'the taunt lapses until the nine-second cooldown is up (Tim 2026-11-10)');
+for(let i=0;i<12;i++)g.step();assert.ok(!foe.taunted,'the taunt lapses until the nine-second cooldown is up (2026-11-10)');
 const ready=big.taunt.readyAt;assert.equal(R.cooldownTicks,180);
 while(st.tick<=ready)g.step();
 assert.equal(big.taunt.readyAt,ready+180,'automatically taunts again on the nine-second cooldown');

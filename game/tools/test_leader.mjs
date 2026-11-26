@@ -1,4 +1,4 @@
-// Phase 6 (Tim 2026-10-29): ganging up on the season leader (sim/leader.js): bounties, underdog help.
+// Phase 6 (2026-10-29): ganging up on the season leader (sim/leader.js): bounties, underdog help.
 // Run: node game/tools/test_leader.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';

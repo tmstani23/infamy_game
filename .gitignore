@@ -16,7 +16,7 @@
 # Local save files (F1).
 saves/
 
-# Source art (generated images, concepts): kept on disk and in backups, not in git (Tim 2026-11-02)
+# Source art (generated images, concepts): kept on disk and in backups, not in git (2026-11-02)
 /assets/environment/**/*.png
 /assets/environment/**/*.jpg
 /assets/environment/**/*.webp
@@ -38,7 +38,7 @@ saves/
 !/assets/environment/island/top_snow_c.png
 !/assets/environment/island/top_snow_d.png
 
-# Local work folders and raw source files the game does not load (Tim 2026-11-09)
+# Local work folders and raw source files the game does not load (2026-11-09)
 /game/to_delete/
 /screenshots/*
 !/screenshots/city-combat.png
@@ -78,3 +78,5 @@ __pycache__/
 # GPU-compressed sprite pages: built locally by tools/make_ktx2_pages.mjs
 /assets/sprites_packed/catalog_v1_half_ktx2/
 /assets/sprites_packed/catalog_v1_ktx2/
+
+docs/playtest_release_plan.md

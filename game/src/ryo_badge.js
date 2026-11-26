@@ -1,9 +1,9 @@
-// Ryo badge, left of the heat gauge (Tim OK'd the mock 2026-10-17): a gold ring with a mon
+// Ryo badge, left of the heat gauge (approved the mock 2026-10-17): a gold ring with a mon
 // coin and the clan's ryo. The number counts up toward the real amount after a gain (spending
 // snaps straight down), the badge flares, and a notice like "Bandit killed +20 ryo" rises above
 // it, from state.ryoGains. Renown for the same reward sits above it in purple.
 import { ringRadius } from './sim/frontier/town_grid.js';
-// 8e-8 (Tim 2026-11-09, mock H 2026-11-16): the badge shows the pot where the hero stands: in the city (or anywhere
+// 8e-8 (2026-11-09, mock H 2026-11-16): the badge shows the pot where the hero stands: in the city (or anywhere
 // else) the Clan treasury; inside one of your towns' build rings that town's coffers; inside the circle of a war you
 // fight in that side's war chest (red). The hover lists all three and the ryo on the train.
 export function potAt(game, heroId) {
@@ -42,7 +42,7 @@ export function rewardPopups(state, clanId) {
     ({ ...l, amount: -l.amount, renown: 0, reason: lossLabel(state, l) })));
 }
 
-// Stolen chest cashed at a war camp (Tim 2026-11-25, mock loot_turnin): koban coins arc from the camp up and down into
+// Stolen chest cashed at a war camp (2026-11-25, mock loot_turnin): koban coins arc from the camp up and down into
 // the badge, a few at a time and a little see-through; when they land the badge blooms gold with embers, the number
 // counts up, and "+N ryo / stolen chest" sits beside the badge on an ink stroke, drifting up as it fades.
 const KOBAN = '<svg viewBox="0 0 22 22"><defs><radialGradient id="kobanG" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#fff0b0"/>'

@@ -1,4 +1,4 @@
-// Townsfolk in frontier towns (Tim 2026-11-07): sim/frontier/townsfolk.js. Run: node game/tools/test_townsfolk.mjs
+// Townsfolk in frontier towns (2026-11-07): sim/frontier/townsfolk.js. Run: node game/tools/test_townsfolk.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createGame } from '../src/sim/game.js';
@@ -28,7 +28,7 @@ assert.ok(folk().every(e => e.seenBy === 'player' && e.type === 'civilian' && e.
 const start = folk().map(e => [e.x, e.z]);
 run(20 * 15);
 assert.ok(folk().some((e, i) => !start[i] || Math.hypot(e.x - start[i][0], e.z - start[i][1]) > 1), 'they wander');
-// Tim 2026-11-08: the capital's mix of walkers, and they keep near the hall (roam by tier, a bit of slack for the path)
+// 2026-11-08: the capital's mix of walkers, and they keep near the hall (roam by tier, a bit of slack for the path)
 const civ = data('data/civilians.json'), walkers = new Set(Object.values(civ.types).filter(c => !c.vehicle).map(c => c.model));
 assert.ok(folk().every(e => walkers.has(e.model)), `capital walker looks (${folk().map(e => e.model)})`);
 let far = 0;

@@ -35,7 +35,7 @@ export function worldToCell(s, x, z) {
   const col = Math.round((x - s.x) / cell) + c, row = Math.round((z - s.z) / cell) + c;
   return col < 0 || row < 0 || col >= n || row >= n ? -1 : row * n + col;
 }
-// B3 (Tim 2026-11-05): one build ring per town hall tier (data.tiers) for every zone, town building,
+// B3 (2026-11-05): one build ring per town hall tier (data.tiers) for every zone, town building,
 // wall and gate; roads and work camps may go outside. Without tier data the old core rule applies.
 export function ringRadius(s, data) {
   const t = tierOf(s, data);
@@ -55,7 +55,7 @@ export function hallRoadCell(s, i) {
   const [x, z] = cellOffset(s, i);
   return Math.max(Math.abs(x), Math.abs(z)) <= s.grid.cell * s.roadReserve && (x !== 0 || z !== 0);
 }
-// With a ring of 2 or more (new towns, Tim 2026-11-21) the cells next to the hall are under its enlarged art
+// With a ring of 2 or more (new towns, 2026-11-21) the cells next to the hall are under its enlarged art
 // (art.json town_hall_* scale): no road or gate there, so the clear road ring starts one cell out.
 export function hallArtCell(s, i) {
   if (!s.grid || !(s.roadReserve >= 2)) return false;
@@ -84,7 +84,7 @@ let blockerEpoch=0;
 // frontier tick calls this once a tick: buildings finished since are re-checked (grid edits are seen at once)
 export function townBlockersTick(){blockerEpoch++;}
 // a number that changes whenever any town's blockers change (checked at most once per frontier tick), so callers
-// can keep their own per-cell answers until it moves (sim/areas.js, Tim 2026-11-07 lag while walking)
+// can keep their own per-cell answers until it moves (sim/areas.js, 2026-11-07 lag while walking)
 let blockerVersion=0,versionEpoch=-1,versionTowns='';
 export function townBlockersVersion(frontier,data) {
   if(versionEpoch===blockerEpoch)return blockerVersion;
@@ -144,7 +144,7 @@ export function campBuildingBoxes(b,data,tier=1) {
 }
 // what blocks in the war camps, as a string (worker path cache key, like townBlockSignature)
 export function campBlockSignature(frontier){return campsOf(frontier).map(w=>`${w.id}:${campKey(w.camp)}`).join('|');}
-// one of a zone stage's looks (frontier.json townArt._zones variants, Tim 2026-11-18): a fixed hash of the cell, so a
+// one of a zone stage's looks (frontier.json townArt._zones variants, 2026-11-18): a fixed hash of the cell, so a
 // house keeps its look across loads and the drawing (town_props.js) and the blocking here always agree
 export function zoneVariant(def,name,cell) {
   const list=def?.variants?.[name];
@@ -185,7 +185,7 @@ function cellBoxesOf(s,data) {
   // art drawn at (x, z): its boxes, or false when the art is unknown (the caller keeps the old tile rule)
   const artAt=(name,x,z,max,flip)=>{const bs=artBoxes(data,name,max,flip);if(!bs)return false;for(const o of bs)spread({minX:x+o.minX,maxX:x+o.maxX,minZ:z+o.minZ,maxZ:z+o.maxZ});return true;};
   const art=data?.townArt,byArt=new Set();
-  // placed buildings block the ground their art stands on (5b-0, Tim 2026-11-11), drawn as in town_props.js
+  // placed buildings block the ground their art stands on (5b-0, 2026-11-11), drawn as in town_props.js
   for(const b of s.buildings) {
     if(b.stage!=='built')continue;
     const cs=b.cells || [b.cell];let cx=0,cz=0;for(const j of cs){cx+=s.x+(j%g.n-mid)*g.cell;cz+=s.z+(Math.floor(j/g.n)-mid)*g.cell;}cx/=cs.length;cz/=cs.length;
@@ -210,7 +210,7 @@ function cellBoxesOf(s,data) {
         }
       }
     } else if(g.use[i]==='g' && s.castle) {
-      // a castle gate (Tim 2026-11-20): only the doorway under the middle of the gatehouse is open (townGrid.castleGateDoor
+      // a castle gate (2026-11-20): only the doorway under the middle of the gatehouse is open (townGrid.castleGateDoor
       // world units wide); the rest of the gate run is wall, a thin line along the run like a wall cell's
       const at=(dc,dr)=>{const cc=c+dc,rr=r+dr;return cc>=0 && rr>=0 && cc<g.n && rr<g.n?g.use[rr*g.n+cc]:'.';};
       const alongZ='wg'.includes(at(0,-1)) || 'wg'.includes(at(0,1));
@@ -228,7 +228,7 @@ function cellBoxesOf(s,data) {
       // a castle's moat and cliff cells (sim/frontier/castle.js): solid for everyone, never broken
       add({minX:x-half,maxX:x+half,minZ:z-half,maxZ:z+half});
     } else if(g.use[i]==='B' && owner.has(i) && !byArt.has(owner.get(i))) {
-      // a building's "collide" (0-1) shrinks its blocking box toward the footprint centre to match its art (Tim 2026-11-07)
+      // a building's "collide" (0-1) shrinks its blocking box toward the footprint centre to match its art (2026-11-07)
       const b=owner.get(i),k=data?.buildings?.[b.type]?.collide ?? data?.townGrid?.buildingCollide;
       if(k>0 && k<1) {
         const cs=b.cells || [b.cell];let cx=0,cz=0;for(const j of cs){cx+=s.x+(j%g.n-mid)*g.cell;cz+=s.z+(Math.floor(j/g.n)-mid)*g.cell;}cx/=cs.length;cz/=cs.length;

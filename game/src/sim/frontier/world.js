@@ -26,7 +26,7 @@ export function createFrontierWorld({ state, data }) {
 
   function build(d) {
     const fr = { version: 1, nextId: 1, econTick: 0, settlements: {}, roads: {}, shipments: {}, armies: {}, totals: {}, ledger: [], receipts: [] };
-    // E6b (Tim 2026-11-05): fixture towns (tests, dev saves) are left out of real games (data.fixtureTowns === false);
+    // E6b (2026-11-05): fixture towns (tests, dev saves) are left out of real games (data.fixtureTowns === false);
     // a real campaign starts with the capital only and towns come from founding.
     const skip = id => d.fixtureTowns === false && d.settlements[id]?.fixture;
     for (const [id, s] of Object.entries(d.settlements || {})) {

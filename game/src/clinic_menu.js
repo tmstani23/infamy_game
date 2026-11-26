@@ -4,7 +4,7 @@
 import { msInstall, msShell, msAside, msArt, msSec, msRow, msBtn, msPager, msNote, msConcept, msEsc } from './menu_shell.js';
 import { portrait } from './portraits.js';
 const title = s => s[0].toUpperCase() + s.slice(1);
-const PER = 5;   // patients a page (no scrollbars, Tim 2026-11-08)
+const PER = 5;   // patients a page (no scrollbars, 2026-11-08)
 
 export function createClinicMenu({ panel, game, heroId, send, selected = () => [], catalog = null }) {
   let open = false, shown = '', armedRelease = null, page = 0;
@@ -49,7 +49,7 @@ export function createClinicMenu({ panel, game, heroId, send, selected = () => [
     panel.hidden = !open;
     if (!open || !c || !h) return;
     const { who, cost } = game.clans.healCost(h);
-    // hit in the last few seconds: the clinic waits until the fight is over (Tim 2026-10-20)
+    // hit in the last few seconds: the clinic waits until the fight is over (2026-10-20)
     const hitW = Math.ceil(game.clans.hitWait?.(h) || 0), off = hitW > 0;
     const heal = msSec('Heal', hitW > 0 ? `Opens in ${hitW} s` : '', 'Clan members near the door are healed to full. Anyone hit in the last 5 s waits.')
       + msRow({ key: 1, name: who.length ? `Heal ${who.length} hurt` : 'Nobody hurt', sub: hitW > 0 ? 'You were hit: wait for the fight to end' : 'Clan members near the door, to full', subClass: hitW > 0 ? 'ms-bad' : '',

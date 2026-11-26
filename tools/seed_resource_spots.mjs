@@ -113,7 +113,7 @@ function tryPlace(kind, x, z, rand, quiet) {
     const m = Math.hypot(w[0], w[1]) || 1; dir = [w[0] / m, w[1] / m];
   }
   const r = r1(k.radius[0] + (k.radius[1] - k.radius[0]) * rand());
-  if (dir) {   // fish (Tim 2026-11-05): pull the cluster onto the shore so the boats sit right at the water
+  if (dir) {   // fish (2026-11-05): pull the cluster onto the shore so the boats sit right at the water
     const d = shoreDist(x, z, dir, (k.waterWithin + 1) * CELL); if (d === null) return false;
     const shift = d - (r + (k.shoreGap ?? 2)); x += dir[0] * shift; z += dir[1] * shift;
     if (!buildable(world, x, z)) return false;
@@ -163,7 +163,7 @@ for (const kind of ['timber', 'stone']) {
   }
 }
 
-// 3b. site floor (Tim 2026-11-21): every town site has at least one ORDINARY spot (not a deposit) of timber, of stone
+// 3b. site floor (2026-11-21): every town site has at least one ORDINARY spot (not a deposit) of timber, of stone
 // and of food (fish where there is shore in reach, else forage) within siteFloor.radius, so no town is ever without a
 // way to gather a resource. A missing one is added far out (siteFloor.band from the site), on ground a worker can walk
 // to in a straight line without crossing water. Runs last, so every earlier spot keeps its id and place.
@@ -200,7 +200,7 @@ for (const id of Object.keys(ANCHOR)) {
     dropped.push(`${q.id} (near ${id})`); spots.splice(i, 1); }
 }
 
-// 3c. fish in the water (Tim 2026-11-23): each fish spot's rowboats (variant 0) float a few steps out on the water and
+// 3c. fish in the water (2026-11-23): each fish spot's rowboats (variant 0) float a few steps out on the water and
 // its bollards (variant 1) stand at the waterline, either side of a clear lane; cast = the water point workers cast at
 // (spot-relative), down that lane. Runs after every placement, so no spot's id or place changes; a spot with no water
 // within W.reach keeps its old layout and gets no cast.

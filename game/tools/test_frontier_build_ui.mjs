@@ -116,14 +116,14 @@ s.workerLog=Array.from({length:8},(_,i)=>({tick:20*(i+1),worker:'w'+i,resource:i
 const logHTML=ui.html(s);assert.match(logHTML,/Delivery log/);assert.match(logHTML,/Worker w7.*8 stone returned/s);assert.ok(logHTML.indexOf('Worker w7')<logHTML.indexOf('Worker w6'));
 assert.doesNotMatch(logHTML,/Worker w0/);ui.click({act:'build-worker-log-page',id:'1'},s);assert.match(ui.html(s),/Worker w0/);
 ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group for w1/);
-// Tim 2026-11-06: Jobs buttons select every worker on one harvest kind; Ctrl+click adds them
+// 2026-11-06: Jobs buttons select every worker on one harvest kind; Ctrl+click adds them
 {
   const keep=s.workers;
   s.workers=[{id:'j1',spot:'tree'},{id:'j2',spot:'tree'},{id:'j3',spot:null},{id:'j4',spot:'tree',order:{kind:'hold'}}];
   ui.click({act:'build-worker-select',id:'j3'},s);
   assert.match(ui.html(s),/data-act="build-worker-job" data-id="timber"[^>]*><span class="wico">.*?<\/span><b>2<\/b><span>Timber<\/span>/s,'one coin per job with its count; standing workers do not count');
   ui.click({act:'build-worker-job',id:'timber'},s);
-  assert.match(ui.html(s),/data-id="j1" aria-pressed="true"/); assert.doesNotMatch(ui.html(s),/data-id="j3"/,'the coin shows only its workers (Tim 2026-11-12)');
+  assert.match(ui.html(s),/data-id="j1" aria-pressed="true"/); assert.doesNotMatch(ui.html(s),/data-id="j3"/,'the coin shows only its workers (2026-11-12)');
   ui.click({act:'build-worker-tab',id:'roster'},s); assert.match(ui.html(s),/data-id="j3" aria-pressed="false"/,'plain click replaces the selection; the Workers tab shows everyone again');
   ui.click({act:'build-worker-select',id:'j3'},s);ui.click({act:'build-worker-select',id:'j1'},s);ui.click({act:'build-worker-select',id:'j2'},s);
   ui.click({act:'build-worker-job',id:'timber'},s,{ctrlKey:true});ui.click({act:'build-worker-tab',id:'roster'},s);
@@ -131,7 +131,7 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   s.workers=[{id:'k1',spot:null}];assert.match(ui.html(s),/class="wcoin none" data-act="build-worker-job" data-id="timber"/,'job coins are greyed when nobody harvests');
   s.workers=keep;
 }
-// Tim 2026-11-16: the town panel's Workers section (art, count, Train button with coin costs, first steps until done)
+// 2026-11-16: the town panel's Workers section (art, count, Train button with coin costs, first steps until done)
 {
   const w=ui.workersHtml(s);
   assert.match(w,/class="lab">Workers</); assert.match(w,/data-act="build-train" class="wtrain/); assert.match(w,/class="tcoin ryo"><i><\/i>\d+/);
@@ -142,7 +142,7 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   s.workers=keepW;s.grid.zone=keepZ;
   assert.doesNotMatch(ui.html(s),/Train worker/,'training moved out of the build block');
 }
-// Tim 2026-11-22 building finder: a double-click on a build button takes the camera to each built one of that kind in turn
+// 2026-11-22 building finder: a double-click on a build button takes the camera to each built one of that kind in turn
 { const jumps=[];view.jumpTo=(x,z)=>jumps.push([Math.round(x),Math.round(z)]);
   const keep=s.buildings;s.buildings=[...keep,{type:'quarry',cell:at(6,6),stage:'built'},{type:'quarry',cell:at(-6,6),stage:'site'},{type:'quarry',cell:at(-6,-6),stage:'built'}];
   const where=c=>cellToWorld(s,c).map(Math.round);
@@ -152,7 +152,7 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   ui.click({act:'build-tool',id:'quarry'},s);ui.click({act:'build-tool',id:'quarry'},s);assert.deepEqual(jumps[2],where(at(6,6)),'and round again');
   assert.equal(jumps.length,3,'each double-click moves once');
   s.buildings=keep; }
-// Tim 2026-11-22 camp card: workers on the spots beside the camp and about how many they keep busy, Tired when over;
+// 2026-11-22 camp card: workers on the spots beside the camp and about how many they keep busy, Tired when over;
 // every row is always there so the card does not resize as carts run
 { const keep=s.buildings,keepW=s.workers.map(w=>({...w})),cam={id:'lc1',type:'lumber_camp',cell:at(2,0),stage:'built',store:{},carts:[]};
   s.buildings=[...keep,cam];s.workers[0].spot='tree';
@@ -169,7 +169,7 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   const h2=card.innerHTML;assert.notEqual(h2,h1);assert.match(h2,/Full: workers walk to town/);assert.match(h2,/Carts keep up with about/);
   cam.store={timber:20};cam.carts=[{at:'back',t:30,load:{}}];ui.update();assert.equal(rows(card.innerHTML),rows(h2),'same rows as carts run and storage fills');cam.store={timber:data.workers.carts.cap};cam.carts=[{at:'out',t:200,load:{timber:90}}];ui.update();assert.equal(rows(card.innerHTML),rows(h1),'same rows whatever the carts do');
   s.buildings=keep;s.workers=keepW;emit('keydown',0,0,{code:'Escape'}); }
-// Tim 2026-11-22 hall shelter: the hall card says how many are inside and why, Back to work sends hallShelter leave
+// 2026-11-22 hall shelter: the hall card says how many are inside and why, Back to work sends hallShelter leave
 { const keepW=s.workers.map(w=>({...w}));s.workers[0].shelter={manual:true};
   emit('keydown',0,0,{code:'Escape'});ui.close();downUp(C);ui.update();
   const card=elements.find(e=>e.id==='towninspect'),h=card.innerHTML;
@@ -177,6 +177,6 @@ ui.click({act:'build-worker-tab',id:'roster'},s);assert.match(ui.html(s),/Group 
   assert.doesNotMatch(h,/data-shelter-mode="enter"/,'nobody left outside to send in');
   card.listeners.click({target:{closest:()=>({dataset:{shelter:'t',shelterMode:'leave'},hasAttribute:()=>false})}});
   assert.deepEqual(sent.at(-1),{id:'h',type:'frontier',action:'hallShelter',town:'t',mode:'leave'});
-  s.workers=keepW;ui.update();if(keepW?.length) {assert.match(card.innerHTML,/Workers inside/,'the box shows in peace too (Tim 2026-11-22)');assert.match(card.innerHTML,/data-shelter-mode="enter"/,'Send workers in without a war');} else assert.doesNotMatch(card.innerHTML,/Workers inside/,'no box in a town with no workers');
+  s.workers=keepW;ui.update();if(keepW?.length) {assert.match(card.innerHTML,/Workers inside/,'the box shows in peace too (2026-11-22)');assert.match(card.innerHTML,/data-shelter-mode="enter"/,'Send workers in without a war');} else assert.doesNotMatch(card.innerHTML,/Workers inside/,'no box in a town with no workers');
   emit('keydown',0,0,{code:'Escape'}); }
 console.log('test_frontier_build_ui: ok');

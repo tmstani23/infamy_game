@@ -114,7 +114,7 @@ for (const [d, a, b] of [['NE', 'N', 'E'], ['NW', 'N', 'W'], ['SE', 'S', 'E'], [
 // yawOffset turns models that face another way (mounts, see loadMount)
 let yawOffset = 0;
 const yawFor = d => Math.atan2(DIR_VEC[d].x, DIR_VEC[d].z) + yawOffset;
-// Sheet rows: 8 (S, SW, W ... as DIRS) or more for long vehicles (MOUNTS dirs: 16 / 32, train cars, Tim 2026-11-07):
+// Sheet rows: 8 (S, SW, W ... as DIRS) or more for long vehicles (MOUNTS dirs: 16 / 32, train cars, 2026-11-07):
 // row k faces k * 360 / ROWS degrees round from S, the same way round as DIRS, so every (ROWS / 8)th row is a DIRS row
 let ROWS = 8;
 const rowYaw = k => { const a = k * 2 * Math.PI / ROWS, v = screenRight.clone().multiplyScalar(-Math.sin(a)).addScaledVector(screenDown, Math.cos(a));
@@ -363,7 +363,7 @@ function buildClub() {
   return g;
 }
 
-// Rail gang sledge: wooden haft, iron head block across the top (rail workers, Tim 2026-11-07)
+// Rail gang sledge: wooden haft, iron head block across the top (rail workers, 2026-11-07)
 function buildHammer() {
   const g = new THREE.Group();
   const wood = std({ color: 0x7a5233, roughness: 0.8, metalness: 0.02, emissive: 0x24160b }, [0x9ab8ff, 0.2]);
@@ -456,7 +456,7 @@ function buildJitte() {
   const prong = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.011, 0.16, 8), iron); prong.rotation.x = Math.PI / 2; prong.position.set(0.07, 0, 0.44); g.add(prong);
   return g;
 }
-// Dog handler's iron knuckles (tekko, Tim 2026-11-10): four chunky finger rings on a bar with studs,
+// Dog handler's iron knuckles (tekko, 2026-11-10): four chunky finger rings on a bar with studs,
 // along +z so the hand's hammer-grip dir lays it across the knuckle line; oversized and bright-edged to read at sprite size
 function buildKnuckles() {
   const g = new THREE.Group();
@@ -487,9 +487,9 @@ const palmOf = (bone, out) => bone.localToWorld(out.set(0, itemPalmY, 0));
 let itemHang = false;
 let itemRunBack = null;  // per-item run pose {drop (deg tip below horizontal), roll (deg)} or null
 let runPose = false;     // true while a run clip is being drawn
-let itemIdleBack = null; // one-hand blades (ninja, Tim 2026-10-20): in idles and walks held in the palm (hand: 'left' = the other hand), tip back behind at drop degrees below level (negative = up)
+let itemIdleBack = null; // one-hand blades (ninja, 2026-10-20): in idles and walks held in the palm (hand: 'left' = the other hand), tip back behind at drop degrees below level (negative = up)
 let idlePose = false;    // true while an idle or walk clip is being drawn
-let idleOnly = false;    // true while an idle clip (not a walk) is drawn: idleBack.idle overrides apply (ninja leader, Tim 2026-11-21)
+let idleOnly = false;    // true while an idle clip (not a walk) is drawn: idleBack.idle overrides apply (ninja leader, 2026-11-21)
 let itemSpear = false, shield = null, longShieldTexture = null;
 let spearClip = '', spearPhase = 0;
    // swords hang when the hands part; rifles stay between the hands
@@ -588,7 +588,7 @@ function updateItem() {
       item.lookAt(_b.copy(_a).add(_c));
       return;
     }
-    // in the palm, not at the wrist (Tim 2026-10-20: the ninja blade floated off the hand)
+    // in the palm, not at the wrist (2026-10-20: the ninja blade floated off the hand)
     item.position.set(0, itemIdleBack ? itemPalmY : 0, 0);
     // Mixamo hand bones point +Y along the fingers; -Z comes out of the thumb
     // side of a closed fist, which is where a gripped blade or haft points
@@ -601,7 +601,7 @@ function setItemOptions(o = {}) {
   if (shield) { shield.parent?.remove(shield); shield = null; }
   if (o.shield) { shield = o.shield==='long'?buildLongShield(std,longShieldTexture):buildShield(std); scene.add(shield); }
   itemPalmY = Number.isFinite(o.palmOffset) ? o.palmOffset : PALM_Y;
-  // thin: blade width and thickness factor, length unchanged (kunoichi's slim blade, Tim 2026-11-10)
+  // thin: blade width and thickness factor, length unchanged (kunoichi's slim blade, 2026-11-10)
   if (itemBox) itemBox.scale.set(o.thin ?? 1, o.thin ?? 1, 1);
   if (o.mode) $('itemMode').value = o.mode;
   for (const [k, id] of [['length', 'itemLen'], ['grip', 'itemGrip'], ['roll', 'itemRoll'], ['rx', 'itemRx'], ['ry', 'itemRy']])
@@ -1049,7 +1049,7 @@ window.spriteTest = {
   boneInfo: () => { root.updateMatrixWorld(true); const o={}; const g=n=>findBone(new RegExp(n+'$')); const R=g('RightHand'); const w=b=>b.getWorldPosition(new THREE.Vector3()); const inv=R.matrixWorld.clone().invert();
     for (const n of ['RightHand','RightHandThumb1','RightHandPinky1','RightHandIndex1','RightHandMiddle1','RightHandMiddle3']) { const b=g(n); if(b) o[n]=w(b).applyMatrix4(inv).toArray().map(v=>+v.toFixed(3)); } o.scale=R.getWorldScale(new THREE.Vector3()).x; o.rootScale=root.scale.x; return o; },
   setProcItem: k => setItemObject(PROC_ITEMS[k]()),
-  // Small things in the fists, parented straight to the hand bones (the wandering hermit's flasks, Tim 2026-11-26):
+  // Small things in the fists, parented straight to the hand bones (the wandering hermit's flasks, 2026-11-26):
   // 'flasks' = a little round glass flask in each hand, green in the right and violet in the left, corked
   setHandProps: kind => {
     if (kind !== 'flasks' || !root) return false;

@@ -1,4 +1,4 @@
-// Tim 2026-11-25: idle war troops on the island run at a war enemy within war.spot.range (not the old 6 step reach)
+// 2026-11-25: idle war troops on the island run at a war enemy within war.spot.range (not the old 6 step reach)
 // and shoot from their full range; only the player's own Z keeps them passive. A stop the game gives (pulled back at
 // the war circle edge, a ceasefire, off an omnibus) is a plain hold that still fights. Built on the war_test_yakuza save.
 import assert from 'node:assert/strict';
@@ -42,7 +42,7 @@ assert.ok(!duel('spearman', SPOT.range + 5).hurt, 'nobody past the spot range');
 assert.ok(duel('spearman', 10, () => ({ kind: 'stop' })).hurt, 'a game stop still fights');
 // the player's Z: passive even with an enemy next to him
 assert.ok(!duel('spearman', 3, () => ({ kind: 'stop', z: true })).hurt, 'Z stays passive');
-// Tim 2026-11-25: field cannons sent by attack-move to one spot get room for their width and then hold still
+// 2026-11-25: field cannons sent by attack-move to one spot get room for their width and then hold still
 // (they bunched and ran in place, switching run and idle every tick)
 { const g = createGame(options()), S = g.state; loadSave(g, JSON.parse(file));
   const rec = Object.values(S.frontier.wars.list)[0], hall = rec.camp.buildings.find(x => x.type === 'camp_hall'), t = S.frontier.settlements[rec.town];
@@ -57,7 +57,7 @@ assert.ok(!duel('spearman', 3, () => ({ kind: 'stop', z: true })).hurt, 'Z stays
   assert.ok(flips <= 2, `cannons hold still once there (${flips} run/idle switches)`);
   const P = ids.map(id => S.entities[id]);
   for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) assert.ok(Math.hypot(P[i].x - P[j].x, P[i].z - P[j].z) > 1.2, 'not stacked'); }
-// Tim 2026-11-25: with the hero dead the war troops still take orders (a right-click at war is a raze with a move fallback)
+// 2026-11-25: with the hero dead the war troops still take orders (a right-click at war is a raze with a move fallback)
 { const g = createGame(options()), S = g.state; loadSave(g, JSON.parse(file));
   const rec = Object.values(S.frontier.wars.list)[0], hall = rec.camp.buildings.find(x => x.type === 'camp_hall');
   const hero = Object.values(S.entities).find(e => e.type === 'hero' && e.owner === 'player');

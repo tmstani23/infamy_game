@@ -1,4 +1,4 @@
-// Recall and storage for your horses and vehicles (Tim 2026-11-07, the Vehicles panel, src/vehicles_panel.js).
+// Recall and storage for your horses and vehicles (2026-11-07, the Vehicles panel, src/vehicles_panel.js).
 // { id: <hero id>, type: 'garage', action: 'recall' | 'takeout', unit: <horse / rickshaw / omnibus id> }
 //  - recall: anyone aboard or riding gets off; it heads for your nearest built stable on its own and is stored
 //    there (e.stored = { town }, place 'stable': off the map, safe, still counted in your stable room). Further
@@ -6,7 +6,7 @@
 //  - recallAll: the same for every horse and vehicle you own that is not stored or on its way.
 //  - takeout: a stored one comes out, parked beside its stable.
 // A stored horse still answers her whistle (sim/mounts.js).
-// War camp stables (Tim 2026-11-14): a built 'stable' in your war camp works like a town stable for what you own
+// War camp stables (2026-11-14): a built 'stable' in your war camp works like a town stable for what you own
 // (stored there = e.stored.town 'war:<war id>'; takeout with at: 'war:<war id>' brings any stored one out beside it)
 // but makes nothing and adds no room. When the war ends the camp packs up: what is stored there, and every empty
 // horse or vehicle of the attacker standing in the war area (rules.garage.warArea round the town, else the banner),
@@ -43,12 +43,12 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
       const [sx, sz] = stable().centre(t, b), d = Math.hypot(sx - x, sz - z);
       if (!best || d < best.d) best = { town: t.id, name: t.name, x: sx, z: sz, d };
     }
-    const cap = stable()?.capitalAt?.(owner);   // the capital stable (Tim 2026-11-07): stores at the island side of the gate
+    const cap = stable()?.capitalAt?.(owner);   // the capital stable (2026-11-07): stores at the island side of the gate
     if (cap) { const d = Math.hypot(cap[0] - x, cap[1] - z); if (!best || d < best.d) best = { town: 'capital', name: 'the capital', x: cap[0], z: cap[1], d }; }
     if (camps) for (const c of campStables(owner)) { const d = Math.hypot(c.x - x, c.z - z); if (!best || d < best.d) best = { ...c, d }; }
     return best;
   }
-  // a parking spot around the stable for one coming out (Tim 2026-11-10): rings around it, clear of town buildings
+  // a parking spot around the stable for one coming out (2026-11-10): rings around it, clear of town buildings
   // (padded by its size) and a length away from every other horse and vehicle that is out, so none stack
   const sizeOf = e => e.type === 'horse' ? R().horseSpace ?? 4 : rules?.[e.type]?.length ?? 6;
   function parkSpot(e, at) {
@@ -77,7 +77,7 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
   function getOff(e) {
     if (e.type === 'horse') {
       if (ridden(e)) mounts?.dismount(state.entities[e.rider]);
-      delete e.rider;   // Tim 2026-11-10: a leftover rider id (rider gone, or riding something else) cancelled every recall
+      delete e.rider;   // 2026-11-10: a leftover rider id (rider gone, or riding something else) cancelled every recall
       return;
     }
     const hero = Object.values(state.entities).find(h => h.type === 'hero' && h.owner === e.omnibusOwner);
@@ -93,7 +93,7 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
     if (!kindOf(e) || ownerOf(e) !== hero.owner || e.dead) return say(hero.owner, 'Not yours');
     if (c.action === 'takeout') {
       if (!e.stored) return say(hero.owner, 'It is not in a stable');
-      // from a war camp stable's menu (c.at): any stored one comes out beside that camp stable (Tim 2026-11-14)
+      // from a war camp stable's menu (c.at): any stored one comes out beside that camp stable (2026-11-14)
       const camp = c.at ? campStable(hero.owner, c.at) : String(e.stored.town).startsWith(CAMP) ? campStable(hero.owner, e.stored.town) : null;
       if (c.at && !camp) return say(hero.owner, 'Build a stable in the war camp first');
       const t = !camp && state.frontier?.settlements?.[e.stored.town], b = t && stable().of(t), cap = !camp && e.stored.town === 'capital' && stable()?.capitalAt?.(hero.owner);
@@ -109,7 +109,7 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
     const r = recall(hero, e);
     say(hero.owner, !r ? 'Build a stable first' : r.stored ? `Sent back to the stable in ${r.name}` : `On its way back to the stable in ${r.name}`);
   }
-  // Stable room for recalls (Tim 2026-11-26: catching wild horses and recalling them all overfilled the stable):
+  // Stable room for recalls (2026-11-26: catching wild horses and recalling them all overfilled the stable):
   // your horses stored or on their way take a slot each, up to the horse room of your town and capital stables
   // (frontier/stable.js room); the hero's own mount has a stall of its own and never takes a slot. Only the
   // player's Recall and Recall all are capped; a war camp packing up or a lost town still store what they must.
@@ -130,7 +130,7 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
     delete e.called; delete e.path; delete e.vorder;
     return { name: at.name };
   }
-  // Recall all (stable menu, Tim 2026-11-07): every horse and vehicle you own that is not stored yet
+  // Recall all (stable menu, 2026-11-07): every horse and vehicle you own that is not stored yet
   function recallAll(hero) {
     const list = Object.values(state.entities).filter(e => kindOf(e) && !e.dead && !e.stored && !e.recall && ownerOf(e) === hero.owner);
     if (!list.length) return say(hero.owner, 'Everything is already in a stable');
@@ -143,7 +143,7 @@ export function createGarage({ state, rules, nav, stable, omnibus, mounts, say }
     }
     say(hero.owner, n ? `${n} sent back to the stables${out ? `, ${out} stay out: stable full (${room} horses)` : ''}` : out ? `Stable full, ${room} horses: none sent back` : 'Build a stable first');
   }
-  // the war camp packs up (Tim 2026-11-14): once a second, a war that has ended sends home what is stored at its
+  // the war camp packs up (2026-11-14): once a second, a war that has ended sends home what is stored at its
   // camp and what stands empty in its area; an old ended war (before this rule) is only marked
   const busy = e => e.type === 'horse' ? ridden(e) || !!e.called : !!(omnibus?.riders(e).length);
   function packUp() {

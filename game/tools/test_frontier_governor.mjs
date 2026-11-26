@@ -30,7 +30,7 @@ const noFarm = s => { s.buildings = s.buildings.filter(b => b.type !== 'farm'); 
 const add = (s, type) => s.buildings.push({ id: `x${s.buildings.length}${type}`, type, cell: null, stage: 'built', workers: 0 });
 const count = (s, type) => s.buildings.filter(b => b.type === type).length;
 
-// autoBuild off: suggestions only, zero new projects in 500 reviews; a ruin waits for the player's Rebuild order (7c-4, Tim 2026-11-12)
+// autoBuild off: suggestions only, zero new projects in 500 reviews; a ruin waits for the player's Rebuild order (7c-4, 2026-11-12)
 {
   const t = fresh(s => { noFarm(s); s.buildings.find(b => b.type === 'house').stage = 'ruined'; });
   const { s } = t;

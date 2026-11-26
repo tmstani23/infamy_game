@@ -1,7 +1,7 @@
 {
   "version": 1,
   "date": "2026-11-03",
-  "status": "Completed and visually accepted by Tim 2026-11-03, including final water surface/reflection/inland banks and coastal playtest. Representative-load performance and documented edge checks remain.",
+  "status": "Completed and visually accepted by 2026-11-03, including final water surface/reflection/inland banks and coastal playtest. Representative-load performance and documented edge checks remain.",
   "scope": "Shared rounded ocean corners for rendering and walking, existing biome ground recolored near the bank, seamless water sampling. Bridges, river-source/lake redesign, ground-cover clustering and new art integration remain separate phases.",
   "checklist": [
     {
@@ -25,7 +25,7 @@
       "done": true
     },
     {
-      "task": "Tim reviews finished appearance and walking in game",
+      "task": "reviews finished appearance and walking in game",
       "done": false
     }
   ],
@@ -33,7 +33,7 @@
     "Ocean only: preserve lakes, rivers, fords, mountain cliff joins and harbor approaches.",
     "Use one deterministic rounded shape for terrain, water mask, props and shoreline. Corner collision is rasterized at half-unit pitch into the existing navigation grid, with bounded tangent-first corner sliding.",
     "Keep source images unchanged; water repair uses a safe interior UV window and separable repeat blending.",
-    "No browser automation or screenshot runs. Tim manually checks the look."
+    "No browser automation or screenshot runs. manually checks the look."
   ],
   "implementation": {
     "rounding": "20-unit circular fillets capped to 40% of a terrain cell; lake, river-mouth, mountain and harbor corners excluded. Tuned in world_overrides.json shoreline, persisted by seed_world.mjs. Original terrain rows retained.",

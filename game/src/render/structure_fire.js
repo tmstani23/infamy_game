@@ -8,7 +8,7 @@ import { groundY } from '../castle_height.js';
 
 export function createStructureFire({ scene }) {
   const burning = new Map();
-  // Tim 2026-11-13: a warm light pool on the ground round each fire (added light, soft edge)
+  // 2026-11-13: a warm light pool on the ground round each fire (added light, soft edge)
   let glowMap = null;
   const glowTex = () => { if (glowMap) return glowMap; const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.45, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return glowMap = new THREE.CanvasTexture(cv); };
   function drop(key) { const m = burning.get(key); if (!m) return; scene.remove(m); m.material.dispose(); if (m.userData.pool) { scene.remove(m.userData.pool); m.userData.pool.geometry.dispose(); m.userData.pool.material.dispose(); } burning.delete(key); }
@@ -18,13 +18,13 @@ export function createStructureFire({ scene }) {
     for (const key of [...burning.keys()]) if (!want.has(key)) drop(key);
     for (const s of list) {
       if (burning.has(s.key)) continue;
-      const mesh = createGroundFirePatch(s.x, s.z, Math.max(2.5, Math.min(7, s.r || 4)), (s.x * 7 + s.z * 13) % 97, 1);   // soft: muted and see-through (Tim 2026-11-13)
+      const mesh = createGroundFirePatch(s.x, s.z, Math.max(2.5, Math.min(7, s.r || 4)), (s.x * 7 + s.z * 13) % 97, 1);   // soft: muted and see-through (2026-11-13)
       const r = Math.max(2.5, Math.min(7, s.r || 4)), pool = new THREE.Mesh(new THREE.CircleGeometry(r * 1.7, 32), new THREE.MeshBasicMaterial({ map: glowTex(), color: 0xdb7a3d, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false }));
       pool.rotation.x = -Math.PI / 2; pool.position.set(s.x, (0.1)+groundY(s.x, s.z), s.z); pool.renderOrder = 99804; scene.add(pool); mesh.userData.pool = pool;
       scene.add(mesh); burning.set(s.key, mesh);
     }
   }
-  // 7c (Tim 2026-11-12): the smoke over a ruin moves. Slow grey puffs rise and drift from every ruined building in the
+  // 7c (2026-11-12): the smoke over a ruin moves. Slow grey puffs rise and drift from every ruined building in the
   // drawn towns and camps (setRuins: the ruin props from town_props.js; broken palisade and gate pieces give none).
   const smoke = createParticles(scene, { max: 700, additive: false });
   const GREY = [[0.2, 0.19, 0.18], [0.3, 0.29, 0.27], [0.4, 0.39, 0.37], [0.14, 0.13, 0.13]];

@@ -1,4 +1,4 @@
-// Usage page model (Tim 2026-11-05): stock flows by reason, per minute. Run: node game/tools/test_frontier_usage.mjs
+// Usage page model (2026-11-05): stock flows by reason, per minute. Run: node game/tools/test_frontier_usage.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createFrontier } from '../src/sim/frontier/frontier.js';

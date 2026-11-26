@@ -1,4 +1,4 @@
-// Shared menu shell (menu restyle, Tim 2026-11-10): builds the war camp panel look out of plain HTML strings
+// Shared menu shell (menu restyle, 2026-11-10): builds the war camp panel look out of plain HTML strings
 // for the classes in menu_shell.css. Presentation only. Plain text in game words; long text goes in title hovers.
 export const msEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const tip = t => t ? ` title="${msEsc(t)}"` : '';
@@ -38,7 +38,7 @@ export function msPager(pages, at, attr) {
 }
 export const msNote = (text, hot = false) => text ? `<div class="ms-note${hot ? ' hot' : ''}">${msEsc(text)}</div>` : '';
 export const msProg = frac => `<div class="ms-prog"><i style="width:${(Math.max(0, Math.min(1, frac)) * 100).toFixed(1)}%"></i></div>`;
-// Menu portraits (Tim 2026-11-10: the 3D look, zoomed out, sharp): stills cut from frame 0 of each model's idle sheet
+// Menu portraits (2026-11-10: the 3D look, zoomed out, sharp): stills cut from frame 0 of each model's idle sheet
 // (or its 512 px portrait strip), cropped head to knees, 256 px, in assets/sprites/portraits/stills/<model>.png.
 // The name stays msConcept for the callers (hire, clinic, police, land office, Pack for war). Unknown models give null
 // and callers fall back to the sprite portrait.

@@ -1,4 +1,4 @@
-// Key rebinding (Tim 2026-11-12): one table of every key action, its default key(s) and the player's
+// Key rebinding (2026-11-12): one table of every key action, its default key(s) and the player's
 // changes, kept in this browser (localStorage 'infamy.keys.v1'). Keys only: mouse buttons stay fixed.
 // A binding is a combo string: optional modifiers then a KeyboardEvent.code, e.g. 'KeyQ', 'Shift+KeyH', 'Ctrl+Digit1'.
 // Each action has up to two slots (main and second key). An action with no key at all is "Unbound" (shown red).
@@ -16,7 +16,7 @@ export const KEY_ACTIONS = [
   A('moveRight', 'Move right', 'Movement', 'KeyD', { held: true }),
   A('walk', 'Walk while held; a clean tap while riding switches gallop', 'Movement', [], { fixed: true, text: 'Shift' }),
   A('use', 'Use door, shop, station, ship or talk; take a ruined hall in a war; set a rail charge, rob a stopped train, cash a stolen chest, sell hides at your market, catch a wild horse, on foot stand still a moment, Space again lets her go; pick up a dropped bundle, trade at your town merchant', 'Movement', ['Space', 'Enter']),
-  A('unstuck', 'Unstuck', 'Movement', 'Ctrl+KeyU'),   // Ctrl so it is not hit by accident (Tim 2026-11-26)
+  A('unstuck', 'Unstuck', 'Movement', 'Ctrl+KeyU'),   // Ctrl so it is not hit by accident (2026-11-26)
   // Camera
   A('panUp', 'Pan camera up', 'Camera', 'ArrowUp', { held: true }),
   A('panDown', 'Pan camera down', 'Camera', 'ArrowDown', { held: true }),
@@ -44,11 +44,11 @@ export const KEY_ACTIONS = [
   A('workerWork', 'Send workers to build a camp site, repair or put out a fire, or order a ruin rebuilt', 'Crew orders', [], { fixed: true, text: 'Right-click it with workers selected' }),
   A('evacuate', 'Evacuate garrison', 'Crew orders', 'Shift+KeyK'),
   A('garrisonIn', 'Send the selected into a stockade or house', 'Crew orders', [], { fixed: true, text: 'Ctrl + right-click it' }),
-  A('garrisonOut', 'Send one unit out of a stockade, tower or house', 'Crew orders', [], { fixed: true, text: 'Right-click its garrison slot' }),   // Tim 2026-11-25
+  A('garrisonOut', 'Send one unit out of a stockade, tower or house', 'Crew orders', [], { fixed: true, text: 'Right-click its garrison slot' }),   // 2026-11-25
   A('shipSail', 'Sail the selected ships there; a click on land sails to the nearest shore they can land on', 'Crew orders', [], { fixed: true, text: 'Right-click water or shore' }),   // ships S2
   A('shipBoard', 'Send the selected aboard your ship; a ship lying off comes in to their shore. With nothing selected the hero goes', 'Crew orders', [], { fixed: true, text: 'Right-click your ship' }),
   A('shipUnload', 'Let everyone off the selected ships; a ship on the water sails in to shore first', 'Crew orders', [], { fixed: true, text: 'Q with ships selected' }),
-  A('talkClick', 'Talk to the old surveyor, your lieutenant or a governor, or open the Land Office, standing beside it', 'Panels and menus', [], { fixed: true, text: 'Left-click them' }),   // Tim 2026-11-20
+  A('talkClick', 'Talk to the old surveyor, your lieutenant or a governor, or open the Land Office, standing beside it', 'Panels and menus', [], { fixed: true, text: 'Left-click them' }),   // 2026-11-20
   A('buildingMenu', 'Open the menu of your military building, stockade or war camp building', 'Panels and menus', [], { fixed: true, text: 'Left-click it' }),
   // Crew groups
   ...[1, 2, 3, 4].map(n => A(`group${n}`, `Select group ${n}`, 'Crew groups', `Digit${n}`)),
@@ -67,14 +67,14 @@ export const KEY_ACTIONS = [
   // Panels and menus
   A('character', 'Character page', 'Panels and menus', 'KeyJ'),
   A('inventory', 'Inventory', 'Panels and menus', 'KeyI'),
-  A('fetchItem', 'Walk over and pick up a dropped bundle', 'Crew orders', [], { fixed: true, text: 'Right-click the bundle' }),   // Tim 2026-11-26
-  A('dropItem', 'Drop a bag item on the ground, outdoors only', 'Panels and menus', [], { fixed: true, text: 'Right-click it then Drop, or drag it out' }),   // Tim 2026-11-26
+  A('fetchItem', 'Walk over and pick up a dropped bundle', 'Crew orders', [], { fixed: true, text: 'Right-click the bundle' }),   // 2026-11-26
+  A('dropItem', 'Drop a bag item on the ground, outdoors only', 'Panels and menus', [], { fixed: true, text: 'Right-click it then Drop, or drag it out' }),   // 2026-11-26
   A('map', 'Map and deployments', 'Panels and menus', 'KeyM'),
   A('townPanel', 'Town panel', 'Panels and menus', 'KeyO'),
   A('overview', 'Overview', 'Panels and menus', 'KeyY'),
   A('vehicles', 'Vehicles', 'Panels and menus', 'Shift+KeyY'),
   A('controls', 'Controls panel', 'Panels and menus', 'Slash'),
-  A('fieldGuide', 'Field guide', 'Panels and menus', 'Shift+KeyG'),   // Tim 2026-11-25: what is good against what
+  A('fieldGuide', 'Field guide', 'Panels and menus', 'Shift+KeyG'),   // 2026-11-25: what is good against what
   A('close', 'Close or cancel', 'Panels and menus', [], { fixed: true, text: 'Esc' }),
   // Interface
   A('pause', 'Pause', 'Interface', ['Backquote', 'Pause']),
@@ -111,7 +111,7 @@ export function parseCombo(c) {
 export const normalCombo = c => { const p = parseCombo(c); return p ? [p.ctrl && 'Ctrl', p.alt && 'Alt', p.shift && 'Shift', p.code].filter(Boolean).join('+') : null; };
 export const isReserved = c => RESERVED.has(normalCombo(c) || c);
 
-// plain words, no special characters (Tim 2026-11-10)
+// plain words, no special characters (2026-11-10)
 const WORDS = { Space: 'Space', Enter: 'Enter', NumpadEnter: 'Numpad Enter', Tab: 'Tab', Backspace: 'Backspace', Escape: 'Esc',
   Slash: 'Slash', Backslash: 'Backslash', Backquote: 'Backtick', Quote: 'Quote', Semicolon: 'Semicolon', Comma: 'Comma', Period: 'Period',
   Equal: 'Equals', Minus: 'Minus', BracketLeft: 'Left bracket', BracketRight: 'Right bracket', ArrowUp: 'Up arrow', ArrowDown: 'Down arrow',

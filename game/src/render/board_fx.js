@@ -9,7 +9,7 @@
 //    rails. A fighter who falls ('boardFall') goes over the side (the drowning look of render/ship_fx.js takes him).
 //  - The bar over the fight: your side and theirs, their strengths, where the two meet; weakened when the boarded ship is
 //    under half health.
-// Every effect is somewhat see-through (Tim 2026-11-23).
+// Every effect is somewhat see-through (2026-11-23).
 //   createBoardFx({ scene }) -> { cast(c), update(state, sprites, dt, place, me) }   me: the viewer's clan
 import * as THREE from 'three';
 import { CAM_QUAT, VIEW_DIR, CAM_RIGHT, CAM_UP } from './iso.js';
@@ -28,7 +28,7 @@ const MAST = {
 const SAIL_KEY = { warship: [0.6, 0.68, 0.3, 0.42], transport: [0.53, 0.58, 0.16, 0.26] };
 const OWN = '#3fb6a8', FOE = '#c4432c';   // as the ship plates (render/ship_marks.js)
 
-// a clan colour made fit for cloth: a tint that keeps the painted cloth's warmth (Tim 2026-11-23: muted, never primaries)
+// a clan colour made fit for cloth: a tint that keeps the painted cloth's warmth (2026-11-23: muted, never primaries)
 function sailTint(hex, k = 0.3) {
   const c = new THREE.Color(hex), g0 = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b;
   c.lerp(new THREE.Color(g0, g0, g0), 0.4);   // greyed first: dyed cloth, not paint
@@ -145,7 +145,7 @@ export function createBoardFx({ scene, figureSprite = null }) {
     m.renderOrder = 99640; m.frustumCulled = false; scene.add(m);
     return m;
   }
-  // a small three-pronged grappling hook at the end of each line, iron dark, pointing along the line on screen (Tim 2026-11-23)
+  // a small three-pronged grappling hook at the end of each line, iron dark, pointing along the line on screen (2026-11-23)
   const HOOK = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 32; const g = cv.getContext('2d');
     g.strokeStyle = 'rgba(20,16,12,.9)'; g.lineCap = 'round'; g.lineWidth = 2.6;
     g.beginPath(); g.moveTo(4, 16); g.lineTo(22, 16); g.stroke();   // the shank, the line comes in from the left
@@ -206,7 +206,7 @@ export function createBoardFx({ scene, figureSprite = null }) {
           if (snapT > 0) { const back = f * snapT * 0.8; y -= f * f * snapT * 4.5; curve[i].set(x - (p1.x - p0.x) * back, y, z - (p1.z - p0.z) * back); }
           else curve[i].set(x, y, z);
         }
-        setRope(m, curve, 0.085);   // thin dark line (Tim 2026-11-23)
+        setRope(m, curve, 0.085);   // thin dark line (2026-11-23)
         if (iron) {   // the hook rides the line's free end, turned along its last stretch as seen on screen
           const a = curve[ROPE_N - 1], b = curve[ROPE_N]; scr.subVectors(b, a);
           iron.position.copy(b); iron.material.rotation = Math.atan2(scr.dot(CAM_UP), scr.dot(CAM_RIGHT)); iron.visible = true;
@@ -264,7 +264,7 @@ export function createBoardFx({ scene, figureSprite = null }) {
   }
   function figure() { return { s: figSprite(FIG, 99645), o: OUT4.map(() => figSprite(FIG_MASK, 99644)) }; }
   function dropFigure(m) { for (const x of [m.s, ...m.o]) { scene.remove(x); x.material.map.dispose(); x.material.dispose(); } }
-  // S8 (Tim 2026-11-23): the fighters are the real sprites of the people in each hold, scaled way down, trading blows,
+  // S8 (2026-11-23): the fighters are the real sprites of the people in each hold, scaled way down, trading blows,
   // with only a thin outline in their clan's colour (four silhouette copies a hair off each side, drawn just behind)
   const FIG_SIZE = 0.36, OUTLINE = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   const screenDir = (ux, uz) => {   // a ground direction as a sprite row: 0..7 = S, SW, W, NW, N, NE, E, SE on screen
@@ -324,7 +324,7 @@ export function createBoardFx({ scene, figureSprite = null }) {
       const gap = (k, w) => ({ x: t.x + ux * L * w + hx * k, y: (DECK[t.warUnit] ?? 2.1) + 0.15, z: t.z + uz * L * w + hz * k });   // w 0 on the target .. 1 on the alongside ship
       // the clash at the rails
       if (clock >= fx.spark) { fx.spark = clock + rand(0.06, 0.2);
-        const p = gap(rand(-2.6, 2.6), rand(0, 0.5) / L);   // on the boarded deck (Tim 2026-11-23)
+        const p = gap(rand(-2.6, 2.6), rand(0, 0.5) / L);   // on the boarded deck (2026-11-23)
         glow.emit({ x: p.x, y: p.y + rand(0.1, 0.5), z: p.z, life: 0.1, size: rand(0.9, 1.3), color: FLAME[0], alpha: 0.8, shape: SHAPE.sparkle, rot: rand(0, 3) });
         for (let i = 0; i < 6; i++) glow.emit({ x: p.x, y: p.y + 0.3, z: p.z, vx: rand(-2.5, 2.5), vz: rand(-2.5, 2.5), vy: rand(0.8, 2.6), gravity: 7, life: rand(0.2, 0.35), size: rand(0.08, 0.13), color: FLAME[1], alpha: 0.7, shape: SHAPE.ember }); }
       // a pistol or musket fired across: a flash and its small puff, now from one deck, now the other
@@ -336,7 +336,7 @@ export function createBoardFx({ scene, figureSprite = null }) {
       // powder smoke drifting up between the hulls
       if (clock >= fx.smoke) { fx.smoke = clock + rand(0.2, 0.45); const p = gap(rand(-3, 3), rand(-0.3, 0.6) / L);   // over the boarded deck
         soot.emit({ x: p.x, y: p.y + 0.4, z: p.z, vx: 0.4, vz: -0.15, vy: rand(0.25, 0.5), drag: 1, sway: 0.3, life: rand(2.5, 3.5), size: rand(0.8, 1.3), grow: 1.8, color: pick(SMOKE), alpha: 0.22, shape: SHAPE.puff, rot: rand(-0.4, 0.4), spin: rand(-0.2, 0.2) }); }
-      // the crowd: a few small figures a side, all on the boarded ship's deck, boarders at its near rail (Tim 2026-11-23)
+      // the crowd: a few small figures a side, all on the boarded ship's deck, boarders at its near rail (2026-11-23)
       const na = Math.min(4, F.view?.na ?? 3), nd = Math.min(4, F.view?.nd ?? 3);
       for (let i = 0; i < na + nd; i++) { const ours = i < na, j = ours ? i : i - na, n = ours ? na : nd, k = ((j + 0.5) / n - 0.5) * 4.6;
         const surge = Math.sin(clock * (2.1 + j * 0.37) + j * 2.3 + (ours ? 0 : 1.6)) * 0.08;

@@ -1,4 +1,4 @@
-// Settings > Controls (Tim 2026-11-12): rebind keys. Types down the left, one type at a time on the right,
+// Settings > Controls (2026-11-12): rebind keys. Types down the left, one type at a time on the right,
 // Prev / Next pages when a type has more rows than fit (no scrollbars). Click a key, press the new one;
 // Esc cancels. A key another action uses asks Swap, Take it or Cancel. Unbound actions show red.
 import { comboFromEvent, comboText, isReserved, SLOTS } from './keybinds.js';

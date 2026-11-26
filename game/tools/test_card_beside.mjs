@@ -1,4 +1,4 @@
-// Building card beside its menu (Tim 2026-11-20, src/card_beside.js): right of the menu, else left, else the right edge.
+// Building card beside its menu (2026-11-20, src/card_beside.js): right of the menu, else left, else the right edge.
 import assert from 'node:assert/strict';
 import { besidePos, openMenu, MENU_IDS } from '../src/card_beside.js';
 

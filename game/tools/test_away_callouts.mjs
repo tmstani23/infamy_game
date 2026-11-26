@@ -1,4 +1,4 @@
-// Quiet capital alerts on the island (Tim 2026-11-25): the captain's play-by-play stays hidden while the boss
+// Quiet capital alerts on the island (2026-11-25): the captain's play-by-play stays hidden while the boss
 // is out, big events show as "Back in the capital:", and watching the city shows everything as if home.
 import assert from 'node:assert/strict';
 import { createNewsCallouts } from '../src/news_callouts.js';

@@ -54,14 +54,14 @@ assert.ok(!h.includes('data-build='), 'no build cards here');
 click({ train: rr.id, unit: 'archer' }); g.step(sent.splice(0));
 assert.equal(rr.queue.length, 1, 'Train on the card queues one at this building');
 P.update(); h = root.innerHTML; assert.ok(h.includes('next in') && h.includes('Cancel last'), 'the queue shows');
-// Tim 2026-11-25: a mouse button held on the panel holds the redraw, so the countdown can't swap a Train button out mid-click
+// 2026-11-25: a mouse button held on the panel holds the redraw, so the countdown can't swap a Train button out mid-click
 root.on.pointerdown({ stopPropagation() {} }); for (let i = 0; i < 40; i++) g.step([]); P.update(); assert.equal(root.innerHTML, h, 'no redraw while the mouse is down');
 for (const fn of winOn.pointerup || []) fn({}); P.update(); assert.notEqual(root.innerHTML, h, 'the redraw comes after release');
 
 assert.ok(P.show(rec.id, hall.id) && root.innerHTML.includes('data-build=') && root.innerHTML.includes('data-tab="chest"'), 'the hall: build cards and tabs');
 assert.ok(!root.innerHTML.includes('data-train='), 'no training in the hall');
-click({ tab: 'chest' }); assert.ok(root.innerHTML.includes('send it from the camp station') && !root.innerHTML.includes('data-rsend=') && root.innerHTML.includes(String(Math.floor(c.chest))), 'the war chest tab: the chest and a pointer (Tim 2026-11-25)');
-// Tim 2026-11-25: the camp station menu has Spur, Ryo (send ryo by train) and Orders (the rail ledger for this camp)
+click({ tab: 'chest' }); assert.ok(root.innerHTML.includes('send it from the camp station') && !root.innerHTML.includes('data-rsend=') && root.innerHTML.includes(String(Math.floor(c.chest))), 'the war chest tab: the chest and a pointer (2026-11-25)');
+// 2026-11-25: the camp station menu has Spur, Ryo (send ryo by train) and Orders (the rail ledger for this camp)
 { const st = { id: `${rec.id}:st`, type: 'camp_station', stage: 'built', x: hall.x + 20, z: hall.z }; c.buildings.push(st);
   assert.ok(P.show(rec.id, st.id) && root.innerHTML.includes('data-sttab="ryo"') && root.innerHTML.includes('data-sttab="orders"') && root.innerHTML.includes('Camp spur'), 'the camp station: Spur tab first');
   click({ sttab: 'ryo' }); assert.ok(root.innerHTML.includes('Send ryo by train') && root.innerHTML.includes('data-rsend="capital"'), 'the Ryo tab sends ryo');

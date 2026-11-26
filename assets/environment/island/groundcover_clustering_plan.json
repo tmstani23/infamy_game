@@ -13,7 +13,7 @@
       "state": "Jungle, forest-floor and marsh assets are imported; refresh actual displayed footprints after recent scaling changes before implementation"
     },
     {
-      "task": "Tim accepts clustering design",
+      "task": "accepts clustering design",
       "state": "Built and visually accepted."
     }
   ],
@@ -430,9 +430,9 @@
     },
     {
       "id": "D",
-      "task": "Tim compares the same seeded locations across five footprint presets and three relative height tiers, plus clearings, biome edges, coast and trails. Tune mixtures and density while keeping oddities and fixed art unchanged.",
+      "task": "compares the same seeded locations across five footprint presets and three relative height tiers, plus clearings, biome edges, coast and trails. Tune mixtures and density while keeping oddities and fixed art unchanged.",
       "done": true,
-      "result": "Tim visually accepted clustering."
+      "result": "visually accepted clustering."
     },
     {
       "id": "E",

@@ -1,4 +1,4 @@
-// Quest log (Tim 2026-11-06): sim/campaign_goals.js gives the campaign's current goal, read-only.
+// Quest log (2026-11-06): sim/campaign_goals.js gives the campaign's current goal, read-only.
 // Classic has none; Campaign walks permit -> settlers -> found -> Influence, and the permit rows match
 // landOffice.permitStatus() (the telegraph office blink check).
 import assert from 'node:assert/strict';
@@ -23,7 +23,7 @@ function match(mode) {
 
 const { g, clan } = match('campaign');
 const before = JSON.stringify(g.state.clans);
-// starter goals (Tim 2026-11-06): Yakuza loot, gear up, 3 crew, first business, win a raid; each says how
+// starter goals (2026-11-06): Yakuza loot, gear up, 3 crew, first business, win a raid; each says how
 let goal = g.goals.current('player');
 assert.equal(goal.key, 'starter0'); assert.ok(goal.rows.every(r => r.done || r.how), 'starters say how');
 const marks = () => clan.milestones;
@@ -55,7 +55,7 @@ clan.permit = true;
 goal = g.goals.current('player');
 assert.equal(goal.step, 7); assert.match(goal.rows[0].how, /telegraph office/); assert.ok(goal.rows[0].where, 'the Land Office is pinged');
 assert.match(goal.rows[0].how, new RegExp(`hires all ${frontier.founding.minSettlers}`), 'the card asks for the full number');
-// settlers first, then the old surveyor's card while his report waits (Tim 2026-11-20)
+// settlers first, then the old surveyor's card while his report waits (2026-11-20)
 clan.surveyPending = true;
 assert.equal(g.goals.current('player').key, 'settlers0', 'settlers come before the surveyor');
 
@@ -66,13 +66,13 @@ assert.equal(goal.step, 8); assert.match(goal.title, /old surveyor/); assert.ok(
 delete clan.surveyPending;
 goal = g.goals.current('player');
 const hero = Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === 'player'), place = hero.place;
-// lieutenant goal steps (Tim 2026-11-06): meet him at the gate, then open While I'm away and set his budget
+// lieutenant goal steps (2026-11-06): meet him at the gate, then open While I'm away and set his budget
 assert.equal(goal.step, 9); assert.match(goal.title, /Meet your lieutenant/);
 assert.ok(goal.rows[0].where, 'the gate lieutenant is pinged');
 g.step([]);
 const guide = g.lieutenant.guideOf('player');
 assert.ok(guide && guide.guide && guide.place === 'street', 'he waits by the gate');
-assert.ok(Math.hypot(guide.x - g.gate.city[0], guide.z - g.gate.city[1]) < 11, 'out in front of the gate, toward the station (Tim 2026-11-20)');
+assert.ok(Math.hypot(guide.x - g.gate.city[0], guide.z - g.gate.city[1]) < 11, 'out in front of the gate, toward the station (2026-11-20)');
 assert.ok(!g.clans.crewOf('player').includes(guide), 'not crew');
 const door = g.doors.find(d => d.menu === 'lieutenant');
 assert.ok(door && /lieutenant/.test(door.label), 'Space here talks to him');
@@ -86,7 +86,7 @@ g.step([{ id: hero.id, type: 'lieutenant', budget: 500 }]);
 goal = g.goals.current('player');
 assert.equal(goal.step, 11); assert.match(goal.title, /Leave the city/); assert.ok(goal.gate, 'the gate gets the gold hint');
 g.step([]);
-assert.ok(g.lieutenant.guideOf('player'), 'he stays by the gate while the boss is in the city (Tim 2026-11-10)');
+assert.ok(g.lieutenant.guideOf('player'), 'he stays by the gate while the boss is in the city (2026-11-10)');
 hero.place = 'world';
 goal = g.goals.current('player');
 assert.equal(goal.step, 14); assert.match(goal.title, /Found your town/);
@@ -94,7 +94,7 @@ assert.ok(goal.rows.some(r => r.label === 'Town founded' && !r.done && /Found a 
 hero.place = place;
 g.clans.settlersOf = settlers;
 
-// settlers (Tim 2026-11-06) wait safely at the HQ as a count, then step out beside the hero at the gate
+// settlers (2026-11-06) wait safely at the HQ as a count, then step out beside the hero at the gate
 {
   const office = g.landOffice.office();
   Object.assign(hero, { place: 'street', x: office.ring[0], z: office.ring[1] });
@@ -125,7 +125,7 @@ assert.equal(goal.rows[0].label, 'Influence');
 delete g.state.frontier.settlements.__t;
 console.log('campaign goals ok');
 
-// Shinobi (Tim 2026-11-06): no business requirement, a ryo cost instead
+// Shinobi (2026-11-06): no business requirement, a ryo cost instead
 {
   const g2 = createGame(options());
   setupMatch(g2, { clan: 'shinobi', difficulty: 'easy', mode: 'campaign', bots: data('data/bots.json'), spawns: options().district.spawns, test: { playerRyo: 100 }, seed: 77 });
@@ -144,7 +144,7 @@ console.log('campaign goals ok');
   c.ryo = S.ryo; assert.ok(g2.landOffice.permitStatus('player').rows.find(r => r.label === 'Ryo').ok);
   console.log('shinobi permit ok');
 }
-// Kuroda (Tim 2026-11-06): Yakuza starters with a sweep in place of the shakedown
+// Kuroda (2026-11-06): Yakuza starters with a sweep in place of the shakedown
 {
   const g3 = createGame(options());
   setupMatch(g3, { clan: 'kuroda', difficulty: 'easy', mode: 'campaign', bots: data('data/bots.json'), spawns: options().district.spawns, test: { playerRyo: 100 }, seed: 77 });
@@ -154,7 +154,7 @@ console.log('campaign goals ok');
   console.log('kuroda starters ok');
 }
 
-// Goal pings (Tim 2026-11-06): unfinished rows name a spot; looting a body counts in the same tick
+// Goal pings (2026-11-06): unfinished rows name a spot; looting a body counts in the same tick
 {
   const { g, clan } = match('campaign');
   g.step([]);
@@ -175,7 +175,7 @@ console.log('campaign goals ok');
   console.log('goal pings ok');
 }
 
-// Town setup goals and the town-tier permit row (Tim 2026-11-06)
+// Town setup goals and the town-tier permit row (2026-11-06)
 {
   const { g, clan } = match('campaign');
   g.step([]);
@@ -197,7 +197,7 @@ console.log('campaign goals ok');
   T.workers[1].spot = spotOf('stone');
   assert.equal(cur().key, 'goods');
   grid.zone = grid.zone.slice(0, 8) + 'kk' + grid.zone.slice(10);
-  // the governor (Tim 2026-11-06): meet him by the hall, then a focus plus initiative or an approved suggestion
+  // the governor (2026-11-06): meet him by the hall, then a focus plus initiative or an approved suggestion
   assert.equal(cur().key, 'governor');
   const me = Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === 'player');
   g.lieutenant.command(me, { type: 'lieutenant', guide: 'governor' });   // Space beside him (spawn: test_island_respawn)
@@ -206,7 +206,7 @@ console.log('campaign goals ok');
   T.focusSet = true;
   assert.deepEqual(cur().rows.map(r => r.done).slice(0, 2), [true, false]);
   T.autoBuild = true;
-  // the general's goals (Tim 2026-11-21): type a fund share, pick (or keep) a strategy, look at the quarter, his first building
+  // the general's goals (2026-11-21): type a fund share, pick (or keep) a strategy, look at the quarter, his first building
   assert.equal(cur().key, 'fund');
   T.fund = { ...(T.fund || {}), set: true };
   assert.equal(cur().key, 'strategy');
@@ -246,7 +246,7 @@ console.log('campaign goals ok');
   assert.deepEqual(cur().rows.map(r => r.done).slice(0, 2), [true, false]);
   g.step([{ id: g.state.clans.player.heroId ?? Object.values(g.state.entities).find(e => e.type === 'hero' && e.owner === 'player').id, type: 'frontier', action: 'setMarketKeep', settlement: id, keep: 250 }]);
   assert.notEqual(cur().key, 'market', 'past the setup goals');
-  // goals pass (Tim 2026-11-18): Influence to the 2nd permit, then rail goals; no repeat of the founding chain
+  // goals pass (2026-11-18): Influence to the 2nd permit, then rail goals; no repeat of the founding chain
   T.workers = [{ id: 'w1', spot: spotOf('timber') }, { id: 'w2', spot: spotOf('stone') }];   // the tick above reset them
   assert.match(cur().key, /^influence/, 'then Grow Influence');
   g.state.influence.player.days = 1000;   // past the 2nd town permit
@@ -266,7 +266,7 @@ console.log('campaign goals ok');
   assert.deepEqual(cur().rows.map(r => r.done), [true, false], 'order placed');
   ship.orders.o1.got = 20; g.state.tick = 30; g.goals.record([]);
   delete ship.orders.o1;   // done orders may go: the milestone stays
-  // the one-time Land Office talk on rival towns (goals pass, Tim 2026-11-19)
+  // the one-time Land Office talk on rival towns (goals pass, 2026-11-19)
   assert.equal(cur().key, 'registrar'); assert.ok(cur().rows[0].where, 'the surveyor is pinged');
   g.state.tick = 40; g.goals.record([]);
   assert.equal(g.state.clans.player.warTalkDue, true, 'his gold mark is on');
@@ -289,7 +289,7 @@ console.log('campaign goals ok');
     const d = Math.hypot(h.x - si.x, h.z - si.z); assert.ok(d >= H.offsetMin - 1 && d <= H.offsetMax + 1);
   }
   assert.equal(clan.milestones.warTalk, 1);
-  // Field guide (Tim 2026-11-25): open it before the first war
+  // Field guide (2026-11-25): open it before the first war
   assert.equal(cur().key, 'fieldguide', 'talk done: read the field guide first');
   assert.deepEqual(cur().rows.map(r => r.label), ['Field guide read']);
   clan.milestones.fieldGuide = 1;

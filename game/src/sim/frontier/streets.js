@@ -1,4 +1,4 @@
-// Organic streets (Tim 2026-11-21: the governor zoned every cell around the town hall, then had no way to
+// Organic streets (2026-11-21: the governor zoned every cell around the town hall, then had no way to
 // lay a road out, so growth stopped on "needs road"). There is no fixed plan: each time it is asked, the
 // governor draws up to G.streets street paths from the roads he already has (or the hall), bending toward
 // his own buildings that still have no road, then toward what lies around the town (nearest other towns,
@@ -39,7 +39,7 @@ function openCell(s, i, data) {
 }
 
 // One street path: the cheapest route from the road network (or hall) to the first goal cell. Each turn costs
-// `turn` extra (Tim 2026-11-21: straight streets out from the hall ring, easy to join and good for zones), so
+// `turn` extra (2026-11-21: straight streets out from the hall ring, easy to join and good for zones), so
 // streets run straight and bend only round what is in the way. Returns cells from the network outward, road cells
 // included (they cost little, so streets follow and branch off roads).
 // block: optional Set of cells the path may not use (military_plot.js keeps it off the plot itself)
@@ -108,7 +108,7 @@ export function streets(s, data, { linked, aims = [], reach = 3 }) {
   }
   // 2) toward what lies around the town, a direction at a time (aims at least `gap` apart, then wobbly fill-ins)
   const R = Math.min(ringRadius(s, data), (n / 2 - 3) * g.cell), angs = [], base = hash(seed) * Math.PI * 2;   // the ring can reach past the grid edge
-  const nb = out.length, dirs = Math.max(G.streetsOut ?? 2, want - nb);   // always at least two streets heading out of town (Tim 2026-11-21)
+  const nb = out.length, dirs = Math.max(G.streetsOut ?? 2, want - nb);   // always at least two streets heading out of town (2026-11-21)
   const tryAng = ang => {
     if (out.length - nb >= dirs || angs.some(a => Math.abs(Math.atan2(Math.sin(a - ang), Math.cos(a - ang))) < gap)) return;
     angs.push(ang);

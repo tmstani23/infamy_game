@@ -67,9 +67,9 @@
 #bar[data-layout-sized="true"] {box-sizing:border-box;align-items:stretch;}
 #bar[data-layout-sized="true"] > .row {box-sizing:border-box;flex:1;min-height:72px;width:100%;align-items:stretch;}
 #bar[data-layout-sized="true"] .slot {flex:1 1 0;min-width:28px;width:auto;height:auto;min-height:66px;}
-/* the special ability rows keep normal-size slots in a sized bar, one special or many (Tim 2026-11-23: Torch filled the bar) */
+/* the special ability rows keep normal-size slots in a sized bar, one special or many (2026-11-23: Torch filled the bar) */
 #bar[data-layout-sized="true"] > .abilityrow {align-self:center;}
-/* a ship gun firing (Tim 2026-11-23): its slot flashes red */
+/* a ship gun firing (2026-11-23): its slot flashes red */
 @keyframes gunFiring {0%,100%{box-shadow:inset 0 0 0 2px rgba(214,58,42,.9),0 0 8px rgba(214,58,42,.55);}50%{box-shadow:inset 0 0 0 2px rgba(214,58,42,.25),0 0 2px rgba(214,58,42,.15);}}
 #bar .slot.ability.firing {animation:gunFiring .45s linear infinite;}
 #bar .slot.ability.firing .autotag {color:#ff6a55;}
@@ -84,7 +84,7 @@
 .layout-pages button:disabled {opacity:.4;cursor:default;}
 #partyframes .crew-section:not(:has(.mate:not(.layout-page-hidden))) {display:none;}
 #partyframes .crew.grouped .mate .crew-status {max-width:none;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;}
-/* clinic and jail cards (Tim 2026-11-07): one status line, cut with … (hover shows it all), so every card is the same height */
+/* clinic and jail cards (2026-11-07): one status line, cut with … (hover shows it all), so every card is the same height */
 #partyframes .crew.grouped .mate.away .crew-status {white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;}
 #partyframes .crew.grouped .mate .name {max-width:none;white-space:normal;overflow:visible;text-overflow:clip;}
 #bar .buffs,#hud,#bldpanel .acts {flex-wrap:wrap;}
@@ -93,7 +93,7 @@
 #utilitymenu[data-layout-sized="true"] {grid-template-columns:repeat(auto-fit,minmax(min(34px,100%),1fr));}
 #utilitymenu[data-layout-sized="true"] .utility-button {width:auto;height:auto;min-height:32px;}
 #controls,#control-tooltip,#gamesettings .settings-window {overflow:visible;max-height:none;}
-/* character window: fixed narrow hero column, whole window fits the screen and scrolls inside (Tim 2026-11-01) */
+/* character window: fixed narrow hero column, whole window fits the screen and scrolls inside (2026-11-01) */
 #characterpage .character-layout {grid-template-columns:minmax(200px,250px) minmax(0,1fr);}
 #characterpage .character-window {max-height:calc(100vh - 32px);overflow:auto;}
 #characterpage .hero-art {aspect-ratio:auto;max-width:220px;margin:0 auto;border-radius:8px;}
@@ -104,7 +104,7 @@
 #crewcommands {min-width:140px;}
 #controls,#characterpage .character-window,#gamesettings .settings-window {min-width:min(280px,100vw);}
 
-/* Controls (Tim 2026-11-02): page buttons at the top; a long section flows its rows into columns so it fits */
+/* Controls (2026-11-02): page buttons at the top; a long section flows its rows into columns so it fits */
 #controls .layout-pages {margin:0 0 8px;padding-top:0;}
 #controls .cols > section {display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));column-gap:10px;align-content:start;}
 #controls .cols > section > h4 {grid-column:1/-1;}

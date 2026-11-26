@@ -1,4 +1,4 @@
-// The governor's cannon salute (Tim 2026-11-07): 4 cannons and the Gatling (2026-11-10) by a player town hall, fired in turn
+// The governor's cannon salute (2026-11-07): 4 cannons and the Gatling (2026-11-10) by a player town hall, fired in turn
 // on the first talk, after a tier upgrade and on "Fire a salute" (with a cooldown). Scenery: never hostile.
 import assert from 'node:assert/strict';
 import { createCannonSalute } from '../src/sim/cannon_salute.js';

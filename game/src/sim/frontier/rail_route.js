@@ -83,7 +83,7 @@ function search(G, src, dst, reuse) {
 
 // may the straight segment a-b replace the cell path between them? It must stay on open ground and not
 // add or move water (a bridge must stay where the search put it), and keep route.clearance world units
-// (Tim 2026-11-07: one town cell) from mountains and other impassable cells
+// (2026-11-07: one town cell) from mountains and other impassable cells
 const RING = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7071, 0.7071], [0.7071, -0.7071], [-0.7071, 0.7071], [-0.7071, -0.7071]];
 function clear(G, a, b, wetAllowed, c = G.cfg.clearance ?? 0) {
   const len = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.ceil(len / (G.cell / 4)));
@@ -98,7 +98,7 @@ function clear(G, a, b, wetAllowed, c = G.cfg.clearance ?? 0) {
 // a straight piece on open ground with the clearance (or `c`); water allowed (corner rounding near a bridge)
 export const openRun = (G, a, b, c) => clear(G, a, b, true, c);
 
-// Rounds every corner of a polyline to a circular arc of radius R (Tim 2026-11-07: no turns a train could not
+// Rounds every corner of a polyline to a circular arc of radius R (2026-11-07: no turns a train could not
 // take), smaller only where the straight pieces beside it are too short; ok(a, b) must accept each arc chord or
 // the corner tries a smaller arc and else stays. `ok` may be a list of checks, strictest first: a corner that
 // can't round under one tries again, full size, under the next. The ends stay put; an arc may use `endShare` of
@@ -223,7 +223,7 @@ export function pointAt(line, d) {
   return { x: ax + (bx - ax) * t, z: az + (bz - az) * t, heading: Math.atan2(bx - ax, bz - az) };
 }
 
-// Tim 2026-11-22: the track drawn while a line is laid follows the rail gang at a walking pace (link.shown, moved by
+// 2026-11-22: the track drawn while a line is laid follows the rail gang at a walking pace (link.shown, moved by
 // rail.js), not the true progress (link.built, which takes link.seconds whatever the length); when the line opens the
 // rest appears at once. The laid track as [from, to] distances along the line.
 export function laidStretches(l) {
