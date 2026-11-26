@@ -247,7 +247,7 @@ async function start() {
   });
   // a rival's raid on one of your businesses (the newest); near = only one whose lantern the hero can knock down now
   const raidOnMe = (near = false) => Object.values(game.state.attacks || {})
-    .filter(a => a.mode === 'raid' && a.defender === game.state.entities[heroId]?.owner && (!near || game.businesses.canKnock(heroId, a.business).ok)).pop();
+    .filter(a => a.mode === 'raid' && a.defender === game.state.entities[heroId]?.owner && (!near || (game.state.entities[heroId]?.place !== 'world' && game.businesses.canKnock(heroId, a.business).ok))).pop();   // near: no knock-down prompt or Space while the boss is on the island, even if crew stand by the lantern (Tim 2026-11-26)
   const alarmSeen = new Set();
   // big callouts at the top of the screen, queued so two at once don't overwrite each other
   const callouts = [];
