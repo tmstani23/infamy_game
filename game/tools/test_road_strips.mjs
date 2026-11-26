@@ -28,12 +28,32 @@ for (const l of lines) for (const e of [0, 1]) { const p = e ? l.points[l.points
 const raw = world.corridors.flatMap(c => c.points.slice(1).map((b, k) => [c.points[k], b])).concat((pc.paths?.list || []).flatMap(p => p.slice(1).map((b, k) => [p[k], b])));
 const sd = (x, z, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1))); return Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t); };
 for (const l of lines.filter((_, i) => i % 5 === 0)) {
-  for (let i = 0; i < l.points.length; i += 7) { const [x, z] = l.points[i]; assert.ok(Math.min(...raw.map(([a, b]) => sd(x, z, a, b))) < NW.meander + NW.branchR * 0.4, `road ${l.id} stays near its corridor`); }
+  for (let i = 0; i < l.points.length; i += 7) { const [x, z] = l.points[i]; if (world.fords.some(f => Math.hypot(f.x - x, f.z - z) < 2 * NW.crossReach + NW.crossLead)) continue;   // pulled onto a bridge or ford (checked below)
+    assert.ok(Math.min(...raw.map(([a, b]) => sd(x, z, a, b))) < NW.meander + NW.branchR * 0.4, `road ${l.id} stays near its corridor`); }
   for (let i = 2; i < l.points.length; i++) {
     const [a, b, c] = [l.points[i - 2], l.points[i - 1], l.points[i]], u = [b[0] - a[0], b[1] - a[1]], v = [c[0] - b[0], c[1] - b[1]];
     const cos = (u[0] * v[0] + u[1] * v[1]) / ((Math.hypot(...u) * Math.hypot(...v)) || 1);
     assert.ok(cos > 0.5, `road ${l.id} has no sharp kink`);
   }
+}
+// roads onto bridges and fords (Tim 2026-11-26): every crossing a road runs through gets that road dead straight
+// across it, square to the flow, over the water on both sides
+{
+  const { riverDirection } = await import('../src/world_features.js');
+  let met = 0;
+  for (const f of world.fords) {
+    const { tx, tz } = riverDirection(world, f), n = [-tz, tx];
+    let best = null;
+    for (const l of lines) for (let k = 1; k < l.points.length; k++) { const d = sd(f.x, f.z, l.points[k - 1], l.points[k]); if (!best || d < best.d) best = { d, l }; }
+    if (best.d > 1) continue;   // no road comes this way
+    met++;
+    // the middle of the river (a junction on a bank can start its curve a little over the water's edge)
+    for (let v = -24; v <= 24; v += 4) {
+      const x = f.x + n[0] * v, z = f.z + n[1] * v;
+      assert.ok(best.l.points.slice(1).some((q, k) => sd(x, z, best.l.points[k], q) < 1.5), `road ${best.l.id} runs straight over crossing ${f.id}`);
+    }
+  }
+  assert.ok(met >= 13, `roads run over their crossings (${met})`);
 }
 // props keep clear of the shaped roads
 const [x0, z0] = lines[0].points[Math.floor(lines[0].points.length / 2)].map(v => v - 100);

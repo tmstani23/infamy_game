@@ -12,6 +12,8 @@
 // a T) with a widened end that fades into it. Props keep clear of the same shaped lines (roadClearSegments, used by
 // world_paint.js trailSegments). Only drawing and prop clearance follow the shape; walking and the world do not.
 
+import { shorelineTopology } from './sim/shoreline.js';
+
 const withBox = l => ({ ...l, box: { minX: Math.min(...l.points.map(p => p[0])), maxX: Math.max(...l.points.map(p => p[0])), minZ: Math.min(...l.points.map(p => p[1])), maxZ: Math.max(...l.points.map(p => p[1])) } });
 const memo = new WeakMap();   // world -> WeakMap(network cfg -> lines)
 
@@ -24,8 +26,117 @@ export function roadLines(world, paths = [], cfg = null) {
   if (!N) return raw.map(l => withBox({ ...l, ends: ['free', 'free'] }));
   let byCfg = memo.get(world);
   if (!byCfg) memo.set(world, byCfg = new WeakMap());
-  if (!byCfg.has(N)) byCfg.set(N, roadNetwork(raw, N, cfg.step ?? 40, cfg.smooth ?? 4, cfg.width ?? 8).map(withBox));
+  if (!byCfg.has(N)) { const { lines, quiet } = alignCrossings(world, raw, N); byCfg.set(N, roadNetwork(lines, N, cfg.step ?? 40, cfg.smooth ?? 4, cfg.width ?? 8, quiet).map(withBox)); }
   return byCfg.get(N);
+}
+
+// Roads onto their bridges and fords (Tim 2026-11-26): world.json places each crossing (world.fords, bridge or ford)
+// on its own, 20 to 120 units beside where its road's corridor crosses the river, so the road ran into the water
+// beside the bridge. Each road crossing a river is matched to the nearest free crossing on that river (within
+// network.crossReach), then the land round the crossing is warped: near it every road moves and turns as one piece so
+// the road runs dead straight across the river through the crossing, square to the flow like the deck
+// (world_features.js crossingPropsInChunk), and on past the water by crossRun each side; the pull fades out over
+// crossLead. Junctions move with their roads, so nothing comes apart. Only the drawn roads and prop clearance move;
+// the crossing, walking and the world do not. quiet = [{ at, r }]: no wander within r of a crossing (roadNetwork).
+const flowAt = (river, x, z) => {
+  let best = Infinity, t = [1, 0];
+  for (let i = 0; i < river.points.length - 1; i++) { const a = river.points[i], b = river.points[i + 1], d = segDist(x, z, a, b); if (d < best) { best = d; t = unit(b[0] - a[0], b[1] - a[1]); } }
+  return t;
+};
+function segCross(a, b, c, d) {   // where segment ab crosses cd: [t along ab] or null
+  const rx = b[0] - a[0], rz = b[1] - a[1], sx = d[0] - c[0], sz = d[1] - c[1], den = rx * sz - rz * sx;
+  if (Math.abs(den) < 1e-9) return null;
+  const t = ((c[0] - a[0]) * sz - (c[1] - a[1]) * sx) / den, u = ((c[0] - a[0]) * rz - (c[1] - a[1]) * rx) / den;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? t : null;
+}
+export function alignCrossings(world, raw, N) {
+  const reach = N.crossReach ?? 0, quiet = [];
+  if (!(reach > 0)) return { lines: raw, quiet };
+  const rivers = new Map((world.rivers || []).map(r => [r.id, r]));
+  // painted water, as world_paint.js waterAt draws it (the bridge deck is as long as this water)
+  const T = world.terrain, shore = T?.shoreline?.radius ? shorelineTopology(world) : null;
+  const wet = (x, z) => { const raw = T?.rows?.[Math.floor(z / T.cell)]?.[Math.floor(x / T.cell)] ?? 'w'; return 'wr'.includes(shore ? shore.codeAt(x, z, raw, true) : raw); };
+  // every place a road crosses a river centre line, with the crossings on that river it could take
+  const hits = [];
+  raw.forEach((l, li) => { let s0 = 0; for (let k = 1; k < l.points.length; k++) {
+    const a = l.points[k - 1], b = l.points[k], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    for (const r of rivers.values()) for (let j = 1; j < r.points.length; j++) {
+      const t = segCross(a, b, r.points[j - 1], r.points[j]);
+      if (t != null) hits.push({ li, s: s0 + t * len, at: [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], river: r.id, dir: unit(b[0] - a[0], b[1] - a[1]) });
+    }
+    s0 += len;
+  } });
+  // closest road and crossing first, each used once
+  const pairs = [];
+  for (const h of hits) for (const f of world.fords || []) if (f.river === h.river) { const d = Math.hypot(f.x - h.at[0], f.z - h.at[1]); if (d <= reach) pairs.push({ h, f, d }); }
+  pairs.sort((p, q) => p.d - q.d);
+  const usedH = new Set(), usedF = new Set(), byLine = new Map();
+  for (const p of pairs) { if (usedH.has(p.h) || usedF.has(p.f)) continue; usedH.add(p.h); usedF.add(p.f); (byLine.get(p.h.li) ?? byLine.set(p.h.li, []).get(p.h.li)).push(p); }
+  // each crossing pulls the land around it (a smooth warp, applied to every road near it, so junctions move with
+  // their roads): within H of the crossing the road is moved and turned as one piece onto the crossing's line
+  // (straight across, square to the flow); from there out to H + crossLead (+ how far it moved) the pull fades
+  const warps = [];
+  for (const p of pairs) if (usedH.has(p.h) && usedF.has(p.f) && byLine.get(p.h.li)?.includes(p)) {
+    const { h, f } = p, r = rivers.get(f.river), [tx, tz] = flowAt(r, f.x, f.z);
+    let n = [-tz, tx]; if (n[0] * h.dir[0] + n[1] * h.dir[1] < 0) n = [-n[0], -n[1]];
+    const span = (sign, max = r.width || 100) => { let last = 0, dry = 0; for (let v = 0; v <= max; v += 2) {   // a lake beside the crossing does not count for the pull
+      if (wet(f.x + n[0] * v * sign, f.z + n[1] * v * sign)) { last = v; dry = 0; } else if ((dry += 2) > 12 && v > 12) break; } return last; };
+    const H = Math.max(span(-1), span(1), 10) + (N.crossRun ?? 20), move = [f.x - h.at[0], f.z - h.at[1]];
+    const turn = Math.atan2(h.dir[0] * n[1] - h.dir[1] * n[0], h.dir[0] * n[0] + h.dir[1] * n[1]);
+    // a junction this close to the crossing would land on the deck: the land round it is spread out (scale k, at most
+    // crossSpread) so it lands past the straight run
+    const P = raw[h.li].points, along = q => (q[0] - h.at[0]) * h.dir[0] + (q[1] - h.at[1]) * h.dir[1];   // its end junctions, measured along the crossing's line once turned onto it
+    const bank = (N.crossRun ?? 20) + 5, k = Math.min(N.crossSpread ?? 2.5, Math.max(1, (span(-1) + bank) / Math.max(-along(P[0]), 1), (span(1) + bank) / Math.max(along(P[P.length - 1]), 1)));
+    const deck = Math.max(span(-1, 250), span(1, 250), 10) + (N.crossRun ?? 20);   // the road itself stays straight as far as the deck goes (over a lake too)
+    warps.push({ li: h.li, X: h.at, F: [f.x, f.z], n, move, turn, k, H: deck, r0: H, r1: H + Math.max((N.crossLead ?? 150) + Math.hypot(...move) * 1.2, 2 * (k - 1) * H + 50) });
+    quiet.push({ at: [f.x, f.z], r: H });
+  }
+  // the pulls add up (each measured from where the point was), then near each crossing whatever runs along its line
+  // is combed onto it, so the road over the deck is dead straight
+  const comb = N.crossComb ?? 20;
+  const warp = q => {
+    let x = q[0], z = q[1];
+    const ws = warps.map(W => { const d = Math.hypot(q[0] - W.X[0], q[1] - W.X[1]); return d >= W.r1 ? 0 : 1 - smoothstep((d - W.r0) / (W.r1 - W.r0)); });
+    for (let i = 0; i < warps.length; i++) {
+      const W = warps[i], w = ws[i];
+      if (!w) continue;
+      let keep = 1; for (let j = 0; j < ws.length; j++) if (j !== i) keep *= 1 - ws[j] * smoothstep((ws[j] - w + 0.2) / 0.4);   // where another crossing pulls harder this one lets go
+      if (!keep) continue;
+      const dx = (q[0] - W.X[0]) * keep, dz = (q[1] - W.X[1]) * keep, a = W.turn * w, dd = Math.hypot(q[0] - W.X[0], q[1] - W.X[1]), m = dd <= W.r0 ? W.k : 1 + (W.k - 1) * W.r0 * w / dd, c = Math.cos(a) * m, s = Math.sin(a) * m;
+      x += dx * c - dz * s - dx + W.move[0] * w * keep; z += dx * s + dz * c - dz + W.move[1] * w * keep;
+    }
+    for (const W of warps) {
+      const ax = x - W.F[0], az = z - W.F[1], along = ax * W.n[0] + az * W.n[1], off = -ax * W.n[1] + az * W.n[0];
+      const k = (1 - smoothstep(Math.abs(off) / comb)) * (1 - smoothstep((Math.abs(along) - W.H) / comb));
+      x += W.n[1] * off * k; z -= W.n[0] * off * k;
+    }
+    return [x, z];
+  };
+  const touched = l => warps.some(W => l.points.some((p, k) => k && segDist(W.X[0], W.X[1], l.points[k - 1], p) < W.r1));
+  const lines = raw.map(l => {
+    if (!touched(l)) return l;
+    const dense = [l.points[0]];   // split into short steps so the warp can bend it
+    for (let k = 1; k < l.points.length; k++) { const a = l.points[k - 1], b = l.points[k], m = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 10)); for (let i = 1; i <= m; i++) dense.push([a[0] + (b[0] - a[0]) * i / m, a[1] + (b[1] - a[1]) * i / m]); }
+    const pts = dense.map(warp);
+    // its own crossings: the stretch of it through the crossing, out to H each side (or until it leaves the line), is
+    // laid exactly on the crossing's line, easing back to its warped shape over the next crossComb x 2 units
+    for (const W of warps) if (W.li === raw.indexOf(l)) {
+      const rel = q => { const ax = q[0] - W.F[0], az = q[1] - W.F[1]; return [ax * W.n[0] + az * W.n[1], -ax * W.n[1] + az * W.n[0]]; };
+      let i0 = 0, bd = Infinity; pts.forEach((q, i) => { const d = Math.hypot(q[0] - W.F[0], q[1] - W.F[1]); if (d < bd) { bd = d; i0 = i; } });
+      for (const dir of [-1, 1]) {
+        let ease = 0;
+        for (let i = i0; i > 0 && i < pts.length - 1; i += dir) {
+          const [along, off] = rel(pts[i]);
+          if (ease || Math.abs(along) > W.H || Math.abs(off) > comb) ease += Math.hypot(pts[i][0] - pts[i - dir][0], pts[i][1] - pts[i - dir][1]);
+          const k = 1 - smoothstep(ease / (2 * comb));
+          if (k <= 0) break;
+          pts[i] = [pts[i][0] + W.n[1] * off * k, pts[i][1] - W.n[0] * off * k];
+        }
+      }
+    }
+    return { ...l, points: pts };
+  });
+  return { lines, quiet };
 }
 
 // The line split every `step` units, then corner-cut `smooth` times (Chaikin), so it bends instead of zig-zagging.
@@ -62,7 +173,7 @@ function segDist(px, pz, a, b) {
 
 // N = strips.network (data/world_paint.json, every key explained in its _note). Returns the shaped roads:
 // [{ id: 'C1+C2+...', points, ends: ['free' | 'branch', ...], joins?: [{ at, dir } | null, ...], crossings?: [{ at, dir }] }]
-export function roadNetwork(raw, N, step = 40, smooth = 4, width = 8) {
+export function roadNetwork(raw, N, step = 40, smooth = 4, width = 8, quiet = []) {
   // 1. ends at each node, with the direction leaving the node
   const nodes = new Map();
   raw.forEach((l, i) => [0, 1].forEach(e => {
@@ -124,6 +235,7 @@ export function roadNetwork(raw, N, step = 40, smooth = 4, width = 8) {
         if (i === 0 || i === p.length - 1) return q;
         let dj = Math.min(s[i], L - s[i]);
         for (const j of near) { const d = Math.hypot(q[0] - j[0], q[1] - j[1]); if (d < dj) dj = d; }
+        for (const c of quiet) { const d = Math.max(0, Math.hypot(q[0] - c.at[0], q[1] - c.at[1]) - c.r); if (d < dj) dj = d; }   // straight over bridges and fords
         const m = amp * smoothstep(dj / calm) * (0.55 * Math.sin(6.283 * s[i] / w1 + h0) + 0.3 * Math.sin(6.283 * s[i] / (w1 * 0.37) + h1) + 0.15 * Math.sin(6.283 * s[i] / w2 + h2));   // three unrelated waves: lazy, uneven bends
         const a = p[i - 1], b = p[i + 1], [tx, tz] = unit(b[0] - a[0], b[1] - a[1]);
         return [q[0] - tz * m, q[1] + tx * m];
