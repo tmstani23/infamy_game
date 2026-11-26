@@ -222,7 +222,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
   // Close in on the target, then swing at it every attackSpeed seconds. A swing has a
   // wind-up and the damage lands on the strike (STRIKE of the way through), Dota-style;
   // e.swing is in the state so the renderer can time the animation to it.
-  const STRIKE = 0.4;
+  const STRIKE = 0.4, CHASE_SLACK = 2.5;
   const swingTicks = unit => Math.max(4, Math.round(Math.min(unit.attackSpeed * 0.85, unit.swingSeconds || 0.7) / DT));
   function engage(e, unit, t, chase = true) {
     if(!attackAllowed(e,t)){delete e.swing;if(fight[e.id])delete fight[e.id].target;return;}
@@ -251,7 +251,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     if (f.cd > 0) { e.anim = 'idle'; return; }
     const speed = stats.attackInterval(e);
     const len = swingTicks({ ...unit, attackSpeed: speed });
-    e.swing = { start: state.tick, len, strike: state.tick + Math.round(len * (unit.strikeFraction ?? STRIKE)), target: t.id };
+    e.swing = { start: state.tick, len, strike: state.tick + Math.round(len * (unit.strikeFraction ?? STRIKE)), target: t.id, chase };
     e.anim = 'attack';
     f.cd = speed;
   }
@@ -281,9 +281,17 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     if (stunned(e, state.tick)) { delete e.swing; e.anim = 'idle'; return true; }
     const w = e.swing;
     if (!w) return false;
+    // a melee swing at a target that runs on (a fleeing deer, a mounted hero riding alongside; Tim 2026-11-26) keeps after it
+    // through the wind-up, so the strike lands if the attacker keeps pace; before, he stood still and the target was out of reach
+    if (w.chase && !unit.projectile && state.tick <= w.strike) {
+      const t = state.entities[w.target];
+      if (t && t.place === e.place && Math.hypot(t.x - e.x, t.z - e.z) > reachOf(e, t) * 0.8 && moveTo(e, unit, t.x, t.z, false)) e.anim = 'attack';
+    }
     if (state.tick === w.strike) {
       const t = state.entities[w.target];
-      if (attackAllowed(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + 0.6 && (!unit.projectile||clearShot(e,t))) {
+      // a chase swing that started in reach lands even if the target ran a step out during the wind-up (Tim 2026-11-26: "it should hit")
+      const slack = w.chase && !unit.projectile ? CHASE_SLACK : 0.6;
+      if (t && attackAllowed(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + slack && (!unit.projectile||clearShot(e,t))) {
         if(unit.projectile){launch(e,t,unit);}
         else {
         const dodge = stats.dodgeChance(t);

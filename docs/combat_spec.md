@@ -69,6 +69,7 @@ Common causes in RTS/MOBA melee, checked against our code:
 ## Build order
 
 - [x] 1. Attack timing (A) and the `hits` list from the sim, with Node tests (done 2026-10-16: `e.swing` {start, len, strike, target}; swing = min(0.85 x attackSpeed, 0.7 s), damage on the strike tick at 40%; target must still be in reach + 0.6 or the swing misses; `state.hits` cleared each tick; seeded random numbers (`options.seed`). Renderer stretches the attack sheet over the swing.)
+  - Chase hits (2026-11-26): a swing started in reach at a target that runs on keeps after it through the wind-up and lands if the target is within reach + 2.5.
 - [x] 2. Damage numbers (B) and crits (done 2026-10-16: `critChance` 0.1 and `critMultiplier` 2 per type in units.json; numbers in `render/hitfx.js` as an HTML overlay `#fx`: white on enemies, red on yours, big gold "N!" for crits, orange on killing blows; pop 1.7x then rise and fade over 0.85 s; max 40.)
 - [x] 3. Hit flash, lean and killing-blow shake (C), slash trails and impact sparks (C2) (done 2026-10-16: `uFlash` in the sprite shader; lean 0.16 steps away from the attacker; steel-blue crescent trail for blades, wider orange smear for clubs; 8 to 16 additive sparks, gold on crits; camera shake on kills (and small on crits) within 9 steps of the hero. Hit-reaction animation not added yet.)
 - [x] 4. Surround spots and turning (D) (done 2026-10-16: attackers spread round the target about 0.9 rad apart at 80% of reach; facing turns one eighth per tick and a swing only starts when facing the target.)

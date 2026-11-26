@@ -510,7 +510,7 @@ async function start() {
   onAction('interiorPeek', () => interiorPeek.toggle());
   const lieutenantPanel = createLieutenantPanel({ root: $('deploymentpanel'), game, heroId, cityWatch, send: c => pending.push(c), maxBudget: settings.campaignCity?.lieutenant?.maxBudget });   // C3: While I'm away
   $('rallybtn').addEventListener('click', e => { pending.push({ id: heroId, type: 'deployment', action: 'rally' }); e.currentTarget.blur(); });
-  // Unstuck (sim/unstuck.js): U or the button; a refusal is shown here, the sim checks again
+  // Unstuck (sim/unstuck.js): Ctrl+U or the button; a refusal is shown here, the sim checks again
   const unstuck = () => { const h = game.state.entities[heroId], no = h?.unstuck ? null : game.unstuck.why(h); if (no) callout(no, 'loss'); else pending.push({ id: heroId, type: 'unstuck' }); };
   onAction('unstuck', unstuck);
   $('unstuckbtn').addEventListener('click', e => { unstuck(); e.currentTarget.blur(); });

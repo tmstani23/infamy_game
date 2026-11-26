@@ -16,7 +16,7 @@ export const KEY_ACTIONS = [
   A('moveRight', 'Move right', 'Movement', 'KeyD', { held: true }),
   A('walk', 'Walk while held; a clean tap while riding switches gallop', 'Movement', [], { fixed: true, text: 'Shift' }),
   A('use', 'Use door, shop, station, ship or talk; take a ruined hall in a war; set a rail charge, rob a stopped train, cash a stolen chest, sell hides at your market, catch a wild horse', 'Movement', ['Space', 'Enter']),
-  A('unstuck', 'Unstuck', 'Movement', 'KeyU'),
+  A('unstuck', 'Unstuck', 'Movement', 'Ctrl+KeyU'),   // Ctrl so it is not hit by accident (Tim 2026-11-26)
   // Camera
   A('panUp', 'Pan camera up', 'Camera', 'ArrowUp', { held: true }),
   A('panDown', 'Pan camera down', 'Camera', 'ArrowDown', { held: true }),

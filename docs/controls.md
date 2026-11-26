@@ -49,7 +49,7 @@ Keys shown in the tables below are defaults; Settings > Controls changes them, a
 | Hideouts | Your inn and the rival's izakaya (H on the minimap) are locked to other clans ("<clan> hideout: no way in"); police can still go in |
 | Right-click an enemy body/nameplate/target portrait | Attack with current command group; Ctrl remains crew-only. Ground right-click moves; ally interactions remain |
 | Tab | Select/cycle enemy only; does not start attacks. Explicit Tab focus takes precedence over an old attack target |
-| U, or the Unstuck button | Hero only: 3 s channel back inside your own hideout (5 min cooldown; not within 5 s of a fight, during an HQ raid or in a contract objective room) |
+| Ctrl+U, or the Unstuck button | Hero only: 3 s channel back inside your own hideout (5 min cooldown; not within 5 s of a fight, during an HQ raid or in a contract objective room) |
 | Left-click an enemy/nameplate | Select target. Through fog, identity persists as Out of sight using last observed data; no new unseen attack or live marker |
 | (no target) | The hero doesn't pick fights (2026-10-19): he swings only at his locked target (Tab or right-click), or hits back at whoever hit him in the last 5 s if in reach. |
 | Q | Iaido Dash: dash toward the mouse, cutting every enemy passed (8 s cooldown) |
@@ -237,7 +237,7 @@ War bar default position: top 104 px, below the standings bar.
 | Vehicles panel → Call | Makes that horse your mount and calls her the same way as H. |
 | Hover a minimap icon | Shows the building's name. |
 | Hover a train | Shows the train's card. |
-| U or Unstuck (island) | Sends you to the nearest town hall, or to the capital if it is closer. |
+| Ctrl+U or Unstuck (island) | Sends you to the nearest town hall, or to the capital if it is closer. |
 | Q or right-click an omnibus or rickshaw | Board or deploy it (the omnibus icon flashes on hover). Omnibus: 8 seats, 3x speed, 800 health; rickshaw: 2 seats, 3.5x, 400 health. Nobody inside fights; hits land on the vehicle and everyone piles out when it is wrecked. |
 | Space at a station | Rickshaw travel: pick one of your stations or the capital; instant, 2 per waiting rickshaw; refused within 10 s of a hit or with enemies within 12. From the city, use the gate menu (3). |
 | Space beside your lieutenant at the island gate (campaign) | Talk to your lieutenant: what he does while you are on the island. Show me opens Deployment → While I'm away; Later closes. |
