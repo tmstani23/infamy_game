@@ -4,6 +4,7 @@ import { effectOf } from './item_detail.js';
 import { createItemCard, gearPreview, itemCardHtml } from './item_card.js';
 import { hudIcon } from './hud_icons.js';
 import { ITEMS, EQUIPMENT_SLOTS } from './sim/inventory.js';
+import { GROUND_ITEMS } from './sim/gear_catalog.js';
 // Character page formats authoritative snapshots; it owns no stat formulas.
 import { formatStat, modifierDisplay } from './character_stat_format.js';
 import { sharedKeybinds, SLOT_ACTION } from './keybinds.js';
@@ -13,14 +14,37 @@ export { formatStat, modifierDisplay };
 
 export function createCharacterPanel({ game, heroId, catalog, button, send, onOpen = () => {}, onClose = () => {} }) {
   const root = document.createElement('section'); root.id = 'characterpage'; root.hidden = true; root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Hero character');
-  root.innerHTML = '<div class="character-window"><header><div><span class="character-eyebrow">CLAN RECORD</span><h2>Character</h2></div><button type="button" class="character-close" aria-label="Close character page" title="Close (Esc)">Esc</button></header><div class="character-layout"><aside><div class="hero-art"><canvas class="hero-preview" aria-label="Hero preview with equipped effects"></canvas></div><span class="hero-clan"></span><h3 class="hero-name"></h3><div class="character-health"><div></div></div><span class="character-hp"></span><div class="character-equipment"><h3>Equipped</h3><div class="equipment-grid"></div></div><div class="character-passives"></div></aside><main><div class="stat-heading"><h3>Attributes</h3><span>Base</span><span>Modifier</span><span>Current</span></div><div class="character-stats"></div><details class="extra-attributes"><summary>More attributes</summary><div class="character-extra-stats"></div></details><section class="character-inventory"><h3>Inventory <span class="inventory-count"></span></h3><div class="gear-grid"></div><div class="stolen-chest" hidden tabindex="0"><span class="chest-art"><img src="art/props/iron_chest.png" alt=""><i></i><i></i><i></i><i></i></span><span><b>Stolen chest</b><small class="chest-loot"></small></span></div><div class="stolen-chest hide-stock" hidden tabindex="0"><span><b>Hides</b><small class="hide-list"></small></span></div></section><section class="character-supplies"><h3>Field supplies</h3><button class="use-bandage"></button><button class="use-lantern"></button><p class="supplies-hint"></p></section><details class="character-abilities"><summary>Abilities</summary><div></div></details></main></div><footer>Right-click an item to equip, Right-click equipped gear to remove, I / J close<div class="inventory-notice" role="status"></div></footer></div>';
+  root.innerHTML = '<div class="character-window"><header><div><span class="character-eyebrow">CLAN RECORD</span><h2>Character</h2></div><button type="button" class="character-close" aria-label="Close character page" title="Close (Esc)">Esc</button></header><div class="character-layout"><aside><div class="hero-art"><canvas class="hero-preview" aria-label="Hero preview with equipped effects"></canvas></div><span class="hero-clan"></span><h3 class="hero-name"></h3><div class="character-health"><div></div></div><span class="character-hp"></span><div class="character-equipment"><h3>Equipped</h3><div class="equipment-grid"></div></div><div class="character-passives"></div></aside><main><div class="stat-heading"><h3>Attributes</h3><span>Base</span><span>Modifier</span><span>Current</span></div><div class="character-stats"></div><details class="extra-attributes"><summary>More attributes</summary><div class="character-extra-stats"></div></details><section class="character-inventory"><h3>Inventory <span class="inventory-count"></span></h3><div class="gear-grid"></div><div class="stolen-chest" hidden tabindex="0"><span class="chest-art"><img src="art/props/iron_chest.png" alt=""><i></i><i></i><i></i><i></i></span><span><b>Stolen chest</b><small class="chest-loot"></small></span></div><div class="stolen-chest hide-stock" hidden tabindex="0"><span><b>Hides</b><small class="hide-list"></small></span></div></section><section class="character-supplies"><h3>Field supplies</h3><button class="use-bandage"></button><button class="use-lantern"></button><p class="supplies-hint"></p></section><details class="character-abilities"><summary>Abilities</summary><div></div></details></main></div><footer>Click an item to wear it, Right-click for Drop, Drag it out to drop it, Right-click worn gear to remove, I / J close<div class="inventory-notice" role="status"></div></footer></div>';
   document.body.appendChild(root);
   const $ = s => root.querySelector(s), rows = new Map(), abilities = new Map(), passiveRows = new Map();
   const command = (action, detail) => send({id:heroId, type:'inventory', action, ...detail});
   // hovering an item: the item card beside it and the Attributes rows show what wearing it (or taking it off) would change (Tim 2026-11-24)
   const card = createItemCard(); let hovered = null;   // { key, button, worn }
-  const hover = worn => (key, button) => { hovered = button ? { key, button, worn } : null; if (!button) card.hide(); update(); };
-  const bag = createItemGrid($('.gear-grid'), {activate:index => command('equip', {index}), hover: hover(false)});
+  const hover = worn => (key, button) => { if (button && !slip.hidden) return; hovered = button ? { key, button, worn } : null; if (!button) card.hide(); update(); };
+  // a bag item (Tim 2026-11-26): click wears it; right-click opens a slip, Wear or Drop; dragged out of the window it is dropped
+  const drop = index => send({id:heroId, type:'groundItem', action:'drop', index});
+  const slip = document.createElement('div'); slip.className = 'bag-slip'; slip.hidden = true; slip.setAttribute('role', 'menu');
+  slip.innerHTML = '<b class="slip-name"></b><button type="button" role="menuitem" data-do="wear">Wear</button><button type="button" role="menuitem" data-do="drop">Drop on the ground</button><small class="slip-why"></small>';
+  $('.character-window').appendChild(slip); let slipAt = null;
+  const closeSlip = () => { slip.hidden = true; slipAt = null; };
+  slip.addEventListener('click', e => { const act = e.target.closest('[data-do]')?.dataset.do; if (!act || slipAt == null) return;
+    e.stopPropagation(); if (act === 'wear') command('equip', {index: slipAt}); else drop(slipAt); closeSlip(); });
+  function openSlip(index, button, event) {
+    const hero = game.state.entities[heroId], id = game.inventory.status(hero).bag?.[index]; if (!ITEMS[id]) return;
+    slipAt = index; hovered = null; card.hide();
+    const can = game.groundItems?.canDrop(hero), mins = Math.round(GROUND_ITEMS.lifeSeconds / 60);
+    slip.querySelector('.slip-name').textContent = ITEMS[id].name;
+    const d = slip.querySelector('[data-do="drop"]'); d.disabled = !can;
+    d.title = can ? `It lies there as a small bundle for ${mins} minutes, then is gone. Anyone can pick it up with Space, rivals too.` : 'Only outdoors: on a street or out on the island';
+    slip.querySelector('.slip-why').textContent = can ? '' : 'Drop outdoors only';
+    const box = $('.character-window').getBoundingClientRect(); slip.hidden = false;
+    const w = slip.getBoundingClientRect();
+    slip.style.left = `${Math.min(event.clientX - box.left, box.width - w.width - 8)}px`; slip.style.top = `${Math.min(event.clientY - box.top, box.height - w.height - 8)}px`;
+    slip.querySelector('[data-do="wear"]').focus();
+  }
+  root.addEventListener('pointerdown', e => { if (!slip.hidden && !slip.contains(e.target)) closeSlip(); }, true);
+  const bag = createItemGrid($('.gear-grid'), {activate:index => command('equip', {index}), hover: hover(false), menu: openSlip, frame: '#characterpage .character-window',
+    dragOut: drop });   // indoors the sim refuses with a notice
   const equipment = createItemGrid($('.equipment-grid'), {equipment:true, activate:slot => command('unequip', {slot}), hover: hover(true)});
   let open = false, previousFocus = null;
   // animated front view with the real weapon glow and gear auras (render/hero_preview.js)
@@ -37,12 +61,13 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
     if (open === on) return;
     open = on; root.hidden = !on; button?.setAttribute('aria-expanded', String(on));
     if (on) { previousFocus = document.activeElement; onOpen(); update(); $('.character-close').focus(); }
-    else { hovered = null; card.hide(); preview.focus(null); preview.pause(); onClose(); previousFocus?.focus?.(); }
+    else { hovered = null; card.hide(); closeSlip(); preview.focus(null); preview.pause(); onClose(); previousFocus?.focus?.(); }
   }
   $('.character-close').addEventListener('click', () => setOpen(false));
-  root.addEventListener('click', e => { if (e.target === root) setOpen(false); });
+  root.addEventListener('click', e => { if (e.target === root && !bag.justDragged()) setOpen(false); });
   root.addEventListener('keydown', e => {
     e.stopPropagation();
+    if (e.key === 'Escape' && !slip.hidden) { e.preventDefault(); closeSlip(); return; }
     if (e.key === 'Escape' || ['character', 'inventory'].includes(keybinds.lookup(e))) { e.preventDefault(); setOpen(false); }
     if (e.key === 'Tab') {
       const stops = [...root.querySelectorAll('button:not(:disabled), summary, [tabindex="0"]')].filter(el => el.getClientRects().length), first = stops[0], last = stops.at(-1);
@@ -97,7 +122,7 @@ export function createCharacterPanel({ game, heroId, catalog, button, send, onOp
         const slot = item.slot, rows = gearPreview(game, hero, slot, hovered.worn ? null : id), now = ITEMS[inv.equipment?.[slot]];
         changes = new Map(rows.map(r => [r.key, r]));
         card.show(hovered.button, itemCardHtml(id, { worn: hovered.worn, rows, replaces: !hovered.worn && now ? now.name : null,
-          action: hovered.worn ? (inv.bag?.includes(null) ? 'Right-click to take off' : 'Bag full') : 'Right-click to wear' }));
+          action: hovered.worn ? (inv.bag?.includes(null) ? 'Right-click to take off' : 'Bag full') : 'Click to wear, right-click to drop' }));
       }
     }
     for (const row of snapshot.rows) {

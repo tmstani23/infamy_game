@@ -2,18 +2,38 @@ import { ITEMS, INVENTORY_SLOTS, EQUIPMENT_SLOTS } from './sim/inventory.js';
 
 import { ICONS, effectOf } from './item_detail.js';
 export { ICONS };
-export function createItemGrid(root, { equipment = false, activate, hover = null }) {   // hover(key, button | null): item card (item_card.js) instead of the browser title tip
+// menu(key, button, event): right-click opens a slip instead of activating (the bag's Wear / Drop slip, Tim 2026-11-26).
+// dragOut(key): an item dragged out of the window `frame` (a CSS selector) and let go there (drops it on the ground).
+export function createItemGrid(root, { equipment = false, activate, hover = null, menu = null, dragOut = null, frame = null }) {   // hover(key, button | null): item card (item_card.js) instead of the browser title tip
+  let drag = null, dragged = 0;   // drag: { key, button, x, y, ghost }; dragged: when the last drag ended (a click right after it is ignored)
   const keys = equipment ? EQUIPMENT_SLOTS : Array.from({length:INVENTORY_SLOTS}, (_, i) => i);
   const buttons = keys.map(key => {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'inventory-slot';
     button.innerHTML = '<small></small><span class="item-icon"></span><span class="item-name"></span>';
-    const use = event => { event.preventDefault(); event.stopPropagation(); activate(key); };
-    button.addEventListener('click', use); button.addEventListener('contextmenu', use);
+    const use = event => { event.preventDefault(); event.stopPropagation(); if (performance.now() - dragged < 250) return; activate(key); };
+    button.addEventListener('click', use);
+    button.addEventListener('contextmenu', menu ? event => { event.preventDefault(); event.stopPropagation(); if (!button.disabled) menu(key, button, event); } : use);
+    if (dragOut) button.addEventListener('pointerdown', event => { if (event.button === 0 && !button.disabled) drag = { key, button, x: event.clientX, y: event.clientY, ghost: null }; });
     if (hover) { button.addEventListener('mouseenter', () => hover(key, button)); button.addEventListener('mouseleave', () => hover(key, null));
       button.addEventListener('focus', () => hover(key, button)); button.addEventListener('blur', () => hover(key, null)); }
     root.appendChild(button); return button;
   });
-  return function update(values = [], available = true, verb = 'Equip') {
+  if (dragOut) {
+    // past 6 px the item's picture follows the pointer; let go outside the window and it is dropped
+    addEventListener('pointermove', event => {
+      if (!drag) return;
+      if (!drag.ghost && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 6) return;
+      if (!drag.ghost) { drag.ghost = document.createElement('div'); drag.ghost.className = 'bag-drag-ghost'; drag.ghost.innerHTML = drag.button.querySelector('.item-icon').innerHTML; document.body.appendChild(drag.ghost); hover?.(drag.key, null); }
+      const out = !document.querySelector(frame)?.contains(document.elementFromPoint(event.clientX, event.clientY));
+      drag.ghost.classList.toggle('out', out); drag.ghost.style.left = `${event.clientX}px`; drag.ghost.style.top = `${event.clientY}px`;
+    });
+    addEventListener('pointerup', event => {
+      const d = drag; drag = null; if (!d?.ghost) return;
+      d.ghost.remove(); dragged = performance.now();
+      if (!document.querySelector(frame)?.contains(document.elementFromPoint(event.clientX, event.clientY))) dragOut(d.key);
+    });
+  }
+  const update = function update(values = [], available = true, verb = 'Equip') {
     keys.forEach((key, i) => {
       const button = buttons[i], id = values[key], item = ITEMS[id];
       button.disabled = !available || !item;
@@ -28,6 +48,8 @@ export function createItemGrid(root, { equipment = false, activate, hover = null
       if (!hover) button.title = detail; button.setAttribute('aria-label', detail);
     });
   };
+  update.justDragged = () => performance.now() - dragged < 250;   // the page's backdrop click after a drop must not close it
+  return update;
 }
 
 export function createHQStash({ game, heroId, send, onOpen = () => {}, onClose = () => {} }) {

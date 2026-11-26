@@ -18,6 +18,7 @@ import { createRewards } from './rewards.js';
 import { gearFlat, createInventory } from './inventory.js';
 import { largeFightsMemory, restoreLargeFights } from './large_fights.js';
 import { createItemServices } from './item_services.js';
+import { createGroundItems } from './ground_items.js';
 import { createVision } from './vision.js';
 import { createAreas } from './areas.js';
 import { townBlockersIn, townBlockersVersion, townBlockedCells } from './frontier/town_grid.js';
@@ -184,7 +185,8 @@ export function createGame(options) {
     onAddClan: clan => deployment.addClan(clan), priceFactor: id => leader.hireFactor(id), respawnFactor: id => leader.respawnFactor(id), islandCarry: (e, saved) => islandRespawn?.carry(e, saved) }) : null;
   const rewards = createRewards(state, units?.rules);
   const inventory = createInventory({state,baseHp:e=>stats.base(e).hp||0});
-  const itemServices = createItemServices({state,inventory,raidRules:units?.rules?.raid,spawn,nav:{nearestFree:(...p)=>nav.nearestFree(...p)}});
+  const itemServices = createItemServices({state,inventory,raidRules:units?.rules?.raid,spawn,nav:{nearestFree:(...p)=>nav.nearestFree(...p)},removeUnit:id=>removeUnit(id),cellSize:options.frontier?.townGrid?.cellSize||11});
+  const groundItems = createGroundItems({ state, give: (owner, id) => itemServices.give(owner, id), moveTo: (...a) => moveTo(...a) });   // dropped bag items (Tim 2026-11-26)
   // territory: the street around each owned business, quarters and the season score (sim/territory.js)
   const scoreOf = Object.fromEntries(Object.entries(units?.rules?.businesses || {}).map(([k, v]) => [k, v.score || 0]));
   const leader = createLeader({ state, standings: () => territory?.standings() || [], rules: units?.rules?.leader });   // ganging up on the leader (sim/leader.js)
@@ -1157,6 +1159,7 @@ export function createGame(options) {
       if (c.type === 'landOffice' && landOffice && !stunned(e, state.tick) && c.action === 'rivals') landOffice.rivalsTalk(e);
       if (c.type === 'expedition' && landOffice && areas && gate && !stunned(e, state.tick)) expedition(e, c);
       if (c.type === 'inventory') inventory.command(e, c);
+      if (c.type === 'groundItem') groundItems.command(e, c);   // drop a bag item, pick a bundle up (sim/ground_items.js)
       if (c.type === 'omnibus') omnibus?.command(e, c);
       if (c.type === 'ship') ships?.command(e, c);   // board, unload, All aboard (sim/frontier/ships.js)
       if (c.type === 'mount') mounts?.command(e, c);
@@ -1254,6 +1257,7 @@ export function createGame(options) {
     clans?.tick(DT, spawnOutside);
     islandRespawn?.tick(DT, units?.types);
     townGovernors();
+    itemServices.merchants();   // the frontier merchant's stall keeper in each player town (Tim 2026-11-26)
     cannons.tick();
     landSurveyor();
     lieutenant?.tick();   // C2: the city captain takes charge / stands down
@@ -1292,6 +1296,7 @@ export function createGame(options) {
         // right-click on your stockade (Tim 2026-11-10): the hero walks over; frontier/garrison.js admits him on arrival
         if (e.type === 'hero' && e.order?.garrisonGo && !e.order.arrived) { delete e.swing; delete e.execute; if (moveTo(e, unit, e.order.x, e.order.z, false)) continue; e.order.arrived = true; }
         if (e.lootTarget) { if (lootStep(e, unit, e.lootTarget)) continue; delete e.lootTarget; delete paths[e.id]; }
+        if (e.fetchBundle) { if (groundItems.fetchStep(e, unit)) continue; delete paths[e.id]; }   // right-clicked a dropped bundle (sim/ground_items.js)
         if (e.execute && executeStep(e, unit)) continue;
         // the hero sent at an enemy structure of a war (checkpoint 6): he walks over and hits it until it falls or WASD takes over
         if (e.type === 'hero' && e.order?.kind === 'raze' && e.order.from === 'attackmove' && e.attackMode) { const n = nearestEnemy(e, e.x, e.z, AGGRO), foe = n && (n.owner || n.workerOwner); if (n && Object.values(state.frontier?.wars?.list || {}).some(w => (w.attacker === e.owner && w.defender === foe) || (w.defender === e.owner && w.attacker === foe))) { if (e.swing?.structure) delete e.swing; e.order = { kind: 'attackmove', x: e.order.ax, z: e.order.az }; e.attackTarget = n.id; } }
@@ -1333,6 +1338,7 @@ export function createGame(options) {
       delete e.swing;
       delete e.execute;
       delete e.lootTarget;
+      delete e.fetchBundle;
       if (e.order?.garrisonGo || e.order?.kind === 'raze' || e.order?.kind === 'attackmove') delete e.order;   // WASD takes back control from the walk to the stockade, to a structure or an attack-move
       e.anim = c.walk ? 'walk' : 'run';
       if (e.ride) {   // driving or riding: cart-like steering (sim/vehicle_steer.js), the vehicle turns, slows in sharp turns
@@ -1431,6 +1437,7 @@ export function createGame(options) {
       if (unseen(fight[e.id]?.target)) delete fight[e.id].target;
     }
     itemServices.tick();
+    groundItems.tick();
     separate();
     cleanUpDead();
     carryOffDowned();
@@ -1523,5 +1530,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, wildAnimals, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, castles, ferry, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, ships, mounts, campfires, garage, stationTravel, governorNear, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, wildAnimals, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, groundItems, frontier, castles, ferry, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, ships, mounts, campfires, garage, stationTravel, governorNear, dayTicks };
 }

@@ -200,13 +200,14 @@ async function start() {
     if (warOutcome.use()) return;   // at a ruined hall of your war: take it (war 8a-3)
     // train robbery (sim/frontier/rail.js prompt): cash the stolen chest, rob a stopped train, or set a charge on the line
     { const rp = game.frontier?.rail?.prompt?.(game.state.entities[heroId]); if (rp?.mode) { pending.push({ id: heroId, type: 'frontier', action: 'rail', mode: rp.mode }); return; } }
+    if (game.groundItems?.nearest(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'groundItem', action: 'pick' }); return; }   // a dropped bag item (sim/ground_items.js)
     if (game.wildAnimals?.sellPrompt(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'sellHides' }); return; }   // sell the clan's hides at an own market (wildlife W5)
     if (game.wildAnimals?.catchPrompt(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'catchHorse' }); return; }   // catch a wild horse (wildlife W6)
     // the ship between the city harbour pier and your castle dock (Tim 2026-11-19): board here, or skip the crossing
     { const sp = game.ferry?.prompt(game.state.entities[heroId]); if (sp) { pending.push({ id: heroId, type: 'frontier', action: 'ferry', mode: sp.riding ? 'skip' : 'board' }); return; } }
     // your war ship (sim/frontier/ships.js, ships S2): beside it at the shore All aboard, aboard at the shore everyone steps off
     if (game.ships?.prompt(game.state.entities[heroId])) { pending.push({ id: heroId, type: 'use', units: [] }); return; }
-    if(game.itemServices.near(game.state.entities[heroId])){shop.open();return;}
+    if(game.itemServices.near(game.state.entities[heroId])||game.itemServices.merchantNear?.(game.state.entities[heroId])){shop.open();return;}   // the blacksmith, or your town's merchant stall (Tim 2026-11-26)
     // on the island at your omnibus station, or by your omnibus away from the gate: travel (Tim 2026-11-06)
     if (stableMenu.isOpen() || stableMenu.at()) { stableMenu.toggle(); return; }
     if (stationMenu.at()) { stationMenu.toggle(); return; }

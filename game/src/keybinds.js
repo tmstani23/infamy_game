@@ -15,7 +15,7 @@ export const KEY_ACTIONS = [
   A('moveDown', 'Move down', 'Movement', 'KeyS', { held: true }),
   A('moveRight', 'Move right', 'Movement', 'KeyD', { held: true }),
   A('walk', 'Walk while held; a clean tap while riding switches gallop', 'Movement', [], { fixed: true, text: 'Shift' }),
-  A('use', 'Use door, shop, station, ship or talk; take a ruined hall in a war; set a rail charge, rob a stopped train, cash a stolen chest, sell hides at your market, catch a wild horse', 'Movement', ['Space', 'Enter']),
+  A('use', 'Use door, shop, station, ship or talk; take a ruined hall in a war; set a rail charge, rob a stopped train, cash a stolen chest, sell hides at your market, catch a wild horse, pick up a dropped bundle, trade at your town merchant', 'Movement', ['Space', 'Enter']),
   A('unstuck', 'Unstuck', 'Movement', 'Ctrl+KeyU'),   // Ctrl so it is not hit by accident (Tim 2026-11-26)
   // Camera
   A('panUp', 'Pan camera up', 'Camera', 'ArrowUp', { held: true }),
@@ -67,6 +67,8 @@ export const KEY_ACTIONS = [
   // Panels and menus
   A('character', 'Character page', 'Panels and menus', 'KeyJ'),
   A('inventory', 'Inventory', 'Panels and menus', 'KeyI'),
+  A('fetchItem', 'Walk over and pick up a dropped bundle', 'Crew orders', [], { fixed: true, text: 'Right-click the bundle' }),   // Tim 2026-11-26
+  A('dropItem', 'Drop a bag item on the ground, outdoors only', 'Panels and menus', [], { fixed: true, text: 'Right-click it then Drop, or drag it out' }),   // Tim 2026-11-26
   A('map', 'Map and deployments', 'Panels and menus', 'KeyM'),
   A('townPanel', 'Town panel', 'Panels and menus', 'KeyO'),
   A('overview', 'Overview', 'Panels and menus', 'KeyY'),

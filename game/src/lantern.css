@@ -1445,3 +1445,21 @@ body .garrisonbadge.shelterbadge.attack { animation: shelterbadgepulse 1.6s ease
 :is(#towninspect, #townpanel) button.tg-btn.ti-go small { color: #4a3420; }
 :is(#towninspect, #townpanel) button.tg-btn.no { opacity: 1; color: #e2cfa6; background: linear-gradient(180deg, #3a291a, #1e140c); box-shadow: 0 0 0 1.5px #0a0604, inset 0 1px 0 rgba(255,220,170,.12), inset 0 0 0 1px #5e4529; }
 :is(#towninspect, #townpanel) button.tg-btn.no small { color: #f0a46e; font-size: 12.5px; }
+
+/* Bag slip and drag (Tim 2026-11-26, item dropping): right-click a bag item for Wear / Drop; drag it out to drop it */
+#characterpage .character-window { position: relative; }
+#characterpage .bag-slip { position: absolute; z-index: 30; min-width: 190px; padding: 9px 8px 7px; display: flex; flex-direction: column; gap: 3px;
+  font: 500 14px/1.3 var(--ln-font); color: var(--ln-text); border: 2px solid #3a2612; border-radius: 2px;
+  background: linear-gradient(180deg, #26190f, #140d09 75%);
+  box-shadow: 0 0 0 1px #0a0604, 0 0 0 2px #8a6a3a, 0 0 0 3px #0a0604, inset 0 18px 30px -18px rgba(255,190,110,.18), 0 10px 28px rgba(0,0,0,.85); }
+#characterpage .bag-slip .slip-name { padding: 0 6px 5px; color: var(--ln-gold); font-weight: 700; letter-spacing: .02em; }
+#characterpage .bag-slip button { all: unset; cursor: pointer; padding: 6px 8px; border-radius: 1px; color: var(--ln-text); }
+#characterpage .bag-slip button:hover:not(:disabled), #characterpage .bag-slip button:focus-visible { background: rgba(201,162,74,.16); color: #f4e2b8; }
+#characterpage .bag-slip button:disabled { cursor: default; color: var(--ln-dim); opacity: .6; }
+#characterpage .bag-slip .slip-why:empty { display: none; }
+#characterpage .bag-slip .slip-why { padding: 2px 8px 0; color: #c46a52; font-size: 12px; }
+#characterpage .inventory-slot img { -webkit-user-drag: none; user-select: none; }
+.bag-drag-ghost { position: fixed; z-index: 200; width: 54px; height: 54px; margin: -27px 0 0 -27px; pointer-events: none; opacity: .8;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.7)); transition: opacity .12s; }
+.bag-drag-ghost img, .bag-drag-ghost svg { width: 100%; height: 100%; object-fit: contain; }
+.bag-drag-ghost.out { opacity: .95; filter: drop-shadow(0 0 6px rgba(232,190,110,.55)) drop-shadow(0 4px 6px rgba(0,0,0,.7)); }

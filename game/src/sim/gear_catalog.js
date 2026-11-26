@@ -130,4 +130,32 @@ export const heirloomFor = clan => clan ? `heirloom_${HEIRLOOMS[clan.faction] ? 
       modifiers: toModifiers(b), about: `${aboutOf(b)}. ${h.about0}`, visual: { ...h.visual, strength: RARITIES.heirloom.visualStrength }, glow: h.visual.color };
   }
 }
+// Dropped bag items (sim/ground_items.js, Tim 2026-11-26): a bundle lies 15 minutes; Space within reach picks it up.
+export const GROUND_ITEMS = { lifeSeconds: 900, reach: 2.5 };
+// Frontier merchant (Tim 2026-11-26): a market stall beside the hall of each of your founded frontier towns (sim/item_services.js).
+// Sells the plain shop gear and bandages at blacksmith prices; buys bag items at buyShare of the shop price (Fine items: their
+// plain item's price), never less than the blacksmith pays (wolf and bear gear). Heirlooms are never sold.
+// spot: in town grid cells from the hall's middle, off the hall's front right wall; model: the stall keeper's look.
+export const FRONTIER_MERCHANT = { name: 'Merchant', spot: [2.2, 0.6], reach: 4.5, model: 'old_woman', buyShare: 0.5, stock: [...SHOP_ITEM_IDS, 'bandage'] };
+// Where the stall keeper stands (Tim 2026-11-26: never on a building): the middle of the free town grid cell (no building,
+// road, wall, zone or building site, buildable ground) nearest the spot, on rings 2 to 4 round the hall; the market stall
+// stands 2.2 units behind him (town_props.js). Pure, so the sim and the drawing agree; it moves on if that cell is built on.
+export function merchantSpot(s, cellSize = 11) {
+  const g = s?.grid, cell = g?.cell || cellSize, want = [FRONTIER_MERCHANT.spot[0] * cell, FRONTIER_MERCHANT.spot[1] * cell];
+  if (!g?.use || !g.n) return [s.x + want[0], s.z + want[1]];
+  const n = g.n, c = (n - 1) / 2, taken = new Set();
+  for (const p of s.projects || []) for (const i of p.cells?.length ? p.cells : [p.cell]) taken.add(i);
+  let best = null, bd = Infinity;
+  for (let dr = -4; dr <= 4; dr++) for (let dc = -4; dc <= 4; dc++) {
+    if (Math.max(Math.abs(dr), Math.abs(dc)) < 2) continue;
+    const col = c + dc, row = c + dr; if (col < 0 || row < 0 || col >= n || row >= n) continue;
+    const i = row * n + col;
+    if (g.use[i] !== '.' || (g.zone && g.zone[i] !== '.') || (g.ground && g.ground[i] === 'x') || taken.has(i)) continue;
+    const d = Math.hypot(dc * cell - want[0], dr * cell - want[1]);
+    if (d < bd) { bd = d; best = [dc * cell, dr * cell]; }
+  }
+  return best ? [s.x + best[0], s.z + best[1]] : [s.x + want[0], s.z + want[1]];
+}
+export const merchantPays = id => { const it = ITEMS[id]; if (!it?.sell) return 0; const buy = GEAR[String(id).replace(/_green$/, '')]?.buy || 0;
+  return Math.max(it.sell, Math.round(buy * FRONTIER_MERCHANT.buyShare)); };
 export const SHOP = {reach:4.5, x:-53,z:-10,building:'blacksmith',name:'Blacksmith',lootRepeatSeconds:120};

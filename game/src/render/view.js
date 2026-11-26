@@ -29,6 +29,7 @@ import { createWildEyesFx } from './wild_eyes_fx.js';   // night eyes of wolves 
 import { createRailTrack, createCityStation } from './rail_track.js';
 import { createRailBlastFx } from './rail_blast_fx.js';
 import { createStolenChests } from './stolen_chest.js';
+import { createGroundItemsFx } from './ground_items.js';
 import { createChestCashFx } from './chest_cash_fx.js';
 import { islandBiome } from '../sim/island_art.js';
 import { pointAt } from '../sim/frontier/rail_route.js';
@@ -615,6 +616,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     chestCashFx.steal(((heroPlace === 'world' && !cityView) || worldView) ? Object.values(state.entities).filter(e => e.robbing?.until > state.tick && e.place === 'world' && !e.dead && !e.downed && sprites.get(e.id)?.thing.mesh.visible).map(e => { const t = state.frontier?.rail?.trains?.[e.robbing.train], p = sprites.get(e.id).pos; return t?.wagonSpot ? { id: e.id, from: t.wagonSpot, to: { x: p.x, y: p.y, z: p.z } } : null; }).filter(Boolean) : [], dt);
     chestCashFx.update(dt);   // cashing a stolen chest: the loot flies into the hall
     stolenChests?.update((heroPlace === 'world' && !cityView) || worldView, state.frontier?.rail?.chests, Object.values(state.entities).filter(e => e.chest && e.place === 'world' && !e.dead && sprites.get(e.id)).map(e => { const p = sprites.get(e.id).pos; return { id: e.id, x: p.x, y: p.y, z: p.z }; }), dt, Object.values(state.frontier?.rail?.trains || {}).filter(t => t.stopped && t.wagonSpot).map(t => ({ id: t.id, x: t.wagonSpot.x, z: t.wagonSpot.z, fast: !!t.robbing, robbed: !!state.frontier.rail.links?.[t.link]?.blast?.robbed })));   // train robbery: the stolen chest carried and dropped, the guard's lantern on a stopped train
+    groundItemsFx.update(((heroPlace === 'world' && !cityView) || worldView) ? 'world' : (heroPlace === 'street' || cityView) ? 'street' : null, state.groundItems?.items, dt);   // dropped bag items (render/ground_items.js)
     { const out = (heroPlace === 'world' && !cityView) || worldView;   // fishing poles (Tim 2026-11-23): the sim sets e.fishing (cast point) while a worker harvests a fish spot
       fishingFx.update(out ? Object.values(state.entities).filter(e => e.fishing && e.anim === 'idle' && e.place === 'world' && !e.dead && sprites.get(e.id)?.thing.mesh.visible).map(e => { const s = sprites.get(e.id); return { id: e.id, x: s.pos.x, y: s.pos.y, z: s.pos.z, tx: e.fishing[0], tz: e.fishing[1], order: s.thing.mesh.renderOrder }; }) : [], dt);
       fishingFx.moor(out ? worldGround?.spotsInView() || [] : []); }
@@ -690,7 +692,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const wildDropFx = createWildDropFx({ scene, posOf: id => sprites.get(id)?.pos || null });
   const tameFx = createTameFx({ scene });
   const fishingFx = createFishingFx({ scene });   // workers on fish spots cast lines; fish spot boats moored (Tim 2026-11-23)
-  const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null;   // fx id -> 'charge' | 'crater'
+  const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null, groundItemsFx = createGroundItemsFx({ scene });   // fx id -> 'charge' | 'crater'
   let railShakeK = 0;
   function syncRailBlast(state, show, dt) {
     const want = new Map(), tick = state.tick ?? 0;

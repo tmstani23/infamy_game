@@ -7,6 +7,7 @@ import { cellOffset, zoneVariant } from './sim/frontier/town_grid.js';
 import { stationParts } from './sim/frontier/station_layout.js';
 import { tierArt, campTier } from './sim/frontier/art_blocks.js';
 import { dockFrame } from './dock_shape.js';
+import { merchantSpot } from './sim/gear_catalog.js';
 // grid towns (L3.1) give cells as grid indices; a town not migrated yet still holds spiral slots
 const slotOf = (s, c, cells) => {
   if (!s.grid) return townSlot(c);
@@ -200,6 +201,14 @@ export function townProps(towns, townArt, townLights = {}, openGates = null) {
       return e[0] - e[1] < 0; };
     if (f) list.forEach(([art, a, b, flip], k) => { const [x, z] = f.spot(a, b), fl = flip === 'hook' ? hookFlip(a, b) : flip;
       out.push({ key: `${s.id}:dock${k}`, art, x, z, ...(fl ? { flip: true } : {}) }); });
+  }
+  // the frontier merchant's market stall (Tim 2026-11-26): beside the hall of each founded own town, just behind the
+  // stall keeper (sim/item_services.js merchants, spot gear_catalog.js FRONTIER_MERCHANT); a picture only, never blocks
+  for (const s of towns) {
+    if (!s.founded || s.ruined || s.empty || !Number.isFinite(s.x)) continue;
+    const [x, z] = merchantSpot(s);   // a free town cell, never on a building
+    out.push({ key: `${s.id}:merchant`, art: 'market_stall', x: x - 2.2, z: z - 2.2 });   // the keeper stands in front of it
+    out.push({ key: `${s.id}:merchantLamp`, art: 'lantern_post', x: x + 1.2, z: z - 1.6 });   // a warm lamp so the stall can be found at night (critic 2026-11-26)
   }
   for (const s of towns) {
     const lighting = townLights.automatic;

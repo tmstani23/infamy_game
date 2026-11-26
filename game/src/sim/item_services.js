@@ -1,18 +1,34 @@
-import {ITEMS, SHOP_ITEM_IDS, CONSUMABLES, LOOT, SHOP, heirloomFor} from './gear_catalog.js';
+import {ITEMS, SHOP_ITEM_IDS, CONSUMABLES, LOOT, SHOP, FRONTIER_MERCHANT as FM, merchantPays, merchantSpot, heirloomFor} from './gear_catalog.js';
 import {canInteract} from './interactions.js';
 import {debitRyo} from './treasury.js';
 import {noticeFor} from './util.js';
 
-export function createItemServices({state,raidRules={},spawn,nav}) {
+export function createItemServices({state,raidRules={},spawn,nav,removeUnit=null,cellSize=11}) {
   const say=noticeFor(state), ticks=s=>Math.round(s*20);
   const hero=owner=>Object.values(state.entities).find(e=>e.owner===owner&&e.type==='hero');
-  const shop=()=>Object.values(state.entities).find(e=>e.shopkeeper);
+  const shop=()=>Object.values(state.entities).find(e=>e.shopkeeper&&!e.merchantOf);
   function initialize(){
     if(shop()||!spawn)return;
     const p=nav.nearestFree(SHOP.x,SHOP.z);
     spawn('civilian','merchant',...p,{name:SHOP.name,shopkeeper:true,holdFire:true,hp:60});   // hp only so frames read right; he can never be hit (combat.js, game.js hostile/attackAllowed)
   }
   const near=e=>!!e&&canInteract(e)&&e.type==='hero'&&e.place==='street'&&!!shop()&&Math.hypot(e.x-shop().x,e.z-shop().z)<=SHOP.reach;
+  // the frontier merchant (Tim 2026-11-26): the stall keeper of one of e's own towns, within reach
+  const merchantNear=e=>{if(!e||!canInteract(e)||e.type!=='hero'||e.place!=='world'||e.aboard)return null;
+    return Object.values(state.entities).find(m=>m.merchantOf&&state.frontier?.settlements?.[m.merchantOf]?.owner===e.owner&&Math.hypot(e.x-m.x,e.z-m.z)<=FM.reach)||null;};
+  // one stall keeper per founded town of a player clan, day and night (wars are a race: never wait for the shop)
+  function merchants(){
+    if(!state.frontier||state.tick%20||!spawn)return;
+    for(const s of Object.values(state.frontier.settlements||{})){
+      const m=s.merchantNpc&&state.entities[s.merchantNpc];
+      const want=s.founded&&s.owner&&!s.ruined&&!s.empty&&!state.clans?.[s.owner]?.bot&&Number.isFinite(s.x);
+      if(m&&(!want||m.dead))(removeUnit?.(m.id),delete s.merchantNpc);
+      if(!want){delete s.merchantNpc;continue;}
+      const [x,z]=merchantSpot(s,cellSize);
+      if(!m||m.dead)s.merchantNpc=spawn('city_captain',FM.model,x,z,{owner:null,place:'world',area:'world',guide:true,shopkeeper:true,merchantOf:s.id,holdFire:true,hp:60,name:FM.name});
+      else Object.assign(m,{x,z,place:'world',anim:'idle'});
+    }
+  }
   const inv=e=>state.clans[e?.owner]?.inventory;
   // rival bots wear what they win (Tim 2026-11-24): an item better than the one in its slot goes straight on (by rarity:
   // shop < city drop < frontier < heirloom), the old one into the bag if there is room.
@@ -24,14 +40,16 @@ export function createItemServices({state,raidRules={},spawn,nav}) {
   function command(e,c){
     const clan=state.clans[e?.owner],v=inv(e);if(!clan||!v||e.type!=='hero'||!canInteract(e))return;
     if(c.action==='buy'||c.action==='sell'){
-      if(!near(e))return say(clan,'Approach the blacksmith to trade');
+      const merchant=!near(e)&&merchantNear(e);
+      if(!near(e)&&!merchant)return say(clan,'Approach the blacksmith or a town merchant to trade');
       if(c.action==='sell'){
         if(!Number.isInteger(c.index)||c.index<0||c.index>=v.bag.length)return;
         const item=ITEMS[v.bag[c.index]];if(!item)return;
-        const price=item.sell??0;if(!price)return say(clan,'This keepsake cannot be sold');
+        const price=merchant?merchantPays(v.bag[c.index]):item.sell??0;if(!price)return say(clan,'This keepsake cannot be sold');
         v.bag[c.index]=null;clan.ryo+=price;state.ryoGains.push({clan:e.owner,amount:price,reason:'Gear sold'});return;
       }
       const id=c.item;let price;
+      if(merchant&&!FM.stock.includes(id))return say(clan,'The merchant does not sell that');
       if(SHOP_ITEM_IDS.includes(id)){
         if(!v.bag.includes(null))return say(clan,'Personal inventory is full');price=ITEMS[id].buy;
       }else if(id==='bandage'){
@@ -97,6 +115,6 @@ export function createItemServices({state,raidRules={},spawn,nav}) {
   // a castle falls (Z6): its clan's heirloom blade goes to the clan that took it (wildlife W7, Tim 2026-11-24).
   // Called after the frontier tick (sim/game.js), which ends the wars.
   function castles(){for(const n of state.news||[])if(n.kind==='warEnded'&&n.result==='fell'&&state.clans[n.attacker]){const id=heirloomFor(state.clans[n.defender]);if(ITEMS[id])grant(n.attacker,id);}}
-  function claim(e){if(!near(e))return;const v=inv(e);while(v?.pending?.length&&v.bag.includes(null))give(e.owner,v.pending.shift());}
-  return {initialize,near,shop,command,interrupt,tick,defeat,collect,claim,grant,castles};
+  function claim(e){if(!near(e)&&!merchantNear(e))return;const v=inv(e);while(v?.pending?.length&&v.bag.includes(null))give(e.owner,v.pending.shift());}
+  return {initialize,near,shop,merchantNear,merchants,command,interrupt,tick,defeat,collect,claim,grant,castles,give};
 }

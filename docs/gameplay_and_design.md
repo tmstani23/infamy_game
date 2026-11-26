@@ -128,6 +128,9 @@ Noise versus power is a choice on every raid.
 - The HQ stash stores items; a **fence** can sell stolen goods under later item rules.
 - The blacksmith is a separate neutral, outdoor shop so all clans retain access; it cannot be bought, captured or raided. It has no interior. A Shop tag sits above its nameplate; the detail pane is a fixed size (no jitter). The shopkeeper has his own name on the unit frame, 60 HP, can't be attacked and is never scared.
 - **Documents** can be looted and used as leverage (blackmail, deeds, debts).
+- Dropped items (2026-11-26): drop outdoors (city street or island); a cloth bundle lies 15 minutes, then is gone. Anyone takes it with Space or a right-click on it (the hero walks over); rival bot heroes take it when they pass it. Not indoors, aboard or while down.
+- Frontier merchant (2026-11-26): a market stall with a keeper on the nearest free town cell (never a building, road or site) beside the hall of each founded player town (castle too), day and night. Sells the six plain shop items and bandages at blacksmith prices (no Fine gear, no War Lantern, no frontier gear). Buys bag items at half the shop buy price (Fine items: their plain item's price), never less than the blacksmith pays (wolf and bear gear keep 90 / 120). Heirlooms never sold. Money: clan treasury. Gone while the town is ruined or empty; rival bots have none.
+- Numbers live in game/src/sim/gear_catalog.js (GROUND_ITEMS, FRONTIER_MERCHANT, merchantSpot).
 
 ## Infamy (Settled)
 

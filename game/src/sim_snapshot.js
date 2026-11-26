@@ -1,11 +1,12 @@
 // Presentation protocol, not a save game. Never copies paths, AI planners or RNG.
 import { ringRadius } from './sim/frontier/town_grid.js';
+import { groundItemsFor } from './sim/ground_items.js';
 export const EVENT_KEYS = ['hits','dodges','casts','heatGains','ryoGains','ryoLosses','policeNews','news'];
 const ROOTS = ['tick','night','dawn','dusk','clock','businesses','interiorDoors','clans','season','deployment',
   'contracts','attacks','banditCamps','lightsOut','hqCamping','hqRaids','shakedowns','raidWindow',
   'formations','smokes','projectiles','campfires'];   // campfires: made camps (sim/campfire.js, render/campfire_fx.js)
 const MARKER_FIELDS = ['id','type','model','owner','x','z','place','hp','maxHp','dead','downed','jailed',
-  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider','guide','surveyor','anim','cannon','gat','robbing','wildlife','species','coat','sitting','campfire','campCast'];
+  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider','guide','surveyor','anim','cannon','gat','robbing','wildlife','species','coat','sitting','campfire','campCast','shopkeeper','merchantOf'];
 const pick = (value, keys) => Object.fromEntries(keys.filter(k => value[k] !== undefined).map(k => [k,value[k]]));
 
 // Recursive replacement retains object identities captured by read-only sim helpers.
@@ -118,6 +119,7 @@ export function createSnapshotEncoder(game, clan = 'player') {
     if (st.world) roots.world = { discovered: {[clan]: st.world.discovered?.[clan] ?? null}, scouted: {[clan]: st.world.scouted?.[clan] || []}, lastSeen: {[clan]: st.world.lastSeen?.[clan] || {}}, pins: {[clan]: st.world.pins?.[clan] || []}, camps:game.worldCamps?.viewFor(clan) || {} };
     // Frontier towns (F2.4b readout; F4.2 filters per owner): everything but the 500-entry display ledger.
     // F4.2: per clan and at 4 Hz (every 5th tick, the encoder keeps the last view between).
+    { const g = groundItemsFor(st, clan, game.discovery); if (g) roots.groundItems = { items: g }; }   // dropped bag items (sim/ground_items.js)
     if (st.influence) roots.influence = st.influence;   // C4: every clan's Influence totals are public (Standings; Tim 2026-11-20)
     if (st.lieutenants) roots.lieutenants = { [clan]: st.lieutenants[clan] || null };   // C3: own standing orders and log only
     if (st.frontier) {

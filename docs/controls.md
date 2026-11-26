@@ -27,7 +27,7 @@ Keys shown in the tables below are defaults; Settings > Controls changes them, a
 | Key | What it does |
 |---|---|
 | W A S D | Move, relative to the screen |
-| J / **Character** button (I or the ▦ **Inventory** button opens it at the bag; press again to close) | Open live hero stats, abilities, passives, 12 carried item slots and weapon/armor/accessory slots. Hover an equipped slot to pulse its effect on the animated hero preview. Hover any carried or equipped item for its item card; while it shows, the Attributes rows preview the stat changes equipping it would make (green better, red worse). Right-click or activate carried gear to equip, or equipped gear to remove it. Supplies offers bandages and eligible War Lantern raids. [Character page](combat_spec.md#hero-character-page-authorized-2026-10-27); no multiplayer pause |
+| J / **Character** button (I or the ▦ **Inventory** button opens it at the bag; press again to close) | Open live hero stats, abilities, passives, 12 carried item slots and weapon/armor/accessory slots. Hover an equipped slot to pulse its effect on the animated hero preview. Hover any carried or equipped item for its item card; while it shows, the Attributes rows preview the stat changes equipping it would make (green better, red worse). Click a bag item to wear it; right-click it for a slip with Wear or Drop; drag it out of the Character page to drop it on the ground (outdoors only). Right-click or activate equipped gear to remove it. Supplies offers bandages and eligible War Lantern raids. [Character page](combat_spec.md#hero-character-page-authorized-2026-10-27); no multiplayer pause |
 | Shift (hold) | Walk instead of run |
 | Space (or Enter) | Go through a door (enter or leave a building); selected crew come along, the rest stay. At the clinic ring it opens the clinic menu (1 heals, 2 and up revive); at the police box (blue ring) it bribes; at the police HQ it pays bail (1 and up; jailed crew stay in jail until bailed) |
 | Left-click the old surveyor, your lieutenant, a governor or the Land Office (standing beside it) | Talk to them or open it. Space where rings overlap picks the closest one. |
@@ -66,6 +66,8 @@ The HUD score panel's day/night clock counts down to the next change.
 
 | Key | What it does |
 |---|---|
+| Space beside a dropped bundle, or right-click it | Pick it up (right-click: the hero walks over first) (2026-11-26). |
+| Space at the market stall by your town hall | Open the frontier merchant (2026-11-26). |
 | H | Open or close the hire panel. Inside your own hideout, click **HQ stash** for the separate 12-slot storage window; click or right-click an item to transfer it between carried inventory and stash. Hideout hiring runs at half speed; the hideout also cools heat 2x with your boss inside, heals everyone inside slowly, and is where your KO'd hero wakes The stash's Back button returns to the hire menu. |
 | 1 / 2 / 3 (or click the price) | Hire a Thug / Brute / Swordsman |
 | Esc | Close the panel |

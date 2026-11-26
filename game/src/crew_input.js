@@ -207,6 +207,22 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     for (const s of Object.values(game.state.entities)) { if (!s.ship || s.dead || s.owner !== h.owner || s.place !== commandPlace()) continue; const d = vehicleDistance(view, s, px, py, 12); if (d < bd) { bd = d; best = s; } }
     return best;
   }
+  // the dropped bundle under the pointer (sim/ground_items.js): within 26 px of its picture on screen
+  function bundleAt(px, py) {
+    const h = hero(); if (!h) return null;
+    let best = null, bd = 26;
+    for (const b of Object.values(game.state.groundItems?.items || {})) { if (b.place !== h.place) continue;
+      const p = view.unitToScreen(b.x, b.z, 0.35), d = Math.hypot(p.x - px, p.y - py); if (d < bd) { bd = d; best = b; } }
+    return best;
+  }
+  // your own camp fire under the pointer (sim/campfire.js): within 34 px of it on screen
+  function fireAt(px, py) {
+    const h = hero(); if (!h || h.place !== 'world') return null;
+    let best = null, bd = 34;
+    for (const f of Object.values(game.state.campfires || {})) { if (f.owner !== h.owner) continue;
+      const p = view.unitToScreen(f.x, f.z, 0.3), d = Math.hypot(p.x - px, p.y - py); if (d < bd) { bd = d; best = f; } }
+    return best;
+  }
   function horseAt(px, py) {
     const h = hero();
     if (!h || h.place !== 'world') return null;
@@ -240,6 +256,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
       send({id:heroId,type:'loot',target:body.id,units:jobs,crewJob:!!jobs.length,preferHeroInRange:useHero,crewOnly:!useHero});return;
     }
     if (e.button === 2 && !e.ctrlKey && pointed) { heroAt(e.clientX, e.clientY); return; }
+    // right-click a dropped bundle (Tim 2026-11-26): the hero walks over and picks it up
+    { const b = e.button === 2 && !e.ctrlKey && bundleAt(e.clientX, e.clientY); if (b) { send({ id: heroId, type: 'groundItem', action: 'fetch', bundle: b.id }); return; } }
     // right-click your omnibus (Tim 2026-11-06): everyone steps out, or a parked one takes the hero and the selected crew in
     // right-click one of your horses: ride her (she comes over if she is not beside you)
     let horse = e.button === 2 && horseAt(e.clientX, e.clientY);
