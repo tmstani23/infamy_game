@@ -60,6 +60,7 @@ export const KEY_ACTIONS = [
   A('ability3', 'Ability 3', 'Hero abilities', 'KeyR'),
   A('ability4', 'Ability 4', 'Hero abilities', 'KeyF'),
   A('useItem', 'Use item', 'Hero abilities', 'KeyB'),
+  A('makeCamp', 'Make camp, light a fire and sit down with your crew to heal on the island out of a war; again to break camp', 'Hero abilities', 'Shift+KeyN'),   // world variety P1 (sim/campfire.js)
   // Horses and vehicles
   A('horse', 'Whistle summon, or hire menu indoors', 'Horses and vehicles', 'KeyH'),
   A('mountGroup', 'Mount up or all off', 'Horses and vehicles', 'Shift+KeyH'),

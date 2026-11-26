@@ -6,6 +6,8 @@
 //   add --clip=arms_hip_hop_dance to render only that named clip
 //   add --pack to repack just these models into the live catalog afterwards
 //       (tools/repack_model.mjs; --margin=N passes through)
+//   add --bare to draw the clip with nothing in the hands, and --as=NAME to write it as <model>_NAME
+//       (the campfire sit: --clip=coach_sitting --bare --as=campfire_sit, world variety P1, Tim 2026-11-26)
 //   add --portrait for the character-page portrait: the idle from art.json, front
 //       row only (row 7) at 512 px, to assets/sprites/portraits/; with --pack it goes
 //       to assets/sprites_packed/portraits/ (render/hero_preview.js loads it)
@@ -212,6 +214,7 @@ const flags = process.argv.slice(3).filter(s => s.startsWith('--'));
 const only = process.argv.slice(3).filter(s => !s.startsWith('--')).map(s => s.toLowerCase());
 const glowOnly = flags.includes('--glow-only');
 const onlyClips = flags.filter(s => s.startsWith('--clip=')).map(s => s.slice(7).toLowerCase());
+const bare = flags.includes('--bare'), saveAs = flags.find(s => s.startsWith('--as='))?.slice(5).toLowerCase() || null;
 const portrait = flags.includes('--portrait'), pack = flags.includes('--pack');
 const PORTRAIT_SIZE = 512, PORTRAIT_ROW = 7;
 const artCatalog = JSON.parse(fs.readFileSync(path.join(root, 'game', 'data', 'art.json'), 'utf8'));
@@ -302,7 +305,7 @@ for (const { file: model, name } of models) {
   const baseSize = await page.evaluate(() => Number(document.getElementById('size').value));
   if (portrait) await page.evaluate(s => { document.getElementById('size').value = String(s); }, PORTRAIT_SIZE);
   const renderOpts = portrait ? { rows: [PORTRAIT_ROW], blurScale: PORTRAIT_SIZE / baseSize } : {};
-  const it = ITEMS[name] || TANK_SPRITES[name]?.item;
+  const it = bare ? null : ITEMS[name] || TANK_SPRITES[name]?.item;
   if(it?.shield==='long')await page.evaluate(()=>window.spriteTest.loadLongShieldTexture());
   let holding = false;
   if (it?.proc) {
@@ -330,7 +333,7 @@ for (const { file: model, name } of models) {
     const clip = isBuiltIn ? builtIn : clipName(safe(names[i]).replace(new RegExp(`^(${SETS.join('|')})_`), '').replace(/_no_?skin$/, ''));
     if (wanted.length && !wanted.includes(clip)) continue;
     const r = await page.evaluate(([i, g, o]) => window.spriteTest.render(i, g, o), [i, holding, renderOpts]);
-    const fname = portrait ? `portraits/${name}_portrait_idle.png` : `${name}_${clip}.png`;
+    const fname = portrait ? `portraits/${name}_portrait_idle.png` : `${name}_${saveAs || clip}.png`;
     fs.mkdirSync(path.dirname(path.join(outDir, fname)), { recursive: true });
     exported.add(name);
     // Never lose an old sheet: keep the first copy of the day

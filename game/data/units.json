@@ -30,6 +30,7 @@
     "maxQueue": 5,
     "regenPerSecond": 0.0025,
     "regenAfterSeconds": 6,
+    "campfire": { "_note": "World variety P1 (Tim 2026-11-25, sim/campfire.js), placeholders, Tim to tune: Shift+N on the island makes camp. castSeconds = Preparing fire, standing still, before it catches (Tim 2026-11-26); healPerSecond = share of max health healed a second while seated (on top of passive recovery); calmSeconds = no camp this soon after a hit or a blow; groupRange = crew this near come and sit; fireAhead = the fire this far ahead of the hero; seatRadius = seats this far round it (at least seatsMin seats spaced round the ring); seatSnap = a crew member this near his seat sits; standRange = the hero moving this far off his seat breaks camp; emberSeconds = the fire burns down this long after.", "castSeconds": 2, "healPerSecond": 0.02, "calmSeconds": 10, "groupRange": 30, "fireAhead": 2.4, "seatRadius": 2.4, "seatsMin": 3, "seatSnap": 0.8, "standRange": 0.6, "emberSeconds": 20 },
     "executeSeconds": 3,
     "executeRyoSpread": 0,
     "leaderBounty": 250,

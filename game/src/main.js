@@ -354,6 +354,11 @@ async function start() {
   // H calls your horse and rides her, and H again gets you off (Tim 2026-11-15: Q on horseback is the ability, so the
   // dash and the rest work from the saddle; Q still steps out of an omnibus or rickshaw). Shift+H is Mount up / All off
   onAction('horse', () => { const h = game.state.entities[heroId]; if (h?.place === 'world') pending.push({ id: heroId, type: 'mount' }); else hireMenu.toggle(); });
+  onAction('makeCamp', () => pending.push({ id: heroId, type: 'campfire', units: crewInput.selected() }));   // world variety P1 (sim/campfire.js); off the island the sim says why
+  // camp news and refusals (sim/campfire.js marks its clan notice with camp) come up as a callout (Tim 2026-11-26: a refusal must say why)
+  { let seen = null;
+    setInterval(() => { const h = game.state.entities[heroId], n = h && game.state.clans?.[h.owner]?.notice;
+      if (!n?.camp || n.tick === seen) return; seen = n.tick; if (game.state.tick - n.tick < 40) callout(n.text, n.camp === 'good' ? 'news' : 'loss'); }, 200); }
   onAction('mountGroup', () => { const h = game.state.entities[heroId]; if (h?.place === 'world') pending.push({ id: heroId, type: 'mount', group: true, units: crewInput.selected() }); else hireMenu.toggle(); });
   const clinicMenu = createClinicMenu({ panel: $('clinic'), game, heroId, catalog, selected: () => crewInput.selected(), send: c => pending.push(c) });
   // telegraph office hint (Tim 2026-11-06): once the hero's clan can buy a founding permit, the office

@@ -3,9 +3,9 @@ import { ringRadius } from './sim/frontier/town_grid.js';
 export const EVENT_KEYS = ['hits','dodges','casts','heatGains','ryoGains','ryoLosses','policeNews','news'];
 const ROOTS = ['tick','night','dawn','dusk','clock','businesses','interiorDoors','clans','season','deployment',
   'contracts','attacks','banditCamps','lightsOut','hqCamping','hqRaids','shakedowns','raidWindow',
-  'formations','smokes','projectiles'];
+  'formations','smokes','projectiles','campfires'];   // campfires: made camps (sim/campfire.js, render/campfire_fx.js)
 const MARKER_FIELDS = ['id','type','model','owner','x','z','place','hp','maxHp','dead','downed','jailed',
-  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider','guide','surveyor','anim','cannon','gat','robbing','wildlife','species','coat'];
+  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider','guide','surveyor','anim','cannon','gat','robbing','wildlife','species','coat','sitting','campfire','campCast'];
 const pick = (value, keys) => Object.fromEntries(keys.filter(k => value[k] !== undefined).map(k => [k,value[k]]));
 
 // Recursive replacement retains object identities captured by read-only sim helpers.

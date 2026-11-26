@@ -298,3 +298,6 @@ Crows: birds burst out of a tree near troops or shinobi on the move, hidden ones
 - data/ui_layout.json is the Default layout that ships with the game. The game never writes it.
 - The player's layouts are saved in saves/layouts/<name>.json (gitignored with saves/). Names: letters, numbers, spaces, - and _, up to 30, not Default.
 - Dev server routes: GET /layouts (list), GET, PUT and DELETE /layouts/<name> (game/layouts_api.mjs). Delete moves the file to to_delete/layouts/. Test: game/tools/test_layouts.mjs.
+
+## Sprite shader (2026-11-26)
+- Do not add branches to the shared sprite shader (render/shading.js SPRITE_FRAG) for an effect: a leg-cut branch there compiled in Chromium but made every sprite, buildings included, vanish in Firefox on Windows. Cut art in the sheets instead.

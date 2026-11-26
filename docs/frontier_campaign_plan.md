@@ -1092,3 +1092,16 @@ Goal cards (sim/campaign_goals.js), first town only, after Give him his orders; 
 - Military quarter no room (military_plot.js): the message names the cause: "No room for a military quarter: <cause>. Paint a Military zone to pick a spot". Causes: blocked cells counted by kind (buildings, reserved, work camps, cliffs, rail, lanes), "the free ground is in small pieces, no WxH block fits", or "no road can reach a free block". It tries again every war.general.plot.retryReviews governor reviews (default 12) at the same tier; the message clears when the player paints his own Military zone.
 - Town hall art: town_hall_2 shear 0.12, town_hall_3 shear 0.24 (turned to sit on the grid). geometry.js artItem now passes shear on to placePiece (before, no art.json shear had any effect); the 17 other stored values are renamed shearOff (not applied) until decided.
 - Stock hover: grouped by kind ("31 farm plots, 1.0/s, all working"), rounded, short header, at most 8 lines.
+
+## Campfires (world variety P1, 2026-11-26)
+Code: sim/campfire.js (numbers in data/units.json campfire), render/campfire_fx.js, test tools/test_campfire.mjs.
+- Shift+N on the island: the hero spends 2 s on "Preparing fire" (castSeconds; overhead PREPARING FIRE bar with rising embers, render/abilityfx.js). Moving, a hit, going down or Shift+N again stops it. Then a fire is lit just ahead of him, he sits, and crew following him (or the selected crew) within 30 walk to seats round it and sit.
+- Seated units heal 2% of max health a second on top of passive recovery (placeholder). The health hover shows "By the campfire".
+- Refused inside a war circle, inside a town ring, aboard or mounted (riders dismount), and within 10 s of a hit or a blow.
+- Camp breaks when anyone at it is hit, the hero moves off his seat or gets any order, Shift+N is pressed again, the hero dies or goes down, or a war circle comes over it. Crew go back to following; a crew member sent elsewhere just gets up and goes.
+- One camp per clan: a new camp clears the clan's old fire first, even one still burning down.
+- Every refusal and stop shows as a callout with the reason.
+- The fire burns down over 20 s after camp breaks, then is gone. A lit fire counts as fire light for night sight and stealth.
+- Player and AI can both be given the command; AI does not use it yet.
+- Look: one rotten log per seat (scale 0.5) along the ring, drawn behind its sitter, who is raised 0.05 onto it. Sitters with their back to the camera (sheet rows 3 to 5) have their legs cut out of the sheet itself (nothing drawn lower than 28 px under the cell centre) and their log comes 0.3 toward the fire.
+- Sitters play the 'sit' clip, <model>_campfire_sit: the coach sitting clip with nothing in the hands, for all 20 sitting models (enforcer uses brute's, shinobi_geisha uses geisha's). Made with tools/export_sprites.mjs --clip=coach_sitting --bare --as=campfire_sit; each has an empty glow sheet so packed loading works. Kunoichi has no sitting sheet and stands.

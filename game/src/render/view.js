@@ -18,6 +18,7 @@ import { entityName } from '../selection_panel.js';
 import { specialOf } from '../sim/special_cast.js';
 import { createHQFire } from './hq_fire.js';
 import { createHallChannelFx } from './hall_channel_fx.js';
+import { createCampfireFx, SIT } from './campfire_fx.js';
 import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createWeather } from './weather.js';
@@ -478,11 +479,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       // a rifleman standing about within 3 s of a shot plays his reload (sim/rifleman.js firedAt)
       // on horseback (sim/mounts.js, Tim 2026-11-06): the hero sits up on the horse ('ride' clip, the idle until it is exported)
       s.riding = !!e.mounted;
-      const anim = e.mounted ? ((e.anim === 'attack' || e.anim === 'sweep') && swingT !== null && swingT < 1 ? e.anim : 'ride') : e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
+      // seated at a campfire (sim/campfire.js): the 'sit' clip on his log, while he stands still
+      const anim = e.mounted ? ((e.anim === 'attack' || e.anim === 'sweep') && swingT !== null && swingT < 1 ? e.anim : 'ride') : e.sitting && (e.anim === 'idle' || !e.anim) ? 'sit' : e.anim === 'idle' && e.rifle?.firedAt != null && state.tick - e.rifle.firedAt < 60 ? 'reload' : e.anim;
       // the rider sits on the saddle (Tim 2026-11-14: he sat low and off it): his cell centre goes to the horse's cell
       // centre, then RIDE_SEAT per facing moves his hips onto the saddle of the mare sheets
       const seat = e.mounted ? RIDE_SEAT[((e.dir ?? 0) % 8 + 8) % 8] : null;
-      s.lift = seat ? (sprites.get(e.ride?.horse)?.feetUp ?? 1.221) - s.feetUp : 0;
+      s.lift = seat ? (sprites.get(e.ride?.horse)?.feetUp ?? 1.221) - s.feetUp : anim === 'sit' ? SIT.lift : 0;
       // art.json rideBack: some bodies sit this many sheet pixels further back, along the saddle's offset from -49 (Tim 2026-11-14)
       const back = seat ? (catalog.rideBack?.[e.model] || 0) / 14 : 0;
       s.seat = seat ? [(seat[0] * (1 + back)) * SEAT_PX, -(seat[1] + (seat[1] + 49) * back) * SEAT_PX] : null;
@@ -596,6 +598,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     structureFire.update(state, cameraPlace(state.entities[followId]));   // torched war structures (checkpoint 6)
     structureFire.updateSmoke(dt, cameraPlace(state.entities[followId]));   // 7c: moving smoke over ruins
     hallFx.update(state, cameraPlace(state.entities[followId]));   // war 8a: the fire or banner on a hall being taken
+    campfireFx.update(state, (heroPlace === 'world' && !cityView) || worldView);   // made camps (sim/campfire.js)
     hitFx.update(fdt);
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
     abilityFx.update(fdt, state, presentationId, cameraPlace(state.entities[followId]));   // the place the camera shows: the city street in Watch the city (Tim 2026-11-10)
@@ -630,7 +633,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
     mark('lights');
     // buildings, props and banners stand still, so only the units are re-checked each frame (render/draw_order.js)
-    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || [])], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || []), ...(cityStation?.things() || []), ...(ferryShips?.things() || []), ...(mooredBoats?.things() || []), ...(crowFx?.things() || [])]);
+    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || []), ...campfireFx.things()], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || []), ...(cityStation?.things() || []), ...(ferryShips?.things() || []), ...(mooredBoats?.things() || []), ...(crowFx?.things() || [])]);
     for (const d of drivers.values()) if (d?.cart) d.thing.mesh.renderOrder = d.cart.renderOrder + (d.behind ? -1 : 1);   // the coachman just before or after his rickshaw
     mark('sort');
     // effect particles are sized in world units: pixels per unit of each target drawn
@@ -653,6 +656,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const hqFire = createHQFire({ scene, things, lights });
   const structureFire = createStructureFire({ scene });
   const hallFx = createHallChannelFx({ scene, lights, thingAt: k => worldGround?.thingAt(k) || null, artThing: p => worldGround?.artThing(p) || null, seconds: () => hallSeconds });   // war 8a: taking a hall
+  const campfireFx = createCampfireFx({ scene, lights, artThing: p => worldGround?.artThing(p) || null, emberSeconds: () => units?.rules?.campfire?.emberSeconds ?? 20 });   // world variety P1
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z, h = 0.9) => { v.set(x, h + groundY(x, z), z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   let hallChannelOf = () => null;   // main.js: the running hall channel of a war (sim/frontier/war_end.js view)
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null, hallChannelOf: id => hallChannelOf(id),

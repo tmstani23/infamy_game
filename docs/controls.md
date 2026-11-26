@@ -238,6 +238,7 @@ War bar default position: top 104 px, below the standings bar.
 | Hover a minimap icon | Shows the building's name. |
 | Hover a train | Shows the train's card. |
 | Ctrl+U or Unstuck (island) | Sends you to the nearest town hall, or to the capital if it is closer. |
+| Shift+N (island) | Make camp: 2 s Preparing fire, then a campfire where hero and crew sit and heal; again to break camp. Not in a war circle, a town ring, aboard or within 10 s of a hit. |
 | Q or right-click an omnibus or rickshaw | Board or deploy it (the omnibus icon flashes on hover). Omnibus: 8 seats, 3x speed, 800 health; rickshaw: 2 seats, 3.5x, 400 health. Nobody inside fights; hits land on the vehicle and everyone piles out when it is wrecked. |
 | Space at a station | Rickshaw travel: pick one of your stations or the capital; instant, 2 per waiting rickshaw; refused within 10 s of a hit or with enemies within 12. From the city, use the gate menu (3). |
 | Space beside your lieutenant at the island gate (campaign) | Talk to your lieutenant: what he does while you are on the island. Show me opens Deployment → While I'm away; Later closes. |

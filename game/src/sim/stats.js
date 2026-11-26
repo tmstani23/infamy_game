@@ -42,8 +42,9 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     const home = atHome(e) ? rules.hideout?.restPerSecond || 0 : 0;
     const maxHp = e.maxHp ?? base(e).hp ?? 0, eligible = !e.dead && !e.downed && (!!e.garrison || state.tick - (e.hitAt ?? -Infinity) >= wait);
     const shelter = Math.max(e.garrison?.heal || 1, e.infirmary || 1);   // stockade garrison, near an infirmary (Tim 2026-11-06)
-    return { base: maxHp * rate, rate: maxHp * (rate * turf * clan * shelter + home), current: eligible ? maxHp * (rate * turf * clan * shelter + home) : 0, shelter,
-      eligible, waitSeconds: Math.max(0, (wait - (state.tick - (e.hitAt ?? -Infinity))) / 20), turf, clan, home };
+    const camp = e.sitting ? rules.campfire?.healPerSecond || 0 : 0;   // seated at a campfire (sim/campfire.js, world variety P1)
+    return { base: maxHp * rate, rate: maxHp * (rate * turf * clan * shelter + home + camp), current: eligible ? maxHp * (rate * turf * clan * shelter + home + camp) : 0, shelter,
+      eligible, waitSeconds: Math.max(0, (wait - (state.tick - (e.hitAt ?? -Infinity))) / 20), turf, clan, home, camp };
   }
   function effective(e) {
     return { ...base(e), damage: damage(e), attackSpeed: attackInterval(e), critChance: criticalChance(e), dodgeChance: dodgeChance(e),
@@ -75,7 +76,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     add('health', 'Maximum health', 'Vitality', b.hp || 0, e.maxHp ?? b.hp ?? 0, 'hp', gearSources(e,'maxHpFlat').length ? gearSources(e,'maxHpFlat') : e.maxHp !== b.hp ? ['Unit health override'] : []);
     add('regen', 'Passive recovery', 'Vitality', regen.base, regen.current, 'hp/s', [
       ...(regen.turf !== 1 ? [`Home territory ×${regen.turf}`] : []), ...(regen.clan !== 1 ? [`Battle Hardened ×${regen.clan}`] : []),
-      ...(regen.home ? ['HQ rest'] : []), ...(!regen.eligible ? ['Recovery currently paused'] : [])],
+      ...(regen.home ? ['HQ rest'] : []), ...(regen.camp ? [`By the campfire +${Math.round(regen.camp * 1000) / 10}% of max health a second`] : []), ...(!regen.eligible ? ['Recovery currently paused'] : [])],
       regen.waitSeconds > 0 ? `Resumes in ${Math.ceil(regen.waitSeconds)}s without another hit.` : 'Rate when injured. Full health caps further healing.');
     add('normalHit', 'Normal hit', 'Offence', Math.round(b.damage || 0), Math.round(v.damage), 'damage', damageSources,
       `Weapon power ${b.damage || 0}; modified power ${v.damage}. Rounded once on hit, before target protection. Critical hits round separately.`);

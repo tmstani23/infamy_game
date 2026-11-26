@@ -76,6 +76,7 @@ import { createIslandRespawn } from './island_respawn.js';
 import { createOmnibus } from './omnibus.js';
 import { steer } from './vehicle_steer.js';
 import { createMounts } from './mounts.js';
+import { createCampfires } from './campfire.js';
 import { createGarage } from './vehicle_garage.js';
 import { createStationTravel } from './station_travel.js';
 import { rosterChanged, bossAway } from './util.js';
@@ -224,6 +225,11 @@ export function createGame(options) {
   // horses from the stable and the hero's mount (sim/mounts.js, Tim 2026-11-06): H to ride, island only
   const mounts = areas ? createMounts({ state, rules: units?.rules, spawn: (...a) => spawn(...a), nav: () => navOf('world'), born: () => frontier?.stable?.born() || [],
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
+  // make camp on the island (world variety P1, Tim 2026-11-25, sim/campfire.js): not in a war circle, not in a town ring
+  const campfires = areas ? createCampfires({ state, rules: units?.rules, nav: () => navOf('world'), dismount: u => mounts?.dismount(u),
+    inWarCircle: (x, z) => !!frontier?.war?.warsAt?.(x, z)?.length,
+    inTown: (x, z) => { const rings = options.frontier?.tiers?.list || []; return Object.values(state.frontier?.settlements || {}).some(s => Number.isFinite(s.x) && Math.hypot(x - s.x, z - s.z) <= (rings[(s.tier || 1) - 1]?.ring ?? 150)); },
+    say: (owner, text, good = false) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text, camp: good ? 'good' : 'no' }; } }) : null;   // camp: main.js shows it as a callout
   // recall and store horses and vehicles at your stables (Tim 2026-11-07, sim/vehicle_garage.js)
   const garage = areas ? createGarage({ state, rules: units?.rules, nav: () => navOf('world'), stable: () => frontier?.stable, omnibus, mounts,
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
@@ -256,7 +262,7 @@ export function createGame(options) {
   if (capitalStable) { const [x, z] = ringAt(capitalStable); doors.push({ x, z, place: 'street', menu: 'capital_stable', label: 'Capital stable: horses, rickshaws and omnibuses' }); }
   if (gate) doors.push({ x: gate.city[0], z: gate.city[1], to: { x: gate.island[0], z: gate.island[1] }, place: 'world', label: 'Out to the island', gate: true },
     { x: gate.island[0], z: gate.island[1], to: { x: gate.inside[0], z: gate.inside[1] }, place: 'street', label: 'Into the city', gate: true });
-  const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: areas.lightsNear, towers: () => frontier?.structures?.watchers?.() });
+  const vision = createVision(state, district.bounds, units?.rules?.vision, territory, areas && { ...options.worldChunks.sight, lightsNear: (x, z, r) => { const l = areas.lightsNear(x, z, r), c = campfires?.lightsNear(x, z, r); return c?.length ? l.concat(c) : l; }, towers: () => frontier?.structures?.watchers?.() });
   const discovery = createDiscovery({ state, world: options.world });   // island fog and scouting (frontier W2.3)
   const sightings = options.world ? createSightings({ state, sight: options.worldChunks?.sight || {}, towers: () => frontier?.structures?.watchers?.() || [] }) : null;   // remembered sight of rival towns and camps (Tim 2026-11-18)
   const frontier = options.frontier ? createFrontier({ state, data: options.frontier, world: options.world, spotData:options.resourceSpots, spotRules:options.resourceSpotRules, removeUnit, capitalYard: gate?.island || null, civilians: civData, dayTicks: dayNight ? Math.round((dayNight.daySeconds + dayNight.nightSeconds) * TICK_RATE) : 12000 }) : null;   // settlement economy (sim/frontier/, F2.3)
@@ -274,6 +280,7 @@ export function createGame(options) {
     for (const w of Object.values(state.frontier?.wars?.list || {})) for (const b of w.camp?.buildings || []) if (Math.hypot(x - b.x, z - b.z) <= L) return true;
     for (const c of options.world?.camps || []) if (Math.hypot(x - c.x, z - c.z) <= L) return true;
     // the guard's red lantern on a stopped train's freight wagon lights wagonLight round it (Tim 2026-11-21, render/stolen_chest.js)
+    if (campfires?.litAt(x, z, options.worldChunks?.sight?.fireRadius ?? 18)) return true;   // a camp's fire (sim/campfire.js)
     const WL = FST.wagonLight ?? 5;
     for (const t of Object.values(state.frontier?.rail?.trains || {})) if (t.stopped && t.wagonSpot && Math.hypot(x - t.wagonSpot.x, z - t.wagonSpot.z) <= WL) return true;
     return false;
@@ -1153,6 +1160,7 @@ export function createGame(options) {
       if (c.type === 'omnibus') omnibus?.command(e, c);
       if (c.type === 'ship') ships?.command(e, c);   // board, unload, All aboard (sim/frontier/ships.js)
       if (c.type === 'mount') mounts?.command(e, c);
+      if (c.type === 'campfire') campfires?.command(e, c);   // make or break camp (sim/campfire.js)
       if (c.type === 'garage') garage?.command(e, c);
       if (c.type === 'rickshaw') stationTravel?.command(e, c);
       if (c.type === 'frontier' && c.action === 'salute') { const st = state.frontier?.settlements?.[c.settlement]; if (st?.owner === e.owner) cannons.salute(st, true); continue; }
@@ -1446,6 +1454,7 @@ export function createGame(options) {
     omnibus?.tick();
     ships?.tick(DT);
     mounts?.tick(DT);
+    campfires?.tick();
     garage?.tick(DT);
     castleMounts();
     // quest log milestones (campaign only); at the end of the tick so loot, raids and buys made by units this tick count (Tim 2026-11-06)
@@ -1514,5 +1523,5 @@ export function createGame(options) {
     for (const r of rooms) if (interiorDoors.some(x => x.place === r.name && !state.interiorDoors[x.id])) rebuildRoomNav(r.name);
     inventory.relink();
   }
-  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, wildAnimals, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, castles, ferry, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, ships, mounts, garage, stationTravel, governorNear, dayTicks };
+  return { cityAway: () => cityAway, thinksNow, decide, state, step, spawn, attackAllowed, scenery, saveState, loadState, settings: { units, civilians: civData, bandits: banditData, police: policeData, dayNight }, blockers, rooms, doors, interiorDoors, interiorDoorNear, doorNear, serviceAt, clans, nav, civilians, bandits, worldCamps, wildAnimals, police, businesses, contracts, vision, discovery, sightings, territory, leader, stealth, unstuck, hqCamping, areas, gate, deployment, assignments, rally, shinobiAssignments, shinobiIntelligence, sectorRecovery, diversion, shakedown, sweep, stats, inventory, itemServices, frontier, castles, ferry, landOffice, influence, goals, lieutenant, islandRespawn, omnibus, ships, mounts, campfires, garage, stationTravel, governorNear, dayTicks };
 }
