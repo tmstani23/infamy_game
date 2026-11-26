@@ -25,7 +25,7 @@ const SPR_W = CELL_W / PX, SPR_H = CELL_H / PX, SPR_UP = (FEET_ROW - CELL_H / 2)
 const FLY_ORDER = 99060, SHADOW_ORDER = -0.3, MAX = 90;
 const TREE = /tree|pine|cedar|willow|banyan|broadleaf|bamboo$/, PERCH = /fence|wall|palisade|dead_tree|post|torii|gate/;
 // gunfire and blasts that scatter crows, and how far (world units)
-const SCARE = { rifleshot: 22, bullet: 22, gatlingShot: 22, cannonFire: 34, shipBroadside: 34, shipCannon: 30, dynamiteBlast: 30, railBlast: 34, firebombBurst: 18 };
+const SCARE = { rifleshot: 22, bullet: 22, gatlingShot: 22, cannonFire: 34, shipBroadside: 34, shipCannon: 30, dynamiteBlast: 30, railBlast: 34, firebombBurst: 18, folkPop: 12 };   // folkPop: the hermit's brew going off
 
 const screenDir = h => {   // a ground heading -> the sprite direction 0..7
   const dx = Math.cos(h), dz = Math.sin(h), sx = dx * CAM_RIGHT.x + dz * CAM_RIGHT.z, sy = dx * CAM_UP.x + dz * CAM_UP.z;
@@ -227,9 +227,10 @@ export function createCrowFx({ scene, world, groundY = () => 0, isBuilding = () 
     if ((armyT -= dt) <= 0) { armyT = 1; findArmies(state, prev); }
     for (const [k, f] of fights) if (clock - f.last > 120) fights.delete(k);
     // people near the crows: walkers make the ones on the ground hop off, riders at a gallop scatter them
-    const people = [];
+    const people = [], feeders = [];   // feeders: the wandering hermit the crows come down by and do not mind
     for (const e of Object.values(state.entities)) {
       if (e.place !== 'world' || e.dead || e.ship || e.cannon || Math.abs(e.x - cam.x) > cam.r * 1.4 || Math.abs(e.z - cam.z) > cam.r * 1.4) continue;
+      if (e.crowFriend) { feeders.push({ x: e.x, z: e.z }); continue; }
       const p = prev?.entities?.[e.id];
       people.push({ x: e.x, z: e.z, fast: !!e.mounted && !!p && Math.hypot(e.x - p.x, e.z - p.z) > 0.15 });
     }
@@ -237,7 +238,7 @@ export function createCrowFx({ scene, world, groundY = () => 0, isBuilding = () 
     for (const f of flocks.flocks()) if (f.birds.some(b => b.spot?.host && !hostSet.has(b.spot.host))) for (const b of f.birds) if (b.spot?.host && !hostSet.has(b.spot.host)) { b.spot = null; if (b.mode === 'sit') { b.mode = 'takeoff'; b.t = 0; b.wait = 0; } else b.mode = 'fly'; }
     let flushes = [];
     if ((flushT -= dt) <= 0) { flushT = 0.5; flushes = findFlushes(state, prev, cam); }
-    const env = { cam, night: shared.uNight.value, groundY, spots, scatters: scares.splice(0), people, flushes,
+    const env = { cam, night: shared.uNight.value, groundY, spots, scatters: scares.splice(0), people, feeders, flushes,
       battles: [...fights.values()].map(f => ({ x: f.x, z: f.z, active: clock - f.last < 6 && f.n >= 3, kills: f.kills })), armies };
     const heard = flocks.update(env, Math.min(dt, 0.1));
     const loud = (x, z) => Math.max(0, 1 - Math.hypot(x - cam.x, z - cam.z) / hear);

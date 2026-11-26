@@ -19,6 +19,8 @@ import { specialOf } from '../sim/special_cast.js';
 import { createHQFire } from './hq_fire.js';
 import { createHallChannelFx } from './hall_channel_fx.js';
 import { createCampfireFx, SIT } from './campfire_fx.js';
+import { createFolkFx } from './folk_fx.js';
+import { createFireSmokeFx } from './fire_smoke_fx.js';   // wandering folk props (world variety P2)
 import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
 import { createWeather } from './weather.js';
@@ -318,7 +320,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.team.rotation.x = -Math.PI / 2;
       scene.add(s.team);
     }
-    s.team.visible = !e.dead && !e.downed && !e.jailed && !e.cannon && !(e.wildlife && !(e.angry && Object.keys(e.angry).length));   // salute cannons are scenery: no ring; a calm wild animal neither
+    s.team.visible = !e.dead && !e.downed && !e.jailed && !e.cannon && !(e.wildlife && !(e.angry && Object.keys(e.angry).length)) && !(e.folk && e.type === 'civilian');   // salute cannons are scenery: no ring; a calm wild animal neither
     TEAM_TIME.value = performance.now() / 1000;
     TEAM_FAR.value = THREE.MathUtils.clamp((0.6 - zoomNow) / (0.6 - minZoom('world')), 0, 1);
     s.team.children[1].material = TEAM_MAT[teamOf(e, me)];
@@ -490,11 +492,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const back = seat ? (catalog.rideBack?.[e.model] || 0) / 14 : 0;
       s.seat = seat ? [(seat[0] * (1 + back)) * SEAT_PX, -(seat[1] + (seat[1] + 49) * back) * SEAT_PX] : null;
       s.setEquipment(e.type === 'hero' ? ['weapon','armor','accessory'].map(slot=>ITEMS[e.equipment?.[slot]]) : []);
+      if (e.tiny || s.tinyK != null) { s.tinyK = (s.tinyK ?? 1) + ((e.tiny ? 0.45 : 1) - (s.tinyK ?? 1)) * Math.min(1, fdt * 7); if (!e.tiny && s.tinyK > 0.995) s.tinyK = null; }   // the hermit's brew shrank him (sim/wandering_folk.js)
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
-        e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1);
+        (e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1) * (s.tinyK ?? 1));
       if (e.type === 'rickshaw' || drivers.has(id)) syncDriver(e, s, fdt, loaded);   // its coachman (frontier rickshaw)
       // salute cannons: no health bar; a ridden horse neither: its bar sat on the rider's and the two flickered (Tim 2026-11-16), her health shows on her Mount card
-      if (e.cannon || (e.guide && !e.owner) || (e.type === 'horse' && e.rider)) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp, SIDE_BAR[teamOf(e, state.entities[followId])]);   // nor the clanless guides (Tim 2026-11-20)
+      if (e.cannon || (e.guide && !e.owner) || (e.type === 'horse' && e.rider) || (e.folk && e.type === 'civilian')) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp, SIDE_BAR[teamOf(e, state.entities[followId])]);   // nor the clanless guides (Tim 2026-11-20)
       s.setNameplate(e.name || entityName(units || { types: {} }, e), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
         state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), state.clans?.[e.owner] ? state.clans[e.owner].faction || true : false, e.type === 'hero',
         teamOf(e, state.entities[followId]) === 'enemy' ? '#e63c32' : null);   // enemies: a red border, the crest keeps the clan colour (Tim 2026-11-19)
@@ -600,6 +603,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     structureFire.updateSmoke(dt, cameraPlace(state.entities[followId]));   // 7c: moving smoke over ruins
     hallFx.update(state, cameraPlace(state.entities[followId]));   // war 8a: the fire or banner on a hall being taken
     campfireFx.update(state, (heroPlace === 'world' && !cityView) || worldView);   // made camps (sim/campfire.js)
+    fireSmokeFx.update(dt, state, (heroPlace === 'world' && !cityView) || worldView);   // flames, sparks and smoke on every camp fire (Tim 2026-11-26)
+    folkFx.update(state, (heroPlace === 'world' && !cityView) || worldView, dt);   // wandering folk's logs and fires (sim/wandering_folk.js)
     hitFx.update(fdt);
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
     abilityFx.update(fdt, state, presentationId, cameraPlace(state.entities[followId]));   // the place the camera shows: the city street in Watch the city (Tim 2026-11-10)
@@ -635,7 +640,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     updateBlueprintWalls(state, presentationId, sprites.get(presentationId)||hero, dt);
     mark('lights');
     // buildings, props and banners stand still, so only the units are re-checked each frame (render/draw_order.js)
-    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || []), ...campfireFx.things()], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || []), ...(cityStation?.things() || []), ...(ferryShips?.things() || []), ...(mooredBoats?.things() || []), ...(crowFx?.things() || [])]);
+    sorter.sort([...things, ...banners.things, ...(worldGround?.things() || []), ...campfireFx.things(), ...folkFx.things()], [...[...sprites.values()].filter(Boolean).map(s => s.thing), ...(railTrack?.things() || []), ...(cityStation?.things() || []), ...(ferryShips?.things() || []), ...(mooredBoats?.things() || []), ...(crowFx?.things() || [])]);
     for (const d of drivers.values()) if (d?.cart) d.thing.mesh.renderOrder = d.cart.renderOrder + (d.behind ? -1 : 1);   // the coachman just before or after his rickshaw
     mark('sort');
     // effect particles are sized in world units: pixels per unit of each target drawn
@@ -659,6 +664,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const structureFire = createStructureFire({ scene });
   const hallFx = createHallChannelFx({ scene, lights, thingAt: k => worldGround?.thingAt(k) || null, artThing: p => worldGround?.artThing(p) || null, seconds: () => hallSeconds });   // war 8a: taking a hall
   const campfireFx = createCampfireFx({ scene, lights, artThing: p => worldGround?.artThing(p) || null, emberSeconds: () => units?.rules?.campfire?.emberSeconds ?? 20 });   // world variety P1
+  const fireSmokeFx = createFireSmokeFx({ scene, emberSeconds: () => units?.rules?.campfire?.emberSeconds ?? 20 });
+  const folkFx = createFolkFx({ scene, lights, artThing: p => worldGround?.artThing(p) || null, emberSeconds: () => units?.rules?.campfire?.emberSeconds ?? 20 });   // world variety P2
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z, h = 0.9) => { v.set(x, h + groundY(x, z), z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   let hallChannelOf = () => null;   // main.js: the running hall channel of a war (sim/frontier/war_end.js view)
   const abilityFx = createAbilityFx({ scene, overlay: fxLayer, posOf: id => sprites.get(id)?.pos || null, spriteOf: id => sprites.get(id) || null, hallChannelOf: id => hallChannelOf(id),
@@ -667,6 +674,12 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     crowFx?.casts(casts, castState);   // gunfire scatters the crows
     for (const c of casts) {
       abilityFx.cast(c);
+      folkFx.cast(c);   // the hermit's brew going off
+      if (c.kind === 'folkHit') {   // a bandit's blow on the peddler: blood and the struck jolt, no number (sim/wandering_folk.js)
+        const a = castState?.entities?.[c.a];
+        hitFx.hit({ x: c.x, z: c.z, a: c.a, t: c.t, kill: !!c.kill }, a, false, true, true);
+        if (a) { const d = Math.hypot(c.x - a.x, c.z - a.z) || 1; sprites.get(c.t)?.struck((c.x - a.x) / d, (c.z - a.z) / d, !!c.kill); }
+      }
       shipFx.cast(c);   // broadsides, bow cannon, deck Gatling (ships S4)
       boardFx.cast(c, castState, sprites);   // grapple, break off, capture (ships S8)
       if (c.ryo) abilityFx.coins(c.x, c.z);   // c.ryo: an execute that paid ryo

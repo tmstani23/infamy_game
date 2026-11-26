@@ -136,7 +136,7 @@ async function start() {
   const weatherCfg = await getJSON('data/weather.json').catch(() => null);
   const wildlifeCfg = await getJSON('data/wildlife.json').catch(() => null);   // crows and animals, visual only so far (wildlife W1, Tim 2026-11-24)   // frontier weather, visual only (Tim 2026-11-20)
   const castleBlueprint = await getJSON('data/castle_default.json').catch(() => null), campaignZones = await getJSON('data/campaign_zones.json').catch(() => null);   // Z4: castles and zones
-  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), animals: islandOnly(wildlifeCfg?.animals), frontier: islandOnly(frontier && { ...frontier, railways, castleBlueprint, campaignZones, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
+  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), animals: islandOnly(wildlifeCfg?.animals), folk: islandOnly(wildlifeCfg?.folk), frontier: islandOnly(frontier && { ...frontier, railways, castleBlueprint, campaignZones, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
   const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST, seed: Math.floor(Math.random() * 2147483646) + 1 };   // seed: per-game bot site picks (E6)
   // A read-only replica supplies existing UI queries and static geometry. Only
   // the worker advances the match, including while Map/Deployment is open.
@@ -397,7 +397,7 @@ async function start() {
     const hq = leave && now - leaveSince < 8000 && Object.values(game.state.businesses).find(x => x.hideout === h.owner && x.ring);
     const door = hq ? hq.ring : leave ? game.gate.city : ready ? b && (b.ring || b.door || [b.x, b.z]) : where && !landOfficeMenu.isOpen() ? [where.x, where.z] : null;
     view.setOfficeHint(door || null);
-    game.officeHint = door ? { x: door[0], z: door[1] } : null;
+    game.officeHint = door ? { x: door[0], z: door[1], name: hq ? 'Your headquarters' : leave ? 'Gate to the island' : ready ? 'Land Office' : row?.label || 'Goal' } : null;   // name: the minimap arrow's hover
     // Shakedown / Sweep goal (Tim 2026-11-06): lead the player with gold flashes, one at a time:
     // the Deployment icon, then your sectors with crew on the map, then the Start Shakedown / Dispatch Sweep button
     const op = goal?.rows.find(r => !r.done && (r.label === 'Shakedown done' || r.label === 'Sweep done'));

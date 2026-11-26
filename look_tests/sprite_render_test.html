@@ -921,7 +921,9 @@ function renderSheet(i, withGlow = false, opts = {}) {
   idlePose = /idle|walk|pointing/i.test(entry.name);
   idleOnly = /idle/i.test(entry.name);
   const clip = $('inplace').checked ? stripRootMotion(entry.clip) : entry.clip;
-  const frames = Math.max(1, Math.min(Number($('maxf').value), Math.round(clip.duration * fps)));
+  // opts.from / opts.span: only this stretch of a long clip, in seconds (the hermit's mixing out of a 13 s bartending clip); opts.maxFrames over the page's Max frames
+  const from = Math.min(opts.from || 0, clip.duration), span = Math.min(opts.span || clip.duration, clip.duration - from);
+  const frames = Math.max(1, Math.min(opts.maxFrames || Number($('maxf').value), Math.round(span * fps)));
 
   const sheet = document.createElement('canvas');
   sheet.width = size * frames; sheet.height = size * rows.length;
@@ -963,7 +965,7 @@ function renderSheet(i, withGlow = false, opts = {}) {
     const row = rows.indexOf(dirRow);
     root.rotation.y = rowYaw(dirRow);
     for (let f = 0; f < frames; f++) {
-      exMixer.setTime((f / frames) * clip.duration);
+      exMixer.setTime(from + (f / frames) * span);
       spinWheels(f / frames, frames, clip.duration, entry.name);
       spearPhase = f / frames;
       updateItem();
@@ -994,7 +996,7 @@ function renderSheet(i, withGlow = false, opts = {}) {
 
   const safe = s => s.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '').toLowerCase();
   const clipName = /\(built in\)/.test(entry.name) ? 'walk' : entry.name;
-  return { sheet, glow, frames, size, fps, duration: clip.duration, fname: `${safe(modelName)}_${safe(clipName)}.png` };
+  return { sheet, glow, frames, size, fps, duration: span, fname: `${safe(modelName)}_${safe(clipName)}.png` };
 }
 
 $('export').onclick = () => {
@@ -1047,6 +1049,28 @@ window.spriteTest = {
   boneInfo: () => { root.updateMatrixWorld(true); const o={}; const g=n=>findBone(new RegExp(n+'$')); const R=g('RightHand'); const w=b=>b.getWorldPosition(new THREE.Vector3()); const inv=R.matrixWorld.clone().invert();
     for (const n of ['RightHand','RightHandThumb1','RightHandPinky1','RightHandIndex1','RightHandMiddle1','RightHandMiddle3']) { const b=g(n); if(b) o[n]=w(b).applyMatrix4(inv).toArray().map(v=>+v.toFixed(3)); } o.scale=R.getWorldScale(new THREE.Vector3()).x; o.rootScale=root.scale.x; return o; },
   setProcItem: k => setItemObject(PROC_ITEMS[k]()),
+  // Small things in the fists, parented straight to the hand bones (the wandering hermit's flasks, Tim 2026-11-26):
+  // 'flasks' = a little round glass flask in each hand, green in the right and violet in the left, corked
+  setHandProps: kind => {
+    if (kind !== 'flasks' || !root) return false;
+    root.updateMatrixWorld(true);
+    const flask = (bone, color, side) => {
+      const s = bone.getWorldScale(new THREE.Vector3()), g = new THREE.Group();
+      const glass = std({ color, roughness: 0.2, metalness: 0.05, emissive: color, emissiveIntensity: 0.55 }, [0xffffff, 0.5]);
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), glass); body.position.y = 0.06; g.add(body);
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.03, 0.09, 10), glass); neck.position.y = 0.16; g.add(neck);
+      const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.022, 0.035, 8), std({ color: 0x8a6a45, roughness: 0.9 })); cork.position.y = 0.22; g.add(cork);
+      g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0.92 * side, 0.38, 0).normalize());
+      const inner = new THREE.Group(); inner.add(g); inner.scale.set(1 / s.x, 1 / s.y, 1 / s.z);
+      inner.position.set(0, 0.07 / s.y, 0.02 / s.z);
+      inner.traverse(o => { o.frustumCulled = false; });
+      bone.add(inner);
+    };
+    const R = findBone(/RightHand$/), L = findBone(/LeftHand$/);
+    if (R) flask(R, 0x45d868, 1);
+    if (L) flask(L, 0xa45cf0, -1);
+    return !!(R || L);
+  },
   setScale: s => { $('cscale').value = s; if (root) root.scale.setScalar(s); },
   setFraming: f => { $('size').value = f.size; $('zoom').value = 3 / f.cellWorld; },
   setMount: o => { mountOpts = o; ROWS = o.dirs || 8; },

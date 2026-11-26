@@ -8,6 +8,8 @@
 //       (tools/repack_model.mjs; --margin=N passes through)
 //   add --bare to draw the clip with nothing in the hands, and --as=NAME to write it as <model>_NAME
 //       (the campfire sit: --clip=coach_sitting --bare --as=campfire_sit, world variety P1, Tim 2026-11-26)
+//   add --props=flasks to put a little flask in each fist (the hermit's mixing: --clip=bartending --props=flasks --as=mix)
+//   add --from=S --span=S to draw only that stretch of a long clip (seconds), --frames=N for more than the page's 32 frames
 //   add --portrait for the character-page portrait: the idle from art.json, front
 //       row only (row 7) at 512 px, to assets/sprites/portraits/; with --pack it goes
 //       to assets/sprites_packed/portraits/ (render/hero_preview.js loads it)
@@ -120,6 +122,9 @@ const EXTRA = {
   swordsman: ['brawler/Walking.fbx'],
   rival_yakuza: ['brawler/Walking.fbx'],
   geisha: ['Arms Hip Hop Dance.fbx'],
+  // the wandering hermit (world variety P2, Tim 2026-11-26): picking herbs, mixing his flasks, feeding the animals
+  monk: ['Picking Up.fbx', 'Bartending.fbx', 'Throwing.fbx'],
+  monk2: ['Picking Up.fbx', 'Bartending.fbx', 'Throwing.fbx'],
   rail_worker: ['Great Sword Slash.fbx'],   // the hammer swing (overhead chop) until a proper pounding clip exists
   lieutenant1: ['Yelling Out.fbx'],   // talk clip for the gate dialogue (Tim OK 2026-11-06)
 };
@@ -131,7 +136,7 @@ const RIDE = Object.fromEntries(['ronin', 'ninja_leader', 'rival_yakuza',
   'mercenary', 'monk', 'monk2', 'geisha', 'archer', 'gunslinger',
   // the coachman drawn on a driven rickshaw (Tim 2026-11-08: no empty seat, not the hero himself; render/view.js)
   'rickshaw_driver'].map(m => [m, 'coach_sitting.fbx']));
-const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx', 'coach_sitting.fbx']);
+const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx', 'coach_sitting.fbx', 'Picking Up.fbx', 'Bartending.fbx', 'Throwing.fbx']);
 // RIDE_ATTACK (Tim 2026-11-14): the strike from the saddle, sheet <model>_ride_attack: the riding seat's hips and legs
 // with this attack clip above the hips (blended by the sprite page, addBlend). art.json characters.<model>.rideAttack
 // The same models get <model>_ride_saddle, their riding seat with the legs round the horse (RIDE_STRADDLE: thighs out
@@ -214,6 +219,9 @@ const flags = process.argv.slice(3).filter(s => s.startsWith('--'));
 const only = process.argv.slice(3).filter(s => !s.startsWith('--')).map(s => s.toLowerCase());
 const glowOnly = flags.includes('--glow-only');
 const onlyClips = flags.filter(s => s.startsWith('--clip=')).map(s => s.slice(7).toLowerCase());
+const handProps = flags.find(s => s.startsWith('--props='))?.slice(8).toLowerCase() || null;
+const flagNum = k => { const f = flags.find(s => s.startsWith(`--${k}=`)); return f ? Number(f.slice(k.length + 3)) : null; };
+const stretch = Object.fromEntries([['from', flagNum('from')], ['span', flagNum('span')], ['maxFrames', flagNum('frames')]].filter(([, v]) => v != null));
 const bare = flags.includes('--bare'), saveAs = flags.find(s => s.startsWith('--as='))?.slice(5).toLowerCase() || null;
 const portrait = flags.includes('--portrait'), pack = flags.includes('--pack');
 const PORTRAIT_SIZE = 512, PORTRAIT_ROW = 7;
@@ -304,7 +312,7 @@ for (const { file: model, name } of models) {
   // Portrait: same framing, bigger frame; the glow blur grows with it so it reads the same
   const baseSize = await page.evaluate(() => Number(document.getElementById('size').value));
   if (portrait) await page.evaluate(s => { document.getElementById('size').value = String(s); }, PORTRAIT_SIZE);
-  const renderOpts = portrait ? { rows: [PORTRAIT_ROW], blurScale: PORTRAIT_SIZE / baseSize } : {};
+  const renderOpts = portrait ? { rows: [PORTRAIT_ROW], blurScale: PORTRAIT_SIZE / baseSize } : { ...stretch };
   const it = bare ? null : ITEMS[name] || TANK_SPRITES[name]?.item;
   if(it?.shield==='long')await page.evaluate(()=>window.spriteTest.loadLongShieldTexture());
   let holding = false;
@@ -324,6 +332,7 @@ for (const { file: model, name } of models) {
     } else console.log(`  no assets/models/items/${it.file}.glb yet, exporting empty-handed`);
   }
   if (rideAttack && !await page.evaluate(([u, l, s]) => window.spriteTest.addBlend('ride_attack', `^${u}$`, `^${l}$`, s) && window.spriteTest.addBlend('ride_saddle', `^${l}$`, `^${l}$`, s), [...rideAttack.map(base), RIDE_STRADDLE])) console.log('  ride_attack: source clips missing');
+  if (handProps && await page.evaluate(k => window.spriteTest.setHandProps(k), handProps)) console.log(`  ${handProps} in the hands`);
   const names = await page.evaluate(() => window.spriteTest.clipNames());
   console.log(`${name} (${sets.join(', ')}): ${names.length} animation(s)`);
   for (let i = 0; i < names.length; i++) {

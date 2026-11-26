@@ -124,6 +124,9 @@ export function createCrowFlocks(cfgIn = {}, rnd = Math.random) {
     // (Tim 2026-11-24: not all the time, just sometimes for a little bit; a flock that trailed once goes its own way after)
     if (army && !f.trailed && rnd() < (cfg.follow ?? 0.2)) { f.trail = army.id; f.trailed = true; f.goal = { kind: 'trail', until: time + R(cfg.wander) }; return; }
     f.trail = null;
+    // the wandering hermit: a flock in reach comes down on the ground by him, again and again as he moves on
+    const fd = (env.feeders || []).find(p => Math.hypot(p.x - c.x, p.z - c.z) < (cfg.feederReach ?? 70));
+    if (fd && Math.hypot(fd.x - c.x, fd.z - c.z) > 6 && rnd() < 0.8 && land(env, f, fd.x + (rnd() - 0.5) * 5, fd.z + (rnd() - 0.5) * 5, ['ground'])) { f.goal.until = time + 6 + R(cfg.sit) * 0.6; return; }
     const sitting = f.birds.some(b => b.mode === 'sit');
     if (!sitting && rnd() < 0.55) {   // come down somewhere near: roofs first in a town, else fields, walls or trees
       const x = c.x + (rnd() - 0.5) * 30, z = c.z + (rnd() - 0.5) * 30, r = rnd();

@@ -1,12 +1,12 @@
 // Presentation protocol, not a save game. Never copies paths, AI planners or RNG.
-import { ringRadius } from './sim/frontier/town_grid.js';
 import { groundItemsFor } from './sim/ground_items.js';
+import { ringRadius } from './sim/frontier/town_grid.js';
 export const EVENT_KEYS = ['hits','dodges','casts','heatGains','ryoGains','ryoLosses','policeNews','news'];
 const ROOTS = ['tick','night','dawn','dusk','clock','businesses','interiorDoors','clans','season','deployment',
   'contracts','attacks','banditCamps','lightsOut','hqCamping','hqRaids','shakedowns','raidWindow',
   'formations','smokes','projectiles','campfires','catchCasts'];   // campfires: made camps (sim/campfire.js, render/campfire_fx.js)
 const MARKER_FIELDS = ['id','type','model','owner','x','z','place','hp','maxHp','dead','downed','jailed',
-  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider','guide','surveyor','anim','cannon','gat','robbing','wildlife','species','coat','sitting','campfire','campCast','catchCast','shopkeeper','merchantOf'];
+  'hidden','cop','wild','guard','name','dir','attackTarget','swing','execute','angry','aboard','garrison','omnibusOwner','mounted','horseOwner','rider','guide','surveyor','anim','cannon','gat','robbing','wildlife','species','coat','sitting','campfire','campCast','catchCast','folk','sitAt','crowFriend','tiny','peddlerShop','shopkeeper','merchantOf'];   // folk: wandering folk (no ring, no bar, minimap dot)
 const pick = (value, keys) => Object.fromEntries(keys.filter(k => value[k] !== undefined).map(k => [k,value[k]]));
 
 // Recursive replacement retains object identities captured by read-only sim helpers.
@@ -116,7 +116,8 @@ export function createSnapshotEncoder(game, clan = 'player') {
   function encode({map = false, selected = [], events = {}} = {}) {
     const st = game.state, detail = new Set(selected), roots = pick(st, ROOTS);
     // Island discovery (frontier W2.3): only this clan's fog, scouted sites and last-seen markers, never another clan's.
-    if (st.world) roots.world = { discovered: {[clan]: st.world.discovered?.[clan] ?? null}, scouted: {[clan]: st.world.scouted?.[clan] || []}, lastSeen: {[clan]: st.world.lastSeen?.[clan] || {}}, pins: {[clan]: st.world.pins?.[clan] || []}, camps:game.worldCamps?.viewFor(clan) || {} };
+    if (st.world) roots.world = { discovered: {[clan]: st.world.discovered?.[clan] ?? null}, scouted: {[clan]: st.world.scouted?.[clan] || []}, lastSeen: {[clan]: st.world.lastSeen?.[clan] || {}}, pins: {[clan]: st.world.pins?.[clan] || []}, camps:game.worldCamps?.viewFor(clan) || {},
+      folk: { scenes: Object.fromEntries(Object.values(st.world.folk?.scenes || {}).filter(sc => sc.props?.length).map(sc => [sc.id, { id: sc.id, props: sc.props }])) } };   // wandering folk's logs and fires (render/folk_fx.js)
     // Frontier towns (F2.4b readout; F4.2 filters per owner): everything but the 500-entry display ledger.
     // F4.2: per clan and at 4 Hz (every 5th tick, the encoder keeps the last view between).
     { const g = groundItemsFor(st, clan, game.discovery); if (g) roots.groundItems = { items: g }; }   // dropped bag items (sim/ground_items.js)

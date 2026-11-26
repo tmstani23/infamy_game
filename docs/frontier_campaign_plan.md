@@ -1107,3 +1107,15 @@ Code: sim/campfire.js (numbers in data/units.json campfire), render/campfire_fx.
 - Sitters play the 'sit' clip, <model>_campfire_sit: the coach sitting clip with nothing in the hands, for all 20 sitting models (enforcer uses brute's, shinobi_geisha uses geisha's). Made with tools/export_sprites.mjs --clip=coach_sitting --bare --as=campfire_sit; each has an empty glow sheet so packed loading works. Kunoichi has no sitting sheet and stands.
 - Touch-ups (2026-11-26): seats farther out (fireAhead and seatRadius 3.4, were 2.4).
 - Right-click your own fire, lit or burning down: the hero walks back to his seat (e.campBack, WASD ends it), sits, and the fire burns again; the crew who sat there go back to their seats. The same rules as making camp apply. A fire someone is walking back to does not burn out. Hovering your own fire shows the pointing hand cursor (CURSOR.use in src/cursors.js).
+
+## Wandering folk (world variety P2, 2026-11-26)
+- Scenes appear round the hero when he is out on the island (ahead of the way he is going, out of sight), about one every 2 to 4 minutes, at most 2 near him, and go once nobody of his is near. A spot rests 10 minutes after a scene. Never in a town ring, camp or war circle.
+- Folk are untouchable civilians: shots, blows, a war circle or 8+ war troops near make everyone scatter. Only the peddler's bandits fight (real bandits, bandit ryo). Every scene does something no other scene does.
+- Everyone has a name ("Genzo the pilgrim"), shown on the nameplate (L) and the target frame. No ring or health bar. Gold dot with a halo on the island minimap. Short speech bubbles over their heads (lines in wildlife.json folk.scenes.<scene>.lines; "words | answer" makes a two-line exchange).
+- Hermit (day): herb gatherer with friend deer and crows. Picks mushroom clumps, mixes flasks (scrolls fall round him), and each brew goes wrong: a pop with coloured smoke, a big one he scurries from, one that shrinks him for a few seconds, one that knocks him flat. Feeds his animals. Bows if you stop by him. Leaves after 3 brews.
+- Ronin duel (day) on a bridge or ford; stops to stare down a rider; one falls, the winner walks off.
+- Peddler held up (any time), on a pass or road: 2 to 3 bandits take turns hitting him (blood, now and then coins), he pleads. Kill the bandits and he bows, then trades for about 2 minutes (same stock and half-price buying as a town merchant; Space beside him; he stays while the hero is near). Leave them 30 to 45 seconds and they kill him, take his goods and go; then there is no shop.
+- Pilgrims (day) on the road with a bell; bow at a roadside shrine; step off the road for riders.
+- Night camp (night) off a road: unarmed travellers seated round a fire with flames and long smoke, one strolls and chats, calls out to riders or a band; fire dies at dawn.
+- Crew campfires share the same flame, spark and smoke effect. Gold arrows on the minimap edge have a hover saying what they point to.
+- Numbers: data/wildlife.json "folk" (placeholders).

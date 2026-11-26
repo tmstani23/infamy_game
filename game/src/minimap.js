@@ -117,6 +117,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   function colorOf(e, me) {
     if (e.id === heroId) return ['#ffcd50', 3.4];
     if (e.owner === me) return ['#50d2c8', 2.4];
+    if (e.type === 'civilian' && e.folk) return ['#ffe9b0', 2.6];   // wandering folk (sim/wandering_folk.js): bigger warm paper dots, so a scene near you is noticed (Tim 2026-11-26)
     if (e.type === 'civilian') return ['#ebe8dc', 1.5];
     if (e.cop || e.owner === 'police') return [policeMapColor(e, me, game.state), 2.4];
     if (e.wildlife) return (e.angry?.[me] ?? -1) > game.state.tick ? ['#ff4632', 2.2] : ['#c9b48a', 1.3];   // wild animals: small tan dots, red while a boar charges you
@@ -135,7 +136,16 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   const tipBox = document.createElement('div');
   tipBox.style.cssText = 'position:fixed;z-index:50;pointer-events:none;background:rgba(10,20,27,.94);color:#f3dfae;border:1px solid #6b5a38;border-radius:4px;padding:5px 8px;font:12px sans-serif;max-width:230px;display:none';
   document.body.appendChild(tipBox);
+  const plain = t => String(t ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   canvas.addEventListener('mousemove', e => {
+    {   // the gold edge arrows say what they point to, on both minimaps
+      const r = canvas.getBoundingClientRect(), mx = (e.clientX - r.left) * size / r.width, my = (e.clientY - r.top) * size / r.height;
+      const g = guideHits.find(h => (h[0] - mx) ** 2 + (h[1] - my) ** 2 < h[2] * h[2]);
+      if (g) {
+        tipBox.innerHTML = `<b>${plain(g[3])}</b>` + (g[4] ? `<div>${plain(g[4])}</div>` : '') + '<div>This way</div>';
+        tipBox.style.left = `${e.clientX - 250}px`; tipBox.style.top = `${e.clientY + 14}px`; tipBox.style.display = 'block'; return;
+      }
+    }
     const island = onIsland();
     if (!island && onHover) { tipBox.style.display = 'none'; return; }   // the big map has its own hover card
     if (!island) {   // city minimap: a building's name
@@ -192,22 +202,23 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   }
   // every spot that should guide you: the goal ping (game.officeHint, set by main.js), the surveyor's site picks of the
   // Found card and your world map pins (island only), each pulsing in the box and an arrow on the edge outside it
-  let goalSites = [], goalSitesAt = 0;
+  let goalSites = [], goalSitesAt = 0, guideHits = [];
   function guideTargets(island) {
     const out = [];
-    if (game.officeHint) out.push([game.officeHint.x, game.officeHint.z]);
+    if (game.officeHint) out.push([game.officeHint.x, game.officeHint.z, game.officeHint.name || 'Goal']);
     if (!island) return out;
     const t = performance.now();
     if (t - goalSitesAt > 500) { goalSitesAt = t; goalSites = game.goals?.current?.(clan)?.sites || []; }
-    for (const s of goalSites) out.push([s.x, s.z]);
-    for (const p of game.state.world?.pins?.[clan] || []) out.push([p.x, p.z]);
+    for (const s of goalSites) out.push([s.x, s.z, 'Town site the surveyor picked']);
+    for (const p of game.state.world?.pins?.[clan] || []) out.push([p.x, p.z, 'Your map pin', p.note]);
     return out;
   }
   function drawGuides(list, project, ps) {
     const q = (performance.now() / 1000) % 1.5 / 1.5, arrows = [];
-    for (const [x, z] of list) {
+    guideHits = [];   // hover: what each edge arrow points to (Tim 2026-11-26)
+    for (const [x, z, name, note] of list) {
       const [u, v] = project(x, z), ar = edgeArrow(u, v, size, 11 * ps);
-      if (ar) { arrows.push(ar); continue; }
+      if (ar) { arrows.push(ar); guideHits.push([ar.u, ar.v, 10 * ps, name, note]); continue; }
       ctx.beginPath(); ctx.arc(u, v, (4 + q * 12) * ps, 0, Math.PI * 2); ctx.strokeStyle = `rgba(255,205,80,${(1 - q) * 0.95})`; ctx.lineWidth = 1.8; ctx.stroke();
       ctx.beginPath(); ctx.arc(u, v, 3.2 * ps, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,205,80,.95)'; ctx.fill();
     }
@@ -286,6 +297,10 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       if (e.place !== 'world' || e.dead) continue;
       if(e.worker && e.workerOwner === me.owner)continue;   // yours are drawn below from the worker records
       const [col, r] = e.worker ? ['#ff4632', 2.2] : colorOf(e, me.owner), [u, v] = at(e.x, e.z);   // an enemy worker in sight: a red dot (Tim 2026-11-12)
+      if (e.folk && e.type === 'civilian') {   // wandering folk: a soft halo that breathes about once a second, so the scene catches the eye (Tim 2026-11-26)
+        const k = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+        ctx.beginPath(); ctx.arc(u, v, (r + 1.5 + 2.5 * k) * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = `rgba(255,233,176,${(0.12 + 0.3 * k).toFixed(3)})`; ctx.fill();
+      }
       ctx.beginPath(); ctx.arc(u, v, r * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
       ctx.lineWidth = 1; ctx.strokeStyle = e.warTroop && e.owner === me.owner ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.8)'; ctx.stroke();   // your war troops: a white rim (Tim 2026-11-12)
     }

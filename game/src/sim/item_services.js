@@ -15,7 +15,7 @@ export function createItemServices({state,raidRules={},spawn,nav,removeUnit=null
   const near=e=>!!e&&canInteract(e)&&e.type==='hero'&&e.place==='street'&&!!shop()&&Math.hypot(e.x-shop().x,e.z-shop().z)<=SHOP.reach;
   // the frontier merchant (Tim 2026-11-26): the stall keeper of one of e's own towns, within reach
   const merchantNear=e=>{if(!e||!canInteract(e)||e.type!=='hero'||e.place!=='world'||e.aboard)return null;
-    return Object.values(state.entities).find(m=>m.merchantOf&&state.frontier?.settlements?.[m.merchantOf]?.owner===e.owner&&Math.hypot(e.x-m.x,e.z-m.z)<=FM.reach)||null;};
+    return Object.values(state.entities).find(m=>(m.peddlerShop&&!m.dead||m.merchantOf&&state.frontier?.settlements?.[m.merchantOf]?.owner===e.owner)&&Math.hypot(e.x-m.x,e.z-m.z)<=FM.reach)||null;};   // or a peddler he saved on the road (sim/wandering_folk.js, Tim 2026-11-26)
   // one stall keeper per founded town of a player clan, day and night (wars are a race: never wait for the shop)
   function merchants(){
     if(!state.frontier||state.tick%20||!spawn)return;

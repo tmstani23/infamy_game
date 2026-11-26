@@ -87,5 +87,35 @@
       "howl": { "chance": 0.02, "range": 900 },
       "hunt": { "chance": 0.35, "loneChance": 0.1, "dayFactor": 0.04, "workerChance": 0.25, "range": 260, "groupRadius": 18, "smallGroup": 4, "bigGroup": 9, "closeIn": 14, "stalkSeconds": 120, "reach": 30, "lose": 70, "seconds": 90, "biteBack": [1.5, 3], "backOff": 6, "breakAt": 0.5, "loneBreakAt": 0.3 }
     }
+  },
+  "folk": {
+    "_note": "Wandering folk (world variety P2, sim/wandering_folk.js). Scenes come round the player's own units on the island, out of sight, by the place they need and the biome; gone once nobody of his is near; they scatter from shots, armies and war circles. Placeholders, tune in play.",
+    "rules": { "names": ["Genzo", "Tasuke", "Hikobei", "Yohei", "Kansuke", "Mosaku", "Seibei", "Tokuji", "Gonta", "Jinbei", "Matsuzo", "Kichiji", "Sanpei", "Denbei", "Isuke", "Bunkichi", "Heisuke", "Ryoan", "Chobei", "Usaburo"],
+      "thinkSeconds": 3, "firstSeconds": [20, 60], "everySeconds": [120, 240], "retrySeconds": 6, "maxScenes": 2, "anchors": 3, "anchorGap": 120,
+      "spawnRing": [70, 110], "aheadCone": 0.6, "headingMove": 3, "landmarkReach": 2, "roadReach": 45, "offRoad": 14, "despawnDistance": 170, "restCell": 300, "restSeconds": 600,
+      "leaveDistance": 70, "leaveSeconds": 60, "goneDistance": 40, "frightSeconds": 0.8, "armyRadius": 50, "armySize": 8,
+      "scatter": { "shot": 45, "melee": 15, "rifleshot": 50, "bullet": 45, "gatlingShot": 50, "gatlingFire": 50, "cannonFire": 70, "shipBroadside": 70, "shipCannon": 60, "dynamiteBlast": 60, "railBlast": 70, "firebombBurst": 40 } },
+    "scenes": {
+      "hermit": { "name": "Wandering hermit", "lines": { "folkPop": ["Too much root", "Hm, not that one", "It was meant to do that", "Back to my notes"], "folkFeed": ["Here you are, little ones", "Eat up, friends"], "greet": ["Good day to you", "Mind the mushrooms"] }, "weight": 1, "time": "day", "biomes": { "snow": 1.4, "hills": 1.4, "forest": 1.2, "dry": 0.8, "plain": 0.7, "marsh": 0.8 },
+        "models": ["monk", "monk2"], "animal": "deer", "clips": { "pick": "pick", "mix": "mix", "feed": "feed" }, "patchDistance": [7, 16], "pickSeconds": 4, "pauseSeconds": [1, 2.5], "picksPerBrew": [3, 4],
+        "mixSeconds": [4.67, 9.3], "brews": 3, "mishaps": { "pop": 0.4, "big": 0.25, "shrink": 0.2, "knock": 0.15 }, "tinySeconds": [5, 8], "downSeconds": 3.5, "feedChance": 0.35, "feedSeconds": 2.67, "paperEvery": [1.8, 3.4], "herbs": ["forest_cream_mushrooms", "forest_brown_mushrooms", "forest_russet_mushrooms"], "herbReach": 0.7, "pickAt": 0.5, "scurry": 6, "flinchSeconds": 1.6, "watchRange": 12, "bowRange": 5, "lingerSeconds": 2, "bowSeconds": 2.4, "bowGap": 30 },
+      "duel": { "name": "Ronin", "lines": { "folkShout": ["Draw your blade | I have waited long for this", "Today one of us falls | Then let it be you", "You shamed my master | Your master shamed himself"], "folkFall": ["Well struck"] }, "weight": 1, "time": "day", "biomes": { "plain": 1.3, "hills": 1.1, "forest": 1, "dry": 1, "snow": 0.7, "marsh": 0.8 },
+        "models": ["ronin", "swordsman"], "gap": 4.4, "rounds": [2, 3], "faceSeconds": 3, "circleSeconds": 3.5, "circleTurn": 0.9, "clashSeconds": 1.4, "clashGap": 0.75,
+        "partSeconds": 1.5, "standOverSeconds": 3, "stareRange": 12, "stareHold": 1.5, "bodySeconds": 120 },
+      "peddler": { "name": "Peddler", "weight": 1, "biomes": { "hills": 1.4, "snow": 1.1, "dry": 1.2, "forest": 1, "plain": 0.9, "marsh": 0.8 },
+        "models": ["merchant"], "bandits": [2, 3], "ring": 2.6, "spread": 0.9, "threatSeconds": [30, 45], "shoveEvery": [2.5, 4], "shoveSeconds": 1, "strikeReach": 1.1, "hurtAfter": 0.35, "hurtSeconds": 1.1, "pleadEvery": 3, "coinChance": 0.5, "strikeTalk": 0.6, "tradeSeconds": 120, "tradeStay": 10,
+        "lines": { "strike": ["Hand it over", "Empty the pack", "All of it, old man", "Quit stalling", "Where is the rest", "Do not make me ask again"],
+          "plead": ["Please, it is all I have | Then you will not miss it", "Take it, only let me go", "Mercy, I beg you | Beg louder", "I have a family", "That is my whole season"],
+          "warn": ["Keep walking, stranger", "This is none of your business", "Move along"],
+          "kill": ["Enough talk", "You had your chance"], "done": ["Easy money", "Let us go, boys"],
+          "thanks": ["Bless you, stranger", "I owe you my life"], "trade": ["Have a look at my wares, friend", "For you, a fair price"], "bye": ["Safe roads to you", "I must be getting on"] },
+        "noticeRange": 14, "giveUp": 10, "afterFightSeconds": 10, "bowSeconds": 2.6, "robbedStandSeconds": 4, "thanks": "The peddler bows his thanks" },
+      "pilgrims": { "name": "Pilgrim", "lines": { "folkBell": ["Blessings on the road | And on all who walk it", "Not far to the shrine now | My feet say otherwise", "Keep together | We are right behind you"] }, "weight": 1.2, "time": "day", "biomes": { "plain": 1.4, "forest": 1.1, "hills": 1, "marsh": 1, "dry": 0.8, "snow": 0.7 },
+        "models": ["monk", "monk2", "old_woman", "laborer"], "count": [3, 5], "spacing": 2.2, "routeLength": 170, "routeStep": 12, "bellEvery": [6, 10],
+        "shrineReach": 25, "shrineStop": 8, "shrineGap": 3, "gatherSeconds": 15, "bowSeconds": 3, "standSeconds": 4, "stepRange": 14, "stepAside": 3.5, "asideHold": 1.5 },
+      "camp": { "name": "Traveller", "watchName": "Watchman", "lines": { "chat": ["Cold night | The fire helps", "Any tea left | A mouthful, no more", "How far tomorrow | Two days to the coast", "Did you hear wolves | Only the wind"], "folkCall": ["Who goes there"] }, "weight": 1.5, "time": "night", "biomes": { "snow": 1.3, "forest": 1.2, "hills": 1.1, "plain": 1, "dry": 1, "marsh": 0.8 },
+        "models": ["monk", "monk2", "gunslinger", "geisha"], "watchModel": "laborer", "strollRing": [3.6, 5.5], "chatChance": 0.5, "chatSeconds": 2.5, "sitters": [3, 4], "seatRadius": 2.4, "watchRadius": 5,
+        "alarmRange": 25, "groupSize": 3, "calmSeconds": 4, "lookEvery": [4, 7], "dawnSeconds": 4 }
+    }
   }
 }

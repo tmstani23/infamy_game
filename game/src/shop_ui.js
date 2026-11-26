@@ -27,7 +27,7 @@ export function createShopUI({game,heroId,view,send,onOpen=()=>{},onClose=()=>{}
   $('.shop-grid').addEventListener('mouseleave',()=>{if(hover!=null){hover=null;render();}});
   $('.shop-tabs').addEventListener('click',e=>{const t=e.target.closest('[data-tab]')?.dataset.tab;if(t&&t!==tab){tab=t;picked=hover=null;layout();render();}});
   function layout(){const grid=$('.shop-grid');grid.replaceChildren(...(tab==='buy'?tiles.buy.filter(b=>M().stock.includes(b.dataset.key)):tiles[tab]));
-    put($('.ms-eyebrow'),M().eyebrow);put($('.shop-window h2'),M().title);root.dataset.mode=mode;root.setAttribute('aria-label',`${M().title} shop`);
+    {const pd=mode==='merchant'&&game.itemServices.merchantNear?.(hero());const road=pd?.peddlerShop;put($('.ms-eyebrow'),road?'Travelling peddler':M().eyebrow);put($('.shop-window h2'),road?pd.name||'Peddler':M().title);}root.dataset.mode=mode;root.setAttribute('aria-label',`${M().title} shop`);
     for(const b of root.querySelectorAll('[data-tab]')){const on=b.dataset.tab===tab;b.classList.toggle('on',on);b.setAttribute('aria-selected',String(on));}}
   // what a key means on the current tab: {id, price, ok, why}
   function entry(key){
@@ -72,10 +72,10 @@ export function createShopUI({game,heroId,view,send,onOpen=()=>{},onClose=()=>{}
   function update(){
     // the marker floats over the blacksmith in the city, or over the stall keeper of your town nearest the hero on the island
     const e=hero(),clan=game.state.clans[e?.owner],island=e?.place==='world';
-    const npc=island?Object.values(game.state.entities).filter(m=>m.merchantOf&&game.state.frontier?.settlements?.[m.merchantOf]?.owner===e.owner&&Math.hypot(m.x-e.x,m.z-e.z)<30).sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0]:game.itemServices.shop();
+    const npc=island?Object.values(game.state.entities).filter(m=>(m.peddlerShop||m.merchantOf&&game.state.frontier?.settlements?.[m.merchantOf]?.owner===e.owner)&&Math.hypot(m.x-e.x,m.z-e.z)<30).sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0]:game.itemServices.shop();
     const near=open?M().near(e):island?!!game.itemServices.merchantNear?.(e):game.itemServices.near(e);
     icon.hidden=hidden()||!npc||(island?false:e?.place!=='street'||!game.vision.canSee(e.owner,npc))||open;
-    if(!icon.hidden&&icon.dataset.at!==(island?'m':'b')){icon.dataset.at=island?'m':'b';icon.title=island?`${FM.name}: walk up to buy and sell (Space)`:'Blacksmith: walk up to buy and sell (Space)';}
+    if(!icon.hidden&&icon.dataset.at!==(island?'m':'b')){icon.dataset.at=island?'m':'b';icon.title=island?`${npc.peddlerShop?npc.name||'Peddler':FM.name}: walk up to buy and sell (Space)`:'Blacksmith: walk up to buy and sell (Space)';}
     if(!icon.hidden){const p=view.unitToScreen(npc.x,npc.z,3.0),k=`${Math.round(p.x)},${Math.round(p.y)},${near}`;   // write the DOM only when it moved
       if(k!==lastMarker){lastMarker=k;icon.style.left=`${Math.round(p.x)}px`;icon.style.top=`${Math.round(p.y)-2}px`;icon.disabled=!near;}}
     if(!open)return;if(!near||hidden())return close();

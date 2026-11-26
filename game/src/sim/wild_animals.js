@@ -327,6 +327,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     const F = { ...(R.fear || {}), ...(speciesOf(e)?.fear || {}) }, k = predator(e) ? P.fearScale ?? 0.6 : 1;   // wild horses: their own (wildlife W6)
     let best = null, bd = Infinity;
     for (const p of people) {
+      if (p.id === e.wm?.friend) continue;   // the wandering hermit its herd goes about with (sim/wandering_folk.js)
       const reach = (p.hidden ? F.hidden ?? 4 : p.mounted || p.ride ? F.mounted ?? 16 : F.crew != null && p.type !== 'hero' ? F.crew : p.anim === 'run' ? F.run ?? 13 : F.walk ?? 7) * k;
       const d = Math.hypot(p.x - e.x, p.z - e.z);
       if (d <= reach && d < bd) { bd = d; best = [p.x, p.z]; }
@@ -448,8 +449,12 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     }
     // idle or grazing
     e.anim = m.mode === 'graze' ? 'graze' : 'idle';
+    // a friend's herd keeps him as its home: it drifts after him and grazes round him, and comes back to him after a fright
+    const friend = m.friend && state.entities[m.friend];
+    if (m.friend && !friend) delete m.friend;
+    if (friend) { m.home = [friend.x, friend.z]; if (Math.hypot(friend.x - e.x, friend.z - e.z) > (R.friendReach ?? 7)) m.until = Math.min(m.until, state.tick); }
     if (state.tick < m.until) return;
-    const ang = rng() * Math.PI * 2, d = rng() * (predator(e) ? P.roam ?? 30 : R.wander ?? 10);
+    const ang = rng() * Math.PI * 2, d = friend ? 2 + rng() * ((R.friendReach ?? 7) - 3) : rng() * (predator(e) ? P.roam ?? 30 : R.wander ?? 10);
     const p = areas.nav.nearestFree(m.home[0] + Math.cos(ang) * d, m.home[1] + Math.sin(ang) * d);
     if (!p) { m.until = state.tick + secs(2); return; }
     Object.assign(m, { mode: 'walk', x: p[0], z: p[1], until: state.tick + secs(Math.hypot(p[0] - e.x, p[1] - e.z) / (unit.walk || 1) * 2 + 4) });

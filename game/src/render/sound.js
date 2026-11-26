@@ -325,6 +325,13 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (c.kind === 'taunt') play(SOFT, (c.style === 'shinobi_enforcer' ? 0.8 : 0.6) * v, c.style === 'shinobi_enforcer' ? 0.75 : 0.5);
         if (c.kind === 'loot' || c.kind === 'chestCashed' || c.kind === 'hidesSold') play(pickCustom('loot_coins_1'), 0.6 * v);   // a stolen chest cashed, hides sold (wildlife W5)
         if (c.kind === 'wildAlarm') (c.species === 'boar' ? variant('boar_grunt_1', 0.4 * v, 0.94 + Math.random() * 0.12) : variant('deer_alarm_1', 0.22 * v, 0.86 + Math.random() * 0.08));   // deer softer and lower (Tim 2026-11-25: was loud and shrill)   // wild animals (sim/wild_animals.js): a deer's bark or a boar's grunt as they bolt
+        // wandering folk (sim/wandering_folk.js), stand-ins from the clips we have: the ronin draw and clash and the fall, a shove, the robbery's coins (bell and voices to come)
+        if (c.kind === 'folkShout') play(['katana_draw_1', 'katana_draw_2'], 0.45 * v, 0.95);
+        if (c.kind === 'folkClash') { play('katana_clash_1', 0.5 * v, 0.95 + Math.random() * 0.1); setTimeout(() => play(['katana_hit_metal_1', 'katana_hit_metal_2'], 0.4 * v), 420); }
+        if (c.kind === 'folkFall') play(['death_thud_1', 'death_thud_2'], 0.5 * v);
+        if (c.kind === 'folkShove') variant('club_thud_1', 0.22 * v, 1.2);
+        if (c.kind === 'folkPop') play(pickCustom('dynamite_1'), (c.big ? 0.3 : 0.18) * v, c.big ? 1.9 : 2.4);   // the hermit's brew: a small sharp pop (stand-in)
+        if (c.kind === 'folkRobbed') play(pickCustom('loot_coins_1'), 0.35 * v, 0.9);
         if (c.kind === 'wildCharge') variant('boar_charge_1', 0.6 * v);   // a hit boar charges
         if (c.kind === 'wildHunt') { if (c.species === 'bear') farPanned('bear_roar_1', c, me, 0.75, (me?.hear ?? HEAR) * 3); else variant('wolf_attack_1', 0.55 * v); }   // W4: a bear roars as it comes for you (heard a little farther), wolves snarl as they close in
         if (c.kind === 'horseWhistle') play(pickCustom('horse_whistle_1'), 0.7 * v);
