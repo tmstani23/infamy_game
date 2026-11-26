@@ -258,6 +258,8 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     if (e.button === 2 && !e.ctrlKey && pointed) { heroAt(e.clientX, e.clientY); return; }
     // right-click a dropped bundle (Tim 2026-11-26): the hero walks over and picks it up
     { const b = e.button === 2 && !e.ctrlKey && bundleAt(e.clientX, e.clientY); if (b) { send({ id: heroId, type: 'groundItem', action: 'fetch', bundle: b.id }); return; } }
+    // right-click your camp fire (Tim 2026-11-26): the hero walks back, sits down, and the fire keeps going
+    { const f = e.button === 2 && !e.ctrlKey && fireAt(e.clientX, e.clientY); if (f) { send({ id: heroId, type: 'campfire', action: 'back', fire: f.id }); return; } }
     // right-click your omnibus (Tim 2026-11-06): everyone steps out, or a parked one takes the hero and the selected crew in
     // right-click one of your horses: ride her (she comes over if she is not beside you)
     let horse = e.button === 2 && horseAt(e.clientX, e.clientY);
@@ -350,6 +352,7 @@ export function createCrewInput({ game, view, heroId, send, box }) {
     const hs = h.inShip && game.state.entities[h.inShip], sel = mine().map(id => game.state.entities[id]).find(s => s?.ship && !s.dead);
     const ship = mine().length ? sel : hs?.ship && !hs.dead ? hs : null;
     if (unitAt(e.clientX, e.clientY, enemies())) { setCur(CURSOR.attack); return; }
+    if (fireAt(e.clientX, e.clientY)) { setCur(CURSOR.use); return; }   // your camp fire: right-click to sit back down (sim/campfire.js)
     const p = view.screenToGround(e.clientX, e.clientY), world = commandPlace() === 'world';
     const atWar = p && world && Object.values(game.state.frontier?.wars?.list || {}).some(w => w.attacker === h.owner || w.defender === h.owner);
     if (atWar && game.frontier?.structures?.at?.(h.owner, p.x, p.z)) { setCur(CURSOR.attack); return; }

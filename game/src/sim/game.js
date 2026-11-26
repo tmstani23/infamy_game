@@ -228,7 +228,7 @@ export function createGame(options) {
   const mounts = areas ? createMounts({ state, rules: units?.rules, spawn: (...a) => spawn(...a), nav: () => navOf('world'), born: () => frontier?.stable?.born() || [],
     say: (owner, text) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text }; } }) : null;
   // make camp on the island (world variety P1, Tim 2026-11-25, sim/campfire.js): not in a war circle, not in a town ring
-  const campfires = areas ? createCampfires({ state, rules: units?.rules, nav: () => navOf('world'), dismount: u => mounts?.dismount(u),
+  const campfires = areas ? createCampfires({ state, rules: units?.rules, nav: () => navOf('world'), dismount: u => mounts?.dismount(u), moveTo: (...a) => moveTo(...a),
     inWarCircle: (x, z) => !!frontier?.war?.warsAt?.(x, z)?.length,
     inTown: (x, z) => { const rings = options.frontier?.tiers?.list || []; return Object.values(state.frontier?.settlements || {}).some(s => Number.isFinite(s.x) && Math.hypot(x - s.x, z - s.z) <= (rings[(s.tier || 1) - 1]?.ring ?? 150)); },
     say: (owner, text, good = false) => { const clan = state.clans?.[owner]; if (clan) clan.notice = { tick: state.tick, text, camp: good ? 'good' : 'no' }; } }) : null;   // camp: main.js shows it as a callout
@@ -1297,6 +1297,7 @@ export function createGame(options) {
         if (e.type === 'hero' && e.order?.garrisonGo && !e.order.arrived) { delete e.swing; delete e.execute; if (moveTo(e, unit, e.order.x, e.order.z, false)) continue; e.order.arrived = true; }
         if (e.lootTarget) { if (lootStep(e, unit, e.lootTarget)) continue; delete e.lootTarget; delete paths[e.id]; }
         if (e.fetchBundle) { if (groundItems.fetchStep(e, unit)) continue; delete paths[e.id]; }   // right-clicked a dropped bundle (sim/ground_items.js)
+        if (e.campBack) { if (campfires?.backStep(e, unit)) continue; delete paths[e.id]; }   // right-clicked his camp fire: back to his seat (sim/campfire.js)
         if (e.execute && executeStep(e, unit)) continue;
         // the hero sent at an enemy structure of a war (checkpoint 6): he walks over and hits it until it falls or WASD takes over
         if (e.type === 'hero' && e.order?.kind === 'raze' && e.order.from === 'attackmove' && e.attackMode) { const n = nearestEnemy(e, e.x, e.z, AGGRO), foe = n && (n.owner || n.workerOwner); if (n && Object.values(state.frontier?.wars?.list || {}).some(w => (w.attacker === e.owner && w.defender === foe) || (w.defender === e.owner && w.attacker === foe))) { if (e.swing?.structure) delete e.swing; e.order = { kind: 'attackmove', x: e.order.ax, z: e.order.az }; e.attackTarget = n.id; } }
@@ -1339,6 +1340,7 @@ export function createGame(options) {
       delete e.execute;
       delete e.lootTarget;
       delete e.fetchBundle;
+      delete e.campBack;
       if (e.order?.garrisonGo || e.order?.kind === 'raze' || e.order?.kind === 'attackmove') delete e.order;   // WASD takes back control from the walk to the stockade, to a structure or an attack-move
       e.anim = c.walk ? 'walk' : 'run';
       if (e.ride) {   // driving or riding: cart-like steering (sim/vehicle_steer.js), the vehicle turns, slows in sharp turns

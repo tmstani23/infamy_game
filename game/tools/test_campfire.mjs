@@ -100,6 +100,20 @@ const fireOf = (S, hero) => Object.values(S.campfires || {}).find(f => f.hero ==
   assert.ok(!hero.campCast, 'Shift+N again stops it');
   assert.equal(S.clans.player.notice?.camp, 'no', 'refusals are marked for the callout'); }
 
+// right-click the fire after walking off: back to his seat, the fire keeps going, the crew sit again
+{ const { g, S, hero, crew } = wild();
+  camp(g, hero);
+  for (let i = 0; i < 200 && !crew.every(u => u.sitting); i++) g.step([]);
+  const f = fireOf(S, hero);
+  { const [x, z] = g.areas.nav.nearestFree(hero.x + 6, hero.z); Object.assign(hero, { x, z }); } g.step([]);
+  assert.ok(!fireOf(S, hero) && S.campfires[f.id]?.out, 'walked off: the fire burns down');
+  for (let i = 0; i < 40; i++) g.step([]);
+  g.step([{ id: hero.id, type: 'campfire', action: 'back', fire: f.id }]);
+  for (let i = 0; i < 400 && hero.campBack; i++) g.step([]);
+  assert.ok(fireOf(S, hero)?.id === f.id && hero.sitting && hero.campfire === f.id, 'back by the same fire, burning again');
+  for (let i = 0; i < 200 && !crew.every(u => u.sitting); i++) g.step([]);
+  assert.ok(crew.every(u => u.sitting && u.campfire === f.id), 'the crew sit down again'); }
+
 // refused right after a fight, and inside a war circle
 { const { g, S, hero, crew } = wild();
   crew[1].hitAt = S.tick - 20; camp(g, hero);

@@ -31,7 +31,11 @@ const ring = col => `<ellipse cx='20' cy='31' rx='12' ry='5.4' fill='none' strok
 const CHEVRON = `<path d='M11 10L20 21 29 10' fill='none' stroke='${INK}' stroke-width='7.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M11 10L20 21 29 10' fill='none' stroke='${CREAM}' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/>`
   + `<path d='M15 4.5L20 9.8 25 4.5' fill='none' stroke='${INK}' stroke-width='4.4' stroke-linecap='round' stroke-linejoin='round' opacity='.8'/><path d='M15 4.5L20 9.8 25 4.5' fill='none' stroke='${CREAM}' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' opacity='.8'/>`;
 const SMALL_SWORDS = `<g transform='translate(20 13.5) scale(.68) translate(-20 -20)'>${SWORDS}</g>`;
+// a pointing hand: something here to use with a right-click (Tim 2026-11-26: your camp fire)
+const HAND = `<path d='M13.5 19V6.5a2.6 2.6 0 0 1 5.2 0V16.5a2.5 2.5 0 0 1 5 .3a2.5 2.5 0 0 1 5 .6a2.4 2.4 0 0 1 4.6 1.1V27c0 5.5-3.6 9-9 9h-3.2c-3.2 0-5.4-1.6-7-4.4l-4.2-7.4a2.4 2.4 0 0 1 4-2.6z' fill='${CREAM}' stroke='${INK}' stroke-width='2.6' stroke-linejoin='round'/>`
+  + `<path d='M18.7 16.5v5M23.7 16.8v4.8M28.7 17.4v4.4' stroke='${INK}' stroke-width='1.4' stroke-linecap='round'/><path d='M14 31h14' stroke='${BRASS}' stroke-width='2' stroke-linecap='round' opacity='.9'/>`;
 export const CURSOR = {
+  use: svg(HAND, 16, 4, 'pointer'),
   attack: svg(SWORDS, 20, 20, 'crosshair'),
   move: svg(ring(CREAM) + CHEVRON, 20, 31, 'pointer'),
   attackMove: svg(ring(RED) + SMALL_SWORDS, 20, 31, 'crosshair'),

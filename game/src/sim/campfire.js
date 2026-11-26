@@ -8,10 +8,10 @@
 // A lit fire is a light for island sight (sim/vision.js lightsNear) and stealth (sim/game.js islandLit).
 // state.campfires: { [id]: { id, owner, hero, x, z, lit, seats: [{ x, z, unit }], out? } }; on units: e.campfire (the fire's
 // id), e.sitting (seated now, render/view.js plays 'sit' on a log).
-// createCampfires({ state, rules, nav, inWarCircle, inTown, dismount, say }) -> { command, tick, lightsNear, litAt, at }
+// createCampfires({ state, rules, nav, inWarCircle, inTown, dismount, say, moveTo }) -> { command, tick, backStep, lightsNear, litAt, at }
 import { dirIndex } from './geometry.js';
 
-export function createCampfires({ state, rules, nav = () => null, inWarCircle = () => false, inTown = () => false, dismount = () => {}, say = () => {} }) {
+export function createCampfires({ state, rules, nav = () => null, inWarCircle = () => false, inTown = () => false, dismount = () => {}, say = () => {}, moveTo = () => false }) {
   const R = () => rules?.campfire || {};
   const fires = () => (state.campfires ||= {});
   const T = s => Math.round(s * 20);
@@ -93,8 +93,48 @@ export function createCampfires({ state, rules, nav = () => null, inWarCircle = 
     if (why) say(f.owner, why, good);
   }
 
+  // right-click your own fire, lit or burning down (Tim 2026-11-26): the hero walks back to his seat, sits, and the fire
+  // keeps going; the crew who sat there come back to their seats. e.campBack = fire id while he walks (WASD ends it)
+  function back(e, fireId) {
+    const f = fires()[fireId];
+    if (!f || f.owner !== e.owner || e.place !== 'world' || at(e) === f) return;
+    if (e.campCast) stopCast(e);
+    f.back = e.id; e.campBack = f.id;
+  }
+  function stopBack(e) { const f = fires()[e.campBack]; if (f?.back === e.id) delete f.back; delete e.campBack; }
+  // one tick of the walk back; true while still walking
+  function backStep(e, unit) {
+    const f = fires()[e.campBack], s = f?.seats[0];
+    if (!s || f.back !== e.id || e.dead || e.downed || e.jailed || e.place !== 'world' || e.aboard) { stopBack(e); return false; }
+    if (Math.hypot(e.x - s.x, e.z - s.z) > 0.3 && moveTo(e, unit, s.x, s.z, false)) return true;
+    stopBack(e);
+    if (Math.hypot(e.x - s.x, e.z - s.z) <= 1) relight(e, f);
+    e.anim = 'idle';
+    return false;
+  }
+  function relight(e, f) {
+    const seatOf = u => f.seats.find(s => s.unit === u.id);
+    const group = ready(e, { units: f.seats.slice(1).map(s => s.unit) });
+    if (!group) return;
+    for (const old of Object.values(fires())) if (old !== f && old.owner === e.owner) { end(old); delete fires()[old.id]; }
+    if (e.mounted) dismount(e);
+    delete f.out; f.lit = state.tick;
+    const s0 = f.seats[0]; e.x = s0.x; e.z = s0.z;
+    e.campfire = f.id; e.sitting = true; e.dir = dirIndex(f.x - e.x, f.z - e.z);
+    const crew = group.filter(seatOf);
+    for (const u of crew) {
+      const s = seatOf(u);
+      if (u.mounted) dismount(u);
+      u.campfire = f.id; delete u.sitting;
+      u.campPrev = u.order?.kind === 'follow' ? { kind: 'follow', target: u.order.target } : null;
+      u.order = { kind: 'move', x: s.x, z: s.z, place: 'world', campfire: f.id };
+    }
+    say(e.owner, crew.length ? 'Back by the fire. Your crew sit down again' : 'Back by the fire', true);
+  }
+
   function command(e, c) {
     if (e.type !== 'hero') return;
+    if (c.action === 'back') return back(e, c.fire);
     const f = at(e);
     if (f) return end(f, 'You break camp', true);
     if (e.campCast) return stopCast(e, 'You stop preparing the fire');
@@ -114,7 +154,7 @@ export function createCampfires({ state, rules, nav = () => null, inWarCircle = 
       make(e, { units: k.units });
     }
     for (const f of Object.values(fires())) {
-      if (f.out) { if (state.tick - f.out > ember) delete fires()[f.id]; continue; }
+      if (f.out) { if (state.tick - f.out > ember && state.entities[f.back]?.campBack !== f.id) delete fires()[f.id]; continue; }   // not while he walks back to it
       const hero = state.entities[f.hero], seat0 = f.seats[0];
       if (!hero || hero.dead || hero.downed || hero.jailed || hero.place !== 'world' || hero.mounted || hero.campfire !== f.id) { end(f); continue; }
       if (Math.hypot(hero.x - seat0.x, hero.z - seat0.z) > (r.standRange ?? 0.6)) { end(f); continue; }   // he walked off: up and away
@@ -137,7 +177,7 @@ export function createCampfires({ state, rules, nav = () => null, inWarCircle = 
     for (const f of Object.values(state.campfires || {})) if (!f.out && Math.hypot(f.x - x, f.z - z) <= r) out.push({ x: f.x, z: f.z, light: true, campfire: f.id });
     return out;
   }
-  return { command, tick, lightsNear, litAt: (x, z, r) => lightsNear(x, z, r).length > 0, at, end };
+  return { command, tick, backStep, lightsNear, litAt: (x, z, r) => lightsNear(x, z, r).length > 0, at, end };
 }
 
 // the facing of a sprite row (0..7 = S, SW, W, NW, N, NE, E, SE, sim/geometry.js dirIndex) as a ground angle for sin/cos
