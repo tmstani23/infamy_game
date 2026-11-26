@@ -1,17 +1,17 @@
 # Businesses and raids plan
 
-Status: agreed with Tim 2026-10-18 (map, build order and phases added the same day); still evolving. Built so far (2026-10-19): the 2x map, the settings file and checkpoints 1-3 (section 8). Phase 1 expansion and balance approved and visually playtested by Tim 2026-10-21; targeted Node checks passed. Later camps/rewards, targeting changes and unfinished UI tweaks are outside this Phase 1 record.
+Status: agreed with 2026-10-18 (map, build order and phases added the same day); still evolving. Built so far (2026-10-19): the 2x map, the settings file and checkpoints 1-3 (section 8). Phase 1 expansion and balance approved and visually playtested by 2026-10-21; targeted Node checks passed. Later camps/rewards, targeting changes and unfinished UI tweaks are outside this Phase 1 record.
 
 Goal: finish the tiny version loop. You take businesses, they pay you, and you (and later the rival bot clan) fight over them.
 
-## 0. Build order (Tim, 2026-10-18)
+## 0. Build order (2026-10-18)
 
-1. **Bigger map** (section 0a). Moved first by Tim 2026-10-18.
+1. **Bigger map** (section 0a). Moved first by 2026-10-18.
 2. **Game settings file**: one data file for police count, bandits, day/night length, townsfolk count and costs (later a settings menu before a game; a multiplayer host picks from the same settings).
 3. **Businesses and raids** (this plan, sections 1-8).
 4. **Rival bot clan**, using the same commands (plan: `rival_bot_plan.md`, not built).
 
-## 0a. Bigger map (Tim OK'd layout v2, 2026-10-18)
+## 0a. Bigger map (approved layout v2, 2026-10-18)
 
 - Sketch: [map_2x_sketch_v2.png](images/map_2x_sketch_v2.png) (top-down, north up, water south). Hand-made, not generated; later districts are their own hand-made data files joined by road edges, with the rickshaw station as paid fast travel.
 - About **2x area**: town ~100 x 90 (today 72 x 67), forest ring ~2x. Run across town ~17 s.
@@ -28,12 +28,12 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 - [x] M2 New ground: shoreline, Bund boardwalk, piers, canal + bridges, roads, town edge, forest ring (bounds, blockers, nav).
 - [x] M3 Place all buildings, doors, props, lanterns; pleasure-quarter wall + gate.
 - [x] M4 Townsfolk pois/homes, bandit edges, police patrol points, forest noPoliceAreas; 30 townsfolk.
-- [x] M5 Tim playtest + tune (Tim approved the map 2026-10-19).
+- [x] M5 playtest + tune (approved the map 2026-10-19).
 - Then businesses and raids checkpoints (section 8), then the rival bot clan.
 
 ## 1. Owning a business
 
-- Ten purchasable businesses start unowned (table below). Phase 3E (Tim, 2026-10-21) adds Pawnshop, Bathhouse, Sake Brewery, Manor and Customs House from existing scenery. All support normal purchase, guards, attacks/raids, territory and AI investment. No building perks.
+- Ten purchasable businesses start unowned (table below). Phase 3E (2026-10-21) adds Pawnshop, Bathhouse, Sake Brewery, Manor and Customs House from existing scenery. All support normal purchase, guards, attacks/raids, territory and AI investment. No building perks.
 - Manor entrance ring is outside its courtyard fence beside the front gate (2026-10-21).
 - Once you own one, it stays yours until someone takes it. You don't have to leave crew there.
 - Every owned business comes with **2 house guards** (free, no upkeep). Crew you station there defend automatically too.
@@ -41,8 +41,8 @@ Goal: finish the tiny version loop. You take businesses, they pay you, and you (
 
 ## 2. Payouts
 
-- Each owned business pays ryo **once per day/night cycle, at dawn** (default; Tim to confirm).
-- Approved Phase 3E balance (Tim, 2026-10-21); prices and dawn income are ryo:
+- Each owned business pays ryo **once per day/night cycle, at dawn** (default; to confirm).
+- Approved Phase 3E balance (2026-10-21); prices and dawn income are ryo:
 
 | Business | Buy price | Dawn income | Added crew capacity |
 |---|---|---|---|
@@ -77,9 +77,9 @@ Two ways, both from the **building panel** (left-click the building; already bui
 
 ## 4. Raiding a rival's business (War Lantern)
 
-- A rival-owned business (bought or seized) can only be taken by a raid, and a raid always needs a **War Lantern** (Tim 2026-10-19): a tall red lantern on a pole with your clan crest, with a red aura.
+- A rival-owned business (bought or seized) can only be taken by a raid, and a raid always needs a **War Lantern** (2026-10-19): a tall red lantern on a pole with your clan crest, with a red aura.
 - **Where to get it:** the **moneylender's house** (building 43 in `buildings.md`, b16 on the map, M on the minimap), from its building panel at the door ring. Moneylender only; no Shop discount. Until inventory exists it's a counter on your clan ("War Lanterns: 1").
-- **Cost: 1,200 ryo** (Phase 3D, Tim, 2026-10-21). **Carry at most 1.** No per-night cap. Out of reach early game on purpose; affordable once you hold a few businesses.
+- **Cost: 1,200 ryo** (Phase 3D, 2026-10-21). **Carry at most 1.** No per-night cap. Out of reach early game on purpose; affordable once you hold a few businesses.
 - **Starting a raid:** night only. Hero at the door ring, building panel, Raid. Greyed out without a lantern.
 - The lantern is planted beside the door ring and the aura starts. **Raiders can't enter for 45 s** (warm-up; `rules.raid.warmupSeconds`; 60 s until 2026-10-26). Then the doors open to raiders and they must hold the back room for 30 s; the timer pauses while a defender stands in the zone.
 - **Lost** (changed 2026-10-20): the raiding boss going down doesn't end it. During the warm-up only a knocked-down War Lantern does; once the doors are open, nobody of yours inside for 10 s in a row loses it (the screen counts it down). Also lost if the business changes owner.
@@ -120,9 +120,9 @@ Attack warning (2026-10-25): the owner receives an alert naming the building whe
 5. [x] Defending (built 2026-10-19, as section 5). Test with `?raidme=den` (see `test_params.md`).
 6. Controls panel entries + doc notes to the coordinator.
 
-Visuals that need a preview for Tim first: War Lantern prop + aura, raid banner, back-room hold timer.
+Visuals that need a preview for first: War Lantern prop + aura, raid banner, back-room hold timer.
 
-## 9. Territory (Tim, 2026-10-19)
+## 9. Territory (2026-10-19)
 
 - Territory = the businesses a clan holds. The clan holding the most at season end wins.
 - Holding every business in one quarter (Bund, pleasure quarter and so on) controls that quarter: a small extra payout and a map tint.
@@ -173,7 +173,7 @@ The building panel exposes Raid, status, protection and rewards. Existing raid a
 
 - Victory exit: 2.5 s after a won raid (HQ or business) the raiders are put out of the building.
 - Every clan sees an alert "X successfully raided Y's HQ" / "...Y's business".
-- Raid fire (`render/hq_fire.js`, `shading.js`, `view.js`): Tim-approved look for the burning HQ.
+- Raid fire (`render/hq_fire.js`, `shading.js`, `view.js`): Approved look for the burning HQ.
 - Shinobi bot: a badly hurt leader stays inside the HQ during a raid and heals to 80% (no doorway flicker).
 - Shinobi bot sends all its crew to defend a War Lantern at its HQ (`ninja_bot.js`).
 - Fire: flame-lick particles added (`hq_fire.js`).
@@ -182,12 +182,12 @@ The building panel exposes Raid, status, protection and rewards. Existing raid a
 
 ### Sequential implementation phases (2026-10-25)
 
-Completion and checks reported by Build coordinator; Tim's visual/balance review remains pending.
+Completion and checks reported by Build coordinator; the visual/balance review remains pending.
 
 - [x] **Phase 1 — Raid mechanics:** formal Shinobi HQ eligibility, normal warmup, interior entry/caps, inside hold-circle contest and no permanent takeover.
 - [x] **Phase 2 — Victory and recovery:** contract cancellation, 180-second lockout, exactly-once points/bounty/theft, automatic reopening and configured full-cycle shared protection starting at reopening.
 - [x] **Phase 3 — Feedback and sim verification:** raid UI/status/alerts, suppression-only HQ fire and targeted sim regressions.
-- [ ] **Tim visual/balance playtest:** roof flame size/placement, raid/contract HUD and gameplay balance.
+- [ ] **visual/balance playtest:** roof flame size/placement, raid/contract HUD and gameplay balance.
 
 `game/tools/test_shinobi_hq_raid.mjs` passed coverage for eligibility, entry/caps, contest/failure, camping exemption, cancellation ordering, lockout/UI/reopening, rewards, protection, serialization, scoring and bot attack/defense. Existing raid, defense, bot, ninja bot, ninja, building panel, crew services, territory and contract-refill regressions passed, as did syntax/diff checks. Two older fixtures were aligned with approved KO hold and explicit street-Move recall behavior. No browser tests/screenshots or new URL parameters.
 
@@ -195,7 +195,7 @@ Deployment Rally/reset, crew separation and sector implementation remain deferre
 
 Economy catch-up (2026-10-28): current dawn payouts are doubled versus the original Phase 3E table; prices/schedules unchanged. Building-defended reward is 150 ryo when an alerted owner defeats a Shinobi Sabotage/Steal attempt (job fails). Sector-cleared reward is 200 ryo when rival street presence of at least two has contested with yours and only yours remains; three-minute per-clan/sector cooldown, no passive ownership income. Source: settings rewards, contracts and sim/rewards.js. No new test run claimed.
 
-## Phase 8 balance changes (Tim 2026-10-30; status updated 2026-10-31)
+## Phase 8 balance changes (2026-10-30; status updated 2026-10-31)
 
 - Business revenue -40%. Diminishing returns: businesses 1-4 pay full, each later one pays 10% less than the one before, never below 60%, so many businesses still matter.
 - Property clans earn 75 Renown for a successful business raid, 35 for a successful Shakedown, 50 for a qualifying paid Sweep, 15 for stopping a Shinobi job on their business, and 5 for a sector clear. Sweep Renown requires meaningful resistance and a positive reward through the shared payout/cooldown claim; empty or cooldown-blocked Sweeps earn none. Sector-clear Renown can stack with a qualifying Sweep. Renown counts toward season points (50 Renown = 1 point, `season.renownPerPoint`), not crew slots. Only the clan that earned a positive reward gets its Renown feedback. HQ raids retain their separate 2 season points and award no extra Renown.
@@ -203,7 +203,7 @@ Economy catch-up (2026-10-28): current dawn payouts are doubled versus the origi
 - Raid limit: each clan may raid each rival at most once per night.
 - Checklist: `playtest_followup_plan.md` phase 8.
 
-## Leader balance (Tim 2026-10-29)
+## Leader balance (2026-10-29)
 
 Leader bounty and underdog help: see `leader_balance.md` (important mechanic, needs balancing).
 
@@ -226,7 +226,7 @@ Kuroda Sweep success pays **500 ryo total**, including generic sector-clear rewa
 
 Shakedown claims/rewards and Sweep reward integration are built; see the latest [assignment/operation checkpoint](deployment_sector_plan.md#phase-e-assignmentoperation-integration-checkpoint-2026-10-30) for patrol, guard-return and route behavior. Success grants bonus 300 for payout tier ≤200, 275 for ≤350, otherwise 200. Next positive actual payout, after modifiers, transfers floor(half) to claimant and pays remainder to owner. Zero/sabotaged payouts leave claim pending. Claim blocks another attempt; ownership change cancels it. An existing formal raid blocks Shakedown; a running Shakedown blocks raid start. Sixty-second retry lock and ownership-change cancellation are implemented initial choices, not earlier individually finalized approvals. A Shakedown hold no longer requires a living hostage, since the squad's own blasts can kill both and otherwise stall the attempt; it still requires an available capable intimidator and no defender. The hold total comes from rules, and its countdown appears through Entering, Securing, Holding and Contested phases both inside and above the business outside. Focused `test_shakedown` passed; visual/balance review pending. [Lifecycle/tuning](deployment_sector_plan.md#shakedown-implementation-checkpoint-2026-10-28).
 
-**Recovery/support follow-up (2026-10-31, Node-verified):** When a wiped or cancelled operation disappears, home recovery now drops its stale interior return point and resumes normal street duty so replacements can physically leave the rival room. The outnumbered-hero retreat check counts alive allied combat support within 30 world units of the front room or street entrance, including the hero and other sectors, while visible enemy detection and casualty/low-health retreats remain unchanged. `test_shakedown`, `test_operation_recovery` and `test_sector_recovery` passed, including a stale-room exit and support across the doorway. Tim still needs to retry the clinic wipe/revive and supported Shakedown in a reloaded browser session; the exact original clinic UI sequence was not reproduced.
+**Recovery/support follow-up (2026-10-31, Node-verified):** When a wiped or cancelled operation disappears, home recovery now drops its stale interior return point and resumes normal street duty so replacements can physically leave the rival room. The outnumbered-hero retreat check counts alive allied combat support within 30 world units of the front room or street entrance, including the hero and other sectors, while visible enemy detection and casualty/low-health retreats remain unchanged. `test_shakedown`, `test_operation_recovery` and `test_sector_recovery` passed, including a stale-room exit and support across the doorway. still needs to retry the clinic wipe/revive and supported Shakedown in a reloaded browser session; the exact original clinic UI sequence was not reproduced.
 
 ### Sweep implementation checkpoint (2026-10-29)
 
@@ -236,4 +236,4 @@ Sweep rewards are now implemented locally: 500 ryo total, including any normal s
 
 `sim/treasury.js` routes existing authoritative debits for hiring, clinic services, business purchases, police bribes/bail, contract theft and HQ theft through `debitRyo`. Exact amount/before/after/reason/source/business is recorded when supplied: transient `state.ryoLosses` clears each step, saved clan `ryoHistory` caps at twenty entries. Ryo-badge hover shows six recent debits; involuntary contract/HQ theft adds a red negative popup naming the culprit. No theft share/cap or expense rate changed.
 
-Audit: Steal takes floor(20% of treasury at completion), capped at 500 plus 100 times victim business score; no duplicate completion debit reproduced. Five uncapped 20% losses compound to 67.2% lost. That is a possible explanation, **not proof** of Tim’s reported instant roughly 70% loss. Original incident remains unconfirmed. Sabotage skips a future payout; Shakedown diverts half a payout; neither directly debits treasury. [Initial contract-cadence tuning, check results and stale test caveat](ninja_clan_plan.md#contract-pacing-checkpoint-2026-10-29).
+Audit: Steal takes floor(20% of treasury at completion), capped at 500 plus 100 times victim business score; no duplicate completion debit reproduced. Five uncapped 20% losses compound to 67.2% lost. That is a possible explanation, **not proof** of the reported instant roughly 70% loss. Original incident remains unconfirmed. Sabotage skips a future payout; Shakedown diverts half a payout; neither directly debits treasury. [Initial contract-cadence tuning, check results and stale test caveat](ninja_clan_plan.md#contract-pacing-checkpoint-2026-10-29).

@@ -1,6 +1,6 @@
 # Tech plan
 
-Status: **Settled** (Tim OK'd it 2026-10-15). Build steps 1 to 4 are done (2026-10-16); the scene in `game/` follows this layout.
+Status: **Settled** (approved it 2026-10-15). Build steps 1 to 4 are done (2026-10-16); the scene in `game/` follows this layout.
 
 ## Stack
 
@@ -82,7 +82,7 @@ Ground is painted rectangles with soft edges, blended in the shader from tiled t
 6. Then Colyseus: run `sim` on a server for a few friends.
 
 ## Interiors (2026-10-15)
-Interiors are real 3D on a cell grid so every piece lines up with the camera; see `docs/interiors_spec.md`. Rooms are laid out by `sim/interiors.js` buildRoom3d and drawn by `render/interior3d.js`. The teahouse is hand-made (`data/interiors.json`); the den and warehouse are made by the room generator (`sim/generate.js`, `data/room_recipes.json`, plan in `docs/room_generator_plan.md`) from seeds Tim picked on 2026-10-16. The painted wall-piece rooms were removed.
+Interiors are real 3D on a cell grid so every piece lines up with the camera; see `docs/interiors_spec.md`. Rooms are laid out by `sim/interiors.js` buildRoom3d and drawn by `render/interior3d.js`. The teahouse is hand-made (`data/interiors.json`); the den and warehouse are made by the room generator (`sim/generate.js`, `data/room_recipes.json`, plan in `docs/room_generator_plan.md`) from seeds picked on 2026-10-16. The painted wall-piece rooms were removed.
 
 ## Approved shell/audio playtest fixes (2026-10-27)
 
@@ -92,7 +92,7 @@ Implemented/Node-adapter checked in Phase 5D (2026-10-27); [overall phases](depl
 - [x] **#11 — Implemented with capability limits:** investigate audio loudness; locally save Master/Effects/Mute settings, with menu extensible to general settings later.
 - [x] **#18 — Implemented with capability limits:** suppress page text selection, native dragging and context menu on gameplay surfaces. Browser-owned AI/mini overlays may require browser settings and are not assumed controllable by game code.
 - [x] Focused Node capability/settings-persistence/input checks passed as recorded below.
-- [ ] Tim audio/fullscreen/interaction playtest.
+- [ ] audio/fullscreen/interaction playtest.
 
 Phase 5D checkpoint (2026-10-27, reported by Build coordinator): `fullscreen.js` requests `navigator.keyboard.lock(['Escape'])` on fullscreen entry, unlocks on exit and retains Alt+Enter. Only Escape is captured and normal events reach game UI. Unsupported/denied capture is disclosed in tooltip; the browser's long-Escape escape hatch cannot be overridden. Browser-owned AI overlays remain outside game control. Implementation was checked against [Chrome fullscreen guidance](https://developer.chrome.com/blog/better-full-screen-mode) and [Keyboard Lock documentation](https://developer.chrome.com/docs/capabilities/web-apis/keyboard-lock); no browser capability test is claimed.
 
@@ -102,13 +102,13 @@ Phase 5D checkpoint (2026-10-27, reported by Build coordinator): `fullscreen.js`
 
 ## HUD drag-release correction (2026-10-28)
 
-Tim reported a target frame that kept dragging after mouse release, preventing locking. Frame handlers stopped mouseup bubbling before the old window handler; HUD now captures release before frame handlers. Drag/resize also ends on lock, window blur, missing-button move or reset. Personal layout remains untouched.
+reported a target frame that kept dragging after mouse release, preventing locking. Frame handlers stopped mouseup bubbling before the old window handler; HUD now captures release before frame handlers. Drag/resize also ends on lock, window blur, missing-button move or reset. Personal layout remains untouched.
 
-New `test_hud_drag` reproduces stopped mouseup using Node capture/bubble adapters and checks release/lock/resize/blur/reset/persistence. Build coordinator reports eight scripts passed: HUD drag, indoor stealth, Ninja, indoor crew, door pursuit, unit frames, target controls and hidden-contract bonus; modified-source syntax/diff checks clean. No browser/screenshots/manual visual approval claimed. Tim drag/lock retest remains pending.
+New `test_hud_drag` reproduces stopped mouseup using Node capture/bubble adapters and checks release/lock/resize/blur/reset/persistence. Build coordinator reports eight scripts passed: HUD drag, indoor stealth, Ninja, indoor crew, door pursuit, unit frames, target controls and hidden-contract bonus; modified-source syntax/diff checks clean. No browser/screenshots/manual visual approval claimed. drag/lock retest remains pending.
 
 Selection docking follow-up (2026-10-28): `selection_dock.js` reuses live selection DOM/state/handlers inside Deployment or standalone map, restores HUD parent/order/style on close, and disables HUD drag/locks only while docked without overwriting saved layout. Reported Node docking/HUD regressions passed; visual retest pending. [Current transfer/card behavior](deployment_sector_plan.md#playtest-follow-up-transfercardscleanup-2026-10-28).
 
-Audio backlog (Tim, 2026-10-28; not implemented): prioritize stronger weapon-hit impacts (slashes are acceptable), distinctive ability effects, execution and generic use/interaction sounds. Suno Sounds was discussed as a candidate source only; no assets generated/downloaded or audio changes in this batch.
+Audio backlog (2026-10-28; not implemented): prioritize stronger weapon-hit impacts (slashes are acceptable), distinctive ability effects, execution and generic use/interaction sounds. Suno Sounds was discussed as a candidate source only; no assets generated/downloaded or audio changes in this batch.
 
 Sound asset catch-up (2026-10-28): playback now loads custom punch_main variants, rifle_shot_1, use_1–3 and loot_coins_1, with existing fallbacks. Runtime clips and supplied original sources are retained in assets/sounds (sources under new_sounds); all additions below 100 KB each. Fist impacts select punch variants, rifle cast uses gunshot, interactions/loot use their variants. Execution still combines old crit-hit plus death-thud; no replacement execution clip claimed. No new playback/browser test performed for this catch-up.
 

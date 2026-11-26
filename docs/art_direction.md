@@ -16,7 +16,7 @@
 - HUD meters sit in a sunk track with a brass rim and a moss green fill; key hints are small vermilion seals.
 
 ## Effects (Settled, 2026-11-23)
-- Every visual effect stays somewhat see-through, so it reads as animation and not flat 2D art (Tim).
+- Every visual effect stays somewhat see-through, so it reads as animation and not flat 2D art.
 
 ## What the look tests showed
 
@@ -90,7 +90,7 @@
 ### Superseded
 
 - The 2026-10-13 plan used free 3D building packs (Kasuga) and local Hunyuan3D. It was replaced by the painted sheets above and Tencent's web version, which has textures.
-- Tim's 2026-10-12 lean toward a fixed isometric camera with generated 2D sprites (Sudden Strike quality) became the pipeline above.
+- the 2026-10-12 lean toward a fixed isometric camera with generated 2D sprites (Sudden Strike quality) became the pipeline above.
 
 ## Assets layout (Settled, 2026-10-14)
 

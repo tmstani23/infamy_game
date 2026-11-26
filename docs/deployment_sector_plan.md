@@ -1,8 +1,8 @@
 # Phase 4: deployment, sectors and Rally
 
-Status: built/sim-checked 2026-10-27 (original 1A–5B and authorized follow-on A–F, Contract and Stealth/HUD; all thirty final checks passed). Tim visual/balance/layout playtest remains pending. This doc owns deployment, sectors and their UI, and deployment Rally. Player controls: `controls.md` "Deployment and sectors". The Shinobi HQ raid lives in `business_raids_plan.md`. The checkpoint sections at the end are the build record.
+Status: built/sim-checked 2026-10-27 (original 1A–5B and authorized follow-on A–F, Contract and Stealth/HUD; all thirty final checks passed). visual/balance/layout playtest remains pending. This doc owns deployment, sectors and their UI, and deployment Rally. Player controls: `controls.md` "Deployment and sectors". The Shinobi HQ raid lives in `business_raids_plan.md`. The checkpoint sections at the end are the build record.
 
-**Completed follow-on (2026-10-27):** [simpler sector control, recovery and Ambush](#proposed-follow-on-build-plan-2026-10-27), all-day contracts and Stealth/HUD are implemented/sim-checked. Checkpoints preserve build history; only Tim playtest and separately unapproved redesign proposals remain open.
+**Completed follow-on (2026-10-27):** [simpler sector control, recovery and Ambush](#proposed-follow-on-build-plan-2026-10-27), all-day contracts and Stealth/HUD are implemented/sim-checked. Checkpoints preserve build history; only playtest and separately unapproved redesign proposals remain open.
 
 ## Purpose
 
@@ -63,7 +63,7 @@ Initial tuning: armed wait sixty seconds, attack maximum forty-five seconds; abo
 
 Direct manual orders detach chosen units. Enemy targeting/ordinary group switches do not cancel autonomous Ambush; selection-change Return affects only actually manually overridden units. Task changes/explicit Return cancel or retreat appropriately, then restore the saved task.
 
-### Geisha (autonomous, replaces manual Diversion, Tim 2026-10-27)
+### Geisha (autonomous, replaces manual Diversion, 2026-10-27)
 
 No manual Diversion any more. In a sector or the hero group the Shinobi geisha acts on her own (`sim/diversion.js`, numbers in `DIVERSION`):
 - Lure is her auto attack: every 10 s she charms one visible enemy crew member or house guard within 6 (first whoever hits her clan, then anyone near it, then the nearest); the target stands entranced for 4 s. Never heroes, police, bandits or townsfolk.
@@ -101,7 +101,7 @@ Current regular-clan choices are **Patrol** and **Guard Own Business** (interior
 
 ## Deployment map (3A built/sim-checked 2026-10-26; visual playtest deferred)
 
-Tim approved the preview and subsequent build with glowing one-pixel hex lines, a slow nondistracting ripple and thick glowing colored sector edges. **M → Deployment** opens the layer; Deployment and Territory are mutually exclusive. Existing business/police/unit switches remain. World shape, roads/buildings, public street sector geometry and navigation grid are unchanged.
+approved the preview and subsequent build with glowing one-pixel hex lines, a slow nondistracting ripple and thick glowing colored sector edges. **M → Deployment** opens the layer; Deployment and Territory are mutually exclusive. Existing business/police/unit switches remain. World shape, roads/buildings, public street sector geometry and navigation grid are unchanged.
 
 Visual radius-four hexes clip to rectangular bounds. Cells are mostly visual subdivisions of four sectors, not assignments/territory objectives; crossing cells inside a sector requires no transfer. Exterior sector contours omit bold internal building-hole outlines. Styling uses one CSS-pixel hex strokes/soft glow, a fourteen-second spatial ripple, 2.5-pixel sector borders (3.2 selected), soft halos, subtle selection pulse and framed tactical labels/sidebar. Reduced-motion preferences are respected. Fixed identity colors: Pleasure amber, Bund teal, West violet, East coral.
 
@@ -111,7 +111,7 @@ Click a sector/nameplate to close the map and open Deployment management focused
 
 Enemy contact memory uses only normal `vision.canSee` observations, including while the map is closed; it never reads rival assignments/transfers. Live squares become hollow/dim last-known positions with last-observed travel direction for **ten seconds** after sight loss, then expire. Hidden movement/deaths are not tracked. This presentation memory is separate from the authoritative Watch reports/alerts/priority pings implemented in 5A.
 
-`deployment_map_geometry.js` traces exterior contours and generates visual hexes. Build coordinator reports `game/tools/test_deployment_map.mjs` passed contours/anchors/nav coverage, unchanged navigation, hexes, rival-data isolation, visibility/memory/expiry/direction, shared presence, KO/health/reservation/interior projections and pure drawing/picking queries. A Node canvas/DOM adapter smoke check passed real map/minimap layer switching, management picks without camera/order side effects, ordinary map look/close and resize. Foundation, automation, transfer, vision, territory and match-setup regressions plus syntax/diff checks passed. No browser tests/screenshots. Tim's deferred check: refresh → M → Deployment.
+`deployment_map_geometry.js` traces exterior contours and generates visual hexes. Build coordinator reports `game/tools/test_deployment_map.mjs` passed contours/anchors/nav coverage, unchanged navigation, hexes, rival-data isolation, visibility/memory/expiry/direction, shared presence, KO/health/reservation/interior projections and pure drawing/picking queries. A Node canvas/DOM adapter smoke check passed real map/minimap layer switching, management picks without camera/order side effects, ordinary map look/close and resize. Foundation, automation, transfer, vision, territory and match-setup regressions plus syntax/diff checks passed. No browser tests/screenshots. the deferred check: refresh → M → Deployment.
 
 ## Decisions still needed
 
@@ -123,19 +123,19 @@ Enemy contact memory uses only normal `vision.canSee` observations, including wh
 
 ## Sequential build plan (build authorized 2026-10-26)
 
-Tim's latest authorization (2026-10-26): continue **3B–5B in order**, running focused Node/sim checks and reporting each subphase/checkpoint to Tim and Docs keeper. No further confirmation is required between these already authorized phases. This supersedes the earlier confirmation gate; it does not authorize combining the phases or skipping reports. Tim's visual/balance playtest remains deferred until the end. Future checklist items stay pending until implementation is reported. Conservative initial specialist tuning must be reported as concrete values when reached; until reported, open values remain unset. Preserve approved mechanics.
+the latest authorization (2026-10-26): continue **3B–5B in order**, running focused Node/sim checks and reporting each subphase/checkpoint to and Docs keeper. No further confirmation is required between these already authorized phases. This supersedes the earlier confirmation gate; it does not authorize combining the phases or skipping reports. the visual/balance playtest remains deferred until the end. Future checklist items stay pending until implementation is reported. Conservative initial specialist tuning must be reported as concrete values when reached; until reported, open values remain unset. Preserve approved mechanics.
 
 - [x] **1A — Complete (2026-10-26):** shared connected sector definitions, membership, home reserve and capacity/overflow foundation; no order restrictions yet.
-- [x] **2A — Implemented/sim-checked (2026-10-26):** basic management UI, manual physical transfers/reservations and sector enforcement; Tim visual playtest pending.
-- [x] **2B — Implemented/sim-checked (2026-10-26):** automatic reserve dispatch and overflow safeguards; Tim playtest deferred.
-- [x] **3A — Implemented/sim-checked (2026-10-26):** visual hex Deployment map, status and selection; Tim playtest deferred.
-- [x] **3B — Implemented/sim-checked (2026-10-26):** non-Shinobi and basic Shinobi local duties, including manual-return behavior; Tim playtest deferred.
+- [x] **2A — Implemented/sim-checked (2026-10-26):** basic management UI, manual physical transfers/reservations and sector enforcement; visual playtest pending.
+- [x] **2B — Implemented/sim-checked (2026-10-26):** automatic reserve dispatch and overflow safeguards; playtest deferred.
+- [x] **3A — Implemented/sim-checked (2026-10-26):** visual hex Deployment map, status and selection; playtest deferred.
+- [x] **3B — Implemented/sim-checked (2026-10-26):** non-Shinobi and basic Shinobi local duties, including manual-return behavior; playtest deferred.
 - [x] **4A — Implemented/sim-checked (2026-10-26):** Rally activation, timer and arrival UI; expiry returns/buffs/raid resets followed in 4B.
-- [x] **4B — Implemented/sim-checked (2026-10-26):** Rally expiry returns, hero-group buff eligibility and formal-raid resets; Tim playtest deferred.
-- [x] **5A — Implemented/sim-checked (2026-10-26):** coordinated Watch, Secure Extraction and manual Ambush; initial tuning above, Tim playtest deferred.
+- [x] **4B — Implemented/sim-checked (2026-10-26):** Rally expiry returns, hero-group buff eligibility and formal-raid resets; playtest deferred.
+- [x] **5A — Implemented/sim-checked (2026-10-26):** coordinated Watch, Secure Extraction and manual Ambush; initial tuning above, playtest deferred.
 - [x] **5B — Implemented/sim-checked (2026-10-26):** geisha Diversion and shared-command deployment AI integration; final grouped regressions passed.
 
-- [ ] **Final Tim visual/balance playtest:** complete deployment/sector/Rally/specialist flow after implementation and internal checks.
+- [ ] **Final visual/balance playtest:** complete deployment/sector/Rally/specialist flow after implementation and internal checks.
 
 ### 1A foundation checkpoint (2026-10-26)
 
@@ -145,11 +145,11 @@ Completion/checks reported by Build coordinator. `sim/sectors.js` uses determini
 
 At the 1A checkpoint, `restrictionsEnabled` remained **false** (superseded by 2A match setup below). 1A created or changed no movement/Follow orders and introduced no commands or transfer UI. Medical/jail intention persistence and live reservations followed in 2A, automatic dispatch in 2B and duties in 3B; Rally activation/timers followed in 4A; expiry returns/buffs/raid resets followed in 4B.
 
-`game/tools/test_deployment_foundation.mjs` passed connectivity/entrance mapping, membership/defaults/caps, overflow/source-slot checks, exclusions, order preservation, serialization and pure-query coverage. Existing crew and crew-services checks plus syntax/diff checks passed. Tim may defer visual playtesting until the full build; each remaining subphase requires checks and reporting, without another confirmation gate.
+`game/tools/test_deployment_foundation.mjs` passed connectivity/entrance mapping, membership/defaults/caps, overflow/source-slot checks, exclusions, order preservation, serialization and pure-query coverage. Existing crew and crew-services checks plus syntax/diff checks passed. may defer visual playtesting until the full build; each remaining subphase requires checks and reporting, without another confirmation gate.
 
 ### 2A manual transfer checkpoint (2026-10-26)
 
-Build coordinator reports implementation and targeted sim checks passed; Tim's visual playtest is pending. Toolbar **Deployment** opens roster/selection, health, hero-six/HQ/four-sector counts, inbound reservations and transfer/blocked/arrived status. Select crew, destination, then **Transfer selected**. In-flight crew may reroute through the same authorization. Escape closes; the panel blocks edge-panning. No new hotkey or URL parameter. At this 2A checkpoint the reserve target was read-only; 2B adds editing, Keep at HQ UI and automatic dispatch below.
+Build coordinator reports implementation and targeted sim checks passed; the visual playtest is pending. Toolbar **Deployment** opens roster/selection, health, hero-six/HQ/four-sector counts, inbound reservations and transfer/blocked/arrived status. Select crew, destination, then **Transfer selected**. In-flight crew may reroute through the same authorization. Escape closes; the panel blocks edge-panning. No new hotkey or URL parameter. At this 2A checkpoint the reserve target was read-only; 2B adds editing, Keep at HQ UI and automatic dispatch below.
 
 Shared `deployment`/`transfer` commands validate ownership, availability, quiet period, capacity, reservation and route. Passive vulnerable travelers use normal street/interior doors and never retaliate; hero combat after authorization does not cancel travel. Arrival holds, never auto-Follows. HQ destination is inside own HQ; hero destination tracks the living hero or blocks/retries if unavailable. Remote HQ/sector transfers work during hero KO after the quiet period. Dynamic blockage retries once per second with three-second no-progress detection. Death/downing/removal releases slots; rerouting validates replacement reservations. No teleport.
 
@@ -159,11 +159,11 @@ Clinic/healing/jail records preserve assignment intention and Keep at HQ. Return
 
 `game/tools/test_deployment_transfers.mjs` passed real-match setup, passive travel under damage, continued travel after hero combat, reservation races, local path/order containment and bypass rejection, KO management, HQ entry, medical/jail intention, Kuroda/Shinobi routes including village bridges and dynamic blockage. Foundation, crew, indoor-orders, crew-services, dismissal and police regressions plus syntax/diff checks passed. No browser tests/screenshots.
 
-Tim's checkpoint: refresh → Deployment → send selected crew to a sector → try local and cross-sector orders → transfer HQ/hero → inspect counts/status. Tim may defer this review to the final whole-build playtest; each subsequent subphase still requires checks and reporting under the latest authorization.
+the checkpoint: refresh → Deployment → send selected crew to a sector → try local and cross-sector orders → transfer HQ/hero → inspect counts/status. may defer this review to the final whole-build playtest; each subsequent subphase still requires checks and reporting under the latest authorization.
 
 ### 2B reserve automation checkpoint (2026-10-26)
 
-Build coordinator reports implementation and targeted sim checks passed. Tim's playtest is deferred; 3A was subsequently completed as recorded above. Deployment exposes an editable nonnegative integer **Keep at HQ ready target** (default two) and per-hired-crew **Keep at HQ** checkbox. Healthy ready pins count toward the target and always remain pinned even at target zero. Injured/pinned/busy reserve states are shown.
+Build coordinator reports implementation and targeted sim checks passed. the playtest is deferred; 3A was subsequently completed as recorded above. Deployment exposes an editable nonnegative integer **Keep at HQ ready target** (default two) and per-hired-crew **Keep at HQ** checkbox. Healthy ready pins count toward the target and always remain pinned even at target zero. Injured/pinned/busy reserve states are shown.
 
 Once-per-second policy passes send full-health idle home surplus to least-populated normal sector vacancies, then legally unlocked overflow. Immediate reservations prevent overfill; hero assignments stay manual. The same sim rules apply to every clan/bot. Hero combat queues dispatch until the six-second quiet period; a crew member's recent combat, current attack or active job also blocks automatic dispatch. Active manual jobs are not interrupted.
 
@@ -175,7 +175,7 @@ Lowering target/unpinning permits surplus on the next pass. Raising target or pi
 
 Historical group-switch cancellation here is superseded by the approved, not-yet-built manual-order persistence follow-up below.
 
-Build coordinator reports implementation and focused checks passed; Tim's playtest remains deferred. `sim/assignments.js` owns saved Patrol Sector, Guard Own Business, Hold Position/Route and Shinobi basic passive Watch. Tasks persist even in empty sectors. Objectives/fallbacks and up to eight optional route points must be within the sector; guarded business must be owned and in that sector. Invalid cross-sector updates are rejected atomically. A lost guard target shows unavailable/fallback without replacing the saved task.
+Build coordinator reports implementation and focused checks passed; the playtest remains deferred. `sim/assignments.js` owns saved Patrol Sector, Guard Own Business, Hold Position/Route and Shinobi basic passive Watch. Tasks persist even in empty sectors. Objectives/fallbacks and up to eight optional route points must be within the sector; guarded business must be owned and in that sector. Invalid cross-sector updates are rejected atomically. A lost guard target shows unavailable/fallback without replacing the saved task.
 
 Patrol uses sector-local attack-move waypoints; its initial generated loop extends six from the objective. Hold routes pause about two seconds per point. Hold/Watch return to chosen points; Watch does not initiate attacks on passers but can defend. Guard uses normal doors to patrol the owned interior; changing task exits locally, even while the hero is KO.
 
@@ -193,7 +193,7 @@ Called crew gain temporary area/explicit-Follow permission without changing save
 
 Deployment adds group checkboxes, **Call Rally**, remaining time, current near-hero count within eight units versus called available count, and cooldown. The toolbar Deployment button shows remaining time while closed. This near-hero count is current proximity, not a cumulative arrival history.
 
-Checks cover KO/combat calls, selected groups/guard exclusion, no implicit Follow, temporary area/explicit Follow, three-minute duration/repeat prevention, five-minute expiry cooldown, ready recast and serialization. Existing assignment/transfer checks passed. Physical expiry returns, deliberate permanent-reassignment override, buff membership and formal-raid resets followed in 4B below. Tim's visual/balance playtest remains deferred.
+Checks cover KO/combat calls, selected groups/guard exclusion, no implicit Follow, temporary area/explicit Follow, three-minute duration/repeat prevention, five-minute expiry cooldown, ready recast and serialization. Existing assignment/transfer checks passed. Physical expiry returns, deliberate permanent-reassignment override, buff membership and formal-raid resets followed in 4B below. the visual/balance playtest remains deferred.
 
 ### 4B Rally completion checkpoint (2026-10-26)
 
@@ -213,15 +213,15 @@ Build coordinator reports `sim/shinobi_assignments.js` implemented the Watch/Ext
 
 Build coordinator reports `sim/diversion.js` and `deployment_ai.js` implemented. Bots recognize permanent hero-party crew/current Rally participants only; normal match hires/recoveries hold until shared explicit transfer/Follow commands. AI sends ordinary commands for quiet reserve-to-hero fills, explicit Follow after arrival, defensive Rally even during KO, cautious visible-target Ambush and geisha task/dance. Shinobi may hire one geisha after roster eight, within existing cap/prices. No hidden intelligence, resources or sim bypass.
 
-`game/tools/test_diversion.mjs` passed real hire/cap/faction/no implicit Follow, reused sprite existence, warning/duration, target immunity/breaks, cooldown/persistence, retreat and physical interior guard exit/re-entry. `game/tools/test_deployment_ai.mjs` passed actual commands for promotion/party isolation, observed Ambush, geisha tasks/dance and KO defensive Rally. Existing Shinobi combat, crew-groups and crew-services passed. All 1A–5B implementation items are built; final grouped integration regressions passed, and Tim's final visual/balance playtest remains unchecked.
+`game/tools/test_diversion.mjs` passed real hire/cap/faction/no implicit Follow, reused sprite existence, warning/duration, target immunity/breaks, cooldown/persistence, retreat and physical interior guard exit/re-entry. `game/tools/test_deployment_ai.mjs` passed actual commands for promotion/party isolation, observed Ambush, geisha tasks/dance and KO defensive Rally. Existing Shinobi combat, crew-groups and crew-services passed. All 1A–5B implementation items are built; final grouped integration regressions passed, and the final visual/balance playtest remains unchecked.
 
 ### Final integration checks (passed 2026-10-26)
 
-Build coordinator reports all nine focused feature checks passed: deployment foundation, automation, transfers, map, assignments, Rally, Shinobi assignments, Diversion and deployment AI. All ten relevant regressions passed: crew, crew-services, crew-groups, indoor-orders, vision, territory, raid, Shinobi HQ raid, Shinobi combat and Kuroda. All twenty-three touched JS modules passed `node --check`; targeted `git diff --check` was clean. No browser tests, screenshots or Tim playtest are claimed.
+Build coordinator reports all nine focused feature checks passed: deployment foundation, automation, transfers, map, assignments, Rally, Shinobi assignments, Diversion and deployment AI. All ten relevant regressions passed: crew, crew-services, crew-groups, indoor-orders, vision, territory, raid, Shinobi HQ raid, Shinobi combat and Kuroda. All twenty-three touched JS modules passed `node --check`; targeted `git diff --check` was clean. No browser tests, screenshots or playtest are claimed.
 
 Explicit crew loot/execution/assist attacks enter temporary manual control and break Diversion; internal Ambush execution stays attached to its operation. Sector-local loot escort Follow is allowed only for existing escort intent, never as a hero-group bypass. Return/permanent transfers clear stale lure/return/dance intents while ordinary task resumption remains intact. Expiry/transfer/new-life cooldown metadata is preserved.
 
-No implementation subphase remains. Tim's final visual/balance playtest stays unchecked; the geisha dance uses the Arms Hip Hop Dance sheet (2026-10-26); only her attack keeps the formal-bow placeholder.
+No implementation subphase remains. the final visual/balance playtest stays unchecked; the geisha dance uses the Arms Hip Hop Dance sheet (2026-10-26); only her attack keeps the formal-bow placeholder.
 
 Already implemented separately: [Shinobi HQ raid](business_raids_plan.md) "Shinobi HQ raid". Its status and pending playtest live in the raid owner doc; this plan does not reopen that implementation.
 
@@ -234,13 +234,13 @@ Build coordinator reports four fixes to the current sector/geisha/map implementa
 - Active contract markers use business world coordinates, never room-local `job.spot`; visible interior bosses project to their building. Pure presentation helper: `game/src/contract_map_marker.js`.
 - Boss markers use only visible, nonhidden current positions or watcher reports younger than 200 ticks (ten seconds), never unseen live coordinates.
 
-Targeted Node checks passed with new regressions: `test_deployment_automation`, `test_deployment_transfers`, `test_geisha` and `test_deployment_map`. All four touched source syntax checks and scoped diff whitespace checks passed. No browser test or Tim playtest is claimed. No sector simplification plan is agreed by these corrections.
+Targeted Node checks passed with new regressions: `test_deployment_automation`, `test_deployment_transfers`, `test_geisha` and `test_deployment_map`. All four touched source syntax checks and scoped diff whitespace checks passed. No browser test or playtest is claimed. No sector simplification plan is agreed by these corrections.
 
 <a id="proposed-follow-on-build-plan-2026-10-27"></a>
 
 ## Follow-on build plan (completed/sim-checked 2026-10-27)
 
-**Build authorized by Tim, 2026-10-27.** Build sequentially and report each phase to Tim/Docs keeper before continuing; no further confirmation is needed between phases. All authorized implementation items below are now checked after reported passing tests; Tim playtest remains unchecked. The section preserves agreed design and initial integration choices; later checkpoints record the completed implementation. Earlier authorization covers completed 1A–5B only. Historical bugfix checks above do not validate this follow-on.
+**Build authorized by 2026-10-27.** Build sequentially and report each phase to the Docs keeper before continuing; no further confirmation is needed between phases. All authorized implementation items below are now checked after reported passing tests; playtest remains unchecked. The section preserves agreed design and initial integration choices; later checkpoints record the completed implementation. Earlier authorization covers completed 1A–5B only. Historical bugfix checks above do not validate this follow-on.
 
 ### Outcome and retained rules
 
@@ -302,17 +302,17 @@ Related agreed directions and proposed tuning: [readable stealth, Distract and h
 
 ### Sequential follow-on checklist — authorized 2026-10-27, not yet complete
 
-Tim authorizes A → B → C → D → E → Contract → Stealth/HUD → F in order, with checks and reports after each phase. All items stay unchecked until implementation/checks are reported; final Tim playtest stays unchecked. Adopt conservative initial defaults: shared Ambush casualty rules for every clan's automated sector groups, desired counts as goals rather than caps, one coordinated target order per clan, and +25% hidden-completion Renown for infiltration jobs. This authorization supersedes earlier confirmation-required wording for those defaults. Record concrete refresh/stealth tuning when implemented. Watch-helper/Extraction replacement and plant-and-leave sabotage remain separate unapproved redesigns.
+authorizes A → B → C → D → E → Contract → Stealth/HUD → F in order, with checks and reports after each phase. All items stay unchecked until implementation/checks are reported; final playtest stays unchecked. Adopt conservative initial defaults: shared Ambush casualty rules for every clan's automated sector groups, desired counts as goals rather than caps, one coordinated target order per clan, and +25% hidden-completion Renown for infiltration jobs. This authorization supersedes earlier confirmation-required wording for those defaults. Record concrete refresh/stealth tuning when implemented. Watch-helper/Extraction replacement and plant-and-leave sabotage remain separate unapproved redesigns.
 
-- [x] **A — Implemented/sim-checked (2026-10-27):** shared all-clan withdrawal/recovery and automatic fallback, using authorized shared casualty/one-third-HP thresholds; Tim visual playtest pending.
-- [x] **B — Implemented/sim-checked (2026-10-27):** staffing goals, map portrait transfers/context controls and main HUD remembered-group Rally; Tim visual playtest pending.
-- [x] **C — Implemented/sim-checked (2026-10-27):** authoritative two-minute identity memory and active boss-contract tracking, with distinct visibility/lifecycle rules; Tim visual playtest pending.
+- [x] **A — Implemented/sim-checked (2026-10-27):** shared all-clan withdrawal/recovery and automatic fallback, using authorized shared casualty/one-third-HP thresholds; visual playtest pending.
+- [x] **B — Implemented/sim-checked (2026-10-27):** staffing goals, map portrait transfers/context controls and main HUD remembered-group Rally; visual playtest pending.
+- [x] **C — Implemented/sim-checked (2026-10-27):** authoritative two-minute identity memory and active boss-contract tracking, with distinct visibility/lifecycle rules; visual playtest pending.
 - [x] **D — Implemented/sim-checked (2026-10-27):** standing group Ambush, coordinated pinned target claims/pre-attack handoffs and agreed aggressive casualty rules; action UI follows E.
 - [x] **E — Implemented/logic-sim checked (2026-10-27):** target-pane/context/contract action buttons and truthful state cues; browser/visual interaction tests not performed.
 - [x] **Contract follow-on — Implemented/sim-checked (2026-10-27):** separately owned [all-day contract plan](ninja_clan_plan.md#all-day-contracts-follow-on-agreed-design-2026-10-27), including rolling supply/anti-repeat policy; UI playtest pending.
-- [x] **Stealth/HUD follow-on — Implemented/sim-checked (2026-10-27):** [canonical S1–S2 record](ninja_clan_plan.md#stealthhud-s2-completion-checkpoint-2026-10-27); concrete badge/bonus/quiet-work tuning and checks recorded; Tim visual/layout playtest pending.
+- [x] **Stealth/HUD follow-on — Implemented/sim-checked (2026-10-27):** [canonical S1–S2 record](ninja_clan_plan.md#stealthhud-s2-completion-checkpoint-2026-10-27); concrete badge/bonus/quiet-work tuning and checks recorded; visual/layout playtest pending.
 - [x] **F — Implemented/sim-checked (2026-10-27):** shared-command bot integration and final grouped report; all thirty checks passed.
-- [ ] **Tim visual/balance playtest:** after implementation; no browser/screenshot testing is planned for this build workflow.
+- [ ] **visual/balance playtest:** after implementation; no browser/screenshot testing is planned for this build workflow.
 
 Required checks: exact casualty/HP thresholds despite high enemy counts; safe route/replan/trap/interior doors; manual/transfer/Rally overrides; no gathering deathlock or invented healing; memory expiry versus pin and unseen-data isolation; boss stealth/indoors/contract end; one committed group/pre-attack handoff/no chase; capacity/pin/reservation/combat gates and staffing without job interruption. Existing checks remain historical until relevant follow-on regressions pass.
 
@@ -322,7 +322,7 @@ Build coordinator reports `sim/sector_recovery.js` implemented for all clans bef
 
 Deterministic fallback scores reachable in-sector candidates using visible enemies only, owned sites and friendly positions. Replan at most once per second if unsafe/blocked; use actual local travel/doors, no teleport, with melee defense when trapped. Survivors and new arrivals gather within two units; resume after six seconds out of combat with each survivor at least 70% HP. No healing is invented and casualties do not block gathering. Old specialist escape integration remains to be replaced in D.
 
-`game/tools/test_sector_recovery.mjs` passed thresholds, all three clans, reachability/physical retreat, no healing, replanning, manual/transfer/Rally priority, hidden-data isolation, trapped defense and serialization. Assignments, deployment transfers and Rally plus touched-source syntax/diff checks passed. An initial missing deployment guard was corrected before final passing checks. Tim's visual/balance playtest remains pending; B is next under existing authorization. No active-work commit requested.
+`game/tools/test_sector_recovery.mjs` passed thresholds, all three clans, reachability/physical retreat, no healing, replanning, manual/transfer/Rally priority, hidden-data isolation, trapped defense and serialization. Assignments, deployment transfers and Rally plus touched-source syntax/diff checks passed. An initial missing deployment guard was corrected before final passing checks. the visual/balance playtest remains pending; B is next under existing authorization. No active-work commit requested.
 
 ### Follow-on B checkpoint (2026-10-27)
 
@@ -338,7 +338,7 @@ Build coordinator reports `sim/shinobi_intelligence.js` implemented authoritativ
 
 Only the actual active boss contract establishes `bossTrack`, after first real sight. Thereafter the explicitly authorized nonstealth boss marker updates exact outdoor position/building beyond ordinary vision. Actual stealth freezes last-known position; real reacquisition is required even after stealth ends. Contract end/change clears discovery. No other crew reveal, vision grant or combat permission follows from the marker.
 
-`game/tools/test_shinobi_intelligence.mjs` passed discovery, crew isolation, memory/pins, stealth/reacquisition, interiors, lifecycle and serialization. Shinobi assignments, Deployment map and three source syntax checks passed. D connects memory to coordinated orders; E adds UI roster/actions. Tim playtest remains pending; no commit/push requested.
+`game/tools/test_shinobi_intelligence.mjs` passed discovery, crew isolation, memory/pins, stealth/reacquisition, interiors, lifecycle and serialization. Shinobi assignments, Deployment map and three source syntax checks passed. D connects memory to coordinated orders; E adds UI roster/actions. playtest remains pending; no commit/push requested.
 
 ### Follow-on D checkpoint (2026-10-27)
 
@@ -348,7 +348,7 @@ One coordinated hunt per clan allows a staffed nonrecovering sector personally d
 
 Defeated/escaped target, cancellation or forty-five-second attack maximum leads through shared automatic fallback/recovery to saved duty; standing Ambush persists. Manual commands, transfers and Rally detach units; task changes clear operation and stale patrol. Old Escaping/aggregate-HP/defender-veto machinery is replaced.
 
-`game/tools/test_ambush.mjs` passed standing combat against nine enemies, casualty/one-third-HP behavior, remembered waiting beyond sixty seconds, observer-sector handoff/single commitment, target exit ending attempt, cancellation and serialization. Updated Shinobi assignments passed real attack/execution/recovery, cancellation, Extraction leash and casualty behavior; deployment AI and sector recovery passed. Syntax/scoped diff checks passed. E adds target/map action UI next; Tim visual playtest remains pending. No commit/push requested.
+`game/tools/test_ambush.mjs` passed standing combat against nine enemies, casualty/one-third-HP behavior, remembered waiting beyond sixty seconds, observer-sector handoff/single commitment, target exit ending attempt, cancellation and serialization. Updated Shinobi assignments passed real attack/execution/recovery, cancellation, Extraction leash and casualty behavior; deployment AI and sector recovery passed. Syntax/scoped diff checks passed. E adds target/map action UI next; visual playtest remains pending. No commit/push requested.
 
 ### Follow-on E checkpoint (2026-10-27)
 
@@ -356,7 +356,7 @@ Build coordinator reports sector task UI exposes Watch/Ambush/Extraction. Shared
 
 Target frame offers Arm/Armed-Cancel. Remembered inspection shows snapshot identity/age, never live HP/buffs or a hidden-entity camera jump. New world targeting/Escape clears remembered inspection. Contract tracker offers Ambush contract target/Cancel from known active boss identity, without sector selection. Tracked contract identity retains observed metadata beyond 120 seconds; coordinates use public tracked building/world point and labels distinguish tracking from actual sight. Markers never grant combat vision.
 
-Unit-frame, Deployment map, Shinobi intelligence and Ambush checks passed; six UI source syntax checks passed. No browser/visual interaction testing is claimed. All-day Contract follow-on is next, before Stealth/HUD; Tim playtest remains pending. No commit/push requested.
+Unit-frame, Deployment map, Shinobi intelligence and Ambush checks passed; six UI source syntax checks passed. No browser/visual interaction testing is claimed. All-day Contract follow-on is next, before Stealth/HUD; playtest remains pending. No commit/push requested.
 
 ### Contract follow-on checkpoint (2026-10-27)
 
@@ -368,7 +368,7 @@ Perception/patrol/Distract implementation and focused results are recorded in th
 
 ### Stealth/HUD completion checkpoint (2026-10-27)
 
-S1–S2 implementation/sim checks are complete per Build coordinator; [canonical owner](ninja_clan_plan.md#stealthhud-s2-completion-checkpoint-2026-10-27) records perception, bonus, quiet speed, badge defaults and passed checks. F bot/grouped integration subsequently passed as recorded below. Tim visual/balance/layout playtest remains unchecked; no commit/push requested.
+S1–S2 implementation/sim checks are complete per Build coordinator; [canonical owner](ninja_clan_plan.md#stealthhud-s2-completion-checkpoint-2026-10-27) records perception, bonus, quiet speed, badge defaults and passed checks. F bot/grouped integration subsequently passed as recorded below. visual/balance/layout playtest remains unchecked; no commit/push requested.
 
 ### Follow-on F final integration (passed 2026-10-27)
 
@@ -376,31 +376,31 @@ Build coordinator reports all agreed follow-on implementation complete. Deployme
 
 All thirty unique checks passed: sector recovery, deployment foundation/automation/transfers/map, assignments, deployment Rally, Shinobi intelligence, Ambush, deployment AI, geisha, all-day contracts, contract refill, stealth perception, hidden-contract bonus, unit frames, vision, territory, crew, crew services/groups, indoor orders, raid, Kuroda, police, Shinobi assignments, Ninja bot, Ninja, Shinobi combat and Shinobi HQ raid. Later Hunting-label/cleanup changes were rechecked with specialist/deployment-AI checks and syntax. Thirty changed/new source modules passed `node --check`; scoped diff check was clean.
 
-No browser, screenshot, visual or layout playtest is claimed. Tim's final visual/balance/layout item stays unchecked. Watch-helper/Extraction replacement and plant-and-leave sabotage remain separate unapproved proposals. New source/test files must be included in any later authorized commit; personal HUD layout/archives remain untouched. No commit/push requested by this handoff.
+No browser, screenshot, visual or layout playtest is claimed. the final visual/balance/layout item stays unchecked. Watch-helper/Extraction replacement and plant-and-leave sabotage remain separate unapproved proposals. New source/test files must be included in any later authorized commit; personal HUD layout/archives remain untouched. No commit/push requested by this handoff.
 
 ### Duty simplification follow-up (implemented/checked 2026-10-27)
 
 Historical selection-change return behavior here is superseded by the approved pending manual-order persistence design below; Escape/explicit Return remain immediate cancellation.
 
-Tim approved Patrol/Guard-only regular-clan duties and corrected the deselection key to **Escape**, not Control. Shared command/UI selectors reject new Hold; legacy Hold migrates to Patrol even in empty sectors. Manual station and optional Patrol routes remain. `CrewInput.clear` sends shared selection-change Return on Escape; only manual overrides resume, preserving autonomous Ambush/Rally selection safeguards.
+approved Patrol/Guard-only regular-clan duties and corrected the deselection key to **Escape**, not Control. Shared command/UI selectors reject new Hold; legacy Hold migrates to Patrol even in empty sectors. Manual station and optional Patrol routes remain. `CrewInput.clear` sends shared selection-change Return on Escape; only manual overrides resume, preserving autonomous Ambush/Rally selection safeguards.
 
 Crew bar **↩ Duty** and map/panel **Back to duty** use shared `returnToDutyAndSelectHero`: explicitly return eligible selected/focused local sector crew, deselect and select only available permanent hero-group crew. Other released manual sector crew receive selection-change Return without duplicate explicit IDs. Hero control remains available with no crew. No movement/Follow, membership, numbered-group shortcut or Ctrl behavior changes.
 
-Crew-group checks passed Escape return, explicit return/hero selection, no duplicate commands/Follow, numbered groups, focused map return and releasing other manual groups. Assignments passed Patrol/Guard, Hold migration/rejection, local manual/return and Guard doors; indoor-orders and Rally passed. Eight touched-source syntax and scoped diff checks passed. Invalid CP1252 bytes in recent-target panel text were normalized to UTF-8, retaining valid UTF-8. No browser/UI playtest claimed; final Tim playtest remains unchecked. No commit/push requested.
+Crew-group checks passed Escape return, explicit return/hero selection, no duplicate commands/Follow, numbered groups, focused map return and releasing other manual groups. Assignments passed Patrol/Guard, Hold migration/rejection, local manual/return and Guard doors; indoor-orders and Rally passed. Eight touched-source syntax and scoped diff checks passed. Invalid CP1252 bytes in recent-target panel text were normalized to UTF-8, retaining valid UTF-8. No browser/UI playtest claimed; final playtest remains unchecked. No commit/push requested.
 
 <a id="playtest-fixes-follow-on-approved-2026-10-27-not-implemented"></a>
 
 ## Playtest fixes follow-on (implemented/checked 2026-10-27)
 
-Tim approved the numbered twenty-three-item proposal and refinements. Sequential implementation is underway; only reported completed phases are checked below. Remaining items are authorized scope, not completion. Deployment interaction requirements are now approved, including the button-based transfer flow below; a visual mockup is not yet drawn. Existing completed checkpoints remain historical. Build/check/report phased changes; Tim visual/playtesting remains unchecked.
+approved the numbered twenty-three-item proposal and refinements. Sequential implementation is underway; only reported completed phases are checked below. Remaining items are authorized scope, not completion. Deployment interaction requirements are now approved, including the button-based transfer flow below; a visual mockup is not yet drawn. Existing completed checkpoints remain historical. Build/check/report phased changes; visual/playtesting remains unchecked.
 
-- [x] **1 — Reliability (#12), implemented/sim-adapter checked 2026-10-27:** stable attached roster nodes and gated panel refresh; see evidence below. Full A* validation runs on command submission, not UI frames. No confirmed memory leak. Tim visual/performance playtest pending.
+- [x] **1 — Reliability (#12), implemented/sim-adapter checked 2026-10-27:** stable attached roster nodes and gated panel refresh; see evidence below. Full A* validation runs on command submission, not UI frames. No confirmed memory leak. visual/performance playtest pending.
 - [x] **2 — Focused sector interaction (#13, #14, #16), implemented/targeted-checked 2026-10-27:** clicking sector map/tab selects its crew, flashes sector and synchronizes map/tab/roster/unit selection effects; focus its roster/duty/operation with group status/counts/actions together. Remove ALL deployment transfer dragging, grips/icons/drop targets/instructions. Use a large prominent **Transfer selected crew** button in crew-selection menu, labelled destination controls or map in explicit transfer mode, then clear confirmation. Apply assignments directly; after authoritative acceptance show glow and LARGE specific status describing actual resulting action. All zone UI refreshes together. Interaction flow approved; mockup not yet drawn.
 - [x] **3 — Group selection (#21, #23), implemented/checked 2026-10-27:** C replaces current selection with hero group only; Rally selects its active force. Group action-bar pips by Hero/sectors/HQ. Normal group/pip click selects the entire corresponding group, replacing others; **double-click selects the individual**. Clicking a hero-group member while another group is selected selects the whole hero group and drops all others. Ordinary switching never combines forces into a mini Rally, changes membership or shares group buffs; cross-group coordination remains sequential management. Confirmed manual move/attack orders CONTINUE when switching groups, finish then return to saved duty. Escape or Return to duty cancels immediately; no automatic cancellation merely from group selection.
 - [x] **4 — Duties/hunts (#15, #17, #19, #20, #22), implemented/checked 2026-10-27:** make hunt target/selected row/status clear. GENERAL Ambush repeats nearest-valid-target attempts after withdrawal/regroup/recovery until task changes, rather than reverting to plain patrol. Remove Secure Extraction; migrate saved task to Watch retaining crew. Whole-sector walking Patrol uses reachable stable waypoints/pauses, not jitter or tiny patrol areas. Make contract boss-hunt control/status/cancel intuitive; investigate failure until boss is manually selected/armed in Deployment. Autonomous assigned crew avoid/reroute/withdraw before enemy-HQ camping infamy; manual intentional attack remains the player's choice.
 - [x] **5 — Linked owner work, implemented/targeted-checked 2026-10-27:** [controls/targeting #5–7](controls.md#approved-playtest-controls-2026-10-27), [door pursuit #8](combat_spec.md#approved-pursuit-fix-2026-10-27), [contracts/stealth #2–4](ninja_clan_plan.md#approved-contractstealth-playtest-fixes-2026-10-27), [geisha #9](crew_recruiting_plan.md#approved-geisha-playtest-adjustment-2026-10-27), [rear entrance #10](interiors_spec.md#approved-rear-entrance-fix-2026-10-27), [fullscreen/audio/browser #1/#11/#18](tech_plan.md#approved-shellaudio-playtest-fixes-2026-10-27).
 - [x] **6 — Focused checks/report, completed 2026-10-27:** cover authoritative acceptance/rejection, coherent UI refresh, performance/input causes, no remaining transfer drag controls, explicit transfer mode/confirmation, group replacement/individual selection and persistent manual orders versus Escape/Return cancellation, no membership/buff bypass, task migration, repeated Ambush, sector reachability and camping avoidance. Other owners list their own behavior checks.
-- [ ] **Tim visual/playtest:** all changed flows and balance; never infer this from Node checks.
+- [ ] **visual/playtest:** all changed flows and balance; never infer this from Node checks.
 
 The approved Extraction removal supersedes its earlier unapproved status in this doc; Watch-helper contract assistance and plant-and-leave sabotage remain separate unapproved redesigns. Implementation and reported checks are recorded in the following checkpoints; no commit/push requested.
 
@@ -408,7 +408,7 @@ The approved Extraction removal supersedes its earlier unapproved status in this
 
 Build coordinator reports `stable_list.js` `syncChildren` keeps interactive roster nodes attached unless order/membership changes. Deployment-panel updates are gated by tick/focus/destination/selection; explicit local UI actions force refresh. `test_stable_roster` passed six hundred unchanged frames with zero structural mutations and preserved focus during regroup/removal. Panel syntax/scoped diff checks passed.
 
-Investigation corrected the route-cost hypothesis: UI `canTransfer` uses lightweight capacity/combat checks; full A* route validation occurs on submitted commands, not every UI frame. No memory leak is confirmed. Tim visual/performance playtest remains unchecked. Phase 2 button-only deployment UI is next; no commit/push requested.
+Investigation corrected the route-cost hypothesis: UI `canTransfer` uses lightweight capacity/combat checks; full A* route validation occurs on submitted commands, not every UI frame. No memory leak is confirmed. visual/performance playtest remains unchecked. Phase 2 button-only deployment UI is next; no commit/push requested.
 
 ### Playtest Phase 2 focused deployment checkpoint (2026-10-27)
 
@@ -416,7 +416,7 @@ Build coordinator reports `deployment_panel.js` is a thin reexport of `deploymen
 
 `sim/deployment_feedback.js` stores serializable authoritative acceptance/rejection/request/sequence receipts, integrated with deployment, assignments, Ambush and Rally. UI shows large accepted text/glow or clear rejection only from the result; a pending click is not success.
 
-Transfers, assignments, Ambush and Deployment map checks passed. New `test_deployment_feedback` passed real accepted/rejected duties, ownership rejection, arm/cancel, request identity and serialization; syntax/scoped diff checks passed. Tim visual/performance review pending; Phase 3 group/pip/C/manual-order persistence remains next and unchecked. No commit/push requested.
+Transfers, assignments, Ambush and Deployment map checks passed. New `test_deployment_feedback` passed real accepted/rejected duties, ownership rejection, arm/cancel, request identity and serialization; syntax/scoped diff checks passed. visual/performance review pending; Phase 3 group/pip/C/manual-order persistence remains next and unchecked. No commit/push requested.
 
 ### Playtest Phase 3 command-group checkpoint (2026-10-27)
 
@@ -424,7 +424,7 @@ Build coordinator reports ordinary selection constrained to one deployment comma
 
 Sim `giveOrder` rejects mixed deployment-group manual commands outside Rally. Group switching sends shared release: manual move/attack continues with `returnWhenDone`, then saved duty resumes. Escape/explicit Return cancels immediately.
 
-Updated crew-group checks passed hero/C/group/individual/mixed/Rally cases. New `test_manual_release` passed actual movement completion/duty, immediate Escape and mixed-group sim rejection. Assignments, Rally and deployment AI passed. Visual pips/Tim playtest remain unchecked; Phase 4 duties/hunts next. No commit/push requested.
+Updated crew-group checks passed hero/C/group/individual/mixed/Rally cases. New `test_manual_release` passed actual movement completion/duty, immediate Escape and mixed-group sim rejection. Assignments, Rally and deployment AI passed. Visual pips/playtest remain unchecked; Phase 4 duties/hunts next. No commit/push requested.
 
 ### Playtest Phase 4 duties/hunts checkpoint (2026-10-27)
 
@@ -434,23 +434,23 @@ Build coordinator reports Extraction options/behavior removed; shared sync migra
 
 Contract-hunt button failure was inherited `pointer-events:none` from `#contract`; explicit button pointer events and world-event isolation fix it. Labels now read **Order sectors to hunt this boss** / **Cancel boss hunt**, with authoritative hunt state. No prior boss selection is required.
 
-New `test_sector_playtest` passed broad stable route coverage, walking/no run, actual HQ warning escape/no heat/manual override and arming a hidden contract boss without prior selection. Assignments, updated Shinobi assignments (migration), extended Ambush (nearest/repeat after recovery) and sector recovery passed. Tim visual review remains unchecked. Linked Phase 5 proceeds in subphases: targeting/pursuit; stealth/contracts/lights/rear doors; geisha; shell/audio. No commit/push requested.
+New `test_sector_playtest` passed broad stable route coverage, walking/no run, actual HQ warning escape/no heat/manual override and arming a hidden contract boss without prior selection. Assignments, updated Shinobi assignments (migration), extended Ambush (nearest/repeat after recovery) and sector recovery passed. visual review remains unchecked. Linked Phase 5 proceeds in subphases: targeting/pursuit; stealth/contracts/lights/rear doors; geisha; shell/audio. No commit/push requested.
 
 ### Playtest Phase 5A targeting/pursuit checkpoint (2026-10-27)
 
-Implemented with focused checks reported: [target controls/fog memory](controls.md#approved-playtest-controls-2026-10-27) and [permission-aware door pursuit](combat_spec.md#approved-pursuit-fix-2026-10-27). Two older input tests are still being adapted; Phase 5 linked-work checkbox stays incomplete until remaining owner subphases finish. Tim visual/playtest remains unchecked; no commit/push requested.
+Implemented with focused checks reported: [target controls/fog memory](controls.md#approved-playtest-controls-2026-10-27) and [permission-aware door pursuit](combat_spec.md#approved-pursuit-fix-2026-10-27). Two older input tests are still being adapted; Phase 5 linked-work checkbox stays incomplete until remaining owner subphases finish. visual/playtest remains unchecked; no commit/push requested.
 
 ### Playtest Phase 5B checkpoint (2026-10-27)
 
-Build coordinator reports [contract stages/global badge/indoor snuff](ninja_clan_plan.md#approved-contractstealth-playtest-fixes-2026-10-27) and [reachable rear entries](interiors_spec.md#approved-rear-entrance-fix-2026-10-27) implemented/targeted-checked. Concrete lighting rules and checks live in those owners. Phase 5A's older crew-assist/phase3b input fixtures now pass. Phase 5 aggregate remains incomplete until geisha and shell/audio finish; Tim visuals unchecked. No commit/push requested.
+Build coordinator reports [contract stages/global badge/indoor snuff](ninja_clan_plan.md#approved-contractstealth-playtest-fixes-2026-10-27) and [reachable rear entries](interiors_spec.md#approved-rear-entrance-fix-2026-10-27) implemented/targeted-checked. Concrete lighting rules and checks live in those owners. Phase 5A's older crew-assist/phase3b input fixtures now pass. Phase 5 aggregate remains incomplete until geisha and shell/audio finish; visuals unchecked. No commit/push requested.
 
 ### Playtest Phase 5C geisha checkpoint (2026-10-27)
 
-Build coordinator reports [geisha adjustment](crew_recruiting_plan.md#approved-geisha-playtest-adjustment-2026-10-27) implemented/checked: current stats, stationary charm/channel rules, pink visuals and passing evidence live in that owner. Phase 5 aggregate stays incomplete until shell/audio; Tim visual/balance review unchecked. No commit/push requested.
+Build coordinator reports [geisha adjustment](crew_recruiting_plan.md#approved-geisha-playtest-adjustment-2026-10-27) implemented/checked: current stats, stationary charm/channel rules, pink visuals and passing evidence live in that owner. Phase 5 aggregate stays incomplete until shell/audio; visual/balance review unchecked. No commit/push requested.
 
 ### Playtest Phase 5D shell/audio checkpoint (2026-10-27)
 
-Build coordinator reports [shell/audio owner work](tech_plan.md#approved-shellaudio-playtest-fixes-2026-10-27) implemented/Node-adapter checked with explicit Keyboard Lock/browser-owned-overlay limits, saved audio settings and gameplay input suppression. Phase 5 aggregate implementation is complete; Phase 6 final integration remains in progress. Tim visuals/audio/fullscreen playtest stays unchecked; no commit/push requested.
+Build coordinator reports [shell/audio owner work](tech_plan.md#approved-shellaudio-playtest-fixes-2026-10-27) implemented/Node-adapter checked with explicit Keyboard Lock/browser-owned-overlay limits, saved audio settings and gameplay input suppression. Phase 5 aggregate implementation is complete; Phase 6 final integration remains in progress. visuals/audio/fullscreen playtest stays unchecked; no commit/push requested.
 
 ### Playtest Phase 6 final integration (passed 2026-10-27)
 
@@ -458,9 +458,9 @@ Build coordinator reports all authorized implementation phases 1–6 complete. N
 
 Final rechecks passed target controls, door pursuit (including closed rival-HQ rejection), manual release, deployment feedback, sector playtest, game shell, deployment AI, Rally, vision, combat and character stats. Prior reported groups/assignments/Ambush/recovery/geisha/indoor-stealth/Ninja/hidden-bonus/indoor-crew/crew-assist/phase3b/map checks remain passing. All fifty-four modified/new JS modules parse; scoped diff check clean.
 
-Final review retains Keep at HQ and sector goals in focused controls; hero portrait/world body selects hero force, T ignores friendly inspection and uses enemy target. In-game controls match built Tab/T/C/group/transfer/Ambush/lamp/Settings/fullscreen behavior. Browser capability limits remain as owned in the tech plan. No browser/screenshots or Tim testing claimed. Tim visual/performance/audio/balance/layout playtests remain unchecked. No commit/push requested.
+Final review retains Keep at HQ and sector goals in focused controls; hero portrait/world body selects hero force, T ignores friendly inspection and uses enemy target. In-game controls match built Tab/T/C/group/transfer/Ambush/lamp/Settings/fullscreen behavior. Browser capability limits remain as owned in the tech plan. No browser/screenshots or testing claimed. visual/performance/audio/balance/layout playtests remain unchecked. No commit/push requested.
 
-## Tim manual playtest checklist (2026-10-27)
+## manual playtest checklist (2026-10-27)
 
 All checks below are **unperformed**. Start a fresh match; use regular clan for Patrol/Guard and Shinobi for contracts/stealth/geisha. `?test=lantern` supplies player ryo if needed without extra crew. Recruit/transfer enough crew to compare Hero, two sectors and HQ; keep at least one enemy target available. Do one pass at a time and report the numbered test when something fails. Node checks do not tick these boxes.
 
@@ -556,7 +556,7 @@ Explosive damage/radius/fuse/fire duration/friendly fire/ordinary heat interacti
 - [ ] **2:** Shakedown hold/intimidation/explosives/visible-larger-group retreat and claims; Sweep grouped protection/hold/scatter/physical returns and integrated rewards.
 - [ ] **3:** bots through shared commands, authoritative statuses/owner alerts/receipt-based success, linked fireworks/march feedback.
 - [ ] **4:** targeted Node checks for contest, visible-larger-group-only retreat, single blocked-only emergency bomb, duplicate claims/rewards, physical return, interruptions, serialization and bot parity. No browser automation or broad tests.
-- [ ] **Tim visual/balance playtest.**
+- [ ] **visual/balance playtest.**
 
 ## Shakedown implementation checkpoint (2026-10-28)
 
@@ -564,11 +564,11 @@ Explosive damage/radius/fuse/fire duration/friendly fire/ordinary heat interacti
 
 Initial implemented tuning (not previously finalized balance): three squad throws, 0.65-second flight/1.25-second fuse; blast sixty/radius 2.2, fire eight seconds/radius 0.7/six damage per second; friendly fire enabled including civilians. The 20-second front-room hold uses `holdSeconds` in rules and requires an available capable intimidator with no defender contesting; living hostages are not required, so deaths from squad blasts cannot stall completion. Visible larger defending hero group within nine triggers retreat. Only blocked retreat for 1.25 seconds permits one emergency throw (110 damage/radius three). Attempt timeout 120 seconds; business retry sixty seconds. [Actual payout/claim details](business_raids_plan.md#shakedown-implementation-status-2026-10-28).
 
-Fresh `test_shakedown.mjs` run passed faction/night eligibility, alert/heat, timed blasts/entry, contest/intimidator interruption, zero/actual payout, physical return, larger-hero retreat and single blocked-only emergency bomb. Prior chat's broader validation/handoff was interrupted by model capacity; no full regression completion or Tim balance/visual approval is claimed here. Start a fresh `?test=shakedown` match for the staged night/dynamite scenario.
+Fresh `test_shakedown.mjs` run passed faction/night eligibility, alert/heat, timed blasts/entry, contest/intimidator interruption, zero/actual payout, physical return, larger-hero retreat and single blocked-only emergency bomb. Prior chat's broader validation/handoff was interrupted by model capacity; no full regression completion or balance/visual approval is claimed here. Start a fresh `?test=shakedown` match for the staged night/dynamite scenario.
 
 - [x] Shakedown sim/UI/bot/FX integration and focused sim validation.
 - [ ] Sweep implementation and its shared-claim integration.
-- [ ] Tim Shakedown visual/balance playtest: opening blast/entrance/fire clarity, civilian safety, contest/recall, larger visible hero-group retreat, blocked-only emergency bomb and bonus/actual payout notices.
+- [ ] Shakedown visual/balance playtest: opening blast/entrance/fire clarity, civilian safety, contest/recall, larger visible hero-group retreat, blocked-only emergency bomb and bonus/actual payout notices.
 
 ### Sweep checkpoint tracking (2026-10-29)
 
@@ -586,7 +586,7 @@ Quick manual checklist: choose rival/adjacent sector; dispatch/recall/return; co
 
 ### Sweep route playtest proposal (2026-10-29)
 
-Tim says Sweep currently feels like walking to one location and holding. That proposal is now superseded by the implemented three-position checkpoint below: twenty seconds at each point. Tim approved current deployment layout/staffing usability as good for now; this does not establish a full memory audit.
+says Sweep currently feels like walking to one location and holding. That proposal is now superseded by the implemented three-position checkpoint below: twenty seconds at each point. approved current deployment layout/staffing usability as good for now; this does not establish a full memory audit.
 
 ### Sweep three-position checkpoint (2026-10-29)
 
@@ -596,13 +596,13 @@ Three prevalidated, distinct reachable street hold points, twenty seconds each; 
 
 Implemented/Node-checked: bounded instanced wide crimson chevrons sample the actual squad route (up to 96 per operation), persist through the current hold, and reset on the next leg/return. Own route is shown; rival route is sampled only while the leader sprite is visible and clears on lost sight. Objective ring and 20-second progress ring; low shield arcs render only on visible holding members while the real grouped protection buff is active; no extra stats/buff. Once-per-point `sweepArrival` gives the owner or currently sighted observers a large alert/map/minimap ping; hidden next destinations are not pinged. Point label shows X/3. Pooled operation meshes/materials clear on world/map lifecycle.
 
-Coordinator reports `test_sweep_presentation`, Sweep (including once-per-point arrival), Kuroda, assignments, sector-playtest and deployment-panel-flow passing; changed-JS syntax and diff checks passed. No browser/visual test. Tim reports the Sweep/chevrons work well; positive manual confirmation, not full visual validation. Manual checklist: `?test=assignments`, choose Kuroda; follow chevrons around turns; inspect hold progress/shields at 1/2/3 and trail replacement; confirm success alert shows actual ryo and scattered crew; recall clears FX; confirm rival arrival stays hidden without sight and appears with sight; open/close map cleanly. [Phase 8 tracking](playtest_followup_plan.md#3-ui).
+Coordinator reports `test_sweep_presentation`, Sweep (including once-per-point arrival), Kuroda, assignments, sector-playtest and deployment-panel-flow passing; changed-JS syntax and diff checks passed. No browser/visual test. reports the Sweep/chevrons work well; positive manual confirmation, not full visual validation. Manual checklist: `?test=assignments`, choose Kuroda; follow chevrons around turns; inspect hold progress/shields at 1/2/3 and trail replacement; confirm success alert shows actual ryo and scattered crew; recall clears FX; confirm rival arrival stays hidden without sight and appears with sight; open/close map cleanly. [Phase 8 tracking](playtest_followup_plan.md#3-ui).
 
 Earlier proposal is now implemented; separate stretchy action bar remains on hold and clan roles remain design-only.
 
 ## Phase E assignment/operation integration checkpoint (2026-10-30)
 
-**Built and Node-checked; Tim's in-game review remains pending.** Space Sweep chooses separated hold points through farthest-point coverage (adaptive 10–26 world units), excludes city/patrol and HQ points, validates each route leg's exact endpoint, and retains three 20-second holds. It rejects routes without a reachable valid leg.
+**Built and Node-checked; the in-game review remains pending.** Space Sweep chooses separated hold points through farthest-point coverage (adaptive 10–26 world units), excludes city/patrol and HQ points, validates each route leg's exact endpoint, and retains three 20-second holds. It rejects routes without a reachable valid leg.
 
 When a guarded business is lost, its assigned guards return to HQ and wait there; the HQ crew group flashes and reports the wait. Automatic redeployment stays blocked until a manual transfer clears the wait state. Patrol crews share waypoints and pause/regroup while walking. After the first casualty, survivors physically retreat to the hideout and defend themselves if attacked, wait for the full roster, regroup at HQ, and resume their saved route. Sector assignment is preserved. Automatic and manual replacement transfers meet the patrol at HQ rather than round-tripping in the field.
 

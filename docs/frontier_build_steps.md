@@ -6,11 +6,11 @@ alone, following [step_runner_guide.md](step_runner_guide.md) (read it first: it
 rules, test pattern and regression set).
 
 Drafted 2026-11-01. Proposed home: `docs/frontier_build_steps.md`. **Nothing here is approved to
-build until Tim OKs a phase.** Numbers in `data/frontier.json` are placeholders for Tim to tune.
+build until OKs a phase.** Numbers in `data/frontier.json` are placeholders for to tune.
 
 ## Blueprint and presentation workflow
 
-Settled (Tim, 2026-11-03):
+Settled (2026-11-03):
 
 - Structure: coastlines, rivers/lakes, ranges, routes, crossings and authored locations belong to the blueprint sources. Current inputs are `docs/images/frontier/blueprint/blueprint.py`, its generated `world_blueprint_v2.json`, the authored `docs/images/frontier/blueprint/world_reshape_v1.json` overlay, and `game/data/world_overrides.json`. Keep generator-script and generated-blueprint edits reproducible; do not hand-edit `game/data/world.json`.
 - Review the combined effective blueprint, including overrides and generator adjustments. Apply approved structural changes through `tools/seed_world.mjs`, validate, then refresh world/atlas references together. An old design preview is not evidence of the current world.
@@ -19,24 +19,24 @@ Settled (Tim, 2026-11-03):
 - Current effective blueprint reference: run `node tools/prepare_atlas_reference.mjs --version v2` after applying approved source edits. It checks that base blueprint + reshape overlay + overrides + generator reproduce the current world, then exports the terrain, exact feature layer, structural snapshot and human review sheet in `assets/environment/island/atlas/`. It does not change runtime files. The older `v2_*.png` design previews are historical, not this combined current view.
 - Before art generation or map integration, run `node tools/prepare_atlas_reference.mjs --check --version v2`. It fails for changed inputs, missing/modified exports or blueprint/world disagreement. `node tools/seed_world.mjs --check` checks only the blueprint/world match, without writing the world or preview. Both checks ignore JSON key ordering during world comparison. References fingerprint blueprint/config/generator/helper inputs and export content; they do not automatically update an existing illustration.
 
-### Mountain and lake reshape before atlas completion (Tim, 2026-11-03)
+### Mountain and lake reshape before atlas completion (2026-11-03)
 
-**Status (2026-11-03):** Tim approved revision 2; MR0–MR3 complete and the reshaped world is applied. MR4 Node checks pass; Tim confirms the reshaped geography is in game and looks nice; full traversal coverage is not claimed. L1/L2 approved outlines retained; a local V4 shoulder adjustment preserves cache K37 and S42 retains its original buildable clearing substrate. All authored locations and 20 passes/17 crossing anchors are fixed; capital/port unchanged. [Current effective review](../assets/environment/island/atlas/atlas_review_v2.png), [blueprint overlay](images/frontier/blueprint/world_reshape_v1.json), [build report](../assets/environment/island/reshape/reshape_build_report_v2.json). Original proposal/reference/illustration sources remain preserved. Save migration waived by Tim; no save deleted/reset.
+**Status (2026-11-03):** approved revision 2; MR0–MR3 complete and the reshaped world is applied. MR4 Node checks pass; confirms the reshaped geography is in game and looks nice; full traversal coverage is not claimed. L1/L2 approved outlines retained; a local V4 shoulder adjustment preserves cache K37 and S42 retains its original buildable clearing substrate. All authored locations and 20 passes/17 crossing anchors are fixed; capital/port unchanged. [Current effective review](../assets/environment/island/atlas/atlas_review_v2.png), [blueprint overlay](images/frontier/blueprint/world_reshape_v1.json), [build report](../assets/environment/island/reshape/reshape_build_report_v2.json). Original proposal/reference/illustration sources remain preserved. Save migration waived; no save deleted/reset.
 
 **Fishing grounds moved (2026-11-24):** the 8 rich fishing grounds (N069 N071 N073 N078 N089 N094 N106 N107) were moved to the nearest walkable shore (20 to 464 units; 5 sat behind coast cliffs, N107 out in a marsh lake) and re-pinned there in world_reshape_v1.json, with matching world_overrides.json move entries. Only their node records changed in world.json. The generator's corridor drift (10 corridors) was already there and is left as is.
 
 **Goal:** make the six existing ranges read as natural mountain systems through bends, varied widths, tapering ends, foothill pockets and occasional secondary ridges. Preserve their regional identity and strategic role, especially the central barrier and dry range. Avoid replacing straight bands with equally uniform zigzags or random disconnected rocks. Also reshape the two main lakes (L1 Lake of Still Bells and L2 Reedmirror Lake) into believable basins with varied widths, irregular but coherent shores, modest coves and tapered ends. Avoid circular stamps, uniform-width ovals and noisy starburst outlines.
 
-**Bounded scope:** keep the island outline, islets, capital/harbors, broad biome regions, lake identities/general locations and river network. Preserve authored site/node/camp/set-piece identities and positions, pass identities and usable connections, and the 9 bridge/8 ford records. Range-local hills and the dry skirt may change with the new relief; main-lake footprints and shoreline/marsh edges may change within approved envelopes. Prefer reshaping mountains around protected locations; list any unavoidable pass/source/location adjustment for Tim before applying it. Routes are derived and may change legitimately.
+**Bounded scope:** keep the island outline, islets, capital/harbors, broad biome regions, lake identities/general locations and river network. Preserve authored site/node/camp/set-piece identities and positions, pass identities and usable connections, and the 9 bridge/8 ford records. Range-local hills and the dry skirt may change with the new relief; main-lake footprints and shoreline/marsh edges may change within approved envelopes. Prefer reshaping mountains around protected locations; list any unavoidable pass/source/location adjustment for before applying it. Routes are derived and may change legitimately.
 
 | Phase | Work / deliverable | Exit check |
 |---|---|---|
 | [x] MR0 Baseline and constraints | Record current source/world hashes, six range footprints, both main-lake footprints/widths, 20 passes, river sources and all crossing/location records. Make one readable current/proposed overlay with protected points. Use the existing atlas snapshot and Git checkpoint; preserve original reference/art files. | Baseline inventories and source provenance recorded; no world edits. |
-| [x] MR1 Shape proposal | Design a coherent new spine/width/taper for each range in blueprint coordinates. Prioritize the central spine and northern belt, then dry/southern/eastern ranges. Propose both main-lake basin outlines, length/width profiles, surface areas and bounding envelopes in world units, fitted to nearby relief and the Reedmirror wetland. Show before/after terrain masks, lake shores, hill changes, passages and source relationships on a label-clean preview. | **Tim approves mountain/lake shapes, proposed lake widths and any listed exceptions before applying them.** |
+| [x] MR1 Shape proposal | Design a coherent new spine/width/taper for each range in blueprint coordinates. Prioritize the central spine and northern belt, then dry/southern/eastern ranges. Propose both main-lake basin outlines, length/width profiles, surface areas and bounding envelopes in world units, fitted to nearby relief and the Reedmirror wetland. Show before/after terrain masks, lake shores, hill changes, passages and source relationships on a label-clean preview. | **Approval needed: mountain/lake shapes, proposed lake widths and any listed exceptions before applying them.** |
 | [x] MR2 Deterministic source pipeline | Add the approved authored range and lake geometry to the blueprint source. Separate terrain rebuilding from procedural placement so existing sites, resources, camps and set pieces remain pinned. Preserve stable IDs; keep preview/candidate outputs separate from live files until validated. | Repeated builds from identical sources agree; inventory diff shows only approved changes. Script + generated blueprint stay reproducible. |
 | [x] MR3 Apply and derive | Generate the candidate world from blueprint + overrides, including shoreline rounding, coastal cliffs and dry-skirt rules. Recompute corridors, pass/crossing use, site access and stats; compare against the baseline. Apply the approved candidate through the generator, never by hand-editing world.json. | World validation passes; protected locations remain usable; every retained pass/crossing has an actual open connection; lake inlet/outlet continuity and protected shore access hold; no unexpected relocated/deleted records. Blueprint/world synchronization passes. |
-| [ ] MR4 Runtime checks and playtest | Check terrain, cliff/rim/corner placement, high-ground biome selection, lake-bank fit/rounding and water transitions, water/source joins, prop blockers and movement along the new ranges/shores. Tim tours central/northern/dry ranges, both lake shores and affected passes/crossings using the existing playtest setup. | Focused Node checks pass and Tim accepts shape, art and traversal. Report pre-existing failures separately; no blanket all-tests-pass claim. |
-| [ ] MR5 Refresh atlas and handoff | Rebuild the effective blueprint/reference and inspect changed terrain/feature overlays. Produce a new versioned illustration from that reference using the accepted style; compare registration before atlas UI integration. | Freshness gate passes; Tim approves the updated map art/alignment. Retain old illustration as a style/history source, not current geography. Return to atlas UI, actual bridge/ford art/fitting, then W4. |
+| [ ] MR4 Runtime checks and playtest | Check terrain, cliff/rim/corner placement, high-ground biome selection, lake-bank fit/rounding and water transitions, water/source joins, prop blockers and movement along the new ranges/shores. tours central/northern/dry ranges, both lake shores and affected passes/crossings using the existing playtest setup. | Focused Node checks pass and accepts shape, art and traversal. Report pre-existing failures separately; no blanket all-tests-pass claim. |
+| [ ] MR5 Refresh atlas and handoff | Rebuild the effective blueprint/reference and inspect changed terrain/feature overlays. Produce a new versioned illustration from that reference using the accepted style; compare registration before atlas UI integration. | Freshness gate passes; approves the updated map art/alignment. Retain old illustration as a style/history source, not current geography. Return to atlas UI, actual bridge/ford art/fitting, then W4. |
 
 **Applied implementation (2026-11-03):** the base blueprint is unchanged. The authored reshape overlay composes geometry and pins all locations before overrides/derived routing; no placement RNG is rerun. Variable-width sampled range spines/spurs and irregular lake outlines include compatibility bounds. `seed_world.mjs --output <candidate.json> --preview <candidate.png>` validates before any write; protected-point drift rejects the build. Base-blueprint fingerprint changes require explicit overlay rebase/review. The ordinary-prop rounding fix validates emitted coordinates before land/ownership checks. No shader, economy, combat or density changes.
 
@@ -54,7 +54,7 @@ Settled (Tim, 2026-11-03):
 
 **MR4 checks:** `validateWorld`/`test_world_data.mjs` and `test_frontier_world.mjs` for world/access invariants; `test_island_edges.mjs`, `test_p3_edges.mjs`, `test_inland_banks.mjs` and `test_world_coast.mjs` for terrain/water/movement; `test_world_paint.mjs`, `test_chunk_gen.mjs` and `test_prop_clusters.mjs` for streamed ground/props. Add one focused reshape regression for protected-record preservation, pass/source connectivity and deterministic output. If terrain fixtures need relocation, first demonstrate that their invariant still holds; do not weaken old assertions to obtain a pass. Run only relevant checks during implementation, the listed set at the phase checkpoint, then manual review; no browser automation or broad simulation runs.
 
-**MR5 progress (2026-11-03):** current reference v2 and post-reshape illustration trial v2 are saved; source v1 remains preserved. Tim confirmed the geography appears in game and looks nice. Tim approved the v2 art look. Full overlay/runtime alignment and detailed traversal coverage remain open.
+**MR5 progress (2026-11-03):** current reference v2 and post-reshape illustration trial v2 are saved; source v1 remains preserved. confirmed the geography appears in game and looks nice. approved the v2 art look. Full overlay/runtime alignment and detailed traversal coverage remain open.
 
 **Each phase:** update its box only after its exit check; Docs keeper commits completed work locally, no push. Stop for the two design/art approvals and the runtime playtest. MR1 design approval is recorded; MR4 manual acceptance and MR5 new artwork remain pending.
 
@@ -62,10 +62,10 @@ Settled (Tim, 2026-11-03):
 
 - [x] Step 1: combined current blueprint preview and freshness gate; 14,000 × 8,000 world units map to a north-up 2,800 × 1,600 artwork rectangle with no padding or crop (5 units/pixel).
 - [x] Step 2a: save exact illustration prompt and generate one terrain-only trial with the built-in image tool (2026-11-03). Native output 1659 × 948, correct 7:4 aspect; source preserved without resizing.
-- [x] Step 2b style: Tim likes the trial's illustrated look (2026-11-03).
-- [ ] Step 2b geography: mountain/lake reshape is applied and reference v2 refreshed; updated illustration v2 is generated; Tim approved the v2 look; full overlay/runtime alignment acceptance remains pending. Current v1 is a style trial; it has not been accepted as final runtime geography. [Trial manifest](../assets/environment/island/atlas/atlas_illustration_manifest_v1.json).
-- [x] Step 3 build (2026-11-03): Tim chose Map first. Installed the native v2 illustration with a compact top rail, shared marker/key geometry and counts, exact zone/biome/grid/coordinate hover, layer switches, Fit island and Your location. Full terrain is visible; sites/camps/resources require discovery. All 9 bridges (H), 8 fords (X) and 20 passes (hollow diamond) show when Crossings & passes is enabled, with matching key and type/ID hover. Zone names uses the named blueprint regions confirmed by Tim, with collision-aware labels and persistent region hover. Fixed World CSS overriding the closed/hidden state; travel/details now occupy a row above the map within the viewport, without scrollbars. Closing clears pending travel/pin drafts. No live units/camera footprint; City/minimap behavior retained. Focused atlas, world-map and command-UI checks pass, including marker locations, zone labels/bounds/hover and hidden-state CSS priority.
-- [ ] Step 3 playtest: Tim calls the runtime map phenomenal (2026-11-03); refresh/review crossing/pass markers, zone labels, closing via button/M/Esc and the travel bar placement. Retain full artwork/overlay alignment, layers/key, hover, discovery, pins, pan/zoom/location/fit, dev travel and City checks. No browser automation; Tim checks the look. Illustration aspect/coordinate registration alone does not certify every painted feature matches the world.
+- [x] Step 2b style: likes the trial's illustrated look (2026-11-03).
+- [ ] Step 2b geography: mountain/lake reshape is applied and reference v2 refreshed; updated illustration v2 is generated; approved the v2 look; full overlay/runtime alignment acceptance remains pending. Current v1 is a style trial; it has not been accepted as final runtime geography. [Trial manifest](../assets/environment/island/atlas/atlas_illustration_manifest_v1.json).
+- [x] Step 3 build (2026-11-03): chosen Map first. Installed the native v2 illustration with a compact top rail, shared marker/key geometry and counts, exact zone/biome/grid/coordinate hover, layer switches, Fit island and Your location. Full terrain is visible; sites/camps/resources require discovery. All 9 bridges (H), 8 fords (X) and 20 passes (hollow diamond) show when Crossings & passes is enabled, with matching key and type/ID hover. Zone names uses the named blueprint regions confirmed, with collision-aware labels and persistent region hover. Fixed World CSS overriding the closed/hidden state; travel/details now occupy a row above the map within the viewport, without scrollbars. Closing clears pending travel/pin drafts. No live units/camera footprint; City/minimap behavior retained. Focused atlas, world-map and command-UI checks pass, including marker locations, zone labels/bounds/hover and hidden-state CSS priority.
+- [ ] Step 3 playtest: calls the runtime map phenomenal (2026-11-03); refresh/review crossing/pass markers, zone labels, closing via button/M/Esc and the travel bar placement. Retain full artwork/overlay alignment, layers/key, hover, discovery, pins, pan/zoom/location/fit, dev travel and City checks. No browser automation; checks the look. Illustration aspect/coordinate registration alone does not certify every painted feature matches the world.
 - [ ] Linked crossing phase: actual bridge/ford art and world fitting; reference records 9 bridges and 8 fords, without claiming those 17 records have been fitted or validated as usable crossings.
 
 Reference roles (current revision v2; v1 retained as historical style-trial input): `atlas_blueprint_v2.png` is the clean artwork input; `atlas_registration_v2.png` adds data features in the same rectangle. `atlas_review_v2.png` has a separate 240px header/legend and must not be used as the artwork target. `atlas_effective_blueprint_v2.json` is a generated combined structural snapshot, not an editable second source. `atlas_features_v2.json/.svg` preserve exact positions for later overlays. Full terrain/feature review references include undiscovered records; that does not authorize exposing undiscovered sites in the game UI.
@@ -74,23 +74,23 @@ Runtime registration: `game/data/world_atlas.json` records the installed `game/a
 
 ## Basic campaign loop pass (approved, 2026-11-03)
 
-Tim approved a broad functional **explore → found → gather → build → fight** build using existing art and simple readable UI: "yea can you do it in phased checkpoints" (2026-11-03). Approval persists across the Claude handoff; no repeat build-permission request is needed within this scope. Reuse built F2 economy and F4 town controls. These are slices through the existing phases below, not replacement systems or permission to mark whole phases complete.
+approved a broad functional **explore → found → gather → build → fight** build using existing art and simple readable UI: "yea can you do it in phased checkpoints" (2026-11-03). Approval persists across the Claude handoff; no repeat build-permission request is needed within this scope. Reuse built F2 economy and F4 town controls. These are slices through the existing phases below, not replacement systems or permission to mark whole phases complete.
 
 | Slice | Deliverable | Exit check |
 |---|---|---|
-| [x] Loop 1: usable wilderness (built 2026-11-04, Tim OK to commit) | Finish the atlas refresh check and basic crossing fitting; add authored W4 camps, node/site props and scouting with existing assets. Carry required campaign city-away safeguards from C into the prerequisite work. | Explore, cross rivers/passes, find resources and scout a founding location; camp claims survive unloading/save-load. |
-| [x] Loop 2: expedition and founding (built 2026-11-04, Tim OK to commit; E5 stand-in art) | E2–E5: hire settlers at HQ, escort them, found on valid buildable ground using the settled E1 rules, and draw a starter town from its real settlement record. | One real expedition creates a persistent owned town; invalid founding changes nothing. |
+| [x] Loop 1: usable wilderness (built 2026-11-04, OK to commit) | Finish the atlas refresh check and basic crossing fitting; add authored W4 camps, node/site props and scouting with existing assets. Carry required campaign city-away safeguards from C into the prerequisite work. | Explore, cross rivers/passes, find resources and scout a founding location; camp claims survive unloading/save-load. |
+| [x] Loop 2: expedition and founding (built 2026-11-04, OK to commit; E5 stand-in art) | E2–E5: hire settlers at HQ, escort them, found on valid buildable ground using the settled E1 rules, and draw a starter town from its real settlement record. | One real expedition creates a persistent owned town; invalid founding changes nothing. |
 | [ ] Loop 3: gather and build | Build the town design in [Loop 3 design](#loop-3-design-tim-2026-11-04): town grid with a big core, housing/farm/work zones with health and housing growth stages, placed buildings (town hall, storehouse, node camps, stockade, gates), town roads and the trap check, workers as shuttle records, small resource spots plus rich deposits, and the build bar (mock first). Step cards are written in detail just before the loop is built. | Workers carry stock from spots to drop-offs; construction spends stock and work; zones grow, abandon and recover; finished buildings change town output/capacity. No manual resource grind. |
 | [ ] Loop 4: complete the playthrough | Use existing hero/crew combat against W4 camps, persistent rewards, resupply and basic town defence. Exercise departure, founding, production, construction and fighting in one save. | Complete the loop through ordinary commands; save/load and walk away/return preserve outcomes. Players and bots use the same rules. |
 | [ ] Loop 5: scale the functional world | Increase representative active camps/units and founded towns in the canonical playtest setup; measure sim, chunk/render cost and UI responsiveness. | Report measured limits and fix the first actual bottleneck before increasing load again. Distant towns keep correct economy without permanently active chunks. |
 
-Keep new character/building art, full inter-town trade/shipments, strategic army battles, sieges and native/story expansion in their existing later cards unless a real prerequisite is identified. First combat here is hero/crew against camps, not a claim that F6 (war) is complete. Keep all new rules in the sim, tuning in data, state saveable and structural edits blueprint-first. Commit each tested slice locally and stop at its playable checkpoint for Tim's review. Reuse the existing save and test setup; do not reset the capital save.
+Keep new character/building art, full inter-town trade/shipments, strategic army battles, sieges and native/story expansion in their existing later cards unless a real prerequisite is identified. First combat here is hero/crew against camps, not a claim that F6 (war) is complete. Keep all new rules in the sim, tuning in data, state saveable and structural edits blueprint-first. Commit each tested slice locally and stop at its playable checkpoint for the review. Reuse the existing save and test setup; do not reset the capital save.
 
-**Build order (Tim, 2026-11-04):** finish Loops 3 and 4 first (one playable save). After each loop, tick the phase steps it really closed. Then continue the phases as "deepen" passes (F3, rest of F5, F6 war). Loop 5 (scale) runs after F3.
+**Build order (2026-11-04):** finish Loops 3 and 4 first (one playable save). After each loop, tick the phase steps it really closed. Then continue the phases as "deepen" passes (F3, rest of F5, F6 war). Loop 5 (scale) runs after F3.
 
-### Loop 3 design (Tim, 2026-11-04)
+### Loop 3 design (2026-11-04)
 
-Settled in the design session "Add build detail to frontier plan" (Tim: "yes that is everything all perfect"). Replaces the earlier Loop 3 design notes; the node-count question is answered by Resources below. Numbers are placeholders in `frontier.json`.
+Settled in the design session "Add build detail to frontier plan" ("yes that is everything all perfect"). Replaces the earlier Loop 3 design notes; the node-count question is answered by Resources below. Numbers are placeholders in `frontier.json`.
 
 **Town building**
 1. **Core rule.** Zones decide HOW MUCH a town makes; placed buildings decide WHAT it can do.
@@ -100,10 +100,10 @@ Settled in the design session "Add build detail to frontier plan" (Tim: "yes tha
    - Erased cells are never re-zoned by the governor; the orders goal step stays done after Initiative is turned Off (2026-11-21; `campaign_goals.js` town.initiativeOnce, `commands.js`, `placement.js`).
    - Today's types map to: house → housing zone, farm → farm zone, workshop → work zone; lumber_camp and quarry → placed node camps (drop-offs); town_hall, storehouse and stockade are placed.
 2. **Zone health** = needs met (food, workers, road access). Healthy zones grow; only housing grows in stages for now (hut → house → bigger house). A zone short of needs for N economy ticks is abandoned: empty, no output; it recovers when needs return, nothing is destroyed. Building looks show zone health. Later, a zone's level unlocks options when clicked.
-3. **Town hall tiers.** Upgrades on resource/tech goals unlock the next tier of buildings, zones and tech (ties into the F6 war hall tiers). **Updated (Tim, 2026-11-05):** one build ring per hall tier (150 / 300 / 600 units) replaces the separate core, and tiers cap the cells per zone type; see [Economy balance pass](#economy-balance-pass-b0-b7).
-4. **Grid.** A grid of cells around the town hall replaces the spiral slots in `sim/frontier/town_layout.js`. 1 cell = 1 small building; big buildings take 2 × 2. The grid covers the town's 600-unit work range. Zones, town buildings, walls and gates go only inside the tier's build ring (150 / 300 / 600 units; Tim, 2026-11-05, replaces the separate core); only roads and work camps may go outside. Farm zones go anywhere in the grid with a road, with a bonus on fertile land. Beyond 600 units a farm is a placed farmstead camp (same rule as F5.7 work camps).
+3. **Town hall tiers.** Upgrades on resource/tech goals unlock the next tier of buildings, zones and tech (ties into the F6 war hall tiers). **Updated (2026-11-05):** one build ring per hall tier (150 / 300 / 600 units) replaces the separate core, and tiers cap the cells per zone type; see [Economy balance pass](#economy-balance-pass-b0-b7).
+4. **Grid.** A grid of cells around the town hall replaces the spiral slots in `sim/frontier/town_layout.js`. 1 cell = 1 small building; big buildings take 2 × 2. The grid covers the town's 600-unit work range. Zones, town buildings, walls and gates go only inside the tier's build ring (150 / 300 / 600 units; 2026-11-05, replaces the separate core); only roads and work camps may go outside. Farm zones go anywhere in the grid with a road, with a bonus on fertile land. Beyond 600 units a farm is a placed farmstead camp (same rule as F5.7 work camps).
 5. **Construction phases:** cleared → frame → finished. Stock is paid at the start, then workers and time. Overgrown cells are cleared by workers automatically. Founding paints a cleared-ground patch under the new town; the current dirt-trail ground patch is the stand-in for the clearing texture.
-6. **Build bar (town panel).** Roads, walls, zone brushes (housing, farm, work), eraser, plus the placed buildings. Click-drag rectangles; the ghost is green (allowed) or red with the reason; right click or Esc cancels. Buildable ground only, not road or water. Zone cells grow only within a few cells of a town road ("needs road" otherwise). Farm cells become crop fields with a farmhouse every few cells. The zone tint shows only while the build bar is open, plus a health tint overlay. Clicking a building shows a tooltip: what it is, its zone, its state and the zone's state. Mock first, Tim approves before building.
+6. **Build bar (town panel).** Roads, walls, zone brushes (housing, farm, work), eraser, plus the placed buildings. Click-drag rectangles; the ghost is green (allowed) or red with the reason; right click or Esc cancels. Buildable ground only, not road or water. Zone cells grow only within a few cells of a town road ("needs road" otherwise). Farm cells become crop fields with a farmhouse every few cells. The zone tint shows only while the build bar is open, plus a health tint overlay. Clicking a building shows a tooltip: what it is, its zone, its state and the zone's state. Mock first, approves before building.
 7. **Roads and walls for Loop 3:** town roads, stockade ring, gates and the "would trap" check. World roads wait for F3.
 
 **Workers**
@@ -118,7 +118,7 @@ Settled in the design session "Add build detail to frontier plan" (Tim: "yes tha
     - **Rich deposits** = the existing 107 nodes: much higher yield, worth far work camps and fighting over; ore (gold later) comes only from deposits. Same piece system with bigger, rarer art (old-growth forest 20-40 trees, quarry face 6-10 rocks); always on the maps once discovered.
     - Food comes mainly from farm zones (fertile bonus) plus fishing.
 13. Harvest stages per piece: tree full → stump → sapling → full; rock full → chipped → rubble → slowly back. The last piece never drops below a trickle (never runs dry, no grind).
-14. The tool writes a generated data file the sim reads (the sim owns locations, art follows). It prints a coverage report (every buildable spot has some timber and stone within 600 units, less timber in dry lands); Tim OKs the numbers. Only worked spots are saved (changes-only list).
+14. The tool writes a generated data file the sim reads (the sim owns locations, art follows). It prints a coverage report (every buildable spot has some timber and stone within 600 units, less timber in dry lands); OKs the numbers. Only worked spots are saved (changes-only list).
 15. Hover: a small twinkle (not a glow) and a tooltip (kind, amount left, state, who works it). The minimap shows spots only nearby or zoomed in; the World map has a layer toggle; fog applies.
 16. Until the tool exists, forest terrain counts as timber anywhere, plus a small node bump. Core resources already work at full speed anywhere and nodes add up to +60% each (Loop 2 follow-up). Later pass: a fuller RTS resource system (gold, ore, more kinds).
 
@@ -126,9 +126,9 @@ Settled in the design session "Add build detail to frontier plan" (Tim: "yes tha
 
 **Still open (placeholders, not blockers):** numbers (worker cost and training time, core size, zone growth speed, spot yields, tier goals); art (spot and deposit pieces with harvest stages; stand-ins from existing props until then); the build bar mock.
 
-### Loop 3 build cards (Tim OK, 2026-11-04)
+### Loop 3 build cards (OK, 2026-11-04)
 
-Built from the Loop 3 design above. These cards replace the old F5.1–F5.4 and F5.x detail for this loop; F5 keeps its later cards (F5.5 art, F5.7 work camps). Tim's answers (2026-11-04): once a town has workers, idle `forage` stops (L3.5); old towns migrate to the grid (L3.1, L3.3); the test starter frontier towns stay for now and are removed after E6 (card E6b). Card format and rules: `docs/step_runner_guide.md`.
+Built from the Loop 3 design above. These cards replace the old F5.1–F5.4 and F5.x detail for this loop; F5 keeps its later cards (F5.5 art, F5.7 work camps). the answers (2026-11-04): once a town has workers, idle `forage` stops (L3.5); old towns migrate to the grid (L3.1, L3.3); the test starter frontier towns stay for now and are removed after E6 (card E6b). Card format and rules: `docs/step_runner_guide.md`.
 
 #### Shared for every Loop 3 card
 
@@ -160,19 +160,19 @@ shaders, the capital save. `sim/game.js`: one hook line per card at most, named 
 
 **Every checkpoint:** game starts, the card's test passes, the regression set has no new failures,
 changed browser files pass the `.mjs` syntax copy, and a one-line done note goes to the
-coordinator. All new numbers go in `frontier.json` with `"_note": "placeholder, Tim to tune"`.
+coordinator. All new numbers go in `frontier.json` with `"_note": "placeholder, to tune"`.
 
 **Save shape:** bump `frontier.json` `version`. `world.js` migrates old towns when it loads (spiral
 slot -> grid cell at the same world spot; house/farm/workshop -> 1-cell zones; L3.3).
 
 
-#### L3.0. Build bar mock and numbers  [TIM] — [x] done 2026-11-04 (Tim: "all perfect")
+#### L3.0. Build bar mock and numbers  [TIM] — [x] done 2026-11-04 ("all perfect")
 A SMALL thread makes one mock image of the town panel build bar (Road, Wall, Gate, Housing, Farm,
 Work, Eraser, placed-building picker), a ghost rectangle (green and red with a reason), the zone
 health tint, and a building tooltip. It also lists every placeholder number from L3.1–L3.6 in one
-table. Tim approves the mock and the numbers before L3.7/L3.8. L3.1–L3.6 can start before this.
+table. approves the mock and the numbers before L3.7/L3.8. L3.1–L3.6 can start before this.
 
-#### L3.1. Town grid  [SMALL] — [x] done 2026-11-04 (Tim: "all perfect")
+#### L3.1. Town grid  [SMALL] — [x] done 2026-11-04 ("all perfect")
 Needs: Loop 2
 Files: new `game/src/sim/frontier/town_grid.js` (pure), `construction.js` (`queue` default cell),
 `world.js` (migration), `founding.js` (grid at founding), `game/src/town_props.js` (positions),
@@ -194,10 +194,10 @@ Do:
 Check (pass/fail): `cellToWorld`/`worldToCell` round-trip; founding over a lake edge marks those
 cells `x`; a migrated old save draws every building within half a cell of its old spot; the grid
 survives save/load; `queue` never picks an `x` or used cell.
-In game (Tim): the town looks the same as before.
+In game: the town looks the same as before.
 Done note: "L3.1 town grid in."
 
-#### L3.2. Place and remove, with the trap check  [SMALL] — [x] done 2026-11-04 (Tim: "perfect")
+#### L3.2. Place and remove, with the trap check  [SMALL] — [x] done 2026-11-04 ("perfect")
 Needs: L3.1
 Files: new `game/src/sim/frontier/placement.js` (module in `frontier.js` `modules`),
 `commands.js` (route the actions), `frontier.json` (`size` per building, `placeCosts`), new
@@ -220,7 +220,7 @@ is accepted; a dry run changes no state (deep-equal before and after); a road cu
 house is refused; a 2x2 building over one used cell is refused; every refusal changes nothing.
 Done note: "L3.2 placement and trap check in."
 
-#### L3.3. Zones, health and growth  [STRONG] — [x] done 2026-11-04 (Tim: "perfect")
+#### L3.3. Zones, health and growth  [STRONG] — [x] done 2026-11-04 ("perfect")
 Needs: L3.2
 Files: new `game/src/sim/frontier/zones.js` (module), `economy.js` (zone output replaces
 house/farm/workshop building output), `world.js` (migration), `governor.js` (auto-zone),
@@ -250,7 +250,7 @@ hard-coded.
 Done note: "L3.3 zones, health and growth in."
 Built notes (2026-11-04): the town hall counts as a road for zone growth (`hallIsRoad` in `frontier.json`); farm zones skip the food need; ground clearing for placed buildings is still instant in `construction.js` until the L3.5 worker order.
 
-#### L3.4. Resource spots tool  [SMALL, then TIM numbers] — [x] done 2026-11-04 (Tim OK'd the numbers as they are)
+#### L3.4. Resource spots tool  [SMALL, then TIM numbers] — [x] done 2026-11-04 (approved the numbers as they are)
 Needs: none (can run beside L3.1–L3.3)
 Files: new `tools/seed_resource_spots.mjs`, generated `game/data/world_spots.json`, new
 `game/src/sim/resource_spots.js` (pure lookups), new `game/tools/test_resource_spots.mjs`.
@@ -260,7 +260,7 @@ Do:
      pieces: [[dx, dz, variant], ...], deposit: <nodeId>|null }], byChunk: { <chunkId>: [ids] } }`.
   2. Sizes: timber 5–20, stone 2–5, fish 2–4 (shore cells only), forage 3–6. Each of the 107 nodes
      becomes a deposit spot (timber 20–40, stone 6–10, ore, fertile, fishing) at its position.
-     Density and biome rules go in a `spots` block in the tool's config, for Tim to OK.
+     Density and biome rules go in a `spots` block in the tool's config, for to OK.
   3. Coverage report printed by the tool: the share of buildable land with timber and with stone
      within 600 units, by biome. The tool never places on unbuildable cells or on roads/passes.
   4. `resource_spots.js`: `spotsInChunk(id)`, `spotsNear(x, z, r)`, `spotYield(spot, stateStr)`.
@@ -270,8 +270,8 @@ Do:
 Check (pass/fail): two runs give byte-identical output; no spot sits on an `x` cell; fish spots are
 within 2 cells of water; every node has exactly one deposit spot; `spotYield` is never 0;
 `tools/seed_world.mjs --check` still passes (world.json untouched).
-In game (Tim): read the coverage report and OK the numbers.
-- Site floor (Tim 2026-11-21): every town site has at least one ordinary spot (not a rich deposit) of timber, of stone and of food (fish where there is shore, else forage) within 600 (workers.range). A missing one is added 380 to 560 out, on ground reached without crossing water, so poor sites stay poor but never lack a resource type (`spots.siteFloor` in resource_spots.json, pass 3b of tools/seed_resource_spots.mjs). Added: S12, S13, S21, S28, S36, S39, S45, S56 forage; S13, S22, S52, S59 timber; S39 stone.
+In game: read the coverage report and OK the numbers.
+- Site floor (2026-11-21): every town site has at least one ordinary spot (not a rich deposit) of timber, of stone and of food (fish where there is shore, else forage) within 600 (workers.range). A missing one is added 380 to 560 out, on ground reached without crossing water, so poor sites stay poor but never lack a resource type (`spots.siteFloor` in resource_spots.json, pass 3b of tools/seed_resource_spots.mjs). Added: S12, S13, S21, S28, S36, S39, S45, S56 forage; S13, S22, S52, S59 timber; S39 stone.
 - Moved nodes (2026-11-24): `idAnchors` in resource_spots.json keeps the old place of nodes moved after the first seed for every spacing check, so no other spot's id changes; ordinary spots crowding a moved node are dropped (F0636, F0739). `fishWater` sets the fish layout (boats out, bollards at the waterline, cast lane).
 - Fishing (2026-11-24): workers harvesting a fish spot stand on the bank facing the water and fish with a bamboo pole instead of swinging a hammer. Every ~9 s they cast: the float arcs out, lands with a ring, bobs, gets a nibble now and then and is reeled in. Drawn only (render/fishing_fx.js); harvest times and yields are unchanged. Each worker's cast point is the spot's `cast` point (world_spots.json, out on open water), fanned out a little along the shore per worker. Fish spot rowboats float a few steps out on the water and the bollards stand at the waterline, either side of a clear cast lane, tied to the nearest boat by a slack mooring rope. Harvested and regrowing pieces keep their boat or bollard art. Test: `node game/tools/test_fishing.mjs` (grounds on walkable shore within 10 units of water, boats on water, bollards on land, cast point on water clear of boats, fish trips get a cast point and the worker shows idle with fishing set). No new controls.
 
@@ -280,7 +280,7 @@ Done note: "L3.4 resource spots data in (coverage report attached)."
 #### L3.5. Workers (records and trip math)  [SMALL] — [x] done 2026-11-04
 Needs: L3.1, L3.4
 Files: new `game/src/sim/frontier/workers.js` (module), `commands.js`, `economy.js` (gathering
-output comes from workers; `forage` stops once a town has a worker, Tim OK), `governor.js`
+output comes from workers; `forage` stops once a town has a worker, OK), `governor.js`
 (assign idle workers), `frontier.json` (`workers` block), new `game/tools/test_frontier_workers.mjs`.
 Do:
   1. Action `train { town, count }` at the town hall: costs ryo and takes 1 person each (data); the
@@ -297,7 +297,7 @@ equals loads x `load` (conservation); save mid-trip and load, then the same tick
 straight run; `assign` to an unknown or far spot is refused and changes nothing.
 Done note: "L3.5 workers in (records and trip math)."
 
-Built (2026-11-04): sequential training reserves ryo/population; saved integer-tick trips carry stock to the nearest finished drop-off and ledger it as `gather`. Governor assigns idle workers; worker records clear placed-building footprints over time; forage and passive node-camp output stop once workers exist. Added startup spot-data wiring and additive worker-state migration; frontier.json version 5 (Tim approved updating the existing version assertion). Workers remain records; no new UI controls until L3.8. `test_frontier_workers.mjs` and 12 affected frontier/founding tests pass; browser entry/game syntax checks pass. Next: L3.6, preserving trip/cargo timing and clearing behavior.
+Built (2026-11-04): sequential training reserves ryo/population; saved integer-tick trips carry stock to the nearest finished drop-off and ledger it as `gather`. Governor assigns idle workers; worker records clear placed-building footprints over time; forage and passive node-camp output stop once workers exist. Added startup spot-data wiring and additive worker-state migration; frontier.json version 5 (approved updating the existing version assertion). Workers remain records; no new UI controls until L3.8. `test_frontier_workers.mjs` and 12 affected frontier/founding tests pass; browser entry/game syntax checks pass. Next: L3.6, preserving trip/cargo timing and clearing behavior.
 
 #### L3.6. Workers become units near players  [STRONG] — [x] Node checks passed 2026-11-04; visual check pending
 Needs: L3.5, W3 areas
@@ -332,7 +332,7 @@ lights); spot pieces by stage using existing tree/rock props as stand-ins; a sma
 (no glow). The minimap shows spots within its view only when zoomed in; the World map gets a Spots
 layer; discovery and fog apply. Render reads the snapshot only.
 Check (pass/fail): `.mjs` syntax copies pass; a pure helper `townCellsToProps(grid)` is tested.
-In game (Tim): the town, its fields and its spots read clearly; harvested trees show stumps.
+In game: the town, its fields and its spots read clearly; harvested trees show stumps.
 Done note: "L3.7 town and spots drawn."
 Built notes (2026-11-05): town roads use 16 neighbour-mask road tiles (`game/art/ground/road/`, made by `game/tools/build_road_tiles.py`); crop fields use a seamless fields texture; `townGrid.cliffMargin` (1 cell) keeps town cells off cliff edges.
 
@@ -362,7 +362,7 @@ Found a town, paint housing and farm zones, lay roads, ring it with a stockade a
 wall yourself in (it should refuse), train workers and send some to a timber spot, walk away and
 come back, and watch zones grow, then starve and recover.
 
-**In-progress checkpoint (2026-11-04):** Tim accepted house/plot spacing, clearing look, inspector dismissal, build review/confirmation, fence placement except corners, night readability and town selection. Changes include worker groups/move/hold and stalled-route recovery, full Eraser refunds, food-warning fixes, completed-structure collision, training quantities and batch hiring. Some latest interactions still need targeted and manual QA. This is not Loop 3 acceptance.
+**In-progress checkpoint (2026-11-04):** accepted house/plot spacing, clearing look, inspector dismissal, build review/confirmation, fence placement except corners, night readability and town selection. Changes include worker groups/move/hold and stalled-route recovery, full Eraser refunds, food-warning fixes, completed-structure collision, training quantities and batch hiring. Some latest interactions still need targeted and manual QA. This is not Loop 3 acceptance.
 
 **Additional manual playtest (2026-11-04):** Rounded plots; worker training menu, countdown/progress and confirmation; clear worker spawns around the town center; nearby discovered spots in the worker menu; worker selection and movement; harvesting and returning; growth of all three painted zone types; Eraser confirmation/refunds; clustered resource effects and cutdown graphics worked. Abandoned/low-health states appeared, but their reasons were unclear. Workers disappear beyond town/grid and get stuck on buildings: travel, visibility and pathing are not accepted. Safe founding and the full loop remain open. No new Node tests were run for this playtest.
 
@@ -372,7 +372,7 @@ come back, and watch zones grow, then starve and recover.
 3. Economy and explanations: reproduce roughly 30 timber gatherers versus six work tiles; audit yields, travel and inputs before adjusting bugs or balance. Add stock hover breakdown and Stock > Usage with active consumers, rates, state and purpose, plus click focus/double-click navigation as appropriate. Explain plot growth, health and abandonment blockers, dropoffs and stockade.
 4. Selection and navigation: double-click worker/group menu entries to focus the camera; add worker main target pane, frontier minimap click navigation, and minimap workers and small discovered spots with tooltips, including workers outside the grid.
 5. Harvesting and cargo: show harvest animation, collection increments/icons, progress and gathered amount; show carried resource/type/amount in the world and worker UI. Add Return resources, confirmed Drop resources with explicit loss and direct reassignment, and a red delivery notice with actual resource and amount.
-6. Visual joins: fix fence corner half-span overshoots and add diagonal/45-degree joins (Tim can provide a screenshot); round road corners and improve dirt/gravel textures. Ford mosaic and bridge art remain separate.
+6. Visual joins: fix fence corner half-span overshoots and add diagonal/45-degree joins (can provide a screenshot); round road corners and improve dirt/gravel textures. Ford mosaic and bridge art remain separate.
 7. Regression and manual acceptance: founding egress, complete worker trips/groups/cargo and conservation, usage and growth reasons, gates/completed collision, walking away and back, save/load, many workers and capital/frontier transition. Add new controls to the in-game Controls panel; preserve saves and use small, Node-tested checkpoints.
 
 **Current economy behavior:** Completed town halls, storehouses, lumber camps and quarries are all eligible dropoffs; workers use the nearest without resource-type restrictions and delivery credits town stock immediately, with no second haul. Gather-building passive jobs/output are excluded once a town has worker records. Storehouses have no storage cap; stockade defense rules remain pending F6 (war). Any specialization is future design, not current behavior.
@@ -383,19 +383,19 @@ Stock hover and Usage now show supply, consumption, full demand, pending constru
 
 **Fix validation reported by implementation chat:** `test_building_safety`, `test_frontier_fix_phase`, extended workers/build UI/panel tests, founding, frontier placement/construction/zones/economy/governor/snapshot/commands/data/world/guards/followup, town drawing/ground, areas, crew, Shinobi HQ, sim worker and target controls passed. Syntax checks passed for 39 changed/new JS/MJS files and diff check passed. `test_realtime_loop.mjs:34` expects a clock loop already absent at baseline `7fac466`; not changed. Previously documented dismissal/town_world failures were not rerun. No full suite, browser automation or visual acceptance claimed.
 
-**Performance: lag bug FIXED (2026-11-05, Tim OK).** Severe stutter and freezes in the city and near workers came from the sim falling behind, not drawing. Root causes and fixes: (a) a stuck worker's reroute cleared the shared path cache on every retry: `workers.js` now replans at most once a second, never clears the global cache, snaps a stuck worker loose and shows a 'Stuck' status; (b) patrol map builds: `deployment.js` uses a patrol mask table with a bbox pre-check, and `warmNavs` prebuilds the patrol navs at match load (called from `game.js`); (c) catch-up bursts: `fixed_step_clock` `maxBacklog` and `sim_worker_runtime` `maxSteps` 2. Also fixed: `world_ground.js` harvest-art refresh batched (max 2 per second, cached prop keys); `sector_recovery.js` checks threats before `vision.canSee`; `main.js` `status()` null-safe; the P readout has a Sim line (`fps.js`, `main.js`); the Workers pane has an Idle tab plus a Controls row. **Step 1 done (2026-11-05):** while no player hero is in the city, crew/police/geisha target searches, sector cleanup and recovery threat scans run at 2 Hz (`settings.json` `cityDecisions.awayHz`, 0 = off); movement and swings stay at 20 Hz; guard test `test_city_decisions.mjs`. Step 2 (spatial grid) still parked. Profile tool: `node --cpu-prof to_delete/_chk/probe_save.mjs <save> <ticks>`.
+**Performance: lag bug FIXED (2026-11-05, OK).** Severe stutter and freezes in the city and near workers came from the sim falling behind, not drawing. Root causes and fixes: (a) a stuck worker's reroute cleared the shared path cache on every retry: `workers.js` now replans at most once a second, never clears the global cache, snaps a stuck worker loose and shows a 'Stuck' status; (b) patrol map builds: `deployment.js` uses a patrol mask table with a bbox pre-check, and `warmNavs` prebuilds the patrol navs at match load (called from `game.js`); (c) catch-up bursts: `fixed_step_clock` `maxBacklog` and `sim_worker_runtime` `maxSteps` 2. Also fixed: `world_ground.js` harvest-art refresh batched (max 2 per second, cached prop keys); `sector_recovery.js` checks threats before `vision.canSee`; `main.js` `status()` null-safe; the P readout has a Sim line (`fps.js`, `main.js`); the Workers pane has an Idle tab plus a Controls row. **Step 1 done (2026-11-05):** while no player hero is in the city, crew/police/geisha target searches, sector cleanup and recovery threat scans run at 2 Hz (`settings.json` `cityDecisions.awayHz`, 0 = off); movement and swings stay at 20 Hz; guard test `test_city_decisions.mjs`. Step 2 (spatial grid) still parked. Profile tool: `node --cpu-prof to_delete/_chk/probe_save.mjs <save> <ticks>`.
 
-**Further playtest and delivery-log follow-up (2026-11-04; uncommitted):** Tim likes the overhead collection/cargo icons and resource/amount labels, confirms the minimap fixes work well and reports timber and stone balance well. Goods accumulate excessively; numbers/balance tuning is explicitly deferred, so production rates stay as they are for this pass. Routine worker-delivery town/news popups were replaced by a bounded per-town saved worker log (last 64 by default, configurable via `workers.logEntries`) recording tick, worker ID, resource, amount and drop-off. The Workers pane has Workers and newest-first Log tabs with match time and paging; older saves without history are supported. Cargo icons and minimap code are unchanged; Controls includes Workers → Log. Targeted `test_frontier_workers`, `test_frontier_build_ui`, `test_frontier_snapshot` and `test_frontier_panel` passed, including history bounds/save-load/conservation, absence of delivery alerts and log tab/paging checks. Full Loop 3 acceptance remains open.
+**Further playtest and delivery-log follow-up (2026-11-04; uncommitted):** likes the overhead collection/cargo icons and resource/amount labels, confirms the minimap fixes work well and reports timber and stone balance well. Goods accumulate excessively; numbers/balance tuning is explicitly deferred, so production rates stay as they are for this pass. Routine worker-delivery town/news popups were replaced by a bounded per-town saved worker log (last 64 by default, configurable via `workers.logEntries`) recording tick, worker ID, resource, amount and drop-off. The Workers pane has Workers and newest-first Log tabs with match time and paging; older saves without history are supported. Cargo icons and minimap code are unchanged; Controls includes Workers → Log. Targeted `test_frontier_workers`, `test_frontier_build_ui`, `test_frontier_snapshot` and `test_frontier_panel` passed, including history bounds/save-load/conservation, absence of delivery alerts and log tab/paging checks. Full Loop 3 acceptance remains open.
 
-**Usage playtest:** Tim confirms the Stock → Usage pane and clicking through to focus a plot work well. This does not accept the full phase, goods balance, performance, or the remaining founding, worker and corner checks. No new implementation or tests were reported with this feedback.
+**Usage playtest:** confirms the Stock → Usage pane and clicking through to focus a plot work well. This does not accept the full phase, goods balance, performance, or the remaining founding, worker and corner checks. No new implementation or tests were reported with this feedback.
 
-**Worker performance follow-up (2026-11-04; uncommitted):** Tim reports worker selection and movement work well, but substantial lag occurs near workers both harvesting and walking to sites. A targeted draw-order change uses existing screen-space buckets for overlapping static scenery pairs after streaming/harvest/regrowth changes, preserving reference ordering and cycle behavior. Gameplay, production, saves, selection, minimap and cargo presentation were not changed by this fix. `test_draw_sort` passed reference-order and operation-count regressions; `test_town_drawing`, `test_frontier_fix_phase`, `test_frontier_workers`, module syntax and diff checks passed.
+**Worker performance follow-up (2026-11-04; uncommitted):** reports worker selection and movement work well, but substantial lag occurs near workers both harvesting and walking to sites. A targeted draw-order change uses existing screen-space buckets for overlapping static scenery pairs after streaming/harvest/regrowth changes, preserving reference ordering and cycle behavior. Gameplay, production, saves, selection, minimap and cargo presentation were not changed by this fix. `test_draw_sort` passed reference-order and operation-count regressions; `test_town_drawing`, `test_frontier_fix_phase`, `test_frontier_workers`, module syntax and diff checks passed.
 
 **Resource map clarification:** Mapped quarries and ore veins link to their corresponding rich harvest clusters, distinct from scattered small spots. Ore-linked clusters currently yield stone as a placeholder (all eight ore nodes link to stone spots); no ore system or balance tuning was added.
 
-**Further worker playtest (2026-11-04):** Tim confirms worker movement, Drop/Return controls, harvest-duration bars and resource-node placement rejection work. A manually selected/moved loaded returning worker appeared to lose its harvest and stand until reassigned; keep interruption behavior open. New `test_frontier_workers` regressions pass for successive Move orders during normal return, explicit Return and stopped-carrier states: cargo survives until one ledger/log deposit, the latest destination executes and the worker holds. No gameplay fix was made because the reported loss was not reproduced. Manual Move holds at its destination rather than resuming the prior harvest; check Workers → Log to distinguish a deposit from apparent loss.
+**Further worker playtest (2026-11-04):** confirms worker movement, Drop/Return controls, harvest-duration bars and resource-node placement rejection work. A manually selected/moved loaded returning worker appeared to lose its harvest and stand until reassigned; keep interruption behavior open. New `test_frontier_workers` regressions pass for successive Move orders during normal return, explicit Return and stopped-carrier states: cargo survives until one ledger/log deposit, the latest destination executes and the worker holds. No gameplay fix was made because the reported loss was not reproduced. Manual Move holds at its destination rather than resuming the prior harvest; check Workers → Log to distinguish a deposit from apparent loss.
 
-**Manual playtest next:** reload the existing save without reset; found/exit beside terrain and units and finish a building over an occupied location; observe complete nearby worker trips, mid-route wake/remote inspection, harvesting, cargo and delivery, and formation moves near obstacles. Test Return/Drop confirm/cancel and reassignment, stock supply on new trips, Usage focus and growth reasons, all fence corners/gates/road textures, walk-away/return and save/load, and capital-to-frontier FPS with many workers. Keep Loop 3 and the fix phase open until Tim accepts them.
+**Manual playtest next:** reload the existing save without reset; found/exit beside terrain and units and finish a building over an occupied location; observe complete nearby worker trips, mid-route wake/remote inspection, harvesting, cargo and delivery, and formation moves near obstacles. Test Return/Drop confirm/cancel and reassignment, stock supply on new trips, Usage focus and growth reasons, all fence corners/gates/road textures, walk-away/return and save/load, and capital-to-frontier FPS with many workers. Keep Loop 3 and the fix phase open until accepts them.
 
 **Remaining checks:** fresh founding/egress after the fix; worker groups, movement, stone/timber, cargo and stumps; batch training/hiring totals, cancel and progress; Eraser refunds and hall protection; finished versus unfinished collision and gates; food warning recovery; rounded/translucent visuals; walk away/return, save/load and zone growth/starvation/recovery. `test_frontier_followup`, `test_eraser_refunds`, `test_frontier_build_ui`, `test_frontier_workers`, `test_crew`, `test_founding` and `test_shinobi_hq_raid` passed at this checkpoint. Earlier related checks preceded some latest edits. `test_dismissal.mjs:61` fails on an Instant Taunt text expectation; its baseline has not been investigated. No full-suite or visual-acceptance claim.
 
@@ -404,18 +404,18 @@ closed (F5.1 grid, F5.2 placement, F5.3 zones, F5.4 controls, the F5.x zones car
 
 ## Economy balance pass (B0-B7)
 
-Agreed with Tim on 2026-11-05 (thread "Plan harvest system balancing"); Tim OK'd it for the plan. Nothing is built yet. All numbers are placeholders in `game/data/frontier.json` with `"_note": "placeholder, Tim to tune"`.
+Agreed on 2026-11-05 (thread "Plan harvest system balancing"); approved it for the plan. Nothing is built yet. All numbers are placeholders in `game/data/frontier.json` with `"_note": "placeholder, to tune"`.
 
 **Problem.** Towns pile up huge stocks (the playtest town had 10,658 food, 14,588 stone and 7,290 goods at 27 pop) and can expand forever. The only steady sink is food eaten by townspeople, and trained workers eat nothing (food is eaten only by `s.pop`).
 
-**Design (Tim, 2026-11-05)**
-1. **Storage caps, set fairly high.** Each resource has a cap set by the hall tier; storehouses raise it. A full resource idles its workers and alerts the governor; with initiative On the governor moves them, with Ask first it only alerts. Ryo has no cap (Tim to confirm).
+**Design (2026-11-05)**
+1. **Storage caps, set fairly high.** Each resource has a cap set by the hall tier; storehouses raise it. A full resource idles its workers and alerts the governor; with initiative On the governor moves them, with Ask first it only alerts. Ryo has no cap (to confirm).
 2. **Upkeep.** Grown zones and placed buildings use a little timber and stone; workers and troops eat food and draw ryo wages. Upkeep grows with town size; a small town pays nothing.
 3. **Goods needs by housing level.** Level 1 housing needs only food; level 2+ needs a trickle of goods. Without goods housing stops leveling (no decline, a small mood dip). A small work zone is allowed at tier 1 and the founding stock brings a few goods. No firewood.
 4. **Town hall tiers** limit the build ring, the number of placed buildings and the cells per zone type (the build bar shows e.g. "Farm 16 / 24 cells"; painting past it gives a red ghost "Town hall tier limit"). Upgrading costs a big chunk of stock and a minimum population. The governor suggests upgrades; the player decides.
 5. **One build ring per tier: 150, 300, 600 units** (a City tier later). Every zone, town building, wall and gate sits inside it; only roads and work camps go outside. Replaces the separate core (`coreRadius` + `corePerTier` in `town_grid.js`).
 6. **Fewer, bigger towns.** Founding `minSpacing` goes from 1,000 to 1,600 so 600-unit rings never overlap. All 60 sites stay; bots skip sites too close to a town, so whoever founds first claims the area.
-7. **Workers eat, need a bed and are capped per tier** (Tim, 2026-11-05). Workers eat like townspeople, count against housing (pop + workers ≤ housing), and the hall caps how many can be trained per tier (shown on the Train button as "Workers 12 / 12").
+7. **Workers eat, need a bed and are capped per tier** (2026-11-05). Workers eat like townspeople, count against housing (pop + workers ≤ housing), and the hall caps how many can be trained per tier (shown on the Train button as "Workers 12 / 12").
 
 Not chosen yet: food spoilage, big stockpiles drawing raids, export carts (left for the raid and cart work).
 
@@ -432,11 +432,11 @@ Not chosen yet: food spoilage, big stockpiles drawing raids, export carts (left 
 | Unlocks | hall, houses, farms, small work zone, storehouse, camps | market, stockade | barracks, walls (F6) |
 | Upgrade to this tier | at founding | pop 20; timber 300, stone 150, goods 40 | pop 60; timber 1,200, stone 800, goods 250 |
 
-Camp tier allows 3 work camps (Tim 2026-11-21; was 2), one each for timber, stone and food; Village 4 and Town 8 unchanged.
+Camp tier allows 3 work camps (2026-11-21; was 2), one each for timber, stone and food; Village 4 and Town 8 unchanged.
 
 Work camp caps by tier are now Camp 3 / Village 6 / Town 8 (2026-11-25). The build menu shows "Camps used/max" on the Camps row, with a bare count on each camp button (replaces the 2026-11-22 display).
-Camp tier has 6 work cells (Tim 2026-11-22; was 4).
-Town tier worker cap 60 (Tim 2026-11-22; was 90).
+Camp tier has 6 work cells (2026-11-22; was 4).
+Town tier worker cap 60 (2026-11-22; was 90).
 
 Farmsteads count against the farm cell limit. Upkeep per economy tick (1 s), only for cells above a free 12 per town: housing 0.003 timber per level; farm 0.002 timber; work 0.003 timber + 0.002 stone; storehouse 0.01 timber; stockade 0.02 stone; wall or gate cell 0.002 stone; workers 0.01 food each plus 0.002 ryo. Unpaid upkeep lowers zone health (existing health and abandon rules); placed buildings stop until paid. Goods: 0.002 per housing cell at level 2, 0.004 at level 3; short on goods = no level-ups and mood factor 90; founding `startStock` gains 10 goods. Ballpark: a capped tier 2 town (~140 cells) needs about 20 timber and 12 goods per minute.
 
@@ -447,8 +447,8 @@ Farmsteads count against the farm cell limit. Upkeep per economy tick (1 s), onl
 - **B3. Town hall tiers and the ring.** `tiers` data in `frontier.json`; `inCore` becomes `inRing` for zones, placed town buildings, walls and gates (roads and work camps exempt); per-kind cell caps and placed counts; a per-tier worker cap (training refused at the cap); an `upgradeHall` command (cost, pop, build time) for players and bots alike; the governor suggests upgrades; the build bar shows cell counts and the ring. Old saves start at tier 1 and keep cells beyond the limits, but can't add more. Test: `test_frontier_tiers.mjs`.
 - **B4. Founding spacing.** `founding.minSpacing` 1600; bot founding skips sites within 1,600 of a town. Test: extend the founding tests.
 - **B5. Upkeep and goods needs.** An `upkeep` step in `economy.js` charges cells, buildings and wages after the free allowance; unpaid lowers health; housing level-up checks goods. Tests: `test_frontier_upkeep.mjs`, `test_frontier_needs.mjs`.
-- **B6. Tune with the soak test** for a governor-on town and a bot town. Pass: no resource sits at its cap for more than about 20% of the run (unless the player chose it); a new town gets its first house and farm with no shortage in the first 10 minutes; tier 2 in about 30 to 45 minutes. Then Tim playtests.
-- **B7. Make housing and growth readable** (Tim, 2026-11-05: all five). Mostly UI; mock image first for the in-world parts.
+- **B6. Tune with the soak test** for a governor-on town and a bot town. Pass: no resource sits at its cap for more than about 20% of the run (unless the player chose it); a new town gets its first house and farm with no shortage in the first 10 minutes; tier 2 in about 30 to 45 minutes. Then playtests.
+- **B7. Make housing and growth readable** (2026-11-05: all five). Mostly UI; mock image first for the in-world parts.
   1. Town panel growth line: "Next person in 42 s", or the blocker ("Housing full", "Food not rising", "Needs goods to level up") from the sim's `growthBlock`.
   2. People split: "27 townsfolk + 52 workers / 222 beds".
   3. House hover tooltip ("House, 4 / 4 people, next level needs goods") plus a housing overlay with the build bar open, tinted by state: space free, full, or ready to level.
@@ -456,17 +456,17 @@ Farmsteads count against the farm cell limit. Upkeep per economy tick (1 s), onl
   5. Growth alerts on milestones ("Town grew to 50", "Housing full") through `alerts.js`, rate-limited: at most one growth alert per town every 300 economy ticks (placeholder), milestones only every 25 people.
   Test: a report test for the growth line and blocker text, and an alert test checking the cooldown holds.
 
-**Built (2026-11-05):** B0-B7 are built (commit 447e39d) and Tim playtested them. **Pass 2** (commit f248028, Tim OK) changed the numbers above: workers carry 2.5 per trip and workshops make a quarter as many goods; goods costs for training a worker (5) and for storehouses and camps (20); hall upgrades cost 90% of the tier's base storage cap (Village 900, Town 2,700 each of timber, stone and goods; people needed unchanged); placed building costs doubled, and placed buildings go through build phases; new towns start with 2 workers; idle townsfolk pay half tax; a **Market** (Village tier) sells goods above a keep level (default 400) for about 1 ryo each; house levels need 3× goods; roads only count if they link back to the town hall; the hall shows a scaffold and build phases while upgrading, with 20 s of fireworks on tier-up; newcomers walk out of the hall with a "+1 Homed" effect. Earlier playtest pass (commit bf4d7f7): Usage page with per-minute flows and a Housing tab, Village upgrade without goods (since replaced by the 90% rule), resource glow, fish spots on the shore, stuck-worker rescue. Watch: Village needs 900 goods and a Camp makes about 15 a minute, so roughly an hour with house upkeep.
+**Built (2026-11-05):** B0-B7 are built (commit 447e39d) and playtested them. **Pass 2** (commit f248028, OK) changed the numbers above: workers carry 2.5 per trip and workshops make a quarter as many goods; goods costs for training a worker (5) and for storehouses and camps (20); hall upgrades cost 90% of the tier's base storage cap (Village 900, Town 2,700 each of timber, stone and goods; people needed unchanged); placed building costs doubled, and placed buildings go through build phases; new towns start with 2 workers; idle townsfolk pay half tax; a **Market** (Village tier) sells goods above a keep level (default 400) for about 1 ryo each; house levels need 3× goods; roads only count if they link back to the town hall; the hall shows a scaffold and build phases while upgrading, with 20 s of fireworks on tier-up; newcomers walk out of the hall with a "+1 Homed" effect. Earlier playtest pass (commit bf4d7f7): Usage page with per-minute flows and a Housing tab, Village upgrade without goods (since replaced by the 90% rule), resource glow, fish spots on the shore, stuck-worker rescue. Watch: Village needs 900 goods and a Camp makes about 15 a minute, so roughly an hour with house upkeep.
 
 **Avoid:** the lag work owns `game.js` city decisions and the crew and police files; this pass doesn't touch them (the lag work is committed, so B2 can edit `workers.js`). New controls (upgrade button, ring display) go in the Controls panel in the same change.
 
 ## Progress checklist
 
 Tick a box (`[x]`) only when the step's check passes. A phase box is ticked after its commit and
-Tim's "g2g". This list is the single source of where the build is; after any compaction or new
+the "g2g". This list is the single source of where the build is; after any compaction or new
 session, read it before doing anything else.
 
-**Campaign loop checkpoints (Tim, 2026-11-05):** finish the campaign loop in 4 checkpoints, one fresh Sonnet thread each (Opus only for C2): (1) founding: Land Office permit, Choose-site menu, E6 bot expeditions, E6b remove the test starter towns; (2) C4 Influence (Campaign only; Classic unchanged); (3) C2 lieutenant + C3 standing orders; (4) C6 + E7 playtest. C5 still waits for F3. Economy balancing continues alongside playtests.
+**Campaign loop checkpoints (2026-11-05):** finish the campaign loop in 4 checkpoints, one fresh Sonnet thread each (Opus only for C2): (1) founding: Land Office permit, Choose-site menu, E6 bot expeditions, E6b remove the test starter towns; (2) C4 Influence (Campaign only; Classic unchanged); (3) C2 lieutenant + C3 standing orders; (4) C6 + E7 playtest. C5 still waits for F3. Economy balancing continues alongside playtests.
 
 **Hero horse (after the campaign loop checkpoints):** buy a horse for the hero at a stable in the city; the hero rides it on the island and on roads (about 3x walking speed, faster on roads). Price: to be set. Fast travel between your own towns follows F3 roads and shipments. Crew horses come with the war camp stables (F6 war). Sprites: `mare`, `mare_saddled`, `calico` (see `cast_tracker.md`).
 
@@ -478,16 +478,16 @@ session, read it before doing anything else.
 
 **Capital spacing and worker Jobs (2026-11-06):** `frontier.json` `founding.capitalSpacing` = 600 is the least distance from a new town to `world.capital`; `minSpacing` 1600 still applies between towns and the capital no longer counts toward it (`founding.js` whyNot, `land_office.js` siteBlocked, the site menu Walk out text; test `test_founding.mjs`). The Workers pane has a Jobs row: one button per harvest kind in use with its count; click selects every worker on it, Ctrl or Shift + click adds; moving, holding, clearing or garrisoned workers are not counted (`worker_panel.js` `workerJob`/`JOB_ORDER`, `build-worker-job` in `frontier_build_ui.js`; test `test_frontier_build_ui.mjs`).
 
-Build order (Tim, 2026-11-01: map first, campaign starts with founding):
+Build order (2026-11-01: map first, campaign starts with founding):
 F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 → F6 (war) → W5 → S. (C5 waits for F3.) Phases appear in this order below.
 
-- [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `pre_frontier_yakuza`, `dev_frontier` and `campaign_test_yakuza` saves done via `game/tools/make_dev_save.mjs`; `test_params.js` stays until Tim sees the presets)
-- [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (Tim, deferred to the end)
+- [ ] **F0** Ready: [x] F0.1 snapshot · [x] F0.2 numbers · [ ] F0.3 current playtests · [x] F0.4 season decision · [ ] F0.5 test state (partial: `pre_frontier_yakuza`, `dev_frontier` and `campaign_test_yakuza` saves done via `game/tools/make_dev_save.mjs`; `test_params.js` stays until sees the presets)
+- [ ] **F1** Save/load: [x] 1.1 · [x] 1.2 · [x] 1.3 batches (list: done) · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.6b · [ ] 1.7 playtest (, deferred to the end)
 - [x] **W1** World data: [x] W1.1 choices · [x] W1.2 · [x] W1.3 generate · [x] W1.4 steer · [-] W1.5 tool (skipped, not needed). Open: `world_names.json` review (names are drafts)
-- [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, Tim 2026-11-02; waypoint skipped, Tim agreed; replaced 2026-11-20 by minimap guide arrows, see W2)
+- [x] **W2** World map: [x] W2.1 mock · [x] W2.2 · [x] W2.3 · [x] W2.4 · [x] W2.5 playtest (passed, 2026-11-02; waypoint skipped, agreed; replaced 2026-11-20 by minimap guide arrows, see W2)
 - [x] **F2** Economy: [x] 2.1 · [x] 2.2 · [x] 2.2b · [x] 2.3 · [x] 2.4 · [x] 2.4b · [x] 2.5 · [x] 2.5b · [x] 2.6 · [x] 2.7 · [x] 2.8 · [x] 2.9 · [x] 2.10
-- [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, Tim 2026-11-02)
-- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, Tim 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (Tim playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (Tim playtested 2026-11-03) · [x] P2 maps (Tim playtest passed 2026-11-02) · [x] P3 edges and water (Tim accepted 2026-11-03) · [x] P4 coast cliffs and dry range (built 2026-11-03; Tim playtest passed 2026-11-03) · [x] P5 current biome art/import and clustering (accepted; later art backlog retained) · [ ] later: chunk and ground-paint speed-up
+- [x] **F4** Town panel: [x] 4.1 mock · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.4b · [x] 4.4c · [x] 4.4d · [x] 4.5 playtest (passed, 2026-11-02)
+- [ ] **W3** Walkable world: [x] W3.1 · [x] W3.2 · [x] W3.3 · [x] W3.4 · [ ] W3.4b art (prompts drafted; broader art pass pending) · [x] W3.5 · [x] W3.6 · [x] W3.7 playtest (passed, 2026-11-02) · [x] W3.8 original source generation (25/25 verified) · [x] W3.9 baseline implementation/import (checks passed) · [ ] W3.9 visual and biome-art integration follow-ups (see frontier campaign plan) · [x] W3.10 paint the island and fit the walkthrough art (playtested 2026-11-03) · Follow-ups (W3.11): [x] P1 quick fixes (playtested 2026-11-03) · [x] P2 maps (playtest passed 2026-11-02) · [x] P3 edges and water (accepted 2026-11-03) · [x] P4 coast cliffs and dry range (built 2026-11-03; playtest passed 2026-11-03) · [x] P5 current biome art/import and clustering (accepted; later art backlog retained) · [ ] later: chunk and ground-paint speed-up
 - [ ] **W4** Wilderness: [ ] W4.1 rules · [x] W4.2 · [x] W4.3 · [x] W4.4 · [ ] W4.5 playtest
 - [ ] **C** City in campaign: [x] C1 rules (decided 2026-11-05) · [x] C2 · [x] C3 · [x] C4 · [ ] C5 (after F3) · [ ] C6 playtest
 - [ ] **E** Founding: [x] E1 rules (updated 2026-11-05) · [x] E2 · [x] E3 · [x] E4 · [x] E5 (sim and drawing done; stand-in art stays) · [x] E6 · [x] E6b · [ ] E7 playtest
@@ -497,22 +497,22 @@ F0 → F1 → W1 → W2 → F2 → F4 → W3 → W4 → C → E → F3 → F5 �
 - [ ] **F6** War (planned, not built): [x] 1 declare · [x] 2 banner and camp · [ ] 3 camp economy · [ ] 4 camp buildings · [ ] 5 roster · [ ] 6 structures · [ ] 7 specials and stealth · [ ] 5b collisions · [ ] 8a win/loss · [ ] 8b defender · [ ] 8c surrender · [ ] 8d bot general
 - [ ] **W5** Exploration: [ ] W5.1 list · [ ] W5.2 · [ ] W5.3 · [ ] W5.4 · [ ] W5.5 playtest
 
-Last completed: Map first atlas, crossing/pass markers, close/travel layout fixes and named-region labels (2026-11-03). Tim loves the map. Next: approved Loop 1 in phased checkpoints; latest close/travel/labels refresh check, basic crossing fitting, then W4. Recheck clustering performance under mobs/camps load; unfinished MR4 traversal checks and F1.7 remain deferred.
+Last completed: Map first atlas, crossing/pass markers, close/travel layout fixes and named-region labels (2026-11-03). loves the map. Next: approved Loop 1 in phased checkpoints; latest close/travel/labels refresh check, basic crossing fitting, then W4. Recheck clustering performance under mobs/camps load; unfinished MR4 traversal checks and F1.7 remain deferred.
 
-## Next coordinator handoff (Tim, 2026-11-03)
+## Next coordinator handoff (2026-11-03)
 
 - **Loop 1 built (2026-11-04):** crossings checked (17, none moved; fords = painted gravel plus thinner water, bridges = plain plank decal, nothing new for walking; data in `world_crossings.json`, kept apart from `world_paint.json` because the atlas test hashes that file); W4 camps (`sim/camps.js`), node/site markers and ruin/cache landmarks (`world_features.js`), scouting report, minimap illustration/markers/tooltips, travel to marked places. **Not built yet:** ruin and cache rewards; node markers have no gathering until Loop 3. No new Controls entries (the "Show everything (test)" layer button is dev-only). Tests: `game/tools/test_camps_world.mjs`, `test_crossings.mjs`.
-- **Deck-only bridges / impassable rivers: done (Tim, 2026-11-20).** River water is walkable only on a ford's gravel bar (`rules.fordAlong`, default 80 u along the flow) and on a bridge deck (`rules.bridgeHalfWidth`, default 10.5, half of `world_crossings.json` bridge.width 21). `rules.fordRadius` now only drives validator chokes and shoreline corner drawing.
-- **Claude continuation:** Tim approved the basic campaign loop above, in phased checkpoints, then requested a usage-saving handoff. No campaign-loop implementation has started; the last action was plan/source reading. Begin Loop 1, not another planning/permission round. First small checkpoint: basic bridge/ford world fitting at the existing anchors, using existing assets; then W4 camp persistence/spawning, node/site props and scouting. Keep city-away safeguards from C as a prerequisite before sustained expedition playtests. Commit tested increments and stop at a playable checkpoint for Tim's review.
-- **Current code:** `c82e166` installed the illustrated atlas; `d2ec151` made all 9 bridges, 8 fords and 20 passes visible in the atlas; `b1450ba` fixed hidden-state CSS priority and moved travel/details above the map with no scrollbars, plus a Zone names toggle using the blueprint regions (Saltwind Moor, Rust Mesa, etc., confirmed by Tim). `4a5b64f` added the loop proposal; this handoff records its approval. Worktree was clean before this handoff-only edit. No server/process was started.
-- **Atlas acceptance/checks:** Tim repeatedly calls the map awesome/phenomenal; preserve the look. Latest close/travel/zone-label changes still need explicit refresh/manual verification; don't claim full interaction/traversal/alignment coverage. Focused `test_world_atlas.mjs`, `test_world_map.mjs`, `test_command_ui.mjs` and game-map syntax checks passed. Atlas code is in `game/src/world_atlas.js`, `world_atlas.css`, `world_map.js` and `game_map.js`; runtime painting/config are `game/art/maps/world_atlas_v2.png` and `game/data/world_atlas.json`. Existing crossing atlas symbols do not mean new in-world bridge/ford art is fitted.
+- **Deck-only bridges / impassable rivers: done (2026-11-20).** River water is walkable only on a ford's gravel bar (`rules.fordAlong`, default 80 u along the flow) and on a bridge deck (`rules.bridgeHalfWidth`, default 10.5, half of `world_crossings.json` bridge.width 21). `rules.fordRadius` now only drives validator chokes and shoreline corner drawing.
+- **Claude continuation:** approved the basic campaign loop above, in phased checkpoints, then requested a usage-saving handoff. No campaign-loop implementation has started; the last action was plan/source reading. Begin Loop 1, not another planning/permission round. First small checkpoint: basic bridge/ford world fitting at the existing anchors, using existing assets; then W4 camp persistence/spawning, node/site props and scouting. Keep city-away safeguards from C as a prerequisite before sustained expedition playtests. Commit tested increments and stop at a playable checkpoint for the review.
+- **Current code:** `c82e166` installed the illustrated atlas; `d2ec151` made all 9 bridges, 8 fords and 20 passes visible in the atlas; `b1450ba` fixed hidden-state CSS priority and moved travel/details above the map with no scrollbars, plus a Zone names toggle using the blueprint regions (Saltwind Moor, Rust Mesa, etc., confirmed). `4a5b64f` added the loop proposal; this handoff records its approval. Worktree was clean before this handoff-only edit. No server/process was started.
+- **Atlas acceptance/checks:** repeatedly calls the map awesome/phenomenal; preserve the look. Latest close/travel/zone-label changes still need explicit refresh/manual verification; don't claim full interaction/traversal/alignment coverage. Focused `test_world_atlas.mjs`, `test_world_map.mjs`, `test_command_ui.mjs` and game-map syntax checks passed. Atlas code is in `game/src/world_atlas.js`, `world_atlas.css`, `world_map.js` and `game_map.js`; runtime painting/config are `game/art/maps/world_atlas_v2.png` and `game/data/world_atlas.json`. Existing crossing atlas symbols do not mean new in-world bridge/ford art is fitted.
 - **Source contract:** MR0–MR3 applied; mountain/lake shapes and v2 illustration look accepted. Detailed MR4 traversal and MR5 overlay alignment remain unconfirmed. Structure stays blueprint-first; preserve all authored anchors. Reference gate: `node tools/prepare_atlas_reference.mjs --check --version v2`; runtime art/source gate: `node game/tools/test_world_atlas.mjs`. Refresh references after structural changes, review the painting before changing its registration hashes. Never move features to fit art or hand-edit generated world.json.
 - **Earlier acceptance/open issues:** coastal playtest, P3 water, P4 coast/dry range and current biome art/clustering accepted. Performance seems good without representative mobs/camps load; measure again after population. Retain river-corner snag at 4200,4275, 34 harbor/17 mountain corners unrounded, Settings cross-save check and deferred F1.7. Source-pool redesign remains separate.
 - **Operating rules:** read START_HERE.md, docs/usage.md, step_runner_guide.md and this plan. Sim owns rules; UI only reads/sends commands; tuning in data; save plain state. Node tests only, no browser automation/screenshots. Do not weaken old assertions. Reuse the canonical test setup and running server; never reset/delete the one capital save. Preserve source art; unwanted files move to to_delete/. Docs keeper owns docs/local commits, no push. Keep usage bounded to the current checkpoint.
 
 ## Working in one long window (auto-compacting)
 
-Tim usually keeps one window that compacts itself instead of starting fresh sessions. That works if
+usually keeps one window that compacts itself instead of starting fresh sessions. That works if
 the doc, not the chat, carries the state:
 
 1. **Before every step, re-read** this whole doc (Progress checklist, Shared design and every phase) and the
@@ -520,24 +520,24 @@ the doc, not the chat, carries the state:
 2. **One step at a time.** Finish the card's check, then tick its box and update "Last step done /
    Next step" above, before starting the next card.
 3. **End of each phase:** run the phase tests and regression set, ask the Docs keeper to commit,
-   tick the phase box, and stop for Tim's playtest.
+   tick the phase box, and stop for the playtest.
 4. If a compaction happens mid-step, re-read the card and run its check first: it shows what is
    already done.
 
 Ticking boxes is a doc change, so it goes through the Docs keeper like any other (a one-line note
-is enough). If Tim prefers, he can let the building thread tick boxes in this one file directly.
+is enough). If prefers, he can let the building thread tick boxes in this one file directly.
 
 ## How to use this doc
 
 - **One phase at a time.** A fresh session per phase is best; in one long window, follow the
   section above. Never try the whole plan in one go: early detail gets lost and usage runs out.
 - A phase session reads: `START_HERE.md`, `docs/usage.md`, `docs/step_runner_guide.md`, this
-  WHOLE doc (Tim's rule, 2026-11-02). Extra reads are listed per phase.
+  WHOLE doc (the rule, 2026-11-02). Extra reads are listed per phase.
 - Inside a phase, SMALL steps can go to a cheaper model one card at a time; STRONG steps stay on
-  the default model. A TIM step stops the phase until Tim answers.
+  the default model. A TIM step stops the phase until answers.
 - Every phase ends the same way: all phase tests pass, the regression set shows no new failures,
-  the Docs keeper commits (only the Docs keeper commits; Tim pushes), and Tim plays the short
-  playtest listed. The next phase starts only after Tim says "g2g".
+  the Docs keeper commits (only the Docs keeper commits; pushes), and plays the short
+  playtest listed. The next phase starts only after says "g2g".
 
 | Phase | What it gives you | Steps | SMALL / STRONG / TIM |
 |---|---|---|---|
@@ -560,7 +560,7 @@ is enough). If Tim prefers, he can let the building thread tick boxes in this on
 
 Honest expectation: F2, F3 and most of W1, W4 and E are SMALL because they are rules or data with
 clean tests. F1, W3 and F6 lean STRONG because they touch shared plumbing (save state, the worker,
-streaming the world, combat). W3 is the biggest technical risk. Feel, balance and art always come back to Tim.
+streaming the world, combat). W3 is the biggest technical risk. Feel, balance and art always come back to playtesting.
 
 ## End-state architecture (snowflake)
 
@@ -657,7 +657,7 @@ state.frontier = {
 - No starvation deaths, no automatic surrender from isolation, no free goods from blockage.
 - One unit or shipment has one id and one location; orders cannot duplicate it.
 - Bots and players use the same commands and costs.
-- **Resources add to the game, never become a grind** (Tim, 2026-11-02). The governor handles
+- **Resources add to the game, never become a grind** (2026-11-02). The governor handles
   routine balancing by itself; the player makes a few big choices (where to settle, what to zone,
   where to push), never micromanages stock. No step may add a chore the player must repeat to keep
   things running.
@@ -686,14 +686,14 @@ state.frontier = {
 
 ## Phase F0: Ready to start
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02).
 
 ### F0.1. Classic snapshot  [TIM]
-Tim copies the current city game outside the project folder as the preserved Classic version, as
+copies the current city game outside the project folder as the preserved Classic version, as
 the campaign plan says. Nobody else touches this.
 
 ### F0.2. Agree the first-slice numbers  [TIM]
-Tim OKs or edits these placeholder starting values (they go in `data/frontier.json` in F2.1):
+OKs or edits these placeholder starting values (they go in `data/frontier.json` in F2.1):
 
 | Value | Placeholder |
 |---|---|
@@ -708,14 +708,14 @@ Tim OKs or edits these placeholder starting values (they go in `data/frontier.js
 | Shipment speed | 3 units per second |
 | Frontier goods sold in the capital | goods 4 ryo, timber 1, stone 1 (market rules are open) |
 
-Approved by Tim 2026-11-02 with these tweaks.
+Approved by 2026-11-02 with these tweaks.
 
 ### F0.3. Close current playtests (recommended)  [TIM]
-Shakedown, Sweep and the latest shop and item work are built and waiting on Tim's playtest. Closing
+Shakedown, Sweep and the latest shop and item work are built and waiting on the playtest. Closing
 those first keeps frontier bugs separate from city bugs.
 
 ### F0.4. Season and Renown in the campaign  [TIM]
-**Decided (Tim, 2026-11-01): Classic keeps the season, the campaign drops it.** The city-only
+**Decided (2026-11-01): Classic keeps the season, the campaign drops it.** The city-only
 Classic mode keeps the 10-dawn season and Renown as they are. A frontier (campaign) match turns the
 season end off; its growth-based goals and any new use of Renown are designed in the campaign-rules
 phase. Code: a match option `mode: 'classic' | 'campaign'` (in `sim/match_options.js`); `campaign`
@@ -723,7 +723,7 @@ skips the season end in `sim/territory.js`. The campaign dev saves use `campaign
 hero stays an open question for the campaign-rules phase.
 
 ### F0.5. Dev test saves  [SMALL]
-**Decided (Tim, 2026-11-02): no test switches.** Every `?test=...` preset is replaced by a few
+**Decided (2026-11-02): no test switches.** Every `?test=...` preset is replaced by a few
 **dev test saves**. A save is plain game state loaded by the normal loader, so the game code never
 runs in a modified mode; there is only ever one version of the game.
 Files: new `game/tools/make_dev_save.mjs`, `game/src/test_params.js` (emptied, then moved to
@@ -732,21 +732,21 @@ section).
 Do: one Node tool rebuilds a small fixed set of saves from the current code, so they never go stale:
 `campaign_test_yakuza.json` (built 2026-11-06 in place of the planned `dev_campaign_start`: a real campaign game with no fixture towns, playing Yakuza; the city's businesses shared out evenly between the clans, every clan with 300 Renown, 8 crew and 3,000 ryo, ready to buy a permit, hire settlers and found; nobody holds a permit yet) and `dev_frontier.json` (fixture towns and road, map revealed, spare ryo). They load from
 the normal Load menu (F1.6b). A phase that needs something new to test updates one of these; a new
-save is added only with Tim's OK, and the set stays small (no more than 4). Dev-only checks (invariant logging, frozen snapshots, the F2.4b readout) run in the
+save is added only's OK, and the set stays small (no more than 4). Dev-only checks (invariant logging, frozen snapshots, the F2.4b readout) run in the
 dev build (`start_game.bat`), never in a release build. Existing Classic presets in `test_params.js`
-are listed for Tim before removal; any he still needs become states in the generator.
+are listed for before removal; any he still needs become states in the generator.
 Needs: F1.6b (the save comes after save and load exist).
 Check (pass/fail): no `?test=` read remains in `game/src`; the generator runs in Node and every save
 loads with the F1 loader; regression set passes.
 Done note: "F0.5 dev test saves in; test_params.md replacement proposed."
 
-**Phase end:** Tim says "g2g" with the numbers. No commit needed.
+**Phase end:** says "g2g" with the numbers. No commit needed.
 
 ---
 
 ## Phase F1: Save and load the city game
 
-Goal: two kinds of save (Tim, 2026-11-01). The frontier depends on this (the plan's step 1), and it
+Goal: two kinds of save (2026-11-01). The frontier depends on this (the plan's step 1), and it
 is also roadmap item 9 (load/save).
 
 - **Autosave at dawn = exact.** Dawn is a safe point: no raid, operation or contract hold is
@@ -756,9 +756,9 @@ is also roadmap item 9 (load/save).
   on load. This is what most games do and keeps F1 from eating the budget.
 
 Order note: F2 and F3 keep all their state in `state.frontier` and do not need F1, so F2 may be
-built before F1 if Tim wants to see the frontier sooner.
+built before F1 if wanted to see the frontier sooner.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `docs/architecture.md` (first 80 lines only).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: `docs/architecture.md` (first 80 lines only).
 
 ### F1.1. Find hidden state  [STRONG]
 Needs: F0
@@ -774,7 +774,7 @@ Do:
      F1.3 card.
 Check (pass/fail): the audit lists every `createX` in `game/src/sim`; a `grep -c "let "` count per
 module is noted beside it so nothing is skipped.
-In game (Tim): nothing visible.
+In game: nothing visible.
 Done note: "F1.1 save audit done: N modules hold state, M batches for F1.3."
 
 ### F1.2. Save and load frame  [STRONG]
@@ -831,7 +831,7 @@ Done note: "F1.5 worker save/load messages in."
 Needs: F1.5
 Files: new `game/src/save_store.js`, `game/server.mjs`, `game/src/sim/save.js`,
 new `game/tools/test_save_store.mjs`.
-Why (Tim, 2026-11-01): saves are real files from the start, designed so the Steam build only swaps
+Why (2026-11-01): saves are real files from the start, designed so the Steam build only swaps
 where the files go.
 Do:
   1. **One interface, swappable backends.** `save_store.js` exports `createSaveStore(backend)` with
@@ -873,11 +873,11 @@ save) and **Load**. All new buttons go in the Controls panel under the Settings 
 `save_menu.js` holds the pure parts: sorting, labels, the overwrite check.
 Check (pass/fail): `test_save_menu.mjs` covers sorting, labels and the overwrite check; syntax copies
 pass.
-In game (Tim): see the playtest below.
+In game: see the playtest below.
 Done note: "F1.6b Save/Load menus in Settings and start screen (controls.md line needed)."
 Progress (2026-11-02): built: Settings Save game, saved-games list (Load, Delete to `saves/_trash`), dawn autosave (keep 3), and the start-screen Continue and Load game (`start_screen.js`/`.css`, boot-from-save in `main.js`, `game/tools/test_start_load.mjs`). Note: card F1.6 missed the `main.js` dawn hookup and replica-versus-worker load; both are now handled, so retagged STRONG.
 
-Fix (Tim, 2026-11-02): Settings could not load a different campaign save because of an old clan/hero-ID restriction. Settings loads now accept any confirmed save after validating its version and player hero, then pass its validated filename through the normal startup route; it does not use a test preset. The route is cleared after load, and existing pagehide cleanup handles the previous worker/timer. `test_save_menu.mjs` and `test_start_load.mjs` passed. Tim's in-game verification of this Settings route is still pending.
+Fix (2026-11-02): Settings could not load a different campaign save because of an old clan/hero-ID restriction. Settings loads now accept any confirmed save after validating its version and player hero, then pass its validated filename through the normal startup route; it does not use a test preset. The route is cleared after load, and existing pagehide cleanup handles the previous worker/timer. `test_save_menu.mjs` and `test_start_load.mjs` passed. the in-game verification of this Settings route is still pending.
 
 ### F1.7. Playtest  [TIM]
 Play past a dawn, keep playing, load the autosave: everything is back at dawn. Save by hand during a
@@ -886,23 +886,23 @@ picks up again. Close the game, start it again, use Continue. Check the files ap
 Report anything that drifted.
 
 **Phase end:** `test_save`, `test_save_store`, `test_save_menu`, `test_sim_worker` and the regression set pass;
-Docs keeper commits "Save and load"; Tim playtest F1.7.
+Docs keeper commits "Save and load"; playtest F1.7.
 
 ---
 
 ## Phase W1: World in form (data)
 
-Goal (Tim, 2026-11-01): the whole island exists as data before anything else is built on it: shape,
+Goal (2026-11-01): the whole island exists as data before anything else is built on it: shape,
 land, water, rivers, passes, settlement sites, resource nodes, road and rail corridors, and camps.
 Nothing is walkable yet.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `docs/frontier_campaign_plan.md` section "World map scale
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: `docs/frontier_campaign_plan.md` section "World map scale
 and visual reference" only, and the approved blueprint in `docs/images/frontier/blueprint/` (`world_blueprint_v2.json`,
 `v2_overview.png` and the six layer PNGs, `blueprint.py`). `island-atlas.html` and `measured-island.html`
 are superseded references.
 
 ### W1.1. World layout choices  [TIM]
-**Approved (Tim, 2026-11-02): the layout is blueprint v2** (`docs/images/frontier/blueprint/`): a south bay (Sallow Bay,
+**Approved (2026-11-02): the layout is blueprint v2** (`docs/images/frontier/blueprint/`): a south bay (Sallow Bay,
 about 30% up the island) with a floodplain, 6 mountain ranges, 20 passes, 4 rivers with waterfall or
 tarn sources and walkable feeder streams, 17 fords or bridges, 60 sites, 30 harbors, 17% unbuildable,
 and every site has 3 or more routes to the capital. Full regions may contain water. Blueprint names
@@ -912,25 +912,25 @@ are drafts pending the `world_names.json` review. The earlier choices below stay
   them, capital on the east coast.
 - About 60 settlement sites to start (2 to 3 per full region, at least 1,000 units apart), so there
   is real choice.
-- Resources (updated Tim, 2026-11-04): small resource spots everywhere (timber, stone, fish,
+- Resources (updated 2026-11-04): small resource spots everywhere (timber, stone, fish,
   forage) plus the 107 W1 nodes as rich deposits; ore only from deposits. See
   [Loop 3 design](#loop-3-design-tim-2026-11-04). Starter economy stays at the 5 resources.
 - Camp kinds: bandit camps (hostile), ruins and caches (one-time rewards), native villages
   (neutral, trading or hostile by relation: decided, see W4.1).
-- **Roads can go almost anywhere (decided, Tim 2026-11-02: never only 1 or 2 road options).** The
+- **Roads can go almost anywhere (decided, 2026-11-02: never only 1 or 2 road options).** The
   land is mostly open and buildable; corridors are only suggested easy routes, not the only roads.
   Every mountain range has several passes (placeholder: at least 3), rivers have a ford or bridge
   spot about every 1,000 units, and every site has at least 3 different routes to the capital.
   Terrain sets road cost (plain 1×, forest 1.5×, hills 2×, ford or bridge extra), so choice is about
   cost, distance and safety, not what's allowed.
-- **Names (decided, Tim 2026-11-01):** Japanese-style names written in English (images, not
+- **Names (decided, 2026-11-01):** Japanese-style names written in English (images, not
   romaji), nothing clichéd and nothing close to real places. Avoid the overused ones (Sakura,
   Dragon, Shadow, Cherry Blossom, Fuji, Edo and the like). Tone: nuanced. The best names hold both at once: a quiet,
 beautiful image with an undertone, or a hint of a story (who drowned at the ford, whose debt the
 valley paid). Some lean darker (gallows, salt, bone, rust, tolls), some lean gentler (moss, lanterns,
 herons, bells), but few are purely one or the other. Never postcard-pretty clichés, never edgy for
 its own sake. The generator (W1.3) draws from a reviewed
-  name list in `game/data/world_names.json`; Tim approves the list once.
+  name list in `game/data/world_names.json`; approves the list once.
 
 ### W1.2. World data format and validator  [SMALL]
 Needs: W1.1
@@ -946,7 +946,7 @@ Do:
      nodes: [{ id, kind, x, z, amount }], corridors: [{ id, points, kind: 'road' | 'rail' | 'both' }],
      seaLanes: [{ id, points, from, to }],
      camps: [{ id, kind, x, z, strength }], fords, riverSources, streams, floodplain, islets,
-     ranges, setPieces (1 per full region), nativeVillageSlots (4; Tim picks 2 to 4) }`.
+     ranges, setPieces (1 per full region), nativeVillageSlots (4; picks 2 to 4) }`.
      Hills (`h`) are buildable, road cost 2×. Unbuildable = mountain, water, river and marsh (blueprint v2, 2026-11-02). At 50-unit cells the terrain grid is 280 × 160 short
      strings, which is fine as data.
   2. `world_data.js` exports `terrainAt(world, x, z)`, `passable(world, x, z)` and
@@ -967,8 +967,8 @@ As built (2026-11-02): terrain code `d` = dry; regions have `box` + `full` + `bi
 Needs: W1.2
 Files: new `tools/seed_world.mjs`, writes `game/data/world.json` and a preview PNG to
 `/mnt/project-files/world_previews/`.
-Why (Tim, 2026-11-01): Tim doesn't paint the island by hand. Claude generates it from the existing
-references, and Tim steers with words.
+Why (2026-11-01): doesn't paint the island by hand. Claude generates it from the existing
+references, and steers with words.
 Do: a script, using a fixed seed so the same input gives the same file:
   1. **Base layout from the approved blueprint (2026-11-02):** read `docs/images/frontier/blueprint/world_blueprint_v2.json`
      (or port the `blueprint.py` rules into `seed_world.mjs`) instead of the atlas. Nodes and camps are
@@ -984,19 +984,19 @@ Do: a script, using a fixed seed so the same input gives the same file:
   4. Sites by rule (passable, near water, 2 to 3 per full region, at least 1,000 apart), traits
      computed from nearby cells; resource nodes from terrain; camps away from the capital.
      Coastal sites get a `harbor` spot on the shoreline where the water is deep enough, and sea
-     lanes link the capital's port to harbors around the coast (Tim, 2026-11-01: plan for sea travel
+     lanes link the capital's port to harbors around the coast (2026-11-01: plan for sea travel
      now, build it later).
   5. Render a preview PNG: terrain colours, sites, nodes, camps, corridors, region names.
 Check (pass/fail): the output passes `validateWorld`; running the script twice gives identical files;
 the preview PNG exists.
 Done note: "W1.3 island generated: N sites, N nodes, N camps; preview at <path>."
-As built (2026-11-02): `node tools/seed_world.mjs` (about 9 s) reads blueprint v2 plus `world_overrides.json`. Corridors are each site's 3 independent routes merged into one network; kind `both` = rail-capable where 10 or more primary routes share it. Corridors are suggestions only: roads can be built on any walkable cell (Tim confirmed). Previews stay out of git.
+As built (2026-11-02): `node tools/seed_world.mjs` (about 9 s) reads blueprint v2 plus `world_overrides.json`. Corridors are each site's 3 independent routes merged into one network; kind `both` = rail-capable where 10 or more primary routes share it. Corridors are suggestions only: roads can be built on any walkable cell (confirmed). Previews stay out of git.
 
 ### W1.4. Steer the island in words  [TIM]
-Tim looks at the preview and says what to change ("bigger lake in the north", "more bandits by the
+looks at the preview and says what to change ("bigger lake in the north", "more bandits by the
 pass", "a strong site on that river bend"). The thread turns each note into a seed-script change
 (rules, or a short list of hand overrides in `game/data/world_overrides.json` that the script applies
-last) and sends a new preview. Repeat until Tim says "g2g". Overrides keep regenerating safe: hand
+last) and sends a new preview. Repeat until says "g2g". Overrides keep regenerating safe: hand
 choices are never lost.
 
 ### W1.5. Fine-tuning tool  [STRONG, optional, later]
@@ -1004,7 +1004,7 @@ Only if word steering gets slow: a dev page (`game/tools/world_editor.html`, ser
 `game/server.mjs`) to drag sites, camps and nodes and paint small terrain fixes, saving into
 `world_overrides.json`. The validator's problems show live. Skip unless needed.
 
-**Phase end:** `test_world_data` passes; Docs keeper commits "World layout data"; Tim's layout approved (g2g 2026-11-02). Done.
+**Phase end:** `test_world_data` passes; Docs keeper commits "World layout data"; the layout approved (g2g 2026-11-02). Done.
 
 ---
 
@@ -1012,11 +1012,11 @@ Only if word steering gets slow: a dev page (`game/tools/world_editor.html`, ser
 
 Goal: the M map gets a World tab showing the island, with fog over what you haven't explored.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/game_map.js` (function list only).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: `game/src/game_map.js` (function list only).
 
 ### W2.1. Mock the world map  [TIM]
 A thread draws one mock image: atlas style (sumi-e land, gold detail, indigo sea) with the capital,
-sites (scouted and unscouted), nodes, camps, corridors, your towns, fog, and a site detail box. Tim
+sites (scouted and unscouted), nodes, camps, corridors, your towns, fog, and a site detail box. 
 approves or edits.
 
 ### W2.2. World map drawing  [SMALL]
@@ -1048,21 +1048,21 @@ Needs: W2.3
 Files: `game/src/game_map.js` (add a "World" tab), `game/src/world_map.js`, the Controls panel rows
 in `game/src/main.js`.
 Do: the World tab draws `world_map.js` with fog from the snapshot; click a site to see its traits
-(or "Not scouted"); click a town to open its panel (after F4). Defaults (proposed 2026-11-02, Tim can change):
+(or "Not scouted"); click a town to open its panel (after F4). Defaults (proposed 2026-11-02, can change):
 M opens straight to World when the hero is outside the city; right-click on the map drops a
 personal pin with a short note (saved in `state.world.pins[clan]`, max 50); shift-right-click sets a
 waypoint that shows as an arrow on the minimap edge until reached (skipped; replaced by guide arrows below). Add any new clicks or keys to the
 Controls panel. No test switch: the `dev_frontier` save (F0.5) has the whole map revealed.
 Check (pass/fail): syntax copies pass; `test_world_map.mjs` still passes.
 Guide arrows (2026-11-20, `minimap.js`, `minimap_icons.js`, test `tools/test_minimap_arrows.mjs`): world map pins, the surveyor's site picks on the Found card and the current goal ping each show as a gold arrow on the minimap edge when outside the box, and as the pulsing ring once inside. The arrows follow the turned minimap. The island minimap shows all three, the city minimap only the goal ping. World map: town sites show only once discovered (cell revealed or reported by the surveyor); the surveyor's gold suggestion rings show regardless.
-In game (Tim): M → World shows the island; in the `dev_frontier` save, everything is visible.
+In game: M → World shows the island; in the `dev_frontier` save, everything is visible.
 Done note: "W2.4 World tab in (controls.md line needed)."
 As built (2026-11-02): the Controls rows live in `game/index.html`, not `main.js` as the card says. "M opens World outside city" is coded but cannot trigger until W3. City units count as standing at the capital point. The `dev_frontier` full-reveal save waits for F0.5. Discovery numbers are placeholders in `world.json` `rules.discovery`. Known failing test: `test_crew` line 97 (already failing before).
 
 ### W2.5. Playtest  [TIM]
 Open M → World, pan and zoom, click sites and camps, and check the look against the mock.
 
-**Phase end:** tests pass; Docs keeper commits "World map view"; Tim playtest W2.5.
+**Phase end:** tests pass; Docs keeper commits "World map view"; playtest W2.5.
 
 ---
 
@@ -1071,7 +1071,7 @@ Open M → World, pan and zoom, click sites and camps, and check the look agains
 Goal: one frontier settlement that feeds itself, grows, builds and reports, with no graphics yet.
 Almost all SMALL: each card is one module with a pure test.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/sim/inventory.js` first 40 lines (module style).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: `game/src/sim/inventory.js` first 40 lines (module style).
 
 ### F2.1. Frontier data file  [SMALL]
 Needs: F0.2
@@ -1145,10 +1145,10 @@ Needs: F2.4
 Files: `game/src/main.js`.
 Do: in the dev build only, `window.infamy.frontierReport()` prints each settlement's stock,
 pop, housing, jobs and `report` to the console, and a plain text box (top left, small, dev only)
-shows the same, refreshed once a second from the snapshot. No styling, no new key. This lets Tim
+shows the same, refreshed once a second from the snapshot. No styling, no new key. This lets 
 watch the economy from F2 on; F4 replaces it with the real panel.
 Check (pass/fail): `.mjs` syntax copy passes; the readout code only reads snapshot data.
-In game (Tim): load the `dev_frontier` save; the numbers tick once a second.
+In game: load the `dev_frontier` save; the numbers tick once a second.
 Done note: "F2.4b debug town readout in (dev build)."
 As built: a dev-only text box (`frontier_report.js`) refreshed once a second, plus `infamy.frontierReport()` in the window. No key, so no Controls entry. The snapshot carries `state.frontier` without the 500-entry ledger.
 
@@ -1170,16 +1170,16 @@ Done note: "F2.5 jobs and growth in."
 Needs: F2.5
 Files: `game/src/sim/frontier/economy.js`, `game/data/frontier.json` (`mood` block),
 `game/tools/test_frontier_economy.mjs`.
-Why (Tim, 2026-11-02): a light SimCity-style layer. Population drives revenue, and poor planning can
+Why (2026-11-02): a light SimCity-style layer. Population drives revenue, and poor planning can
 make a town decline, but it stays secondary and fun, never micromanagey or punishing.
 Do:
   1. `settlement.mood` 0 to 100, recomputed each review from **three** weighted factors in data
-     (Tim, 2026-11-02): **food** (stocked or short), **safety** (recent raids, nearby camps), and
+     (2026-11-02): **food** (stocked or short), **safety** (recent raids, nearby camps), and
      **taxes** (the town's tax level). Store the factor values so the report can say why.
   2. Tax level `low | normal | high`, managed by the governor unless the player locks a level (new
      command `setTax { level | 'auto' }`, default `auto`). Safety drops after a raid or attack and
      recovers on its own over time (placeholder +3 per review), so a hit town bounces back without the
-     player (Tim, 2026-11-02). Higher taxes give more ryo per person but lower mood. Taxes per person per day
+     player (2026-11-02). Higher taxes give more ryo per person but lower mood. Taxes per person per day
      = `rates.tax[level] × pop × moodFactor`, credited to the town's ryo (ledgered `'tax'`); growth
      speed scales with mood.
   3. Gentle decline: below `mood.declineBelow` (placeholder 30) for `mood.declineReviews`
@@ -1192,7 +1192,7 @@ alone lower mood but never below the decline line; with three bad factors for 10
 pop drops by 1 per review and stops at the floor; fixing one factor ends the decline; `moodWhy`
 names the worst factors.
 Done note: "F2.5b town mood and taxes in."
-As built and confirmed by Tim (2026-11-02): tax is ryo per person per review (every 5 economy ticks), because the economy has no "day" yet. Mood is a weighted food, safety and tax score; a raid calls `economy.hit(sid)`. Extra settlement fields: `mood`, `safety`, `taxLevel`, `taxLocked`, `autoBuild`, `suggestions`. Extra `report` fields: `idle`, `unfilled`, `moodWhy`.
+As built and confirmed (2026-11-02): tax is ryo per person per review (every 5 economy ticks), because the economy has no "day" yet. Mood is a weighted food, safety and tax score; a raid calls `economy.hit(sid)`. Extra settlement fields: `mood`, `safety`, `taxLevel`, `taxLocked`, `autoBuild`, `suggestions`. Extra `report` fields: `idle`, `unfilled`, `moodWhy`.
 
 ### F2.6. Construction projects  [SMALL]
 Needs: F2.5
@@ -1223,15 +1223,15 @@ when its cause is the real limit, so the governor never loops:
   3. Priority `produce` → lumber camp / quarry / workshop by lowest stock.
   4. Priority `fortify` → stockade if none.
   5. Priority `trade` → workshop.
-  6. **Mood keeper** (Tim, 2026-11-02: the governor keeps mood decent on its own): if taxes are on
+  6. **Mood keeper** (2026-11-02: the governor keeps mood decent on its own): if taxes are on
      `auto` and mood is below 55, step taxes down one level; if mood is above 80 for 5 reviews, step
      them back up. Food shortages are already handled by rule 1, and safety recovers on its own.
-**The governor maintains, it doesn't expand (Tim, 2026-11-02).** By default
+**The governor maintains, it doesn't expand (2026-11-02).** By default
 (`settlement.autoBuild = false`) rules 1 to 5 only create **suggestions** (`settlement.suggestions`,
 at most 3, each with a reason: "Farm: food falling") that wait for the player's OK; nothing new is
 built without it. On its own the governor always: assigns jobs, runs auto taxes (rule 6), repairs
 damaged buildings, **rebuilds destroyed ones on the same spot** (paying normal costs, waiting for
-materials if short; Tim, 2026-11-02), and sends routine surplus shipments (F3.3). With `autoBuild = true` (the player
+materials if short; 2026-11-02), and sends routine surplus shipments (F3.3). With `autoBuild = true` (the player
 asked the governor to take initiative), suggestions within `budget` are queued and authorized
 automatically. Never more than one project at a time either way. Write `report.doing` and
 `report.next` as short text. The governor never orders armies or attacks.
@@ -1244,7 +1244,7 @@ and no idle workers, no farm is queued and the report says "need workers"; with 
 house; over-budget projects stay unauthorized; the governor never queues two projects at once; in a
 500-review run no more than 3 farms are queued while pop stays flat.
 Done note: "F2.7 governor in."
-As built and confirmed by Tim (2026-11-02): the governor will not suggest a farm right after a building finishes, so it cannot double-build while food catches up; its budget is a ryo-value limit per window of 100 reviews. All new numbers (`tax`, `mood`, `governor`, `values`, `priorities`) are placeholders in `data/frontier.json`.
+As built and confirmed (2026-11-02): the governor will not suggest a farm right after a building finishes, so it cannot double-build while food catches up; its budget is a ryo-value limit per window of 100 reviews. All new numbers (`tax`, `mood`, `governor`, `values`, `priorities`) are placeholders in `data/frontier.json`.
 
 ### F2.8. Frontier commands and receipts  [SMALL]
 Needs: F2.7
@@ -1290,22 +1290,22 @@ Done note: "F2.10 frontier survives dawn save."
 As built: `test_save.mjs` runs with frontier on and a half-done project at the dawn save; the loaded game matches the straight run after 50 economy ticks (about 70 s). Shipments join this check after F3.
 
 **Phase end:** all `test_frontier_*` tests and the regression set pass; Docs keeper commits
-"Frontier economy rules"; Tim playtest: none visible yet. Tim can read the console:
+"Frontier economy rules"; playtest: none visible yet. can read the console:
 in the `dev_frontier` save the F2.4b debug readout shows the towns ticking.
 
 ---
 
 ## Phase F4: Town panel
 
-Goal: Tim can read a town's report and steer it. (The world map moved to W2, walking to W3, per-area
+Goal: can read a town's report and steer it. (The world map moved to W2, walking to W3, per-area
 grids to W3.2 and the town in the world to E5.) It can be built right after F2, using the
 fixture towns in the `dev_frontier` save.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/building_panel.js` (first 60 lines).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: `game/src/building_panel.js` (first 60 lines).
 
 ### F4.1. Mock the town panel  [TIM]
 A thread draws one mock image (no browser runs) of the town panel: stocks, pop and housing, jobs,
-doing / next / waiting, priority buttons, and a project list with OK buttons, in the atlas style. Tim
+doing / next / waiting, priority buttons, and a project list with OK buttons, in the atlas style. 
 approves or edits.
 
 ### F4.2. Frontier in the snapshot  [STRONG]
@@ -1336,7 +1336,7 @@ Files: new `game/src/frontier_panel.js`, `game/src/command_ui.css` (or a new css
 Do: a DOM panel built from `reportRows`, styled like the building panel. Priority buttons and project
 OK/cancel buttons send `{ type: 'frontier', action: ... }` commands and show the receipt reason on a
 reject. Open it with a free key (check `docs/controls.md`), from the World tab, or by clicking the
-town hall in the world. Suggestions show with **Approve** buttons. **Talk to the governor** (Tim,
+town hall in the world. Suggestions show with **Approve** buttons. **Talk to the governor** (
 2026-11-02): each town has a governor character at its town hall (reuse a civilian or merchant sheet);
 walking up and pressing Space opens a short conversation in the panel's style: a report in his words
 ("Food is thin, a farm east of the well would help"), then choices like "Take more initiative"
@@ -1346,7 +1346,7 @@ the panel for use from afar. Add the Space interaction to the Controls panel. Re
 Controls panel. This replaces the F2.4b debug readout.
 Check (pass/fail): `test_frontier_report.mjs` still passes; the `.mjs` syntax copy of each changed
 file passes `node --check`.
-In game (Tim): the panel opens, numbers move each second, and priority buttons change the governor's
+In game: the panel opens, numbers move each second, and priority buttons change the governor's
 next project.
 Done note: "F4.4 town panel in, key <X> (controls.md line needed)."
 As built: key O. The governor chat on Space is deferred to E5, so the panel has a Governor button instead. New commands: `setTownOrder`, and `devRoadState` (dev only). Dev console helpers: `infamy.blockRoad` and `infamy.frontierReport`.
@@ -1356,7 +1356,7 @@ Needs: F4.4
 Files: new `game/src/towns_overview.js`, `game/src/frontier_report.js` (add `overviewRows`),
 `game/src/sim/frontier/commands.js` (`setTownOrder`), the Controls panel rows in `game/src/main.js`,
 `game/tools/test_frontier_report.mjs`.
-Do (Tim, 2026-11-02): one window listing every town you own, one row each, with a status readout of
+Do (2026-11-02): one window listing every town you own, one row each, with a status readout of
 the important factors: pop / housing, mood with its worst factor, food trend, ryo per day, main
 shortage, current project, road state, garrison, and alert icons. Each row has the town's focus
 (grow / produce / trade / fortify) and tax setting as inline controls, and the rows form a
@@ -1399,7 +1399,7 @@ In the `dev_frontier` save, open the towns overview, reorder the towns, hover th
 an alert with the road-block helper, open both fixture towns' panels, switch priorities, authorize a project, and
 watch it build in the numbers.
 
-**Phase end:** all tests pass; Docs keeper commits "Town panel"; Tim playtest F4.5.
+**Phase end:** all tests pass; Docs keeper commits "Town panel"; playtest F4.5.
 
 ---
 
@@ -1409,7 +1409,7 @@ Goal: the hero walks out of the city gate into the island. Ground loads in chunk
 sim loads chunks wherever a town or a battle needs them. This is the hardest technical phase: mostly
 STRONG.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `docs/frontier_campaign_plan.md` sections "Region streaming
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: `docs/frontier_campaign_plan.md` sections "Region streaming
 and transitions" and "Navigation, placement and bounded queues" only.
 
 ### W3.1. Chunk design and prototype  [STRONG]
@@ -1432,7 +1432,7 @@ Do: prototype the default design from the research note
   5. Saves store only changes (`state.world` records and towns), never chunk geometry.
 Measure build time and memory per chunk and for 9, 25 and 50 loaded chunks, and the cost of
 building the island-wide portal graph. The design must also
-allow **movement layers** (Tim, 2026-11-01: the hero and crew will pilot a boat around the island):
+allow **movement layers** (2026-11-01: the hero and crew will pilot a boat around the island):
 each chunk can answer path queries for `land` (water blocked) and `water` (land blocked), and sea
 chunks around the island load the same way as land chunks. Only `land` is built now.
 Check (pass/fail): the prototype builds 9 chunks and finds a path across chunk borders; an
@@ -1467,7 +1467,7 @@ with a seed made from the chunk id; no props on corridor, site or node cells.
 Check (pass/fail): the same chunk built twice is identical; a water cell always gives a blocker; no
 prop lands within 4 units of a corridor; building one chunk takes under the W3.1 target in Node.
 Done note: "W3.3 chunk generator in."
-Future note, not built (Tim idea, 2026-11-02): forest regrowth. `world.json` keeps the starting forest; cleared cells live in `state.world` as a changes-only list with a stage (stumps, saplings, young, forest) that regrows over days unless built on; `chunk_gen` draws props by stage. See also F5.7.
+Future note, not built (idea, 2026-11-02): forest regrowth. `world.json` keeps the starting forest; cleared cells live in `state.world` as a changes-only list with a stage (stumps, saplings, young, forest) that regrows over days unless built on; `chunk_gen` draws props by stage. See also F5.7.
 
 ### W3.4. Drawing the world  [STRONG]
 Needs: W3.3
@@ -1477,7 +1477,7 @@ props, mountains drawn as large painted cutout sprites standing on mountain cell
 sprites make a ridge, smaller rock sprites soften the edges; the ground stays flat and the mountain
 cells are blockers), chunks loaded in a ring around the camera and disposed beyond it, with bounded caches. Build
 chunk geometry in a worker, prefetch chunks in the direction of movement, and reuse pooled meshes;
-the sim never waits for graphics. **Night in the wild** (Tim, 2026-11-02): outside the city, nights
+the sim never waits for graphics. **Night in the wild** (2026-11-02): outside the city, nights
 are really dark but readable: a soft night-vision glow around the hero's group keeps the ground and
 nearby shapes visible (dim, cool, desaturated), while campfires, camps, towns and lanterns make warm
 pools of light that reveal colour and detail and also widen sight (fog) around them. Uses the existing
@@ -1485,14 +1485,14 @@ night shading and lantern lights; the sight bonus near fires is a sim rule in `v
 fair for bots too.
 Check (pass/fail): Node test of the pure parts (which chunks to load or drop for a camera position,
 cache limits); syntax copies pass.
-In game (Tim): see W3.7.
+In game: see W3.7.
 Done note: "W3.4 world drawing in."
 
 ### W3.4b. Mountain and landmark art  [TIM]
 Needs: W3.3
 A thread writes image prompts (project rules: own concept, semi-realistic painted look, muted moody
 colours, transparent background) for 4 to 6 mountain sprites, 3 rock outcrops, a pass gateway, a
-river ford and a lake edge, per biome where it matters (snow, desert, forest). Tim generates them; a
+river ford and a lake edge, per biome where it matters (snow, desert, forest). generates them; a
 thread cuts them in with the existing cutout tool. Placeholders (scaled boulders) work until then.
 
 ### W3.5. City gate and seam  [STRONG]
@@ -1552,7 +1552,7 @@ Coordinator verified all are 1254 × 1254 with opaque alpha 255 (prompts targete
 Large-area seamless continuity still needs review; mild directional grain or patch alignment may show.
 Runtime integration remains pending. W3.8/W3.9 visual and biome-ground work remains open.
 
-Check: Tim puts them side by side. They should share the same angle, light and colours, and the trees
+Check: puts them side by side. They should share the same angle, light and colours, and the trees
 should be the same size as the game's pine. Redo any that stand out.
 
 ### W3.9. Build the ranges from the pieces and make blocked areas walk smoothly  [BASELINE IMPLEMENTED; VISUAL/INTEGRATION OPEN]
@@ -1561,7 +1561,7 @@ Needs: W3.8 images. Read the whole plan and step_runner_guide.md first, as for e
 
 **Status (2026-11-02):** Baseline art import and deterministic placement from blocked terrain cells
 are implemented; world-only corner slipping and baseline checks are complete. This does not close the
-visual art pass. Follow-up priorities and Tim's walkthrough approvals live in
+visual art pass. Follow-up priorities and the walkthrough approvals live in
 `docs/frontier_campaign_plan.md`; keep generated art, terrain mapping, and runtime integration as
 separate completion checks.
 
@@ -1632,12 +1632,12 @@ separate completion checks.
      all must pass unchanged.
    - `profile_world_chunks.mjs` should stay within +20% of the W3.6 numbers (chunks avg 0.8 ms,
      worst 9 ms).
-5. **Checkpoint:** Tim playtests with the test-build instant travel (World tab, click and confirm).
+5. **Checkpoint:** playtests with the test-build instant travel (World tab, click and confirm).
    He walks along a forest range, a snow range and a dry range, a river with a ford and a lake shore,
    and goes through the city gate both ways.
 
 **Process:** if a piece's art doesn't line up with its cell edge, fix the anchor in art.json rather
-than moving blockers. If the pieces look too repetitive along long ranges, ask Tim before generating
+than moving blockers. If the pieces look too repetitive along long ranges, ask before generating
 more variants.
 
 ### W3.10. Paint the island and fit the walkthrough art  [SMALL]
@@ -1664,13 +1664,13 @@ procedure) first.
    trees, undergrowth near trees, sizes in units, stamps clearing or adding props. Keep blocking props
    as blockers.
 
-**Part B: walkthrough art still open** (Tim's notes in docs/frontier_campaign_plan.md)
+**Part B: walkthrough art still open** (the notes in docs/frontier_campaign_plan.md)
 5. Replace the old painted lake decals with the 8 numeric bank pieces (lake_edge_1 to 8: N, NE, E,
    SE, S, SW, W, NW) around code-drawn water. Line the bank art and the blockers up with the shore.
 6. Place the 4 opposite-bank rims on forest and snow ranges (high ground facing inward).
 7. Shrink the ford art by 1 to 2 tiles and fit it at real thin river crossings. Pass gates go only at
    real passes.
-8. Not in this step: the dry range waits for Tim's blueprint decision.
+8. Not in this step: the dry range waits for the blueprint decision.
 
 **Checks**
 - New `tools/test_world_paint.mjs`:
@@ -1682,16 +1682,16 @@ procedure) first.
   regression all pass.
 - `profile_world_chunks.mjs` stays within +20% of W3.6.
 - Before building the shader, render the mock (`tools/ground_mock.py`) for a snow edge and a meadow
-  with a trail, and show Tim.
+  with a trail, and show it for review.
 
-**Checkpoint:** Tim playtests with test travel (World tab): a forest edge, a snow lowland, a lake
+**Checkpoint:** playtests with test travel (World tab): a forest edge, a snow lowland, a lake
 shore, a ford, a pass and a trail across a meadow.
 
 As built (W3.10, 2026-11-03): `src/world_paint.js` (pure, seeded biome field, material weights, thaw band, banks, trails, groves, stamps), `data/world_paint.json` (all numbers, 35 materials), `render/island_ground.js` + `islandGroundMaterial` in `render/shading.js` (texture array, random tiling, height blend, colour drift, code-drawn water), painted props in `sim/chunk_gen.js` when `cfg.paint` is on, lake bank strips, opposite rims, fords only at the 8 ford crossings (`sim/island_art.js`), `tools/import_island_ground.mjs`. Playtest additions already in: city wall line seen from the island, gate stamp and trail, livelier meadows. Over budget: chunk build average 1.9 ms, worst 15 ms (see `world_painting.md` Budgets). `test_crew` still fails as before.
 
 ### W3.11. Island follow-up phases (from the W3.10 playtest)
 
-Order = lowest usage first (Tim, 2026-11-03). Anything that needs new art waits in the art phase (P5). Item numbers in brackets point to [island_playtest_notes_2026-11-02.md](island_playtest_notes_2026-11-02.md).
+Order = lowest usage first (2026-11-03). Anything that needs new art waits in the art phase (P5). Item numbers in brackets point to [island_playtest_notes_2026-11-02.md](island_playtest_notes_2026-11-02.md).
 
 #### P1 Quick fixes (small, data and tool changes; Sonnet) — DONE 2026-11-03
 As built: seamless sand/grass/dry_grass/mud tiles, more trees, shrubs and outcrops, toned-down cliff-foot patch, edge-blended island water texture (`water.jpg`, fixes the crisscross), map grid toggle (# button).
@@ -1701,9 +1701,9 @@ As built: seamless sand/grass/dry_grass/mud tiles, more trees, shrubs and outcro
 - World map grid: hidden by default, a toggle (Controls panel entry), fainter lines [2].
 - Playtest: also check a real ford (V2-F1 at 9552,1851, by site S08).
 
-#### P2 Maps (UI only) — complete; Tim playtest passed 2026-11-02
+#### P2 Maps (UI only) — complete; playtest passed 2026-11-02
 
-Tim approved `docs/images/frontier/p2_maps_mock.png` before implementation and has now playtested P2 successfully.
+approved `docs/images/frontier/p2_maps_mock.png` before implementation and has now playtested P2 successfully.
 
 - [x] World map north-up, aspect-fitted to the real 14,000 × 8,000 island without stretching; 24 px ruler gutter.
 - [x] Always-visible 500-unit A–AB / 1–16 labels, exact hovered x/z and square, and own-location marker; grid lines remain an optional, default-hidden overlay.
@@ -1712,14 +1712,14 @@ Tim approved `docs/images/frontier/p2_maps_mock.png` before implementation and h
 - [x] Same-place and >60-unit test teleports release stale pan/far-camera/watch state; camera matrices update before footprint raycasts.
 - [x] Keep map presentation lightweight while open: update camera projection math, but suspend scene, GPU, prop, and VFX painting. City-map orientation stays camera-oriented.
 - [x] Controls panel and `controls.md` updated. Node checks passed: `test_world_map.mjs` (north-up/grid/DPR/cache/pan/zoom/camera quad), `test_camera_tracking.mjs`, `test_map_performance.mjs`, and the reported combat/inventory/business/bot/sim-worker/settings regressions. `test_crew.mjs:97` retains its pre-existing teahouse-vs-street failure.
-- [x] Tim's in-game playtest passed 2026-11-02; P2 is complete.
+- [x] the in-game playtest passed 2026-11-02; P2 is complete.
 
 High-resolution note: canvases are DPR-aware and terrain is rendered from a shared 4× smoothed cache, but the underlying geographic grid remains 50-unit cells. Finer minimap terrain detail is a separate future idea; no additional map art or build is approved here.
 
 Process note: suspending map presentation must leave camera projection updates live; keep graphics paused while camera math continues.
 
 
-#### P3 Edges and water — DONE, Tim accepted (2026-11-03)
+#### P3 Edges and water — DONE, accepted (2026-11-03)
 
 - [x] Coast rounding/blending and diagonal-seam removal.
 - [x] Water surface/reflection, depth gradient, foam/caustics, inland banks and visual-only rounded ford corners accepted.
@@ -1727,32 +1727,32 @@ Process note: suspending map presentation must leave camera projection updates l
 - [ ] Retain documented corner/crossing checks and representative-load performance measurement.
 - Current implementation: [water plan](../assets/environment/island/water_surface_plan.json). Obsolete paused checkpoint moved to to_delete/.
 
-#### P4 Coast cliffs and dry range — built 2026-11-03; Tim playtest passed 2026-11-03
+#### P4 Coast cliffs and dry range — built 2026-11-03; playtest passed 2026-11-03
 - Built: the dry skirt is painted through `world_overrides.json`; `coastCliff` settings line the coast with the cliff art, leaving open areas at Sallow Bay, the east Heron inlet and the Ashen Wash mouth; island ground is capped at 24 materials (`island_ground.js`). Seeded by `tools/seed_world.mjs`.
 - Tests: `test_p3_edges` passes (its two coast spots moved to open shore). **Open follow-up:** `test_island_edges` still fails on a river-corner snag at 4200,4275, which predates P4.
 - Mark coast cells and line most of the coast with the existing cliff/rim/corner art; keep harbours and landings open [4b].
 - Dry-range blueprint: blueprint.py -> seed_world.mjs, sites/routes/passes still validate [dry range].
 
-#### Ground cover clustering — built 2026-11-03 (Tim: "clustering is perfect")
+#### Ground cover clustering — built 2026-11-03 ("clustering is perfect")
 - 28 families, half-scale ground props, oddity size/rate tuning, marsh trees, jungle trees unmirrored. Details in the [clustering plan](../assets/environment/island/groundcover_clustering_plan.json); D visual acceptance passed; E current-world performance acceptable provisionally, representative-load measurement open. Prop census tool: `game/tools/prop_census.mjs`.
 
-#### P5 Biome art — integrated; crop repair complete (Tim, 2026-11-02)
+#### P5 Biome art — integrated; crop repair complete (2026-11-02)
 
 - [x] Prepare reuse audit, proposed densities/sizes, four full basic sheet prompts and 25 individual specifications (23 transparent sprites plus two optional opaque tiles). These individual strings are specifications/fallbacks, not additional generations. See [owner prompt plan](../assets/image_prompts.md#p5-biome-art-plan-only-2026-11-02) and [planning JSON](../assets/environment/island/p5_biome_art_plan.json).
-- [x] Tim approved all six basic categories, grouped transparent 3×2 sheets, and all 36 rare oddity concepts grouped into six biome sheet candidates. Reuse overlapping assets before final packing; no duplicate well/shed/shrine generations.
-- [x] Generate ten accepted transparent sheets; cut/import all 57 sprites and integrate common replacements and sparse seeded decorative oddities. Repair all cuts with reviewed object regions; Tim accepted repaired previews.
+- [x] approved all six basic categories, grouped transparent 3×2 sheets, and all 36 rare oddity concepts grouped into six biome sheet candidates. Reuse overlapping assets before final packing; no duplicate well/shed/shrine generations.
+- [x] Generate ten accepted transparent sheets; cut/import all 57 sprites and integrate common replacements and sparse seeded decorative oddities. Repair all cuts with reviewed object regions; accepted repaired previews.
 - [x] Record source/crop audit, anchor fix, runtime integration and validation limits in the [owner prompt record](../assets/image_prompts.md#p5-biome-art-plan-only-2026-11-02).
 - [x] Import wet v2/dry v1/snow v1 at native 2172 × 724; implement continuous terrain-border ribbons, material/repeat blending, feathering/exclusions and chunk disposal without gameplay/collision changes. [Owner status](../assets/image_prompts.md#coastline-plan-and-wet-trial-2026-11-02), [plan](../assets/environment/island/coastline_art_plan.json), [prompts](../assets/environment/island/coastline_prompts.txt).
-- [x] Tim accepted the final water-motion/reflection/inland banks and coastal playtest (2026-11-03).
+- [x] accepted the final water-motion/reflection/inland banks and coastal playtest (2026-11-03).
 - [x] Approve eight shoreline orientations and distinct biome material/silhouette families for planning; beach banks and coastal cliffs are separate geometry families. Exact endpoints, land/water sides, corners, connectors and spans await later water design; existing eight lake images do not complete a coast kit.
 - [ ] Bridges, lakes, river sources and capital silhouette remain deferred; no copy-ready prompts are approved for them. See the [island playtest notes](island_playtest_notes_2026-11-02.md) for the W3.10 walkthrough handoff.
 
 Completed biome integration (2026-11-03): jungle, regular forest mushrooms/ferns, marsh props/textures, dry-mountain art selection, coverage map and sizing/density/ground processing are saved. [Owner record](../assets/image_prompts.md#jungle-regular-forest-and-marsh-integration-2026-11-03). Final reflection-water pass visually accepted.
 
-#### Later (Tim OK'd)
+#### Later (approved)
 - Chunk build and ground-paint speed-up after the main build [8].
 
-**Phase end:** tests pass; Docs keeper commits "Walkable world"; Tim playtest W3.7.
+**Phase end:** tests pass; Docs keeper commits "Walkable world"; playtest W3.7.
 
 ---
 
@@ -1760,21 +1760,21 @@ Completed biome integration (2026-11-03): jungle, regular forest mushrooms/ferns
 
 Goal: the island has things to find: camps, resource nodes and scoutable sites.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/sim/bandits.js` (function list only).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: `game/src/sim/bandits.js` (function list only).
 
 ### W4.1. Camp rules  [TIM]
-Tim decides: bandit camp strength and respawn (proposed: cleared camps stay cleared for N days,
+decides: bandit camp strength and respawn (proposed: cleared camps stay cleared for N days,
 first clear gives the better reward with a claim record so reloads can't reroll it); ruin and cache
-rewards. **Decided (Tim, 2026-11-01): native villages start neutral and can trade or turn hostile**
+rewards. **Decided (2026-11-01): native villages start neutral and can trade or turn hostile**
 (a per-clan relation value that trades raise and attacks lower; hostile below a threshold). Richer
 dynamics come later. W4.2 adds the relation record; trading itself waits for F3.
-**Resources (updated Tim, 2026-11-04; no grind):** small resource spots everywhere plus the 107 nodes
+**Resources (updated 2026-11-04; no grind):** small resource spots everywhere plus the 107 nodes
 as rich deposits ([Loop 3 design](#loop-3-design-tim-2026-11-04)). A town's workers work spots and
 deposits within 600 units; a farther deposit needs a placed **work camp** (drop-off) linked by road
 (F5.7), which makes deposits worth fighting over. Pieces never run dry: they go through harvest
 stages, slow to a trickle and grow back. **Iron** from ore deposits becomes a 6th resource, used only for rifles, cannons and armory
 upgrades (arrives with F6 war; the early economy stays at 5), and the governor fetches it by itself. Not built; armory upgrades launch without iron. Revisit iron in a later phase.
-**Camps (decided, Tim 2026-11-02):** bandit camps are weaker near the capital and stronger farther
+**Camps (decided, 2026-11-02):** bandit camps are weaker near the capital and stronger farther
 out; a cleared camp stays clear for 5 days, then may return somewhere nearby; the first clear gives
 the better reward with a claim record, so reloads can't reroll it. Ruins and caches are one-time
 finds (ryo, an item, or a map reveal). Native villages trade food and goods for special items and
@@ -1815,27 +1815,27 @@ Done note: "W4.4 site scouting in."
 ### W4.5. Playtest  [TIM]
 Explore, clear a bandit camp, scout three sites and compare them.
 
-**Phase end:** tests pass; Docs keeper commits "Wilderness content"; Tim playtest W4.5.
+**Phase end:** tests pass; Docs keeper commits "Wilderness content"; playtest W4.5.
 
 ---
 
 ## Phase C: The city in the campaign
 
-Goal (Tim, 2026-11-02): the city keeps a real job in the campaign instead of a 10-dawn race. It is
+Goal (2026-11-02): the city keeps a real job in the campaign instead of a 10-dawn race. It is
 the market, the recruiting ground and the seat of Influence, and the existing city operations become
 economic warfare that feeds or starves the frontier. A lieutenant runs it while the hero is away.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/sim/bot.js` (rule list and `createBot` only),
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: `game/src/sim/bot.js` (rule list and `createBot` only),
 `docs/rival_bot_plan.md` (first 40 lines).
 
 ### C1. Campaign city rules  [TIM]
-Tim confirms or edits: Influence replaces the season score (Renown feeds it; it unlocks town permits,
+confirms or edits: Influence replaces the season score (Renown feeds it; it unlocks town permits,
 better import prices, police leniency, elite recruits; it never ends the game); frontier goods sell
 through owned businesses (more and bigger businesses = better prices); Shakedowns, Sweeps and
 contracts hit the target clan's city income and trade prices; the lieutenant's standing orders and
 budget; what winning the campaign means (proposed: top Influence plus key businesses plus a share of
 the island; can stay open until the campaign-rules phase).
-**Decided (Tim, 2026-11-05):** Renown stays and is earned exactly as in Classic; it is not converted or spent. Influence = Renown + businesses held per day + frontier trade. Unlocks for now: 2nd and 3rd town permits; cheaper imports (towns buying goods in; takes effect once F3 shipments exist); better export prices (each Influence tier raises what town Markets get per good sold, placeholder +10% per tier in data; Market base price is 1 ryo today). Police leniency is dropped. Elite recruits (enforcer, archer, rifleman) move to the warfare phase (F6). Win condition and campaign length: see [Endgame and campaign length (2026-11-05)](frontier_campaign_plan.md#endgame-and-campaign-length-2026-11-05). The existing C2 and C3 cards are approved as written (Tim: "good on all").
+**Decided (2026-11-05):** Renown stays and is earned exactly as in Classic; it is not converted or spent. Influence = Renown + businesses held per day + frontier trade. Unlocks for now: 2nd and 3rd town permits; cheaper imports (towns buying goods in; takes effect once F3 shipments exist); better export prices (each Influence tier raises what town Markets get per good sold, placeholder +10% per tier in data; Market base price is 1 ryo today). Police leniency is dropped. Elite recruits (enforcer, archer, rifleman) move to the warfare phase (F6). Win condition and campaign length: see [Endgame and campaign length (2026-11-05)](frontier_campaign_plan.md#endgame-and-campaign-length-2026-11-05). The existing C2 and C3 cards are approved as written ("good on all").
 
 ### C2. The lieutenant is the bot brain  [STRONG]
 Needs: C1, F1
@@ -1843,7 +1843,7 @@ Files: `game/src/sim/bot.js`, new `game/src/sim/lieutenant.js`, `game/data/bots.
 (`lieutenant` block), new `game/tools/test_lieutenant.mjs`.
 Do: the lieutenant is the same bot brain the rival clans use (`createBot`), run for the player's clan
 while the hero is outside the city, so he is exactly as competent as the AI by construction.
-**Decided (Tim, 2026-11-02), so the lieutenant isn't overrun:** (1) the same applies to every clan:
+**Decided (2026-11-02), so the lieutenant isn't overrun:** (1) the same applies to every clan:
 rival bosses also leave for the frontier and their cities run on their own lieutenants with the same
 rules; (2) all standing orders are on by default, so he plays at full bot strength unless the player
 restricts him; (3) every lieutenant gets a **city captain** (new unit type in `units.json`: a tough
@@ -1900,7 +1900,7 @@ Known gaps (lieutenant):
 Needs: C1
 Files: new `game/src/sim/influence.js`, `game/src/sim/territory.js` (campaign mode only),
 `game/data/settings.json` (`influence` block), new `game/tools/test_influence.mjs`.
-Do (updated Tim, 2026-11-05): in campaign mode, Influence is a running total per clan = Renown + businesses
+Do (updated 2026-11-05): in campaign mode, Influence is a running total per clan = Renown + businesses
 held per day + frontier trade volume; Renown itself is unchanged. Unlock thresholds come from data (2nd and 3rd
 town permits, import discount, Market export bonus per tier). Classic mode is unchanged.
 Check (pass/fail): Classic matches today's season tests exactly; in campaign mode Influence rises
@@ -1926,20 +1926,20 @@ Walk out with standing orders "defend + retake", come back after a few days and 
 Influence unlocks and that a Shakedown on a rival dents their trade.
 Test note: city ryo from owned businesses grows without limit and there is little to spend it on.
 
-**Phase end:** tests pass; Docs keeper commits "City in the campaign"; Tim playtest C6.
+**Phase end:** tests pass; Docs keeper commits "City in the campaign"; playtest C6.
 
 ---
 
 ## Phase E: Expedition and founding
 
-Goal (Tim, 2026-11-01): the campaign begins with founding. You lead your hero, a crew group,
+Goal (2026-11-01): the campaign begins with founding. You lead your hero, a crew group,
 settlers and riflemen into the wilderness, pick a site you like (for looks or for strategy), and
 found a town there.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/sim/clans.js` (hire function only).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: `game/src/sim/clans.js` (hire function only).
 
 ### E1. Expedition rules  [TIM]
-**Decided (Tim, 2026-11-05; replaces the 2026-11-02 party rules):**
+**Decided (2026-11-05; replaces the 2026-11-02 party rules):**
 - **Land Office:** the unused `telegraph_office` building in the capital becomes the Land Office. There the player buys a founding permit and hires settlers (moved from HQ). Hired settlers wait inside the HQ and all come along through the island gate. Settlers cost 60 ryo each (placeholder), campaign mode only, and don't count against the crew cap.
 - **Permit requirements (player):** placeholders in data: 250 Renown, 8 crew, 3 businesses held (Shinobi: 1,500 ryo instead of businesses); meant as a late-game city unlock on a first playthrough. The founding cost (500 ryo, paid at founding) stays.
 - **Party:** the expedition (Choose site and Walk out) takes the hero, the settlers (at least 5 to found) and the standing Hero group (up to 6 crew). Downed, jailed or clinic crew and all other groups stay in the capital under the lieutenant. Bots use the same command; their crew following the boss form the Hero group. While the hero is on the island, the Crew panel shows the Hero group and Settlers; capital crew fold into an "In capital · N" line that opens on click. Code: `sim/game.js` `expedition()`, `sim/frontier/land_office.js` `heroCrew()`, `src/grouped_crew.js`.
@@ -1974,7 +1974,7 @@ Done note: "E3 founding in."
 ### E4. Site traits change output  [SMALL]
 Needs: E3
 Files: `game/src/sim/frontier/economy.js`, `game/data/frontier.json`, `game/tools/test_frontier_economy.mjs`.
-Do: soil scales farm output, resource spots and deposits within range scale timber and stone (updated Tim, 2026-11-04: lumber camps and quarries become placed node camps, see Loop 3 design), water
+Do: soil scales farm output, resource spots and deposits within range scale timber and stone (updated 2026-11-04: lumber camps and quarries become placed node camps, see Loop 3 design), water
 caps the housing per well, and defence gives the stockade a bonus. All factors live in `frontier.json`.
 Check (pass/fail): two towns with different traits and identical buildings produce different
 amounts in the expected direction; no factor is hard-coded.
@@ -1984,20 +1984,20 @@ Done note: "E4 site traits in."
 Needs: E3, W3 done
 Files: `game/src/sim/areas.js`, `game/src/render/world_ground.js`, `game/src/render/view.js`.
 Do: a town's economy runs from its settlement record whether or not its chunks are loaded
-(decided Tim, 2026-11-02: cost grows with what is active, never with how many towns exist). Its
+(decided 2026-11-02: cost grows with what is active, never with how many towns exist). Its
 chunks load in the sim only while the hero, an army or a raid is there, and in render only when the
 camera is near. Buildings
 are drawn from the town records using existing building cutouts: unbuilt projects as a flat dirt
 footprint, frames as the cutout at 50% opacity, finished as normal.
 Check (pass/fail): Node: walking away from a town unloads its chunks, and its economy gives the
 same numbers after 200 economy ticks as standing in it; walking back reloads the same buildings.
-In game (Tim): see E7.
+In game: see E7.
 Done note: "E5 towns in the world."
 
 ### E6. Bot expeditions  [SMALL]
 Needs: E3
 Files: `game/src/sim/bot.js` (one new rule group), `game/data/bots.json`, new `game/tools/test_bot_founding.mjs`.
-Do (updated Tim, 2026-11-05): in campaign mode, a bot clan hires settlers and uses the same Choose-site command as the player (it appears at the site, no long walk). Bots start only after the player founds their first town and once they can afford the permit; they have no Renown, crew or business requirement (the player may be holding them down). Fallback: if the player hasn't founded by about day 30 (data), bots go anyway. Site pick: score sites (traits plus distance) plus a seeded random roll per game, and pick among the top few. Clan taste: Kuroda passes and high ground, Yakuza coast and trade, Shinobi forest. A site is claimed when chosen, so no two clans pick the same one; departures are spread a few days apart. Same commands as the player; respects difficulty settings.
+Do (updated 2026-11-05): in campaign mode, a bot clan hires settlers and uses the same Choose-site command as the player (it appears at the site, no long walk). Bots start only after the player founds their first town and once they can afford the permit; they have no Renown, crew or business requirement (the player may be holding them down). Fallback: if the player hasn't founded by about day 30 (data), bots go anyway. Site pick: score sites (traits plus distance) plus a seeded random roll per game, and pick among the top few. Clan taste: Kuroda passes and high ground, Yakuza coast and trade, Shinobi forest. A site is claimed when chosen, so no two clans pick the same one; departures are spread a few days apart. Same commands as the player; respects difficulty settings.
 Check (pass/fail): an all-bot Node run founds one bot town by the set day; the bot never issues a
 rejected `found`; no two clans claim the same site.
 Done note: "E6 bot expeditions in."
@@ -2005,7 +2005,7 @@ Done note: "E6 bot expeditions in."
 
 ### E6b. Remove the test starter towns from real games  [SMALL]
 Needs: E6, L3.1
-Note (Tim, 2026-11-04): the test starter towns stay until E6 bot expeditions are complete, then this card removes them.
+Note (2026-11-04): the test starter towns stay until E6 bot expeditions are complete, then this card removes them.
 Files: `game/data/frontier.json` (`settlements`, `roads`), new `game/tools/fixtures/frontier_fixture.json`,
 the frontier tests that load `frontier.json` (about 16 in `game/tools/`; grep first), `game/tools/make_dev_save.mjs`.
 Do:
@@ -2023,7 +2023,7 @@ Done note: "E6b test starter towns removed from real games."
 Hire settlers, pick a site, walk the expedition there (fighting off bandits on the way), found the
 town, and watch it start building. Check the bot founds its own town.
 
-**Phase end:** tests pass; Docs keeper commits "Expedition and founding"; Tim playtest E7.
+**Phase end:** tests pass; Docs keeper commits "Expedition and founding"; playtest E7.
 
 ---
 
@@ -2038,11 +2038,11 @@ another road), so roads form a branching network. A route planner suggests the c
 the W1 terrain grid (works without loading chunks, using the W3.1 route graph) and the player can
 drag it through other points; its length and terrain set the cost. Building it costs timber, workers and 2 ryo per unit of length (placeholders in
 `frontier.json`; a 540-unit road is about 1,100 ryo and a few days). Tests use the fixture road.
-**Decided (Tim, 2026-11-02): roads must never become the whole game or a constant chore.** Every
+**Decided (2026-11-02): roads must never become the whole game or a constant chore.** Every
 cart travels with an escort that beats bandits and random trouble except in rare cases; enemy clans
 can raid roads (F6), but raids are capped and spaced out (F3.6).
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02).
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02).
 
 ### F3.1. Road graph and connection state  [SMALL]
 Needs: E done (F2 for the rules; fixture road in tests)
@@ -2100,7 +2100,7 @@ Do: a shipment within view of the camera is drawn as an ox cart with two escorts
 road at its `progress`; out of view it stays a record only. Placeholder art (a box cart) until the
 A1 ox-and-cart art exists. Render only: reads the snapshot, never writes.
 Check (pass/fail): `.mjs` syntax copy passes; the draw code only reads snapshot data.
-In game (Tim): a cart rolls along the road from the town to the city gate.
+In game: a cart rolls along the road from the town to the city gate.
 Done note: "F3.5 carts drawn on roads."
 
 ### F3.6. Escorts and road raids  [SMALL]
@@ -2131,25 +2131,25 @@ route through mountains away from a pass is refused with a reason.
 Done note: "F3.7 road planning on the World map (controls.md line needed)."
 
 **Phase end:** frontier tests and regression set pass; Docs keeper commits "Frontier roads and
-shipments"; Tim playtest: watch a cart reach the city and the ryo arrive.
+shipments"; playtest: watch a cart reach the city and the ryo arrive.
 
 ---
 
 ## Phase F5: Build your town
 
 Goal: the player zones land (housing, farm, work), places buildings, roads, walls and gates, and the
-governor fills what the player leaves. Design: [Loop 3 design](#loop-3-design-tim-2026-11-04) (Tim, 2026-11-04);
-Loop 3 builds the first slice: cards L3.1–L3.8 replace the F5.1–F5.4 detail for that loop (Tim, 2026-11-04); F5.1–F5.4 below stay as the outline for the later deepen pass. Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: `game/src/input.js` (pointer handlers only).
+governor fills what the player leaves. Design: [Loop 3 design](#loop-3-design-tim-2026-11-04) (2026-11-04);
+Loop 3 builds the first slice: cards L3.1–L3.8 replace the F5.1–F5.4 detail for that loop (2026-11-04); F5.1–F5.4 below stay as the outline for the later deepen pass. Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: `game/src/input.js` (pointer handlers only).
 
 ### F5.1. Town grid and clearing  [SMALL]
 Needs: E done
 Files: `game/src/sim/frontier/construction.js`, `game/src/sim/frontier/town_layout.js`,
 `game/tools/test_frontier_grid.mjs`.
-Do (updated Tim, 2026-11-04): the grid comes from the settlement record, centred on the town hall
+Do (updated 2026-11-04): the grid comes from the settlement record, centred on the town hall
 (players found anywhere, so not from `world.json` sites). 1 cell = 1 small building; big buildings
 take 2 × 2. The grid covers the 600-unit work range, with a pretty big core for housing and work
 zones that grows with the town hall tier. It replaces the spiral slots. Each cell has `stage`
-overgrown → cleared → built (decided, Tim 2026-11-02: no chore). Workers clear any zoned or placed
+overgrown → cleared → built (decided, 2026-11-02: no chore). Workers clear any zoned or placed
 cell by themselves; a `clear { cells }` command also lets the player clear ahead (cost: workers and
 time only, from data), ledgered as work, not resources. Store the grid as plain data in
 `settlement.grid`.
@@ -2162,7 +2162,7 @@ Done note: "F5.1 town grid and clearing in."
 Needs: F5.1
 Files: `game/src/sim/frontier/construction.js`, `game/tools/test_frontier_grid.mjs`.
 Do: `place { kind: 'road' | 'wall' | 'gate', cells }` on cleared cells. A town can have several
-gates (decided, Tim 2026-11-02): each world road (F3) enters at a gate on the site edge, and many
+gates (decided, 2026-11-02): each world road (F3) enters at a gate on the site edge, and many
 roads can join the town. Before accepting, flood-fill from the gates over road and open cells:
 reject with reason `'would trap'` if any zoned or built cell would lose a path to every gate. (Faster check 2026-11-22, same answers: see Camp card Move extras and tired camps.) Gates
 count as passable. A market or storehouse only ships goods (F3.3) if it has a road path to a gate
@@ -2176,7 +2176,7 @@ Done note: "F5.2 placement rules in."
 Needs: F5.2
 Files: `game/src/sim/frontier/construction.js`, `game/src/sim/frontier/economy.js`,
 `game/src/sim/frontier/governor.js`, `game/data/frontier.json`, `game/tools/test_frontier_grid.mjs`.
-Do (updated Tim, 2026-11-04): `zone { cells, kind: 'housing' | 'farm' | 'work' }` (more kinds
+Do (updated 2026-11-04): `zone { cells, kind: 'housing' | 'farm' | 'work' }` (more kinds
 later). Zone output = painted cells × zone level × zone health; buildings inside a zone are its look,
 not separate rules. Health = needs met (food, workers, road access). Healthy zones grow; housing grows
 in stages (hut → house → bigger house). A zone short of needs for N economy ticks is abandoned (empty,
@@ -2190,13 +2190,13 @@ a starved zone abandons and recovers; the governor never overwrites a player cel
 hold; no number is hard-coded outside `frontier.json`.
 Done note: "F5.3 zones and growth in."
 
-~~F5.3b Planning matters (desirability)~~ Removed (Tim, 2026-11-04): folded into zone health (F5.3).
+~~F5.3b Planning matters (desirability)~~ Removed (2026-11-04): folded into zone health (F5.3).
 
 ### F5.4. Build bar and placement  [STRONG]
 Needs: F5.3
 Files: new `game/src/frontier_build_ui.js`, `game/src/input.js`, `game/src/render/view.js`, the
 Controls panel source.
-Do (updated Tim, 2026-11-04): a build bar in the town panel with roads, walls, gates, zone brushes
+Do (updated 2026-11-04): a build bar in the town panel with roads, walls, gates, zone brushes
 (housing, farm, work), an eraser, and the placed buildings (town hall upgrades, storehouse, node
 camps, stockade, and buildings with menus). Click-drag rectangles with a ghost coloured green
 (allowed) or red (with the reject reason, asked of the sim through a dry-run action that returns a
@@ -2204,21 +2204,21 @@ receipt and changes nothing). Buildable ground only, not road or water. Right cl
 cancels. The zone tint shows only while the bar is open, plus a zone health overlay. Clicking a
 building shows a tooltip (what it is, its zone, its state, the zone's state); placed buildings open
 their own menu. Player RTS control of workers (select, right-click a spot) comes with this step.
-Mock first; Tim approves before building. All new keys and clicks go in the Controls panel.
+Mock first; approves before building. All new keys and clicks go in the Controls panel.
 Check (pass/fail): the dry-run action is covered in `test_frontier_grid.mjs` (no state change);
 syntax copies pass.
 Done note: "F5.4 build bar in (controls.md lines needed)."
 
 ### F5.5. Building art list  [TIM]
 A SMALL thread lists which existing building cutouts can stand in for each building type (every
-zone look per stage in F5.3, each placed building, plus gates, walls and the stockade) and which have none. Tim decides whether to make new art
+zone look per stage in F5.3, each placed building, plus gates, walls and the stockade) and which have none. decides whether to make new art
 (image prompts follow the project rules). New art never blocks the rules; placeholders are fine.
 
 ### F5.7. Work camps and farmsteads  [SMALL]
 Needs: F5.3, F3.1
 Files: `game/src/sim/frontier/construction.js`, `game/src/sim/frontier/economy.js`,
 `game/data/frontier.json`, `game/tools/test_frontier_economy.mjs`.
-Do (updated Tim, 2026-11-04): `place { kind: 'workcamp', node }` puts a drop-off by a deposit or
+Do (updated 2026-11-04): `place { kind: 'workcamp', node }` puts a drop-off by a deposit or
 spot outside every town's 600-unit range, linked to a town by a road; workers shuttle to it and its
 stock ships to that town like a shipment (F3.2). A **farmstead camp** does the same for farms beyond
 600 units. The governor staffs both from the town's workers. Pieces slow to a trickle but never hit
@@ -2231,7 +2231,7 @@ Done note: "F5.7 work camps in."
 Clear a patch, lay a road from the gate, zone houses and a workshop, wall it with a gate, try to wall
 yourself in (should refuse), watch it fill and grow.
 
-**Phase end:** tests pass; Docs keeper commits "Frontier town building"; Tim playtest F5.6.
+**Phase end:** tests pass; Docs keeper commits "Frontier town building"; playtest F5.6.
 
 ---
 
@@ -2458,9 +2458,9 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - Health: every town building, the town hall (4000 / 6000 / 8000 by tier), wall cells 800, gate cells 1000, grown houses and workshops (300 / 450 / 600), every built war camp building (camp hall 4000 / 6000, others 600 to 2500, palisade piece 600, camp gate 800). Stored only once damaged. The stockade keeps 1500.
    - Only the two sides of a war damage each other's structures: the attacker the town's, the defender the camp's.
    - Damage by attacker: melee x1 and sets a fire (one per structure, 15 a second, dies 3 s after the last melee hit), ranged x0.25, siege x4.
-   - At 0 health: a building becomes a ruin (stops working and blocking; a training queue is lost with no refund); a wall or gate cell becomes open ground with rubble; a house or workshop drops to an empty plot and regrows by the zone rules. A breach cannot be rebuilt during the war in a bot clan's town; a player may build a wall or gate piece over it at normal cost (Tim 2026-11-17).
+   - At 0 health: a building becomes a ruin (stops working and blocking; a training queue is lost with no refund); a wall or gate cell becomes open ground with rubble; a house or workshop drops to an empty plot and regrows by the zone rules. A breach cannot be rebuilt during the war in a bot clan's town; a player may build a wall or gate piece over it at normal cost (2026-11-17).
    - Watchtower: shoots the nearest enemy unit of its war within 18, one arrow every 1.5 s, 14 damage.
-   - Town hall shelter (Tim 2026-11-19, replaces every worker sheltering while any attacker is inside the ring): during a war on the town a worker runs to the town hall when an attacker comes within `war.structures.shelter.nearRange` (40) of him, his job spot, or where he was when he fled; the other workers keep working. His load goes into the town stores as he goes in. An automatic one goes back to his job after `calmTicks` (300) with no enemy near. By hand: the badge over the hall ("Shelter workers" during a war; "Workers inside N / room, Back to work") or the worker panel's To hall button, command `hallShelter { town, mode: enter | leave, workers? }`; workers sent in this way stay until Back to work. Room `capacityByTier` 40 / 40 / 90 (Camp, Village, Town). Everyone comes out when the hall falls; automatic ones also when the war ends. The same with the governor on. Inside, workers cannot be attacked and do not work.
+   - Town hall shelter (2026-11-19, replaces every worker sheltering while any attacker is inside the ring): during a war on the town a worker runs to the town hall when an attacker comes within `war.structures.shelter.nearRange` (40) of him, his job spot, or where he was when he fled; the other workers keep working. His load goes into the town stores as he goes in. An automatic one goes back to his job after `calmTicks` (300) with no enemy near. By hand: the badge over the hall ("Shelter workers" during a war; "Workers inside N / room, Back to work") or the worker panel's To hall button, command `hallShelter { town, mode: enter | leave, workers? }`; workers sent in this way stay until Back to work. Room `capacityByTier` 40 / 40 / 90 (Camp, Village, Town). Everyone comes out when the hall falls; automatic ones also when the war ends. The same with the governor on. Inside, workers cannot be attacked and do not work.
    - Idle workers: an idle worker carrying a load, with no job and no order, walks it to the nearest drop-off.
    - Gates in a war: a town's gates stop the attacker; a camp's gates stop the defender; a broken gate is a gap. Outside a war gates are open to all.
    - Camp palisade (5 timber a piece, a piece every 3.2 along the line, line placement) and gate (40 timber, two pieces long).
@@ -2475,8 +2475,8 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - 7-3 Kennel (Yakuza, needs the clan hall): dog handler (2026-11-21: Loose the dogs has a 15 s cooldown and 30 range when cast by hand; auto stays at range 12). Loose the dogs (sim/dogs.js): 3 dogs run at one enemy, bite with a short knockdown, then vanish. Auto picks ranged or fleeing enemies.
    - 7-4 Gatling gun crew (Kuroda, foundry; sim/gatling.js): sets up before firing, packs up to move, fires a cone, no fire inside its minimum range, no melee. Reworked 2026-11-21: setup/pack and Hold aim are replaced. The gun moves freely, spins up for 1 s with a cast bar, then fires 5 s bursts; a normal spin-up cancels if every enemy leaves range. Unload (Shift + key): 1.5x damage for 5 s at the clicked spot, 20 s cooldown, auto at 3+ enemies in the cone, always fires at the clicked spot. Range stays 13. 2026-11-25: walls, palisades and buildings stop Gatling fire (land crew and deck Gatling) as they stop arrows and rifles; a Gatling only fires at enemies it has a clear line to.
    - 7-5 Hidden dojo (Shinobi, needs the clan hall): kunoichi, hidden on the island until she acts, shown a few seconds after attacking or being hit, ambush first hit, Vanish on a move order (cooldown). Detected by an enemy dog handler (wide), Teppo rifleman (short) or a built watchtower in range. Inside a war circle no other Shinobi unit is hidden, the hero included.
-   - No ruin is rebuilt while a war is on the town: not by the governor, the owner's Rebuild order, or the general (Tim 2026-11-24, replaces 2026-11-17). A ruin no longer counts toward its building limit, so a new one can be placed from scratch at full cost, on the ruin (placing over a ruin clears it for nothing; not a town hall or station ruin) or anywhere in the build area. Erasing a ruin gives nothing back. The general replaces ruined military buildings this way in plan order; a ruined station waits for the war's end. After the war the governor rebuilds ruins whose type is under its limit.
-   - Building sites (Tim 2026-11-24): in a war, every building site of the war town (an authorized placed-building project) and of the camp (rail sections excepted) can be attacked. war.structures.site 300 health (placeholder). At 0 the site is gone and what was paid for it is lost (a rebuild site leaves its ruin). Sites are not in structures.list() (towers, morale and the general's lists see built buildings only); attacks, find() and health bars see them. Not repaired, only built.
+   - No ruin is rebuilt while a war is on the town: not by the governor, the owner's Rebuild order, or the general (2026-11-24, replaces 2026-11-17). A ruin no longer counts toward its building limit, so a new one can be placed from scratch at full cost, on the ruin (placing over a ruin clears it for nothing; not a town hall or station ruin) or anywhere in the build area. Erasing a ruin gives nothing back. The general replaces ruined military buildings this way in plan order; a ruined station waits for the war's end. After the war the governor rebuilds ruins whose type is under its limit.
+   - Building sites (2026-11-24): in a war, every building site of the war town (an authorized placed-building project) and of the camp (rail sections excepted) can be attacked. war.structures.site 300 health (placeholder). At 0 the site is gone and what was paid for it is lost (a rebuild site leaves its ruin). Sites are not in structures.list() (towers, morale and the general's lists see built buildings only); attacks, find() and health bars see them. Not repaired, only built.
    - Camp slipway: no longer rebuilt in place; erase the ruin and place a new one, as every camp building. The camp station and rail sections still rebuild in place (no other way back).
    - Repair spend pops: structures.js sums what each repair takes and casts 'repairSpend' { x, z, h, owner, spent } once a second; render/hitfx.js spend() shows it over the building's health bar for the owner only (index.html .dmg.spend).
    - Art: town wall, wall post, gate, watchtower, war armory and field clinic cut by tools/add_warcamp2_art.py; kennel and dojo have ground blockers.
@@ -2487,14 +2487,14 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - **7c-1 Quick fixes, built 2026-11-12:** war_test_yakuza starts with only the camp hall (tier 1), 8 workers, 40000 ryo, 12000 timber, 10000 stone. Placing a camp building or palisade line closes the build menu (Shift keeps placing). Bigger text on crew command buttons and ability slots. Troops button and Shift + C (keybinds selectTroops) select every war troop where the hero is, hero group left out; C ("Select hero group") never picks war troops. Group moves end twice as tight (rules.groupMove spacing 1); a spread spot is used exactly when its ground is free. Double-click a war troop selects every war troop of its type within 100; again centres the camera on it. Projectile bodies drawn again (lost in 86b093c) and enlarged. Cannon range: field cannon 32, wooden cannon 28. Moving smoke over ruined buildings. Field clinic: attacker troops, hero and crew within 30 of a finished clinic recover 8x faster (war.buildings.field_clinic.heal). Watchtower sight 30 for its owner, day and night (war.structures.tower.sight); hidden units stay hidden. War troops of either side are held inside the 900 war circle; hero and crew are not. No zone growth or regrowth while a war is on the town. Test tools/test_cp7c.mjs.
    - 7c-1 follow-up: melee units on a raze order each take their own spot round the structure, at least war.structures.slotGap (1.3) from other attackers of their clan, nearest their side; stuck short of it for 1.5 s they hit from there if in reach, else the nearest wall. Ranged units stop in range. On the island a unit that arrived on a move order keeps the spot the spacing push gives it (walks back only when shoved more than 1.5), and one that gets no closer to its move spot within 1.2 for half a second stops there. City units unchanged.
    - Ranged ranges (world units; unit sight 18): field cannon 32, wooden cannon 28, watchtower arrows 18, Gatling crew 13 (none inside 2.5), rifleman 11, Teppo aimed shot 10, Yumi archer 8, archer 7, fire-bomb thrower 6, geisha 5.5.
-   - Watchtower fire (Tim 2026-11-25, placeholders): every 1.5 s a built watchtower looses a volley of 3 arrows (war.structures.tower.arrows), 18 damage each (was 1 arrow of 14), one at each of the 3 nearest enemies in range (all at one when only one is there; ships only with no one else in range). Range 18 unchanged.
+   - Watchtower fire (2026-11-25, placeholders): every 1.5 s a built watchtower looses a volley of 3 arrows (war.structures.tower.arrows), 18 damage each (was 1 arrow of 14), one at each of the 3 nearest enemies in range (all at one when only one is there; ships only with no one else in range). Range 18 unchanged.
    - **7c-2 built 2026-11-13:** Torch: units of war.structures.torch.types (thug, swordsman, spearman, ninja, ninja_tanto, shinobi_spearman) and a melee hero, never mounted; cast torch.castTicks 20; fire burns until doused or the building falls (fire.burnTicks 0, fire.damage 60 a second). Fire bomb (sim/firebomb.js, SPECIALS.firebomb): knife attack damage 8; 1.5 s channel, range 5.5, 140 damage within 2.6, 250 to a building (stone x0.25, no fire), cooldown 15 s. Spearman at the barracks for every clan (60 ryo, 10 s); shinobi_spearman 153 hp, 17 damage, reach 2.0; Yakuza and Shinobi spearmen use the Kuroda spearman body as a stand-in. Test tools/test_cp7c2.mjs. A unit casting the torch shows a TORCHING bar over it for the cast (`order.cast.start` / `until`).
    - Plan, 7c-2: only grunts, spearmen and a melee hero and crew torch, by Torch order, a 1 s cast interrupted by stagger, stun, knockdown, charm and taunt; they keep trying until it burns, then keep hitting. Fire-bomb thrower: weak knife attack; the bomb is a channelled special with a ground marker, long cooldown, fire on buildings or heavy splash on units, stone resists. Every clan trains a sword grunt and a spearman at the barracks (spearman: slightly longer reach, more damage per second, a little less health).
    - **7c-3 built 2026-11-12:** camp hall and war coin open the hall menu (Build, War chest, Hall; no Train tab); every other camp building opens its own menu with unit cards, queue pips and countdown (src/war_camp_panel.js; test tools/test_camp_menus.mjs). Training times halved (grunt 10 s, archer and brute 12.5 s, rifleman 15 s, enforcer 17.5 s, riders 22.5 s, specials 20 to 35 s). New troops come out on the building's side facing the town and gather in one spot. War chest art not made yet.
-   - **7c-3b built 2026-11-12 (pulled forward from 8b):** left-click a town building of your towns or of a war you are in for a card with name, health and troops inside (src/structure_card.js). House, workshop and farmhouse garrisons up to 10 troops (war.structures.zoneGarrison): ranged shoot out, melee do not, hits land on the building, all pile out at 0 health, number badges. The hero may garrison any garrisonable building (houses, workshops, farmhouses, town and camp stockades), off his horse; Shift+K also brings him out of a house (Tim 2026-11-19, was troops and crew only). Bot towns at war: every third stand-in troop is an archer that garrisons the nearest house with room (war.structures.standIn.ranged). Test tools/test_zone_garrison.mjs.
+   - **7c-3b built 2026-11-12 (pulled forward from 8b):** left-click a town building of your towns or of a war you are in for a card with name, health and troops inside (src/structure_card.js). House, workshop and farmhouse garrisons up to 10 troops (war.structures.zoneGarrison): ranged shoot out, melee do not, hits land on the building, all pile out at 0 health, number badges. The hero may garrison any garrisonable building (houses, workshops, farmhouses, town and camp stockades), off his horse; Shift+K also brings him out of a house (2026-11-19, was troops and crew only). Bot towns at war: every third stand-in troop is an archer that garrisons the nearest house with room (war.structures.standIn.ranged). Test tools/test_zone_garrison.mjs.
    - **7c-5 item 27 built 2026-11-12:** war troops are not in the crew panel; the selection panel shows only units that are not your crew; past 18 selected it shows one card per unit type with count and total health, a click picks that type (selection_panel.js).
    - 7c-3 Camp menus: one menu per building, units trained at their building; the camp hall keeps the build list, war chest and hall upgrade. Train cards with a sprite still and health, damage per second, range, speed, cost and train time. New war chest graphic.
-   - **7c-4 built 2026-11-13:** one merged build area outline (src/camp_build_area.js). Lumber camps and quarries may stand outside it within resourceCampReach 45 of their resource and never extend it. Builders are manual (worker order 'work'); a bot clan's camp still sends up to war.builders. Site with no crew flashes Needs workers (src/site_flash.js). Repair and douse: fire out after repair.douseWork 60 worker ticks, then repair.hpPerTick 2 (Tim 2026-11-24, was 0.5) per worker a tick, paid timber 0.06 and stone 0.03 per health. A ruined town hall blocks placing and worker training until repaired (stands again at half health). Rebuild command 'rebuild', not during a war; governor.maintain only for autoBuild towns and bot clans; bot workers douse their own fires (repair.botDousers 2). Camp worker pane with task coins and Spots (worker_panel.js).
+   - **7c-4 built 2026-11-13:** one merged build area outline (src/camp_build_area.js). Lumber camps and quarries may stand outside it within resourceCampReach 45 of their resource and never extend it. Builders are manual (worker order 'work'); a bot clan's camp still sends up to war.builders. Site with no crew flashes Needs workers (src/site_flash.js). Repair and douse: fire out after repair.douseWork 60 worker ticks, then repair.hpPerTick 2 (2026-11-24, was 0.5) per worker a tick, paid timber 0.06 and stone 0.03 per health. A ruined town hall blocks placing and worker training until repaired (stands again at half health). Rebuild command 'rebuild', not during a war; governor.maintain only for autoBuild towns and bot clans; bot workers douse their own fires (repair.botDousers 2). Camp worker pane with task coins and Spots (worker_panel.js).
    - Plan, 7c-4: one merged build area outline (ground outside darkened while placing); lumber camps and quarries may sit outside it by their resource. Builders, repair and douse are manual (selected workers sent to a site; more workers build faster; a new site flashes until it has workers). A ruined town hall stops placing and worker training until repaired. Ruined placed buildings come back only by a Rebuild order on the ruin carried out by workers; a governor with initiative and bot clans give that order after the war. Zone pieces regrow by themselves after the war. Camp menu tab for nearby resource spots; camp worker pane with task filters.
    - **7c-5 items 28 and 29 built 2026-11-13:** only the attacker of a war on the town can hit an ox cart; at 0 health it is destroyed (load lost, replaced after carts.replaceTicks 2400), no downed outline. Frontier command cartOrder recall / send; Ox carts section in the town panel overview. Night lighting: brazier, lantern_post and campfire art beside finished camp buildings (townLights.camp). bench_war fingerprint 85112f59.
    - Plan, 7c-5: one small card per selected troop (shrinking, overlapping, grouped by type past a set number). Ox carts: no execute border; the other side can destroy them in a war; recall in a war; carts parked in a town or the camp listed in their own section of the town panel with Send out. War camp night lighting.
@@ -2521,7 +2521,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
 8b. Defender building and muster delay. **Built 2026-11-15** (numbers are placeholders in frontier.json). Every town building selectable with health and a garrison icon; garrisons in houses, workshops and farmhouses (7c-3b). The military zone moved to 8d; foreign mercenary pistolmen come after 8e (camp hall or town hall, Clan treasury, need pistol clips).
    - 8b-1 Town military buildings:
    - `frontier.json` `buildings` has the camp military types as town buildings: barracks 2x2, supply_tents 2x2, watchtower 1x1, rifle_range 2x2, field_clinic 2x2, clan_hall 2x2, kennel 2x2, hidden_dojo 2x2, foundry 2x2, armory 2x2. Each: `military: true`, the camp cost, `jobs` 0, `housing` 0, `buildTicks` = camp buildTicks / 20.
-   - Placed inside the town ring with the normal placement, paid from town stock, built by the town builders like any building. Ruins, repair, rebuild and torching use the existing structure rules (no rebuild during a war, Tim 2026-11-24: place a new one).
+   - Placed inside the town ring with the normal placement, paid from town stock, built by the town builders like any building. Ruins, repair, rebuild and torching use the existing structure rules (no rebuild during a war, 2026-11-24: place a new one).
    - Limits are the camp ones: `war.buildings[type].max`, `needs` and `clan` (kennel Irezumi, hidden dojo Shinobi). needs `upgrade` = the town hall war upgrade. Refusal reasons: "Your clan does not build the X", "Needs a built X", "Needs the town hall war upgrade", "A town has at most N X". Code: sim/frontier/town_military.js, placement.js, commands.js queue.
    - Town hall war upgrade: command `{ type: 'frontier', action: 'warUpgradeHall', settlement }`. Costs `war.hallUpgrade.cost` (300 timber, 250 stone, 300 ryo) from town stock, paid at once, at any tier. Then the town builders build it: `war.town.upgradeWork` (480) builder work, each economy tick adds the number of builders (about 120 s with 4). Other projects in that town wait while it is under way (report waiting "war upgrade"). It pauses while the hall is a ruin. Saved: `settlement.warUpgrade = { left, total }`, then `settlement.warHall = true`. News `warHall` when done. It unlocks foundry, armory and stable cavalry.
    - Upkeep: `upkeep.buildings` has a timber and stone rate for each military type. Unpaid upkeep sets `settlement.militaryShort`, adds "military upkeep" to the town report and the alert `militaryUpkeep`; nothing else happens.
@@ -2546,7 +2546,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - Build bar: military types are in their own Military row with used and max counts.
    - War coin: in a town of yours under attack it shows that town's war chest ("WAR CHEST, Defending"); click opens the town war window.
    - Data:
-   - `war.town = { upgradeWork: 480, musterSeconds: 180, trainSpeed: 1 }`; `rates.maxBuilders` 4 (was 3): at most 4 builders on a town project, the same as `war.builderCap` in camps (Tim 2026-11-15); `war.structures.town` military hp; `upkeep.buildings` military rates; top-level `_militaryBuildingsNote`.
+   - `war.town = { upgradeWork: 480, musterSeconds: 180, trainSpeed: 1 }`; `rates.maxBuilders` 4 (was 3): at most 4 builders on a town project, the same as `war.builderCap` in camps (2026-11-15); `war.structures.town` military hp; `upkeep.buildings` military rates; top-level `_militaryBuildingsNote`.
    - Tests: tools/test_town_military.mjs, tools/test_war_defense.mjs, tools/test_town_war_panel.mjs.
    - Audit additions (2026-11-15):
    - Kennel and hidden dojo need the clan hall and `tier2`: in a town a town hall at tier 2 or higher, in a camp the camp hall upgrade (`war.buildings.kennel/hidden_dojo.needs` ["clan_hall", "tier2"]; town_military.js, war.js missing).
@@ -2564,7 +2564,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - Commands: `warSurrender { war }`, `warOffer { war, amount }`, `warLeave { war }`, `warAnswer { war, answer: accept | no | never }`, `warOutcome { war, outcome }`.
    - One offer at a time: a new offer only after the last one is answered. Each offer is open `war.surrender.offerSeconds` (60); The first offer must come within `war.surrender.firstSeconds` (60) of the surrender, and after a No the next within `gapSeconds` (30); running out counts as refused for good. A defender's refused surrender gives the attacker `outcomeSeconds` (60) to pick capture, sack or burn, else sack.
    - Ceasefire while `war.terms` is set: the two sides do not attack each other, towers and garrisons do not fire, fires go out, channels stop, no training (game.js warNeutral, structures.js).
-   - Ceasefire building (Tim 2026-11-18): during a ceasefire neither side builds: no camp or town placing, line, upgrade or rebuild; started sites and repairs pause (the camp and the war town only). The war bar shows a terms notice ("Waiting on terms", "Terms: your answer is needed", "Terms: make your offer") with an Open terms button that flashes when it is your move. While an offer waits for your answer the terms window stays open: Esc does nothing and the close button asks to refuse for good.
+   - Ceasefire building (2026-11-18): during a ceasefire neither side builds: no camp or town placing, line, upgrade or rebuild; started sites and repairs pause (the camp and the war town only). The war bar shows a terms notice ("Waiting on terms", "Terms: your answer is needed", "Terms: make your offer") with an Open terms button that flashes when it is your move. While an offer waits for your answer the terms window stays open: Esc does nothing and the close button asks to refuse for good.
    - Results on the history record: `ransomed` (accepted), `attackerSurrendered` (as campFell), or captured / sacked / burned with `terms.by` 'defender'. Cooldown `war.surrender.cooldownDays` 3.
    - Estimate and price: `chance(w, clan)` from what that clan has spotted (`war.spotted[clan]`), never a war chest, seeded noise; `price(w, viewer)`. Snapshots hide the other side's `suggest` / `fair` and `spotted`.
    - The confirm box states that the war ends on the surrendering side's terms or in its defeat, the 60 s for the first offer, and what a defeat costs: an attacker's war chest goes to the town; for a defender the enemy decides what happens to the town (src/war_surrender_foot.js).
@@ -2596,7 +2596,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - Player screens: General tab on the town war window and the war camp panel (src/war_general_tab.js): Rush, Siege, Raider cards; in a town the keep percent box; a General coin on both. War alert (src/war_watch.js): a card with a bell and a map ping when a war is declared on a town of yours; buttons Watch, Show on map, Close. Watch a war: the camera goes to a war of yours that the hero is not in (render/view.js `setWarWatch`); no orders and no hero movement while watching; the General tab and surrender answers still work; Esc, Home, Back on the war bar, the banner button, or the hero being hit end it. War bar: a Watch or Back button, and "General in command" while the general runs your side.
    - Military zone (8d-5): `zones.military` (`char` m), not one of `zones.kinds`: it never grows and has no cap. Painted from the build bar's Zones row, shown red in the build view, cleared by the eraser. Only military buildings and the stockade (`buildings.stockade.militaryZone`, 2026-11-22) can be placed on it; placing one clears the cells it covers. The general places military buildings in the zone first. In a player's town it builds only inside the zone, only with the governor's initiative On, and never the hall upgrade. Rivals build anywhere in the ring after the zone is full (since 2026-11-22 both first grow the quarter by strips; see frontier_campaign_plan.md, Quarter growth). The general does not save for a stockade the town hall tier cannot hold (2026-11-22).
    - Balance (8d-6, retuned 2026-11-16): all building health doubled: `war.structures.townHall` [20000, 30000, 40000], `campHall` [8000, 12000], `zone` [1200, 1800, 2400], every `war.structures.town` and `war.structures.camp` building doubled (camp palisade 600 and gate 800 unchanged), stockade `buildings.stockade.garrison.hp` 3000; walls (800) and gates (1000) unchanged. Every `war.units[*].trainTicks` doubled (grunt 400, spearman 400, brute 500, enforcer 700, archer 500, rifleman 600, sword_rider 900, geisha 1000, teppo 1000, irezumi 1000, yumi 800, dog_handler 1000, kunoichi 1100, gatling 1400, cannon 1200, wooden_cannon 1200, fire_bomber 900, mounted_pikeman 900). Strategy build lists and mixes: see 8d-8. Seeded runs (seed 1, 27 pairs): camp about 10 min, average and built-up town about 17 to 18 min; further tuning is open.
-   - War troop prices halved (Tim 2026-11-19), `war.units.*.ryo`: grunt 30, spearman 30, brute 40, enforcer 60, archer 40, rifleman 50, sword rider 80, mounted pikeman 85, geisha 120, teppo 120, irezumi 120, yumi 90, dog handler 110, kunoichi 130, gatling 160, cannon 150, wooden cannon 130, fire bomber 100.
+   - War troop prices halved (2026-11-19), `war.units.*.ryo`: grunt 30, spearman 30, brute 40, enforcer 60, archer 40, rifleman 50, sword rider 80, mounted pikeman 85, geisha 120, teppo 120, irezumi 120, yumi 90, dog handler 110, kunoichi 130, gatling 160, cannon 150, wooden cannon 130, fire bomber 100.
    - Tools: tools/test_war_general.mjs, tools/test_war_general_tab.mjs. tools/soak_war.mjs: seeded bot-vs-bot wars, `node game/tools/soak_war.mjs <attack> <defence> <size> [seed] [maxMinutes]` or `all`. tools/bench_war.mjs: `GENERALS=1` adds a general on each side. Default fingerprint dd6135a9; with generals 734fa79a (since 8e).
    - **8d-8 built 2026-11-16 (smarter generals):** sim/war_general_brain.js, war_general_tab.js, frontier.json `war.general`.
      - Troop mix and build lists:
@@ -2622,7 +2622,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - Camp digs in:
        - `war.general.attack.fortify`: after `afterSeconds` (600) of war, after a push is given up, or when at least `least` (4) defenders in sight are worth `edge` (1.3) times its own troops in ryo, the camp builds `build` (watchtower x3) before the rest of its list and a palisade line toward the town (`palisade`: out 55, length 60), for the rest of the war. Applies to the player's general too (it spends only the war chest and camp stock).
        - Pushes are waves: troops trained during a push gather at the camp for the next. A wave is given up at `fallBack` of its size. After each push given up the next waits for `regroup` (1.5) times more troops, `regroupMost` (3) times at most and never above the troop cap. Once the camp cannot grow, the reserve joins.
-       - Massing (Tim 2026-11-25, placeholders): a push needs at least the strategy's least force (attack.pushLeast: Rush 6, Raider 12, Siege 20), an early push too, and regroup times more after each beaten push (capped at the troop cap). When the general weighs the defence he counts every defender troop near the town, in houses, stockades and towers too, and each standing tower (attack.towerWorth: watchtower 120, cannon tower 240). With no ryo left to train he pushes only from attack.spentShare (0.5) of his least force. A push marches as one army: it forms up at the rally point and moves in legs (attack.march: leg 60, waits for 80% of the wave, at most 40 s), until it is near the town (80 units); defenders met on the way are fought first. march.leg 0 turns marching off.
+       - Massing (2026-11-25, placeholders): a push needs at least the strategy's least force (attack.pushLeast: Rush 6, Raider 12, Siege 20), an early push too, and regroup times more after each beaten push (capped at the troop cap). When the general weighs the defence he counts every defender troop near the town, in houses, stockades and towers too, and each standing tower (attack.towerWorth: watchtower 120, cannon tower 240). With no ryo left to train he pushes only from attack.spentShare (0.5) of his least force. A push marches as one army: it forms up at the rally point and moves in legs (attack.march: leg 60, waits for 80% of the wave, at most 40 s), until it is near the town (80 units); defenders met on the way are fought first. march.leg 0 turns marching off.
      - Town sallies:
        - The defending army in the field goes for the war camp when it is worth `sallyEdge` (1.5) times the attacker troops it can see (in ryo), with at least `sortieLeast` troops, without waiting for `sortieAt`. It comes home when it is worth less than `sallyHold` (1) times them and rests `sallyRest` (120) seconds.
      - Camp workers and banner spot:
@@ -2637,9 +2637,9 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
        - tools/test_war_general.mjs: sally, walls by strategy, pack by tier, clan specials, digging in.
        - tools/soak_war.mjs output adds walls, gates, brought, attackerUnits, defenderUnits, campBuilt; `DUMP=1` prints the troops of an unfinished war.
    - **8d-9 built 2026-11-16 (the stockade as a fortress):** garrison.js, structures.js, war_general_brain.js, frontier.json, garrison_card.js, structure_card.js, town_hover.js, town_props.js, selection_panel.js, build_tooltips.js, war_camp_panel.js, war_general_tab.js, index.html (Controls).
-     - Camp generals put ranged troops not on a push into the camp stockade first, then the camp's watchtowers (4 each); they come out when a push starts (Tim 2026-11-25).
+     - Camp generals put ranged troops not on a push into the camp stockade first, then the camp's watchtowers (4 each); they come out when a push starts (2026-11-25).
      - Health and count:
-       - `buildings.stockade.garrison.hpByTier`: full health by town hall tier: 32,000 at Village, 48,000 at Town (Tim 2026-11-18, was 40,000 and 60,000; `hp` 40,000 is the fallback). `stockadeHp(data, tier)` in garrison.js; structures.js `townMax` and the garrison card use it.
+       - `buildings.stockade.garrison.hpByTier`: full health by town hall tier: 32,000 at Village, 48,000 at Town (2026-11-18, was 40,000 and 60,000; `hp` 40,000 is the fallback). `stockadeHp(data, tier)` in garrison.js; structures.js `townMax` and the garrison card use it.
        - `tiers.list[].placed.stockade`: 0, 1, 3.
        - Stockade cost by town hall tier: `buildings.stockade.costByTier`: Village 400 timber and 450 stone, Town 500 timber and 600 stone (`cost` 400 / 450 is the fallback). `buildingCost(data, type, s)` in sim/frontier/tiers.js gives a placed building's cost in a town: `costByTier` by the town's tier when the building has one, else `cost`. Placement, construction projects (rebuilds included), the general's saving check and the build tooltip use it.
        - Each stockade holds `garrison.capacity` (40). Membership is per stockade: `garrison.membersIn(town, building)`, `usedIn`, `forts`, `keyOf`; a sheltering worker carries `worker.garrisonIn` (building id).
@@ -2648,7 +2648,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
        - War troops (`e.warTroop`) hold a stockade the structure way (as a house): `e.garrison = { town | war, key, zone: true, fort: true, heal, x, z }`. The town command above sends them that way; `{ action: 'garrison', structure: <key> }` works for a stockade too. The hero, crew and workers shelter as before (`e.garrison = { town, building, key, heal }`). Both kinds share one stockade's room (`garrison.capOf(st)`, `rangeOf(st)`).
        - Every ranged unit inside a stockade shoots out during a war on its town or camp (structures.js `garrisonFire`), `garrison.reach` (5) further than from a house. Melee units inside do not fight. Troops inside heal `healFactor` times faster. Hits on them go to the stockade; when it falls everyone piles out.
      - War camp stockade:
-       - `war.buildings.stockade`: cost 400 timber and 450 stone, buildTicks 1600, radius 10, max 1. Health `war.structures.campStockade` by camp hall tier: 32,000, 48,000 (Tim 2026-11-18: the same as a town stockade; was 16,000, 24,000). Fire stays 60 a second.
+       - `war.buildings.stockade`: cost 400 timber and 450 stone, buildTicks 1600, radius 10, max 1. Health `war.structures.campStockade` by camp hall tier: 32,000, 48,000 (2026-11-18: the same as a town stockade; was 16,000, 24,000). Fire stays 60 a second.
        - The attacker's troops go in by the structure command (Ctrl + right-click it, or Garrison selected on its building card). Not camp workers; the hero may go in off his horse (2026-11-19).
      - Generals:
        - `stockade` in a `defend.build` list = a town stockade, as many as the list names and the tier allows: Siege three, Raider one, Rush none. In an `attack.build` list = the camp stockade: Siege builds one; `attack.fortify.build` is now watchtower, stockade, watchtower, watchtower (any camp that digs in).
@@ -2713,7 +2713,7 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
    - **Not in 8e (decided elsewhere)**
      - Train robbery and blasting gameplay: next step after 8e.
      - Foreign mercenary pistolmen: after 8e (needs pistol clips).
-     - War balance (length, broke sides, stockade stalls): after 8e, Tim playtests first. No surrender step for broke rival sides.
+     - War balance (length, broke sides, stockade stalls): after 8e, playtests first. No surrender step for broke rival sides.
      - Generals weighing how much to spend and how much a town matters: later idea.
      - Hero and crew war stat blocks: review at the end of the war build.
    - **Built (2026-11-17)**
@@ -2726,15 +2726,15 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - Tip: a player defending against a camp gets a one-time callout when that camp's spur links (news `supplyLineTip`, once per clan). No notice.
      - War end: camp fell or attacker surrendered = spur removed, spoils include the camp timber and stone up to the town's storage room (also in the war-end news); capture = the spur becomes a normal line to the captured town (spur flag); sack or burn = torn up, `war.supply.spurRefund` 0.5 of its cost back to the town it ran to. Captured spur: "Tear up" row in that town's station menu (rail `mode: 'tear'`), same half back.
      - War chest screens (camp hall War chest tab, town war window War chest tab, src/war_chest_send.js): Send rows for the Clan treasury and up to 3 own towns' coffers (typeable box + Send), "Keeps N" red below the keep line, greyed with the reason when no rail line reaches the chest; "On the way" list with Cancel; sources line.
-     - A war camp's spur lays in 4 minutes (railways.link.campSeconds; town lines stay 10 min); its drawn track and rail gang keep up with the true progress (Tim 2026-11-25). The camp station menu has tabs Spur, Ryo (send ryo by train from the treasury or town coffers into the war chest) and Orders (rail ledger for the camp). The War chest tab only shows the chest and points to the station (Tim 2026-11-25; replaces sending ryo from the camp hall War chest tab).
-     - Camp hall fixes (Tim 2026-11-25): a camp hall upgrade adds its extra health (8000 to 12000), so a damaged hall keeps only the damage it took; the camp stockade too. Sheltering camp workers gather in an arc in front of the camp hall (war.structures.shelter.campFront, 6 past its radius), not at its centre. Workers the player has selected never auto-shelter (others still run in when an enemy is near) and a hand order brings a sheltering worker out (narrows the 2026-11-19 auto-shelter rule). Shelter button: noren curtain icon over the hall (town_hover.js); camp hall menu Shelter tab (src/camp_shelter_tab.js).
-     - Camp worker cap by camp hall tier (Tim 2026-11-25): war.camp.workerCapByTier [24, 40], before and after the camp hall upgrade (workerCap 24 stays as fallback); src/sim/frontier/camp_worker_cap.js, used by hiring (workers.js), the camp panel and the war coin.
+     - A war camp's spur lays in 4 minutes (railways.link.campSeconds; town lines stay 10 min); its drawn track and rail gang keep up with the true progress (2026-11-25). The camp station menu has tabs Spur, Ryo (send ryo by train from the treasury or town coffers into the war chest) and Orders (rail ledger for the camp). The War chest tab only shows the chest and points to the station (2026-11-25; replaces sending ryo from the camp hall War chest tab).
+     - Camp hall fixes (2026-11-25): a camp hall upgrade adds its extra health (8000 to 12000), so a damaged hall keeps only the damage it took; the camp stockade too. Sheltering camp workers gather in an arc in front of the camp hall (war.structures.shelter.campFront, 6 past its radius), not at its centre. Workers the player has selected never auto-shelter (others still run in when an enemy is near) and a hand order brings a sheltering worker out (narrows the 2026-11-19 auto-shelter rule). Shelter button: noren curtain icon over the hall (town_hover.js); camp hall menu Shelter tab (src/camp_shelter_tab.js).
+     - Camp worker cap by camp hall tier (2026-11-25): war.camp.workerCapByTier [24, 40], before and after the camp hall upgrade (workerCap 24 stays as fallback); src/sim/frontier/camp_worker_cap.js, used by hiring (workers.js), the camp panel and the war coin.
      - Polish (2026-11-25):
        - Arrow and pellet tracers: watchtower arrows and arrows shot from inside a stockade draw a faint, see-through trail; rifle shots from a stockade draw a short pellet trail. All three arrows of a tower volley are drawn (before, only one showed). Look only (src/render/crewfx.js TRACER).
-       - Stockade firing slots (Tim 2026-11-25): a stockade still holds 40, but only 12 ranged units inside shoot at once (buildings.stockade.garrison.firingSlots, the first by id); the rest shelter and heal. Town and war camp stockades.
-       - Riders can garrison (Tim 2026-11-25): the hero, crew and troops on a horse get off and go inside a stockade, tower or house. Cavalry units still cannot garrison.
-       - Camp building costs cut 25% (Tim 2026-11-25): every war camp building (war.buildings) costs 25% less, rounded to 5 (barracks 110 timber 45 stone, stockade 300/340, camp station 225/150, palisade piece 4, gate 30, and so on). The camp hall upgrade has its own cost, war.hallUpgrade.campCost: 225 timber, 190 stone, 300 ryo. Town buildings and the town hall war upgrade are unchanged.
-       - Training times cut 25% for all war units (Tim 2026-11-25): every war unit's trainTicks (war.units) is 25% lower, ships, cannons, Gatlings and clan specials included; camps and towns both train from these. The 8d "train times x2" rule is now 1.5x the pre-8d times. Examples: grunt 300 (was 400), rifleman 450, cannon 900, warship 1800, transport 1350.
+       - Stockade firing slots (2026-11-25): a stockade still holds 40, but only 12 ranged units inside shoot at once (buildings.stockade.garrison.firingSlots, the first by id); the rest shelter and heal. Town and war camp stockades.
+       - Riders can garrison (2026-11-25): the hero, crew and troops on a horse get off and go inside a stockade, tower or house. Cavalry units still cannot garrison.
+       - Camp building costs cut 25% (2026-11-25): every war camp building (war.buildings) costs 25% less, rounded to 5 (barracks 110 timber 45 stone, stockade 300/340, camp station 225/150, palisade piece 4, gate 30, and so on). The camp hall upgrade has its own cost, war.hallUpgrade.campCost: 225 timber, 190 stone, 300 ryo. Town buildings and the town hall war upgrade are unchanged.
+       - Training times cut 25% for all war units (2026-11-25): every war unit's trainTicks (war.units) is 25% lower, ships, cannons, Gatlings and clan specials included; camps and towns both train from these. The 8d "train times x2" rule is now 1.5x the pre-8d times. Examples: grunt 300 (was 400), rifleman 450, cannon 900, warship 1800, transport 1350.
        - Train deaths: a unit run over by a train drops to 0 health (its bar goes as with any death), the hit sprays the usual blood and plays the death thud.
        - Worker rings: your workers' green team ring (town and camp) has a thin pale brass full ring just outside the arcs, with a dark gap between them; brighter zoomed out.
        - Stockade art: all three tiers drawn 8% smaller with shear -0.2 so they sit in their 2x2 footprint (town and war camp).
@@ -2750,8 +2750,8 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - Armory (src/sim/frontier/war_armory.js, menu src/war_armory_menu.js): command `{ type: 'frontier', action: 'armoryUp', war, group, track }`; data `war.armory` (levels 3, step 0.05, seconds 60, cost 100/200/300 ryo + 100 timber + 100 stone); `war.units.<unit>.group`. Ryo from the war chest, timber and stone from the camp or town stock; works only while the armory stands; one at a time per side; applies to that side's troops of the group, those already out too (`warUp` damage and taken in stats.js). Gone at war end.
      - Generals (war_general_brain.js): every bot camp builds `camp_station` when the clan has a town with a station (Rush second, Siege after the quarry, Raider first); refills the chest (treasury auto order within the share, else coffers down to the keep share) and orders timber and stone below `general.attack.supply` (timberLow 200, stoneLow 120, order 200; Raider 400/250/400); buys armory levels for the group with the most troops while above `general.armory.reserve` (300 ryo, 150 timber, 100 stone); defenders target the camp station, then sections, before other buildings. A cut supply line is mended before the rest of the plan (station first, then sections, one at a time, keeping `general.buildReserve`). A ruin is a gap in the build plan again: in plan order, when paid for, the general erases the ruin and builds the same type on its spot.
      - Tests: tools/test_ryo_freight.mjs, test_camp_spur.mjs, test_armory_upgrades.mjs (new); test_war_general.mjs "8e-7 supply line" block; test_shipments_tab, test_town_war_panel, test_war_general_tab, test_camp_menus extended; test_camp_spur.mjs also covers short pieces, hit boxes, any-break cut, rebuild, cancel, no erase, ruin slot and reason; test_war_general.mjs "mending" (section rebuilt, ruin cleared and rebuilt on its spot). bench_war default fingerprint unchanged (dd6135a9); with generals now 734fa79a.
-     - Generals, supply tents (Tim 2026-11-17): while a side is at its troop cap with ryo to train more (memory `capped`), its general places the next supply tents before the rest of its plan (town: `place`, camp: `campPlace`; one at a time, up to `war.buildings.supply_tents.max` 6 = troop cap 58).
-     - Generals, build on (Tim 2026-11-17): after its strategy's own list (`defend.build`, `attack.build`) a general goes on with supply tents up to their max and then `general.buildOn` (armory, field_clinic, watchtower x2, barracks, rifle_range, watchtower x2), on top of what the list names; a type at its max is skipped. A camp gets the camp hall upgrade the armory needs. A town at peace builds only the supply tents of this tail; the rest once a war is on it. The tail never holds a push back (`left` counts the own list only). The camp's palisade line comes after the own list, before the tail; short of timber the camp saves for it.
+     - Generals, supply tents (2026-11-17): while a side is at its troop cap with ryo to train more (memory `capped`), its general places the next supply tents before the rest of its plan (town: `place`, camp: `campPlace`; one at a time, up to `war.buildings.supply_tents.max` 6 = troop cap 58).
+     - Generals, build on (2026-11-17): after its strategy's own list (`defend.build`, `attack.build`) a general goes on with supply tents up to their max and then `general.buildOn` (armory, field_clinic, watchtower x2, barracks, rifle_range, watchtower x2), on top of what the list names; a type at its max is skipped. A camp gets the camp hall upgrade the armory needs. A town at peace builds only the supply tents of this tail; the rest once a war is on it. The tail never holds a push back (`left` counts the own list only). The camp's palisade line comes after the own list, before the tail; short of timber the camp saves for it.
      - Generals, town hall war upgrade: a town at war does not wait on the hall upgrade it cannot pay (the coffers feed the chest); the rest of its list goes on, and the upgrade is bought when the coffers can pay it. At peace it saves for it as before.
      - Generals, ryo by train (`chestByTrain` in war_general_brain.js): while the chest holds less than `war.supply.chestLow` that it can spend (a camp's chest less the camp hall upgrade's ryo it keeps back), one open auto order from the Clan treasury (keep line, daily share, refill unchanged) and, beside it, one order from an own town's coffers down to the general's keep share, sized to what it can spend (free troop places x `general.troopRyo` 120, at least `refill`, at most `railways.ship.ryoPerTrain`). A bot's defending town also draws on the clan's other towns' coffers; a player's defending general does not.
      - Generals, timber and stone by train: a linked camp orders while stock plus what is on its way is under the larger of its low mark (`attack.supply.timberLow` / `stoneLow`) and the cost of the building it is saving for (memory `want`) plus `general.buildReserve`; an order is at least `supply.order`, and all its open orders stay within the line's queue (`railways.ship.queueTrips` trainloads).
@@ -2760,17 +2760,17 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - Dev save `war_defend_yakuza` (tools/make_dev_save.mjs, replaces `rail_test_kuroda`): Yakuza town Tetsumichi with a station, a line to the capital, barracks, rifle range, 2 watchtowers, supply tents and average stock (food 3000, timber 1500, stone 800, goods 300, capped by storage; 2500 ryo, of which 1000 is in its war chest). A Kuroda bot town at tier 2 with a station and a capital line has declared war on it: its camp holds the tier-2 war pack (2400 ryo, 600 timber, 300 stone), a barracks and a camp station, and its spur is linked with the 3 red sections standing.
      - tools/soak_war.mjs: `RAIL=1` gives both towns a station and a line to the capital and adds `line: { linkedMin, cuts, cutMinutes, station, spur }`; `TREASURY=n` starts both clans' Clan treasury at n ryo; `attackerUse` / `defenderUse`: `{ ryoByTrain, goodsByTrain, capPeak, tents, armory, chestLeft }`.
      - Tests: test_war_general.mjs "supply tents on demand" (camp), "bot defence" (town tents beyond its list, bigger cap), "supply line, armory, mending" (coffers order beside the treasury order, orders within the queue, tents after the list); test_ryo_freight.mjs (goods order beside an open ryo order). bench_war fingerprints unchanged (dd6135a9; generals 734fa79a).
-     - Rebuild in war (Tim 2026-11-17): the `rebuild` command works while a war is on the town (the reject "not while a war is on this town" is gone). Cost, builders and the ruin card are unchanged. A rebuilt building counts on the town morale bar again.
+     - Rebuild in war (2026-11-17): the `rebuild` command works while a war is on the town (the reject "not while a war is on this town" is gone). Cost, builders and the ruin card are unchanged. A rebuilt building counts on the town morale bar again.
      - Generals, town rebuild (`rebuildTown`, `townRuins` in war_general_brain.js): a defending general rebuilds one ruin at a time: a ruined station first, then ruined military buildings and stockades in the order of `defend.build` (types not on the list last), when the town stores hold the cost plus `general.buildReserve`. While a ruin of the plan stands, nothing later in the plan is placed (supply tents at the troop cap excepted).
      - Town station cut (rail.js `townStations`): while every station of a town is a ruin, each finished line at that town is closed (`closed`, `cutBy: 'station'`, `cutAt`); routes through the town are blocked; the line opens when a station is built again. Notice to the line's owner, the town's owner and attackers at war with the town: "<Town> has lost its railway station: no trains run there until it is rebuilt".
      - Trains on a closed line (camp supply line cut, or town station cut): a train at a station stays there; one on the way runs to the next station and stays; its cargo stays aboard (`held`) and is unloaded when the line opens.
-     - Cut lines hold orders (Tim 2026-11-17): open orders into a cut camp or through a closed line stay open; cargo on a train or in a yard waits; all carries on when the line opens. Nothing is refunded at the cut. A war that ends first settles them as before (unloaded ryo back to its pot, ryo on the way to the town coffers or the treasury).
+     - Cut lines hold orders (2026-11-17): open orders into a cut camp or through a closed line stay open; cargo on a train or in a yard waits; all carries on when the line opens. Nothing is refunded at the cut. A war that ends first settles them as before (unloaded ryo back to its pot, ryo on the way to the town coffers or the treasury).
      - Auto refill and the camp hall upgrade: the `autoChest` ship command takes `held` (ryo of a camp chest the general keeps back for the camp hall upgrade, at most `war.hallUpgrade.cost.ryo`); the chest counts as below `war.supply.chestLow` without it, so a camp saving for the upgrade still gets its treasury refill.
      - UI: station menu lists a closed line as "To <place>" with "Line cut: no trains until it is rebuilt" and no boarding; the ruin card of a station adds "No trains run here until it is rebuilt"; War chest tab "On the way" rows show "line cut: waiting"; camp War chest tab and camp station menu say orders wait until the line is mended.
      - tools/soak_war.mjs: the attacker's launch town starts with the same stock as the defender's town and holds just the war pack plus `attack.keep` when its hero packs (`ATTACKER=<size>` or `ATTACKER=rich` changes it); output adds `launchTown`, `defenderTown` (ryo, timber, stone when the banner goes up) and `town: { ruined, rebuilt, stationDownMinutes }`.
      - Tests: test_town_military.mjs (rebuild during the war, bar rises again); test_ryo_freight.mjs (station cut: lines closed, route blocked, train held, order waits and arrives after the rebuild); test_camp_spur.mjs (order into a cut camp waits and arrives once the line is mended; auto refill with `held`); test_war_general.mjs "bot defence" (the general rebuilds a ruined watchtower during the war).
      - Train load: `railways.ship.wagonLoad` 120 (was 60): 240 a trip with the 2 goods wagons; the on-order cap per line is `queueTrips` 3 trainloads = 720. `ship.sell.batch` 240 (was 120). `ship.ryoPerTrain` 2000 unchanged.
-     - 2026-11-23: goods wagons carry 240 each (`wagonLoad`, was 120, Tim 2026-11-17), so a train carries 480 and the order queue cap is 1440; ryo per train unchanged at 2000.
+     - 2026-11-23: goods wagons carry 240 each (`wagonLoad`, was 120, 2026-11-17), so a train carries 480 and the order queue cap is 1440; ryo per train unchanged at 2000.
      - 2026-11-23, last resort: when a town's workers cannot bring in more of a resource under its keep line, the rail clerk's auto-buy budget for it is `railways.ship.budgetShare` (5%) of the town's ryo, at most one trainload's price; a typed budget stands.
      - Camp sales: a linked war camp sells timber, stone, food or goods from its stores at the capital by train (ship command `mode: 'sell'` with `town: 'camp:<war id>'`). The amount is held in the camp stores (`camp.reserved`) until a train takes it; it pays `ship.sellPrice` each into that side's war chest on arrival (war chest source "Sold at the capital"), into the Clan treasury if the war has ended. The order ends with the war like other camp orders. Camp station menu: "Sell to the capital" button opens one row per resource with a typeable amount box and Sell.
      - Camp buying: a camp order may carry a ryo offer (`ryo`, from the war chest); when no own town can spare enough, the rest is bought at the capital at `ship.buyPrice`, paid from the war chest at once. Ship command `mode: 'offer'` sets the offer of an open order (any town or camp order). Camp station menu: "Buy at the capital" box under the order rows (ryo from the war chest each new order may spend; 0 = towns only).
@@ -2778,12 +2778,12 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - Generals, camp buying and selling (`campSupply`): a new camp order carries an offer for what the clan's linked towns cannot spare (buy price, war chest above `war.supply.chestLow` and the camp hall upgrade's ryo it keeps back); an open camp order no town has filled for `attack.supply.buyAfterSeconds` 60 gets one (`mode: 'offer'`). Stores beyond what the rest of the plan still needs (memory `planNeed`: buildings not standing, the camp hall upgrade), the low marks and `buildReserve` are sold, the better paying first, a trainload at a time, at least `attack.supply.sellMin` 100, one sale open, never a resource it has on order.
      - Governor overflow sale (`ship.overflow`): timber and stone are sold only when the store is full (`at` 1, within 1 of storage), down to `downTo` 0.9 of storage and never below keep, one open sale per resource; never while a war is on the town or while it fills a war camp's order. Food is never sold on its own; the goods sale at `sell.aboveShare` 0.7 is unchanged.
      - Tests: test_camp_spur.mjs (camp sale into the war chest, camp buy from the war chest, offer on an open order, bot camp keep share); test_shipments_clerk.mjs (overflow sale: only when full, not in war, food never, one at a time).
-     - Temperament (Tim 2026-11-17): at war start each side's general is `bold` or `patient` (`warGeneral.temper(war, side)`, kept on `war.temper`, rolled from the game seed). Odds: the strategy's `attack.bold` (rush 0.7, raider 0.5, siege 0.25), else `war.general.attack.bold` 0.5. A patient general builds its list before a full push (8d-10). A bold one pushes in full once it has `attack.boldReady` troops (10) with that many ranged (2). Any general pushes in full early when its troops are worth `attack.edgePush` (1.5) times the defenders it sees within `attack.scout` (600) of the town (by ryo, war chest unseen). No early push into a town with a stockade before the camp has siege guns. Probes and the fall back (`attack.fallBack` 0.35, then regroup) are unchanged. Memory `early`: 'bold' or 'edge'.
-     - Camp stock (Tim 2026-11-17): a general counts as needed (`planNeed`) only the timber and stone of the next `attack.supply.planAhead` (2) buildings of its plan that are not standing, plus the camp hall upgrade when one of them needs it; stores beyond that, the low marks and `buildReserve` are sold at the capital (as before).
-     - Bot founding (Tim 2026-11-17): a bot does not leave to found its town before its Hero group holds `founding.bots.heroCrew` (2) standing crew; while it is short it does not save, so it may hire.
-     - Player's defending general (Tim 2026-11-17): fills the war chest by train from the player's other linked towns too, never below each town's keep line (`warKeep`, default `keepShare`). Treasury rules unchanged.
-     - Raider and supply lines (Tim 2026-11-17, Raider only): `strategies.raider.defend.lineRaid` {party 3, home 3, giveUpSeconds 150, restSeconds 180}: while the defenders are not strong enough to sortie, `party` troops (riders first) go to break the war camp's supply line (camp station first, then the nearest rail section) while at least `home` stay home, resting `restSeconds` after each raid (memory `raid`, `raids`, mode `lineRaid`). `strategies.raider.attack.targets` starts with `station` (the town's railway station; a ruined station closes its lines).
-     - Breaches in war (Tim 2026-11-17): the owner of a player town may build a wall or gate piece over a breach during the war, at normal cost (placement.js). A bot clan's town still waits for the war's end; its general does not rebuild breaches.
+     - Temperament (2026-11-17): at war start each side's general is `bold` or `patient` (`warGeneral.temper(war, side)`, kept on `war.temper`, rolled from the game seed). Odds: the strategy's `attack.bold` (rush 0.7, raider 0.5, siege 0.25), else `war.general.attack.bold` 0.5. A patient general builds its list before a full push (8d-10). A bold one pushes in full once it has `attack.boldReady` troops (10) with that many ranged (2). Any general pushes in full early when its troops are worth `attack.edgePush` (1.5) times the defenders it sees within `attack.scout` (600) of the town (by ryo, war chest unseen). No early push into a town with a stockade before the camp has siege guns. Probes and the fall back (`attack.fallBack` 0.35, then regroup) are unchanged. Memory `early`: 'bold' or 'edge'.
+     - Camp stock (2026-11-17): a general counts as needed (`planNeed`) only the timber and stone of the next `attack.supply.planAhead` (2) buildings of its plan that are not standing, plus the camp hall upgrade when one of them needs it; stores beyond that, the low marks and `buildReserve` are sold at the capital (as before).
+     - Bot founding (2026-11-17): a bot does not leave to found its town before its Hero group holds `founding.bots.heroCrew` (2) standing crew; while it is short it does not save, so it may hire.
+     - Player's defending general (2026-11-17): fills the war chest by train from the player's other linked towns too, never below each town's keep line (`warKeep`, default `keepShare`). Treasury rules unchanged.
+     - Raider and supply lines (2026-11-17, Raider only): `strategies.raider.defend.lineRaid` {party 3, home 3, giveUpSeconds 150, restSeconds 180}: while the defenders are not strong enough to sortie, `party` troops (riders first) go to break the war camp's supply line (camp station first, then the nearest rail section) while at least `home` stay home, resting `restSeconds` after each raid (memory `raid`, `raids`, mode `lineRaid`). `strategies.raider.attack.targets` starts with `station` (the town's railway station; a ruined station closes its lines).
+     - Breaches in war (2026-11-17): the owner of a player town may build a wall or gate piece over a breach during the war, at normal cost (placement.js). A bot clan's town still waits for the war's end; its general does not rebuild breaches.
      - Camp stock writes: war_armory.js and war_end.js change camp stock only through `addCampStock` (frontier_lint).
      - Tests: test_war_general.mjs (temperament roll kept, seeded, odds by strategy; bold push before the list is built; no early push into a stockade before siege; planNeed only the next buildings, spare stock sold; the player's defending general orders ryo from his other town within its keep line); test_structures.mjs (a player builds over a breach during the war, a bot town does not).
    - **Build steps** (each step is a checkpoint: game runs, nearby Node tests pass, nothing half-edited, one-line note to the coordinator. New or changed controls go in the Controls panel and keybinds.js in the same step. Mock before each new panel or visual. Backups of replaced files in to_delete/_8e/.)
@@ -2845,14 +2845,14 @@ Mockups before each new panel (camp panel, war chest, queues, action bar ability
      - 8e-8 Ryo badge by location:
        - ryo_badge.js: city = Clan treasury; inside an own town's ring = "<Town> coffers" (chest look); inside a war circle = War chest (red-banner look). Hover lists all three.
      - 8e-9 Armory upgrades:
-      - Condensed (Tim 2026-11-25) to two tracks for all troops: Weapons (+5% damage a level) and Armor (5% less damage taken a level), 3 levels each; ryo halved to 50/100/150, timber and stone 100/100 unchanged. Old saves fold per-group levels into one (best level of each track).
+      - Condensed (2026-11-25) to two tracks for all troops: Weapons (+5% damage a level) and Armor (5% less damage taken a level), 3 levels each; ryo halved to 50/100/150, timber and stone 100/100 unchanged. Old saves fold per-group levels into one (best level of each track).
        - Bought at a built armory (camp, or town during a war on it), war only: reset when the war ends.
        - Troops only; hero and crew unaffected.
        - Groups: melee (grunt, spearman, brute, enforcer, irezumi, kunoichi, dog handler), ranged (archer, rifleman, teppo, yumi, geisha), mounted (sword rider, mounted pikeman), siege (cannon, wooden cannon, gatling, fire bomber). `war.units.*.group` in data.
        - Two tracks per group: Weapons (+5% damage per level) and Armor (+5% defence per level), 3 levels (max +15%). Cost per level (placeholder, data): 100 / 200 / 300 ryo from the war chest plus 100 timber and 100 stone from camp or town stock, 60 s each. No iron (revisit later).
        - Applied in the war stat block for every troop of that side and group, including troops already on the field.
        - Armory menu cards; general buys them (8e-7).
-       - Queue (Tim 2026-11-18): one upgrade in the work per side, up to `war.armory.queue` (5, the one in the work included) queued, each paid when queued. A waiting one cancels for its full price; later levels of the same track in the queue are cancelled and refunded with it. Command `armoryCancel { war, index }`. Bot generals still buy one at a time.
+       - Queue (2026-11-18): one upgrade in the work per side, up to `war.armory.queue` (5, the one in the work included) queued, each paid when queued. A waiting one cancels for its full price; later levels of the same track in the queue are cancelled and refunded with it. Command `armoryCancel { war, index }`. Bot generals still buy one at a time.
        - Tests: tools/test_armory_upgrades.mjs (buy, cost, applies to group only, not hero/crew, reset at war end, both camp and town).
      - 8e-10 Checkpoint end:
        - All tests touching changed code, bench_war, a short soak, dev save war_test_yakuza rebuilt.
@@ -2948,10 +2948,10 @@ Zone data and caps, the zones map, the default castle with its rail hub, rival c
 - The castle track runs dead straight from the castle station through the middle of the rail gate and over the rail bridge, and turns only out past the moat (`castleStraight` in `sim/frontier/rail.js`).
 
 
-**Default castle v6 (Tim chose "a third smaller")**
+**Default castle v6 (chosen "a third smaller")**
 - Every castle uses the same layout, now 28 by 31 cells (was 36 by 43): the same three levels, walls, gates, towers and buildings, packed tighter. The keep is 6 cells a side, yards are 2 to 3 cells wide, both land bridges are 2 cells long. File `data/castle_default.json` (hall [12,16]).
 - The castle spots moved 5 cells toward the sea so the docks still reach the water: East Plains 13055, 2180; Northern Thaw 5869, 513; Southern Wilds 9820, 6560; Red Desert 769, 2906; Western Reach 3411, 7516 (`campaign_zones.json`).
-- Castles stay free of management: no zones, workers or upkeep (Tim reconfirmed 2026-11-19).
+- Castles stay free of management: no zones, workers or upkeep (reconfirmed 2026-11-19).
 
 **Castle gates**
 - You walk through a castle gate only between its door posts, 5 world units across the middle of the gate run (`townGrid.castleGateDoor`). The rest of the run blocks like wall.
@@ -2959,7 +2959,7 @@ Zone data and caps, the zones map, the default castle with its rail hub, rival c
 - The stone pillar at each wall corner is drawn over both walls (`_castleWalls.w.postDepthBias`).
 
 **Dev save**
-- castle_test keeps the castle tour (Tim 2026-11-20: leave it in): empty castles at the two spots no clan holds, all castles seen and pinned on the World map.
+- castle_test keeps the castle tour (2026-11-20: leave it in): empty castles at the two spots no clan holds, all castles seen and pinned on the World map.
 - Castle docks are walkable: the water under a placed castle's ground is cut out of the terrain blockers (`sim/castles.js` castleWalkBoxes, `sim/areas.js` walkOver, `sim/chunk_gen.js` option `walk`). Moat banks: `world_paint.json` `moatBank`, `frontier.json` `townArt._ground` `bankFade` / `bankCorner`.
 - Castle look (2026-11-20): land bridges are stone ramps with cut-stone sides, low parapets on open sides and steps across the climb. Every terrace and ramp face has a sloped stone footing whose outer and top edges wander and fade softly (no straight lines); the top edge on the face varies in height.
   - `src/castle_height.js`: `PARAPET`, `FOOT` (wobbleUp 0.45, fadeUp 1.6, lift 0.04); piece kinds rampFace, parapet, footing, footFade. `src/render/world_ground.js` adds uvw and per-corner alpha; `src/render/shading.js` terraceMaterial has a fade option. Pieces in `data/frontier.json` townArt._castle.pieces; tested by `tools/test_castle.mjs`.
@@ -2990,15 +2990,15 @@ Zone data and caps, the zones map, the default castle with its rail hub, rival c
 
 ## Phase W5: Exploration and natives
 
-Goal (Tim, 2026-11-02): the wilds are worth exploring: native villages with their own relations,
+Goal (2026-11-02): the wilds are worth exploring: native villages with their own relations,
 one-time set-piece areas, and unique items you can only find out there. Builds on W4 (basic camps,
 nodes, the relation record) and runs after F6 war.
 
-Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (Tim's rule, 2026-11-02). Extra: the existing loot and item-slot code (function list
+Reads: the WHOLE plan (`docs/frontier_build_steps.md`) and `docs/step_runner_guide.md` (the rule, 2026-11-02). Extra: the existing loot and item-slot code (function list
 only).
 
 ### W5.1. Natives, areas and items list  [TIM]
-**Decided (Tim, 2026-11-02):**
+**Decided (2026-11-02):**
 - **Natives:** 2 to 4 villages in the wilder regions. They buy food and goods and sell herbs, furs and
   a few unique items. Favours (drive off a nearby bandit camp, escort their hunters) raise relation.
   High relation unlocks native guides (reveal part of the map) and native warriors as mercenaries.
@@ -3012,7 +3012,7 @@ only).
   tier of the existing loot rarity; usable ones go in the B item slot. Some are **town relics**
   (for example a shrine bell that lifts mood when placed in a shrine).
 A SMALL thread drafts the list (names follow the W1.1 names rule; image prompts follow project
-rules) for Tim's OK.
+rules) for the OK.
 
 ### W5.2. Native villages  [SMALL]
 Needs: W5.1, W4.2, F3
@@ -3050,7 +3050,7 @@ Done note: "W5.4 unique items in."
 Trade with a village and do a favour, clear one set-piece area (one interior), find a unique item,
 and place a relic in a town.
 
-**Phase end:** tests pass; Docs keeper commits "Exploration and natives"; Tim playtest W5.5.
+**Phase end:** tests pass; Docs keeper commits "Exploration and natives"; playtest W5.5.
 
 ---
 
@@ -3110,7 +3110,7 @@ Checklist (2026-11-22):
 - [x] S6 Landing helpers and effects: repair effect, pale shore line, anchor cursor, damage look, drowning and wash-up effects.
   - S6a (effects) built 2026-11-23; S6b below. Repair at the yard shows hammer blows with sparks along the deck, plank and nail taps, and a light running along the health bar. A sunk ship goes under over about 6 s (lurch, down by the stern, hull hidden from the waterline up, steam, foam, drifting wreckage); a listing ship also sits in the water. Troops in its hold drown round the wreck, going under one by one. Hero and crew come ashore on a wave about 2 s after; when your hero was aboard the camera holds on the wreck, then pans to where he washes ashore, otherwise the alert and minimap ping. No new controls.
   - S6b (landing helpers) built 2026-11-23 (`src/landing_shore.js`, `render/shore_line.js`, `world_coast.js` coastSamples): while anyone of yours is aboard a ship, the shore it can land on inside its war circle shows as a soft pale line at the water's edge (fades in and out, breathes, tapers where the beach ends; none on cliff and mountain coast), and as a dotted line on the minimap and the World map. When your ships take a right-click (hero aboard with nothing selected, or a ship selected) the cursor shows an anchor over landable shore and a struck-through anchor over blocked coast; a click there still goes to the nearest landable shore. No new controls.
-  - S6 follow-up (Tim 2026-11-23): ship cannonballs are smaller than land cannon and cannon tower balls, with a smaller smoke trail (`render/crewfx.js`). The wash-ashore wave is about 2.5 times wider and runs in slowly: broken stretches of foam at different sizes and paces over soft, lumpy shallow-water patches, all partly see-through, leaving wet sand and a broken foam line (`render/ship_fx.js`). Effects rule: every visual effect stays somewhat see-through, so it reads as animation and not flat 2D art.
+  - S6 follow-up (2026-11-23): ship cannonballs are smaller than land cannon and cannon tower balls, with a smaller smoke trail (`render/crewfx.js`). The wash-ashore wave is about 2.5 times wider and runs in slowly: broken stretches of foam at different sizes and paces over soft, lumpy shallow-water patches, all partly see-through, leaving wet sand and a broken foam line (`render/ship_fx.js`). Effects rule: every visual effect stays somewhat see-through, so it reads as animation and not flat 2D art.
 - [x] S7 War end: ships land hero and crew, sail off and fade.
 - S7 built 2026-11-23, before S6 (`sim/frontier/ships.js` leave, `war_end.js`, `war.js`; test_ship_war_end):
   - When a war ends its warships and transports stop firing, sail away from the town and fade, then leave the map; troops in a hold go with the ship. When only one side gives up, only its ships leave.
@@ -3129,13 +3129,13 @@ Checklist (2026-11-22):
   - A general boards only with 1.5 times the strength against a ship under half health (S9 wires the AI).
   - Look: black grappling lines with small hooks, sparks, shots and smoke across the gap, small fighters (real unit sprites) on the boarded deck with a thin clan-colour outline, the bar. Clan-coloured sails and a pennant on every ship, muted painted tones.
   - Broadside: the gun barrels run out of the painted gun ports first, then the broadside fires (runOutTicks 10, half a second) with a fiery, see-through flash and smoke at each port; the barrels kick back and haul in.
-  - Data: frontier.json war.ships.boarding (hero, crew, lossShare, grappleSeconds, reach, alongside, gatlingCut, weakDefender, breakOffSeconds, cooldownSeconds, generalEdge, chaseSeconds), war.ships.guns.broadside.runOutTicks. All placeholders, Tim to tune in play.
+  - Data: frontier.json war.ships.boarding (hero, crew, lossShare, grappleSeconds, reach, alongside, gatlingCut, weakDefender, breakOffSeconds, cooldownSeconds, generalEdge, chaseSeconds), war.ships.guns.broadside.runOutTicks. All placeholders, to tune in play.
   - No new keybind: Board and Break off use the existing special ability key on the ship button.
 - S8 play fixes (2026-11-23; `cursors.js`, `special_cast.js`, `ships.js`, `shipyard.js`, `ability_rows.js`, `crew_input.js`, `station_clock.js`, `landing_shore.js`, `render/shore_line.js`, `render/ship_fx.js`, `render/shading.js`; test_ship_guns, test_shipyard):
   - Ship gun slots: a selected warship shows Board, Broadside and Deck Gatling on its special row; a transport shows Bow cannon. Keys Shift+Q, E, R in that order. The rows use the painted ability icons, broadside and bow_cannon included (assets/ui/abilities, ui_art.json).
   - Each gun fires by itself at the nearest enemy in range while its Auto is on (right-click the slot to toggle, on by default), enemy buildings in range included. Pressing the key and clicking aims that gun: it fires its next shot at the enemy unit or ship nearest the click, or at the enemy building clicked. With Auto off a gun fires only when aimed.
   - Deck Gatling aimed at a spot (as the land Gatling's Unload): it sweeps that spot for the whole burst, enemies there or not. Aimed at an enemy ship, the hull takes the burst at the hull table's gatling share. Auto deck Gatling still fires at troops only.
-  - Hull damage table (war.ships.hullDamage), one rule for every ship: siege 4, bomb 1 (Tim 2026-11-25, fire-bombs burn wood; was 0.25), gatling 0.2 (was 0), melee 0.25, ranged 0.25 (Tim 2026-11-25, were 0.02 and 0.01; hero hits count as melee or ranged). Bow cannon reloads in 7.5 s (reloadTicks 150); broadside unchanged at 15 s.
+  - Hull damage table (war.ships.hullDamage), one rule for every ship: siege 4, bomb 1 (2026-11-25, fire-bombs burn wood; was 0.25), gatling 0.2 (was 0), melee 0.25, ranged 0.25 (2026-11-25, were 0.02 and 0.01; hero hits count as melee or ranged). Bow cannon reloads in 7.5 s (reloadTicks 150); broadside unchanged at 15 s.
   - Ships stay on drawn water: a ship's step must end on drawn sea or river (within 2 units); along the shore it slides, a way point it cannot reach is passed after a second. A new ship from a yard always comes out on drawn water. The slipway and the town shipyard stand at the water's edge: drawn water within shoreEdge (18) of the building's middle, besides big-ship water within shoreReach (30).
   - All aboard ring at the pier for your war ship shows its count and "Space boards now", like trains and the ferry. The landable shore line is quieter: no bright glow, slower shimmer.
   - Ships sit in the water: the hull below the waterline fades into the sea with a broken foam lip along the line (warship line follows its gun port row); ships facing up or down the screen keep their whole hull above the fade. The painted deck gun on the warship is no longer drawn; its flash and tracer stay.
@@ -3159,11 +3159,11 @@ Checklist (2026-11-22):
 - [x] S9 AI general with ships.
 - S9 built 2026-11-23 (`sim/war_general_ships.js`, `war_general_brain.js`; test_general_ships):
   - A general (a rival's side always, the player's side while his hero is outside the war circle) uses ships only while they have work in that war, looked at every 30 s: an enemy target within gun range of water its ships can reach in the circle (attacker: town hall, military buildings, shipyard; defender: camp hall, camp buildings, slipway), enemy ships in the war, or (attacker) a landing past the town's walls or much nearer the hall than the camp is.
-  - Yards: the camp puts a slipway in its plan once a barracks stands, on the shore nearest the camp hall, and saves for it. A rival's town at war builds a shipyard by its harbour. A player's town at war builds nothing new (Tim's rule of 2026-11-22), so his general only uses a shipyard he already has.
+  - Yards: the camp puts a slipway in its plan once a barracks stands, on the shore nearest the camp hall, and saves for it. A rival's town at war builds a shipyard by its harbour. A player's town at war builds nothing new (the rule of 2026-11-22), so his general only uses a shipyard he already has.
   - Ships trained by strategy, one at a time at the yard, once the land army has 6 troops: attack Rush 1 warship + 1 transport, Siege 2 + 1, Raider 1 + 2; defence Rush 1 warship, Siege 2, Raider 1. Transports only when a landing is worth it.
   - Warships: under half hull they go home to their yard and lie there until mended to 90%. Else they board an enemy ship under half health when their hold is 1.5 times stronger; else go at enemy ships (the guns fire on their own); else shell the nearest target from water in range; else lie by their yard. While the enemy has ships a warship takes 3 troops aboard at its yard as a boarding party.
   - Transports (attacker): take up to 8 troops aboard at the camp shore (while the army gathers it keeps 6 back; during a push only the reserve gathering at the camp goes), sail when the army pushes or after 2 minutes, land on the shore nearest the town away from the camp, and the party attacks from there. The next landing waits a minute after that party is gone. Troops that have not reached the ship in 60 s are left behind.
-  - Data: frontier.json war.general.ships (lookSeconds, shellMargin, landShorter, landReach, after, mendBelow, mendTo, boardParty, landParty, landLeast, landWaitSeconds, landRestSeconds, loadSeconds, byStrategy). All placeholders, Tim to tune in play. No new controls.
+  - Data: frontier.json war.general.ships (lookSeconds, shellMargin, landShorter, landReach, after, mendBelow, mendTo, boardParty, landParty, landLeast, landWaitSeconds, landRestSeconds, loadSeconds, byStrategy). All placeholders, to tune in play. No new controls.
 - [ ] S10 Fishing boats and Boathouse.
 - [ ] S11 Harbour travel.
 - [ ] S12 Settler ship and goal card rows (optional after: rivals found by sea).
@@ -3171,7 +3171,7 @@ Checklist (2026-11-22):
 
 ---
 
-## Art backlog for the frontier (Tim, 2026-11-01)
+## Art backlog for the frontier (2026-11-01)
 
 Gathered here so art can be made ahead of the code that needs it. Characters and animals use the
 per-model sprite flow; static things use image prompts and the cutout tool.
@@ -3198,7 +3198,7 @@ walk cycles still need hand animation or a bought clip library). Hunyuan3D model
 commercial-OK, so they can't be the source for the Steam build.
 
 ### A1. Animal and vehicle pipeline test  [STRONG + TIM]
-Needs: Blender installed on Tim's laptop. Do before F3's first cart (Tim, 2026-11-01: make sure this
+Needs: Blender installed on the laptop. Do before F3's first cart (2026-11-01: make sure this
 works; crude models are the fallback).
 Do: make one ox and cart two ways. (a) A Blender Python script builds the cart from shapes, with
 turning wheels. (b) A commercial-OK rigged, animated ox base model (CC0 such as Quaternius, or CC-BY
@@ -3206,22 +3206,22 @@ with credit) is cleaned up, given the painted-look material and exported by scri
 `tools/export_sprites.mjs` into 8-direction sheets with the per-model `--pack` flow.
 Check (pass/fail): both produce sheets that load in game (Node `test_packed_catalog.mjs` passes);
 licences are noted.
-In game (Tim): compare them beside the city characters and pick the route for the rest of the
+In game: compare them beside the city characters and pick the route for the rest of the
 backlog. If neither looks right, crude static cutouts ship first and get replaced later.
 
 ## Later: needs design before steps
 
 These parts of the campaign plan are not stepped yet because their open choices decide the code.
-Each becomes its own phase after a short design session with Tim:
+Each becomes its own phase after a short design session:
 
-- **Classic / Campaign select in the main menu** (Tim, 2026-11-04): a proper mode select button on the start screen. Not part of Loop 3.
+- **Classic / Campaign select in the main menu** (2026-11-04): a proper mode select button on the start screen. Not part of Loop 3.
 - **Forts and conquest** (plan step 6; core now in F6 war): further center tiers, siege stages, garrison buildings, damage and
   repair. Needs: stage gates, control duration, garrison capacity.
 - **Exploration rewards** (plan step 5a, frontier part; now Phase W5): ruins and caches with first-clear claim
   records so reloads cannot reroll. The capital gear, shop and item slot are already built.
 - **Campaign rules** (plan step 7): expulsion, return, victory, season conversion, multiplayer
   authority. Victory is now designed (Phase Z).
-- **Armies at the capital city** (Tim, 2026-11-02: not possible at first; maybe much later; 2026-11-19: the port city is never besieged, castles are the siege targets): attackers pitch a siege camp outside the
+- **Armies at the capital city** (2026-11-02: not possible at first; maybe much later; 2026-11-19: the port city is never besieged, castles are the siege targets): attackers pitch a siege camp outside the
   city edge (F6 war). The city map is hand-made, so defenders don't build freely: `port_town.json`
   gets a few marked empty lots where defenders can drop quick structures (barricade, rifle nest,
   field barracks tent), and the HQ and owned businesses act as recruit points. Same commands as
@@ -3232,7 +3232,7 @@ Each becomes its own phase after a short design session with Tim:
   track stops the whole line until repaired, and train robbery is its own raid. Same shipment
   records with `mode: 'rail'` (F3.1), so it adds links and a train, not a rewrite.
 - Current design: Phase S (2026-11-22). The cargo-by-sea text below was replaced 2026-11-19.
-- **Sea travel** (Tim, 2026-11-01: planned now, built later; now outlined as Phase S, kept here as
+- **Sea travel** (2026-11-01: planned now, built later; now outlined as Phase S, kept here as
   background): harbors as town buildings on the W1
   harbor spots, ships carrying shipments along sea lanes (same shipment records, `mode: 'sea'`), the
   hero and expeditions sailing between harbors, and pirates or naval interception. **Piloting:** the hero and his crew board a boat at a harbor or
@@ -3244,19 +3244,19 @@ approach on water, so they also run when nobody is watching. Because the
   transport graph already has a `mode` per link (F3.1) and W1 stores harbors and lanes, this adds
   links and a ship unit, not a rewrite.
 - **Unrest events** (later, optional): very unhappy towns could have trouble (a local gang skimming
-  stock, a small riot damaging a building). Tim chose the quiet version for now (2026-11-02).
+  stock, a small riot damaging a building). chosen the quiet version for now (2026-11-02).
 - **Life on the roads** (proposed): cosmetic travelers (peddlers, pilgrims, carts) drawn near the
   camera along corridors, so the world doesn't feel empty; no gameplay effect at first.
-- **Clan specialties in towns** (Tim, 2026-11-02): basic shared version first; clan-flavoured
+- **Clan specialties in towns** (2026-11-02): basic shared version first; clan-flavoured
   buildings or income (gambling halls, drill yards, spy networks) come later.
-- **Seasons and weather** (Tim, 2026-11-02): visual effects only for now (snow, rain, falling
+- **Seasons and weather** (2026-11-02): visual effects only for now (snow, rain, falling
   leaves), no gameplay effect.
-- **Blood** (Tim, 2026-11-01, later): a basic blood system (hit spatter, pools under the downed,
+- **Blood** (2026-11-01, later): a basic blood system (hit spatter, pools under the downed,
   fading over time), drawn by the renderer from existing hit events, with a Settings toggle. Check
   how it affects Steam's mature-content questionnaire before release.
 - **Scale** (plan step 8): more regions only after F6 war and Firefox profiles show room.
 - **Combat AI variety** (roadmap item 13): ranged units backing off, spreading out, flanking. This is
-  judgement and feel work for the default model plus Tim's playtests, not small-model work.
+  judgement and feel work for the default model plus the playtests, not small-model work.
 
 **Lieutenant raids (2026-11-08):** standing order Raid (on by default; not for the Shinobi). The lieutenant buys a War Lantern from the treasury only while at least raidReserve (1000) ryo stays after it; it is not booked against his budget. At night he picks a rival business (the season leader's first, then the one with fewest defenders; never an HQ), calls a Rally of the HQ and sector groups (purpose raid), takes the crew and the city captain to its door, and the captain plants the lantern when raidMinCrew (3) crew are there or after 60 s. In the hold phase the crew go in and hold the back room. A raid not started within 120 s is dropped. Job squads stay out while their clan has a raid or contract going. Log lines: "Bought a War Lantern", "Called a Rally to raid", "Raiding the <business>". Code: `sim/lieutenant.js`, `lieutenant_panel.js` (Raid row), `sim/deployment.js`; test `tools/test_lieutenant_raid.mjs`.
 
@@ -3267,7 +3267,7 @@ approach on water, so they also run when nobody is watching. Because the
 - Rail clerk: auto orders, and sells goods above 70% of storage; runs only with governor Initiative On.
 - Robbery gameplay is not built; `shipments.rob()` exists for it to call.
 - Town card: the Projects tab is now the Building plans section of the Governor tab (suggestions first); the tab label shows a badge for waiting suggestions. New Shipments tab (`src/shipments_tab.js`): Simple mode = Order 50/100 per resource; Advanced = Order / Sell / Keep / Open, typed amounts with ±10/±100 buttons, cost estimate and order cap readout; it opens the Rail ledger.
-- Rail ledger (`src/rail_ledger.js`), from the world map: Open / Delivered / Losses; picking an order highlights its train. Tim 2026-11-23: the town Open tab is merged into the Ledger tab. Every open row shows TRAIN n with an exact countdown, WAITING about X as an estimate (train wait plus ride, one trainload a trip), or NO SOURCE with no ETA and the clerk's next look. Read-only helper `sim/frontier/ship_eta.js`.
+- Rail ledger (`src/rail_ledger.js`), from the world map: Open / Delivered / Losses; picking an order highlights its train. 2026-11-23: the town Open tab is merged into the Ledger tab. Every open row shows TRAIN n with an exact countdown, WAITING about X as an estimate (train wait plus ride, one trainload a trip), or NO SOURCE with no ETA and the clerk's next look. Read-only helper `sim/frontier/ship_eta.js`.
 - Governor: with Initiative On he starts any project waiting for an OK. With no player budget he may start one project dearer than initiativeBudget at the start of a fresh window.
 - Settings: two columns, 880px wide, Pause music button, listed in the layout-mode windows.
 Tests: `tools/test_shipments.mjs`, `test_shipments_clerk.mjs`, `test_shipments_tab.mjs`, `test_shipments_trains.mjs`, `test_rail_ledger.mjs`.
@@ -3281,7 +3281,7 @@ Tests: `tools/test_shipments.mjs`, `test_shipments_clerk.mjs`, `test_shipments_t
 - Waiting: a governor worker with no camp-side spot waits inside the town hall (`worker.wait`, `shelter.wait`); when the hall is full he waits outside and tries again every `workers.waitRetryTicks` (1200). The governor trains no worker while one waits. Roster: "Waiting in the hall for a spot beside a camp". Waiting workers stay in during peace and are not let out when a war ends; one waiting may still mend for the general.
 - Town hall card: the Workers inside section shows in peace too, with "Send all N workers in" / "Send the other N in" and Back to work (command `hallShelter`). After Back to work the governor leaves them alone for `workers.waitGraceTicks` (1200); a job or order by hand ends the wait and makes the worker the player's.
 - Another camp: while a worker waits, the governor (Initiative on, bots too) builds another camp beside a spot with none: scarcest resource first, a rich deposit before an ordinary spot, then nearest the hall; within the tier camp limit, one project at a time. Otherwise the status line says why (no camp slot at this hall tier, saving for a quarry, no free ground, stores full, after the current project).
-- Placeholders, Tim to tune. Code: `sim/frontier/workers.js`, `governor.js`, `structures.js`, `worker_panel.js`, `frontier_build_ui.js`. Test: `game/tools/test_camp_side.mjs`.
+- Placeholders, to tune. Code: `sim/frontier/workers.js`, `governor.js`, `structures.js`, `worker_panel.js`, `frontier_build_ui.js`. Test: `game/tools/test_camp_side.mjs`.
 
 ## Camp card Move extras and tired camps (2026-11-22)
 
@@ -3303,7 +3303,7 @@ Tests: `tools/test_shipments.mjs`, `test_shipments_clerk.mjs`, `test_shipments_t
 
 ## General, governor and lieutenant logs; full quarter after the list (2026-11-22)
 
-- After his list the general goes on with supply tents to their max in peace too, and saves and grows the quarter for them. When a building of his list needs the hall war upgrade and the list has none (Siege), he saves for the upgrade first ("saving for the town hall war upgrade"). In a war on his own town he adds no new buildings (it would use up timber and stone); he only rebuilds ruins (Tim 2026-11-22).
+- After his list the general goes on with supply tents to their max in peace too, and saves and grows the quarter for them. When a building of his list needs the hall war upgrade and the list has none (Siege), he saves for the upgrade first ("saving for the town hall war upgrade"). In a war on his own town he adds no new buildings (it would use up timber and stone); he only rebuilds ruins (2026-11-22).
 - General's log: at the bottom of a town's General tab and of the war camp's General tab, a row with the newest line, the time and the count. Click it to open the log in the tab: Back, day headers, ten lines a page, newest first, Newer and Older buttons with Page N of M, and a tag per line (Built, Land, Saving, Stuck, War). Point at a line for more in the box under the list. He logs buildings he places, the hall war upgrade, ruins he rebuilds, what he starts saving for, the red line when he is stuck, the quarter he marks out or grows, fund money put in the war chest when attacked, pushes and probes, beaten pushes, sorties; at a camp also camp buildings, the camp hall upgrade and the palisade line.
 - Governor's log: the same row at the bottom of the Governor tab. He logs buildings he places, streets he lays, cells he zones and workers he starts training (tags Built, Land, Workers).
 - Lieutenant's log: the same row on the While I'm away page (replaces the old scrolling list). Lines: raids, Rallies, ambushes, War Lanterns, Shakedowns and Sweeps (War), hires, bails, the clinic and crew let go (Crew), the captain falling (Stuck), the rest (Order); each notes day or night. It keeps settings `lieutenant.logEntries` (20) lines.

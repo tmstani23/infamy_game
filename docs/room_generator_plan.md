@@ -1,22 +1,22 @@
 # Room generator plan
 
-Status: built 2026-10-16 in phases (Tim said go the same day). Each step is ticked below when it is done and synced to Tim's folder, so a fresh session can pick up from here. It follows the rules in `docs/interiors_spec.md`.
+Status: built 2026-10-16 in phases (said go the same day). Each step is ticked below when it is done and synced to the folder, so a fresh session can pick up from here. It follows the rules in `docs/interiors_spec.md`.
 
 ## Progress
 
 - [x] 1. Inner walls and zones (done 2026-10-16: `inner` and `zones` in room data, checked in `sim/interiors.js`, drawn by `buildInnerWall` in `render/interior3d.js`, documented in the spec; the teahouse has none, so the game is unchanged)
 - [x] 2. Recipes and den/warehouse prop models (done 2026-10-16: `game/data/room_recipes.json` for all three types; 3D models in `render/interior3d.js` and entries in `interior_parts.json`; gambling mat texture unwarped by `tools/make_interior_textures.py`; checked in a test room, not yet used by the game)
 - [x] 3. Generator, checks and Node tests (done 2026-10-16: `game/src/sim/generate.js` `generateRoom(type, seed, recipes, parts)`; walkway flood-fill on a quarter-cell grid; `node game/tools/test_rooms.mjs` passes 100/100 seeds for all three types, about 2 ms a room)
-- [x] 4. Preview page, then Tim picks seeds (Tim picked 2026-10-16: teahouse 2, 6, 11; den 4, 8, 12; warehouse 2, 5, 12, saved as `picked` in `room_recipes.json`. Page: `game/tools/rooms.html`, open at http://localhost:8137/game/tools/rooms.html while the game runs; `index.html?room=gambling_den&seed=3` starts inside a generated room.)
-- [x] 5. Den and warehouse use generated rooms; old painted wall pieces removed (done 2026-10-16: waterfront den = gambling_den seed 4, warehouse = seed 2; the teahouse stays the hand-made one Tim approved. The painted-room code is gone from `sim/interiors.js`, `render/scenery.js`, `render/shading.js` and `view.js`; the old wall PNGs in `game/art/interior/` are no longer used)
+- [x] 4. Preview page, then picks seeds (picked 2026-10-16: teahouse 2, 6, 11; den 4, 8, 12; warehouse 2, 5, 12, saved as `picked` in `room_recipes.json`. Page: `game/tools/rooms.html`, open at http://localhost:8137/game/tools/rooms.html while the game runs; `index.html?room=gambling_den&seed=3` starts inside a generated room.)
+- [x] 5. Den and warehouse use generated rooms; old painted wall pieces removed (done 2026-10-16: waterfront den = gambling_den seed 4, warehouse = seed 2; the teahouse stays the hand-made one approved. The painted-room code is gone from `sim/interiors.js`, `render/scenery.js`, `render/shading.js` and `view.js`; the old wall PNGs in `game/art/interior/` are no longer used)
 
 Update 2026-10-18 (all three rooms generated; the teahouse now uses seed 2):
 - Sizes: teahouse 16x12 to 22x18; den and warehouse 20x18 to 26x22. About twice the props (e.g. teahouse 5 to 8 tea tables, den 5 to 7 gambling mats).
 - The door area is cleared and the back doorway has a clear approach.
 - Walkway check from the door to everything, with a gap rule: piles may sit 0.5 apart, walkways need 1.05; a prop that breaks it is nudged, then moved.
-- Picked seeds in use: teahouse 2, den 4, warehouse 2 (Tim may re-pick).
+- Picked seeds in use: teahouse 2, den 4, warehouse 2 (may re-pick).
 
-Next: nothing planned. Possible follow-ups: put the other picked seeds on new buildings as the district grows, more props or texture sets per type for variety, and brighten the warehouse if Tim finds it too dark.
+Next: nothing planned. Possible follow-ups: put the other picked seeds on new buildings as the district grows, more props or texture sets per type for variety, and brighten the warehouse if finds it too dark.
 
 ## What it does
 
@@ -86,7 +86,7 @@ The generator only decides layout: sizes, bay types, doors and which props go wh
 - Rooms are rectangles split by straight inner walls, with no L-shapes or second floors yet. Stairs can be a prop that leads nowhere until upper floors exist.
 - Variety comes from layout and prop choice, not new art. More variety later means more prop models or texture sets per building type.
 
-## Aligned layouts (Tim, 2026-10-22)
+## Aligned layouts (2026-10-22)
 
 Recipes support aligned rows with mixed art variants and explicit gaps, fixed sleeping bays, two chairs facing each other across the manor reception table, and paired cushions around each tenement communal table. Shop/pawn displays, customs records, brewery vats/shelves, manor furniture, tenement sleeping/common areas and bathhouse washing/tub zones use these layouts.
 

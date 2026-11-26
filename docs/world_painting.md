@@ -1,12 +1,12 @@
 # World painting: how the island gets a hand-made look from rules
 
 Proposed home: `docs/world_painting.md`, with a link from `docs/architecture.md` (Render) and
-`docs/art_direction.md`. Tim OK'd the approach 2026-11-02 ("the layered is much better"). Reference
+`docs/art_direction.md`. approved the approach 2026-11-02 ("the layered is much better"). Reference
 mock: `docs/images/frontier/ground_painting_mock.jpg`, made by `tools/ground_mock.py` (copied from
 /mnt/project-files/w3_walkable/ground_painting/).
 
 **For any AI working on island ground, props or a new biome: follow this procedure, keep every layer
-deterministic, and check the result against the mock before asking Tim to look.**
+deterministic, and check the result against the mock before asking to look.**
 
 ## The idea
 
@@ -121,7 +121,7 @@ gate, town site), each with a radius.
   - a chunk build stays within +20% of the W3.6 numbers (average 0.8 ms, worst 9 ms). Measured after W3.10: average 1.9 ms, worst 15 ms on the profile walk (warm builds 0.55 / 2.5 ms; sim tick unchanged at 2.31 ms); ground painting about 15 ms per new chunk on the render side. Proposed budget: average 2 ms, worst 16 ms, with a later speed-up step;
   - each spot mixes at most 4 materials (decided per point, so chunk borders always agree); a chunk uses up to 16 (four weight maps). A per-chunk top 8 made seams where neighbours picked different sets;
   - no extra draw calls per prop.
-- **Numbers in data:** every scale, threshold and density goes in `world_paint.json`, so Tim can
+- **Numbers in data:** every scale, threshold and density goes in `world_paint.json`, so can
   tune it without code.
 - **City untouched:** this is island-only (`place === 'world'`).
 
@@ -129,10 +129,10 @@ gate, town site), each with a radius.
 
 1. List its ground materials, props and decals in `world_paint.json`.
 2. Missing art: write prompts following `assets/image_prompts.md` (one at a time, transparent, tree
-   scale matching the pine) and have Tim generate them.
+   scale matching the pine) and have generate them.
 3. Preview: run `tools/ground_mock.py` with the new materials on a sample patch (before/after) and
-   show Tim. Build only after his OK.
-4. Build it, then run the checks below. Tim playtests with test travel (World tab, click and
+   show it for review. Build only after his OK.
+4. Build it, then run the checks below. playtests with test travel (World tab, click and
    confirm).
 
 ## Checks

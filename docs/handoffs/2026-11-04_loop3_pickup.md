@@ -1,14 +1,14 @@
 # Loop 3 pickup (2026-11-04)
 
-Handoff for picking up Loop 3 (gather and build) outside Claude, e.g. in ChatGPT. Tim OK'd this note 2026-11-04.
+Handoff for picking up Loop 3 (gather and build) outside Claude, e.g. in ChatGPT. approved this note 2026-11-04.
 
 ## Read first
 1. `START_HERE.md`
 2. `docs/usage.md`
-3. `docs/frontier_build_steps.md`: the "Loop 3 design (Tim, 2026-11-04)" section and the Loop 3 build cards L3.0 to L3.9 right under it.
+3. `docs/frontier_build_steps.md`: the "Loop 3 design (2026-11-04)" section and the Loop 3 build cards L3.0 to L3.9 right under it.
 
 ## Done and committed (local, not pushed)
-- L3.0 build bar mock and numbers (Tim approved).
+- L3.0 build bar mock and numbers (approved).
 - L3.1 town grid: `e2f532c`.
 - L3.2 placement and trap check + L3.3 zones, health and housing growth: `cc4948c`.
 - L3.4 resource spots (tool, `world_spots.json`, lookups): `850eba2`.
@@ -18,23 +18,23 @@ Handoff for picking up Loop 3 (gather and build) outside Claude, e.g. in ChatGPT
 - L3.8 build bar, inspectors, worker training and orders: Node checks pass; in-game visual/interaction playtest pending. The old crew-test arrival fixture was corrected without removing assertions; `test_crew.mjs` now passes.
 
 ## Next
-1. **L3.9 remains open.** The fix phase has uncommitted, Node-tested implementation ready for Tim's manual playtest, including the founding ghost and building/unit safety. Do not claim safe founding or loop acceptance yet.
-2. Follow the L3.9 manual checklist for founding/egress, worker routes/cargo/selection, usage and growth explanations, visual joins, save/load and capital/frontier FPS. Preserve saves; performance is not yet accepted. Do not commit the game changes until Tim's playtest/commit instruction.
-3. After Tim accepts Loop 3, update only the phase boxes actually completed, then continue Loop 4.
+1. **L3.9 remains open.** The fix phase has uncommitted, Node-tested implementation ready for the manual playtest, including the founding ghost and building/unit safety. Do not claim safe founding or loop acceptance yet.
+2. Follow the L3.9 manual checklist for founding/egress, worker routes/cargo/selection, usage and growth explanations, visual joins, save/load and capital/frontier FPS. Preserve saves; performance is not yet accepted. Do not commit the game changes until the playtest/commit instruction.
+3. After accepts Loop 3, update only the phase boxes actually completed, then continue Loop 4.
 
-Current playtest checkpoint: Tim accepted plot spacing, clearing appearance, inspector dismissal, build review/confirm and fence placement except corners; full loop acceptance is pending. Worker groups/move/hold, route recovery, full Eraser refunds, food-warning fixes, building collision and quantity-based training/hiring are in this checkpoint; latest interactions need focused and manual QA. See the L3.9 card for remaining checks and deferred road/fence/ford/bridge art. No save was reset or written during diagnostics.
+Current playtest checkpoint: accepted plot spacing, clearing appearance, inspector dismissal, build review/confirm and fence placement except corners; full loop acceptance is pending. Worker groups/move/hold, route recovery, full Eraser refunds, food-warning fixes, building collision and quantity-based training/hiring are in this checkpoint; latest interactions need focused and manual QA. See the L3.9 card for remaining checks and deferred road/fence/ford/bridge art. No save was reset or written during diagnostics.
 
 Additional manual playtest (2026-11-04): rounded plots, worker training/progress/confirmation, clear worker spawns, nearby spot listing, selection and movement, harvesting/returning, all three zone types growing, Eraser confirmation/refunds and resource/cutdown effects worked. Workers still disappear beyond town/grid and get stuck on buildings, so travel/visibility/pathing are not accepted. Abandonment and low health appear but need clear explanations. Safe founding and Loop 3 remain open. No new Node tests were run in this playtest; see L3.9 for the full fix sequence and current dropoff/economy behavior.
 
 Fix-phase implementation handoff (2026-11-04): the previously reported founding, worker travel, economy/UI, cargo and visual-join changes are implemented in the uncommitted working tree and passed targeted Node checks, with manual acceptance still pending. L3.9 contains the scope, reported test results, stale realtime-loop test, performance measurement and playtest checklist. The in-memory 22-worker sim measurement is not browser FPS or proof of a performance fix; no save was written. Data version 6 is additive. Preserve the unrelated modified inn screenshot.
 
-Further playtest: Tim likes overhead collection/cargo icons and labels, confirms minimap fixes and says timber/stone balance well. Excess goods production is deferred to a later balance pass; do not change current rates for this follow-up. Delivery notification spam was replaced with a bounded, saved per-town Workers → Log history; worker, build UI, snapshot and panel Node tests passed. The changes remain uncommitted and full acceptance is pending; see L3.9 for details.
+Further playtest: likes overhead collection/cargo icons and labels, confirms minimap fixes and says timber/stone balance well. Excess goods production is deferred to a later balance pass; do not change current rates for this follow-up. Delivery notification spam was replaced with a bounded, saved per-town Workers → Log history; worker, build UI, snapshot and panel Node tests passed. The changes remain uncommitted and full acceptance is pending; see L3.9 for details.
 
-Tim also manually accepted the Stock → Usage pane and click-to-focus plot navigation. This does not accept goods balance, performance, the full fix phase or the remaining founding/worker/corner checks; no new tests accompanied that feedback.
+also manually accepted the Stock → Usage pane and click-to-focus plot navigation. This does not accept goods balance, performance, the full fix phase or the remaining founding/worker/corner checks; no new tests accompanied that feedback.
 
 Latest worker playtest: selection and movement work well, but lag near harvesting and traveling workers remains open for browser retest. An uncommitted draw-order bucket optimization passed draw-sort reference/operation-count tests and related checks; CPU diagnostics and their limits are recorded in L3.9. Mapped quarry/ore markers identify rich clusters rather than separate nodes; ore clusters currently yield placeholder stone.
 
-Tim also confirms Drop/Return, harvest-duration bars and resource-node placement rejection work. Apparent cargo loss when moving a loaded returning worker remains open despite passing targeted return/interruption conservation regressions; check Workers → Log and retest. Heavy lag was reported before refresh, so save and reload the same save in a refreshed session before judging the draw-sort fix. The game changes remain uncommitted.
+also confirms Drop/Return, harvest-duration bars and resource-node placement rejection work. Apparent cargo loss when moving a loaded returning worker remains open despite passing targeted return/interruption conservation regressions; check Workers → Log and retest. Heavy lag was reported before refresh, so save and reload the same save in a refreshed session before judging the draw-sort fix. The game changes remain uncommitted.
 
 L3.5 validation: `node game/tools/test_frontier_workers.mjs` passes (distance, conservation, save timing, rejected orders, training, clearing, forage and real game/save integration). Also passed frontier guards/snapshot/commands/construction/economy/governor/place/zones/world/data, town grid and founding tests; main.js/game.js syntax checks pass. No browser automation or visual acceptance claimed.
 
@@ -50,8 +50,8 @@ L3.9 checkpoint: followup, Eraser refund, build UI, worker, crew, founding and S
 - All game rules live in `game/src/sim`; players and bots use the same commands.
 - Run only the Node tests relevant to the card (the full suite times out in the cloud shell).
 - New controls go in the Controls (?) panel.
-- Nothing is pushed; Tim pushes himself.
-- Tim authorized the L3.8 local commit and this doc update. Ask before future doc edits and commits; never push. New UI controls must be listed in the in-game Controls panel.
+- Nothing is pushed; pushes himself.
+- authorized the L3.8 local commit and this doc update. Ask before future doc edits and commits; never push. New UI controls must be listed in the in-game Controls panel.
 - The test starter frontier towns stay until card E6b.
 
 **Lag bug FIXED (2026-11-05):** stuck-worker reroutes, patrol map builds and catch-up bursts were the causes; see "Performance: lag bug FIXED" in L3.9 of `docs/frontier_build_steps.md`. Parked: city decisions at 2 Hz while the hero is away, and a spatial grid for vision.

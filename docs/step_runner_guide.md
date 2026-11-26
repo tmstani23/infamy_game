@@ -16,7 +16,7 @@ balance tuning. Each step in a step list carries one of these tags:
 |---|---|---|
 | **SMALL** | Smaller model (Sonnet, or cheaper) | One to three files, exact spec, a named Node test decides pass/fail. |
 | **STRONG** | Default (strongest) model | Touches shared plumbing, needs investigation, or has no clean automatic check. |
-| **TIM** | Tim | A design choice, a mock to approve, or a playtest. Nothing after it starts until Tim answers. |
+| **TIM** | | A design choice, a mock to approve, or a playtest. Nothing after it starts until answers. |
 
 Never edit or delete an existing assertion to make a test pass. Only the card's own new test file
 may change. If an older test starts failing, stop and report it.
@@ -28,7 +28,7 @@ stops, reports what failed, and the step is re-run on the default model.
 
 1. `START_HERE.md` and `docs/usage.md`.
 2. This guide.
-3. The WHOLE plan, `docs/frontier_build_steps.md` (Tim's rule, 2026-11-02).
+3. The WHOLE plan, `docs/frontier_build_steps.md` (the rule, 2026-11-02).
 4. Its one step card, plus the files the card names. No other docs, no docs catch-up.
 
 If the step needs a file the card does not name, read it only to find one function, with `grep`
@@ -41,8 +41,8 @@ and a short `sed -n` range, never the whole file.
   `game.step([...])`. Render and UI only read state and send commands.
 - **No `Math.random()` in the sim.** Use the module's seeded `rng` (see `rng()` in
   `sim/combat.js`), so games replay and saves restore the same way.
-- **Numbers live in data JSON** (`game/data/*.json`), never hard-coded, so Tim can tune them.
-  New placeholder numbers get a `"_note": "placeholder, Tim to tune"` beside them.
+- **Numbers live in data JSON** (`game/data/*.json`), never hard-coded, so can tune them.
+  New placeholder numbers get a `"_note": "placeholder, to tune"` beside them.
 - **State must be plain data.** Everything that must survive save/load lives in `game.state` as
   plain objects, arrays, numbers and strings: no functions, Maps, Sets or class instances.
 - **Syntax check gotcha.** `node --check` misses errors in `game/src/*.js`. Copy the file to a
@@ -55,12 +55,12 @@ and a short `sed -n` range, never the whole file.
 - **Sprites.** New or changed characters and items use the per-model flow only:
   `node tools/export_sprites.mjs . <model> --pack` (plus `--portrait`, `--margin=N`;
   `tools/repack_model.mjs`). Never re-audit the full catalog. Details in README "Exporting sprites".
-- **No test switches** (Tim, 2026-11-02). A few dev test saves, rebuilt by
+- **No test switches** (2026-11-02). A few dev test saves, rebuilt by
   `game/tools/make_dev_save.mjs`; update one of them for a new test need, never add a `?test=` switch.
 - **Files.** Never delete art or old sheets. Unwanted files move to `to_delete/`.
 - **Docs and git.** Threads do not write docs and do not commit or push. Send doc changes as a
-  proposal to the coordinator; the Docs keeper writes and commits after Tim's OK.
-- **Testing.** Node checks only. No headless browser, no screenshots. Tim checks the look.
+  proposal to the coordinator; the Docs keeper writes and commits after the OK.
+- **Testing.** Node checks only. No headless browser, no screenshots. checks the look.
 - **Shared files.** Re-read a file right before editing it, make small targeted edits, never
   rewrite a whole file, never revert another thread's change.
 
@@ -124,7 +124,7 @@ Do:
   1. <exact change>
   2. ...
 Check (pass/fail): <test file and the assertions it must contain>
-In game (Tim): <what Tim looks at, or "nothing visible">
+In game: <what looks at, or "nothing visible">
 Done note: <the one-line checkpoint message to send>
 ```
 
@@ -134,9 +134,9 @@ Done note: <the one-line checkpoint message to send>
    the `.mjs` syntax check.
 2. Nothing is half-edited: the game still starts.
 3. Send the coordinator the card's done note, plus any controls or doc lines that need the Docs
-   keeper. Then stop. One step per thread run, unless Tim says to chain them.
+   keeper. Then stop. One step per thread run, unless says to chain them.
 
-## Building toward a shippable game (Tim, 2026-11-01)
+## Building toward a shippable game (2026-11-01)
 
 Infamy is heading for a Steam release, so steps are built like production code, not prototypes:
 
@@ -160,6 +160,6 @@ the Docs keeper records it. That way the docs get better with every phase instea
 Process note (W1, 2026-11-02): validate design-tool output (generators, previews, data files) early, with the validator and a quick look, before building on it.
 Process note (W2, 2026-11-02): re-run `node tools/seed_world.mjs` after editing `rules` so `world.json` keeps its formatting.
 Process note (F2, 2026-11-02): when a new fixture town is added, older tests that count ledger entries must filter by settlement.
-Process note (F4, 2026-11-02): check that a dev save exists before telling Tim to load it.
+Process note (F4, 2026-11-02): check that a dev save exists before telling to load it.
 Process note (W3, 2026-11-02): card file lists missed `crew_step.js`, `crew_orders.js`, `minimap.js` and `match_options.js` (campaign mode did not exist yet); when a card adds a new place or mode, search for every caller first.
 Process note (W3.10, 2026-11-03): check a card's budgets against its other promises before building ("8 materials per chunk" conflicted with "seamless"). `glslangValidator` in the cloud container checks shaders without a browser.

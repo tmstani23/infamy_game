@@ -1,6 +1,6 @@
 # Police
 
-Status: **Built** (settled by Tim and built 2026-10-18). Numbers live in `game/data/police.json` (officer stats in `units.json` `junsa`); rules in `game/src/sim/police.js`; test `game/tools/test_police.mjs`. They are defaults to tune in playtests.
+Status: **Built** (settled and built 2026-10-18). Numbers live in `game/data/police.json` (officer stats in `units.json` `junsa`); rules in `game/src/sim/police.js`; test `game/tools/test_police.mjs`. They are defaults to tune in playtests.
 
 ## Heat tiers (per clan)
 
@@ -17,20 +17,20 @@ Heat itself (how it is gained and cools) is in `combat_spec.md`, section H. Infa
 ## Officers
 
 - Junsa: 360 HP, hit for 14, run 4.8 (the hero runs 6.0). They carry a jitte.
-- Regular patrol/reinforcement police require explicit hero/crew attacks: no automatic acquisition or retaliation. Exception: unclaimed-business attack-wave officers retain automatic combat; their hits add no infamy. Business attacks still add 15 heat on success or failure (Tim, 2026-10-21).
+- Regular patrol/reinforcement police require explicit hero/crew attacks: no automatic acquisition or retaliation. Exception: unclaimed-business attack-wave officers retain automatic combat; their hits add no infamy. Business attacks still add 15 heat on success or failure (2026-10-21).
 - A knocked-out officer is replaced after 60 s, coming out of the HQ.
 
-## Routine daytime patrols (Tim, 2026-10-21)
+## Routine daytime patrols (2026-10-21)
 
-Four officers emerge at dawn or initial daytime, all from police HQ; police boxes have no day patrol (box 0, HQ 4; Tim 2026-11-20, so box bribe spots stay clear). Officers can still wander or chase past a box. They patrol and return to their own station at dusk after active pursuits/arrests finish. Replacement delay remains; shifts do not duplicate. Heat-based squads are additional and still operate at night.
+Four officers emerge at dawn or initial daytime, all from police HQ; police boxes have no day patrol (box 0, HQ 4; 2026-11-20, so box bribe spots stay clear). Officers can still wander or chase past a box. They patrol and return to their own station at dusk after active pursuits/arrests finish. Replacement delay remains; shifts do not duplicate. Heat-based squads are additional and still operate at night.
 
-## Rival HQ camping (Tim, 2026-10-21)
+## Rival HQ camping (2026-10-21)
 
 - Living street heroes/crew count once per visiting clan within 12 world units of a rival HQ's main entrance/exit ring. Indoor units do not count; this area is separate from territory. Enemy clans use the same rules.
 - Warn after 20 accumulated seconds; activate after 30 within a rolling 60 seconds. Warning flashes amber; active penalty has a subtle red outline/pulse and a small notice.
 - While active, every five occupied seconds adds exactly 12 heat and 12 lifetime infamy. Camping alone bypasses top-infamy heat scaling; other sources are unchanged.
 - Clear an active alarm by keeping the entire visiting clan outside for 30 uninterrupted seconds. Re-entry immediately resumes penalties and resets the full decay. The alert bar drains outside and stays full inside.
-- Crew with no sector duty (hero group, idle crew) also walk out of a rival HQ zone once the warning shows, then resume their old order (a follow order only if the boss is not in the zone). A live move order from the player stays. Sector crew already did this (assignments.avoidCamping). Code: `crew_step.js` freeCampingEscape; test `tools/test_camping_escape.mjs` (Tim 2026-11-20).
+- Crew with no sector duty (hero group, idle crew) also walk out of a rival HQ zone once the warning shows, then resume their old order (a follow order only if the boss is not in the zone). A live move order from the player stays. Sector crew already did this (assignments.avoidCamping). Code: `crew_step.js` freeCampingEscape; test `tools/test_camping_escape.mjs` (2026-11-20).
 
 ## New officers
 
@@ -55,7 +55,7 @@ Every new officer (the first squad at a tier, officers added when heat rises, an
 
 ## Bribes
 
-At either police box (Space): each bribe removes 40 heat (Tim, 2026-10-25) and costs 10 ryo x tier (Quiet 1, Watched 2, Wanted 3, Manhunt 4, Most Wanted 5). A bribe is refused if an officer hit the hero in the last 5 s.
+At either police box (Space): each bribe removes 40 heat (2026-10-25) and costs 10 ryo x tier (Quiet 1, Watched 2, Wanted 3, Manhunt 4, Most Wanted 5). A bribe is refused if an officer hit the hero in the last 5 s.
 
 ## Rules
 
@@ -63,7 +63,7 @@ At either police box (Space): each bribe removes 40 heat (Tim, 2026-10-25) and c
 - Routine patrols return at dusk; heat-based responses remain available at night.
 - Underdog rule: the clan with the most infamy gains 25% more heat from ordinary sources; HQ camping is the fixed-charge exception above.
 
-## Deferred police pass (not built; Tim, 2026-10-21)
+## Deferred police pass (not built; 2026-10-21)
 
 Consider low-chance Quiet intervention in rival-clan fighting: one roll per incident, no infamy merely for intervention; escape returns officers to patrol, while hitting an officer uses ordinary infamy.
 

@@ -1,6 +1,6 @@
 # Territory, game map and season score
 
-Status: built 2026-10-20 (plan OK'd by Tim 16:46). Ninja Renown points come with the ninja step. "As built" at the end lists the code and the numbers.
+Status: built 2026-10-20 (plan OK'd 16:46). Ninja Renown points come with the ninja step. "As built" at the end lists the code and the numbers.
 
 Source draft: `next_steps/territory_plan.md` in the project files.
 
@@ -22,7 +22,7 @@ Related docs:
 ## 2. Game map (M)
 
 - Full-screen map over the game. The game keeps running (no pause, so it works in multiplayer). M or Esc closes it.
-- Business markers (Phase 3E, Tim, 2026-10-21): Shop **S**, Tenements **N**, Pawnshop **Q**, Bathhouse **A**, Sake Brewery **K**, Manor **R**, Customs House **U**. All use normal territory and owner colours; the full map includes a key.
+- Business markers (Phase 3E, 2026-10-21): Shop **S**, Tenements **N**, Pawnshop **Q**, Bathhouse **A**, Sake Brewery **K**, Manor **R**, Customs House **U**. All use normal territory and owner colours; the full map includes a key.
 - Layers with toggles: Territory, Businesses (letters + owner colour), Police (HQ, boxes, officers you can see), Units you can see. All on by default. There is no fog toggle: the map always uses your fog.
 - Quarters are drawn as white dotted outlines with their names centred; the outline turns the holder's colour when one clan holds every business in it.
 - Hover a business: owner. Hover a quarter: its holder (+25% payout). Hover the score: the breakdown. Click: the camera jumps there and the map closes.
@@ -41,7 +41,7 @@ Related docs:
 ## 4. Season score and season end
 
 - One score for all clans, most points wins.
-  - Yakuza: points for businesses held, weighted teahouse/shop/pawnshop 1 each; warehouse/bathhouse/sake brewery 2 each; gambling den 3; tenements/manor/customs house 4 each (Phase 3E, Tim, 2026-10-21).
+  - Yakuza: points for businesses held, weighted teahouse/shop/pawnshop 1 each; warehouse/bathhouse/sake brewery 2 each; gambling den 3; tenements/manor/customs house 4 each (Phase 3E, 2026-10-21).
   - Ninja: 1 point per 50 Renown (2026-10-21; `season.renownPerPoint`), built with the ninja contracts (`ninja_clan_plan.md`).
 - Score in the top bar ("Day 3/10 · You 2 · Kuroda 3") and on the M map. Scores are counted at dawn.
 - Single-player season length: 10 day/night cycles (a setting).
@@ -62,7 +62,7 @@ Related docs:
 - News (`state.news`): `intruder` ("Rivals in your territory!" + minimap ping), `quarter` / `quarterLost`, `seasonEnd`.
 - Test: `game/tools/test_territory.mjs`.
 
-## Phase 3F access (Tim, 2026-10-21)
+## Phase 3F access (2026-10-21)
 
 Pleasure Quarter has three entrances: the original plus two openings in its opposite NW/SE stone walls across the Townhouse area (x=6 and x=51, around z=32; two segments removed per side). No added paths, paving or Townhouse connection. HQ camping areas are separate from territory: [police rules](police_spec.md#rival-hq-camping-tim-2026-10-21).
 

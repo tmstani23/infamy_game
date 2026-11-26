@@ -1,6 +1,6 @@
 # Rival bot clan plan
 
-Status: built 2026-10-19 (B1-B5 in one go, Tim playtested). Code `game/src/sim/bot.js` (`createBot`, `BOT_DEFAULTS`), knobs `game/data/bots.json` (difficulty "easy" for now). See "As built" at the end.
+Status: built 2026-10-19 (B1-B5 in one go, playtested). Code `game/src/sim/bot.js` (`createBot`, `BOT_DEFAULTS`), knobs `game/data/bots.json` (difficulty "easy" for now). See "As built" at the end.
 
 Already decided: the bot clan starts at the izakaya; it acts only through the same sim commands as a player, with the same fog of war; territory = businesses held, most at season end wins; a War Lantern is always needed to take a rival-owned business.
 
@@ -26,22 +26,22 @@ Bot crew still use the existing combat rules (auto-attack, execute aggression ro
 
 A leader with the hero's rules (KO not death, respawn at clinic, can be arrested). Leads raids and attacks; otherwise stays near its home business.
 
-## Difficulty (Tim 2026-10-19: always fair, no hidden bonuses; 3 levels)
+## Difficulty (2026-10-19: always fair, no hidden bonuses; 3 levels)
 
-Bot hero uses the **rival_yakuza boss** sprite (Tim).
+Bot hero uses the **rival_yakuza boss** sprite.
 
 - **Easy**: thinks every ~5 s; never ambushes your crew; mostly buys rather than attacks; raids rarely; doesn't target your hero; few abilities.
 - **Medium**: rules 1-5 as written, every ~2 s; ambushes your lone crew near its own turf; uses its hero's abilities; pulls hurt crew back to the clinic.
-- **Hard**: reacts in ~1 s; prioritises your hero (Tim); times raids for when you're weak (hero far away, crew busy, your heat high); focus-fires; executes your downed crew when safe; remembers scouted info longer.
+- **Hard**: reacts in ~1 s; prioritises your hero; times raids for when you're weak (hero far away, crew busy, your heat high); focus-fires; executes your downed crew when safe; remembers scouted info longer.
 
 Knobs in a data file (tune in playtests): think interval, ambush on/off and range, raid frequency, hero priority, focus fire, retreat-to-clinic HP, memory time.
 
-## Hiring and teahouse camping (Tim agreed 2026-10-19)
+## Hiring and teahouse camping (agreed 2026-10-19)
 
 - Stationed crew attack enemy units inside the business they guard (so a bot hero hiring at your teahouse gets jumped).
 - So camping can't starve a clan of crew: every clan has a **home hideout** that can't be taken in the tiny version (bot: izakaya; player: the **inn**, on the main road west of centre). Current venue prices and timers: [crew recruiting](crew_recruiting_plan.md#hiring-venues-phase-1-tim-2026-10-21).
 
-## Home hideout extras (Tim agreed 2026-10-19; both clans)
+## Home hideout extras (agreed 2026-10-19; both clans)
 
 - **Respawn point**: a KO'd hero wakes at the hideout instead of the clinic (unless arrested).
 - **Lay low**: heat cools 2x faster while the hero is inside.
@@ -54,7 +54,7 @@ Knobs in a data file (tune in playtests): think interval, ambush on/off and rang
 - B2 Defend + station crew + patrol.
 - B3 Night attacks on unowned businesses, bandit hunting, bribes.
 - B4 War Lantern raids with scouting.
-- B5 Difficulty knobs, Tim playtest and tune.
+- B5 Difficulty knobs, playtest and tune.
 
 ## Decisions
 

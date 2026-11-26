@@ -1,6 +1,6 @@
 # Test switches
 
-Single source: `game/src/test_params.js` (Tim 2026-10-19: one param, nothing hidden anywhere else). `DEV = true` at its top; set it to `false` before any public release (roadmap) and the test param and dev-only keys below all turn off. Rule: any new test switch goes in that module and gets a row here in the same batch (`documentation_role.md`).
+Single source: `game/src/test_params.js` (2026-10-19: one param, nothing hidden anywhere else). `DEV = true` at its top; set it to `false` before any public release (roadmap) and the test param and dev-only keys below all turn off. Rule: any new test switch goes in that module and gets a row here in the same batch (`documentation_role.md`).
 
 Normal starts: [starting paths](gameplay_and_design.md#starting-paths-settled). The rich bot test remains separate; Shinobi uses a fair opening (Phase 3G, 2026-10-21).
 
@@ -35,7 +35,7 @@ Not covered by `DEV` (audited 2026-10-19): `game/server.mjs` saving the HUD layo
 
 ## Dev test saves (2026-11-06)
 
-`node game/tools/make_dev_save.mjs` rebuilds the dev saves in `saves/`; load them from the normal Load menu. `node game/tools/make_dev_save.mjs <name>` rebuilds only the saves named. At most 5 dev saves (Tim 2026-11-20); add one only with Tim's OK.
+`node game/tools/make_dev_save.mjs` rebuilds the dev saves in `saves/`; load them from the normal Load menu. `node game/tools/make_dev_save.mjs <name>` rebuilds only the saves named. At most 5 dev saves (2026-11-20); add one only's OK.
 
 - `rail_rob_shinobi` (2026-11-21, replaces `rail_test_kuroda`): the Shinobi hero, 6 crew and his horse 8 off the middle of a 519-long line between two Kuroda Villages (Kurohama and Kuromine, a day old, so no war), with standing orders both ways (timber and stone plus 8000 coffers ryo to Kuromine, food and goods back) so the train runs loaded about every 2.5 minutes. A small Shinobi Village, Kagemura, about 1000 off, to cash the stolen chest. Spec option `robTest` in tools/make_dev_save.mjs.
 - `gear_test` (2026-11-24, dev save 5 of 6): the war test plus all 4 frontier gear items and the 3 heirlooms in the hero's bag. Built by game/tools/make_dev_save.mjs.

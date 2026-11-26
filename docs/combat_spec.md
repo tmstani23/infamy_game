@@ -1,6 +1,6 @@
 # Combat spec
 
-Status: started 2026-10-16. Tim OK'd the feel fixes (A to D), crits and hero chase on 2026-10-16; they are built. Abilities and the action bar (section F) were approved and built the same day. Owned by the crew thread. Numbers live in `game/data/units.json`; rules in `game/src/sim/game.js` (combat section); drawing in `game/src/render/`.
+Status: started 2026-10-16. approved the feel fixes (A to D), crits and hero chase on 2026-10-16; they are built. Abilities and the action bar (section F) were approved and built the same day. Owned by the crew thread. Numbers live in `game/data/units.json`; rules in `game/src/sim/game.js` (combat section); drawing in `game/src/render/`.
 
 ## Deployment group buffs (built 2026-10-26)
 
@@ -16,12 +16,12 @@ Central `rally.buffEligible` permits the own hero, hired permanent hero-group cr
 - **Unstuck (2026-10-29):** `sim/unstuck.js`, `units.json` `rules.unstuck`: hero-only 3 s channel to your own hideout, 5 min cooldown, blocked 5 s after a fight, during an HQ raid and in a contract objective room.
 - **Hits:** `damage` every `attackSpeed` seconds once within `attackRange`. Damage lands 40% through the swing (build order 1).
 - **Death (2026-10-17):** crew at 0 HP go down first; executed crew play the death animation and are removed (dead, rehire), the rest are carried to the clinic. See section H.
-- **Health (Tim, 2026-10-21):** ronin 560, ninja leader 490, thug 200, brute 360, swordsman 240 HP. Slow regen until the hospital exists: 0.25% of max HP per second once not hit for 6 s (a thug refills in about 7 minutes).
+- **Health (2026-10-21):** ronin 560, ninja leader 490, thug 200, brute 360, swordsman 240 HP. Slow regen until the hospital exists: 0.25% of max HP per second once not hit for 6 s (a thug refills in about 7 minutes).
 - **Bars:** red over enemies, green over your units when hurt.
 
-Balance and targeting (Tim, 2026-10-21): hero base damage 22.5 (-25%); hero HP -30%. Recruit damage +25%: thug 10, brute 17.5, swordsman 20, ninja 15. Plain crew moves finish before retaliation. Hidden Shinobi clear hero/crew target locks, windups and indicators; revealing does not restore locks automatically.
+Balance and targeting (2026-10-21): hero base damage 22.5 (-25%); hero HP -30%. Recruit damage +25%: thug 10, brute 17.5, swordsman 20, ninja 15. Plain crew moves finish before retaliation. Hidden Shinobi clear hero/crew target locks, windups and indicators; revealing does not restore locks automatically.
 
-Shinobi dodge (Tim, 2026-10-21): leader and both ninja recruits have 15% innate dodge against weapon swings; a successful dodge shows small DODGE combat text.
+Shinobi dodge (2026-10-21): leader and both ninja recruits have 15% innate dodge against weapon swings; a successful dodge shows small DODGE combat text.
 
 ## Why it feels clunky (research)
 
@@ -74,9 +74,9 @@ Common causes in RTS/MOBA melee, checked against our code:
 - [x] 3. Hit flash, lean and killing-blow shake (C), slash trails and impact sparks (C2) (done 2026-10-16: `uFlash` in the sprite shader; lean 0.16 steps away from the attacker; steel-blue crescent trail for blades, wider orange smear for clubs; 8 to 16 additive sparks, gold on crits; camera shake on kills (and small on crits) within 9 steps of the hero. Hit-reaction animation not added yet.)
 - [x] 4. Surround spots and turning (D) (done 2026-10-16: attackers spread round the target about 0.9 rad apart at 80% of reach; facing turns one eighth per tick and a swing only starts when facing the target.)
 - [x] Hero chase (replaced by lock-on, 2026-10-17; see Now): right-click an enemy and the hero runs to it and keeps hitting it; any WASD input cancels. Selected crew attack it too. Command `{ id, type: 'attack', target }`.
-- [ ] 5. Tim playtests, tune numbers here
+- [ ] 5. playtests, tune numbers here
 
-## F. Hero abilities and action bar (approved by Tim 2026-10-16, built)
+## F. Hero abilities and action bar (approved by 2026-10-16, built)
 
 Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slot, x, z }` (x, z = mouse point on the ground), checked and run in the sim like everything else, so bots can use them too. Nothing needs new map systems. Numbers are starting guesses.
 
@@ -87,7 +87,7 @@ Ronin kit from the design draft. Each is one command `{ id, type: 'ability', slo
 | R | Rally | You and your crew within 8 steps attack 30% faster for 6 s and heal 15% of your health over 6 s in 6 ticks (hero included; 2026-10-19). | 20 s |
 | F | Red Lantern (ultimate) | For 8 s the ronin deals 50% more damage and heals 20% of the damage he deals; a red glow surrounds him. | 60 s |
 
-### Kuroda leader kit (Tim, 2026-10-22)
+### Kuroda leader kit (2026-10-22)
 
 Spear-and-shield leader; human and bot abilities use the same sim rules.
 
@@ -122,11 +122,11 @@ Yakuza-only crew unit: 600 HP, 15 melee damage, burning club, 140 ryo (phase 3, 
 | Q | Shadow Step | Teleports up to 8 toward the mouse, stopping at walls and water; stays hidden. | 10 s |
 | E | Caltrops | Thrown at the mouse: enemies within 4 (not townsfolk) are slowed 50% for 3 s (buff `snared`; `snareRadius`, `snareSeconds`, `snareSpeed`); house guards, police and bandits within 6 walk over to look. Works while seen. | 15 s |
 | R | Smoke Bomb | Cloud of radius 4 for 6 s (`state.smokes`). `blind()`: anyone not of the clan inside it or looking into it can't see or target. Own units inside stay hidden and heal 3%/s (`shroud` buff, green rain). Units inside hold fire; lasting expiry passivity and regrouping require presence at expiry (see below). | 40 s |
-| F | Assassinate | Needs 3 s hidden, or is immediately usable during Vanish. Hits the enemy at the mouse within reach +1.5: nonheroes (including crew) are one-shot; heroes retain 50% of current HP (60% until 2026-10-28), rounded to whole HP with minimum 1 (already below 1 stays unchanged); this cannot finish a hero (Tim, 2026-10-22). Consumes the attacker's veil. Hero and living non-guard crew within 8 in the same place gain +20 percentage points crit for 8 s (ninja 15% → 35%); refreshes without stacking. Violet recipient auras and an 8-unit cast pulse. | 45 s |
+| F | Assassinate | Needs 3 s hidden, or is immediately usable during Vanish. Hits the enemy at the mouse within reach +1.5: nonheroes (including crew) are one-shot; heroes retain 50% of current HP (60% until 2026-10-28), rounded to whole HP with minimum 1 (already below 1 stays unchanged); this cannot finish a hero (2026-10-22). Consumes the attacker's veil. Hero and living non-guard crew within 8 in the same place gain +20 percentage points crit for 8 s (ninja 15% → 35%); refreshes without stacking. Violet recipient auras and an 8-unit cast pulse. | 45 s |
 
 Phase 3G Vanish (2026-10-21): at the six-second Smoke Bomb's mechanical expiry, the hero and crew still inside gain four seconds of undetectability. Incoming damage can hurt/down them but cannot reveal them; outgoing attacks or Assassinate consume only that attacker's veil. At expiry, recipients become passive; affected crew hold their position and stay passive until explicitly ordered (updated 2026-10-25). Crew outside the cloud at expiry do not gain this lasting passivity. Dark-blue transparent silhouettes/shimmer and blue wisps show the effect; cloud graphics/fade are unchanged. The player hero alone shows VANISH 4/3/2/1s overhead. The Vanish pill and R button show its duration while the real 40 s cooldown continues underneath, then returns to view.
 
-Effects in `render/abilityfx.js` (mock OK'd by Tim): black non-additive smoke with muted purple and blue highlights, thin rings like the ronin's.
+Effects in `render/abilityfx.js` (mock OK'd): black non-additive smoke with muted purple and blue highlights, thin rings like the ronin's.
 
 **Keys (done, F2):** doors moved to **Space** (it shows on the door prompt), and E is Intimidate. Hire menu keys 1 to 3 stay as they are (only inside a teahouse).
 
@@ -143,15 +143,15 @@ Effects in `render/abilityfx.js` (mock OK'd by Tim): black non-additive smoke wi
 - [x] F2. Door key to Space, E to Intimidate, controls doc updated
 - [x] F3. Action bar with health, slots, cooldown sweeps, buffs and crew pips
 - [x] F4. Ability effects: dash streak, intimidate aura, rally ring, red lantern glow
-- [ ] F5. Tim playtests and tunes the numbers here
+- [ ] F5. playtests and tunes the numbers here
 
-Later (Tim 2026-10-16, after the first ability playtest): ability effects work but could look cooler; revisit the dash, intimidate, rally and red lantern visuals when there is time. Health bars now show over every unit at all times, green to dark red (render/health.js, test game/tools/test_health_bars.mjs).
+Later (2026-10-16, after the first ability playtest): ability effects work but could look cooler; revisit the dash, intimidate, rally and red lantern visuals when there is time. Health bars now show over every unit at all times, green to dark red (render/health.js, test game/tools/test_health_bars.mjs).
 
 ## Open questions
 
-- Ability numbers get tuned in Tim's playtests (F5).
+- Ability numbers get tuned in the playtests (F5).
 
-## G. Ability VFX upgrade plan (research 2026-10-17, approved by Tim; ronin effects built, see below)
+## G. Ability VFX upgrade plan (research 2026-10-17, approved; ronin effects built, see below)
 
 Today `render/abilityfx.js` draws flat additive rings, discs and a ground streak. Upgrade toolkit, best payoff first:
 
@@ -160,7 +160,7 @@ Today `render/abilityfx.js` draws flat additive rings, discs and a ground streak
 3. Flipbook VFX sprites: painted sheets (slash arcs, smoke, flame, sparks) on additive billboards. Fits the painted look best. Free source: Kenney Particle Pack (CC0, kenney.nl/assets/particle-pack), or a Gemini 4x4 sheet on black.
 4. Particles and trails: three.quarks (npm `three.quarks`), free three.js VFX library with bursts, trails, flipbook particles.
 5. Ground decals: shader rings with scrolling noise, cracks, kanji circles instead of solid rings.
-6. Dedicated Mixamo cast clips (optional, Tim downloads): sword draw, roar/taunt, battle cry, power-up, throw.
+6. Dedicated Mixamo cast clips (optional, downloads): sword draw, roar/taunt, battle cry, power-up, throw.
 
 Ronin plan (effort / payoff):
 1. Iaido Dash (small / high): fading after-images of the hero sprite along the path (no new art), white slash across each enemy hit, hitstop.
@@ -185,11 +185,11 @@ Ronin plan (effort / payoff):
 
 Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart = thin trail and sleep puff (needs sim projectiles first, bows still require projectiles; current Teppo aimed shot is implemented); Shadow Mark = dark circle with tendrils under the target; Thousand Cuts = hero flashes between enemies with many slash arcs.
 
-## H. Downed, execute and hospital (approved by Tim 2026-10-17)
+## H. Downed, execute and hospital (approved by 2026-10-17)
 
 - **Downed:** crew at 0 HP go down. A downed unit can't act and attacks skip it. The hero is still only knocked out.
 - **Execute:** a 3 s channel next to a downed enemy, by the hero, crew or bots. Crew channels cancel on a hit, movement or a new order. Hero execution protection: see below. A channel bar shows over the executor: red for an execute, blue for a police arrest. Success = dead (rehire at a teahouse).
-- **Hero execution protection (Tim, 2026-10-21):** selection, targeting, Tab, crew attack/move/follow commands and repeated execute clicks do not cancel or restart the channel. Right-click attacks command selected crew only, without a hero attack queued afterwards. Abilities, doors and hero looting cannot replace it. Hero movement, Escape, enemy hits and invalid targets still interrupt it.
+- **Hero execution protection (2026-10-21):** selection, targeting, Tab, crew attack/move/follow commands and repeated execute clicks do not cancel or restart the channel. Right-click attacks command selected crew only, without a hero attack queued afterwards. Abilities, doors and hero looting cannot replace it. Hero movement, Escape, enemy hits and invalid targets still interrupt it.
 - **Carried off (2026-10-21):** executable/arrestable downed units remain on the ground for 20 s. A channel started within that window may finish afterwards, then cleanup occurs. Crew go to the clinic; other units follow their normal removal or respawn rules. Bandits and house guards die outright.
 - **Hospital:** the bonesetter's clinic. Recovery timer (30 s thug, 45 s brute/swordsman); since 2026-10-19 crew stay until their boss pays at the clinic menu (25% of the hire price once recovered, 50% before). See `crew_recruiting_plan.md`.
 - **Who can be executed (2026-10-19):** only downed rival heroes and crew. Bandits die outright and are looted (section I).
@@ -210,7 +210,7 @@ Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart
 - [x] H2. Bot execute choice (done 2026-10-17: `botExecute` in `sim/game.js`)
 - [x] H3. Carried off, clinic recovery and the heal order (done 2026-10-17: `carryOffDowned` in `sim/game.js`; clinic list, `carryOff`, `checkIn`, `clinicTick` in `sim/clans.js`; heal order on G)
 - [x] H4. Clinic on the map, down marker, channel bar, controls (done 2026-10-17: clinic b9 in `data/waterfront.json`; rules in `units.json`: `executeSeconds`, `botAggression`, `carryAfterSeconds`, `carryRadius`, `recoverCostShare`, `healPerSecond`, `healCostPerHp`, `recoverSeconds`)
-- [ ] H5. Tim playtests
+- [ ] H5. playtests
 
 ## I. Night bandits (built 2026-10-17)
 
@@ -218,16 +218,16 @@ Numbers in `game/data/bandits.json` (stats in `units.json`); rules in `sim/bandi
 
 - Roamers (2026-10-21): bandit 240 HP / 9 damage (weight 2), night brute 432 HP / 16 damage (weight 1); each leaves 50 ryo. Camp bandits retain base stats and 25-ryo loot.
 - At night: 3 walk in first, then one every 14 s, up to 10 at once and 20 a night (2026-10-21), from the map's `edges` (spawn points at least 25 steps away, `minDistance`). They wander between `pois` (6 to 15 s per spot) and walk out at dawn.
-- All wild/camp and roaming variants have sight, engagement and disengage distance 6, respecting walls, stealth and camp leash (Tim, 2026-10-21). Police pursuit and movement speeds are unchanged. Being hit also angers nearby bandits; anger expires after 10 s without renewed sight/hits. Camps top up missing residents at dawn and dusk, preserving survivors.
+- All wild/camp and roaming variants have sight, engagement and disengage distance 6, respecting walls, stealth and camp leash (2026-10-21). Police pursuit and movement speeds are unchanged. Being hit also angers nearby bandits; anger expires after 10 s without renewed sight/hits. Camps top up missing residents at dawn and dusk, preserving survivors.
 - No downing (they die at 0 HP) and no heat. Kills pay nothing (2026-10-19): the body carries the ryo, glints gold and any clan can loot it (hero: right-click; crew: Ctrl + right-click). Unlooted bodies fade after 60 s (`lootSeconds`).
 
-## Large street fights (Tim, 2026-10-25)
+## Large street fights (2026-10-25)
 
 Police and civilians retreat from a nearby fight involving at least five actively fighting units per clan on two sides (heroes count). Idle gatherings do not trigger it; attrition does not draw bystanders back while the fight continues. KO countdown and crew-control rules: [controls](controls.md).
 
 ## Hero character page (authorized 2026-10-27)
 
-Implemented/sim-checked 2026-10-27, with gear added 2026-11-01; Tim visual/gameplay review pending. Themed character pages and an interactive preview use real snapshots. Detailed live stats come from **one canonical gameplay resolver**, shared by actual movement/combat/regeneration, equipped gear and read-only UI snapshots. No independently maintained display math; future ability modifiers use the same evaluation path.
+Implemented/sim-checked 2026-10-27, with gear added 2026-11-01; visual/gameplay review pending. Themed character pages and an interactive preview use real snapshots. Detailed live stats come from **one canonical gameplay resolver**, shared by actual movement/combat/regeneration, equipped gear and read-only UI snapshots. No independently maintained display math; future ability modifiers use the same evaluation path.
 
 Show base value with adjacent glowing modifier and effective value; reductions have a distinct glow color. Tooltips name actual conditions/modifier sources. Include abilities and existing passive/permanent buff-bar icons with hover explanations. Display current Kuroda field recovery and Shinobi stealth; no new balance passive. Additional Yakuza passive remains undecided: Ruthless Momentum rejected as excessive healing, Unshaken only proposed.
 
@@ -236,23 +236,23 @@ The capital character page now includes weapon/armor/accessory equipment and the
 - [x] **1:** shared stat resolver wired into actual gameplay and trustworthy read-only snapshots.
 - [x] **2:** themed live character sheet, abilities/passives and compact passive icons/tooltips; base/modifier/effective presentation.
 - [x] **3:** focused sim checks and in-game-style preview handoff; no browser/screenshot tests.
-- [ ] **Tim visual review:** verify live values, tooltips and presentation.
+- [ ] **visual review:** verify live values, tooltips and presentation.
 
 `game/src/sim/stats.js` is the shared gameplay resolver for base/model/roamer stats, damage factors, attack interval, crit/dodge, movement, formation protection, Lantern lifesteal and passive recovery, exposing read-only snapshots. `character_panel.js`/`.css` shows base/modifier/current columns with subtle green/red glow, source tooltips, all current hero abilities, live HP and clan sprite/theme. Existing Kuroda **Battle Hardened** and Shinobi **Shadowcraft** metadata also creates persistent action-bar passive icons/tooltips. No new balance passive.
 
-Build coordinator reports combat, Kuroda, Shinobi combat, territory, crew-groups and new `game/tools/test_character_stats.mjs` passed. New coverage includes all clan snapshots, no mutation, actual hit/movement/regen parity, expiry, percentage-point formatting and beneficial reductions. Interactive preview handed to Tim uses real snapshots/sample existing effects. No browser/screenshot checks; Tim visual/gameplay review remains unchecked. No commit/push until requested.
+Build coordinator reports combat, Kuroda, Shinobi combat, territory, crew-groups and new `game/tools/test_character_stats.mjs` passed. New coverage includes all clan snapshots, no mutation, actual hit/movement/regen parity, expiry, percentage-point formatting and beneficial reductions. Interactive preview handed to uses real snapshots/sample existing effects. No browser/screenshot checks; visual/gameplay review remains unchecked. No commit/push until requested.
 
 ## Approved pursuit fix (2026-10-27)
 
-- [x] **Playtest #8, implemented/targeted-checked 2026-10-27:** explicit attack pursuit follows accessible doors in/out, respecting entry permissions and sector restrictions. Check entry/exit, inaccessible doors and no area/permission bypass; Tim playtest pending. [Overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
+- [x] **Playtest #8, implemented/targeted-checked 2026-10-27:** explicit attack pursuit follows accessible doors in/out, respecting entry permissions and sector restrictions. Check entry/exit, inaccessible doors and no area/permission bypass; playtest pending. [Overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
 
-Phase 5A evidence: shared manual attack orders capture `lastSeen`, physically pursue through permitted entrance/exit and obey sector/entry/raid-slot limits. Unseen pursuit uses last-known public position/door, never hidden coordinates. New `test_door_pursuit` passed real entry/exit with the same target; input fixtures and final integration subsequently passed (deployment owner record). Tim visuals unchecked; no commit/push requested.
+Phase 5A evidence: shared manual attack orders capture `lastSeen`, physically pursue through permitted entrance/exit and obey sector/entry/raid-slot limits. Unseen pursuit uses last-known public position/door, never hidden coordinates. New `test_door_pursuit` passed real entry/exit with the same target; input fixtures and final integration subsequently passed (deployment owner record). visuals unchecked; no commit/push requested.
 
 ## Smoke nameplate visibility fix (2026-10-28)
 
 Visible nameplates now render above smoke/combat particles (`characters.js` order 99860 versus smoke 99810), so existing visible enemies' clickable labels are not obscured. Vision/stealth, nameplate toggle and targeting eligibility remain unchanged; concealed enemies stay concealed. Smoke Bomb still drops attacks/holds fire as before.
 
-Build coordinator reports target-controls, Ninja and Shinobi combat checks passed, including smoke drop/hold-fire/stealth regressions; source syntax/diff checks clean. No browser visual test claimed; Tim smoke/nameplate retest pending.
+Build coordinator reports target-controls, Ninja and Shinobi combat checks passed, including smoke drop/hold-fire/stealth regressions; source syntax/diff checks clean. No browser visual test claimed; smoke/nameplate retest pending.
 
 Rifleman follow-up (2026-10-28): spawn/late hires start loaded. Loaded explicit attacks open with the aimed shot even at melee distance; melee remains available during reload. Attack-move stops to shoot. Explicitly ordered bandit/police/civilian targets use shared fair targeting plus visibility; autonomous restrictions stay unchanged. Existing one-second aim/three-second reload/damage remain. Build coordinator reports rifleman close/ranged/attack-move/bandit/loaded-spawn, enforcer, target-controls and move-priority checks passed. No new test run or visual approval claimed.
 
@@ -270,7 +270,7 @@ Shakedown status (2026-10-28): dynamite/fire/status feedback below the operation
 
 ### Rifleman automatic bandit targeting fix (2026-10-28)
 
-Automatic rifle targeting now includes hostile bandits through the existing visibility/range/line-of-sight gates, including attack-move and newly joined hero followers without inherited attack orders. Neutral bandits still require hostility; civilian/police restrictions remain. Coordinator reports regression failed before fix and passed after, plus passing rifleman, crew-jobs, camps (all three clan openings 200 to 300 ryo) and move-priority checks. No loot code changed: starter-camp body jobs paid 25 per corpse in diagnostic. Tim’s successful rifle/looting retest preceded this fix; it is not validation of the new change.
+Automatic rifle targeting now includes hostile bandits through the existing visibility/range/line-of-sight gates, including attack-move and newly joined hero followers without inherited attack orders. Neutral bandits still require hostility; civilian/police restrictions remain. Coordinator reports regression failed before fix and passed after, plus passing rifleman, crew-jobs, camps (all three clan openings 200 to 300 ryo) and move-priority checks. No loot code changed: starter-camp body jobs paid 25 per corpse in diagnostic. the successful rifle/looting retest preceded this fix; it is not validation of the new change.
 
 ### Special-crew checkpoint (2026-10-29)
 
@@ -292,8 +292,8 @@ Future visual work only; no implementation or gameplay/stat changes. Preserve th
 - [x] Yakuza ronin: running speed lines, plus 2 faint hum rings each time the blade glint runs (glint unchanged).
 - [x] Kuroda boss: idle falling crimson sparks, jagged static streaks when running, a thin extra arc mid-swing.
 - Code: `render/run_trail.js`, `runTrailMaterial` in `shading.js`, wiring in `characters.js`; `weapon_glow.json` `runTrail` "sonic" (`katana_hero`) / "static" (`spear_hero`).
-- 2026-10-30 (Tim: too subtle): Shinobi wisps stronger (about twice as many, about 60% wider and more opaque, shed faster idle/walk/run; `weapon_shadow.js` MAX_MOTES 44, width .009, fade .68; `ninjato_hero` glow 0.75), plus a new smoke trail: dark curls while moving, steady when running, lighter when walking, none idle. First pass, not browser-checked.
-- 2026-10-30, later (Tim: make idle as noticeable as the attack effect): idle blade wisps now close to the attack effect; wisps clinging to the blade about 2.5x wider and much darker, shed wisps about 50% wider and darker (`render/weapon_shadow.js`: clinging width .012 / fade .66, shed .014 / .75). Tim approved.
+- 2026-10-30 (too subtle): Shinobi wisps stronger (about twice as many, about 60% wider and more opaque, shed faster idle/walk/run; `weapon_shadow.js` MAX_MOTES 44, width .009, fade .68; `ninjato_hero` glow 0.75), plus a new smoke trail: dark curls while moving, steady when running, lighter when walking, none idle. First pass, not browser-checked.
+- 2026-10-30, later (make idle as noticeable as the attack effect): idle blade wisps now close to the attack effect; wisps clinging to the blade about 2.5x wider and much darker, shed wisps about 50% wider and darker (`render/weapon_shadow.js`: clinging width .012 / fade .66, shed .014 / .75). approved.
 
 ### Revised Geisha specification (implemented 2026-10-29)
 
@@ -316,9 +316,9 @@ Threefold Thrust Reprisal splash excludes all police, including raid wave office
 
 The role direction and current roster stats/prices are approved and built; values remain data-configurable. See the [2026-10-31 approved roster update](crew_recruiting_plan.md#approved-roster-tuning-tim-2026-10-31).
 
-Art loadout/export update (Tim, 2026-10-30): Kuroda uses a kusarigama (sickle with animated weighted chain) and long shield; this supersedes the spear weapon in the role description above. Shinobi uses long twin iron tonfa with slight violet glow, superseding shortblade/katana options. New body models produced 16 color/glow sprite pairs across seven Kuroda and nine Shinobi clips. Kuroda chain motion is baked into attack frames; no combat reach or damage amount changes. Offline asset checks passed; rendered samples were inspected outside the game. Tim approved the revised Shinobi sprite; roster gameplay integration is recorded below. Manual Kuroda visual/VFX review remains pending.
+Art loadout/export update (2026-10-30): Kuroda uses a kusarigama (sickle with animated weighted chain) and long shield; this supersedes the spear weapon in the role description above. Shinobi uses long twin iron tonfa with slight violet glow, superseding shortblade/katana options. New body models produced 16 color/glow sprite pairs across seven Kuroda and nine Shinobi clips. Kuroda chain motion is baked into attack frames; no combat reach or damage amount changes. Offline asset checks passed; rendered samples were inspected outside the game. approved the revised Shinobi sprite; roster gameplay integration is recorded below. Manual Kuroda visual/VFX review remains pending.
 
-Chain animation (Tim approved and exported 2026-10-30): authored weight rises behind at phase .29, overhead at .42, casts downward-forward at .56, then recovers. A fixed 240 Hz Verlet/PBD bake uses 48 intermediate links, pinned animated-hand/authored-weight endpoints, reach clamp, alternating 64-iteration distance constraints, conservative torso/ground clearance and recovery damping. Each clip is pre-baked once in canonical local coordinates, then deterministically sampled for eight views and color/glow; there is no runtime chain physics. `test_tank_chain` passed phase, constraint, hand-pin, length, determinism, recovery, eight-view and tonfa checks; `test_new_crew`, `test_weapon_lightning` and `check_tank_sprites` (16 pairs, eight directions, masks/catalog/edge clearance) also passed, as did syntax/diff checks. Only Kuroda uses `strikeFraction=.56` to align damage timing with the forward cast; other melee stays at .4. All seven Kuroda color/glow pairs were exported; the previous 14 PNGs are archived in `assets/sprites_archive/2026-10-30_tank_chain_arc/`. Tim approved the exported animation GIF (“that chain looks good”). In-game playtest remains pending. References: [Position Based Dynamics](https://matthias-research.github.io/pages/publications/posBasedDyn.pdf), [Three.js Curve](https://threejs.org/docs/pages/Curve.html).
+Chain animation (approved and exported 2026-10-30): authored weight rises behind at phase .29, overhead at .42, casts downward-forward at .56, then recovers. A fixed 240 Hz Verlet/PBD bake uses 48 intermediate links, pinned animated-hand/authored-weight endpoints, reach clamp, alternating 64-iteration distance constraints, conservative torso/ground clearance and recovery damping. Each clip is pre-baked once in canonical local coordinates, then deterministically sampled for eight views and color/glow; there is no runtime chain physics. `test_tank_chain` passed phase, constraint, hand-pin, length, determinism, recovery, eight-view and tonfa checks; `test_new_crew`, `test_weapon_lightning` and `check_tank_sprites` (16 pairs, eight directions, masks/catalog/edge clearance) also passed, as did syntax/diff checks. Only Kuroda uses `strikeFraction=.56` to align damage timing with the forward cast; other melee stays at .4. All seven Kuroda color/glow pairs were exported; the previous 14 PNGs are archived in `assets/sprites_archive/2026-10-30_tank_chain_arc/`. approved the exported animation GIF (“that chain looks good”). In-game playtest remains pending. References: [Position Based Dynamics](https://matthias-research.github.io/pages/publications/posBasedDyn.pdf), [Three.js Curve](https://threejs.org/docs/pages/Curve.html).
 
 Phase 8 section 5 implementation checkpoint (2026-10-30; roster values updated 2026-10-31): Yumi archer (`archer`) 160 HP/14 damage, 8 range/1.2 s interval, 120 ryo; shallow-arc normal arrows and Hamstring. Kuroda shield guard (`kuroda_enforcer`, `koruda_enforcer` model) 420 HP/18 damage, 160 ryo; 90° 4.5-range cone Taunt forces attacks for 3 s, grants 35% self damage reduction, 8 s cooldown. Masked bodyguard (`shinobi_enforcer`) 300 HP/17 damage, 170 ryo; 35% dodge, no self reduction, single-target 3 s Taunt/8 s cooldown, reveal and violet pulse. New tanks respect passive/engagement orders; player and bots recruit through shared APIs. Geisha now has 180 HP and 12 ranged damage at 5.5 range/1.25 s; Charm retains priority, can initiate eligible explicit/attack-move engagements, and keeps ally protection/explicit-order override. Western Foreign visitor/dockworker are unarmed civilians; their two additions replace one sailor and one laborer (30 total), visit day POIs and go to dock/customs homes at night. No hero kits or broad balance pass included. Manual VFX/visual playtest remains pending. See [approved current roster stats](crew_recruiting_plan.md#approved-roster-tuning-tim-2026-10-31).
 

@@ -180,7 +180,7 @@ Island ground, props and trails are painted by the layered procedure in [world_p
 | `weapon_glow.json` | Weapon glow colours and strength per character. |
 | `interiors.json` | Hand-made rooms (the approved teahouse). |
 | `interior_parts.json` | Room parts, materials and placement rules. |
-| `room_recipes.json` | Generator recipes per building type and Tim's picked seeds. |
+| `room_recipes.json` | Generator recipes per building type and the picked seeds. |
 
 ## Outdoors and indoors
 

@@ -6,15 +6,15 @@ This page owns the proposed capital, frontier, settlement, supply and larger RTS
 It describes the intended game after the current city match, not current gameplay.
 Current city rules and build status remain in the existing owner docs.
 
-## Classic snapshot before frontier build (Tim, 2026-10-31)
+## Classic snapshot before frontier build (2026-10-31)
 
-Tim will manually copy the existing city game outside this project folder as a
+will manually copy the existing city game outside this project folder as a
 preserved Classic snapshot before frontier implementation. Development then
 continues in this current project. No copy or move is requested now.
 
 ## How to read decisions
 
-- **Agreed direction** means a design constraint Tim has settled for planning.
+- **Agreed direction** means a design constraint has settled for planning.
 - **Proposed starting point** means a small first implementation to evaluate, not an approved rule or number.
 - **Open choice** needs a later design decision and, where relevant, a balance playtest.
 - **Deferred** stays outside the first frontier build.
@@ -97,8 +97,8 @@ Terrain transitions across coastal plains, fertile central/eastern farmland, cen
 **Island art checkpoint (2026-11-02):** W3.8's 25 requested source images are in `assets/environment/island/`; see the [prompt and asset list](../assets/image_prompts.md#island-art-w38-frontier). W3.9 imports and places cliff pieces deterministically from the approved blueprint-derived 50-unit mountain cells; blockers remain the terrain cells. The art review tour and its staged review props have been removed pending a later location pass. Since the first walkthrough, 21 follow-up art assets were generated and accepted: eight numeric lake-bank pieces, four opposite-bank rims, and nine high-ground B/C/D variants. They are saved beside the original world art. Their actual dimensions and orientation inventory are in the [walkthrough follow-up prompts](../assets/image_prompts.md#walkthrough-follow-up-art-prompts-2026-11-02); they still need mapping, resizing if integration requires it, and code integration. No new dry terrain/mountain layout has been approved; do not treat the old staged samples as mapped placements. The earlier `mountain_forest_broad.png` concept is obsolete and preserved.
 
 **Island visual notes from first walkthrough (2026-11-02):**
-- [x] Gate orientation selected; the road connects through the gate and blends into the grass in Tim’s screenshot.
-- [x] City gate entry/return works well in Tim’s playtest; the hero can use the gate from the outside zone.
+- [x] Gate orientation selected; the road connects through the gate and blends into the grass in the screenshot.
+- [x] City gate entry/return works well in the playtest; the hero can use the gate from the outside zone.
 - [x] The black triangular area at the lower-right is the world edge, and the gate connection into the world works.
 - [x] Forest cliff pieces approved; snow high-ground textures approved.
 - [x] Dry individual art approved at the review scale, but the staged samples were scattered and in the wrong terrain. Map a connected dry range only after the dry terrain/blueprint layout is decided; include straight A/B pieces, mirrors, inner/outer corners, rims, tops, and travel stops.
@@ -111,7 +111,7 @@ Terrain transitions across coastal plains, fertile central/eastern farmland, cen
 - [x] Ground textures show long repeated lines/obvious tiling; blend the existing 16 forest texture types and the new B/C/D high-ground variants into a natural mosaic. The island still uses mostly city ground textures, and `islandBiome` currently treats regions other than snow/dry as forest for mountain art. (done in W3.10, 2026-11-03)
 - [x] Baseline island ground paint and region palette landed in W3.10 (2026-11-03). Snow-code (`n`) cells still use placeholder sand/gravel weights; `top_snow` only covers mountain (`m`) cells.
 - [ ] Integrate the four generated snow-lowland textures (`ground_snow.png`, `ground_snow_b.png`, `ground_snow_thaw.png`, `ground_snow_thaw_b.png`) across snowy cells with a blended thaw band. Coordinator verified they are 1254 × 1254 and fully opaque (alpha 255), despite the 1024 × 1024 prompt target. Large-area seamless continuity is not verified; mild directional grain or patch alignment may show. Review dry and other regional terrain coverage in this pass.
-- [x] Eight narrow lake-bank segments were generated and accepted with numeric filenames to avoid compass-name confusion. Order is N, NE, E, SE, S, SW, W, NW. The source prompts requested 1024 × 1024; saved files are 1254 × 1254. `lake_edge_1.png` is the approved north v3. The original lake image and specified drafts are retained; one obsolete draft was moved to `to_delete/` at Tim’s request.
+- [x] Eight narrow lake-bank segments were generated and accepted with numeric filenames to avoid compass-name confusion. Order is N, NE, E, SE, S, SW, W, NW. The source prompts requested 1024 × 1024; saved files are 1254 × 1254. `lake_edge_1.png` is the approved north v3. The original lake image and specified drafts are retained; one obsolete draft was moved to `to_delete/` on request.
 - [x] Replace the old oversized repeated painted-water lake-edge decals with the accepted narrow bank segments; let the renderer supply water and align bank art/collision to the mapped shore. (done in W3.10, 2026-11-03)
 - [x] Import and place the four accepted opposite-bank rim orientations on mapped forest/snow ranges; verify high-ground sides face inward. (done in W3.10, 2026-11-03)
 - [x] Resize the accepted ford art by 1–2 tiles and fit it at actual thin river crossings. Fit pass gates to valid terrain crossings, not stale metadata locations. (done in W3.10, 2026-11-03)
@@ -120,7 +120,7 @@ Terrain transitions across coastal plains, fertile central/eastern farmland, cen
 
 The art plan’s inner-corner wording also matched straight south edges. Implementation and regression coverage use actual concave topology: south and east neighbors are mountain, while the southeast diagonal is free. The prompt list records generation; [art direction](art_direction.md#buildings-and-props-settled) links the reusable importer/fitting process.
 
-References: **approved blueprint v2 (Tim, 2026-11-02): [overview](images/frontier/blueprint/v2_overview.png), [data](images/frontier/blueprint/world_blueprint_v2.json)**; superseded: [measured island sketch](images/frontier/measured-island.html), [island atlas](images/frontier/island-atlas.html); and concept image below.
+References: **approved blueprint v2 (2026-11-02): [overview](images/frontier/blueprint/v2_overview.png), [data](images/frontier/blueprint/world_blueprint_v2.json)**; superseded: [measured island sketch](images/frontier/measured-island.html), [island atlas](images/frontier/island-atlas.html); and concept image below.
 
 ![Illustrative frontier island concept, not a 1:1 map overlay](images/frontier/frontier-island-concept.png)
 
@@ -244,7 +244,7 @@ Superseded where it differs by [War (current design, 2026-11-09)](#war-current-d
 ## Hero equipment, exploration and rewards — agreed direction (2026-10-31)
 
 - Start with three hero equipment slots: weapon, armor and one accessory.
-- The capital now has 12 carried slots, a separate 12-slot HQ stash and three equipment slots (Tim, 2026-11-01). Frontier item implementation remains unbuilt; see the [capital inventory status](gameplay_and_design.md#inventory-and-loot-settled).
+- The capital now has 12 carried slots, a separate 12-slot HQ stash and three equipment slots (2026-11-01). Frontier item implementation remains unbuilt; see the [capital inventory status](gameplay_and_design.md#inventory-and-loot-settled).
 - The earlier [capital inventory and loot outline](gameplay_and_design.md#inventory-and-loot-settled) owns the existing stash, fence and carrying concept. This plan records how hero gear fits the campaign.
 - Capital encounters and raid caches can award meaningful gear.
 - Later frontier hero exploration can reveal ruins, caches, outposts and gear discoveries.
@@ -368,7 +368,7 @@ Planned, not built. Full design: `frontier_build_steps.md`, Phase F6: War. It re
 
 ## Endgame and campaign length (2026-11-05)
 
-Agreed with Tim on 2026-11-05 ("ok docs"). Nothing here is built yet.
+Agreed on 2026-11-05 ("ok docs"). Nothing here is built yet.
 
 **Length**
 - A full campaign takes about 20 hours, over many sittings (save and return).
@@ -506,8 +506,8 @@ The hero comes round after `heroRespawnSeconds` at his clan's nearest founded to
 - `stipend` 150: a city holding no business gets 150 ryo each new day while the boss is away.
 - `captainWaitSeconds` 60, `captainFee` 100: a dead city captain is replaced after 60 s for 100 ryo.
 - `banditJobMinutes` 6: time limit for a lieutenant's bandit job. A timed-out bandit job gives back that day's job once.
-- No wage: the lieutenant and captain are not paid (Tim 2026-11-19; replaces the 2026-11-06 `wageShare` 0.02 daily ryo sink).
-- War Mode (Tim 2026-11-19, all clans, player and rivals; on by default): while the clan is in any frontier war (attacker or defender) the lieutenant holds what it has. No new business buys. A War Lantern or a raid only to win back a business a rival took since the war began (`business.lost = { clan, tick }`, set when a business changes hands, cleared when the old owner gets it back). Hire, bail, clinic, defend, retake, Shakedowns and Sweeps go on as usual. Ends when the clan's last war ends. Command `lieutenant { warMode: bool }`.
+- No wage: the lieutenant and captain are not paid (2026-11-19; replaces the 2026-11-06 `wageShare` 0.02 daily ryo sink).
+- War Mode (2026-11-19, all clans, player and rivals; on by default): while the clan is in any frontier war (attacker or defender) the lieutenant holds what it has. No new business buys. A War Lantern or a raid only to win back a business a rival took since the war began (`business.lost = { clan, tick }`, set when a business changes hands, cleared when the old owner gets it back). Hire, bail, clinic, defend, retake, Shakedowns and Sweeps go on as usual. Ends when the clan's last war ends. Command `lieutenant { warMode: bool }`.
 
 Code: `sim/lieutenant.js`, `sim/bot.js`. Tests: `tools/test_lieutenant_hero.mjs`, `tools/test_lieutenant_war.mjs`.
 
@@ -1075,7 +1075,7 @@ Goal cards (sim/campaign_goals.js), first town only, after Give him his orders; 
 - Worker cover: a worker with an enemy near him runs to the nearest shelter of his side with room: the town hall / camp hall, or a built work camp (lumber camp, quarry, food camp; war.structures.shelter.workCampRoom 6 each). Towns watch as far as their workers go (workers.range + campReach). War camps shelter too (campHallRoom 40); the threat for a camp is the defender. Recall by hand (badge over the hall or camp hall, worker panel To hall) sends them to the hall; Back to work sends them back. A shelter knocked down lets its workers out.
 - Watchtowers outside the ring: only beside one of the town's own built work camps (tiers.outsideRing watchtower near 55, perCamp 1). Work camps stay within the worker range, so never near a rival town.
 - Rush defend list has the town hall war upgrade (after the clan hall), so a Rush town can go past 4 supply tents (42 troops) to the full troop cap.
-- Rival strategies (Tim 2026-11-21: all are expanders at least): every strategy founds every 3 days up to 8 towns (enough for 4 zones); Expander, Fortress and Warlord differ only in how they go to war (noWarWhileLand, warRyo, weakest). Replaces the 2026-11-19 placeholders (Fortress 6 days / 5 towns, Warlord 2 towns).
+- Rival strategies (2026-11-21: all are expanders at least): every strategy founds every 3 days up to 8 towns (enough for 4 zones); Expander, Fortress and Warlord differ only in how they go to war (noWarWhileLand, warRyo, weakest). Replaces the 2026-11-19 placeholders (Fortress 6 days / 5 towns, Warlord 2 towns).
 - Shipments: a train loads only what a source still holds. If reserved stock was spent before the train came (a build or the war pack spend it without checking reservations), it loads what is left and drops the rest of that reservation; the order stays open and is filled again later.
 - Camp builders (bot general): the general's own gatherer moves are its picks (assign by 'g'), not hand orders, so the camp still calls those workers off to build its sites.
 
@@ -1086,8 +1086,8 @@ Goal cards (sim/campaign_goals.js), first town only, after Give him his orders; 
 - General tab (war_general_tab.js): "How your general fights" (he takes over while your hero is out of the war; the choice is for all your wars); "If <town> is attacked" (keep N% of the town coffers safe; the rest and the safety fund's ryo go into the war chest; a live line shows how much would stay and go); "Clan treasury" (limits your general and governors, not you: during a war they may send treasury ryo by train to a war chest, never below the keep line and at most 25% of what is above it a day; the player's own orders can go below it).
 - Safety fund: set on the General tab ("Safety fund, pays for his military buildings"): share box with -/+, timber / stone / ryo in the fund, a status line (saving for X / nothing to save for / set to 0 / Initiative off), and a red box with the cause when the general cannot build. The Governor tab keeps one row "Safety fund N%" with what he saves for and a Set button that opens the General tab; the red cause box shows under it too. The Governor tab's Keep in town card has goods, timber and stone boxes with -/+ by 100; Enter always sends the typed keep (and fund), and the box holds the typed value until the sim has it.
 - The general skips a building with no room in the military quarter before saving for it (player towns), as the fund's "saving for" does.
-- Safety fund, hard share (Tim 2026-11-22, replaces the 2026-11-21 capped fund): the set share (default 10%) of every timber, stone and ryo income is always set aside, whatever the general is saving for; no cap. The player can lower it; 0 hands the fund back to the town (as far as the stores have room). fund.cap is only what the rest of his list at this tier needs; the General tab tiles read "he needs N" / "for the war chest" / "none needed". Erasing the military quarter no longer hands the fund back.
-- Buildings that do not fit: a military building with no room in a player's military quarter is not saved for, and neither is one that needs it (clan hall behind a rifle range). fund.warn, e.g. "No room for a rifle range: the military quarter is full. Paint more Military zone to fit it. Waiting behind it: clan hall, hidden dojo", shows red on the General tab and the Governor tab fund row. The general never adds to a zone the player painted himself (open question for Tim).
+- Safety fund, hard share (2026-11-22, replaces the 2026-11-21 capped fund): the set share (default 10%) of every timber, stone and ryo income is always set aside, whatever the general is saving for; no cap. The player can lower it; 0 hands the fund back to the town (as far as the stores have room). fund.cap is only what the rest of his list at this tier needs; the General tab tiles read "he needs N" / "for the war chest" / "none needed". Erasing the military quarter no longer hands the fund back.
+- Buildings that do not fit: a military building with no room in a player's military quarter is not saved for, and neither is one that needs it (clan hall behind a rifle range). fund.warn, e.g. "No room for a rifle range: the military quarter is full. Paint more Military zone to fit it. Waiting behind it: clan hall, hidden dojo", shows red on the General tab and the Governor tab fund row. The general never adds to a zone the player painted himself (open question for ).
 - Town tier worker cap 60 (was 90). A town over its limit lets the extras go back to the townspeople (checked each second): workers in training first, then the governor's idle ones, the player's picks and anyone carrying or on a job last.
 - Military quarter no room (military_plot.js): the message names the cause: "No room for a military quarter: <cause>. Paint a Military zone to pick a spot". Causes: blocked cells counted by kind (buildings, reserved, work camps, cliffs, rail, lanes), "the free ground is in small pieces, no WxH block fits", or "no road can reach a free block". It tries again every war.general.plot.retryReviews governor reviews (default 12) at the same tier; the message clears when the player paints his own Military zone.
 - Town hall art: town_hall_2 shear 0.12, town_hall_3 shear 0.24 (turned to sit on the grid). geometry.js artItem now passes shear on to placePiece (before, no art.json shear had any effect); the 17 other stored values are renamed shearOff (not applied) until decided.

@@ -2,13 +2,13 @@
 
 Status (2026-10-18): every room is built this way, and rooms come from the room generator (`docs/room_generator_plan.md`). The hand-made teahouse is kept, unused, in `game/data/interiors.json`. Rooms are about 2.5x larger with about 2x the props (2026-10-18), and each room has its own walk grid. The older painted wall-piece rooms are gone.
 
-Phase 3E (Tim, 2026-10-21): Shop, Tenements, Pawnshop, Bathhouse, Sake Brewery, Manor and Customs House use separate room-generator recipes with existing props and textures.
+Phase 3E (2026-10-21): Shop, Tenements, Pawnshop, Bathhouse, Sake Brewery, Manor and Customs House use separate room-generator recipes with existing props and textures.
 
-## Painted interior art (Tim, 2026-10-22)
+## Painted interior art (2026-10-22)
 
 Approved painted wall panels and prop cutouts reuse the room's 3D floors, walls, depth and collision footprints. Twenty new props cover customs records/inspection, shop and pawn displays, bathing, dojo training, brewery storage/vats and manor furnishings. Sources and prompts: `assets/environment/interior_prop_previews/`; preparation: `tools/prepare_interior_prop_previews.py` and `tools/extract_interior_reuse.py`. Layout rules: [room generator](room_generator_plan.md#aligned-layouts-tim-2026-10-22).
 
-Angle revisions approved and integrated (Tim, 2026-10-22): inspection table, customs notice board, towel shelf and bath bucket/stool. Recipes, placement and collision footprints are unchanged. Optional futon v2 stays preview-only. Tenement futons use a small -3° in-render art rotation; collision footprints and screens stay fixed. Tim reviews revised art before replacement. The inn uses its approved seed-1 whole-scene workflow; other hideouts remain future work.
+Angle revisions approved and integrated (2026-10-22): inspection table, customs notice board, towel shelf and bath bucket/stool. Recipes, placement and collision footprints are unchanged. Optional futon v2 stays preview-only. Tenement futons use a small -3° in-render art rotation; collision footprints and screens stay fixed. reviews revised art before replacement. The inn uses its approved seed-1 whole-scene workflow; other hideouts remain future work.
 
 ## Why 3D
 
@@ -47,7 +47,7 @@ All of these live in `game/data/interior_parts.json` under `wall`.
 - The ceiling is cut away like the front walls, so nothing is drawn above the rooms. Its height is the wall height (3.0).
 - Hanging props (lanterns) hang at 1.95 on a thin cord that runs up to a small hook at ceiling height. That is head height, so they block walking and go over furniture or within a cell of a wall.
 
-## Look rules (settled with Tim, 2026-10-16)
+## Look rules (settled with 2026-10-16)
 
 These live in the shared drawing code (`render/interior3d.js`, `render/shading.js`) and the shared materials in `data/interior_parts.json`, not in any room's data. Every room, hand-made or generated, gets them automatically, and a room file cannot turn them off.
 
@@ -107,12 +107,12 @@ Rooms live in `game/data/interiors.json`. A 3D room has `"build": "3d"`:
 - `materials` in `interior_parts.json` sets each surface's texture, size on the wall (`tile`), colour (`tint`), brightening (`gain`), how much texture detail shows (`detail`) and self-light for paper and coals (`glow`).
 - A new prop needs a data entry in `interior_parts.json` and a small shape function in `game/src/render/interior3d.js` (`MODELS`). A prop can instead name a painted `cutout` from `data/art.json`, as the vase does.
 
-Inn blueprint interiors (Tim, 2026-10-24): camera-aligned whole-scene floor/furniture painting with functional 3D partitions/doors, proximity transparency, selective wall masks and calibrated blockers. Reproducible process: [approved inn workflow](interior_alignment_workflow.md#approved-inn-seed-1-workflow-tim-2026-10-24).
+Inn blueprint interiors (2026-10-24): camera-aligned whole-scene floor/furniture painting with functional 3D partitions/doors, proximity transparency, selective wall masks and calibrated blockers. Reproducible process: [approved inn workflow](interior_alignment_workflow.md#approved-inn-seed-1-workflow-tim-2026-10-24).
 
 ## Approved rear-entrance fix (2026-10-27)
 
-- [x] **#10, implemented/targeted-checked 2026-10-27:** fix reachable teahouse rear entrances and wall clearance. Check actual approach/door traversal and collision clearance; Tim playtest pending. [Overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
+- [x] **#10, implemented/targeted-checked 2026-10-27:** fix reachable teahouse rear entrances and wall clearance. Check actual approach/door traversal and collision clearance; playtest pending. [Overall phases](deployment_sector_plan.md#playtest-fixes-follow-on-approved-2026-10-27-not-implemented).
 
-Phase 5B: `reachableEntry` selects rear approach/landing points connected through navigation to exterior/front-room spawn, avoiding nearest-wall pockets. `test_indoor_stealth` passed all current teahouse entry paths on both sides. Render syntax passed; Tim traversal/clearance visual playtest remains pending. No commit/push requested.
+Phase 5B: `reachableEntry` selects rear approach/landing points connected through navigation to exterior/front-room spawn, avoiding nearest-wall pockets. `test_indoor_stealth` passed all current teahouse entry paths on both sides. Render syntax passed; traversal/clearance visual playtest remains pending. No commit/push requested.
 
-Rear-window playtest correction (2026-10-28): Tim found the teahouse ring still intersected the garden wall/tree. Prior checks proved center connectivity only. `reachableEntry` now filters inside/outside candidates for 1.3-unit circular clearance from blockers, covering the 2.4-wide ring. All fourteen current port-town business rear entrances retain both-side connectivity and full-ring clearance. Extended `test_indoor_stealth` physically drives Shinobi from front approach to rear, enters, walks to interior spawn/back and exits. **Reload and start a fresh match to regenerate door locations.** Tim visual retest remains pending.
+Rear-window playtest correction (2026-10-28): found the teahouse ring still intersected the garden wall/tree. Prior checks proved center connectivity only. `reachableEntry` now filters inside/outside candidates for 1.3-unit circular clearance from blockers, covering the 2.4-wide ring. All fourteen current port-town business rear entrances retain both-side connectivity and full-ring clearance. Extended `test_indoor_stealth` physically drives Shinobi from front approach to rear, enters, walks to interior spawn/back and exits. **Reload and start a fresh match to regenerate door locations.** visual retest remains pending.

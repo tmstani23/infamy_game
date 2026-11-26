@@ -40,7 +40,7 @@ This is a four-corner **image-plane trapezoid correction**, not a 3D rotation or
 
 The bathhouse towel shelf is the reference case: `painted.shear: 0.16` fixed its visible wall angle without changing placement or collision. The accepted pawnshop shelf needed a foot-pivot adjustment. These were exceptions, not required steps for every room. Preserve the admired pawnshop, manor, brewery, and valuables artwork.
 
-## Approved inn seed-1 workflow (Tim, 2026-10-24)
+## Approved inn seed-1 workflow (2026-10-24)
 
 Use this process for remaining hideouts:
 
