@@ -1,6 +1,6 @@
 {
  "version": 1,
- "_note": "placeholder, Tim to tune (W3.10). Every number of the island painting (docs/world_painting.md): biome field, material mosaic, trails, props, stamps. src_paint.js reads this; tools/import_island_ground.mjs makes the textures from `src`.",
+ "_note": "placeholder, to tune (W3.10). Every number of the island painting (docs/world_painting.md): biome field, material mosaic, trails, props, stamps. src_paint.js reads this; tools/import_island_ground.mjs makes the textures from `src`.",
  "enabled": true,
  "seed": 7,
  "field": {
@@ -17,7 +17,7 @@
   "_note": "Painted water with animated surface slopes and light, independent of the slow base color drift. World-unit wave sizes/speeds; visual only. Disable to compare the earlier seam-safe color-flow shader.",
   "enabled": true,
   "normalMaps": {"size":512,"tile":8,"strength":0.65,"flowSpeed":0.045,"style":"painted"},
-  "paint": {"_note":"Sea look step 1 (Look A, Tim 2026-11-23): painted tones from swell bands + baked chop. strength 0 = the earlier look. Was deepColor [0.045,0.115,0.185], skyColor [0.28,0.42,0.55], normalMaps style ripple.","strength":1,"windDeg":14,"swellLength":5.5,"swellSpeed":0.25,"swellAmount":0.3,"inkScale":0.5,"flecks":0.25,"litColor":[0.075,0.115,0.13]},
+  "paint": {"_note":"Sea look step 1 (Look A, 2026-11-23): painted tones from swell bands + baked chop. strength 0 = the earlier look. Was deepColor [0.045,0.115,0.185], skyColor [0.28,0.42,0.55], normalMaps style ripple.","strength":1,"windDeg":14,"swellLength":5.5,"swellSpeed":0.25,"swellAmount":0.3,"inkScale":0.5,"flecks":0.25,"litColor":[0.075,0.115,0.13]},
   "depth": {"_note":"Sea look step 2 (2026-11-23): distance from the bank in world units, baked per chunk (world_paint.js paintChunk D). foam 0 turns depth tint and foam off.","max":40,"shallowEnd":14,"shallowColor":[0.085,0.14,0.135],"deepStart":24,"foam":0.9,"foamColor":[0.42,0.47,0.46]},
   "lampStreaks": {"_note":"Sea look step 3 (2026-11-23): broken warm streaks under lamps and fires at night; strength 0 = only the old soft glow.","strength":0.8,"length":1},
   "reflection": {"enabled":true,"size":512,"strength":0.8,"distortion":0.012,"updateHz":15},
@@ -128,7 +128,7 @@
   "clearFull": 10,
   "rootsInForest": 0.5,
    "strips": {
-    "_note": "built-in roads drawn as textured strips (src/road_strips.js, Tim 2026-11-21); art built by tools/build_road_strips.py from assets/environment/travelroads1.png. width/repeat in units; step/smooth = line split + Chaikin passes; types = biome -> strip column (0 plains, 1 hills, 2 forest, 3 marsh, 4 dry, 5 snow); tone = colour multiplier per strip; waterFade = water amount where the road starts/ends fading; drawRadius = how far from the camera strips are built",
+    "_note": "built-in roads drawn as textured strips (src/road_strips.js, 2026-11-21); art built by tools/build_road_strips.py from assets/environment/travelroads1.png. width/repeat in units; step/smooth = line split + Chaikin passes; types = biome -> strip column (0 plains, 1 hills, 2 forest, 3 marsh, 4 dry, 5 snow); tone = colour multiplier per strip; waterFade = water amount where the road starts/ends fading; drawRadius = how far from the camera strips are built",
     "art": "art/ground/island/road_strips.png",
     "width": 8.1,
     "repeat": 22.2,
@@ -140,9 +140,9 @@
     "waterFade": [0.3, 0.55],
     "drawRadius": 500,
     "network": {
-      "_note": "natural roads (Tim 2026-11-25, src/road_strips.js roadNetwork): corridor pieces joined into whole roads; mergeTurn = largest bend (deg) carried through a junction; crossTurn = largest bend for the second road through a crossroads (else it splits into branches); meander = wander each side (units); wave = [long, short] wander lengths; calm = fade-in distance from junctions and road ends; branchR = how far back a branch starts bending into the road it meets; bend = how much it leans toward the way it turns; blend = fade length of a branch end; endFade = fade length of a loose end; snap = loose end this near a road joins it; overIn / overSoft = where a branch or crossing side lying over the road it meets fades (x half width); widthVary = width wander along a road; armLen = how far out a junction arm's direction is measured; filletR = largest rounded-corner radius (corners vary 0.7..1.3x, tight corners smaller); filletRag = how ragged a rounded corner's verge is",
+      "_note": "natural roads (2026-11-25, src/road_strips.js roadNetwork): corridor pieces joined into whole roads; mergeTurn = largest bend (deg) carried through a junction; crossTurn = largest bend for the second road through a crossroads (else it splits into branches); meander = wander each side (units); wave = [long, short] wander lengths; calm = fade-in distance from junctions and road ends; branchR = how far back a branch starts bending into the road it meets; bend = how much it leans toward the way it turns; blend = fade length of a branch end; endFade = fade length of a loose end; snap = loose end this near a road joins it; overIn / overSoft = where a branch or crossing side lying over the road it meets fades (x half width); widthVary = width wander along a road; armLen = how far out a junction arm's direction is measured; filletR = largest rounded-corner radius (corners vary 0.7..1.3x, tight corners smaller); filletRag = how ragged a rounded corner's verge is",
       "mergeTurn": 100, "crossTurn": 45, "meander": 5, "wave": [520, 170], "calm": 70, "branchR": 30, "bend": 0.5, "blend": 4, "endFade": 5, "snap": 6, "overIn": 0.35, "overSoft": 0.3, "widthVary": 0.08, "armLen": 12, "filletR": 11, "filletRag": 0.6,
-      "_crossNote": "roads onto bridges and fords (Tim 2026-11-26, src/road_strips.js alignCrossings): a road crossing a river within crossReach of a crossing (world.fords) is pulled onto it by a smooth local warp of every road near it (junctions move with their roads): straight across, square to the flow, over the water plus crossRun each side; the pull fades over crossLead (plus 1.2 x how far it moved); a junction that would land on the deck spreads the land round the crossing up to crossSpread times; crossComb = band (units) beside a crossing line that is combed onto it",
+      "_crossNote": "roads onto bridges and fords (2026-11-26, src/road_strips.js alignCrossings): a road crossing a river within crossReach of a crossing (world.fords) is pulled onto it by a smooth local warp of every road near it (junctions move with their roads): straight across, square to the flow, over the water plus crossRun each side; the pull fades over crossLead (plus 1.2 x how far it moved); a junction that would land on the deck spreads the land round the crossing up to crossSpread times; crossComb = band (units) beside a crossing line that is combed onto it",
       "crossReach": 200, "crossRun": 20, "crossLead": 150, "crossSpread": 1.8, "crossComb": 20
     }
    }
@@ -1075,7 +1075,7 @@
   ]
  },
  "cityWall": {
-  "_note": "stone wall pieces drawn along the city's edges on the island (the city box is a walk blocker); gap = half width left open at the gate when gateHalf is unset; gateHalf (Tim 2026-11-10) = half width of the gap measured along the wall from the gate art, which stands in the wall line",
+  "_note": "stone wall pieces drawn along the city's edges on the island (the city box is a walk blocker); gap = half width left open at the gate when gateHalf is unset; gateHalf (2026-11-10) = half width of the gap measured along the wall from the gate art, which stands in the wall line",
   "art": "stone_wall",
   "step": 2.45,
   "gap": 5.5,
@@ -1085,5 +1085,5 @@
   "fog": 0.94,
   "out": 0.6
  },
-  "moatBank": { "_note": "Castle moat banks (Tim 2026-11-20, too sharp): ragged = how far the bank line wobbles (units), noiseScale its size; start/end/strength = the wet tint band on the ground beside the moat, like coastTransition; bank/bankStrength = the band of bank mud.", "ragged": 2.5, "noiseScale": 9, "start": 0, "end": 10, "strength": 0.7, "bank": 6, "bankStrength": 0.7 }
+  "moatBank": { "_note": "Castle moat banks (2026-11-20, too sharp): ragged = how far the bank line wobbles (units), noiseScale its size; start/end/strength = the wet tint band on the ground beside the moat, like coastTransition; bank/bankStrength = the band of bank mud.", "ragged": 2.5, "noiseScale": 9, "start": 0, "end": 10, "strength": 0.7, "bank": 6, "bankStrength": 0.7 }
 }

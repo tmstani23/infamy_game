@@ -1,7 +1,7 @@
 {
   "version": 1,
   "enabled": true,
-  "approval": "Tim approved revision 2, 2026-11-03. Structural blueprint overlay; authored locations pinned so no procedural placements are rerolled.",
+  "approval": "approved revision 2, 2026-11-03. Structural blueprint overlay; authored locations pinned so no procedural placements are rerolled.",
   "baseBlueprintSha256": "213f3329ed80ae197465394b7ff7388ff334cd9f5a6b2e5e81040b24adf92893",
   "proposal": "assets/environment/island/reshape/reshape_proposal_v2.json",
   "ranges": [

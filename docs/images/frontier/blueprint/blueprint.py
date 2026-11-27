@@ -351,7 +351,7 @@ def sea_path(a,b):
 harbors=[s for s in sites if s['harbor']]
 lanes=[{"id":f"SL{k+1}","from":"capital","to":s['id'],"points":sea_path(CAPITAL['port'],s['harbor'])} for k,s in enumerate(harbors)]
 
-# ---------------- resource nodes (placed by rule, fixed; Tim moves any via overrides) ----------------
+# ---------------- resource nodes (placed by rule, fixed; moves any via overrides) ----------------
 def dist_ok(x,z,lst,d): return all(math.hypot(x-o['x'],z-o['z'])>=d for o in lst)
 nodes=[]
 def node_kind(i,j):
@@ -538,7 +538,7 @@ footer(img,dr,"layer 3: buildable vs not",[("buildable",(150,180,120)),("not bui
 img,dr=base('faded'); L_borders(dr,False); L_mountains(dr); L_sites(dr)
 footer(img,dr,"layer 4: sites, harbors, sea lanes",["● site (red = fewer than 3 routes)","◆ harbor","— sea lane from the capital's port"],f"{len(sites)} sites, {len(harbors)} with harbors. Closest pair {st['minSiteSpacing']} u apart."); outs['4_sites']=img
 img,dr=base('faded'); L_borders(dr,False); L_nodes(dr); L_sites(dr,False)
-footer(img,dr,"layer 5: resource nodes",[(f"{k} ({st['nodes'][k]})",c) for k,c in NODECOL.items()],"Placed by terrain rules once, then fixed. Every campaign uses the same nodes; Tim moves any he wants."); outs['5_nodes']=img
+footer(img,dr,"layer 5: resource nodes",[(f"{k} ({st['nodes'][k]})",c) for k,c in NODECOL.items()],"Placed by terrain rules once, then fixed. Every campaign uses the same nodes; moves any he wants."); outs['5_nodes']=img
 img,dr=base('faded'); L_borders(dr,False); L_camps(dr); L_sites(dr,False)
 footer(img,dr,"layer 6: camps, set pieces, native villages",["▲ bandit camp (number = tier 1-5, rises with distance)","⬢ ruin (grey) / cache (gold)","◇ set-piece slot (1 per region)","○ native village slot (pick 2-4)"],f"Camps: {st['camps']}. Fixed spots; contents (strength, loot) can vary."); outs['6_camps']=img
 for k,im in outs.items(): im.save(OUT+f"{VER}_{k}.png")

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "_note": "placeholder, Tim to tune (frontier W3). How the island is cut into chunks for walking, sight and drawing.",
+  "_note": "placeholder, to tune (frontier W3). How the island is cut into chunks for walking, sight and drawing.",
   "chunk": 250,
   "navCell": 1,
   "navPad": 0.4,
@@ -17,7 +17,7 @@
   "drawCache": 16,
   "propRadius": 55,
   "nightGlow": {
-    "_note": "placeholder, Tim to tune. The soft cool light around the hero on the island at night",
+    "_note": "placeholder, to tune. The soft cool light around the hero on the island at night",
     "radius": 12,
     "color": [
       0.3,
@@ -26,7 +26,7 @@
     ]
   },
   "sight": {
-    "_note": "placeholder, Tim to tune. dayRange = how far units see on the island by day; range = by night; near a lit fire the range is fireRange",
+    "_note": "placeholder, to tune. dayRange = how far units see on the island by day; range = by night; near a lit fire the range is fireRange",
     "dayRange": 80,
     "range": 60,
     "fireRange": 80,

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "_note": "Tim's steering for the island (W1.4). tools/seed_world.mjs applies these to the blueprint, then re-derives corridors, lanes and stats. paint: [{ code, x0, z0, x1, z1 } or { code, x, z, r }]; remove: [id]; move: [{ id, x, z }]; add: { sites|nodes|camps: [records] }; set: [{ id, fields }]. Each entry may carry a _why. coastCliff: { depth, harborOpen, riverOpen, openAreas: [{ x0, z0, x1, z1 }] } turns land near the open sea into cliff cells. paint may also use near: { biome, cells } and only: '<codes>'.",
+  "_note": "the steering for the island (W1.4). tools/seed_world.mjs applies these to the blueprint, then re-derives corridors, lanes and stats. paint: [{ code, x0, z0, x1, z1 } or { code, x, z, r }]; remove: [id]; move: [{ id, x, z }]; add: { sites|nodes|camps: [records] }; set: [{ id, fields }]. Each entry may carry a _why. coastCliff: { depth, harborOpen, riverOpen, openAreas: [{ x0, z0, x1, z1 }] } turns land near the open sea into cliff cells. paint may also use near: { biome, cells } and only: '<codes>'.",
   "shoreline": {
     "radius": 20,
     "harborKeep": 30,
@@ -14,19 +14,19 @@
         "biome": "dry",
         "cells": 10
       },
-      "_why": "W3.11 P4 (Tim 2026-11-03): dry ground around the Red Mesa Walls, so the dry range sits in dry land"
+      "_why": "W3.11 P4 (2026-11-03): dry ground around the Red Mesa Walls, so the dry range sits in dry land"
     }
   ],
   "remove": [],
   "move": [
-    {"id":"N078","x":9681,"z":6494,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 20 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
-    {"id":"N106","x":3706,"z":2351,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 28 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
-    {"id":"N069","x":10517,"z":756,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 300 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
-    {"id":"N071","x":606,"z":5002,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 180 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
-    {"id":"N073","x":11493,"z":7244,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 84 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
-    {"id":"N089","x":656,"z":2700,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 376 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
-    {"id":"N094","x":853,"z":1654,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground moved 464 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
-    {"id":"N107","x":10554,"z":5217,"_why":"Fishing poles (Tim 2026-11-24): rich fishing ground out in the lake moved 106 units to the nearest open (walkable) shore so workers can stand and cast; pin in world_reshape_v1.json updated to match"}
+    {"id":"N078","x":9681,"z":6494,"_why":"Fishing poles (2026-11-24): rich fishing ground moved 20 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N106","x":3706,"z":2351,"_why":"Fishing poles (2026-11-24): rich fishing ground moved 28 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N069","x":10517,"z":756,"_why":"Fishing poles (2026-11-24): rich fishing ground moved 300 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N071","x":606,"z":5002,"_why":"Fishing poles (2026-11-24): rich fishing ground moved 180 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N073","x":11493,"z":7244,"_why":"Fishing poles (2026-11-24): rich fishing ground moved 84 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N089","x":656,"z":2700,"_why":"Fishing poles (2026-11-24): rich fishing ground moved 376 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N094","x":853,"z":1654,"_why":"Fishing poles (2026-11-24): rich fishing ground moved 464 units to the nearest open (walkable) shore so workers can cast into the water; pin in world_reshape_v1.json updated to match"},
+    {"id":"N107","x":10554,"z":5217,"_why":"Fishing poles (2026-11-24): rich fishing ground out in the lake moved 106 units to the nearest open (walkable) shore so workers can stand and cast; pin in world_reshape_v1.json updated to match"}
   ],
   "add": {},
   "set": [],
@@ -34,7 +34,7 @@
     "depth": 2,
     "harborOpen": 200,
     "riverOpen": 250,
-    "_why": "W3.11 P4 (Tim 2026-11-03): cliffs along most of the coast; open shore at harbours, capital port, river mouths",
+    "_why": "W3.11 P4 (2026-11-03): cliffs along most of the coast; open shore at harbours, capital port, river mouths",
     "openAreas": [
       {
         "name": "Sallow Bay",
@@ -42,7 +42,7 @@
         "z0": 4900,
         "x1": 10100,
         "z1": 7300,
-        "_why": "Tim 2026-11-03: the whole inner bay keeps a shoreline, no cliffs"
+        "_why": "2026-11-03: the whole inner bay keeps a shoreline, no cliffs"
       },
       {
         "name": "East inlet (Heron River mouth)",
@@ -50,7 +50,7 @@
         "z0": 2150,
         "x1": 14000,
         "z1": 3350,
-        "_why": "Tim 2026-11-03: the east inlet's sides and head keep a shoreline"
+        "_why": "2026-11-03: the east inlet's sides and head keep a shoreline"
       },
       {
         "name": "Ashen Wash mouth (south-west)",
@@ -58,7 +58,7 @@
         "z0": 7000,
         "x1": 3800,
         "z1": 8000,
-        "_why": "Tim 2026-11-03: shoreline at the south-west river mouth"
+        "_why": "2026-11-03: shoreline at the south-west river mouth"
       }
     ]
   }

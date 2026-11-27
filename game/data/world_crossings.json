@@ -1,5 +1,5 @@
 {
- "_note": "Loop 1 crossings (placeholder, Tim to tune). Drawing only: walking is decided by world.json fords + rules.fordRadius. Kept out of world_paint.json because the atlas registration hashes that file. Merged into the paint settings in src/main.js.",
+ "_note": "Loop 1 crossings (placeholder, to tune). Drawing only: walking is decided by world.json fords + rules.fordRadius. Kept out of world_paint.json because the atlas registration hashes that file. Merged into the paint settings in src/main.js.",
  "fordBed": {
   "_note": "Gravel bar painted into the river bed at each of the 8 fords (units). along = half length of the bar along the river; across follows the painted water width plus bankMargin (at least acrossMin); solid = share kept fully gravel before the ragged edge fades; waterLevel = water mask over the bar (0.455 hides water, 0.545 full water); mix = bed materials blended in patches (patchScale units, patchWidth blend softness); shallow = strength of the clear shallow-water look.",
   "enabled": true,
@@ -17,12 +17,12 @@
   "shallow": 0.85
  },
  "ford": {
-  "_note": "Overrides world_paint.json ford (replaces the whole object): size of the river_ford stepping-stone art in world units, shrunk from 70 to 14 (Tim: 80% smaller), and the widest river that gets stones (0 = no stones; Tim 2026-11-04: they looked out of place, the gravel bar alone marks the ford).",
+  "_note": "Overrides world_paint.json ford (replaces the whole object): size of the river_ford stepping-stone art in world units, shrunk from 70 to 14 (80% smaller), and the widest river that gets stones (0 = no stones; 2026-11-04: they looked out of place, the gravel bar alone marks the ford).",
   "size": 14,
   "maxWidth": 0
  },
  "bridge": {
-  "_note": "Plain plank strip across the river at each of the 9 bridges (units). overhang = extra length past each edge of the painted water. width 21 (Tim 2026-11-20: 3x wider); the deck is the only walkable river there, keep world.json rules.bridgeHalfWidth (default 10.5 in sim/world_data.js) at half of it.",
+  "_note": "Plain plank strip across the river at each of the 9 bridges (units). overhang = extra length past each edge of the painted water. width 21 (2026-11-20: 3x wider); the deck is the only walkable river there, keep world.json rules.bridgeHalfWidth (default 10.5 in sim/world_data.js) at half of it.",
   "overhang": 6,
   "width": 21
  }

@@ -6,13 +6,13 @@ Read this first. It links to the docs rather than repeating them.
 
 - This codebase is yours to keep building: merge repeated code and fix nearby problems you find, within the plan-first and checkpoint rules.
 - Usage: follow [docs/usage.md](docs/usage.md).
-- Usage awareness: keep routine work lean. Ask Tim before work likely to consume substantial usage, including broad archive/history searches, large reviews, or extensive testing. Prefer targeted reads and checks.
+- Usage awareness: keep routine work lean. Ask before work likely to consume substantial usage, including broad archive/history searches, large reviews, or extensive testing. Prefer targeted reads and checks.
 - Test-param playtests: reuse one canonical manual playtest setup. Extend `game/src/test_params.js` instead of adding duplicate test-param simulation copies, and reuse an existing running playtest/server instead of launching parallel copies. See [docs/test_params.md](docs/test_params.md). Focused Node regression tests are still fine.
 - This local folder is the main copy of the project.
-- Plan first: ask Tim before building anything new. Big builds go in phases with a checklist in the plan file.
+- Plan first: ask before building anything new. Big builds go in phases with a checklist in the plan file.
 - Separation of concerns: keep world structure, game rules and presentation separate. Structural world edits start in the blueprint sources; generate the world and map reference from them. Artwork and UI follow that data. See [blueprint workflow](docs/frontier_build_steps.md#blueprint-and-presentation-workflow).
 - Always build for multiplayer, playable single-player with bots: all game rules live in `game/src/sim` (runs in Node, no graphics), players and bots act only through the same commands, render only draws. See [docs/tech_plan.md](docs/tech_plan.md).
-- Files: never delete old clips or sprite sheets without asking Tim. Move unwanted files into `to_delete/` at the folder root (Tim empties it).
+- Files: never delete old clips or sprite sheets without asking . Move unwanted files into `to_delete/` at the folder root (empties it).
 
 ## Run the game
 
