@@ -58,7 +58,7 @@ const SAVES = {
   // castle heirloom in the hero's bag, to try their effects in a fight (render/gear_fx.js heirloomArc, fangDodge, clawStrike).
   // Boss test (2026-11-27, world variety P4, 6th of 6): the hero and 6 crew 24 off the Frozen shrine, in front of the
   // pale wolf and his pack, to see a guarded place boss, his sigil and his howl. bossTest names the place.
-  boss_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 20, bossTest: 'frozen_shrine' },   // a full crew (maxCrew 20, 2026-11-28)
+  boss_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, crewMix: { swordsman: 4, archer: 2 }, bossTest: 'frozen_shrine' },   // 4 swordsmen + 2 archers (2026-11-28; was a full crew of 20)
   gear_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, warTest: true, gearTest: true },
 };
 
@@ -365,7 +365,7 @@ function warTest(game, heroId) {
 // The train robbery test: two Kuroda Villages a short line apart with stations, the line laid the real way and
 // standing orders on it both ways; a small Shinobi Village off the line; the hero, crew and horse beside the line.
 // the hero and crew on open ground about 24 from a guarded place (data/hidden_places.json), just outside the guards' reach
-function bossTest(game, heroId, placeId, want = 20) {
+function bossTest(game, heroId, placeId, want = 6) {
   const S = game.state, hero = S.entities[heroId], p = data('data/hidden_places.json').places.find(q => q.id === placeId), nav = game.areas?.nav;
   if (!p || !nav) throw new Error('boss_test: no place ' + placeId);
   Object.assign(hero, { place: 'world', area: 'world', x: p.x + 24, z: p.z }); delete hero.aboard; game.areas.update(Object.values(S.entities)); game.step([]);   // wake the chunk so its ground is known
@@ -374,7 +374,7 @@ function bossTest(game, heroId, placeId, want = 20) {
   if (!spot) throw new Error('boss_test: no open ground by ' + placeId);
   Object.assign(hero, { place: 'world', area: 'world', ...spot, anim: 'idle' }); delete hero.aboard; delete hero.order;
   let k = 0;
-  for (const u of Object.values(S.entities)) if (u.owner === hero.owner && ['thug', 'ninja'].includes(u.type) && !u.dead && k < want) {   // his crew (readyClans), wherever they wandered off to
+  for (const u of Object.values(S.entities)) if (u.owner === hero.owner && ['thug', 'ninja', 'swordsman', 'archer'].includes(u.type) && !u.dead && k < want) {   // his crew (readyClans), wherever they wandered off to
     const f = nav.nearestFree(spot.x + (k % 5 - 2) * 1.4, spot.z + 1.5 + Math.floor(k / 5) * 1.4) || [spot.x, spot.z];
     Object.assign(u, { place: 'world', area: 'world', x: f[0], z: f[1], order: { kind: 'follow', target: hero.id } }); delete u.aboard; delete u.room; k++;
   }
@@ -528,11 +528,19 @@ function shareCity(game) {
 }
 
 // Tops every clan up to the spec's ryo, Renown and crew (crew spawn by the hero, following him).
-function readyClans(game, spec) {
+function readyClans(game, spec, playerClan) {
   for (const clan of Object.values(game.state.clans)) {
     clan.ryo = Math.max(clan.ryo || 0, spec.ryo); clan.renown = Math.max(clan.renown || 0, spec.renown);
     const hero = Object.values(game.state.entities).find(e => e.owner === clan.id && e.type === 'hero');
     const type = clan.kind === 'ninja' ? 'ninja' : 'thug', sprite = game.settings.units.types[type].sprite;
+    if (spec.crewMix && clan.id === playerClan) {   // the player's crew by type (boss_test: 4 swordsmen, 2 archers)
+      for (const u of Object.values(game.state.entities)) if (u.owner === clan.id && ['thug', 'ninja'].includes(u.type)) delete game.state.entities[u.id];   // the starting crew makes way (before any step, so nothing else holds it)
+      for (const [t, n] of Object.entries(spec.crewMix)) for (let k = 0; k < n; k++) {
+        const spot = game.nav.nearestFree(hero.x + 1 + k * 0.7, hero.z + 1 + Object.keys(spec.crewMix).indexOf(t));
+        if (spot) game.spawn(t, game.settings.units.types[t].sprite, ...spot, { owner: clan.id, order: { kind: 'follow', target: hero.id } });
+      }
+      continue;
+    }
     for (let k = game.clans.crewCount(clan.id); k < spec.crew; k++) {
       const spot = game.nav.nearestFree(hero.x + 1 + k * 0.7, hero.z + 1);
       if (spot) game.spawn(type, sprite, ...spot, { owner: clan.id, order: { kind: 'follow', target: hero.id } });
@@ -548,14 +556,14 @@ export function build(name, spec) {
     spawns: options.district.spawns, test: { playerRyo: spec.playerRyo } });
   game.civilians.populate();
   if (spec.cityMix) shareCity(game);
-  if (spec.crew) readyClans(game, spec);
+  if (spec.crew) readyClans(game, spec, game.state.entities[m.heroId]?.owner);
   const bots = makeBots(game, m.rivals);
   for (let i = 0; i < spec.ticks; i++) game.step(bots.flatMap(b => b.tick()));
   if (spec.railTown) railTown(game, m.heroId, spec);
   if (spec.warTest) warTest(game, m.heroId);
   if (spec.warDefend) warDefend(game, m.heroId);
   if (spec.robTest) robTest(game, m.heroId);
-  if (spec.bossTest) bossTest(game, m.heroId, spec.bossTest);
+  if (spec.bossTest) bossTest(game, m.heroId, spec.bossTest, spec.crew);
   if (spec.shipTest) shipTest(game, m.heroId);
   if (spec.gearTest) { const bag = game.state.clans.player?.inventory?.bag; if (!bag) throw new Error('gear_test: no inventory');
     const ids = Object.keys(FRONTIER_GEAR).concat(Object.keys(HEIRLOOMS).map(f => `heirloom_${f}`));

@@ -313,4 +313,4 @@ Crows: birds burst out of a tree near troops or shinobi on the move, hidden ones
 
 ## World variety P3/P4 tests and dev save (2026-11-28)
 - Tests: tools/test_hidden_places.mjs, test_guarded_places.mjs, test_boss_abilities.mjs, test_relics.mjs.
-- Dev save boss_test: crew 20 by the frozen shrine (tools/make_dev_save.mjs bossTest).
+- Dev save boss_test: hero with 4 swordsmen and 2 archers by the frozen shrine (2026-11-28, was a full crew of 20; spec crewMix in tools/make_dev_save.mjs bossTest).
