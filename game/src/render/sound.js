@@ -316,7 +316,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         const t = state.entities[h.t], v = near(me, h.x, h.z, t?.place);
         if(h.kind==='dynamite'||h.kind==='fire'||h.kind==='train'){if(h.kill)play('knockdown_thud_1',.4*v);continue;}
         if(h.kind==='arrow'){ if(buffers.arrow_hit_1)variant('arrow_hit_1',.5*v,.95+Math.random()*.1); }   // the arrow clips 2026-11-12: a thud where it lands
-        else if(h.kind==='geishabolt'||h.kind==='bullet'){ /* flight and ability cues supply the ranged sound */ }
+        else if(h.kind==='geishabolt'||h.kind==='bullet'||h.kind==='pistolShot'){ /* flight and ability cues supply the ranged sound */ }
         else if (SPEARS.has(h.weapon)) { /* Complete spear clip already includes impact. Keep crit/KO layers below. */ }
         else if (SWORDS.has(h.weapon)) play(h.kind === 'dash' ? ['katana_hit_metal_1', 'katana_hit_metal_2'] : 'sword_chop_1', 0.55 * v);
         else if (CLUBS.has(h.weapon)) variant('club_thud_1',.6*v,HEAVY_FISTS.has(h.weapon)?.9:1);
@@ -345,6 +345,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if(c.kind==='arrow'){ if(buffers.arrow_whoosh_1)variant('arrow_whoosh_1',.4*v,.94+Math.random()*.12); else swordSlash(.16*v); }   // the arrow flight clips (2026-11-12), the old quiet whoosh without them
         if(c.kind==='geishabolt')play('ability_finisher_1',.18*v,1.3);
         if(c.kind==='bullet')play('rifle_shot_1',.5*v,1.05);   // war army rifleman (units.json army_rifleman): the Teppo shot, a little lighter
+        if(c.kind==='pistolShot')play('rifle_shot_1',.45*v,1.3);   // the Ferryman's revolver: higher and lighter than the rifle (2026-11-28)
         if(c.kind==='hamstringHit')play('ability_buff_1',.3*v,1.2);
         if(c.kind==='dynamiteBlast')play(pickCustom('dynamite_1'),.85*v);
         if(c.kind==='railBlast'){play(pickCustom('dynamite_1'),v,.8);play(pickCustom('dynamite_1'),.9*v,.55);}   // the rail charge (train robbery): the dynamite clip, lower, with a deep second layer

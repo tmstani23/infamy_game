@@ -31,6 +31,7 @@ export function createCrewFx({scene,spriteOf,heroFx}){   // heroFx: render/hero_
     const h=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:t.halo.color,transparent:true,depthWrite:false,opacity:t.halo.opacity}));h.position.y=t.halo.at;h.scale.setScalar(t.halo.size);group.add(h);
   }
   function shot(p){
+    if(p.kind==='pistolShot'){const g=new THREE.Group();scene.add(g);return {mesh:g,elapsed:0};}   // the Ferryman's pellet: drawn as particles by abilityfx.js pistolShot (2026-11-28)
     const group=new THREE.Group(),color=p.kind==='geishabolt'?0xff82c3:p.kind==='cannonball'?0x26262a:p.kind==='firebomb'?0xff8a3c:p.hamstring?0x8affcb:p.kind==='bullet'?0xfff2b0:0xf3dc9a;
     const shaft=new THREE.Mesh(p.kind==='cannonball'?new THREE.SphereGeometry(p.ship?.13:.21,10,8):p.kind==='firebomb'?new THREE.SphereGeometry(.22,8,6):p.kind==='geishabolt'?new THREE.SphereGeometry(.10,8,6):p.kind==='bullet'?new THREE.CylinderGeometry(.035,.035,1.5,5):new THREE.CylinderGeometry(.04,.04,1.0,5),material(color));   // bullet: bright tracer (war riflemen)
     group.add(shaft);   // 7c (2026-11-12): shots are much easier to see; the body was never added before, only the faint trail showed

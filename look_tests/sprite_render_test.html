@@ -71,7 +71,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { buildSpear, buildShield, poseSpear } from './kuroda_sprite_items.js';
+import { buildSpear, buildGlaive, buildShield, poseSpear } from './kuroda_sprite_items.js';
 import { buildLongShield, buildTankWeapon, poseTankWeapon, bakeTankChain } from './tank_sprite_items.js';
 
 // Rows of the spritesheet, top to bottom
@@ -456,6 +456,24 @@ function buildJitte() {
   const prong = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.011, 0.16, 8), iron); prong.rotation.x = Math.PI / 2; prong.position.set(0.07, 0, 0.44); g.add(prong);
   return g;
 }
+// The ferry house boss's revolver (P4, 2026-11-28): built in code, not the flat picture card in items/revolver.glb, which
+// vanished edge-on and showed its back side as an upside-down gun. Barrel along +z, sights up (+y), the grip down and
+// back; hand dir [0, 1, 0] lays +y on the thumb side so the barrel sits over the fist.
+function buildRevolver() {
+  const g = new THREE.Group();
+  const iron = std({ color: 0x3a3d44, roughness: 0.32, metalness: 0.8, emissive: 0x0c0e12 }, [0xc8d6ff, 1.1]);
+  const wood = std({ color: 0x5a3420, roughness: 0.7, metalness: 0.05 }, [0xd59a6a, 0.6]);
+  const add = (geo, mat, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; g.add(m); return m; };
+  add(new THREE.CylinderGeometry(0.032, 0.036, 0.6, 12), iron, 0, 0.09, 0.69, Math.PI / 2);            // barrel
+  add(new THREE.BoxGeometry(0.018, 0.03, 0.05), iron, 0, 0.135, 0.95);                                  // front sight
+  add(new THREE.CylinderGeometry(0.075, 0.075, 0.2, 12), iron, 0, 0.075, 0.3, Math.PI / 2);             // the drum
+  add(new THREE.BoxGeometry(0.06, 0.14, 0.34), iron, 0, 0.05, 0.22);                                    // frame
+  add(new THREE.BoxGeometry(0.03, 0.07, 0.06), iron, 0, 0.14, 0.04, -0.6);                              // hammer
+  add(new THREE.TorusGeometry(0.055, 0.012, 6, 14, Math.PI), iron, 0, -0.04, 0.2, 0).rotation.set(0, Math.PI / 2, Math.PI);   // trigger guard
+  add(new THREE.BoxGeometry(0.07, 0.34, 0.13), wood, 0, -0.14, -0.01, 0.38);                            // grip, raked back
+  add(new THREE.BoxGeometry(0.075, 0.03, 0.14), iron, 0, -0.3, -0.07, 0.38);                            // butt cap
+  return g;
+}
 // Dog handler's iron knuckles (tekko, 2026-11-10): four chunky finger rings on a bar with studs,
 // along +z so the hand's hammer-grip dir lays it across the knuckle line; oversized and bright-edged to read at sprite size
 function buildKnuckles() {
@@ -472,7 +490,7 @@ function buildKnuckles() {
   }
   return g;
 }
-const PROC_ITEMS = { club: buildClub, hammer: buildHammer, katana: buildKatana, jitte: buildJitte, knuckles: buildKnuckles, spear: () => buildSpear(std), spear_hero: () => buildSpear(std, true) };
+const PROC_ITEMS = { club: buildClub, hammer: buildHammer, katana: buildKatana, jitte: buildJitte, knuckles: buildKnuckles, spear: () => buildSpear(std), spear_hero: () => buildSpear(std, true), revolver: buildRevolver, glaive: () => buildGlaive(std) };
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
 // Hand distance (in character heights / 2) below which both hands hold the

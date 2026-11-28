@@ -198,7 +198,7 @@ Ronin plan (effort / payoff):
 
 **Targeting (2026-10-19):** nobody picks fights on their own except house guards; see `crew_recruiting_plan.md`.
 
-**Weapon glow (2026-10-18):** a faint glow on each held weapon (katana steel blue-white, club ember amber, jitte soft blue), a bit brighter mid-swing, fading on death. Tuned in `game/data/weapon_glow.json`; needs the `_glow` sheets from the exporter.
+**Weapon glow (2026-10-18):** a faint glow on each held weapon (katana steel blue-white, club ember amber, jitte soft blue), a bit brighter mid-swing, fading on death. Tuned in `game/data/weapon_glow.json`; needs the `_glow` sheets from the exporter. Bosses (2026-11-28): smuggler_captain katana; raider_chief spear_flaming (orange, pulsing).
 
 Ninja spells (not built): Smoke Step = smoke bursts at start and end; Sleep Dart = thin trail and sleep puff (needs sim projectiles first, bows still require projectiles; current Teppo aimed shot is implemented); Shadow Mark = dark circle with tendrils under the target; Thousand Cuts = hero flashes between enemies with many slash arcs.
 

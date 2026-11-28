@@ -58,7 +58,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { KURODA_SPRITES, KURODA_FRAMING } from './kuroda_sprite_config.mjs';
 import { TANK_SPRITES } from './tank_sprite_config.mjs';
 
-const SETS = ['combat', 'brawler', 'gunner', 'civilian', 'ninja', 'archer', 'firebomber'];
+const SETS = ['combat', 'brawler', 'gunner', 'civilian', 'ninja', 'archer', 'firebomber', 'pistol'];
 const MODEL_SETS = {
   ronin: ['combat'],
   swordsman: ['combat'],
@@ -84,6 +84,12 @@ const MODEL_SETS = {
   kunoichi: ['ninja'],
   dog_handler: ['brawler'],
   fire_bomber: ['brawler', 'firebomber'],
+  // guarded place bosses (world variety P4, 2026-11-28): their own bodies; the ferryman is the mercenary body on the
+  // pistol set (animations/pistol) until he has a model of his own
+  smuggler_captain: ['combat'],
+  bandit_chief: ['archer'],
+  raider_chief: ['combat'],
+  ferryman: ['pistol'],
 };
 const DEFAULT_SETS = ['civilian'];
 const VARIANTS = { brute: 'mutant' };
@@ -116,6 +122,12 @@ const ITEMS = {
   dog_handler: { file: 'knuckles', proc: 'knuckles', mode: 'right', length: 0.26, grip: 0.5, palmOffset: 0.08, dir: [0.92, 0.38, 0] },   // iron knuckles (2026-11-10: the club is overused)
   fire_bomber: { file: 'tanto', mode: 'right', length: 0.5, grip: 0.2, palmOffset: 0.08, dir: [0.92, 0.38, 0] },   // in the fist like the clubs (no dir = at the wrist)
   rail_worker: { file: 'hammer', proc: 'hammer', mode: 'right', length: 0.9, grip: 0.12, dir: [0.92, 0.38, 0] },
+  // bosses (P4): the captain's katana as the swordsman's, the chief's bow as the archer's, the raider chief's spear as the
+  // Kuroda spearman's, the ferryman's revolver in the right fist (barrel along the forearm)
+  smuggler_captain: { file: 'katana', proc: 'katana', mode: 'both', length: 1.15, grip: 0.2, flip: true, hang: true, runBack: { drop: 12, roll: 180 } },
+  bandit_chief: { file: 'bow', mode: 'left', length: 1.3, grip: 0.5 },
+  raider_chief: { ...KURODA_SPRITES.kuroda_spearman.item, proc: 'glaive', length: 2.4 },   // a war glaive, hot orange edge (kuroda_sprite_items.js buildGlaive)
+  ferryman: { file: 'revolver', proc: 'revolver', mode: 'right', length: 0.42, grip: 0.1, dir: [0, 1, 0], roll: 90 },   // built in code (sprite_render_test.html buildRevolver); roll is applied twice there, 90 = grip down
 };
 // Single clips borrowed from another set (path inside assets/animations)
 const EXTRA = {
@@ -127,6 +139,8 @@ const EXTRA = {
   monk2: ['Picking Up.fbx', 'Bartending.fbx', 'Throwing.fbx'],
   rail_worker: ['Great Sword Slash.fbx'],   // the hammer swing (overhead chop) until a proper pounding clip exists
   lieutenant1: ['Yelling Out.fbx'],   // talk clip for the gate dialogue (OK 2026-11-06)
+  smuggler_captain: ['brawler/Walking.fbx'],
+  ferryman: ['gunner/Death From The Front.fbx'],   // the pistol set has no death
 };
 // Dedicated borrowed clips stay out of the root combat set.
 // RIDE: the heroes' riding pose, for now the coachman's omnibus sitting clip (2026-11-06); art.json characters.<hero>.ride
@@ -135,7 +149,8 @@ const RIDE = Object.fromEntries(['ronin', 'ninja_leader', 'rival_yakuza',
   'thug', 'brute', 'swordsman', 'kuroda_spearman', 'koruda_enforcer', 'shinobi_enforcer', 'demolitions', 'lookout', 'ninja_grunt', 'ninja_tanto',
   'mercenary', 'monk', 'monk2', 'geisha', 'archer', 'gunslinger',
   // the coachman drawn on a driven rickshaw (2026-11-08: no empty seat, not the hero himself; render/view.js)
-  'rickshaw_driver'].map(m => [m, 'coach_sitting.fbx']));
+  'rickshaw_driver',
+  'raider_chief'].map(m => [m, 'coach_sitting.fbx']));   // the caravan's boss fights from the saddle (P4)
 const EXTRA_ONLY = new Set(['Arms Hip Hop Dance.fbx', 'coach_sitting.fbx', 'Picking Up.fbx', 'Bartending.fbx', 'Throwing.fbx']);
 // RIDE_ATTACK (2026-11-14): the strike from the saddle, sheet <model>_ride_attack: the riding seat's hips and legs
 // with this attack clip above the hips (blended by the sprite page, addBlend). art.json characters.<model>.rideAttack
@@ -147,7 +162,8 @@ const RIDE_ATTACK = { swordsman: 'Great Sword Slash.fbx', kuroda_spearman: 'Bayo
   ronin: 'Great Sword Slash.fbx', ninja_leader: 'ninja/Sword And Shield Slash.fbx', rival_yakuza: 'Upward Thrust.fbx',
   thug: 'brawler/Punching_noskin.fbx', brute: 'brawler/Punching_noskin.fbx', demolitions: 'brawler/Punching_noskin.fbx',
   ninja_tanto: 'ninja/Sword And Shield Slash.fbx', koruda_enforcer: 'Great Sword Slash.fbx', shinobi_enforcer: 'ninja/Sword And Shield Slash.fbx',
-  mercenary: 'gunner/Firing Rifle.fbx', archer: 'archer/Standing Draw Arrow.fbx', geisha: 'civilian/Quick Formal Bow.fbx' };
+  mercenary: 'gunner/Firing Rifle.fbx', archer: 'archer/Standing Draw Arrow.fbx', geisha: 'civilian/Quick Formal Bow.fbx',
+  raider_chief: 'Bayonet Stab.fbx' };
 // Name for the clip baked into the with-skin model file; null skips it
 const BUILT_IN = { ronin: 'walk' };
 // Mounts and vehicles: file in assets/models/mounts, height of the ref mesh (or the whole
@@ -253,6 +269,8 @@ const swordsman = models.find(m => m.name === 'swordsman');
 if (swordsman) models.push({ file: swordsman.file, name: 'kuroda_spearman' });
 const laborerM = models.find(m => m.name === 'laborer');
 if (laborerM) models.push({ file: laborerM.file, name: 'rail_worker' });   // laborer body + sledge for the rail gang
+const mercM = models.find(m => m.name === 'mercenary');
+if (mercM) models.push({ file: mercM.file, name: 'ferryman' });   // the ferry house boss: mercenary body + revolver (P4)
 if (only.length) models = models.filter(m => only.includes(m.name));
 const animDir = path.join(root, 'assets', 'animations');
 const anims = [...fbx(animDir), ...SETS.flatMap(s => fbx(path.join(animDir, s)))].filter(a => !EXTRA_ONLY.has(path.basename(a)));
@@ -271,7 +289,7 @@ try {
 for (const { file: model, name } of models) {
   const sets = MODEL_SETS[name] || DEFAULT_SETS;
   const variant = VARIANTS[name];
-  const spearConfig = KURODA_SPRITES[name] || TANK_SPRITES[name];
+  const spearConfig = KURODA_SPRITES[name] || TANK_SPRITES[name] || (name === 'raider_chief' ? KURODA_SPRITES.kuroda_spearman : null);   // the raider chief: the spearman's clips and framing on his own body
   const allVariants = [...new Set(Object.values(VARIANTS))];
   const variantOf = a => allVariants.find(v => clipOf(a).startsWith(v + '_'));
   // Rename a clip by dropping this model's variant prefix (mutant_walk -> walk)

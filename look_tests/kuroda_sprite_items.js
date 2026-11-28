@@ -38,6 +38,38 @@ export function buildSpear(std, hero = false) {
   return g;
 }
 
+// The caravan raider chief's war glaive (P4 boss, 2026-11-28): a heavy curved blade with a hooked back spike on an
+// iron-banded haft, its edge hot orange (the glow mask is the blade; weapon_glow.json spear_flaming tints it)
+export function buildGlaive(std) {
+  const g = new THREE.Group();
+  const wood = std({ color: 0x2a1a14, roughness: 0.8, metalness: 0.05 }, [0x8a6a5a, 0.25]);
+  const iron = std({ color: 0x2c2a2e, roughness: 0.4, metalness: 0.75 }, [0xffb070, 0.45]);
+  const steel = std({ color: 0x4a474c, metalness: 0.8, roughness: 0.3, emissive: 0x220a04, emissiveIntensity: 0.5 }, [0xffb27a, 0.55]);
+  const hot = new THREE.MeshStandardMaterial({ color: 0xff7a1a, emissive: 0xff5a10, emissiveIntensity: 1.4 });
+  const cylinder = (r, from, to, mat, glow = false) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, to - from, 12), mat);
+    m.rotation.x = Math.PI / 2; m.position.z = (from + to) / 2;
+    if (!glow) m.userData.noWeaponGlow = true; g.add(m); return m;
+  };
+  const neck = 0.64;
+  cylinder(0.014, 0.03, neck, wood);
+  const butt = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.05, 8), iron); butt.rotation.x = -Math.PI / 2; butt.position.z = 0.015; butt.userData.noWeaponGlow = true; g.add(butt);
+  for (const z of [0.18, 0.34, 0.5]) cylinder(0.018, z, z + 0.02, iron);
+  cylinder(0.022, neck - 0.04, neck + 0.02, iron);
+  // the blade: a broad single edge curving forward and back to the point, in the xz plane
+  const outline = [[-0.02, neck], [0.03, neck + 0.02], [0.085, 0.76], [0.098, 0.85], [0.07, 0.94], [0.0, 1.0], [-0.015, 0.93], [-0.02, 0.8]];
+  const shape = new THREE.Shape(); outline.forEach(([x, z], i) => i ? shape.lineTo(x, z) : shape.moveTo(x, z)); shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.012, bevelEnabled: true, bevelSize: 0.004, bevelThickness: 0.004, bevelSegments: 1, steps: 1 });
+  geo.rotateX(Math.PI / 2); g.add(new THREE.Mesh(geo, steel));
+  // hooked back spike
+  const spike = new THREE.Shape(); [[-0.018, 0.68], [-0.075, 0.70], [-0.095, 0.66], [-0.06, 0.72], [-0.018, 0.74]].forEach(([x, z], i) => i ? spike.lineTo(x, z) : spike.moveTo(x, z)); spike.closePath();
+  const sg = new THREE.ExtrudeGeometry(spike, { depth: 0.01, bevelEnabled: false }); sg.rotateX(Math.PI / 2); g.add(new THREE.Mesh(sg, steel));
+  // the hot cutting edge along the outer curve
+  const edge = new THREE.CatmullRomCurve3([[0.03, neck + 0.02], [0.085, 0.76], [0.098, 0.85], [0.07, 0.94], [0.0, 1.0]].map(([x, z]) => new THREE.Vector3(x, -0.006, z)));
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(edge, 30, 0.0045, 5, false), hot));
+  return g;
+}
+
 export function buildShield(std) {
   const g = new THREE.Group();
   const iron = std({ color: 0x2b2b30, metalness: 0.65, roughness: 0.48 }, [0xb49b7b, 0.4]);

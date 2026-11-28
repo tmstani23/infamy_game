@@ -25,7 +25,7 @@ const SPR_W = CELL_W / PX, SPR_H = CELL_H / PX, SPR_UP = (FEET_ROW - CELL_H / 2)
 const FLY_ORDER = 99060, SHADOW_ORDER = -0.3, MAX = 90;
 const TREE = /tree|pine|cedar|willow|banyan|broadleaf|bamboo$/, PERCH = /fence|wall|palisade|dead_tree|post|torii|gate/;
 // gunfire and blasts that scatter crows, and how far (world units)
-const SCARE = { rifleshot: 22, bullet: 22, gatlingShot: 22, cannonFire: 34, shipBroadside: 34, shipCannon: 30, dynamiteBlast: 30, railBlast: 34, firebombBurst: 18, folkPop: 12 };   // folkPop: the hermit's brew going off
+const SCARE = { rifleshot: 22, bullet: 22, pistolShot: 22, gatlingShot: 22, cannonFire: 34, shipBroadside: 34, shipCannon: 30, dynamiteBlast: 30, railBlast: 34, firebombBurst: 18, folkPop: 12 };   // folkPop: the hermit's brew going off
 
 const screenDir = h => {   // a ground heading -> the sprite direction 0..7
   const dx = Math.cos(h), dz = Math.sin(h), sx = dx * CAM_RIGHT.x + dz * CAM_RIGHT.z, sy = dx * CAM_UP.x + dz * CAM_UP.z;

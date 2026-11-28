@@ -312,6 +312,7 @@ Crows: birds burst out of a tree near troops or shinobi on the move, hidden ones
 - sim_snapshot.js MARKER_FIELDS must list every entity field the display needs for units the player does not own (folk, sitAt, crowFriend, tiny, peddlerShop).
 - item_services.js merchantNear and shop_ui.js also accept a saved peddler (e.peddlerShop). unit_frames.js shows a folk civilian's own name.
 - Sprite export: tools/export_sprites.mjs flags --props=flasks, --from, --span, --frames; hermit clips monk/monk2 _pick, _mix, _feed.
+- Sprite export, bosses (2026-11-28): MODEL_SETS for smuggler_captain, bandit_chief, raider_chief and ferryman (ferryman is an alias of mercenary.fbx); clip set 'pistol' (assets/animations/pistol: idle, walk, run, shooting; gunner death); procedural items 'revolver' (buildRevolver, replaces the flat revolver.glb card) and 'glaive' (look_tests/kuroda_sprite_items.js buildGlaive). An item's roll is applied twice, so roll 90 turns it 180 degrees.
 
 ## World variety P3/P4 tests and dev save (2026-11-28)
 - Tests: tools/test_hidden_places.mjs, test_guarded_places.mjs, test_boss_abilities.mjs, test_relics.mjs.

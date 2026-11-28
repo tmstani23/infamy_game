@@ -112,6 +112,26 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         gravity: 1.5, drag: 1.5, life: rand(0.5, 0.9), size: rand(0.25, 0.45), grow: 1.4, color: [0.52, 0.45, 0.36], alpha: 0.45, shape: SHAPE.dot });
     }
   }
+  // a pistol shot (2026-11-28, the Ferryman's revolver, data/hidden_places.json projectile kind 'pistolShot'): the
+  // Gatling's look, smaller: a glint and a short flame tongue at the muzzle, a hot pellet with a little dot tracer that
+  // reaches the target in the shot's own flight time, a wisp of powder smoke and a puff where it lands
+  function pistolShot(c) {
+    const tx = c.tx ?? c.x, tz = c.tz ?? c.z, L = Math.hypot(tx - c.x, tz - c.z) || 1, fx = (tx - c.x) / L, fz = (tz - c.z) / L;
+    const mx = c.x + fx * 0.7, mz = c.z + fz * 0.7, y = 1.3, reach = Math.max(0.5, L - 0.7), life = Math.max(0.05, (c.flightTicks || 2) / 20), V = reach / life;
+    const turn = a => [fx * Math.cos(a) - fz * Math.sin(a), fz * Math.cos(a) + fx * Math.sin(a)];
+    cards.glint(mx, y, mz, 0.45, 0xfff0c8, 0.04);
+    for (let i = 0; i < 4; i++) {   // flame tongue
+      const [dx, dz] = turn(rand(-0.3, 0.3)), sp = rand(3, 7);
+      glow.emit({ x: mx, y: y + rand(-0.03, 0.04), z: mz, vx: dx * sp, vz: dz * sp, vy: rand(0, 0.2), drag: 9, life: rand(0.05, 0.1),
+        size: rand(0.1, 0.22), color: FLAME[Math.floor(Math.random() * 3)], alpha: 0.95, shape: SHAPE.dot });
+    }
+    const dy = (0.95 - y) / life;   // drops a little toward the target's chest
+    for (let k = 0; k < 4; k++)   // the pellet: a hot dot leading a short fading streak
+      glow.emit({ x: mx - fx * k * 0.18, y: y - k * 0.004, z: mz - fz * k * 0.18, vx: fx * V, vz: fz * V, vy: dy, life,
+        size: 0.11 - k * 0.018, color: [1, 0.88 - k * 0.08, 0.52 - k * 0.1], alpha: 1 - k * 0.22, shape: SHAPE.dot });
+    soot.emit({ x: mx + fx * 0.2, y: y + 0.05, z: mz + fz * 0.2, vx: fx * 1.1, vz: fz * 1.1, vy: rand(0.3, 0.5), drag: 2, sway: 0.3,
+      life: rand(0.8, 1.3), size: rand(0.25, 0.4), grow: 1.7, color: pick(SMOKE), alpha: 0.26, shape: SHAPE.dot });
+  }
   const rallyCasts = new Map();   // hero id -> when they last cast Rally (the buff itself is crew-only)
   const outlines = new Map();   // "id:buff" -> glowing outline mesh
   const lanterns = new Map();   // unit id -> the lanterns circling a unit with Red Lantern on
@@ -191,6 +211,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
       if (c.kind === 'cannonFire') return cannonShot(c);
       if (c.kind === 'gatlingShot') { if (!c.deck) gatlingShot(c); return; }   // a ship's deck gun: render/ship_fx.js
       if (c.kind === 'gatlingFire' || c.kind === 'gatlingStop') return;
+      if (c.kind === 'pistolShot') return pistolShot(c);
       crewFx.cast(c);kurodaFx.cast(c);
       shakedownFx.cast(c);
       const s0 = spriteOf(c.a);

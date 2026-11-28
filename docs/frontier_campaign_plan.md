@@ -1154,3 +1154,4 @@ Code: sim/campfire.js (numbers in data/units.json campfire), render/campfire_fx.
   - Conch horn: Relic key; every enemy within 60 (hidden ones too) is marked for 15 s, shown on screen and maps, and cannot stealth again; 90 s cooldown.
   - Pilgrim's gourd: Relic key; heals the hero 50% of max HP over 3 s; 180 s cooldown.
 - Relic effects: render/relic_fx.js (smoke, heal, conch rings, climb dust). Sounds are stand-ins.
+- Boss sprites (2026-11-28): each boss has its own sheets with the weapon baked in at export: Captain Isogai (smuggler_captain) a katana, Chief Onibi (bandit_chief) a bow, raider chief Sunagawa (raider_chief) a glaive and he rides, Sabu the Ferryman (ferryman, on the mercenary body) a revolver whose shots show a muzzle glint, a hot pellet with a short tracer and a wisp of powder smoke (projectile pistolShot, speed 90; abilityfx.js; sound rifle_shot_1 pitch 1.3).
