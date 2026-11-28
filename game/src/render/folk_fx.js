@@ -3,8 +3,8 @@
 // facing toward fx, fz, the way render/campfire_fx.js lays its logs), and a night camp's fire ({ fire: true }: the campfire
 // art, its flames and its light). A fire put out (out = tick) loses its flames at once and its glow shrinks away over
 // emberSeconds. A scene's props go with the scene.
-// The hermit's brew going off ('folkPop' cast, 2026-11-26): a white flash, a ring of sparks, and a cloud of coloured
-// smoke that billows up and drifts off, with a turning star in the flash, a ring of glitter and motes left winking in the
+// The hermit's brew going off ('folkPop' cast, 2026-11-26; painted 2026-11-28 from render/painted_fx.js pieces): a flash, a
+// ground swirl, a cloud of painted coloured smoke that billows up and drifts off with spirit wisps curling out of it, a ring of glitter and motes left winking in the
 // air; a big one throws more of everything, and the shrinking one winds glitter round him. Somewhat see-through. While he mixes, little
 // scrolls slip out of his sleeves, tumble off to either side and lie on the ground a while ('folkPaper').
 // createFolkFx({ scene, lights, artThing, emberSeconds }) -> { update(state, show, dt), cast(c), things() }
@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import { createParticles, SHAPE } from './vfx.js';
 import { CAM_RIGHT } from './iso.js';
 import { groundY } from '../castle_height.js';
+import { createPainted, SMOKES, WISPS, pick as ppick, rand as prand, outc } from './painted_fx.js';
 // A little rolled scroll: cream paper, darker ends, a red cord round the middle, one loose corner
 let scrollTex = null;
 const getScrollTex = () => {
@@ -72,6 +73,21 @@ export function createFolkFx({ scene, lights = [], artThing = () => null, emberS
     return artThing({ art: p.art, x: p.x, z: p.z, ...(p.s ? { s: p.s } : {}), ...(p.fire ? {} : { noLights: true }) });
   }
   const smoke = createParticles(scene, { max: 500, additive: false }), glow = createParticles(scene, { max: 400, additive: true });
+  const P = createPainted({ scene, glowMax: 50, softMax: 50 });   // the brew's mystical smoke from the painted sheets (2026-11-28)
+  // the hermit's brew in painted pieces: a flash and burst in the brew's colour, a turning vortex on the ground, wisps of
+  // spirit smoke curling up and a coloured cloud of painted smoke that swirls, rises and thins away through noise
+  function paintedPop(x, z, k, tint) {
+    const y = 1.0, col = tint[1], dark = tint[0], hot = col.map(v => v + (1 - v) * .6);
+    const once = (name, size, o) => { const m = P.spr(name, size, o); P.run(o.life, t => { const kk = t / o.life, [a, e] = P.life3(kk, o.alpha, .08, o.out ?? .6);
+      if (o.ground) P.onGround(m, x, z, .05); else m.position.set(x, P.gy(x, z) + y, z); if (o.ground) m.rotation.z += .05; m.scale.setScalar(size * (1 + (o.grow - 1) * outc(kk))); P.set(m, a, e); }, () => P.drop(m)); };
+    once('bloom', 1.8 * k, { color: col, hot, add: true, life: .25, alpha: .3, grow: 1.4, hotK: .5 });
+    once('burst2', 1.5 * k, { color: col, hot, add: true, life: .35, alpha: .5, grow: 1.5, hotK: .5, out: .7 });
+    once('vortex1', 2.4 * k, { ground: true, color: dark, hot: col, add: true, life: 1.6, alpha: .35, grow: 1.25, hotK: .5, order: 5 });
+    for (let i = 0; i < Math.round(7 * k); i++) { const a = prand(0, 6.283), v = prand(.3, 1) * k;
+      P.fling(ppick(SMOKES), x + Math.cos(a) * .3, P.gy(x, z) + y + prand(-.3, .4), z + Math.sin(a) * .3, Math.cos(a) * v + .25, prand(.5, 1.2), Math.sin(a) * v - .1, { size: prand(1.1, 1.7) * k, life: prand(2.2, 3.6) * (k > 1 ? 1.2 : 1), color: i % 2 ? col : dark, alpha: .34, grow: 1.9, flow: .9, drag: 1.1, hotK: .3, turn: false }); }
+    for (let i = 0; i < Math.round(3 * k); i++) { const a = i / 3 * 6.283;
+      P.fling(ppick(WISPS), x + Math.cos(a) * .4, P.gy(x, z) + y, z + Math.sin(a) * .4, -Math.sin(a) * .8, prand(1, 1.6), Math.cos(a) * .8, { size: 1.2 * k, life: 1.4, color: col, add: true, alpha: .38, grow: 1.3, flow: 1.4, drag: 1, hotK: .5 }); }
+  }
   const paper = createParticles(scene, { max: 160, additive: false });   // the feed he throws
   const scrolls = [];
   const dropScroll = sc => { scene.remove(sc.m); sc.m.material.dispose(); const i = scrolls.indexOf(sc); if (i >= 0) scrolls.splice(i, 1); };
@@ -143,9 +159,7 @@ export function createFolkFx({ scene, lights = [], artThing = () => null, emberS
     }
     if (c.kind !== 'folkPop' || c.x === undefined) return;
     const k = c.big ? 1.4 : c.small ? 0.6 : 1, tint = POP_TINTS[(c.tint ?? 0) % POP_TINTS.length], y = 1.0;
-    glow.emit({ x: c.x, y, z: c.z, life: 0.2, size: 1.7 * k, grow: 1.0, color: [1, 1, 0.9], alpha: 0.7, shape: SHAPE.dot });   // the flash
-    glow.emit({ x: c.x, y, z: c.z, life: 0.45, size: 1.1 * k, grow: 1.4, color: tint[1], alpha: 0.5, shape: SHAPE.sparkle, spin: 2 });
-    glow.emit({ x: c.x, y, z: c.z, life: 0.32, size: 2.3 * k, grow: 0.8, color: [1, 1, 1], alpha: 0.6, shape: SHAPE.sparkle, spin: 5 });   // a white star turning in the flash
+    paintedPop(c.x, c.z, k, tint);   // flash, vortex, spirit wisps and the coloured cloud in painted pieces (2026-11-28)
     for (let i = 0; i < 22 * k; i++) {   // a ring of glitter snapping outward
       const a = i / (22 * k) * Math.PI * 2 + rand(-0.1, 0.1), v = rand(4.5, 6) * k;
       glow.emit({ x: c.x, y: y + rand(-0.1, 0.1), z: c.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(-0.2, 0.6), drag: 5.5, life: rand(0.45, 0.7), size: rand(0.12, 0.2),
@@ -168,14 +182,9 @@ export function createFolkFx({ scene, lights = [], artThing = () => null, emberS
       glow.emit({ x: c.x, y: y + rand(-0.2, 0.2), z: c.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(0.5, 3), drag: 2.5, gravity: 3, life: rand(0.4, 0.9), size: rand(0.1, 0.2),
         color: Math.random() < 0.5 ? tint[1] : [1, 0.95, 0.7], alpha: 0.9, shape: SHAPE.sparkle, twinkle: 0.7, spin: rand(-3, 3) });
     }
-    for (let i = 0; i < 15 * k; i++) {   // the coloured cloud: out a little, then up and away on the wind
-      const a = Math.random() * Math.PI * 2, v = rand(0.2, 1.1) * k;
-      smoke.emit({ x: c.x + Math.cos(a) * 0.2, y: y + rand(-0.4, 0.5), z: c.z + Math.sin(a) * 0.2, vx: Math.cos(a) * v + 0.25, vz: Math.sin(a) * v - 0.1, vy: rand(0.5, 1.6), drag: 0.9, sway: 0.4,
-        life: rand(2.2, 4.2) * (c.big ? 1.25 : 1), size: rand(0.32, 0.55) * k, grow: 1.7, color: tint[Math.random() < 0.5 ? 0 : 1], alpha: rand(0.2, 0.36), shape: SHAPE.puff, spin: rand(-0.5, 0.5) });
-    }
   }
   function update(state, show, dt = 0) {
-    if (!show) { smoke.clear(); glow.clear(); paper.clear(); for (const sc of [...scrolls]) dropScroll(sc); for (const b of [...says]) dropSay(b); } else if (dt > 0) { smoke.update(Math.min(dt, 0.1)); glow.update(Math.min(dt, 0.1)); paper.update(Math.min(dt, 0.1)); scrollStep(Math.min(dt, 0.1)); sayStep(Math.min(dt, 0.1), state); }
+    if (!show) { P.clear(); smoke.clear(); glow.clear(); paper.clear(); for (const sc of [...scrolls]) dropScroll(sc); for (const b of [...says]) dropSay(b); } else if (dt > 0) { P.update(Math.min(dt, 0.1)); smoke.update(Math.min(dt, 0.1)); glow.update(Math.min(dt, 0.1)); paper.update(Math.min(dt, 0.1)); scrollStep(Math.min(dt, 0.1)); sayStep(Math.min(dt, 0.1), state); }
     const want = new Map();
     for (const sc of Object.values(state.world?.folk?.scenes || {})) (sc.props || []).forEach((p, i) => want.set(`${sc.id}:${p.art}:${p.x.toFixed(1)}:${p.z.toFixed(1)}:${i}`, p));
     for (const [k, a] of [...active]) if (!want.has(k)) { remove(a.t); active.delete(k); }

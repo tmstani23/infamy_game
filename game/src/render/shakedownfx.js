@@ -7,7 +7,7 @@ import { onFxLayer } from './bloom.js';
 
 const FIRE=[[1,.9,.5],[1,.55,.12],[1,.25,.04]],SMOKE=[[.15,.13,.12],[.3,.27,.23],[.43,.4,.35]];
 const rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
-export function createShakedownFx({scene,overlay,unitToScreen}) {
+export function createShakedownFx({scene,overlay,unitToScreen,heroFx}) {
   const glow=createParticles(scene,{max:900}),smoke=createParticles(scene,{max:600,additive:false}),cards=createCards(scene);
   const bombs=new Map(),fires=new Map(),labels=new Map(),operationRunes=new Map(),bursts=[];
   const stickGeo=new THREE.CylinderGeometry(.065,.065,.48,7),bandGeo=new THREE.CylinderGeometry(.07,.07,.035,7),sparkGeo=new THREE.SphereGeometry(.06,6,4);
@@ -33,7 +33,8 @@ export function createShakedownFx({scene,overlay,unitToScreen}) {
   }
   function cast(c) {
     if((c.kind==='dynamiteBlast'||c.kind==='firebombBurst')&&c.place===place){   // firebombBurst: a fire-bomb thrower's bomb (war checkpoint 7-2)
-      cards.glint(c.x,.55,c.z,c.radius*2.1,0xffd690,.32);cards.ink(c.x,c.z,c.radius,.55,0x24150e);
+      if(c.kind==='firebombBurst'){heroFx.blast(c.x,c.z,{radius:c.radius});return;}   // painted fireball, burning splash, ground fires, scorch (2026-11-28)
+      heroFx.blast(c.x,c.z,{radius:c.radius*.8,fire:false});   // dynamite: the painted blast and scorch; view.js keeps its rail-blast flash
       for(let i=0;i<42;i++){
         const a=rand(0,Math.PI*2),v=rand(1,5);
         glow.emit({x:c.x,y:.3,z:c.z,vx:Math.cos(a)*v,vz:Math.sin(a)*v,vy:rand(.5,4),gravity:5,drag:1.8,life:rand(.25,.8),size:rand(.08,.23),color:pick(FIRE),shape:i%3?SHAPE.ember:SHAPE.sparkle});

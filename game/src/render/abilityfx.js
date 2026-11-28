@@ -18,11 +18,11 @@ import { groundY } from '../castle_height.js';
 export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen, hallChannelOf = () => null }) {
   // painted hero ability effects and status marks (render/hero_fx.js, 2026-11-28: built from the painted sheets like the boss effects)
   const heroFx = createHeroFx({ scene });
-  const STATUS_MARK = { intimidated: 'intimidated', rally: 'rallied', lantern: 'lantern', veil: 'veil', ambush: 'ambush', snared: 'snared', stunned: 'stunned' };
+  const STATUS_MARK = { intimidated: 'intimidated', rally: 'rallied', lantern: 'lantern', veil: 'veil', ambush: 'ambush', snared: 'snared', stunned: 'stunned', charmSnare: 'charmed' };
   const kurodaFx = createKurodaFx({ scene, spriteOf, posOf, heroFx });
-  const shakedownFx = createShakedownFx({ scene, overlay, unitToScreen });
+  const shakedownFx = createShakedownFx({ scene, overlay, unitToScreen, heroFx });
   const sweepFx = createSweepFx({scene,spriteOf});
-  const crewFx=createCrewFx({scene,spriteOf});
+  const crewFx=createCrewFx({scene,spriteOf,heroFx});
   const waves = [], streaks = [], auras = new Map();   // auras: "id:buff" -> mesh
   const glow = createParticles(scene), cards = createCards(scene);
   const soot = createParticles(scene, { max: 2500, additive: false });   // black smoke: drawn normally so it darkens
@@ -250,22 +250,12 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         flashT = 0.22;
         if (s0) s0.flash = 1.6;
       }
-      if (c.kind === 'taunt'&&(!c.style||c.style==='yakuza_enforcer')) {
-        // Match the authoritative radial bellow and mark every affected target.
-        wave(c.x, c.z, c.radius || 5, 0xff5a1e, 0.8, 0, THIN_WAVE_GEO);
-        for (let i = 0; i < 18; i++) {
-          const a = Math.random() * Math.PI * 2, v = rand(1.5, 3.5);
-          glow.emit({ x: c.x, y: rand(1.0, 1.8), z: c.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(0.4, 1.4), drag: 4, gravity: -0.4,
-            life: rand(0.6, 1.1), size: rand(0.1, 0.2), color: pick(MUZZLE), shape: SHAPE.ember, spin: rand(-2, 2) });
-        }
-        for(const t of c.victims||[{id:c.t,x:c.tx,z:c.tz}])cards.seal(t.x, t.z, 1.1, '怒', 0xff4020, 2.0, { follow: () => posOf(t.id) });
+      if (c.kind === 'taunt') {
+        // painted (2026-11-28): shout gusts to the reach (only inside a cone taunt) and a rune over each taunted enemy for the taunt
+        const sh = c.style === 'shinobi_enforcer', ya = !c.style || c.style === 'yakuza_enforcer';
+        heroFx.taunt(c.x, c.z, { radius: c.radius || (sh ? 4.5 : 5), color: sh ? [0.5, 0.3, 0.88] : ya ? [0.92, 0.3, 0.1] : [0.86, 0.16, 0.24], hot: sh ? [0.86, 0.76, 1] : [1, 0.8, 0.5],
+          cone: c.cone && c.cone < 360 ? c.cone : 0, dir: Math.atan2((c.tz ?? c.z) - c.z, (c.tx ?? c.x) - c.x), victims: c.victims || (c.t != null ? [{ id: c.t, x: c.tx, z: c.tz }] : []), follow: id => posOf(id), seconds: sh ? 3 : 2 });
         if (s0) s0.flash = 0.6;
-      }
-      if (c.kind === 'taunt' && c.style === 'shinobi_enforcer') {
-        // Masked bodyguard (2026-11-10: the taunt was hard to notice): a violet wave out to her reach and a
-        // seal that stays on the taunted enemy for the length of the taunt
-        wave(c.x, c.z, c.radius || 4.5, 0xba9fff, 0.7, 0, THIN_WAVE_GEO);
-        for (const t of c.victims || [{ id: c.t, x: c.tx, z: c.tz }]) cards.seal(t.x, t.z, 1.1, '挑', 0xba9fff, 3.0, { follow: () => posOf(t.id) });
       }
       if (c.kind === 'rifleshot') {
         // Black-powder shot: muzzle flame and forward sparks, a smaller side burst at the
@@ -299,7 +289,9 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         const m = rifleLine(0xffe0a0); placeLine(m, { x: mx, z: mz }, { x: c.tx, z: c.tz }); rifleLines.set(`shot:${c.a}:${performance.now()}`, { m, life: 0.08 });
         rifleSmoke.set(c.a, { until: performance.now() / 1000 + rand(3, 4.5), ux, uz });
       }
-      if (c.kind === 'diversion') { wave(c.x, c.z, c.radius || 6, 0x8c6bac, 1.5, 0, THIN_WAVE_GEO); motes(c.x, c.z, 10, .4, 1); }
+      if (c.kind === 'diversion') heroFx.diversion(c.x, c.z, { radius: c.radius || 6 });   // painted (2026-11-28)
+      if (c.kind === 'kunoichiVanish') heroFx.vanish(c.x, c.z);
+      if (c.kind === 'ambush') { const t = c.t != null && posOf(c.t); if (t) heroFx.ambushStrike(t.x, t.z, t.x - c.x, t.z - c.z); }
       if (c.kind === 'arrest') { wave(c.x, c.z, 1.6, 0x4a78e6, 0.45); wave(c.x, c.z, 1.0, 0x1a2a60, 0.5, 0.05); }
       if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }
       if (c.kind === 'lantern') {
@@ -455,6 +447,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
             life: rand(0.5, 0.8), size: rand(0.14, 0.22), color: GOLD, shape: SHAPE.sparkle, twinkle: 0.8, spin: 2 });
           continue;
         }
+        if (e.type === 'war_dog' && !e.dead) { const q = posOf(e.id); if (q && spriteOf(e.id)?.thing.mesh.visible) heroFx.dogGlow(e.id, q.x, q.z); }   // loosed dogs glow (2026-11-28)
         if (e.dead || !e.buffs) continue;
         const p = posOf(e.id);
         if (!p) continue;
@@ -474,6 +467,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
           }
           veilTrails.set(e.id, { x: p.x, z: p.z, place: e.place });
         }
+        if (e.buffs.snared?.hamstring && !e.downed && spriteOf(e.id)?.thing.mesh.visible) heroFx.bleed(e.id, p.x, p.z);   // hamstrung: blood keeps dripping as he walks (2026-11-28)
         if (e.buffs.ambush && !e.downed) for (let n = count(4, dt); n > 0; n--)
           motes(p.x, p.z, 1, 0.55, 0.6);
         // rallied: a few petals keep drifting down and gold motes rise around them

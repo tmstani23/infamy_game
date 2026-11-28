@@ -11,9 +11,9 @@
 //     formation(id, x, z, { radius }) per frame,
 //     status(id, kind, x, z, { head }) per frame: kind = intimidated | rallied | lantern | veil | ambush | snared | stunned | charmed | taunted }
 import * as THREE from 'three';
-import { CAM_QUAT, VIEW_DIR } from './iso.js';
+import { CAM_QUAT, CAM_RIGHT, VIEW_DIR } from './iso.js';
 import { SHAPE } from './vfx.js';
-import { createPainted, PIECES, rand, pick, seg, outc, inq, outback, ramp, clamp, INKS, GHOST, FLAMES, SMOKES, WISPS, SLASHES, SMEARS, GUSTS, RUNES } from './painted_fx.js';
+import { createPainted, PIECES, rand, pick, seg, outc, inq, outback, ramp, clamp, INKS, GHOST, FLAMES, SMOKES, WISPS, SLASHES, SMEARS, GUSTS, RUNES, FIREBALLS } from './painted_fx.js';
 
 // colours: muted, never pure black or white
 const BLOOD = [.78, .14, .1], BLOODHOT = [1, .62, .32], GOLDC = [.95, .7, .3], GOLDHOT = [1, .9, .62];
@@ -260,6 +260,125 @@ export function createHeroFx({ scene, texBase = 'art/fx/' }) {
   });
 
   // ===================================================================================================================
+  // CREW AND WAR SPECIALS (batch 2)
+  const EMBER = [.92, .38, .1], EMBERHOT = [1, .84, .5], CHAR = [.12, .09, .07], SMOKEC = [.22, .19, .17], MINT = [.35, .85, .66], MINTHOT = [.85, 1, .92];
+  // a painted rune riding over a unit's head for a while (follow: () => {x, z} or null when gone)
+  function headRune(follow, seconds, color, hot, name = pick(['rune3', 'rune7'])) {
+    const r = spr(name, .95, { color, hot, add: true, flow: .5, hotK: .6 });
+    run(seconds, t => { const p = follow(); if (!p) return; const k = t / seconds, [a, e] = life3(k, .9, .06, .3); r.position.set(p.x, gy(p.x, p.z) + 2.45 + .05 * Math.sin(t * 3), p.z); r.scale.setScalar(.95 * (1.2 - .2 * outback(seg(k, 0, .08)))); set(r, a * (.8 + .2 * Math.sin(t * 6)), e); }, () => drop(r));
+  }
+  // Fire-bomb telegraph: the real radius as a torn ember ring, a scorch filling it through the wind-up and flight
+  function bombMark(x, z, { radius = 2.6, seconds = 2 } = {}) {
+    const ring = spr('ring_torn', 1, { ground: true, color: EMBER, hot: EMBERHOT, add: true, order: 5, flow: .6, hotK: .5 });
+    const fill = spr('scorch', 1, { ground: true, color: [.55, .16, .04], hot: EMBER, add: true, order: 4, flow: .4, hotK: .3 });
+    run(seconds, (t, dt) => { const k = t / seconds, f = ramp(t, seconds, .08, .06);
+      onGround(ring, x, z, .06); ring.scale.setScalar(radius * 2.15); ring.rotation.z += dt * .4; set(ring, (.3 + .35 * k) * f);
+      onGround(fill, x, z, .05); fill.scale.setScalar(radius * 2 * (.15 + .85 * k)); set(fill, .3 * f); }, () => { drop(ring); drop(fill); });
+  }
+  // Fire-bomb burst (fire) or dynamite (no fire): flash, a rolling fireball, burning liquid flung out, fires licking on
+  // the ground, a scorch left behind, sparks and smoke
+  function blast(x, z, { radius = 2.6, fire = true } = {}) {
+    flash('bloom', x, .9, z, radius * 1.1, { color: EMBER, hot: EMBERHOT, add: true, life: .16, alpha: .18, fin: .05, out: .8, grow: 1.4, hotK: .5 });
+    flash(pick(FIREBALLS), x, 1.1, z, radius * 1.05, { color: [.8, .26, .06], hot: [1, .78, .4], life: .65, alpha: .95, grow: 1.35, fin: .05, out: .6, hotK: .6, flow: .8, rot: rand(-.3, .3) });   // normal blend: additive blew out to white under bloom
+    later(.12, () => flash(pick(FIREBALLS), x, 1.6, z, radius * 1.2, { color: SMOKEC, hot: [.5, .3, .18], life: 1.3, alpha: .6, grow: 1.35, fin: .1, out: .6, flow: .7, hotK: .3 }));
+    kicks(x, z, fire ? 18 : 24, { y: .6, speed: [3, 7.5], color: EMBER, add: true, len: [.3, .6], vy: [1, 3], life: [.3, .6], gravity: 6 });
+    flash('scorch', x, 0, z, radius * 2, { ground: true, color: CHAR, hot: [.2, .14, .1], edge: [.25, .16, .1], life: fire ? 5 : 3.5, alpha: .6, grow: 1.04, fin: .03, out: .5, order: 4 });
+    for (let i = 0; i < 6; i++) puff(x + rand(-1, 1), .8, z + rand(-1, 1), { size: 1.6, life: 2.2, color: SMOKEC, alpha: .4, vy: .7, delay: .15 + i * .05 });
+    if (!fire) { kicks(x, z, 14, { speed: [2, 5], color: DUST, len: [.4, .8], vy: [.5, 2], life: [.4, .7], gravity: 7 }); return; }
+    for (let i = 0; i < 5; i++) { const a = i / 5 * 6.283 + rand(-.3, .3), sx = Math.cos(a) * radius * .5, sz = Math.sin(a) * radius * .5;
+      flash('splash_fire', x + sx, .55, z + sz, radius * .75, { color: EMBER, hot: EMBERHOT, add: true, life: .55, alpha: .55, grow: 1.3, fin: .05, out: .6, rot: Math.atan2(-sz, sx) - Math.PI / 2 }); }
+    for (let i = 0; i < 7; i++) { const a = rand(0, 6.283), r = radius * Math.sqrt(Math.random()) * .8;
+      later(rand(.05, .25), () => flash(pick(FLAMES), x + Math.cos(a) * r, .45, z + Math.sin(a) * r, rand(.7, 1.1), { color: EMBER, hot: EMBERHOT, add: true, flow: 1.3, life: rand(1.2, 2.2), alpha: .65, grow: 1.1, fin: .15, out: .5 })); }
+  }
+  // Torch channel: a little torch in his free hand with a painted flame on it (off the sprite) and a warm flicker, for the channel's length
+  // Torch channel (2026-11-28: no prop): a flame cupped in front of him that grows through the channel, with ember
+  // wisps swirling in toward his hands and sparks drawn inward, flaring once when the channel ends
+  function torch(x, z, seconds = 1, follow = null) {
+    const front = new THREE.Vector3(VIEW_DIR.x, 0, VIEW_DIR.z).normalize().multiplyScalar(.45);
+    const at = () => { const p = follow?.() || { x, z }; return { x: p.x + front.x, y: gy(p.x, p.z) + 1.05, z: p.z + front.z }; };
+    const f = spr(pick(FLAMES), .4, { color: EMBER, hot: EMBERHOT, add: true, flow: 1.5, hotK: .55 });
+    const wisps = [0, 1, 2].map(i => ({ m: spr(WISPS[i], .7, { color: EMBER, hot: EMBERHOT, add: true, flow: 1.2, hotK: .5 }), a: i / 3 * 6.283 }));
+    run(seconds, (t, dt) => {
+      const c = at(), k = t / seconds, a = ramp(t, seconds, .1, .08);
+      f.position.set(c.x, c.y + .1 * k, c.z); f.scale.setScalar(.35 + .4 * outc(k) + .04 * Math.sin(t * 19)); set(f, .9 * a);
+      for (const w of wisps) {   // spiralling in: the radius shrinks as the channel fills
+        w.a += dt * (4 + 4 * k); const r = .75 * (1 - .65 * k);
+        w.m.position.set(c.x + Math.cos(w.a) * r, c.y + .15 * Math.sin(w.a * 1.3), c.z + Math.sin(w.a) * r * .6);
+        w.m.quaternion.copy(CAM_QUAT); w.m.rotateZ(-w.a); set(w.m, .45 * a * (.6 + .4 * k));
+      }
+    }, () => { drop(f); wisps.forEach(w => drop(w.m)); const c = at(); flash('burst1', c.x, c.y + .2, c.z, 1, { color: EMBER, hot: EMBERHOT, add: true, life: .3, alpha: .6, grow: 1.5, fin: .05, out: .7 }); });
+    for (let i = 0; i < Math.ceil(seconds * 14); i++) later(i / 14, () => {   // sparks drawn in toward the flame
+      const c = at(), a = rand(0, 6.283), r = rand(.8, 1.2);
+      P.glow.emit({ x: c.x + Math.cos(a) * r, y: c.y + rand(-.3, .5), z: c.z + Math.sin(a) * r * .6, vx: -Math.cos(a) * r * 2.2, vy: rand(-.2, .3), vz: -Math.sin(a) * r * 1.3, drag: 1, life: .4, size: rand(.08, .13), color: EMBERHOT, shape: SHAPE.ember });
+    });
+  }
+  // Taunt (enforcers): a war shout of gusts thrown out to the reach in the clan colour (a cone: only inside it), and a
+  // rune of anger over each taunted enemy for the taunt's length
+  function taunt(x, z, { radius = 5, color = BLOOD, hot = BLOODHOT, cone = 0, dir = 0, victims = [], follow = id => null, seconds = 2 } = {}) {
+    for (let i = 0; i < 2; i++) flash(pick(GHOST), x + rand(-.2, .2), 1, z + rand(-.2, .2), 1.4, { color, hot, add: true, flow: 1.4, life: .55, alpha: .4, grow: 1.25, fin: .2, out: .5 });
+    const n = cone ? 7 : 10, half = cone ? cone * Math.PI / 360 : Math.PI;
+    for (let i = 0; i < n; i++) { const a = (cone ? dir - half + (i + .5) / n * half * 2 : i / n * 6.283) + rand(-.12, .12), v = radius * rand(2.4, 3);
+      fling(pick(GUSTS), x + Math.cos(a) * .6, .06, z + Math.sin(a) * .6, Math.cos(a) * v, 0, Math.sin(a) * v, { ground: true, size: rand(1.2, 1.8), life: rand(.45, .6), color, hot, add: true, alpha: rand(.3, .45), grow: 1.4, drag: 2.6, hotK: .5 }); }
+    for (const t of victims) headRune(() => follow(t.id) || t, seconds, color, hot);
+  }
+  // Geisha diversion: a pink lotus opening under her, a soft ring to the reach, petals and hearts of light drifting
+  function diversion(x, z, { radius = 6 } = {}) {
+    flash('heal_lotus', x, 0, z, 2.4, { ground: true, color: PINK, hot: [1, .85, .92], add: true, life: 1.6, alpha: .3, grow: 1.2, fin: .1, out: .5, order: 5, hotK: .4 });
+    flash('heal_ring', x, 0, z, radius * 2.1, { ground: true, color: PINK, hot: [1, .85, .92], add: true, life: 1.3, alpha: .2, grow: 1.15, fin: .1, out: .5, order: 5 });
+    for (let i = 0; i < 40; i++) { const a = rand(0, 6.283), r = radius * Math.sqrt(Math.random());
+      P.glow.emit({ x: x + Math.cos(a) * r, y: rand(1.2, 3.2), z: z + Math.sin(a) * r, vx: -Math.sin(a) * .5, vz: Math.cos(a) * .5, vy: rand(-.5, -.2), sway: .9, life: rand(1.8, 3), size: rand(.2, .3), color: pick(PETALS), alpha: .85, shape: SHAPE.petal, spin: rand(-2.5, 2.5) }); }
+  }
+  // Kunoichi: Vanish (an ink puff and a small violet vortex where she was) and the Ambush strike (a violet slash)
+  function vanish(x, z) {
+    const vx = spr('vortex1', 1.8, { ground: true, color: INKV, hot: VIOLET, order: 5, flow: .6, hotK: .6 });
+    run(.8, (t, dt) => { const k = t / .8, [a, e] = life3(k, .6, .1, .5); onGround(vx, x, z, .05); vx.rotation.z += dt * 4; set(vx, a, e); }, () => drop(vx));
+    for (let i = 0; i < 5; i++) { const a = i / 5 * 6.283; puff(x + Math.cos(a) * .3, rand(.3, 1.3), z + Math.sin(a) * .3, { vx: -Math.sin(a) * 1.2, vz: Math.cos(a) * 1.2, size: 1, life: 1.1, alpha: .55, delay: i * .02 }); }
+  }
+  function ambushStrike(x, z, dx = 1, dz = 0) {
+    const L = Math.hypot(dx, dz) || 1;
+    flash(pick(SLASHES), x, 1.15, z, 1.9, { color: VIOLET, hot: VIOLETHOT, add: true, life: .5, alpha: .6, grow: 1.1, fin: .04, out: .6, rot: Math.atan2(-dz / L, dx / L) + rand(-.5, .5) });
+    flash('sparks1', x, 1.1, z, 1, { color: VIOLET, hot: VIOLETHOT, add: true, life: .3, grow: 1.6, fin: .05 });
+    flash(pick(INKS), x, 0, z, 1.4, { ground: true, color: INKC, life: 1.4, alpha: .5, grow: 1.05, fin: .04, out: .6, order: 4 });
+  }
+  // Dog handler: a bite (two quick claw rakes and dust) and a loosed dog gone (a dust puff)
+  function bite(x, z) {
+    for (let i = 0; i < 2; i++) later(i * .07, () => flash(pick(SLASHES), x + rand(-.15, .15), 1, z, 1.1, { color: [.85, .3, .2], hot: [1, .8, .6], add: true, life: .3, alpha: .55, grow: 1.1, fin: .05, out: .6, rot: rand(.6, 1.2) * (i ? 1 : -1) }));
+    kicks(x, z, 8, { speed: [1.5, 3], color: DUST, len: [.3, .5], vy: [.2, .8], life: [.25, .45] });
+  }
+  function dustPuff(x, z, size = 1) {
+    for (let i = 0; i < 4; i++) puff(x + rand(-.25, .25), .4, z + rand(-.25, .25), { size: size * rand(.8, 1.1), life: 1, color: DUST, alpha: .4, vy: .5, grow: 1.6 });
+  }
+  // Hamstring hit: a mint flash and short streaks of light snapping down round his legs
+  function hamstring(x, z) {
+    flash('sparks1', x, .6, z, .9, { color: MINT, hot: MINTHOT, add: true, life: .3, grow: 1.6, fin: .05 });
+    // dark red blood (2026-11-28): drops falling from the cut leg and a small splatter soaking into the ground
+    for (let i = 0; i < 14; i++) later(rand(0, .5), () => P.soft.emit({ x: x + rand(-.2, .2), y: gy(x, z) + rand(.35, .6), z: z + rand(-.2, .2), vx: rand(-.4, .4), vz: rand(-.4, .4), vy: rand(-.2, .6), gravity: 9, life: rand(.25, .45), size: rand(.1, .16), color: pick([[.32, .02, .02], [.42, .04, .03], [.24, .01, .02]]), alpha: .9, shape: SHAPE.dot }));
+    later(.15, () => flash(pick(INKS), x + rand(-.3, .3), 0, z + rand(-.2, .2), rand(1.3, 1.6), { ground: true, color: [.3, .02, .02], hot: [.45, .05, .04], edge: [.38, .04, .03], life: 4, alpha: .75, grow: 1.12, fin: .1, out: .4, order: 4 }));
+    for (let i = 0; i < 5; i++) { const a = i / 5 * 6.283, l = spr('smear2', 1, { color: MINT, hot: MINTHOT, add: true });
+      run(.5, t => { const k = t / .5; l.position.set(x + Math.cos(a) * .45, gy(x, z) + 1 - .8 * outc(k), z + Math.sin(a) * .45 * .9); aim(l, 0, -1, 0); l.scale.set(.8, .14, 1); set(l, .9 * (1 - k)); }, () => drop(l)); }
+  }
+
+  // hamstrung (per frame while the slowing arrow's snare holds, 2026-11-28): blood keeps dripping from the leg and
+  // leaves a trail of small dark red spots as he walks
+  function bleed(id, x, z) {
+    const m = marker(id, 'bleed'); m.x = x; m.z = z;
+    if (!m.parts.length) { m.parts.push(P.lift(new THREE.Object3D())); m.drip = 0; m.lx = x; m.lz = z; }
+  }
+  const BLOOD_DROPS = [[.32, .02, .02], [.42, .04, .03], [.24, .01, .02]];
+  tick('bleed', (m, dt) => {
+    if (m.k < .5) return;
+    if ((m.drip -= dt) <= 0) { m.drip = rand(.12, .25); P.soft.emit({ x: m.x + rand(-.15, .15), y: gy(m.x, m.z) + rand(.3, .5), z: m.z + rand(-.12, .12), vy: rand(-.4, 0), gravity: 9, life: .3, size: rand(.08, .13), color: pick(BLOOD_DROPS), alpha: .9, shape: SHAPE.dot }); }
+    if (Math.hypot(m.x - m.lx, m.z - m.lz) > .6) { m.lx = m.x; m.lz = m.z; flash(pick(INKS), m.x + rand(-.15, .15), 0, m.z + rand(-.15, .15), rand(.4, .65), { ground: true, color: [.3, .02, .02], hot: [.42, .05, .04], edge: [.36, .04, .03], life: 6, alpha: .7, grow: 1.08, fin: .1, out: .35, order: 4 }); }
+  });
+  // a loosed war dog (per frame while it runs, 2026-11-28: easier to see): an amber glow on the ground under it and
+  // a soft warm halo round the body
+  function dogGlow(id, x, z) {
+    const m = marker(id, 'dog'); m.x = x; m.z = z;
+    if (!m.parts.length) m.parts.push(sMark([.95, .62, .22], .55), spr('bloom', 1.4, { color: [.95, .58, .2], hot: [1, .85, .55], add: true, hotK: .4 }));
+  }
+  tick('dog', (m, dt) => { m.t += dt; placeMark(m.parts[0], m.x, m.z, m.k * .55, .4); const b = m.parts[1]; b.position.set(m.x, gy(m.x, m.z) + .5, m.z); set(b, m.k * (.2 + .05 * Math.sin(m.t * 9))); });
+
+  // ===================================================================================================================
   // STATUS MARKS (per frame while it lasts): a torn ring under the unit in the status colour + one painted shape over
   // the head. Crowd control reads louder than buffs.
   const ST = {
@@ -303,5 +422,5 @@ export function createHeroFx({ scene, texBase = 'art/fx/' }) {
     });
   });
 
-  return { ready: P.ready, update: P.update, clear: P.clear, dash, cut, intimidate, rally, lantern, lanternCard, lanternAlpha, shadowstep, smoke, assassinate, sweep, cleave, thrust, counter, pursuit, formation, status };
+  return { ready: P.ready, update: P.update, clear: P.clear, dash, cut, intimidate, rally, lantern, lanternCard, lanternAlpha, shadowstep, smoke, assassinate, sweep, cleave, thrust, counter, pursuit, formation, status, bombMark, blast, torch, taunt, diversion, vanish, ambushStrike, bite, dustPuff, hamstring, dogGlow, bleed };
 }
