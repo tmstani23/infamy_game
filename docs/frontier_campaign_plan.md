@@ -1141,7 +1141,7 @@ Code: sim/campfire.js (numbers in data/units.json campfire), render/campfire_fx.
 | Buried caravan | 4 mounted raiders | Raider chief Sunagawa, 2000 | dust cloud (your hits miss), bleeding hits | Conch horn |
 | Frozen shrine | 4 wolves | Shiroga (pack leader), 700 | howl calls more wolves | Pilgrim's gourd |
 
-- Bosses: bigger (place scale), own tint, gilt elite nameplate always shown, painted ability effects (render/boss_fx.js, art/fx/boss/), stand-in sounds. Numbers live in hidden_places.json; the Field guide has a Bosses tab built from that data.
+- Bosses: bigger (place scale), own tint, gilt elite nameplate always shown, painted ability effects (render/boss_fx.js on render/painted_fx.js, art/fx/), stand-in sounds. Numbers live in hidden_places.json; the Field guide has a Bosses tab built from that data.
 - Human guards fight with the bandit AI inside leash 26, sight 14, give up 16. Guards patrol 5 to 12 from the place, the boss 0 to 3. One guard hit or spotting you brings the whole band to that spot (sim/bandits.js rally). Ranged guards and bosses kite: a foe within 4.5 makes them run 6 away for up to 1.6 s, at most once every 4.5 s, then stand and shoot.
 - Animal places: the bear and the pack are predators of their own den; they hunt your people within aggro 16 and go home past the leash. Guarded packs bite and fall back (no all-out rule) but go for you on sight.
 - Clear = every guard and the boss down. The player clan that landed the last blow gets the place's relic the first time (once per clan); later clears pay 350 ryo. Guards return 5 days after a clear. Bots get nothing. The map click box shows guards or the time until they return, the relic and the clear count.

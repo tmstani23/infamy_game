@@ -721,7 +721,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const wildDropFx = createWildDropFx({ scene, posOf: id => sprites.get(id)?.pos || null });
   const tameFx = createTameFx({ scene });
   // guarded place bosses (world variety P4, 2026-11-27): the painted ability effects and the sigil under each boss
-  // (render/boss_fx.js, textures art/fx/boss/). Casts from sim/boss_abilities.js; the marks follow each frame.
+  // (render/boss_fx.js on render/painted_fx.js, textures art/fx/). Casts from sim/boss_abilities.js; the marks follow each frame.
   const bossFx = worldGround ? createBossFx({ scene }) : null;
   // relics (P4, 2026-11-28): the smoke lantern's cloud, the gourd's heal, the conch's call (render/relic_fx.js, sim/relics.js)
   const relicFx = worldGround ? createRelicFx({ scene }) : null;

@@ -125,7 +125,7 @@ Island ground, props and trails are painted by the layered procedure in [world_p
 | `shading.js` | Shared shaders: night grade, lantern lights, see-through cutaway, interior materials. |
 | `iso.js` | The fixed isometric camera as three.js vectors. |
 | `abilityfx.js` | Ability effects (dash after-images, seals, rings, lanterns), buff auras, bandit coin burst. |
-| `painted_fx.js` | Shared painted-effect base (2026-11-28): piece shader (gradient map, flow, dissolve), texture loader with one cache per folder, easing, camera cards, ground decals, markers. Used by `hero_fx.js`, `relic_fx.js`, `folk_fx.js`, and by `boss_fx.js` once switched. |
+| `painted_fx.js` | Shared painted-effect base (2026-11-28): piece shader (gradient map, flow, dissolve), texture loader with one cache per folder, easing, camera cards, ground decals, markers. Used by `hero_fx.js`, `boss_fx.js`, `relic_fx.js` and `folk_fx.js`; pieces in `game/art/fx/` (2026-11-28). |
 | `hero_fx.js` | Painted hero ability effects and status marks, called from `abilityfx.js`, `kurodafx.js`, `crewfx.js` and `shakedownfx.js` (crew and war specials, 2026-11-28; police, heals, claims, Distract, Snuff, Kuroda brace, counter, ward and the pursuit and veil trails, 2026-11-28). |
 | `say_fx.js` | Speech bubbles over heads anywhere (cast `say`, 2026-11-28): rides the speaker's sprite, shown only where it is drawn, fades after a few seconds; used by the Shakedown lines. |
 | `abilityfx_assets.js` | Shared ability-effect geometries, palettes, outline shader and lantern textures (split from abilityfx.js 2026-10-29; Kuroda and Shakedown effects live in `kurodafx.js` / `shakedownfx.js`). |
