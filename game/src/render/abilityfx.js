@@ -6,6 +6,7 @@ import { CAM_QUAT as CAM_Q, VIEW_DIR } from './iso.js';
 import { onFxLayer } from './bloom.js';
 import { createParticles, createCards, SHAPE, getLantern } from './vfx.js';
 import { createKurodaFx } from './kurodafx.js';
+import { createHeroFx } from './hero_fx.js';
 import { createShakedownFx } from './shakedownfx.js';
 import { createSweepFx } from './sweepfx.js';
 import { createCrewFx } from './crewfx.js';
@@ -15,7 +16,10 @@ import { flat, WAVE_GEO, DISC_GEO, AURA_GEO, THIN_WAVE_GEO, HALF_WAVE_GEO, BUFF_
 import { groundY } from '../castle_height.js';
 
 export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen, hallChannelOf = () => null }) {
-  const kurodaFx = createKurodaFx({ scene, spriteOf, posOf });
+  // painted hero ability effects and status marks (render/hero_fx.js, 2026-11-28: built from the painted sheets like the boss effects)
+  const heroFx = createHeroFx({ scene });
+  const STATUS_MARK = { intimidated: 'intimidated', rally: 'rallied', lantern: 'lantern', veil: 'veil', ambush: 'ambush', snared: 'snared', stunned: 'stunned' };
+  const kurodaFx = createKurodaFx({ scene, spriteOf, posOf, heroFx });
   const shakedownFx = createShakedownFx({ scene, overlay, unitToScreen });
   const sweepFx = createSweepFx({scene,spriteOf});
   const crewFx=createCrewFx({scene,spriteOf});
@@ -117,9 +121,9 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
   function lanternSet() {
     const items = [];
     for (let i = 0; i < LANTERNS; i++) {
-      const body = new THREE.Mesh(LANTERN_GEO, new THREE.MeshBasicMaterial({ map: getLantern(), transparent: true, depthTest: false, depthWrite: false }));
+      const body = heroFx.lanternCard(i);   // painted lantern (2026-11-28, sheet; render/hero_fx.js)
       const halo = new THREE.Mesh(HALO_GEO, new THREE.MeshBasicMaterial({ map: HALO_TEX(), color: 0xff5020, transparent: true, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false }));
-      for (const m of [body, halo]) { m.frustumCulled = false; onFxLayer(m); scene.add(m); }
+      for (const m of [halo]) { m.frustumCulled = false; onFxLayer(m); scene.add(m); }
       items.push({ body, halo });
     }
     const seal = flat(DISC_GEO, 0xff3018, 0.0);
@@ -168,7 +172,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
 
   return {
     clear(){
-      crewFx.clear();kurodaFx.clear();shakedownFx.clear();sweepFx.clear();glow.clear();soot.clear();cards.clear();
+      crewFx.clear();kurodaFx.clear();heroFx.clear();shakedownFx.clear();sweepFx.clear();glow.clear();soot.clear();cards.clear();
       for(const v of [...waves,...streaks]){scene.remove(v.m);v.m.material.dispose();}waves.length=streaks.length=0;
       for(const map of [auras,outlines,smokeRings]){for(const m of map.values()){scene.remove(m);m.material.dispose();}map.clear();}
       for(const l of rifleLines.values()){scene.remove(l.m);l.m.geometry.dispose();l.m.material.dispose();}rifleLines.clear();
@@ -192,65 +196,24 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
       shakedownFx.cast(c);
       const s0 = spriteOf(c.a);
       if (c.kind === 'dash') {
-        const m = flat(STREAK_GEO, 0xcfe0ff, 0.8);
-        scene.add(m);
+        const m = flat(STREAK_GEO, 0xcfe0ff, 0.8);   // kept off the scene (2026-11-28): the painted smears replace it
         streaks.push({ m, id: c.a, x: c.x, z: c.z, age: 0, done: null, ghostT: 0 });
         // the draw: a white flash on the hero, a glint where the blade leaves the scabbard
         const s = spriteOf(c.a);
         if (s) s.flash = 1.3;
-        cards.glint(c.x, 1.1, c.z, 1.8);
-        sparkles(c.x, 0.9, c.z, 10, WHITE, 2.5);
       }
       if (c.kind === 'intimidate') {
-        wave(c.x, c.z, c.radius, 0x8a40ff, 0.45, 0, HALF_WAVE_GEO); wave(c.x, c.z, c.radius * 0.7, 0x3a1060, 0.5, 0.08, HALF_WAVE_GEO);
-        cards.ink(c.x, c.z, c.radius * 0.95, 0.75);
-        cards.seal(c.x, c.z, 2.1, '威', 0x9a50ff, 1.3, { spin: -0.8 });
-        // purple glitter riding out on the shockwave
-        for (let i = 0; i < 70; i++) {
-          const a = Math.random() * Math.PI * 2, v = c.radius * 5 * rand(0.85, 1.05);
-          glow.emit({ x: c.x, y: rand(0.15, 1.2), z: c.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(0, 0.8), drag: 5,
-            life: rand(0.6, 1.1), size: rand(0.18, 0.34), color: Math.random() < 0.3 ? [0.9, 0.75, 1] : PURPLE, shape: SHAPE.sparkle, twinkle: 0.8, spin: 3 });
-        }
+        heroFx.intimidate(c.x, c.z, { radius: c.radius });
         if (s0) s0.flash = 1;
         dimT = 0.55;
       }
       if (c.kind === 'rally') {
         rallyCasts.set(c.a, performance.now() / 1000);
-        wave(c.x, c.z, c.radius, 0xffd060, 0.6, 0, THIN_WAVE_GEO);
-        cards.seal(c.x, c.z, 3, '勇', 0xffc850, 1.8, { spin: 0.5, follow: () => posOf(c.a) });
-        cards.glint(c.x, 1.6, c.z, 2, 0xffe6a0, 0.4);
-        // glowing sakura petals hanging in the air over the ring, drifting down
-        for (let i = 0; i < 70; i++) {
-          const a = Math.random() * Math.PI * 2, r = 3.2 * Math.sqrt(Math.random()) + 0.4;
-          glow.emit({ x: c.x + Math.cos(a) * r, y: rand(1.5, 4.5), z: c.z + Math.sin(a) * r, vx: Math.cos(a) * 0.4, vz: Math.sin(a) * 0.4,
-            vy: rand(-0.7, -0.3), sway: 0.9, life: rand(2.4, 4), size: rand(0.22, 0.34), color: pick(PETALS), alpha: 0.9,
-            shape: SHAPE.petal, spin: rand(-2.5, 2.5) });
-        }
+        heroFx.rally(c.x, c.z, { radius: c.radius || 6 });   // painted lotus and ring, gold ghost fire, the old petals over the whole radius
       }
       if (c.kind === 'shadowstep') {
-        // landed on a target with the sure crit (2026-10-20): a massive violet slash across him
-        if (c.crit) {
-          // bigger, brighter and longer (2026-10-21: it wasn't noticeable): a white-hot slash with a wide
-          // violet edge and a second cut across it, on screen for most of a second
-          const ang = screenAngle(c.tx - c.x, c.tz - c.z);
-          cards.stroke(c.tx, 1.2, c.tz, ang - 0.6, 8, 1.6, 0x7a5ac8, 0.9);
-          cards.stroke(c.tx, 1.2, c.tz, ang - 0.6, 7, 0.5, 0xffffff, 0.8);
-          cards.stroke(c.tx, 1.1, c.tz, ang + 0.8, 5.2, 1.0, 0x5a4aa0, 0.75);
-          cards.stroke(c.tx, 1.1, c.tz, ang + 0.8, 4.6, 0.28, 0xf6f2ff, 0.65);
-          cards.glint(c.tx, 1.3, c.tz, 4.6, 0xffffff, 0.45);
-          sparkles(c.tx, 1.1, c.tz, 22, [0.85, 0.8, 1], 5);
-        }
-        // gone in black smoke, a fading violet ghost where he stood, a smoke trail, out of a smoke swirl
+        heroFx.shadowstep(c.fx ?? c.x, c.fz ?? c.z, c.x, c.z, { crit: !!c.crit, tx: c.tx ?? c.x, tz: c.tz ?? c.z });
         if (s0) cards.ghost(s0, [0.36, 0.24, 0.6], 0.7, 0.6);
-        smokeBurst(c.fx, c.fz, 34, 1, 1.2); motes(c.fx, c.fz, 14);
-        const dx = c.x - c.fx, dz = c.z - c.fz;
-        for (let i = 1; i < 10; i++) puff(c.fx + dx * i / 10, rand(0.4, 1.3), c.fz + dz * i / 10, { size: 0.8, life: 1.1, vy: 0.2 });
-        for (let i = 0; i < 26; i++) {   // the swirl: puffs going round him
-          const a = Math.random() * Math.PI * 2, r = rand(0.6, 1.3);
-          puff(c.x + Math.cos(a) * r, rand(0.1, 1.2), c.z + Math.sin(a) * r, { vx: -Math.sin(a) * 2.2, vz: Math.cos(a) * 2.2, vy: rand(0.3, 0.8), size: 0.9, life: 1.2 });
-        }
-        motes(c.x, c.z, 16, 0.6);
-        wave(c.x, c.z, 1.6, 0x5c3c8c, 0.55, 0, THIN_WAVE_GEO);
         if (s0) s0.flash = 1;
       }
       if (c.kind === 'distract') {
@@ -276,54 +239,16 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         wave(c.tx, c.tz, 2.5, 0x5c3c8c, 0.5, 0, THIN_WAVE_GEO);
       }
       if (c.kind === 'smoke') {
-        // the bomb goes off: a big black burst (the cloud itself keeps billowing in update) and a thin ring
-        smokeBurst(c.x, c.z, 70, c.radius * 0.6, 1.5);
-        motes(c.x, c.z, 30, c.radius * 0.6);
-        wave(c.x, c.z, c.radius, 0x5c3c8c, 0.5, 0, THIN_WAVE_GEO);
-        cards.ink(c.x, c.z, c.radius * 0.9, 0.9);
+        heroFx.smoke(c.x, c.z, { radius: c.radius, seconds: c.seconds ?? 6 });   // the whole cloud for its real length (painted clouds and dense soft smoke)
       }
       if (c.kind === 'assassinate') {
-        // One cast pulse marks the actual crit-buff radius; recipients keep their own aura.
-        if (c.critRadius) {
-          wave(c.x, c.z, c.critRadius, 0xb38aff, 0.7, 0, HALF_WAVE_GEO);
-          for (let i = 0; i < 22; i++) {
-            const a = Math.random() * Math.PI * 2, r = c.critRadius * Math.sqrt(Math.random());
-            motes(c.x + Math.cos(a) * r, c.z + Math.sin(a) * r, 1, 0.15, 0.3);
-          }
+        if (c.critRadius) for (let i = 0; i < 22; i++) {   // the crit-buff radius: a few motes over it
+          const a = Math.random() * Math.PI * 2, r = c.critRadius * Math.sqrt(Math.random());
+          motes(c.x + Math.cos(a) * r, c.z + Math.sin(a) * r, 1, 0.15, 0.3);
         }
-        // a vicious strike: black smoke bursts, a violet crescent with a white-hot edge, a blinding flash, the 影 (shadow) seal
-        smokeBurst(c.tx, c.tz, 46, 1.1, 1.2);
-        const ang = screenAngle(c.tx - (c.fx ?? c.x), c.tz - (c.fz ?? c.z));
-        // the lunge (2026-10-21: make it clear): a bright speed streak from where he set off to the enemy
-        if (c.fx !== undefined) {
-          const L = Math.hypot(c.tx - c.fx, c.tz - c.fz), mx = (c.fx + c.tx) / 2, mz = (c.fz + c.tz) / 2;
-          if (L > 0.6) {
-            cards.stroke(mx, 1.1, mz, ang, L * 1.15, 0.7, 0x8a6ad8, 0.6);
-            cards.stroke(mx, 1.1, mz, ang, L * 1.05, 0.2, 0xffffff, 0.55);
-            for (const k of [-1, 1]) cards.stroke(mx, 1.1 + k * 0.4, mz, ang, L * 0.8, 0.07, 0xffffff, 0.4);
-          }
-        }
-        // a bright white V stabbing into him, the two blades meeting where he stands, held most of a second
-        {
-          const ux = c.tx - (c.fx ?? c.x), uz = c.tz - (c.fz ?? c.z), ul = Math.hypot(ux, uz) || 1;
-          for (const k of [-1, 1]) {
-            const r = k * 0.32, rx = (ux * Math.cos(r) - uz * Math.sin(r)) / ul, rz = (ux * Math.sin(r) + uz * Math.cos(r)) / ul, a2 = screenAngle(rx, rz);
-            cards.stroke(c.tx - rx * 1.3, 1.15, c.tz - rz * 1.3, a2, 3, 0.9, 0x8a6ad8, 0.85);
-            cards.stroke(c.tx - rx * 1.3, 1.15, c.tz - rz * 1.3, a2, 2.8, 0.26, 0xffffff, 0.8);
-          }
-        }
-        cards.stroke(c.tx, 1.2, c.tz, ang + 0.5, 4.4, 0.7, 0x6a4ab0, 0.42);
-        cards.stroke(c.tx, 1.2, c.tz, ang + 0.5, 3.6, 0.22, 0xf0eaff, 0.3);
-        cards.stroke(c.tx, 1.1, c.tz, ang - 0.6, 3.0, 0.4, 0x3c4a8a, 0.36);
-        cards.glint(c.tx, 1.3, c.tz, 4.2, 0xe8e0ff, 0.35);
-        cards.glint(c.tx, 1.3, c.tz, 2.4, 0x9a80d0, 0.5);
-        cards.seal(c.tx, c.tz, 2.2, '影', 0x6a4aa0, 1.4, { spin: 0.5 });
-        wave(c.tx, c.tz, 1.8, 0x5c3c8c, 0.5, 0, THIN_WAVE_GEO); wave(c.tx, c.tz, 1.1, 0x3c4a8a, 0.45, 0.06, THIN_WAVE_GEO);
-        sparkles(c.tx, 1.1, c.tz, 26, [0.85, 0.8, 1], 5);
-        motes(c.tx, c.tz, 18, 0.5);
+        heroFx.assassinate(c.fx ?? c.x, c.fz ?? c.z, c.tx, c.tz);
         flashT = 0.22;
         if (s0) s0.flash = 1.6;
-        if (c.fx !== undefined) smokeBurst(c.fx, c.fz, 14, 0.6, 0.9);   // where he lunged from
       }
       if (c.kind === 'taunt'&&(!c.style||c.style==='yakuza_enforcer')) {
         // Match the authoritative radial bellow and mark every affected target.
@@ -378,9 +303,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
       if (c.kind === 'arrest') { wave(c.x, c.z, 1.6, 0x4a78e6, 0.45); wave(c.x, c.z, 1.0, 0x1a2a60, 0.5, 0.05); }
       if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }
       if (c.kind === 'lantern') {
-        wave(c.x, c.z, 2.4, 0xff4020, 0.5, 0, HALF_WAVE_GEO); wave(c.x, c.z, 1.6, 0xffa040, 0.4, 0.06, HALF_WAVE_GEO); wave(c.x, c.z, 3.4, 0xffd070, 0.7, 0.12, HALF_WAVE_GEO);
-        cards.glint(c.x, 1.4, c.z, 2.4, 0xffb060, 0.45);
-        cards.pillar(() => posOf(c.a), 0xff4a20, 0.9, 5.5, 1.6);
+        heroFx.lantern(c.x, c.z);
         for (let i = 0; i < 40; i++) {
           const a = Math.random() * Math.PI * 2, v = rand(1, 4);
           glow.emit({ x: c.x, y: rand(0.3, 1.6), z: c.z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(1, 4), drag: 2.5, gravity: -0.5,
@@ -394,11 +317,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
     // enemy along the dash, a star glint on the steel and a burst of sparks.
     cut(h, attacker) {
       const dx = attacker ? h.x - attacker.x : 1, dz = attacker ? h.z - attacker.z : 0;
-      const ang = screenAngle(dx, dz);
-      cards.stroke(h.x, 1.05, h.z, ang + 0.35, 2.8, 0.36);
-      cards.stroke(h.x, 1.05, h.z, ang + 0.35, 2.0, 0.12, 0xffffff, 0.18);
-      cards.glint(h.x + rand(-0.2, 0.2), rand(1.1, 1.5), h.z, h.crit ? 2.2 : 1.6, h.crit ? 0xffe090 : 0xffffff);
-      sparkles(h.x, 1.0, h.z, h.crit ? 18 : 12, h.crit ? [1, 0.85, 0.4] : STEEL, 4);
+      heroFx.cut(h.x, h.z, dx, dz, !!h.crit);
     },
 
     // health coming back (heal, lifesteal or regeneration): a small quick glowy dazzle.
@@ -487,6 +406,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
       glow.update(dt);
       soot.update(dt);
       cards.update(dt);
+      heroFx.update(dt);
       // One stable countdown above the player's hero, separate from floating damage.
       const hero = state.entities[heroId], remaining = ((hero?.buffs?.veil?.until ?? 0) - state.tick) / 20;
       const heroPos = hero && !hero.dead && !hero.downed && !hero.jailed && remaining > 0 && posOf(heroId);
@@ -496,24 +416,6 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         const q = unitToScreen(heroPos.x, heroPos.z, 3.5);
         vanishText.style.transform = `translate(${q.x}px, ${q.y}px) translate(-50%, -100%)`;
       } else if (vanishText) { vanishText.remove(); vanishText = null; }
-      // Smoke Bomb clouds: black smoke keeps billowing in the radius while it lasts, dim glints inside,
-      // a thin dark-violet ring on the ground (state.smokes, sim/game.js)
-      const live = new Set();
-      for (const s of state.smokes || []) {
-        const key = `${s.x},${s.z},${s.until}`;
-        live.add(key);
-        for (let n = count(90, dt); n > 0; n--) {
-          const a = Math.random() * Math.PI * 2, r = s.r * Math.sqrt(Math.random()) * 0.92;
-          puff(s.x + Math.cos(a) * r, rand(0.1, 2.2), s.z + Math.sin(a) * r, { vx: Math.cos(a) * 0.3, vz: Math.sin(a) * 0.3, vy: rand(0.1, 0.5), size: rand(1.2, 1.9), life: 1.8, alpha: 0.9 });
-        }
-        if (Math.random() < dt * 14) motes(s.x + rand(-s.r, s.r) * 0.6, s.z + rand(-s.r, s.r) * 0.6, 1, 0.4, rand(0.5, 2));
-        let ring = smokeRings.get(key);
-        if (!ring) { ring = flat(THIN_WAVE_GEO, 0x5c3c8c, 0.6); ring.position.set(s.x, (0.04)+groundY(s.x, s.z), s.z); ring.scale.set(s.r, s.r, 1); scene.add(ring); smokeRings.set(key, ring); }
-      }
-      for (const [key, ring] of smokeRings) if (!live.has(key)) {
-        ring.material.opacity -= dt * 1.5;
-        if (ring.material.opacity <= 0) { scene.remove(ring); ring.material.dispose(); smokeRings.delete(key); }
-      }
       // units drawn to a Distract pebble: a small dim-blue ? over their heads while they look
       const puzzled = new Set();
       for (const e of Object.values(state.entities)) {
@@ -574,10 +476,6 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         }
         if (e.buffs.ambush && !e.downed) for (let n = count(4, dt); n > 0; n--)
           motes(p.x, p.z, 1, 0.55, 0.6);
-        // intimidated: purple wisps rising off them
-        if (e.buffs.intimidated) for (let n = count(7, dt); n > 0; n--)
-          glow.emit({ x: p.x + rand(-0.3, 0.3), y: rand(0.6, 1.6), z: p.z + rand(-0.3, 0.3), vy: rand(0.5, 1.1), sway: 0.5, life: rand(0.8, 1.3),
-            size: rand(0.4, 0.7), grow: 1.2, color: [0.35, 0.12, 0.7], alpha: 0.55, shape: SHAPE.dot });
         // rallied: a few petals keep drifting down and gold motes rise around them
         if (e.buffs.rally) {
           for (let n = count(1.6, dt); n > 0; n--) {
@@ -631,9 +529,9 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
           body.quaternion.copy(CAM_Q); body.rotateZ(0.12 * Math.sin(now * 1.8 + i));
           halo.quaternion.copy(CAM_Q);
           const flick = 0.85 + 0.15 * Math.sin(now * 11 + i * 3) * Math.sin(now * 6.3 + i);
-          body.scale.setScalar(grow);
-          halo.scale.setScalar(grow * (0.9 + 0.25 * flick));
-          halo.material.opacity = 0.42 * flick;
+          body.scale.setScalar(1.1 * grow); heroFx.lanternAlpha(body, grow * (0.8 + 0.2 * flick));
+          halo.scale.setScalar(grow * (0.75 + 0.2 * flick));
+          halo.material.opacity = 0.2 * flick;   // was 0.42 (2026-11-28: too bright)
           // in front of him or behind him, by which side of him it is on
           const front = ox * VIEW_DIR.x + oz * VIEW_DIR.z > 0;
           body.renderOrder = heroOrder + (front ? 0.6 : -0.6);
@@ -665,7 +563,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         const s = streaks[i], e = state.entities[s.id], p = posOf(s.id), sp = spriteOf(s.id);
         if (!s.done && (!e || !e.dash) && s.age > 0.05) {
           s.done = s.age;
-          if (p) { cards.glint(p.x, 1.35, p.z, 1.2, 0xfff2d0, 0.35); sparkles(p.x, 1.1, p.z, 6, WHITE, 1.5, 0.26); }
+          if (p) heroFx.dash(s.x, s.z, p.x, p.z);
         }
         if (!s.done && sp && dt > 0) {
           s.ghostT -= dt;
@@ -698,6 +596,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         if (!p) continue;
         let layer = 0;   // stacked buffs: each one a little wider and higher than the last
         for (const name of [...Object.keys(e.buffs || {}), ...(rallied ? ['rally'] : []), ...(geisha ? ['geisha', ...((e.lure?.castUntil || 0) > state.tick ? ['diversion'] : [])] : []), ...(e.downed ? ['downed'] : [])]) {
+          const mark = STATUS_MARK[name];
+          if (mark && !e.downed && spriteOf(e.id)?.thing.mesh.visible) heroFx.status(e.id, mark, p.x, p.z);   // painted mark under him + shape over the head
           const a = AURAS[name];
           if (!a) continue;
           const key = `${e.id}:${name}`, i = OUTLINE[name] ? layer++ : 0;
@@ -722,6 +622,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
                 orbit: { x: p.x, z: p.z, r: 0.55 + 0.12 * i, w: (i % 2 ? -1 : 1) * rand(3, 4.5), a: Math.random() * Math.PI * 2 } });
             }
           }
+          if (mark) continue;   // no flat ring under a painted mark
           let m = auras.get(key);
           if (!m) { m = flat(a.geo, a.color, a.opacity); m.userData.born = performance.now(); scene.add(m); auras.set(key, m); }
           if (name === 'snared') m.material.color.set(e.buffs?.snared?.style === 'kuroda' ? 0xde3048 : a.color);

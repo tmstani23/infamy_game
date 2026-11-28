@@ -15,7 +15,8 @@ const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_met
 // Punch fallback for models without a dedicated weapon route; heavy impacts use a lower pitch.
 const FISTS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout', 'police']), HEAVY_FISTS = new Set(['brute', 'enforcer', 'demolitions']);
 // the own clips (Suno), any of .ogg/.mp3/.wav in assets/sounds; until one is there its Kenney fallback plays
-const CUSTOM = { gatling_loop_1: [], gatling_end_1: [], arrow_whoosh_1: [], arrow_whoosh_2: [], arrow_hit_1: [], arrow_hit_2: [], punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [], hoof_walk_1: [], hoof_walk_2: [], hoof_gallop_1: [], hoof_gallop_2: [], horse_whistle_1: [], horse_whistle_2: [], omnibus_roll_1: [], omnibus_roll_2: [], omnibus_roll_3: [], rickshaw_roll_1: [], rickshaw_roll_2: [], gate_open_1: [], cannon_fire_1: [], cannon_fire_2: [], cannon_fire_3: [], train_run_1: [], train_approach_1: [], train_brake_1: [], train_whistle_1: [], crow_caw_1: [], crow_caw_2: [], crow_scatter_1: [], crow_scatter_2: [], crow_scatter_3: [], deer_alarm_1: [], deer_alarm_2: [], boar_grunt_1: [], boar_charge_1: [], wolf_pack_howl_1: [], wolf_pack_howl_2: [], wolf_attack_1: [], wolf_attack_2: [], bear_roar_1: [], bear_roar_2: [], horse_whinny_1: [], horse_whinny_2: [] };
+const CUSTOM = { fire_ignite_1: [], fire_building_loop_1: [], fire_building_collapse_1: [], fire_campfire_loop_1: [], ability_war_shout_1: [],   // fire and war shout clips (2026-11-28, ElevenLabs)
+  gatling_loop_1: [], gatling_end_1: [], arrow_whoosh_1: [], arrow_whoosh_2: [], arrow_hit_1: [], arrow_hit_2: [], punch_main: ['punch_hit_1', 'punch_hit_2'], punch_main_heavy: ['punch_hit_heavy_1'], punch_main_2: [], punch_main_3: [], rifle_shot_1: [], dynamite_1: [], dynamite_2: [], dynamite_3: [], use_1: ['Audio/doorOpen_1', 'Audio/doorOpen_2'], use_2: [], use_3: [], loot_coins_1: ['Audio/handleCoins', 'Audio/handleCoins2'], ability_dash_1: [], ability_buff_1: [], ability_cast_1: [], ability_finisher_1: [], hoof_walk_1: [], hoof_walk_2: [], hoof_gallop_1: [], hoof_gallop_2: [], horse_whistle_1: [], horse_whistle_2: [], omnibus_roll_1: [], omnibus_roll_2: [], omnibus_roll_3: [], rickshaw_roll_1: [], rickshaw_roll_2: [], gate_open_1: [], cannon_fire_1: [], cannon_fire_2: [], cannon_fire_3: [], train_run_1: [], train_approach_1: [], train_brake_1: [], train_whistle_1: [], crow_caw_1: [], crow_caw_2: [], crow_scatter_1: [], crow_scatter_2: [], crow_scatter_3: [], deer_alarm_1: [], deer_alarm_2: [], boar_grunt_1: [], boar_charge_1: [], wolf_pack_howl_1: [], wolf_pack_howl_2: [], wolf_attack_1: [], wolf_attack_2: [], bear_roar_1: [], bear_roar_2: [], horse_whinny_1: [], horse_whinny_2: [] };
 // hero ability activation cues (the clips 2026-10-30), layered over each ability's own sounds; [clip, pitch].
 // Each clip used once per hero so skills don't sound alike; abilities not listed keep only their old sounds
 const ABILITY_CUE = { shadowstep: ['ability_dash_1', 1], assassinate: ['ability_finisher_1', 1],   // Shinobi
@@ -150,6 +151,36 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     return { src, g, family };
   }
   function stopLoop(id) { const l = loops.get(id); if (!l) return; const t = ctx.currentTime; l.g.gain.setTargetAtTime(0, t, 0.08); l.src.stop(t + 0.5); loops.delete(id); }
+  // Fire (2026-11-28, clips): a crackle loop at each lit camp fire and a bigger roar at each burning war
+  // structure, the nearest few only, by distance; a whoosh when a structure catches and a crash when one falls.
+  const fireLoops = new Map(), fireSeen = new Map(), MAX_FIRE_LOOPS = 3;
+  function fireSounds(state, me) {
+    if (!ctx) return;
+    const want = [], world = me?.place === 'world', structs = world ? state.frontier?.structures || [] : [];
+    for (const st of structs) {
+      const was = fireSeen.get(st.key), v = near(me, st.x, st.z, 'world') ** 0.8;
+      if (was && v > 0.02) {
+        if (st.fire && !was.fire) variant('fire_ignite_1', 0.6 * v);
+        if (st.hp <= 0 && was.hp > 0) variant('fire_building_collapse_1', 0.8 * v);
+      }
+      fireSeen.set(st.key, { fire: !!st.fire, hp: st.hp });
+      if (st.fire && st.hp > 0 && v > 0.02) want.push({ id: 'st:' + st.key, k: 'fire_building_loop_1', g: 0.55 * v });
+    }
+    if (fireSeen.size > 400) fireSeen.clear();
+    if (world) for (const f of Object.values(state.campfires || {})) {
+      if (!f.lit || f.out) continue;
+      const v = near(me, f.x, f.z, 'world');
+      if (v > 0.02) want.push({ id: 'cf:' + f.id, k: 'fire_campfire_loop_1', g: 0.35 * v });
+    }
+    want.sort((a, b) => b.g - a.g);
+    const keep = new Map(settings.muted ? [] : want.slice(0, MAX_FIRE_LOOPS).map(w => [w.id, w]));
+    for (const [id, l] of [...fireLoops]) if (!keep.has(id)) { const t = ctx.currentTime; l.g.gain.setTargetAtTime(0, t, 0.25); l.src.stop(t + 1.2); fireLoops.delete(id); }
+    for (const [id, w] of keep) {
+      let l = fireLoops.get(id);
+      if (!l) { l = startLoop(w.k, 1); if (!l) continue; fireLoops.set(id, l); }
+      l.g.gain.setTargetAtTime(w.g, ctx.currentTime, 0.3);
+    }
+  }
   function movementLoops(state, me) {
     if (!ctx) return;
     // a Gatling whose crew went down or was taken away mid-burst sends no stop: end its loop here (2026-11-21)
@@ -235,6 +266,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
     update(state, focus) {
       const me = focus;
       movementLoops(state, me);
+      fireSounds(state, me);
       trainSounds(state, me);
       // worker hammer taps (2026-11-08): quiet, only workers near the camera, at most 3 per tick, each worker about once a second
       if (me && state.tick !== lastTapTick) {
@@ -320,7 +352,7 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if(c.kind==='shakedownSuccess'||c.kind==='sweepSuccess')play(pickCustom('loot_coins_1'),.65*v);
         if (c.kind === 'dash' || c.kind === 'lantern') play(['katana_draw_1', 'katana_draw_2'], 0.6 * v, c.kind === 'lantern' ? 0.8 : 1);
         if (SWORDS.has(a?.model) && (c.kind==='dash'||c.kind==='assassinate'||(c.kind==='shadowstep'&&c.crit))) swordSlash(.4*v);
-        if (c.kind === 'intimidate') play(SOFT, 0.7 * v, 0.6);
+        if (c.kind === 'intimidate') { play(SOFT, 0.7 * v, 0.6); variant('ability_war_shout_1', 0.6 * v); }   // the shout (2026-11-28)
         if (c.kind === 'rifleshot') play('rifle_shot_1', v > 0 ? 0.8 * Math.max(v, 0.3) : 0, 1);   // gunfire carries: still heard at the edge of hearing range
         if (c.kind === 'taunt') play(SOFT, (c.style === 'shinobi_enforcer' ? 0.8 : 0.6) * v, c.style === 'shinobi_enforcer' ? 0.75 : 0.5);
         if (c.kind === 'loot' || c.kind === 'chestCashed' || c.kind === 'hidesSold') play(pickCustom('loot_coins_1'), 0.6 * v);   // a stolen chest cashed, hides sold (wildlife W5)

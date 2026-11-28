@@ -69,7 +69,7 @@ function glyphTexture() {
 }
 const dispose = group => group.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
 
-export function createKurodaFx({ scene, spriteOf, posOf }) {
+export function createKurodaFx({ scene, spriteOf, posOf, heroFx }) {   // heroFx: render/hero_fx.js, the painted casts (2026-11-28)
   const formations = new Map(), counters = new Map(), stuns = new Map(), wards = new Map(), bursts = [];
   const motion = new Map(), particles = createParticles(scene,{max:900}), cards = createCards(scene);
   const group = () => { const g = new THREE.Group(); scene.add(g); return g; };
@@ -177,38 +177,23 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
       motion.clear();particles.clear();cards.clear();
     },
     cast(c) {
-      if (c.kind==='sweep') {
-        arc(c.x,c.z,c.radius,.62,c.dir);
-        for(let i=0;i<40;i++){const a=i*Math.PI*2/40;sparks(c.x+Math.cos(a)*c.radius,.24,c.z+Math.sin(a)*c.radius,1,0,1.7);}
-        cards.glint(c.x,.35,c.z,1.25,GOLD,.3);
-      }
-      if (c.kind==='cleave') {arc(c.tx,c.tz,c.radius,.35,c.dir);sparks(c.tx,.8,c.tz,9,.6,1.2);}
-      if (c.kind==='thrust') thrust(c);
-      if (c.kind==='reprisal') {arc(c.x,c.z,.7,.3);}
+      if (c.kind==='sweep') heroFx.sweep(c.x,c.z,{radius:c.radius});
+      if (c.kind==='cleave') {const d=facing(c.dir);heroFx.cleave(c.tx,c.tz,d.x,d.z);}
+      if (c.kind==='thrust') heroFx.thrust(c.x,c.z,c.tx,c.tz);
+      if (c.kind==='reprisal') {const d=facing(c.dir);heroFx.counter(c.x,c.z,d.x,d.z);}
       if (c.kind==='counter') {
-        const d=facing(c.dir);shieldFlash(c.x+d.x*.4,1.3,c.z+d.z*.4,1.35);
-        cards.stroke(c.x,1.25,c.z,-.55,1.9,.4,GOLD,.36);
+        const d=facing(c.dir);heroFx.counter(c.x,c.z,d.x,d.z);
         const s=spriteOf(c.a);if(s)s.flash=Math.max(s.flash||0,.8);
         if(c.triggeredBy&&c.triggeredBy!==c.a){
           const crew=spriteOf(c.triggeredBy),p=posOf(c.triggeredBy);
-          if(p&&crew?.thing.mesh.visible){shieldFlash(p.x,1.3,p.z,1.05);crew.flash=Math.max(crew.flash||0,.8);}
+          if(p&&crew?.thing.mesh.visible){heroFx.counter(p.x,p.z,d.x,d.z);crew.flash=Math.max(crew.flash||0,.8);}
         }
       }
-      if (c.kind==='counterstun') shieldFlash(c.tx,1.55,c.tz,.75);
+      if (c.kind==='counterstun') heroFx.counter(c.tx,c.tz,c.x-c.tx,c.z-c.tz);
       if (c.kind==='pursuit') {
-        // The unfinished brace opens into two streaming ribbons.
-        const d=facing(c.dir),g=group();g.position.set(c.x,(1.2)+groundY(c.x,c.z),c.z);
-        for(const side of [-1,1]){
-          const points=[],widths=[];
-          for(let i=0;i<=20;i++){const t=i/20;points.push([-d.x*t*1.8-d.z*side*(.25+t*.3),Math.sin(t*4)*.16,-d.z*t*1.8+d.x*side*(.25+t*.3)]);widths.push(.2*(1-t));}
-          g.add(mesh(strip(points,widths),CRIMSON,.65));
-        }
-        burst(g,.45);sparks(c.x,.15,c.z,18,.25,2);
+        const d=facing(c.dir);heroFx.pursuit(c.x,c.z,d.x,d.z);
       }
-      if (c.kind==='formation') {
-        cards.seal(c.x,c.z,2.6,'守',GOLD,.9,{opacity:.55,spin:-.35});
-        sparks(c.x,.2,c.z,36,1.2,2);
-      }
+      if (c.kind==='formation') sparks(c.x,.2,c.z,36,1.2,2);   // the painted runes come in from update
     },
     update(dt,state,heroId) {
       particles.update(dt);cards.update(dt);
@@ -217,39 +202,7 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
       for (const f of state.formations || []) {
         if (f.until<=state.tick || !(f.clan===owner || spriteOf(f.a)?.thing.mesh.visible)) continue;
         const key=`${f.a}:${f.start}`;live.add(key);
-        let v=formations.get(key);
-        if (!v) {v=formationSet(f);formations.set(key,v);}
-        v.f=f;v.out=0;
-      }
-      for (const [key,v] of formations) {
-        v.age+=dt;
-        if (!live.has(key)) v.out+=dt;
-        const fade=Math.min(1,v.age/.25)*Math.max(0,1-v.out/.4);
-        if (!fade) {scene.remove(v.g);dispose(v.g);formations.delete(key);continue;}
-        v.symbols.forEach(({m,halo},i)=>{
-          const a=i*Math.PI*2/v.symbols.length-v.age*.42;
-          const r=v.f.radius;
-          const rise=Math.min(1,Math.max(0,(v.age-i*.018)/.38));
-          m.position.set(Math.cos(a)*r,(.85+(i%2)*.35)*rise+Math.sin(v.age*2+i)*.06,Math.sin(a)*r);
-          m.scale.setScalar(.75+.25*rise);
-          m.rotation.set(0,-a-Math.PI/2,0);
-          const near=Math.cos(a)*VIEW_DIR.x+Math.sin(a)*VIEW_DIR.z>0;
-          const pulse=.9+.1*Math.sin(v.age*3+i*.4);
-          m.material.opacity=(near ? .3 : .9)*fade*pulse*rise;
-          halo.position.copy(m.position);halo.rotation.copy(m.rotation);
-          halo.scale.copy(m.scale);halo.material.opacity=(near ? .09 : .3)*fade*pulse*rise;
-        });
-        const floorReveal=Math.min(1,v.age/.6);
-        v.floor.scale.setScalar(v.f.radius*.7*(.4+.6*floorReveal));
-        for(const [m,opacity] of v.floorMaterials)m.opacity=opacity*fade*floorReveal;
-        v.segments.forEach((m,i)=>{m.rotation.z=-v.age*.23;m.material.opacity=.65*fade*Math.min(1,Math.max(0,(v.age-i*.025)/.2));});
-        v.outer.rotation.y=v.age*.32;
-        v.outer.children.forEach(m=>m.material.opacity=.32*fade);
-        for (const m of v.rings) m.material.opacity=m.userData.baseOpacity*fade*(.9+.1*Math.sin(v.age*3));
-        for(let n=count(14*fade,dt);n>0;n--){const a=rand(0,Math.PI*2);
-          particles.emit({x:v.f.x+Math.cos(a)*v.f.radius,y:.25,z:v.f.z+Math.sin(a)*v.f.radius,
-            vy:rand(.35,.8),life:rand(.65,1.15),size:rand(.06,.12),color:[1,.68,.25],shape:SHAPE.sparkle,twinkle:.8});
-        }
+        heroFx.formation(key,f.x,f.z,{radius:f.radius});
       }
       const activeCounters=new Set(), activeStuns=new Set(), activeWards=new Set(), movingIds=new Set();
       for (const e of Object.values(state.entities)) {
@@ -316,12 +269,6 @@ export function createKurodaFx({ scene, spriteOf, posOf }) {
               life:.4,size:.1,color:[1,.63,.23],shape:SHAPE.sparkle,twinkle:.7});
           }
           motion.set(e.id,{x:p.x,z:p.z,place:e.place});
-        }
-        if (e.buffs?.stunned?.until>state.tick) {
-          activeStuns.add(e.id);let v=stuns.get(e.id);
-          if (!v) { const g=group(), stars=[];for(let i=0;i<3;i++){const m=mesh(new THREE.OctahedronGeometry(.07),GOLD,.9);g.add(m);stars.push(m);}v={g,stars};stuns.set(e.id,v); }
-          v.g.position.set(p.x,(2.35)+groundY(p.x,p.z),p.z);v.g.rotation.y+=dt*5;
-          v.stars.forEach((m,i)=>m.position.set(Math.cos(i*Math.PI*2/3)*.25,0,Math.sin(i*Math.PI*2/3)*.25));
         }
       }
       for (const [map,liveIds] of [[counters,activeCounters],[stuns,activeStuns],[wards,activeWards]]) for(const [id,v] of map)

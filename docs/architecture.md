@@ -125,12 +125,14 @@ Island ground, props and trails are painted by the layered procedure in [world_p
 | `shading.js` | Shared shaders: night grade, lantern lights, see-through cutaway, interior materials. |
 | `iso.js` | The fixed isometric camera as three.js vectors. |
 | `abilityfx.js` | Ability effects (dash after-images, seals, rings, lanterns), buff auras, bandit coin burst. |
+| `painted_fx.js` | Shared painted-effect base (2026-11-28): piece shader (gradient map, flow, dissolve), texture loader with one cache per folder, easing, camera cards, ground decals, markers. Used by `hero_fx.js`, `relic_fx.js`, and by `boss_fx.js` once switched. |
+| `hero_fx.js` | Painted hero ability effects and status marks, called from `abilityfx.js` and `kurodafx.js`. |
 | `abilityfx_assets.js` | Shared ability-effect geometries, palettes, outline shader and lantern textures (split from abilityfx.js 2026-10-29; Kuroda and Shakedown effects live in `kurodafx.js` / `shakedownfx.js`). |
 | `vfx.js` | Shared effect pieces: sparkles, glints, embers, petals. |
 | `bloom.js` | Bloom on effects only. |
 | `hitfx.js` | Damage numbers, hit flash, slash trails, sparks, screen shake. |
 | `health.js` | Health bars over every unit. |
-| `sound.js` | Combat sounds. |
+| `sound.js` | Combat sounds; fire loops at lit camp fires and burning war structures (nearest 3), ignite and collapse cues, the Intimidate war shout (2026-11-28). |
 
 **Input and HUD** (`game/src`, browser only, they only send commands)
 

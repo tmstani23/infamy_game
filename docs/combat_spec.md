@@ -165,17 +165,23 @@ Today `render/abilityfx.js` draws flat additive rings, discs and a ground streak
 Ronin plan (effort / payoff):
 1. Iaido Dash (small / high): fading after-images of the hero sprite along the path (no new art), white slash across each enemy hit, hitstop.
 2. Red Lantern (medium / high): bloom, flickering flame flipbook around him, rising embers, red tint on his sprite.
-3. Intimidate (small / medium): brief screen dim, rippling shockwave, purple smoke wisps on affected enemies.
+3. Intimidate (small / medium): brief screen dim, painted gusts racing out to the radius (2026-11-28), purple smoke wisps on affected enemies.
 4. Rally (small / medium): gold ground circle and light pillars rising on the crew.
 
 **Built (2026-10-17), ronin:**
 - Q: after-images, steel glints, hit freeze.
 - E: screen dim, ink ring, seal, purple wisps.
 - R: thin yellow ring, gold seal, glowing petals, light pillars; no green ring. Each heal tick shows green healing rain and a small green +N heal number, offset left and below the damage numbers. The Rally outline is 20% thinner (2026-10-19).
-- F: glowing lanterns orbiting him (halos 20% smaller, 2026-10-19), red light, embers.
+- F: four painted paper lanterns orbiting him (painted 2026-11-28, halo opacity 0.2), red light, embers.
 - Stacking buff auras (outline, ground ring and sparkles per ability), heal, lifesteal and regen sparkles, and bloom on effects only.
 
 **Thinner effects (2026-10-19):** Rally, Intimidate and Red Lantern outlines, ground rings, cast rings and lantern halos are 50% thinner (`render/abilityfx.js`).
+
+**Painted ability effects (2026-11-28):** the hero kits are built from painted texture pieces (white light on black, recoloured per clan, flowing and dissolving through noise), the same way as the guarded-place boss effects, instead of code-drawn rings and arcs. `render/hero_fx.js` draws them on the shared base `render/painted_fx.js` (shader, texture loader, easing); pieces are in `game/art/fx/` (boss sheets A to E plus sheet F: fireballs, splash, lightning, ink, brush, petals; raw sheets in the project's art_prompts/vfx/).
+- Yakuza: Dash lays red and gold speed smears along the path with a painted slash on each enemy passed; Intimidate (purple, kept) is ghost-fire wind-up, gusts racing out to the radius and a rune over his head; Rally is a gold lotus and ring with the glowing sakura petals spread over the whole rally radius; Red Lantern flares painted flames and its four orbiting lanterns are painted (art/fx/lantern1-4, halo half as bright as before).
+- Shinobi: Shadowstep is an ink vortex, violet wisps and a violet slash on a crit; Smoke Bomb is painted clouds plus dense soft smoke over the real radius for the whole duration; Assassinate is an ink brush lunge, two crossed slashes, ink spatter and a shadow rune.
+- Kuroda: Sweep, Cleave, Thrust, Counter (and Reprisal, counter-stun), Pursuit and Formation (gold ring and circling runes) use painted slashes, smears, sparks and runes.
+- Status marks (one rule): a torn ring under the unit in the status colour plus one painted shape over the head, for intimidated, rallied, lantern, veil, ambush, snared and stunned. They replace the flat aura rings; the sprite outlines stay. Still the old style: Kuroda brace and counter coil, formation badge, pursuit ribbons, veil trails, Distract and Snuff.
 
 **Sounds (2026-10-19, `render/sound.js`):** brutes pick 50/50 between `club_hit_1-3` and Kenney `impactSoft_medium_000-004` at pitch 0.85; Intimidate uses `impactSoft_medium` at pitch 0.6 (`punch_hit_heavy_1` no longer loaded).
 

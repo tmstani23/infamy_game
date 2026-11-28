@@ -174,6 +174,7 @@ Crows: birds burst out of a tree near troops or shinobi on the move, hidden ones
 - Recall only stores horses up to your stable horse room (town tiers 5/12/25 plus the capital's); your own mount has its own stall and never counts (2026-11-26). Recall and Take out also work while viewing a town (town_view.js).
 - A 'mounted' flag with no horse under it is dropped every second. An empty vehicle is idle.
 - Take out (vehicle_garage.js parkSpot): rings around the stable from rules.garage.parkRing 9, step parkStep 4, clear of town buildings and at least a length plus parkGap 1 from other horses and vehicles.
+- Fire and shout clips (ElevenLabs, 2026-11-28) in assets/sounds: fire_campfire_loop_1 (5 s), fire_building_loop_1 (10 s), fire_ignite_1, fire_building_collapse_1, ability_war_shout_1. Listed in sound.js CUSTOM (missing file = silent). `fireSounds()` plays the loops by distance; ignite when a structure starts burning, collapse when its health hits 0.
 - Whistle summon: H, the Mount menu button, the Vehicles panel button. Sound: custom clip horse_whistle_1 (cast 'horseWhistle').
 - Left-click: one crew member selects only that one; any of your horses, rickshaws or omnibuses (loaded or empty) is selected and shown in the target frame; a horse ridden by crew selects her rider. Empty ones take no orders.
 - Right-click in the world only loads or mounts. Getting off: Q, right-click the vehicle card or Mount card in the crew panel, right-click one seat for one rider, right-click the Frontier crew header for everyone.
