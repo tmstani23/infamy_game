@@ -184,8 +184,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
     // a business just changed hands (render/banners.js): gold glints round its banner and a thin gold ring
     claim(x, z) {
       sparkles(x, 1.4, z, 36, [1, 0.85, 0.45], 3.2, 0.36);
-      cards.glint(x, 1.8, z, 2.2, 0xffe6a0, 0.5);
-      wave(x, z, 3, 0xffd060, 0.7, 0, THIN_WAVE_GEO);
+      heroFx.claim(x, z);   // painted gold sparks and ring (2026-11-28)
     },
     // c: one entry of state.casts
     cast(c) {
@@ -217,9 +216,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         if (s0) s0.flash = 1;
       }
       if (c.kind === 'distract') {
-        // a pebble lands: small dim-blue ripples and a little dust (the guards get a ? while they look)
-        wave(c.tx, c.tz, 0.6, 0x8496be, 0.4, 0, THIN_WAVE_GEO); wave(c.tx, c.tz, 1.1, 0x5a6c9a, 0.5, 0.1, THIN_WAVE_GEO); wave(c.tx, c.tz, 1.6, 0x3c4a74, 0.6, 0.2, THIN_WAVE_GEO);
-        for (let i = 0; i < 6; i++) puff(c.tx + rand(-0.3, 0.3), 0.15, c.tz + rand(-0.3, 0.3), { size: 0.45, life: 0.7, vy: 0.4, alpha: 0.5 });
+        // a pebble lands: painted dim-blue ripples and a little dust (2026-11-28; the guards get a ? while they look)
+        heroFx.distract(c.tx, c.tz);
         for (let i = 0; i < 8; i++) glow.emit({ x: c.tx, y: 0.2, z: c.tz, vx: rand(-1, 1), vz: rand(-1, 1), vy: rand(1, 2), gravity: 5,
           life: rand(0.3, 0.5), size: rand(0.08, 0.14), color: MIST_BLUE, shape: SHAPE.sparkle, twinkle: 0.6 });
         // the caltrops scattering over the snare ring: steel glints bouncing out and lying there a moment
@@ -228,15 +226,10 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
           glow.emit({ x: c.tx, y: 0.3, z: c.tz, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: rand(1.5, 3), gravity: 9, drag: 2.5,
             life: rand(0.9, 1.5), size: rand(0.08, 0.13), color: [0.62, 0.68, 0.82], shape: SHAPE.sparkle, twinkle: 0.4, spin: 4 });
         }
-        wave(c.tx, c.tz, 2, 0x3c4a8a, 0.6, 0.05, THIN_WAVE_GEO);
       }
       if (c.kind === 'snuff') {
-        // a Shinobi snuffing a lantern from afar (2026-10-20): a small blackish-purple smoke flash off him, a wisp at the lantern
-        smokeBurst(c.x, c.z, 16, 0.5, 0.8); motes(c.x, c.z, 10, 0.5);
-        wave(c.x, c.z, 1.2, 0x5c3c8c, 0.35, 0, THIN_WAVE_GEO);
-        // and a puff big enough to wrap the whole lantern (2026-10-21)
-        smokeBurst(c.tx, c.tz, 30, 1.4, 1.1); motes(c.tx, c.tz, 12, 1);
-        wave(c.tx, c.tz, 2.5, 0x5c3c8c, 0.5, 0, THIN_WAVE_GEO);
+        // a Shinobi snuffing a lantern from afar: an ink-violet puff off him and painted smoke wrapping the lantern (painted 2026-11-28)
+        heroFx.snuff(c.x, c.z, c.tx, c.tz); motes(c.tx, c.tz, 8, 1);
       }
       if (c.kind === 'smoke') {
         heroFx.smoke(c.x, c.z, { radius: c.radius, seconds: c.seconds ?? 6 });   // the whole cloud for its real length (painted clouds and dense soft smoke)
@@ -292,8 +285,8 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
       if (c.kind === 'diversion') heroFx.diversion(c.x, c.z, { radius: c.radius || 6 });   // painted (2026-11-28)
       if (c.kind === 'kunoichiVanish') heroFx.vanish(c.x, c.z);
       if (c.kind === 'ambush') { const t = c.t != null && posOf(c.t); if (t) heroFx.ambushStrike(t.x, t.z, t.x - c.x, t.z - c.z); }
-      if (c.kind === 'arrest') { wave(c.x, c.z, 1.6, 0x4a78e6, 0.45); wave(c.x, c.z, 1.0, 0x1a2a60, 0.5, 0.05); }
-      if (c.kind === 'execute') { wave(c.x, c.z, 1.8, 0xff2010, 0.45); wave(c.x, c.z, 1.1, 0x600000, 0.5, 0.05); }
+      if (c.kind === 'arrest') heroFx.arrest(c.x, c.z);   // painted (2026-11-28): a blue net closing in, bars of light
+      if (c.kind === 'execute') heroFx.execute(c.x, c.z);   // painted (2026-11-28): one crimson cut down, a dark stain
       if (c.kind === 'lantern') {
         heroFx.lantern(c.x, c.z);
         for (let i = 0; i < 40; i++) {
@@ -321,7 +314,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
         glow.emit({ x: x + Math.cos(a) * rand(0.15, 0.4), y: rand(0.5, 1.5), z: z + Math.sin(a) * rand(0.15, 0.4), vy: rand(0.8, 1.6), drag: 1.5,
           life: rand(0.35, 0.6), size: rand(0.12, big ? 0.26 : 0.18), color: pick(cols), shape: SHAPE.sparkle, twinkle: 0.7, spin: 3 });
       }
-      if (big) cards.glint(x, rand(1.2, 1.6), z, 0.8, lifesteal ? 0xff9a60 : 0xb8ff90, 0.25);
+      if (big) heroFx.heal(x, z, lifesteal);   // painted lotus and wisps (2026-11-28)
     },
 
     // healing rain: small green drops falling onto a unit healed by a Rally tick,
@@ -458,13 +451,7 @@ export function createAbilityFx({ scene, overlay, posOf, spriteOf, unitToScreen,
           // Never draw a trail across a door transition or a teleport.
           const moving = distance > 0.005 && distance < 3 && old.place === e.place;
           const dx = moving ? p.x - old.x : 0, dz = moving ? p.z - old.z : 0;
-          for (let n = count(moving ? 16 : 4, dt); n > 0; n--) {
-            const k = Math.random();
-            soot.emit({ x: p.x - dx * k + rand(-0.12, 0.12), y: rand(0.15, 1.5), z: p.z - dz * k + rand(-0.12, 0.12),
-              vx: -dx / Math.max(dt, 0.001) * 0.12, vz: -dz / Math.max(dt, 0.001) * 0.12, vy: rand(0.15, 0.45),
-              drag: 1.8, sway: 0.35, life: rand(0.35, 0.65), size: rand(0.2, 0.42), grow: 0.4,
-              color: Math.random() < 0.65 ? [0.055, 0.09, 0.19] : [0.15, 0.2, 0.29], alpha: 0.28, shape: SHAPE.dot });
-          }
+          if (moving) heroFx.trail(e.id, 'veil', p.x, p.z, dx, dz);   // thin painted ink smoke behind him (2026-11-28)
           veilTrails.set(e.id, { x: p.x, z: p.z, place: e.place });
         }
         if (e.buffs.snared?.hamstring && !e.downed && spriteOf(e.id)?.thing.mesh.visible) heroFx.bleed(e.id, p.x, p.z);   // hamstrung: blood keeps dripping as he walks (2026-11-28)

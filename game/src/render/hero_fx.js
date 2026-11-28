@@ -290,7 +290,6 @@ export function createHeroFx({ scene, texBase = 'art/fx/' }) {
     for (let i = 0; i < 7; i++) { const a = rand(0, 6.283), r = radius * Math.sqrt(Math.random()) * .8;
       later(rand(.05, .25), () => flash(pick(FLAMES), x + Math.cos(a) * r, .45, z + Math.sin(a) * r, rand(.7, 1.1), { color: EMBER, hot: EMBERHOT, add: true, flow: 1.3, life: rand(1.2, 2.2), alpha: .65, grow: 1.1, fin: .15, out: .5 })); }
   }
-  // Torch channel: a little torch in his free hand with a painted flame on it (off the sprite) and a warm flicker, for the channel's length
   // Torch channel (2026-11-28: no prop): a flame cupped in front of him that grows through the channel, with ember
   // wisps swirling in toward his hands and sparks drawn inward, flaring once when the channel ends
   function torch(x, z, seconds = 1, follow = null) {
@@ -379,6 +378,82 @@ export function createHeroFx({ scene, texBase = 'art/fx/' }) {
   tick('dog', (m, dt) => { m.t += dt; placeMark(m.parts[0], m.x, m.z, m.k * .55, .4); const b = m.parts[1]; b.position.set(m.x, gy(m.x, m.z) + .5, m.z); set(b, m.k * (.2 + .05 * Math.sin(m.t * 9))); });
 
   // ===================================================================================================================
+  // LEFTOVERS (batch 3): police, heals, claims, Distract, Snuff, Kuroda's brace, counter coil and formation ward,
+  // pursuit and veil trails
+  const POLICE = [.3, .48, .9], POLICEHOT = [.82, .9, 1], HEALC = [.45, .9, .45], HEALHOT = [.92, 1, .75], STEALC = [.95, .42, .2], STEALHOT = [1, .82, .5], MIST = [.4, .5, .75], MISTHOT = [.82, .88, 1];
+  // Arrest: a torn steel-blue ring closing in on him like a net and three bars of light snapping down round him
+  function arrest(x, z) {
+    flash('ring_torn', x, 0, z, 2.6, { ground: true, color: POLICE, hot: POLICEHOT, add: true, life: .6, alpha: .55, grow: .55, fin: .05, out: .5, order: 5, hotK: .5 });
+    for (let i = 0; i < 3; i++) { const a = i / 3 * 6.283 + .5, l = spr('smear2', 1, { color: POLICE, hot: POLICEHOT, add: true });
+      run(.45, t => { const k = t / .45; l.position.set(x + Math.cos(a) * .5, gy(x, z) + 1.6 - 1.2 * outc(k), z + Math.sin(a) * .45); aim(l, 0, -1, 0); l.scale.set(1, .16, 1); set(l, .8 * (1 - k)); }, () => drop(l)); }
+    flash('sparks1', x, 1, z, .9, { color: POLICE, hot: POLICEHOT, add: true, life: .3, grow: 1.5, fin: .05 });
+  }
+  // Execute: one crimson stroke cut straight down through him, a dark stain spreading under him
+  function execute(x, z) {
+    flash(pick(SLASHES), x, 1.1, z, 2.1, { color: CRIMSON, hot: CRIMHOT, add: true, life: .5, alpha: .7, grow: 1.08, fin: .04, out: .6, rot: Math.PI / 2 + rand(-.25, .25), hotK: .5 });
+    burstAt(x, 1, z, 1, CRIMSON, CRIMHOT, .3, .55);
+    later(.1, () => flash(pick(INKS), x, 0, z, 1.7, { ground: true, color: [.3, .02, .02], hot: [.45, .05, .04], edge: [.38, .04, .03], life: 4, alpha: .7, grow: 1.12, fin: .1, out: .4, order: 4 }));
+  }
+  // A real heal or lifesteal (not the regen trickle): a little lotus of light under him and two wisps curling up
+  function heal(x, z, lifesteal = false) {
+    const col = lifesteal ? STEALC : HEALC, hot = lifesteal ? STEALHOT : HEALHOT;
+    flash('heal_lotus', x, 0, z, 1.3, { ground: true, color: col, hot, add: true, life: .8, alpha: .35, grow: 1.2, fin: .1, out: .5, order: 5, hotK: .5 });
+    for (let i = 0; i < 2; i++) fling(WISPS[i], x + (i ? .25 : -.25), gy(x, z) + .5, z, 0, 1.6, 0, { size: .9, life: .7, color: col, hot, add: true, alpha: .4, grow: 1.2, flow: 1.3, drag: 1, hotK: .5 });
+  }
+  // A business changing hands: a gold burst over its banner and a gold ring of light on the ground
+  function claim(x, z) {
+    flash('sparks1', x, 1.8, z, 1.5, { color: GOLDC, hot: GOLDHOT, add: true, life: .5, alpha: .45, grow: 1.6, fin: .05, out: .6, hotK: .35 });   // not burstAt: the additive burst blew out to white
+    flash('heal_ring', x, 0, z, 6, { ground: true, color: GOLDC, hot: GOLDHOT, add: true, life: 1.1, alpha: .3, grow: 1.15, fin: .08, out: .5, order: 5 });
+  }
+  // Distract: a pebble lands, painted ripples spread on the ground in dim blue, a little dust
+  function distract(x, z) {
+    for (let i = 0; i < 3; i++) later(i * .12, () => flash('ring_torn', x, 0, z, .9 + i * .8, { ground: true, color: MIST, hot: MISTHOT, add: true, life: .7, alpha: .45 - i * .1, grow: 1.6, fin: .05, out: .6, order: 5 }));
+    dustPuff(x, z, .6);
+  }
+  // Snuff: an ink-violet puff off the shinobi, and a cloud of it wrapping the lantern as it goes out
+  function snuff(x, z, tx, tz) {
+    for (let i = 0; i < 2; i++) puff(x + rand(-.2, .2), .8, z + rand(-.2, .2), { size: .9, life: 1, alpha: .5, delay: i * .05 });
+    const vx = spr('vortex1', 1.6, { color: INKV, hot: VIOLET, order: 5, flow: .6, hotK: .6 });
+    run(.9, (t, dt) => { const k = t / .9, [a, e] = life3(k, .55, .1, .5); vx.position.set(tx, gy(tx, tz) + 1.6, tz); vx.rotation.z += dt * 4; vx.scale.setScalar(1.6 * (1 + .3 * outc(k))); set(vx, a, e); }, () => drop(vx));
+    for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; puff(tx + Math.cos(a) * .4, rand(1.2, 2.2), tz + Math.sin(a) * .4, { vx: -Math.sin(a) * .8, vz: Math.cos(a) * .8, size: 1.3, life: 1.4, alpha: .5, delay: i * .03 }); }
+  }
+  // Kuroda brace (per frame, progress 0..1): a gold shield of torn light standing in front of him that fills as he
+  // sets; counter (not braced): crimson wisps coiling up round him while the counter is ready
+  function brace(id, x, z, { dx = 0, dz = 1, progress = 1, braced = true } = {}) {
+    const m = marker(id, 'brace'); m.x = x; m.z = z; m.dx = dx; m.dz = dz; m.p = progress; m.braced = braced;
+    if (!m.parts.length) {
+      m.parts.push(sMark(GOLDC, .62), spr('ring_torn', 1.3, { color: GOLDC, hot: GOLDHOT, add: true, flow: .5, hotK: .5 }));
+      for (let i = 0; i < 3; i++) m.parts.push(spr(WISPS[i], 1, { color: CRIMSON, hot: CRIMHOT, add: true, flow: 1.2, hotK: .5 }));
+    }
+  }
+  tick('brace', (m, dt) => {
+    m.t += dt; const L = Math.hypot(m.dx, m.dz) || 1;
+    placeMark(m.parts[0], m.x, m.z, m.k * (m.braced ? .5 : .3 + .1 * Math.sin(m.t * 8)), .4);
+    const sh = m.parts[1]; sh.position.set(m.x + m.dx / L * .45, gy(m.x, m.z) + 1.2, m.z + m.dz / L * .45);
+    sh.scale.setScalar(1.3 * (.7 + .3 * outback(m.p, 1.3))); set(sh, m.k * (m.braced ? .55 * m.p : 0));
+    m.parts.slice(2).forEach((w, i) => { const a = m.t * 3 + i * 2.1; w.position.set(m.x + Math.cos(a) * .45, gy(m.x, m.z) + .5 + ((m.t * .8 + i / 3) % 1) * 1.3, m.z + Math.sin(a) * .45);
+      w.quaternion.copy(CAM_QUAT); w.rotateZ(a); set(w, m.k * (m.braced ? 0 : .45)); });
+  });
+  // the formation's ward on each guard inside it (per frame): a small gold rune floating over his head
+  function ward(id, x, z) {
+    const m = marker(id, 'ward'); m.x = x; m.z = z;
+    if (!m.parts.length) m.parts.push(spr(RUNES[(typeof id === 'number' ? id : 3) % 8], .5, { color: GOLDC, hot: GOLDHOT, add: true, flow: .3, hotK: .5 }));
+  }
+  tick('ward', (m, dt) => { m.t += dt; const r = m.parts[0]; r.position.set(m.x, gy(m.x, m.z) + 2.15 + .05 * Math.sin(m.t * 2), m.z); set(r, m.k * (.5 + .12 * Math.sin(m.t * 3))); });
+  // a moving unit's trail (call each frame with how far it moved): Pursuit leaves crimson ribbons of light, the
+  // shinobi veil a thin painted ink smoke; spaced by distance so it costs little
+  function trail(id, kind, x, z, dx, dz) {
+    const m = marker(id, 'trail_' + kind); m.x = x; m.z = z;
+    if (!m.parts.length) { m.parts.push(P.lift(new THREE.Object3D())); m.gap = 0; }
+    const d = Math.hypot(dx, dz); if (d < .002 || d > 2) return;
+    if ((m.gap -= d) > 0) return; m.gap = kind === 'veil' ? .45 : .7;
+    const ux = dx / d, uz = dz / d;
+    if (kind === 'veil') puff(x - ux * .3, rand(.4, 1.2), z - uz * .3, { size: .9, life: .9, color: INKV, alpha: .32, vx: -ux * .5, vz: -uz * .5, vy: .25, grow: 1.5 });
+    else for (const s of [-1, 1]) fling(pick(WISPS), x + uz * s * .3, gy(x, z) + 1.15, z - ux * s * .3, -ux * 2.2, .1, -uz * 2.2, { size: .8, life: .45, color: CRIMSON, hot: CRIMHOT, add: true, alpha: .45, grow: 1.2, flow: 1.2, drag: 2, hotK: .5 });
+  }
+  tick('trail_veil', () => {}); tick('trail_pursuit', () => {});
+
+  // ===================================================================================================================
   // STATUS MARKS (per frame while it lasts): a torn ring under the unit in the status colour + one painted shape over
   // the head. Crowd control reads louder than buffs.
   const ST = {
@@ -422,5 +497,5 @@ export function createHeroFx({ scene, texBase = 'art/fx/' }) {
     });
   });
 
-  return { ready: P.ready, update: P.update, clear: P.clear, dash, cut, intimidate, rally, lantern, lanternCard, lanternAlpha, shadowstep, smoke, assassinate, sweep, cleave, thrust, counter, pursuit, formation, status, bombMark, blast, torch, taunt, diversion, vanish, ambushStrike, bite, dustPuff, hamstring, dogGlow, bleed };
+  return { ready: P.ready, update: P.update, clear: P.clear, dash, cut, intimidate, rally, lantern, lanternCard, lanternAlpha, shadowstep, smoke, assassinate, sweep, cleave, thrust, counter, pursuit, formation, status, bombMark, blast, torch, taunt, diversion, vanish, ambushStrike, bite, dustPuff, hamstring, dogGlow, bleed, arrest, execute, heal, claim, distract, snuff, brace, ward, trail };
 }

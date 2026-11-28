@@ -307,6 +307,8 @@ Crows: birds burst out of a tree near troops or shinobi on the move, hidden ones
 ## Wandering folk modules (2026-11-26)
 - sim/wandering_folk.js: scenes in state.world.folk; BUILD = hermit, duel, peddler, pilgrims, camp; hooks herd/startle into sim/wild_animals.js (wm.friend).
 - render/folk_fx.js: scene props, pop, (the hermit's brew, painted 2026-11-28 on render/painted_fx.js: flash, ground swirl, painted smoke clouds in the brew colour, spirit wisps; glitter kept) scrolls, feed, coins, speech bubbles (casts folkPop, folkPaper, folkFeed, folkCoins, folkSay). render/fire_smoke_fx.js: flames and smoke for campfires and folk fires. view.js: folkHit cast = blood; e.tiny scale.
+- render/say_fx.js: cast `say` { a, text, place } from any sim system (first user sim/shakedown.js, lines in
+  units.json rules.shakedown.lines); view.js creates it, passes casts and updates it each frame.
 - sim_snapshot.js MARKER_FIELDS must list every entity field the display needs for units the player does not own (folk, sitAt, crowFriend, tiny, peddlerShop).
 - item_services.js merchantNear and shop_ui.js also accept a saved peddler (e.peddlerShop). unit_frames.js shows a folk civilian's own name.
 - Sprite export: tools/export_sprites.mjs flags --props=flasks, --from, --span, --frames; hermit clips monk/monk2 _pick, _mix, _feed.

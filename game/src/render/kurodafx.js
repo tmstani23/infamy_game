@@ -209,31 +209,9 @@ export function createKurodaFx({ scene, spriteOf, posOf, heroFx }) {   // heroFx
         const p=posOf(e.id), s=spriteOf(e.id);
         if (!p || !s?.thing.mesh.visible || e.dead || e.downed || e.jailed) continue;
         const counter=e.buffs?.reprisal;
-        if (e.brace || counter?.until>state.tick) {
-          activeCounters.add(e.id);let v=counters.get(e.id);
-          if (!v) {
-            const g=group(),m=ring(g,.65,GOLD,.05,.65),badge=crest(1.05),coil=new THREE.Group();g.add(badge,coil);
-            for(const [width,color,alpha] of [[.06,CRIMSON,.5],[.014,GOLD,.9]]) {
-              const points=[];for(let i=0;i<=32;i++){const a=i*Math.PI*4/32;points.push([Math.cos(a)*.43,.35+i/32*1.55,Math.sin(a)*.43]);}
-              coil.add(line(points,width,color,alpha));
-            }
-            const materials=[],parts=[];badge.traverse(o=>{if(o.isMesh){materials.push([o.material,o.material.opacity]);parts.push(o.geometry);}});
-            v={g,m,badge,coil,materials,parts};counters.set(e.id,v);
-          }
-          v.g.position.set(p.x,(0)+groundY(p.x,p.z),p.z);v.m.rotation.z+=dt*2;
-          v.m.material.color.set(e.brace?GOLD:CRIMSON);
-          v.m.material.opacity=e.brace ? .65 : .3+.12*Math.sin(state.tick*.4);
+        if (e.brace || counter?.until>state.tick) {   // painted (2026-11-28): a gold shield of light while bracing, crimson wisps coiling up while the counter is ready
           const d=facing(e.dir);
-          v.badge.position.set(d.x*.25-d.z*.36,1.3,d.z*.25+d.x*.36);
-          // Counter's ring may rotate; the shield ward keeps facing the camera.
-          v.badge.quaternion.copy(v.g.quaternion).invert().multiply(CAM_QUAT);
-          v.badge.visible=!!e.brace||!!counter?.stunPending;
-          const progress=e.brace?Math.min(1,(state.tick-e.brace.start+1)/6):1;
-          v.badge.scale.setScalar(e.brace ? .7+.35*progress : .55);
-          for(const [m,alpha] of v.materials)m.opacity=alpha*(e.brace?progress:.65);
-          for(const geo of v.parts)geo.setDrawRange(0,Math.floor(geo.index.count*progress/3)*3);
-          v.coil.visible=!e.brace;v.coil.rotation.y+=dt*3;
-          for(let n=count(e.brace?7:4,dt);n>0;n--)sparks(p.x,.4,p.z,1,.4,.6);
+          heroFx.brace(e.id,p.x,p.z,{dx:d.x,dz:d.z,progress:e.brace?Math.min(1,(state.tick-e.brace.start+1)/6):1,braced:!!e.brace});
         }
         if(e.buffs?.snared?.style==='kuroda'&&e.buffs.snared.until>state.tick) {
           for(let n=count(10,dt);n>0;n--){const a=rand(0,Math.PI*2);
@@ -243,28 +221,13 @@ export function createKurodaFx({ scene, spriteOf, posOf, heroFx }) {   // heroFx
           }
         }
         if(e.buffs?.formation?.until>state.tick){
-          activeWards.add(e.id);let v=wards.get(e.id);
-          if(!v){const g=group(),badge=mesh(new THREE.PlaneGeometry(.32,.44),GOLD,.65,glyphTexture());g.add(badge);v={g,badge};wards.set(e.id,v);}
-          v.g.position.set(p.x,(2.1+Math.sin(state.tick*.1+e.id)*.045)+groundY(p.x,p.z),p.z);
-          v.badge.quaternion.copy(CAM_QUAT);v.badge.material.opacity=.55+.15*Math.sin(state.tick*.15+e.id);
+          heroFx.ward(e.id,p.x,p.z);   // a small painted gold rune over his head (2026-11-28)
         }
         if(e.buffs?.pursuit?.until>state.tick){
           movingIds.add(e.id);const old=motion.get(e.id),d=old?Math.hypot(p.x-old.x,p.z-old.z):0;
           if(old&&old.place===e.place&&d>.005&&d<2){
             const dx=p.x-old.x,dz=p.z-old.z,a=angleOf(dx,dz),ux=dx/d,uz=dz/d;
-            if(Math.random()<dt*14){
-              const g=group();g.position.set(p.x,(0)+groundY(p.x,p.z),p.z);
-              for(const side of [-1,1])for(const [width,color,alpha] of [[.18,CRIMSON,.5],[.026,GOLD,.85]]) {
-                const points=[],widths=[];
-                for(let i=0;i<=16;i++){
-                  const t=i/16,wave=Math.sin(t*5+state.tick*.3)*.12,back=t*1.65;
-                  points.push([-ux*back-uz*(side*.3+wave),1.25-t*.55,-uz*back+ux*(side*.3+wave)]);widths.push(width*(1-t));
-                }
-                g.add(mesh(strip(points,widths),color,alpha));
-              }
-              burst(g,.32);
-              cards.stroke(p.x-ux*.3,.1,p.z-uz*.3,a,.5,.045,GOLD,.22);
-            }
+            heroFx.trail(e.id,'pursuit',p.x,p.z,dx,dz);   // painted crimson ribbons (2026-11-28)
             for(let n=count(18,dt);n>0;n--)particles.emit({x:p.x+rand(-.2,.2),y:.1,z:p.z+rand(-.2,.2),vx:-ux*.6,vz:-uz*.6,vy:.3,
               life:.4,size:.1,color:[1,.63,.23],shape:SHAPE.sparkle,twinkle:.7});
           }

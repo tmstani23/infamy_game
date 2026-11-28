@@ -184,6 +184,15 @@ Ronin plan (effort / payoff):
 - Status marks (one rule): a torn ring under the unit in the status colour plus one painted shape over the head, for intimidated, rallied, lantern, veil, ambush, snared and stunned. They replace the flat aura rings; the sprite outlines stay. Still the old style: Kuroda brace and counter coil, formation badge, pursuit ribbons, veil trails, Distract, Snuff, police arrest and execute, shakedown and sweep markers, heals (batch 3, not built yet).
 - Crew and war specials (2026-11-28): Enforcer taunts (Yakuza red-orange, Shinobi violet, Kuroda crimson) are painted shout gusts out to the reach (only inside the cone for a cone taunt) and a rune over each taunted enemy for the taunt; Geisha Diversion is painted petals and a soft ring; charmed is a status mark. Kunoichi Vanish is an ink burst; Ambush is an ink slash on the target. Fire-bomb: a painted ground mark while it channels, then a painted fireball (normal blend, not additive, so it does not blow out to white), burning splash, small ground fires and a scorch; dynamite uses the same blast without fire plus the old sparks and smoke. Dogs: a painted bite flash and a dust puff when they go; loosed dogs glow softly. Hamstring: a painted hit plus dark red blood drops on the ground, and the snared target keeps dripping blood as it walks while slowed.
 - Torch (2026-11-28): no torch prop; a flame grows in front of the unit over the 1 s cast while wisps spiral in toward his body and sparks are drawn inward, ending in a small flare.
+- Leftovers (2026-11-28): police Arrest is a steel-blue torn ring closing in with bars of light snapping down; Execute
+  is one crimson cut down and a dark stain. A real heal (not the regen trickle) adds a small lotus and two wisps,
+  green, or orange for lifesteal. A business changing hands shows gold sparks and a gold ring. Distract is painted
+  dim-blue ripples where the pebble lands (the steel glints of the caltrops stay); Snuff is an ink-violet puff off
+  the shinobi and painted smoke wrapping the lantern. Kuroda: while bracing, a gold shield of light stands in front
+  of him and fills as he sets; while the counter is ready, crimson wisps coil up round him; each guard in a Formation
+  has a small gold rune over his head; Pursuit leaves crimson ribbons of light behind the runner. A veiled shinobi
+  leaves thin painted ink smoke as he moves. The Shakedown bomb ring and the Sweep hold ring stay as they are (they
+  show progress).
 
 **Sounds (2026-10-19, `render/sound.js`):** brutes pick 50/50 between `club_hit_1-3` and Kenney `impactSoft_medium_000-004` at pitch 0.85; Intimidate uses `impactSoft_medium` at pitch 0.6 (`punch_hit_heavy_1` no longer loaded).
 
@@ -275,6 +284,12 @@ Sweep **march only**, not ordinary Patrol: faint forward-flowing Kuroda-colored 
 This handoff reports `abilityfx.js`/`index.html` AIMING/TAUNT overhead readouts, two-second TAUNT anger seal/label, 0.8-second wave and slightly longer embers; rifle muzzle forward sparks, smaller lock/breech side sparks and stronger barrel smoke/wisps. Gameplay unchanged. Reported source syntax/scoped diff checks passed; no visual approval or operation implementation claimed.
 
 Shakedown status (2026-10-28): dynamite/fire/status feedback below the operation design is implemented via shakedownfx.js; Sweep march/victory effects remain unbuilt. Focused Shakedown sim passed; visual/balance review remains pending.
+**Shakedown speech (2026-11-28):** the crew, the owner and the hostages speak short English lines in speech bubbles
+(the wandering folk's look: dark slip, brass edge, a tail to the speaker): rushing the door, the dynamite, going in,
+the crew leaning on the owner and the owner or a hostage begging in turn every `everySeconds` (4) while holding,
+defenders arriving, success and falling back. Lines in `game/data/units.json` `rules.shakedown.lines` (pools rush,
+bomb, enter, hold, plead, contested, success, retreat); each pool steps round in turn so no line repeats back to back.
+Sim `sim/shakedown.js` say() pushes cast `{ kind: 'say', a, text, place }`; drawn by `render/say_fx.js`.
 
 ### Rifleman automatic bandit targeting fix (2026-10-28)
 

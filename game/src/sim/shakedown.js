@@ -48,11 +48,19 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
     return {ok:true,team,b};
   }
   const rulesFor = b => rules.businesses?.[b?.kind] || {};
+  // A line of speech over someone's head at each step (2026-11-28): units.json rules.shakedown.lines, drawn by
+  // render/say_fx.js. The pick is counted, not random, so the sim stays deterministic.
+  function say(key,e) {
+    const pool=R.lines?.[key];if(!pool?.length||!alive(e))return;
+    const n=S.said||={};n[key]=(n[key]??state.tick)+1;   // each pool steps round in turn, starting somewhere new each night
+    state.casts.push({kind:'say',a:e.id,x:e.x,z:e.z,place:e.place,text:pool[n[key]%pool.length]});
+  }
   function release(op) {
     for(const id of op.civilians||[]){const e=state.entities[id];if(e?.shakedownCivilian){e.shakedownCivilian.released=true;delete e.shakedownHostage;}}
   }
   function withdraw(clan,sector,reason) {
     const task=taskOf(clan,sector),op=task?.operation;if(op?.kind!=='shakedown'||op.state==='Returning')return;
+    if(!op.success)say('retreat',teamOf(clan,sector,op)[0]);
     release(op);op.state='Returning';op.reason=reason;op.returnAt=state.tick;delete op.intimidator;
     delete op.suspendedAt;delete op.resumeState;
     if(task.recovery?.home)task.recovery.resumePoint={...task.objective,place:'street'};
@@ -70,6 +78,7 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
       task.operation={kind:'shakedown',id,business:b.id,defender:b.owner,units:team.map(e=>e.id),state:'Rushing',startedAt:state.tick,progress:0,holdTotal:ticks(R.holdSeconds),holdRadius:R.radius,front:g.front,civilians:[]};
       delete task.engagement;
       for(const e of team){clearCombat(e);e.order={kind:'stop'};e.deployment.duty={manual:false,status:'Shakedown: rushing'};}
+      say('rush',team[0]);
       addHeat(h.owner,10,'Shakedown',false);
       notice(b.owner,`SHAKEDOWN — your ${b.kind.replaceAll('_',' ')} is under attack!`);
       state.news.push({kind:'shakedownAlert',clan:h.owner,defender:b.owner,business:b.id,x:b.ring[0],z:b.ring[1],name:b.kind.replaceAll('_',' ')});
@@ -95,7 +104,7 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
     const dx=d.x-b.x,dz=d.z-b.z,length=Math.hypot(dx,dz)||1,ux=dx/length,uz=dz/length;
     const p1=grid.nearestFree(d.x+ux*.8+uz*2.6,d.z+uz*.8-ux*2.6),p2=grid.nearestFree(d.x+ux*.8-uz*2.6,d.z+uz*.8+ux*2.6);
     op.targets=[{x:p1[0],z:p1[1],place:'street'},{x:p2[0],z:p2[1],place:'street'},g.innerBomb];
-    op.state='Bombarding';op.volleyAt=state.tick;op.thrown=0;op.entryAt=state.tick+20+ticks(R.fuseSeconds)+4;
+    op.state='Bombarding';op.volleyAt=state.tick;op.thrown=0;say('bomb',team[1]||team[0]);op.entryAt=state.tick+20+ticks(R.fuseSeconds)+4;
     op.civilians=g.civilian.map((p,i)=>spawn('civilian',i?'laborer':'merchant',p.x,p.z,{place:b.room,hp:60,shakedownCivilian:{business:b.id,operation:op.id},shakedownHostage:true}));
   }
   function success(clan,sector,op,b) {
@@ -105,6 +114,7 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
     state.clans[clan].ryo+=bonus;state.ryoGains.push({clan,amount:bonus,reason:'Shakedown success'});
     state.news.push({kind:'shakedownSuccess',clan,defender:b.owner,business:b.id,bonus,x:b.ring[0],z:b.ring[1]});
     const actor=teamOf(clan,sector,op)[0];
+    say('success',actor);
     state.casts.push({kind:'shakedownSuccess',a:actor?.id,x:op.front.x,z:op.front.z,streetX:b.ring[0],streetZ:b.ring[1],place:b.room,bonus});
     withdraw(clan,sector,'50% of next payout claimed');
   }
@@ -154,7 +164,7 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
       if(op.state==='Rushing'&&team.every(e=>e.place==='street'&&distance(e,{x:b.ring[0],z:b.ring[1]})<5.5))bombard(clan,sector,op,team,b);
       if(op.state==='Bombarding'){
         if(op.thrown<3&&state.tick>=op.volleyAt+op.thrown*10){throwBomb(team[op.thrown%team.length],op.targets[op.thrown],op);op.thrown++;}
-        if(state.tick>=op.entryAt)op.state='Entering';
+        if(state.tick>=op.entryAt){op.state='Entering';say('enter',team[1]||team[0]);}
       }
       if(op.state==='Entering'||op.state==='Holding'||op.state==='Contested'){
         const inside=team.filter(e=>e.place===b.room&&distance(e,op.front)<=R.radius);
@@ -163,9 +173,16 @@ export function createShakedown({ state, deployment, rally, vision, sees, rooms,
         op.intimidator=intimidating?.id;
         // Civilian survival is not an objective: the squad must secure and hold
         // the front room even if the bombardment killed its hostages.
+        const was=op.state;
         if(inside.length){op.state=defenders.length?'Contested':intimidating?'Holding':'Entering';
           if(op.state==='Holding')op.progress++;}
         else op.state='Entering';
+        if(op.state==='Contested'&&was!=='Contested')say('contested',inside[0]);
+        if(op.state==='Holding'&&state.tick>=(op.sayAt??0)){   // the crew leaning on the owner, and the owner or a hostage begging, in turn
+          op.sayAt=state.tick+ticks(R.lines?.everySeconds??4);op.said=(op.said||0)+1;
+          const hostage=(op.civilians||[]).map(id=>state.entities[id]).find(e=>alive(e)&&e.place===b.room);
+          if(op.said%2===0&&hostage)say('plead',hostage);else say('hold',intimidating);
+        }
         if(op.progress>=ticks(R.holdSeconds))success(clan,sector,op,b);
       }
     }

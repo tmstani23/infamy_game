@@ -20,6 +20,7 @@ import { createHQFire } from './hq_fire.js';
 import { createHallChannelFx } from './hall_channel_fx.js';
 import { createCampfireFx, SIT } from './campfire_fx.js';
 import { createFolkFx } from './folk_fx.js';
+import { createSayFx } from './say_fx.js';
 import { createFireSmokeFx } from './fire_smoke_fx.js';   // wandering folk props (world variety P2)
 import { createStructureFire } from './structure_fire.js';
 import { createWorldGround } from './world_ground.js';
@@ -608,6 +609,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     campfireFx.update(state, (heroPlace === 'world' && !cityView) || worldView);   // made camps (sim/campfire.js)
     fireSmokeFx.update(dt, state, (heroPlace === 'world' && !cityView) || worldView);   // flames, sparks and smoke on every camp fire (2026-11-26)
     folkFx.update(state, (heroPlace === 'world' && !cityView) || worldView, dt);   // wandering folk's logs and fires (sim/wandering_folk.js)
+    sayFx.update(dt, state);   // speech bubbles (shakedown lines, render/say_fx.js)
     hitFx.update(fdt);
     const presentationId=watchFn&&state.entities[watchedId]?.owner===state.entities[followId]?.owner?watchedId:followId;
     abilityFx.update(fdt, state, presentationId, cameraPlace(state.entities[followId]));   // the place the camera shows: the city street in Watch the city (2026-11-10)
@@ -670,6 +672,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const hallFx = createHallChannelFx({ scene, lights, thingAt: k => worldGround?.thingAt(k) || null, artThing: p => worldGround?.artThing(p) || null, seconds: () => hallSeconds });   // war 8a: taking a hall
   const campfireFx = createCampfireFx({ scene, lights, artThing: p => worldGround?.artThing(p) || null, emberSeconds: () => units?.rules?.campfire?.emberSeconds ?? 20 });   // world variety P1
   const fireSmokeFx = createFireSmokeFx({ scene, emberSeconds: () => units?.rules?.campfire?.emberSeconds ?? 20 });
+  const sayFx = createSayFx({ scene, spriteOf: id => sprites.get(id) || null });
   const folkFx = createFolkFx({ scene, lights, artThing: p => worldGround?.artThing(p) || null, emberSeconds: () => units?.rules?.campfire?.emberSeconds ?? 20 });   // world variety P2
   const hitFx = createHitFx({ scene, overlay: fxLayer, unitToScreen: (x, z, h = 0.9) => { v.set(x, h + groundY(x, z), z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; } });
   let hallChannelOf = () => null;   // main.js: the running hall channel of a war (sim/frontier/war_end.js view)
@@ -680,6 +683,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const c of casts) {
       abilityFx.cast(c);
       folkFx.cast(c);   // the hermit's brew going off
+      sayFx.cast(c);   // a line of speech (sim/shakedown.js)
       if (bossFx && c.kind?.startsWith?.('boss') && (c.place || 'world') === 'world' && ((heroPlace === 'world' && !cityView) || worldView)) bossCast(c, castState);   // guarded place bosses (P4)
       if (relicFx && c.kind?.startsWith?.('relic') && ((heroPlace === 'world' && !cityView) || worldView)) {   // relics (P4)
         if (c.kind === 'relicSmoke') relicFx.smoke(c.x, c.z, { radius: c.r, seconds: c.seconds });
