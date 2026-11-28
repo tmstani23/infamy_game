@@ -750,7 +750,7 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       const a = state.entities[h.a], t = state.entities[h.t];
       if (h.crit) sprites.get(h.a)?.shadowBlade?.critical();
       const dry = t && (t.cart || /cannon|gatling|omnibus|rickshaw$|ox_cart|train_|^ship_/.test(t.model || t.type || ''));   // no blood from carts, guns and vehicles
-      hitFx.hit(h, a, t?.owner === me?.owner, me?.place === 'world', !dry);   // no damage numbers on the frontier (2026-11-12)
+      hitFx.hit(h, a, t?.owner === me?.owner, me?.place === 'world' && h.a !== followId && h.t !== followId, !dry);   // frontier: numbers only for hits by or on your hero (2026-11-28; none for others since 2026-11-12)
       const s = sprites.get(h.t);
       if (s && a) { const d = Math.hypot(h.x - a.x, h.z - a.z) || 1; s.struck((h.x - a.x) / d, (h.z - a.z) / d, h.crit || h.kill); }
       if (a && t) sprites.get(h.a)?.gearFx?.hit(t.x - a.x, t.z - a.z, h.crit);   // a claw charm's rakes on the one struck (render/gear_fx.js)

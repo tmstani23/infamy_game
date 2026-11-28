@@ -247,7 +247,7 @@ Crows: birds burst out of a tree near troops or shinobi on the move, hidden ones
 
 - Arrows: wooden shaft, iron head, pale fletching, shallow arc. Bullets: small lead slug, faint grey wake, flat flight (render/crewfx.js).
 - Hit feedback: sprite hit tint 0.15, swing streak plain blend at 0.12 opacity, fewer and dimmer sparks.
-- No floating damage numbers on the frontier.
+- On the frontier, damage numbers show only for hits by or on the player's hero (render/view.js hitFx.hit quiet flag, 2026-11-28).
 - Arrow sounds: shots play arrow_whoosh_1 or 2 (no back-to-back repeat, pitch 0.94 to 1.06); hits on units play arrow_hit_1 or 2 (pitch 0.95 to 1.05). Without the files the old quiet sword whoosh plays for the shot.
 
 ### War playtest fixes 5 (2026-11-13)

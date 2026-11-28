@@ -17,6 +17,19 @@ for (const [h, name] of [[spawn('hero', 'ronin', 'player'), 'player hero'], [spa
   h.place = 'street';
   assert.equal(g.stats.damage(h), city, `${name} unchanged in the city`);
 }
+// Frontier health (2026-11-28): every hero has frontierHp times the health on the island, share of health kept, city unchanged
+{
+  const H = units.types.hero.frontierHp, h = spawn('hero', 'ronin', 'player'), base = h.maxHp;
+  assert.ok(H > 1, 'hero frontierHp set');
+  h.hp = Math.round(base / 2); h.place = 'world'; g.step();
+  assert.equal(h.maxHp, Math.round(base * H), 'max health raised on the island');
+  assert.ok(Math.abs(h.hp / h.maxHp - .5) < .01, 'share of health kept');
+  assert.ok(g.stats.snapshot(h).rows.find(r => r.key === 'health').sources.some(s => s.startsWith('Frontier')), 'sheet names Frontier');
+  g.itemServices.grant('player', 'wolf_fang_charm'); g.step();
+  assert.ok(h.maxHp >= Math.round(base * H), 'gear changes keep the island health');
+  h.place = 'street'; g.step();
+  assert.equal(h.maxHp, base, 'back to city health');
+}
 const t = spawn('thug', units.types.thug.sprite, 'player'), td = g.stats.damage(t);
 t.place = 'world'; assert.equal(g.stats.damage(t), td, 'crew unchanged on the island');
 // rival bots wear what they win (2026-11-24); the player's gear still goes to the bag

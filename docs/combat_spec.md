@@ -131,7 +131,7 @@ Effects in `render/abilityfx.js` (mock OK'd): black non-additive smoke with mute
 **Keys (done, F2):** doors moved to **Space** (it shows on the door prompt), and E is Intimidate. Hire menu keys 1 to 3 stay as they are (only inside a teahouse).
 
 **Action bar (WoW-style), bottom centre of the screen:**
-- Hero portrait corner with a big health bar ("640 / 800"), turning red and pulsing below 25%.
+- Hero portrait corner with a big health bar ("640 / 800"), turning red below 40%; the bar and the portrait ring pulse with a red glow (2026-11-28; was 25%).
 - Five slots: basic attack (lights up on each swing, shows the target's name), then Q, E, R, F.
 - Each slot: placeholder icon (brush-style symbol until real icons are painted), key letter in the corner, a dark clock-sweep with seconds left while on cooldown, a flash when it comes back, greyed out while knocked out.
 - A buff row above the bar for active effects (Rally, Red Lantern) with time left.
@@ -360,4 +360,5 @@ A group sent by attack-move gets spread room for its widest body (cannons, Gatli
 ## Balance
 
 - Heroes on the frontier (2026-11-24): heroes, the player's and rivals', deal double damage on the frontier (the island), abilities, buildings and animals included (units.json types.hero.frontierDamage 2, sim/stats.js). City and crew damage are unchanged. The stats sheet shows it as "Frontier x2". Test: game/tools/test_frontier_damage.mjs.
+- Hero health on the frontier (2026-11-28): heroes, the player's and rivals', have 50% more health on the frontier (units.json types.hero.frontierHp 1.5). Gear bonuses stack on top. Health keeps its share when the hero crosses (half health stays half). City health is unchanged. The stats sheet shows it as "Frontier x1.5" on the health row. Code: sim/game.js frontierHp() each step, inventory baseHp. Test: game/tools/test_frontier_damage.mjs.
 - Rival hero gear (2026-11-24): rival heroes wear the best gear they win (shop < city drop < frontier < heirloom); the old piece goes to the bag (sim/item_services.js botWear).

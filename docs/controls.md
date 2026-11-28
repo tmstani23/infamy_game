@@ -432,7 +432,7 @@ War camp (2026-11-10, campaign):
 - Answer an offer: Accept, No (a new offer may come) or Refuse for good.
 - After a refused defender surrender: the attacker picks Capture, Sack or Burn.
 - Double-click one of your war troops' cards in the selection pane, or one of your troops in the target frame: selects every troop of that type nearby. Selection pane cards show the unit's control group number in the corner of the picture.
-- Frontier: no floating damage numbers.
+- Frontier: floating damage numbers only for hits by or on your hero (2026-11-28); no numbers for other units' hits (since 2026-11-12).
 - Unload (Gatling crew special, Shift + key; replaces Hold aim, 2026-11-21): a cone shows from the nearest ready Gatling crew toward the mouse; left-click fires there for 5 s at extra damage. Right-click or Esc cancels; right-click the ability button toggles auto.
 - Fire bomb (fire-bomb thrower special, in the unit ability row, auto or Shift + key): a 1.5 s channel with a ring on the ground where it lands; burns a wooden building or splashes units; stone resists.
 - Select camp workers, right-click a building site: they build it; more workers build faster. A site with no workers flashes Needs workers. Finished builders go back to gathering.

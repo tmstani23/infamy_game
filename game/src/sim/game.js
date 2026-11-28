@@ -186,7 +186,7 @@ export function createGame(options) {
   const clans = units ? createClans(state, units, { clinicScale: id => police?.clinicScale(id) ?? 1,
     onAddClan: clan => deployment.addClan(clan), priceFactor: id => leader.hireFactor(id), respawnFactor: id => leader.respawnFactor(id), islandCarry: (e, saved) => islandRespawn?.carry(e, saved) }) : null;
   const rewards = createRewards(state, units?.rules);
-  const inventory = createInventory({state,baseHp:e=>stats.base(e).hp||0});
+  const inventory = createInventory({state,baseHp:e=>(stats.base(e).hp||0)*(e.frontierHpK||1)});   // frontierHpK: the hero's island health (frontierHp below)
   const itemServices = createItemServices({state,inventory,raidRules:units?.rules?.raid,spawn,nav:{nearestFree:(...p)=>nav.nearestFree(...p)},removeUnit:id=>removeUnit(id),cellSize:options.frontier?.townGrid?.cellSize||11});
   const groundItems = createGroundItems({ state, give: (owner, id) => itemServices.give(owner, id), moveTo: (...a) => moveTo(...a) });   // dropped bag items (2026-11-26)
   // territory: the street around each owned business, quarters and the season score (sim/territory.js)
@@ -1065,8 +1065,21 @@ export function createGame(options) {
     state.itemGains = [];   // this tick's gear put in a bag ({ clan, id }), for the loot notice
     state.ryoLosses = [];
     state.news = [];         // this tick's big moments (boss knocked out or arrested, War Lantern knocked down), for the screen
+  // Frontier effect (2026-11-28): every hero has more health on the island (units.json hero.frontierHp), city fights unchanged.
+  // The share of health he has left is kept when he crosses over; e.frontierHpK remembers which multiplier his maxHp holds.
+  function frontierHp() {
+    for (const e of Object.values(state.entities)) {
+      if (e.type !== 'hero' || e.dead || !e.maxHp) continue;
+      const k = e.place === 'world' ? stats.base(e).frontierHp || 1 : 1, was = e.frontierHpK || 1;
+      if (k === was) continue;
+      const old = e.maxHp; e.maxHp = Math.round(old + (stats.base(e).hp || 0) * (k - was));
+      e.hp = Math.min(e.maxHp, Math.round(e.hp * e.maxHp / old));
+      if (k === 1) delete e.frontierHpK; else e.frontierHpK = k;
+    }
+  }
     state.policeNews = [];   // this tick's police news per clan ({ clan, kind: 'lost' }), for the screen
     state.dawn = state.dusk = false;
+    frontierHp();
     areas?.update(Object.values(state.entities));   // island chunks around the units out there (cheap when nobody moved chunk)
     leader.tick(lastNews);   // leader bounties for last tick's raids and Shakedowns
     rewards.renownTick(lastNews);   // property-clan Renown for the same moments

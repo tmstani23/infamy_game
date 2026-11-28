@@ -73,7 +73,8 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     if (buff(e, 'lantern')?.damage) damageSources.push(`Red Lantern ×${buff(e, 'lantern').damage}`);
     if (buff(e, 'intimidated')?.damage) damageSources.push(`Intimidate ×${buff(e, 'intimidated').damage}`);
     if (frontierDamage(e) !== 1) damageSources.push(`Frontier ×${frontierDamage(e)}`);
-    add('health', 'Maximum health', 'Vitality', b.hp || 0, e.maxHp ?? b.hp ?? 0, 'hp', gearSources(e,'maxHpFlat').length ? gearSources(e,'maxHpFlat') : e.maxHp !== b.hp ? ['Unit health override'] : []);
+    const hpSources = [...gearSources(e,'maxHpFlat'), ...(e.frontierHpK ? [`Frontier ×${e.frontierHpK}`] : [])];   // frontierHpK: sim/game.js frontierHp
+    add('health', 'Maximum health', 'Vitality', b.hp || 0, e.maxHp ?? b.hp ?? 0, 'hp', hpSources.length ? hpSources : e.maxHp !== b.hp ? ['Unit health override'] : []);
     add('regen', 'Passive recovery', 'Vitality', regen.base, regen.current, 'hp/s', [
       ...(regen.turf !== 1 ? [`Home territory ×${regen.turf}`] : []), ...(regen.clan !== 1 ? [`Battle Hardened ×${regen.clan}`] : []),
       ...(regen.home ? ['HQ rest'] : []), ...(regen.camp ? [`By the campfire +${Math.round(regen.camp * 1000) / 10}% of max health a second`] : []), ...(!regen.eligible ? ['Recovery currently paused'] : [])],

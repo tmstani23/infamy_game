@@ -160,6 +160,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     itemWasReady = !cooling;
   }
 
+  const LOW_HP = 0.4;   // was 0.25 until 2026-11-28
   // t = the current tick with the in-between fraction, so sweeps move smoothly
   function update(t) {
     const h = hero();
@@ -170,13 +171,15 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     hpFill.style.width = `${k * 100}%`;
     modeTag.style.visibility = h.attackMode ? 'visible' : 'hidden';
     face.style.setProperty('--hp-angle', `${Math.max(0, Math.min(1, k)) * 360}deg`);
-    face.style.setProperty('--ring', k < 0.25 ? '#ed5347' : '#64c85f');
+    const low = !ko && k < LOW_HP;   // low health warning (2026-11-28, under 40%, louder): red bar and ring that pulse
+    face.style.setProperty('--ring', low ? '#ed5347' : '#64c85f');
+    face.classList.toggle('low', low);
     face.classList.toggle('hurt', !ko && t - (h.hitAt ?? -Infinity) < tickRate * 0.85);
     const back = ko ? Math.max(0, Math.ceil((units.rules?.heroRespawnSeconds ?? 20) - (t - h.diedAt) / tickRate)) : 0;
     koNotice.hidden = !ko;
     if (ko) koNotice.textContent = `Knocked out, returning to the clinic in ${back}s`;
     hpText.textContent = ko ? `Knocked out, ${back}s` : `${Math.ceil(h.hp)} / ${h.maxHp}`;
-    hpBar.classList.toggle('low', k < 0.25);
+    hpBar.classList.toggle('low', low);
 
     for (const sl of slots) {
       if (!sl.a) { sl.s.classList.toggle('active', !!h.swing || !!h.dash); continue; }
