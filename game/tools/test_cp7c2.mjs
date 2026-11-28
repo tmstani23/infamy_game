@@ -60,17 +60,25 @@ assert.ok(gr.order?.torch && sp.order?.torch && brute.order?.torch && enf.order?
 assert.ok(!rider.order?.torch && !arch.order?.torch, 'the others keep what they were doing');
 brute.dead = enf.dead = true;
 
+// ---- one caster at a time (2026-11-28): of two at the hall only the first casts, the other hits it ------------
+{ let both = false, one = false;
+  for (let t = 0; t < 600 && !fireOn(hall); t++) { g.step([]); const n = [gr, sp].filter(u => u.order?.cast).length; if (n > 1) both = true; if (n === 1) one = true; }
+  assert.ok(one && !both, 'only one of them casts'); assert.ok(fireOn(hall), 'and the hall burns');
+  ST.douse(hall); gr.order = { kind: 'stop' }; sp.order = { kind: 'stop' }; run(2);
+  g.step([{ id: hero.id, type: 'order', kind: 'raze', torch: true, structure: hall.key, units: [gr.id] }]); }
+
 // ---- the cast: 1 second, broken by a stun, not by a plain hit; then one fire and they keep hitting ------------
 { sp.dead = true;   // one caster, to time it
   let castAt = null, t = 0;
-  for (; t < 600 && castAt == null; t++) { g.step([]); if (gr.order?.cast) castAt = g.state.tick; }
+  for (; t < 600 && castAt == null; t++) { g.step([]); if (gr.order?.cast) castAt = gr.order.cast.start + 1; }   // he may already stand at the hall from the one-caster check
   assert.ok(castAt != null, 'the grunt starts the cast at the hall'); assert.equal(fireOn(hall), undefined, 'no fire yet');
   const until0 = gr.order.cast.until; assert.ok(Math.abs(until0 - castAt - S.torch.castTicks) <= 1, 'the cast lasts castTicks');   // castAt is read after the tick advanced
   gr.hp -= 5; gr.hitAt = g.state.tick; run(3); assert.equal(gr.order.cast?.until, until0, 'a plain hit does not break it');
   (gr.buffs ||= {}).stunned = { until: g.state.tick + 8 }; run(S.torch.castTicks);
-  assert.equal(fireOn(hall), undefined, 'a stun breaks the cast'); assert.ok(gr.order?.torch, 'he still has the order');
-  for (t = 0; t < 100 && !fireOn(hall); t++) g.step([]);
-  assert.ok(fireOn(hall), 'he casts again and the hall burns'); assert.ok(gr.order.cast == null || !gr.order.cast, 'the cast is over');
+  assert.equal(fireOn(hall), undefined, 'a stun breaks the cast'); assert.ok(!gr.order?.torch, 'a broken cast ends his Torch (2026-11-28)');
+  g.step([{ id: hero.id, type: 'order', kind: 'raze', torch: true, structure: hall.key, units: [gr.id] }]);
+  for (t = 0; t < 200 && !fireOn(hall); t++) g.step([]);
+  assert.ok(fireOn(hall), 'given Torch again he casts and the hall burns'); assert.ok(gr.order.cast == null || !gr.order.cast, 'the cast is over');
   const hp0 = ST.hpOf(hall); let hits = 0; for (t = 0; t < 200; t++) { g.step([]); hits += (g.state.structureHits || []).filter(h => h.a === gr.id).length; }
   assert.ok(hits > 0, 'once it burns he keeps hitting it');
   assert.ok(fireOn(hall), 'the fire does not die by itself'); assert.equal(Object.keys(g.state.frontier.fires).length, 1, 'one fire');

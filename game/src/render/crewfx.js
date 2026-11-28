@@ -69,7 +69,7 @@ export function createCrewFx({scene,spriteOf,heroFx}){   // heroFx: render/hero_
       if(c.kind==='refuseMount'){for(const radius of [1.1,1.6]){const m=ring(radius,0xff5a3c);m.position.set(c.x,.13+groundY(c.x,c.z),c.z);bursts.push({mesh:m,time:0,life:.55,expand:true});}}
       if(c.kind==='dogsGone')heroFx.dustPuff(c.x,c.z,.8);   // a loosed dog vanishes in a dust puff (sim/dogs.js)   // a loosed dog vanishes in a dust puff (sim/dogs.js)
       if(c.kind==='firebombMark')heroFx.bombMark(c.x,c.z,{radius:c.radius,seconds:(c.ticks||40)/20});   // war 7c-2: the real radius, filling through the wind-up and flight (painted 2026-11-28)
-      if(c.kind==='torchCast')heroFx.torch(c.x,c.z,(c.ticks||20)/20,()=>spriteOf(c.a)?.pos);   // the Torch channel: a painted flame held up beside him (2026-11-28)
+      if(c.kind==='torchCast')heroFx.torch(c.x,c.z,(c.ticks||20)/20,()=>spriteOf(c.a)?.pos,c.tx??c.x,c.tz??c.z);   // the Torch channel: a painted flame out in front of him, toward the building (2026-11-28)
       if(c.kind==='dogsBite')heroFx.bite(c.x,c.z);
       if(c.kind==='hamstringHit')heroFx.hamstring(c.x,c.z);   // painted, with dark red blood (2026-11-28)
       // taunts: abilityfx.js heroFx.taunt (2026-11-28)

@@ -292,16 +292,25 @@ export function createHeroFx({ scene, texBase = 'art/fx/' }) {
   }
   // Torch channel (2026-11-28: no prop): a flame cupped in front of him that grows through the channel, with ember
   // wisps swirling in toward his hands and sparks drawn inward, flaring once when the channel ends
-  function torch(x, z, seconds = 1, follow = null) {
-    const front = new THREE.Vector3(VIEW_DIR.x, 0, VIEW_DIR.z).normalize().multiplyScalar(.45);
-    const at = () => { const p = follow?.() || { x, z }; return { x: p.x + front.x, y: gy(p.x, p.z) + 1.05, z: p.z + front.z }; };
+  function torch(x, z, seconds = 1, follow = null, tx = x, tz = z) {   // tx, tz: the building he is torching
+    // out in front of him toward the building, about a step off his body and a little to his sword-hand side, so it
+    // never sits on the sprite; with no target, out to his side
+    let ux = tx - x, uz = tz - z, L = Math.hypot(ux, uz);
+    if (L < .05) { ux = CAM_RIGHT.x; uz = CAM_RIGHT.z; L = 1; }
+    ux /= L; uz /= L;
+    // the building straight behind him or straight toward the camera: on screen the flame would sit on his back or his
+    // legs, so push it out to his sword-hand side as well
+    const along = Math.abs(ux * VIEW_DIR.x + uz * VIEW_DIR.z) > .3;
+    const side = along ? .75 : .25, reach = Math.min(1.5, Math.max(1.2, L * .6));
+    const off = { x: ux * reach + CAM_RIGHT.x * side, z: uz * reach + CAM_RIGHT.z * side };
+    const at = () => { const p = follow?.() || { x, z }; return { x: p.x + off.x, y: gy(p.x, p.z) + .95, z: p.z + off.z }; };
     const f = spr(pick(FLAMES), .4, { color: EMBER, hot: EMBERHOT, add: true, flow: 1.5, hotK: .55 });
     const wisps = [0, 1, 2].map(i => ({ m: spr(WISPS[i], .7, { color: EMBER, hot: EMBERHOT, add: true, flow: 1.2, hotK: .5 }), a: i / 3 * 6.283 }));
     run(seconds, (t, dt) => {
       const c = at(), k = t / seconds, a = ramp(t, seconds, .1, .08);
       f.position.set(c.x, c.y + .1 * k, c.z); f.scale.setScalar(.35 + .4 * outc(k) + .04 * Math.sin(t * 19)); set(f, .9 * a);
       for (const w of wisps) {   // spiralling in: the radius shrinks as the channel fills
-        w.a += dt * (4 + 4 * k); const r = .75 * (1 - .65 * k);
+        w.a += dt * (4 + 4 * k); const r = .55 * (1 - .6 * k);
         w.m.position.set(c.x + Math.cos(w.a) * r, c.y + .15 * Math.sin(w.a * 1.3), c.z + Math.sin(w.a) * r * .6);
         w.m.quaternion.copy(CAM_QUAT); w.m.rotateZ(-w.a); set(w.m, .45 * a * (.6 + .4 * k));
       }

@@ -92,7 +92,7 @@ assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze'), 'the 
   assert.ok(sStore.b.hp < hp0, 'plain hits land'); assert.equal(g.state.frontier.fires?.[sStore.key], undefined, 'and light no fire');
   assert.equal(ST.torchers([...troops, archer]), troops.length, 'the archer cannot torch');
   g.step([{ id: hero.id, type: 'order', kind: 'raze', torch: true, structure: sStore.key, units: [...troops, archer] }]);
-  assert.ok(troops.every(id => g.state.entities[id].order?.torch), 'melee take the Torch order'); assert.ok(!g.state.entities[archer].order?.torch, 'the archer keeps its plain attack');
+  assert.ok(troops.every(id => g.state.entities[id].order?.kind === 'raze') && troops.filter(id => g.state.entities[id].order?.cast).length <= 1, 'melee take the Torch order, one casts at a time (2026-11-28)'); assert.ok(!g.state.entities[archer].order?.torch, 'the archer keeps its plain attack');
   let lit = false; for (let i = 0; i < 400 && sStore.b.stage === 'built' && !lit; i++) { g.step([]); lit = !!g.state.frontier.fires?.[sStore.key]; }
   assert.ok(lit, 'a finished torch cast sets it alight (7c-2)'); }
 { const hp0 = sStore.b.hp; let hits = 0, fireSeen = false, t = 0;

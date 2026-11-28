@@ -502,12 +502,20 @@ export function createStructures({ state, data, world, war, garrison = null, wor
     if (diff) { e.dir = (e.dir + (diff <= 4 ? 1 : 7)) % 8; if (diff !== 1 && diff !== 7) { e.anim = 'idle'; return true; } }
     // 7c-2 Torch: a cast of torch.castTicks at the structure. A tick this unit could not act (stun, stagger, knockdown,
     // charm, taunt: step() is not reached then) breaks it and it starts over; plain hits do not. Once it burns, he hits.
+    // One caster at a time (2026-11-28): the first unit to start the cast at a structure holds it; the rest of a big
+    // Torch order hit it instead of all casting at once. A broken cast ends his Torch: the order must be given again.
+    if (o.torch && !burning(st) && canTorch(e, unit)) {
+      const now = state.tick ?? 0, held = (state.torching ||= {})[st.key];
+      if (held && held.id !== e.id && held.last >= now - 1 && !state.entities[held.id]?.dead) { delete o.torch; delete o.cast; }
+      else if (o.cast && o.cast.last !== now - 1 && R().torch?.retry !== true) { delete o.torch; delete o.cast; if (held?.id === e.id) delete state.torching[st.key]; }
+    }
     if (o.torch && !burning(st) && canTorch(e, unit)) {
       const now = state.tick ?? 0;
-      if (!o.cast || o.cast.last !== now - 1) { o.cast = { start: now, until: now + (R().torch?.castTicks ?? 20) }; (state.casts ||= []).push({ kind: 'torchCast', a: e.id, x: e.x, z: e.z, place: 'world', ticks: R().torch?.castTicks ?? 20 }); }
+      state.torching[st.key] = { id: e.id, last: now };
+      if (!o.cast || o.cast.last !== now - 1) { o.cast = { start: now, until: now + (R().torch?.castTicks ?? 20) }; (state.casts ||= []).push({ kind: 'torchCast', a: e.id, x: e.x, z: e.z, tx: st.x, tz: st.z, place: 'world', ticks: R().torch?.castTicks ?? 20 }); }
       o.cast.last = now;
       e.anim = 'attack';
-      if (now >= o.cast.until) { delete o.cast; ignite(e.owner, st); }
+      if (now >= o.cast.until) { delete o.cast; delete state.torching[st.key]; ignite(e.owner, st); }
       return true;
     }
     if (o.cast) delete o.cast;
