@@ -66,10 +66,13 @@ console.log(`  pelts ${clan.hides?.wolf_pelt || 0}`);
 
 // a den whose animals all died rests
 {
-  const d = dens.find(x => x.kind === 'wolf' && x !== wolfDen);
-  go(d.x + 160, d.z); S.night = false;
-  run(200);
-  const pack = wild('wolf').filter(e => e.wm.den === d.id);
+  let d = null, pack = [];
+  for (const x of dens.filter(x => x.kind === 'wolf' && x !== wolfDen).sort((a, b) => Math.hypot(b.x - wolfDen.x, b.z - wolfDen.z) - Math.hypot(a.x - wolfDen.x, a.z - wolfDen.z)).slice(0, 6)) {   // far from the first fight
+    go(x.x + 160, x.z); S.night = false;
+    run(200);
+    pack = wild('wolf').filter(e => e.wm.den === x.id); d = x;
+    if (pack.length) break;
+  }
   assert.ok(pack.length, 'second pack woke');
   for (const e of pack) { e.hitBy = { id: hero.id, tick: S.tick }; e.hp = 0; g.wildAnimals.killed(hero, e); e.dead = true; }
   run(80);
@@ -81,6 +84,7 @@ console.log(`  pelts ${clan.hides?.wolf_pelt || 0}`);
 // a hunt far from the hero: the clan is told, with the region's name, and told again if the prey falls
 {
   const d = wolfDen;   // its pack went to sleep when the party left; it wakes again
+  delete S.world.wildDens[d.id].rest;   // (if the night fight killed the whole pack, it is back for this check)
   for (const c of crew) { Object.assign(c, { dead: false, hp: c.maxHp }); delete c.downed; delete c.diedAt; }   // the crew back on their feet
   S.night = false; go(d.x + 160, d.z);
   run(200);
@@ -122,6 +126,25 @@ console.log(`  pelts ${clan.hides?.wolf_pelt || 0}`);
   const had = clan.hides?.bear_hide || 0;
   g.wildAnimals.killed(hero, bear);
   assert.equal(clan.hides.bear_hide, had + 1, 'bear hide in the stock');
+}
+
+// by day they leave you be; hit one and the whole pack comes all out (2026-11-27): no falling back, no breaking off at half
+{
+  Object.assign(A.predators.hunt, { chance: 0, loneChance: 0 });   // no hunt of their own in the way
+  const d = dens.filter(x => x.kind === 'wolf' && x !== wolfDen).at(-1);
+  S.night = false; go(d.x + 160, d.z);
+  run(200);
+  const pack = wild('wolf').filter(e => e.wm.den === d.id), w = pack[0];
+  assert.ok(pack.length >= 3 && pack.every(e => !['stalk', 'hunt', 'back'].includes(e.wm.mode)), 'by day the pack leaves you be');
+  go(w.x + 8, w.z);
+  w.hitBy = { id: hero.id, tick: S.tick };
+  g.wildAnimals.provoke(w, hero.owner);
+  assert.ok(pack.every(e => e.wm.mode === 'hunt' && e.wm.allOut), 'hit one: the whole pack fights');
+  for (const e of pack.slice(0, Math.ceil(pack.length / 2))) { e.hp = 0; g.wildAnimals.killed(hero, e); e.dead = true; }
+  const modes = new Set();
+  run(120, () => { for (const e of pack) if (!e.dead) modes.add(e.wm.mode); });
+  assert.ok(!modes.has('back') && !modes.has('flee'), `all out: no falling back or running at half (${[...modes]})`);
+  for (const e of pack) if (!e.dead) { e.hp = 0; g.wildAnimals.killed(hero, e); e.dead = true; }
 }
 
 // save and load keep the dens

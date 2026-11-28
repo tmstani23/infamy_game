@@ -26,7 +26,7 @@ for (const [k, sp] of Object.entries(A.species)) {
 const g = createGame(options);
 const m = setupMatch(g, { clan: 'yakuza', difficulty: 'easy', mode: 'campaign', bots: data('data/bots.json'), spawns: options.district.spawns, test: { playerRyo: 5000 }, seed: 77 });
 const hero = g.state.entities[m.heroId], S = g.state;
-const animals = () => Object.values(S.entities).filter(e => e.wildlife && !e.dead);
+const animals = () => Object.values(S.entities).filter(e => e.wildlife && !e.dead && !e.wm?.den);   // (den wolves and bears live by their dens: test_wild_predators)
 const run = n => { for (let i = 0; i < n; i++) g.step([]); };
 // a forest spot well away from the gate, towns and camps
 const [gx, gz] = g.gate.island;
@@ -127,7 +127,7 @@ assert.ok(!crew.some(c => Object.values(S.entities).some(e => e.wildlife && c.at
 {
   const save = makeSave(g), g2 = createGame(options);
   loadSave(g2, JSON.parse(JSON.stringify(save)));
-  const a = animals(), b = Object.values(g2.state.entities).filter(e => e.wildlife && !e.dead);
+  const a = animals(), b = Object.values(g2.state.entities).filter(e => e.wildlife && !e.dead && !e.wm?.den);
   assert.equal(b.length, a.length);
   assert.deepEqual(b.map(e => e.wm.mode).sort(), a.map(e => e.wm.mode).sort());
 }

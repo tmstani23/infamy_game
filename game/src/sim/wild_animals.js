@@ -10,7 +10,8 @@
 // from their dens ('wolfHowl', heard far past the camera). A pack or bear that finds a small group near its den
 // at night (rarely by day) stalks it and attacks: wolves go for crew rather than the hero, the weakest first, bite
 // and fall back, and break off at half strength; a bear fights until badly hurt. A big group drives them off.
-// A den whose animals all died stays empty for a few days. Hitting a wolf or bear starts the same fight.
+// A den whose animals all died stays empty for a few days. Hitting a wolf or bear brings the whole pack in all out
+// (2026-11-27): no falling back, no breaking off at half strength or before a big group, the hero as fair game as the crew.
 // A kill puts the hide straight into the killer's clan stock (clan.hides), whoever in the clan made it, and a
 // 'wildDrop' cast flies a hide to the hero (render/wild_drop_fx.js). 'wildAlarm', 'wildCharge' and 'wildHunt'
 // casts are for the sounds (and 'wildHunt' for the alert).
@@ -229,12 +230,13 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     const hurt = sp.predator === 'lone' ? lead.hp <= (lead.maxHp || statsOf(lead).hp) * (H.loneBreakAt ?? 0.3) : pack.length <= Math.ceil(size * (H.breakAt ?? 0.5)) && size > 1;
     const crowd = people.filter(p => p.owner === clan && dist(p, lead) <= (H.groupRadius ?? 18) + 4).length > (H.bigGroup ?? 9);
     const stalking = pack.some(e => e.wm.mode === 'stalk'), prey = people.some(p => p.owner === clan && pack.some(e => dist(p, e) <= (stalking ? (H.range ?? 260) + 40 : H.lose ?? 70)));
-    if (hurt || crowd || !prey || pack.every(e => state.tick > (e.wm.huntEnd ?? 0))) endHunt(d, pack, hurt || crowd);
+    const allOut = pack.some(e => e.wm.allOut);   // hit: they fight to the end, only losing you ends it
+    if ((!allOut && (hurt || crowd)) || !prey || pack.every(e => state.tick > (e.wm.huntEnd ?? 0))) endHunt(d, pack, !allOut && (hurt || crowd));
   }
   function endHunt(d, pack, run) {
     for (const e of pack) {
       delete e.angry; delete e.swing;
-      const m = e.wm; delete m.prey; delete m.clan; delete m.huntEnd; delete m.provoked;
+      const m = e.wm; delete m.prey; delete m.clan; delete m.huntEnd; delete m.provoked; delete m.allOut;
       stopPath(e);
       if (!run) { Object.assign(m, { mode: 'idle', until: state.tick + secs(range(R.alert || [3, 6])) }); continue; }
       // run back toward the den, well away from the fight
@@ -291,8 +293,10 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     const sp = speciesOf(t), by = Object.values(state.entities).find(e => e.id === t.hitBy?.id);
     if (sp?.predator && clan) {
       const d = denOf(t.wm.den), pack = t.wm.den ? packOf(t.wm.den) : [t];
-      if (!hunting(t) || t.wm.clan !== clan) startHunt(d || { id: null, kind: t.species }, pack.length ? pack : [t], clan, by, true);
-      else for (const e of pack) { e.wm.mode = e.wm.mode === 'stalk' ? 'hunt' : e.wm.mode; e.wm.provoked = true; }
+      // you started it (they were not hunting you): the whole pack comes all out (2026-11-27); hitting back in a hunt of theirs does not
+      if (!hunting(t) || t.wm.clan !== clan) { const all = pack.length ? pack : [t]; const calm = (t.wm.calm ?? -1) > state.tick; startHunt(d || { id: null, kind: t.species }, all, clan, by, true); if (!calm) for (const e of all) e.wm.allOut = true; }   // (not a pack you just drove off, hit as it runs)
+      else for (const e of pack) { e.wm.mode = e.wm.mode === 'stalk' ? 'hunt' : e.wm.mode; e.wm.provoked = true;
+        if (e.wm.allOut) { const until = state.tick + secs(P.hunt?.seconds ?? 90); e.wm.huntEnd = Math.max(e.wm.huntEnd ?? 0, until); (e.angry ||= {})[clan] = Math.max(e.angry[clan] ?? 0, until); } }   // all out: every hit keeps the fight going
       return;
     }
     if (sp?.charge && clan) {
@@ -308,6 +312,9 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     const sp = speciesOf(t), clan = state.clans?.[a?.owner];
     delete t.angry;
     if (t.wm?.den) { const st = denState()[t.wm.den] ||= {}; st.lost = (st.lost || 0) + 1; }
+    // a pack that is down to half breaks off at once, not at the next think (2026-11-27); an all-out one fights on
+    if (t.wm?.den && hunting(t)) { const d = denOf(t.wm.den), pack = packOf(t.wm.den).filter(e => e !== t);
+      if (d && pack.length && pack.some(hunting)) huntCheck(d, pack, Object.values(state.entities).filter(person)); }
     if (!sp?.drop || !clan) return;
     clan.hides ||= {};
     const hero = Object.values(state.entities).find(e => e.type === 'hero' && e.owner === a.owner);
@@ -360,7 +367,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     }
     // hunt: finish a bite in progress, then (wolves) fall back a few strides
     if (e.swing) { attack(e, state.entities[e.swing.target]); m.bit = true; return; }
-    if (m.bit && !lone) {
+    if (m.bit && !lone && !m.allOut) {   // all out once hit: no falling back
       delete m.bit;
       const t = state.entities[m.prey], a = t ? Math.atan2(e.z - t.z, e.x - t.x) + (rng() - 0.5) * 1.2 : rng() * Math.PI * 2, r = H.backOff ?? 6;
       const p = areas.nav.nearestFree(e.x + Math.cos(a) * r, e.z + Math.sin(a) * r);
@@ -373,7 +380,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
       let best = null, bs = Infinity;
       for (const p of people) {
         if (p.owner !== m.clan || dist(p, e) > (H.reach ?? 30)) continue;
-        if (p.type === 'hero' && !lone) continue;
+        if (p.type === 'hero' && !lone && !m.allOut) continue;
         const friends = people.filter(o => o !== p && o.owner === p.owner && dist(o, p) <= 5).length;
         const sc = dist(p, e) * 0.3 + (p.hp / (p.maxHp || statsOf(p).hp || 1)) * 12 + friends * 2;
         if (sc < bs) { bs = sc; best = p; }
@@ -394,7 +401,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
   function stuck(e) {
     const m = e.wm;
     if ((m.stuck = (m.stuck || 0) + 1) < secs(2)) return;
-    delete e.angry; delete m.stuck; delete m.prey; delete m.clan; delete m.huntEnd; delete m.provoked;
+    delete e.angry; delete m.stuck; delete m.prey; delete m.clan; delete m.huntEnd; delete m.provoked; delete m.allOut;
     stopPath(e); Object.assign(m, { mode: 'idle', until: state.tick + secs(range(R.alert || [3, 6])), calm: state.tick + secs((P.calmSeconds ?? 60) * 3) });
   }
   // Close in on t (the whole way, else by way of a nearer point)
