@@ -63,15 +63,18 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = n
   // cells drawn with fine rectangles below: rounded ocean corners, and river cells holding part of a ford bar
   // or bridge deck (only the crossing art is walkable, 2026-11-20)
   const fineCell = (i, j) => !!shore?.affectedCell(x0 / tc + j, z0 / tc + i) || crossingCell(world, x0 + (j + 0.5) * tc, z0 + (i + 0.5) * tc);
+  // river water is its own kind ('river', P4 2026-11-28): the Ferryman's charm lets its wearer's group wade it (areas.js wadeNav)
+  const kindAt = (x, z) => terrainAt(world, x, z) === 'r' ? 'river' : 'terrain';
   for (let i = 0; i < n; i++) {
-    let start = -1;
+    let start = -1, kind = null;
     for (let j = 0; j <= n; j++) {
-      const blocked = j < n && !fineCell(i, j) && !passable(world, x0 + (j + 0.5) * tc, z0 + (i + 0.5) * tc);
-      if (blocked && start < 0) start = j;
-      if (!blocked && start >= 0) {
-        blockers.push({ minX: x0 + start * tc, maxX: x0 + j * tc, minZ: z0 + i * tc, maxZ: z0 + (i + 1) * tc, kind: 'terrain' });
+      const x = x0 + (j + 0.5) * tc, z = z0 + (i + 0.5) * tc;
+      const blocked = j < n && !fineCell(i, j) && !passable(world, x, z), k = blocked ? kindAt(x, z) : null;
+      if (start >= 0 && (!blocked || k !== kind)) {
+        blockers.push({ minX: x0 + start * tc, maxX: x0 + j * tc, minZ: z0 + i * tc, maxZ: z0 + (i + 1) * tc, kind });
         start = -1;
       }
+      if (blocked && start < 0) { start = j; kind = k; }
     }
   }
   // Only cells touched by a rounded ocean corner or a crossing need fine rectangles. They feed
@@ -83,16 +86,17 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = n
     const ax = x0 + j * tc, az = z0 + i * tc;
     let previous = new Map();
     for (let row = 0; row < count; row++) {
-      const current = new Map(); let start = -1;
+      const current = new Map(); let start = -1, kind = null;
       for (let col = 0; col <= count; col++) {
-        const blocked = col < count && !passable(world, ax + (col + 0.5) * pitch, az + (row + 0.5) * pitch);
-        if (blocked && start < 0) start = col;
-        if (!blocked && start >= 0) {
-          const k = `${start},${col}`, old = previous.get(k);
+        const x = ax + (col + 0.5) * pitch, z = az + (row + 0.5) * pitch;
+        const blocked = col < count && !passable(world, x, z), kk = blocked ? kindAt(x, z) : null;
+        if (start >= 0 && (!blocked || kk !== kind)) {
+          const k = `${start},${col},${kind}`, old = previous.get(k);
           if (old) old.maxZ = az + (row + 1) * pitch;
-          const b = old || { minX: ax + start * pitch, maxX: ax + col * pitch, minZ: az + row * pitch, maxZ: az + (row + 1) * pitch, kind: 'terrain', shoreCorners: shore?.cellCorners(x0 / tc + j, z0 / tc + i) };
+          const b = old || { minX: ax + start * pitch, maxX: ax + col * pitch, minZ: az + row * pitch, maxZ: az + (row + 1) * pitch, kind, shoreCorners: shore?.cellCorners(x0 / tc + j, z0 / tc + i) };
           if (!old) blockers.push(b); current.set(k, b); start = -1;
         }
+        if (blocked && start < 0) { start = col; kind = kk; }
       }
       previous = current;
     }
@@ -102,7 +106,7 @@ export function buildChunk(world, cfg, cx, cz, seed = 1, { city = null, walk = n
   const piers = (walk || []).filter(b => b.maxX > x0 && b.minX < x0 + size && b.maxZ > z0 && b.minZ < z0 + size);
   for (const p of piers) for (let k = blockers.length - 1; k >= 0; k--) {
     const b = blockers[k];
-    if (b.kind !== 'terrain' || b.maxX <= p.minX || b.minX >= p.maxX || b.maxZ <= p.minZ || b.minZ >= p.maxZ) continue;
+    if ((b.kind !== 'terrain' && b.kind !== 'river') || b.maxX <= p.minX || b.minX >= p.maxX || b.maxZ <= p.minZ || b.minZ >= p.maxZ) continue;
     const parts = [];
     if (b.minX < p.minX) parts.push({ ...b, maxX: p.minX });
     if (b.maxX > p.maxX) parts.push({ ...b, minX: p.maxX });

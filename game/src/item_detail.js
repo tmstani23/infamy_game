@@ -6,6 +6,7 @@ import { CONSUMABLES } from './sim/gear_catalog.js';
 export const ICONS = {
   weapon: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 45Q43 24 52 9Q50 30 23 49Z" fill="#d5d9d6" stroke="#f4ead2"/><path d="m16 44 8 8M10 55l9-10" stroke="#c19a5f" stroke-width="5"/></svg>',
   armor: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="m24 10-12 7-6 15 12 4 1 20h26l1-20 12-4-6-15-12-7-8 8Z" fill="#4e625e" stroke="#c6ac7b" stroke-width="2"/><path d="M22 29h20M22 37h20M22 45h20M28 24v26m8-26v26" stroke="#c6ac7b" stroke-width="2"/></svg>',
+  relic: '<img src="../assets/items/relic_slot_empty.png" alt="">',
   accessory: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 23C7 23 20 4 32 18c12-14 25 5 0 5ZM28 22l-9 17m17-17 9 17" fill="none" stroke="#ba8169" stroke-width="4"/><circle cx="32" cy="43" r="13" fill="#645634" stroke="#d4b16d" stroke-width="2"/><path d="M28 39h8v8h-8Z" fill="none" stroke="#e1c790" stroke-width="2"/></svg>',
 };
 
@@ -25,7 +26,7 @@ const SHORT = { weaponGlint: 'edge glint', weaponEmbers: 'embers', weaponTrail: 
 const css = c => c ? `rgb(${c.map(v => Math.round(v * 255)).join(',')})` : '#d8b56c';
 export const itemOf = id => ITEMS[id] || CONSUMABLES[id] || null;
 export function effectOf(item) {
-  if (!item?.slot) return null;
+  if (!item?.slot || item.relic) return null;   // relics show their trick, not a look
   const kind = item.visual?.kind;
   return { text: EFFECT[kind] || 'Subtle light on your hero', short: SHORT[kind] || item.slot, color: css(item.visual?.color || item.glow) };
 }
@@ -43,7 +44,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 // rows: [label, value, kind] ; equipped: the item now in the same slot (for comparison)
 export function detailHtml(id, { rows = [], equipped = null } = {}) {
   const item = itemOf(id); if (!item) return '<p class="detail-empty">Hover or click an item to see its details.</p>';
-  const gear = !!ITEMS[id], rarity = item.rarity === 'green' ? 'Fine' : item.rarity === 'frontier' ? 'Frontier' : item.rarity === 'heirloom' ? 'Heirloom' : gear ? 'Common' : 'Supply';
+  const gear = !!ITEMS[id], rarity = item.rarity === 'green' ? 'Fine' : item.rarity === 'frontier' ? 'Frontier' : item.rarity === 'heirloom' ? 'Heirloom' : item.relic ? 'Relic' : gear ? 'Common' : 'Supply';
   const lines = (item.about || ABOUT[id] || '').replace(/\.$/, '').split(/;\s*/).filter(Boolean)
     .map(t => `<div class="detail-stat ${/^[+−]/.test(t) ? 'good' : /\d/.test(t) ? 'cost' : ''}">${esc(t.replace(/−/g, '-'))}</div>`).join('');
   const effect = effectOf(item);

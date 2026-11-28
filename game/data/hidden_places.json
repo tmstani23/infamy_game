@@ -1,0 +1,536 @@
+{
+ "_note": "Hidden places and rumours (world variety P3, sim/hidden_places.js). Numbers are world units and seconds. flashRange: any of your people this close makes the place flash on the minimap (with a chime); findRange: this close and it is found (a pin on both maps); smudgeRadius: the rumour area drawn on the World map, its middle shifted up to smudgeShift x radius from the place, so the place is always inside it; folkTalkRange: a wandering folk scene tells you a rumour when your hero or crew pass this close (once per scene); folkScenes: the scenes that tell them (the peddler only once saved); townTalkRange / townEverySeconds: one of your own townsfolk tells one when your hero or crew pass this close, at most this often per town; townReach: townsfolk only know places this far from their town; gapSeconds: no two rumours closer together than this. Places: for P3 the seven guarded places of the plan, empty until P4 adds the fights (2026-11-27). Each place: kind (relic or cache), name, x, z, where (the landmark on the World map the rumour names), lines (what people say; one is picked).",
+ "rules": {
+  "everyTicks": 10,
+  "flashRange": 700,
+  "findRange": 120,
+  "smudgeRadius": 420,
+  "smudgeShift": 0.45,
+  "folkTalkRange": 70,
+  "folkScenes": [
+   "hermit",
+   "pilgrims",
+   "peddler",
+   "camp",
+   "duel"
+  ],
+  "townTalkRange": 45,
+  "townEverySeconds": 120,
+  "townReach": 4000,
+  "gapSeconds": 30
+ },
+ "kinds": {
+  "relic": {
+   "label": "Relic site",
+   "what": "A guarded place. Whoever holds it keeps a relic there."
+  },
+  "cache": {
+   "label": "Cache",
+   "what": "Something hidden, waiting for whoever finds it."
+  }
+ },
+ "places": [
+  {
+   "id": "wreck_cove",
+   "kind": "relic",
+   "name": "Wreck cove",
+   "x": 990,
+   "z": 5500,
+   "where": "the Bone Comb Inlets, on the west shore",
+   "lines": [
+    "A ship broke up in the Bone Comb Inlets, west shore. Smugglers sleep in her hull now.",
+    "Stay off the west shore by the Bone Comb Inlets. There is a wreck there, and the men in it shoot.",
+    "Smugglers' wreck in the Bone Comb Inlets. Their captain keeps something he will not sell."
+   ],
+   "guard": {
+    "relic": "relic_spyglass",
+    "members": [
+     [
+      "smuggler",
+      4
+     ],
+     [
+      "guard_archer",
+      2
+     ]
+    ],
+    "boss": {
+     "type": "boss_captain",
+     "title": "Smuggler captain",
+     "scale": 1.4,
+     "tint": [
+      0.78,
+      0.95,
+      0.86
+     ],
+     "ability": {
+      "kind": "keg",
+      "every": 18,
+      "range": 12,
+      "fuse": 1.5,
+      "radius": 5,
+      "damage": 120,
+      "knock": 4
+     }
+    }
+   }
+  },
+  {
+   "id": "hermit_cave",
+   "kind": "relic",
+   "name": "Hermit's cave",
+   "x": 6480,
+   "z": 3780,
+   "where": "the Stone Sutra Peaks, beside the southern pass",
+   "lines": [
+    "Up in the Stone Sutra Peaks, by the southern pass, a cave smokes at night. A bear sleeps in its mouth.",
+    "An old hermit lived in a cave in the Stone Sutra Peaks, near the low pass. Something big lives there now.",
+    "There is a cave in the Stone Sutra Peaks, just off the pass road. Nobody who went in for his lantern came out."
+   ],
+   "guard": {
+    "relic": "relic_smoke_lantern",
+    "members": [],
+    "species": "bear",
+    "boss": {
+     "type": "boss_great_bear",
+     "title": "Cave bear",
+     "scale": 1.7,
+     "tint": [
+      0.72,
+      0.64,
+      0.58
+     ],
+     "ability": {
+      "kind": "slam",
+      "every": 15,
+      "range": 6,
+      "windup": 1.5,
+      "radius": 7,
+      "damage": 110,
+      "stun": 1.5
+     }
+    }
+   }
+  },
+  {
+   "id": "ferry_house",
+   "kind": "relic",
+   "name": "Drowned ferry house",
+   "x": 4600,
+   "z": 3700,
+   "where": "the Ashen Wash ford in the Thirsting Steps",
+   "lines": [
+    "The old ferry house at the Ashen Wash ford, in the Thirsting Steps. River robbers took it after the flood.",
+    "Cross the Ashen Wash in the Thirsting Steps and you pass the drowned ferry house. Pay them or swim.",
+    "The ferryman's house at the Ashen Wash ford is full of robbers. They say he hid his charm before he drowned."
+   ],
+   "guard": {
+    "relic": "relic_ferryman_charm",
+    "members": [
+     [
+      "river_robber",
+      4
+     ]
+    ],
+    "boss": {
+     "type": "boss_ferryman",
+     "title": "River robber boss",
+     "scale": 1.4,
+     "tint": [
+      0.8,
+      0.88,
+      1.0
+     ],
+     "ability": {
+      "kind": "net",
+      "every": 16,
+      "range": 10,
+      "root": 2.5,
+      "burst": 3,
+      "burstGap": 0.3,
+      "burstDamage": 1.5
+     }
+    }
+   }
+  },
+  {
+   "id": "watch_ruin",
+   "kind": "relic",
+   "name": "Watch ruin",
+   "x": 1975,
+   "z": 2775,
+   "where": "the Red Mesa Walls pass, in Rust Mesa",
+   "lines": [
+    "The old watchtower on the Red Mesa Walls pass, in Rust Mesa. A bandit chief sees everything from up there.",
+    "Ride the pass through the Red Mesa Walls and the lookouts on the ruined tower will see you first.",
+    "In Rust Mesa, where the road climbs the Red Mesa Walls, there is a burnt watchtower. Bandits keep it."
+   ],
+   "guard": {
+    "relic": "relic_climber_hook",
+    "members": [
+     [
+      "guard_archer",
+      4
+     ],
+     [
+      "hill_bandit",
+      2
+     ]
+    ],
+    "boss": {
+     "type": "boss_bandit_chief",
+     "title": "Bandit chief",
+     "scale": 1.4,
+     "tint": [
+      1.0,
+      0.82,
+      0.66
+     ],
+     "ability": {
+      "kind": "arrowStorm",
+      "every": 20,
+      "range": 16,
+      "flight": 1,
+      "delay": 1,
+      "radius": 6,
+      "seconds": 1.5,
+      "arrows": 6,
+      "perLookout": 4,
+      "damage": 14
+     }
+    }
+   }
+  },
+  {
+   "id": "old_manor",
+   "kind": "relic",
+   "name": "Abandoned manor",
+   "x": 9840,
+   "z": 4520,
+   "where": "the Broken Levee Plain, by the east road",
+   "lines": [
+    "A lord's manor stands empty on the Broken Levee Plain, right by the road. Ronin squat in it.",
+    "On the Broken Levee Plain there is a manor nobody farms. Masterless men drink there and draw on anyone.",
+    "The old manor on the Broken Levee Plain. The ronin inside wear masks when they ride out."
+   ],
+   "guard": {
+    "relic": "relic_fox_mask",
+    "members": [
+     [
+      "manor_ronin",
+      4
+     ]
+    ],
+    "boss": {
+     "type": "boss_ronin_master",
+     "title": "Ronin master",
+     "scale": 1.4,
+     "tint": [
+      1.0,
+      0.74,
+      0.72
+     ],
+     "ability": {
+      "kind": "flicker",
+      "every": 18,
+      "range": 14,
+      "targets": 5,
+      "groupGap": 6,
+      "hop": 0.25,
+      "crit": 2,
+      "heal": 0.1,
+      "healSeconds": 6
+     }
+    }
+   }
+  },
+  {
+   "id": "buried_caravan",
+   "kind": "relic",
+   "name": "Buried caravan",
+   "x": 4275,
+   "z": 4725,
+   "where": "the Dry Well Terraces, in the red desert",
+   "lines": [
+    "A salt caravan went under the sand in the Dry Well Terraces. Raiders are digging it out.",
+    "In the Dry Well Terraces the wind uncovered carts. The raiders there blow a great shell horn at dusk.",
+    "Out in the Dry Well Terraces, the red desert, men dig for a buried caravan day and night."
+   ],
+   "guard": {
+    "relic": "relic_conch_horn",
+    "members": [
+     [
+      "desert_raider",
+      4
+     ]
+    ],
+    "mounted": true,
+    "boss": {
+     "type": "boss_raider_chief",
+     "title": "Raider chief",
+     "scale": 1.4,
+     "tint": [
+      1.0,
+      0.84,
+      0.7
+     ],
+     "horse": "warhorse",
+     "bleed": {
+      "share": 0.03,
+      "seconds": 5
+     },
+     "ability": {
+      "kind": "dust",
+      "every": 22,
+      "range": 10,
+      "radius": 8,
+      "seconds": 5,
+      "miss": 0.4,
+      "sight": 0.5
+     }
+    }
+   }
+  },
+  {
+   "id": "frozen_shrine",
+   "kind": "relic",
+   "name": "Frozen shrine",
+   "x": 3725,
+   "z": 1725,
+   "where": "Hollow Bell Heights, above the Lake of Still Bells",
+   "lines": [
+    "Above the Lake of Still Bells, in Hollow Bell Heights, a shrine froze shut. A pale wolf leads the pack there.",
+    "Pilgrims left a gourd at the frozen shrine above the Lake of Still Bells. The wolves never let them back.",
+    "In Hollow Bell Heights, up from the Lake of Still Bells, the old shrine is ice now. Listen for the howling."
+   ],
+   "guard": {
+    "relic": "relic_pilgrim_gourd",
+    "members": [
+     [
+      "wolf",
+      4
+     ]
+    ],
+    "species": "wolf",
+    "boss": {
+     "type": "boss_pale_wolf",
+     "title": "Pack leader",
+     "scale": 1.4,
+     "tint": [
+      1.0,
+      1.0,
+      1.05
+     ],
+     "grey": 0.85,
+     "ability": {
+      "kind": "howl",
+      "every": 30,
+      "range": 14,
+      "max": 2,
+      "adds": 3,
+      "seconds": 8,
+      "speed": 1.25,
+      "damage": 1.25
+     }
+    }
+   }
+  }
+ ],
+ "guards": {
+  "_note": "World variety P4 (2026-11-27): each guarded place has guards and a boss (sim/guarded_places.js). First clear by a clan = the place's relic (each clan once, player only); a later clear pays repeatRyo. Guards return respawnDays after a clear. Human guards fight with the bandit AI (owner bandits) within leash of the place and see sight far; animals are wild predators that start the hunt when your people come within aggro. Boss numbers and abilities (sim/boss_abilities.js) are first guesses, tuned in play.",
+  "respawnDays": 5,
+  "repeatRyo": 350,
+  "leash": 26,
+  "sight": 14,
+  "giveUp": 16,
+  "aggro": 16,
+  "spawnRadius": 5,
+  "patrol": [5, 12],
+  "bossPatrol": [0, 3],
+  "_patrol": "2026-11-28: the guards walk patrol points patrol[0]-patrol[1] from the place, the boss bossPatrol; one hit or spotting you = the whole band comes (sim/bandits.js rally). Ranged ones kite: bandits.json kiteNear/kiteDistance/kiteSeconds/kiteEvery (defaults 4.5, 6, 1.6, 4.5)",
+  "corpseSeconds": 60
+ },
+ "types": {
+  "smuggler": {
+   "sprite": "bandit",
+   "name": "Smuggler",
+   "hp": 220,
+   "damage": 10,
+   "attackRange": 1.2,
+   "attackSpeed": 1.0,
+   "critChance": 0.1,
+   "critMultiplier": 2,
+   "walk": 1.6,
+   "run": 5.4,
+   "radius": 0.35
+  },
+  "guard_archer": {
+   "sprite": "archer",
+   "name": "Lookout",
+   "hp": 160,
+   "damage": 12,
+   "attackRange": 8,
+   "attackSpeed": 1.4,
+   "critChance": 0.1,
+   "critMultiplier": 2,
+   "walk": 1.6,
+   "run": 5.4,
+   "radius": 0.35,
+   "projectile": {
+    "kind": "arrow",
+    "speed": 30
+   }
+  },
+  "river_robber": {
+   "sprite": "bandit",
+   "name": "River robber",
+   "hp": 220,
+   "damage": 11,
+   "attackRange": 1.2,
+   "attackSpeed": 1.0,
+   "critChance": 0.1,
+   "critMultiplier": 2,
+   "walk": 1.6,
+   "run": 5.4,
+   "radius": 0.35
+  },
+  "hill_bandit": {
+   "sprite": "lookout",
+   "name": "Hill bandit",
+   "hp": 300,
+   "damage": 13,
+   "attackRange": 1.3,
+   "attackSpeed": 1.5,
+   "critChance": 0.1,
+   "critMultiplier": 2,
+   "walk": 1.4,
+   "run": 4.8,
+   "radius": 0.45
+  },
+  "manor_ronin": {
+   "sprite": "swordsman",
+   "name": "Ronin",
+   "hp": 280,
+   "damage": 18,
+   "attackRange": 1.6,
+   "attackSpeed": 1.2,
+   "critChance": 0.12,
+   "critMultiplier": 2,
+   "walk": 1.6,
+   "run": 5.6,
+   "radius": 0.35
+  },
+  "desert_raider": {
+   "sprite": "kuroda_spearman",
+   "name": "Desert raider",
+   "hp": 280,
+   "damage": 18,
+   "attackRange": 2.7,
+   "attackSpeed": 1.4,
+   "critChance": 0.1,
+   "critMultiplier": 2,
+   "walk": 1.6,
+   "run": 5.6,
+   "radius": 0.6
+  },
+  "boss_captain": {
+   "sprite": "lookout",
+   "name": "Captain Isogai",
+   "hp": 1600,
+   "damage": 24,
+   "attackRange": 1.4,
+   "attackSpeed": 1.4,
+   "critChance": 0.12,
+   "critMultiplier": 2,
+   "walk": 1.4,
+   "run": 4.8,
+   "radius": 0.6
+  },
+  "boss_ferryman": {
+   "sprite": "mercenary",
+   "name": "Sabu the Ferryman",
+   "hp": 1300,
+   "damage": 20,
+   "attackRange": 10,
+   "attackSpeed": 1.6,
+   "critChance": 0.1,
+   "critMultiplier": 2,
+   "walk": 1.6,
+   "run": 5.4,
+   "radius": 0.5,
+   "projectile": {
+    "kind": "bullet",
+    "speed": 90
+   }
+  },
+  "boss_bandit_chief": {
+   "sprite": "archer",
+   "name": "Chief Onibi",
+   "hp": 1500,
+   "damage": 20,
+   "attackRange": 10,
+   "attackSpeed": 1.4,
+   "critChance": 0.12,
+   "critMultiplier": 2,
+   "walk": 1.6,
+   "run": 5.4,
+   "radius": 0.5,
+   "projectile": {
+    "kind": "arrow",
+    "speed": 30
+   }
+  },
+  "boss_ronin_master": {
+   "sprite": "swordsman",
+   "name": "Master Kagehisa",
+   "hp": 1800,
+   "damage": 30,
+   "attackRange": 1.8,
+   "attackSpeed": 1.0,
+   "critChance": 0.18,
+   "critMultiplier": 2,
+   "walk": 1.7,
+   "run": 6.2,
+   "radius": 0.5
+  },
+  "boss_raider_chief": {
+   "sprite": "kuroda_spearman",
+   "name": "Raider chief Sunagawa",
+   "hp": 2000,
+   "damage": 28,
+   "attackRange": 2.9,
+   "attackSpeed": 1.4,
+   "critChance": 0.12,
+   "critMultiplier": 2,
+   "walk": 1.6,
+   "run": 5.8,
+   "radius": 0.7
+  },
+  "boss_great_bear": {
+   "sprite": "bear",
+   "name": "Old Kuma",
+   "hp": 2700,
+   "damage": 45,
+   "attackRange": 2.6,
+   "attackSpeed": 1.8,
+   "critChance": 0.1,
+   "critMultiplier": 1.5,
+   "walk": 1.3,
+   "run": 6,
+   "radius": 1.3
+  },
+  "boss_pale_wolf": {
+   "sprite": "wolf",
+   "name": "Shiroga",
+   "hp": 700,
+   "damage": 24,
+   "attackRange": 1.5,
+   "attackSpeed": 0.8,
+   "critChance": 0.12,
+   "critMultiplier": 1.6,
+   "walk": 1.6,
+   "run": 7.8,
+   "radius": 0.55
+  }
+ }
+}

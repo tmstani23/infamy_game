@@ -439,13 +439,14 @@ export class CharacterSprite {
     this.ring.position.set(x, 0.02 + gy + (gy ? 0.08 : 0), z);
     this.bar.position.set(x, BAR_UP * size + gy, z).addScaledVector(CAM_RIGHT, -BAR_W / 2);
     this.nameplate.position.set(x, (BAR_UP + 0.35) * size + gy, z);
-    this.nameplate.scale.setScalar(size * (this.heroNameplate ? 1.12 : 1));
+    this.nameplate.scale.setScalar(size * (this.heroNameplate ? 1.12 : this.eliteNameplate ? 1.2 : 1));
   }
 
-  setNameplate(name, visible, color = '#d4aa5a', clan = false, hero = false, border = null) {
-    this.heroNameplate = hero;
+  // elite (a guarded place boss, P4 2026-11-27): a gilt double frame with a diamond at each end, drawn a little larger
+  setNameplate(name, visible, color = '#d4aa5a', clan = false, hero = false, border = null, elite = false) {
+    this.heroNameplate = hero; this.eliteNameplate = elite;
     this.nameplate.visible = !!visible && !!name;
-    const key = `${name}|${color}|${clan}|${hero}|${border}`;
+    const key = `${name}|${color}|${clan}|${hero}|${border}|${elite}`;
     if (!name || key === this.nameplateText) return;
     this.nameplateText = key;
     const g = this.labelContext;
@@ -454,6 +455,10 @@ export class CharacterSprite {
     g.strokeStyle = border || color; g.lineWidth = border ? 3 : 2; g.beginPath(); g.roundRect(5, 6, 246, 36, 8); g.stroke();
     g.strokeStyle = color;
     if (hero) { g.lineWidth = 1; g.beginPath(); g.roundRect(9, 10, 238, 28, 5); g.stroke(); }
+    if (elite) {
+      g.strokeStyle = '#d6a64a'; g.lineWidth = 1.5; g.beginPath(); g.roundRect(10, 11, 236, 26, 5); g.stroke();
+      g.fillStyle = '#e8bd5c'; for (const x of [5, 251]) { g.beginPath(); g.moveTo(x, 16); g.lineTo(x + 7, 24); g.lineTo(x, 32); g.lineTo(x - 7, 24); g.closePath(); g.fill(); }
+    }
     if (clan) {
       g.fillStyle = color; g.beginPath(); g.arc(231, 24, 14, 0, Math.PI * 2); g.fill();
       drawCrest(g, 231, 24, 10, undefined, typeof clan === 'string' ? clan : null);

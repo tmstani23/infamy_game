@@ -12,6 +12,7 @@ const data = f => JSON.parse(readFileSync(new URL(`../${f}`, import.meta.url)));
 const world = data('data/world.json'), W = data('data/wildlife.json'), art = data('data/art.json');
 const FOLK = structuredClone(W.folk);
 FOLK.rules.firstSeconds = [0, 0];
+FOLK.rules.everySeconds = [120, 240]; FOLK.rules.restSeconds = 600;   // the shipped pace, whatever the data is set to for playtests
 FOLK.scenes.peddler.threatSeconds = [10, 10];   // quick to the robbery
 const options = { district: data('data/port_town.json'), catalog: art, cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),

@@ -1119,3 +1119,38 @@ Code: sim/campfire.js (numbers in data/units.json campfire), render/campfire_fx.
 - Night camp (night) off a road: unarmed travellers seated round a fire with flames and long smoke, one strolls and chats, calls out to riders or a band; fire dies at dawn.
 - Crew campfires share the same flame, spark and smoke effect. Gold arrows on the minimap edge have a hover saying what they point to.
 - Numbers: data/wildlife.json "folk" (placeholders).
+
+## Hidden places and rumours (world variety P3, 2026-11-27)
+- Seven hidden places in game/data/hidden_places.json (the guarded places of P4). Rival bots never look. State in state.world.hidden, saved with the game.
+- Rumours: a wandering folk scene (hermit, pilgrims, saved peddler, night camp, duel when the blades are down) tells one rumour when your hero or crew pass within 70; your own frontier townsfolk tell one about a place within 4000 of their town, at most every 2 minutes per town. The line names a landmark on the World map and shows over the speaker's head and in the notice line. A loose ink wash (radius 420, the place always inside, never at the middle) marks the area on the World map and the minimap. No two rumours within 30 s; each scene tells once.
+- Near: any of your people within 700 makes the place show on the minimap: a vermilion brush circle spreads once with a soft bell, then the place's ink mark stays with a breathing lantern glow. Works without a rumour.
+- Found: within 120. Notice "Found: <name> (Relic site)", a deeper bell, a red seal under the mark on both maps, the wash clears; clan milestone hiddenFound counts it.
+- Minimap edge arrows point to rumoured areas and to places that flashed off the box; hovers give name, kind and what to do.
+- Goal card: "Find a hidden place" (then "Find another hidden place (N of 7 found)") when the main chain has nothing for you and you have no war on.
+
+## Guarded places, bosses and relics (world variety P4, 2026-11-28)
+- Seven guarded places (hidden_places.json `guard` blocks; sim/guarded_places.js). Guards are on the map only while their chunk is awake and are kept in state.world.guarded with the save.
+
+| Place | Band | Boss (title, health) | Boss ability | Relic |
+|---|---|---|---|---|
+| Wreck cove | 4 smugglers, 2 archers | Captain Isogai, 1600 | powder keg (1.5 s fuse) | Sea captain's spyglass |
+| Hermit's cave | none | Old Kuma (cave bear, 3x hp, drawn 1.7x), 2700 | rear up then ground slam with stun | Hermit's smoke lantern |
+| Drowned ferry house | 4 river robbers | Sabu the Ferryman (pistol), 1300 | net shot (root), then fast shots | Ferryman's charm |
+| Watch ruin | 4 archers, 2 hill bandits | Chief Onibi, 1500 | fire arrow marks an area, arrow storm 1 s later | Climber's hook |
+| Abandoned manor | 4 manor ronin | Master Kagehisa, 1800 | flicker cut between your groups (crit), rally heal 10% | Fox mask |
+| Buried caravan | 4 mounted raiders | Raider chief Sunagawa, 2000 | dust cloud (your hits miss), bleeding hits | Conch horn |
+| Frozen shrine | 4 wolves | Shiroga (pack leader), 700 | howl calls more wolves | Pilgrim's gourd |
+
+- Bosses: bigger (place scale), own tint, gilt elite nameplate always shown, painted ability effects (render/boss_fx.js, art/fx/boss/), stand-in sounds. Numbers live in hidden_places.json; the Field guide has a Bosses tab built from that data.
+- Human guards fight with the bandit AI inside leash 26, sight 14, give up 16. Guards patrol 5 to 12 from the place, the boss 0 to 3. One guard hit or spotting you brings the whole band to that spot (sim/bandits.js rally). Ranged guards and bosses kite: a foe within 4.5 makes them run 6 away for up to 1.6 s, at most once every 4.5 s, then stand and shoot.
+- Animal places: the bear and the pack are predators of their own den; they hunt your people within aggro 16 and go home past the leash. Guarded packs bite and fall back (no all-out rule) but go for you on sight.
+- Clear = every guard and the boss down. The player clan that landed the last blow gets the place's relic the first time (once per clan); later clears pay 350 ryo. Guards return 5 days after a clear. Bots get nothing. The map click box shows guards or the time until they return, the relic and the clear count.
+- Relic slot: 4th equipment slot (gear_catalog RELICS). Relics are never sold or dropped ("Keepsake, never sold"). Old saves get an empty slot. Action bar slot right of B; key relics use the Relic key (N) with a cooldown sweep and a hover. Relic tricks (sim/relics.js) cover the hero and nearby crew, player clans only, never war troops:
+  - Sea captain's spyglass: always on; the hero sees and reveals 60% farther on the island.
+  - Hermit's smoke lantern: Relic key; cloud radius 8 for 6 s, no shot passes through it; your people inside are hidden unless they attack (seen for 3 s after); 60 s cooldown.
+  - Ferryman's charm: always on; hero and crew within 120 wade any river, 40% slower in the water (areas.js wadeNav).
+  - Climber's hook: Relic key; hero and crew within 8 (on foot) go over the nearest palisade or wall within 4 in 3 s; 90 s cooldown.
+  - Fox mask: always on; hero and crew within 20 go unnoticed by bandits and wild animals; rival troops and heroes see you only within 6; any attack shows you for 20 s.
+  - Conch horn: Relic key; every enemy within 60 (hidden ones too) is marked for 15 s, shown on screen and maps, and cannot stealth again; 90 s cooldown.
+  - Pilgrim's gourd: Relic key; heals the hero 50% of max HP over 3 s; 180 s cooldown.
+- Relic effects: render/relic_fx.js (smoke, heal, conch rings, climb dust). Sounds are stand-ins.

@@ -44,6 +44,35 @@ export function fieldGuideData(frontierData, unitsFile) {
   return { cols: COLS, rows, notes };
 }
 
+// Guarded place bosses (P4, 2026-11-28): one row a place, live from data/hidden_places.json (its guard types,
+// wolves from wildlife.json). Short ability text with the numbers; the long version in the hover.
+const ABILITY = {
+  keg: a => [`Powder keg every ${a.every} s, ${a.damage} in radius ${a.radius}`, `${a.damage} damage in radius ${a.radius} after a ${a.fuse} s fuse, knocks back`],
+  slam: a => [`Ground slam every ${a.every} s, ${a.damage} and a ${a.stun} s stun`, `${a.damage} damage in radius ${a.radius} after a ${a.windup} s rear-up, ${a.stun} s stun`],
+  net: a => [`Net shot every ${a.every} s, roots ${a.root} s`, `roots one for ${a.root} s, then ${a.burst} shots at ${a.burstDamage}x damage`],
+  arrowStorm: a => [`Arrow storm every ${a.every} s, ${a.damage} an arrow`, `fire arrow marks radius ${a.radius}; ${a.delay} s later ${a.arrows} arrows plus ${a.perLookout} a living lookout, ${a.damage} each`],
+  flicker: a => [`Flicker cut every ${a.every} s, ${a.targets} cuts, heals ${pct(a.heal)}%`, `hops between up to ${a.targets} of your groups, a ${a.crit}x hit on each, then heals his band ${pct(a.heal)}% over ${a.healSeconds} s`],
+  dust: a => [`Dust cloud every ${a.every} s, ${pct(a.miss)}% of your hits miss`, `radius ${a.radius} for ${a.seconds} s: ${pct(a.miss)}% of your hits miss inside`],
+  howl: a => [`Howl every ${a.every} s, ${a.adds} more wolves`, `calls ${a.adds} more wolves (${a.max} times at most); the pack runs and bites ${a.speed}x for ${a.seconds} s`],
+};
+export function bossGuideData(hidden, animals) {
+  const T = { ...(animals?.types || {}), ...(hidden?.types || {}) }, dps = u => u ? u.damage / u.attackSpeed * (1 + (u.critChance || 0) * ((u.critMultiplier || 2) - 1)) : 0;
+  return (hidden?.places || []).filter(p => p.guard?.boss).map(p => {
+    const g = p.guard, b = T[g.boss.type] || {}, band = (g.members || []).map(([t, n]) => ({ n, u: T[t] || {} }));
+    const [ab, abLong] = (ABILITY[g.boss.ability?.kind] || (() => ['', '']))(g.boss.ability || {});
+    return { id: p.id, title: g.boss.title, name: b.name, place: p.name, hp: b.hp, hit: b.damage, every: b.attackSpeed, dps: Math.round(dps(b)),
+      band: band.map(({ n, u }) => `${n} ${u.name || ''}`).join(', ') || 'Alone', bandTip: band.map(({ n, u }) => `${n} ${u.name}: ${u.hp} health, ${Math.round(dps(u))} a second`).join('; '),
+      total: (b.hp || 0) + band.reduce((t, { n, u }) => t + n * (u.hp || 0), 0), groupDps: Math.round(dps(b) + band.reduce((t, { n, u }) => t + n * dps(u), 0)),
+      ability: ab, abilityTip: abLong + (g.boss.bleed ? `. His hits bleed ${pct(g.boss.bleed.share)}% of health a second for ${g.boss.bleed.seconds} s` : '') };
+  });
+}
+function bossGuideHtml(rows, repeatRyo) {
+  const e = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  return `<div class="fg-sub">Guarded places: the boss, his band and his trick. First clear gives the relic; again later pays ${repeatRyo} ryo.</div>
+<table class="fg-boss"><colgroup><col class="w"><col><col><col><col><col class="ab"></colgroup><thead><tr><td>Boss</td><td>Health<small>boss, with band</small></td><td>Hit<small>per second</small></td><td>Band</td><td>Damage<small>all together</small></td><td>Trick</td></tr></thead>
+<tbody>${rows.map(r => `<tr><th><div><span>${e(r.title)}</span><small>${e(r.name)}, ${e(r.place)}</small></div></th><td><b>${r.hp}</b><small>${r.total}</small></td><td title="${r.hit} every ${r.every} s, crits counted"><b>${r.dps}</b><small>${r.hit} each</small></td><td title="${e(r.bandTip)}"><small>${e(r.band)}</small></td><td><b>${r.groupDps}</b><small>a second</small></td><td class="ab" title="${e(r.abilityTip)}"><small>${e(r.ability)}</small></td></tr>`).join('')}</tbody></table>`;
+}
+
 const RING = (w, cls) => `<svg class="${cls}" preserveAspectRatio="none" viewBox="0 0 ${w} 60" aria-hidden="true"><path d="${w > 100
   ? `M14 34 C 10 14, ${w * .3} 6, ${w * .53} 7 C ${w * .78} 8, ${w - 8} 14, ${w - 10} 32 C ${w - 12} 50, ${w * .73} 56, ${w / 2} 55 C ${w * .27} 54, 12 52, 8 36 C 6 24, 30 16, 60 13`
   : 'M8 32 C 6 12, 40 4, 62 7 C 86 10, 97 22, 92 38 C 86 54, 46 58, 24 52 C 10 47, 6 38, 14 26 C 20 18, 30 14, 40 12'}"/></svg>`;
@@ -70,13 +99,13 @@ export function fieldGuideHtml(data) {
     return `<tr data-k="${r.k}"><th><img src="../assets/ui/abilities/${r.icon}.png" alt="" draggable="false"><div><span>${r.name}</span><small>${r.sub}</small></div></th>${html}</tr>`;
   };
   const foot = [notes.armory && `<div><b>Armory armor</b> ${notes.armory}</div>`, notes.hero && `<div><b>Heroes</b> ${notes.hero}</div>`].filter(Boolean).join('');
-  return `<div class="fg-head"><h2>Field guide</h2><button type="button" class="fg-x">Esc</button></div>
-<div class="fg-page"><div class="fg-spine">${STITCH}</div>
+  return `<div class="fg-head"><h2>Field guide</h2>${data.bosses?.length ? '<button type="button" class="fg-tab on" data-tab="weapons">Weapons</button><button type="button" class="fg-tab" data-tab="bosses">Bosses</button>' : ''}<button type="button" class="fg-x">Esc</button></div>
+<div class="fg-page"><div class="fg-spine">${STITCH}</div>${data.bosses?.length ? `<div class="fg-tabpage" data-page="bosses" hidden>${bossGuideHtml(data.bosses, data.repeatRyo)}</div>` : ''}<div class="fg-tabpage" data-page="weapons">
 <div class="fg-sub">How much of each blow a target takes. 100% is a normal hit.</div>
 <table><colgroup><col class="w"><col><col><col><col></colgroup><thead><tr><td>Weapon</td>${cols.map(([, n, s]) => `<td>${n}<small>${s}</small></td>`).join('')}</tr></thead>
 <tbody>${rows.map(row).join('')}</tbody></table>
 <div class="fg-slip"><div class="fg-key"><span class="kk"><span class="fg-seal">${RING(100, 'ring')}</span>hits harder</span><span><i>25%</i>faded ink, hits softer</span>${notes.fireLine ? `<span>${notes.fireLine}</span>` : ''}</div><div class="fg-notes">${foot}</div></div>
-</div>`;
+</div></div>`;
 }
 
 // Japanese stab binding: four holes, the thread wraps over the spine at each
@@ -99,6 +128,14 @@ body #fieldguidebtn{--ico:${ICO}}
 #fieldguide .fg-head h2{margin:0;flex:1;font:800 26px/1 ${F};color:#f2e2c0}
 #fieldguide .fg-x{font:500 14px ${F};color:#d9c39a;background:none;border:1px solid rgba(201,160,78,.5);padding:5px 10px;cursor:pointer}
 #fieldguide .fg-x:hover{border-color:#e9c27a;color:#f2e2c0}
+#fieldguide .fg-tab{font:500 14px ${F};color:#d9c39a;background:none;border:1px solid transparent;padding:5px 10px;margin-right:8px;cursor:pointer}
+#fieldguide .fg-tab.on{border-color:rgba(201,160,78,.5);color:#f2e2c0}
+#fieldguide .fg-tab:hover{color:#f2e2c0}
+#fieldguide .fg-boss col.w{width:250px}
+#fieldguide .fg-boss col.ab{width:230px}
+#fieldguide .fg-boss td b{display:block;font:800 18px ${F};color:#2c1a0e}
+#fieldguide .fg-boss td small{display:block;font:500 13px ${F};color:#6a4e32}
+#fieldguide .fg-boss td.ab{text-align:left}
 #fieldguide .fg-page{position:relative;margin:10px;padding:14px 30px 18px 74px;color:#3a2716;background-color:#e3d2a8;
  background-image:radial-gradient(ellipse 70% 60% at 50% 45%,transparent 55%,rgba(70,40,12,.28)),radial-gradient(ellipse 9% 7% at 93% 12%,rgba(130,85,35,.16),transparent 70%),radial-gradient(ellipse 5% 4% at 20% 92%,rgba(130,85,35,.14),transparent 70%),radial-gradient(circle at 0 0,rgba(90,55,20,.35),transparent 120px),radial-gradient(circle at 100% 100%,rgba(90,55,20,.45),transparent 160px),radial-gradient(circle at 100% 0,rgba(90,55,20,.3),transparent 120px),${PAPER};
  box-shadow:inset 0 0 70px rgba(110,70,25,.45),inset 0 0 0 1px rgba(80,50,20,.4)}
@@ -141,7 +178,7 @@ body #fieldguidebtn{--ico:${ICO}}
 #fieldguide .fg-notes{display:flex;flex-direction:column;gap:10px;font:500 14.5px ${F};color:#4a3320}
 #fieldguide .fg-notes b{color:#2c1a0e}`;
 
-export function createFieldGuide({ frontierData, unitsFile, doc = document, onOpen, onClose }) {
+export function createFieldGuide({ frontierData, unitsFile, hidden = null, animals = null, doc = document, onOpen, onClose }) {
   const style = doc.createElement('style'); style.textContent = CSS; doc.head.append(style);
   const el = Object.assign(doc.createElement('div'), { id: 'fieldguide', hidden: true });
   el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Field guide');
@@ -150,7 +187,8 @@ export function createFieldGuide({ frontierData, unitsFile, doc = document, onOp
   const defs = doc.createElement('div');
   defs.innerHTML = '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="fg-rough"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="5"/><feDisplacementMap in="SourceGraphic" scale="3"/></filter></svg>';
   doc.body.append(defs.firstChild);
-  el.addEventListener('click', e => { if (e.target.closest?.('.fg-x')) close(); });
+  el.addEventListener('click', e => { if (e.target.closest?.('.fg-x')) close();
+    const t = e.target.closest?.('.fg-tab'); if (t) { for (const b of el.querySelectorAll('.fg-tab')) b.classList.toggle('on', b === t); for (const p of el.querySelectorAll('.fg-tabpage')) p.hidden = p.dataset.page !== t.dataset.tab; fit(); } });
   // shrink to fit a small window (no scrollbars)
   function fit() {
     const win = doc.defaultView; if (!win || el.hidden) return;
@@ -159,7 +197,7 @@ export function createFieldGuide({ frontierData, unitsFile, doc = document, onOp
     el.style.setProperty('--fg-s', String(Math.max(.5, s)));
   }
   doc.defaultView?.addEventListener('resize', fit);
-  function open() { el.innerHTML = fieldGuideHtml(fieldGuideData(frontierData, unitsFile)); el.hidden = false; fit(); doc.fonts?.ready?.then(fit); onOpen?.(); }
+  function open() { el.innerHTML = fieldGuideHtml({ ...fieldGuideData(frontierData, unitsFile), bosses: bossGuideData(hidden, animals), repeatRyo: hidden?.guards?.repeatRyo ?? 350 }); el.hidden = false; fit(); doc.fonts?.ready?.then(fit); onOpen?.(); }
   function close() { if (el.hidden) return; el.hidden = true; onClose?.(); }
   return { open, close, toggle: () => el.hidden ? open() : close(), isOpen: () => !el.hidden, el };
 }

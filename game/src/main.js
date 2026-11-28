@@ -134,9 +134,10 @@ async function start() {
   const islandOnly = v => island ? v : null;
   const railways = await getJSON('data/railways.json').catch(() => null);   // train plan: railway rules
   const weatherCfg = await getJSON('data/weather.json').catch(() => null);
-  const wildlifeCfg = await getJSON('data/wildlife.json').catch(() => null);   // crows and animals, visual only so far (wildlife W1, 2026-11-24)   // frontier weather, visual only (2026-11-20)
+  const wildlifeCfg = await getJSON('data/wildlife.json').catch(() => null);
+  const hiddenCfg = await getJSON('data/hidden_places.json').catch(() => null);   // hidden places and rumours (world variety P3)   // crows and animals, visual only so far (wildlife W1, 2026-11-24)   // frontier weather, visual only (2026-11-20)
   const castleBlueprint = await getJSON('data/castle_default.json').catch(() => null), campaignZones = await getJSON('data/campaign_zones.json').catch(() => null);   // Z4: castles and zones
-  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), animals: islandOnly(wildlifeCfg?.animals), folk: islandOnly(wildlifeCfg?.folk), frontier: islandOnly(frontier && { ...frontier, railways, castleBlueprint, campaignZones, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
+  const simOptions = { district, catalog, cutouts, interiors, parts, recipes, units: unitsFile, civilians, bandits, police, settings, world: islandOnly(world), worldChunks: islandOnly(worldChunks), resourceSpots: islandOnly(resourceSpots), resourceSpotRules: islandOnly(resourceSpotRules), animals: islandOnly(wildlifeCfg?.animals), folk: islandOnly(wildlifeCfg?.folk), hidden: islandOnly(hiddenCfg), frontier: islandOnly(frontier && { ...frontier, railways, castleBlueprint, campaignZones, ...(DEV ? { dev: true } : {}), fixtureTowns: false }) };   // E6b: no fixture towns in real games   // the worker gets the same options, frontier included
   const matchOptions = { ...selected, bots, spawns: district.spawns, test: TEST, seed: Math.floor(Math.random() * 2147483646) + 1 };   // seed: per-game bot site picks (E6)
   // A read-only replica supplies existing UI queries and static geometry. Only
   // the worker advances the match, including while Map/Deployment is open.
@@ -538,7 +539,7 @@ async function start() {
   let townAlertHook = () => {};   // set when the frontier town windows exist (F4.4c)
   let closeTown = () => {};   // set when the frontier town panel exists (F4.4)
   // opening it counts for the Learn what beats what goal
-  const fieldGuide = createFieldGuide({ frontierData: simOptions.frontier, unitsFile: simOptions.units,
+  const fieldGuide = createFieldGuide({ frontierData: simOptions.frontier, unitsFile: simOptions.units, hidden: simOptions.hidden, animals: simOptions.animals,
     onOpen: () => { const o = game.state.entities[heroId]?.owner; if (o && game.goals?.current(o)?.key === 'fieldguide') pending.push({ id: heroId, type: 'guide', read: 'fieldGuide' }); } });
   onKey('Escape', () => { fieldGuide.close(); warOutcome.close(); crewInput.cancelTarget(); crewInput.endAttackMode(); closeTown(); hireMenu.close(); clinicMenu.close(); policeMenu.close(); landOfficeMenu.close(); lieutenantTalk.close(); surveyorTalk.close(); stationMenu.close(); stableMenu.close(); vehiclesPanel?.close(); standingsPanel.close(); siteMenu.close(); contractMenu.close(); deploymentPanel.close(); crewInput.cancelAction(); crewInput.clear(); $('controls').hidden = true; controlTips.hide(); gameMap.close(); unitFrames.clearKnown(); });
   let abilityRows = null;   // war checkpoint 7: made after the action bar
@@ -622,6 +623,7 @@ async function start() {
   abilityRows = createAbilityRows({ root: $('bar'), marks: $('structbars'), game, units, view, heroId, crewInput, tickRate: TICK_RATE, send: c => pending.push(c) });
   crewInput.onShiftRight(p => abilityRows.shiftRight(p));   // war checkpoint 7: special abilities of the selection (Torch)
   onAction('useItem', () => bar.useItem());   // usable-item slot
+  onAction('relic', () => bar.useRelic());   // relic slot (P4)
   let nameplatesOn = false;
   onAction('nameplates', () => { nameplatesOn = !nameplatesOn; view.setNameplates(nameplatesOn); });
   // F2: hide every panel, bar and nameplate for screenshots, F2 again brings them back (2026-11-08)

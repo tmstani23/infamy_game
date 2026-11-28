@@ -241,6 +241,8 @@ War bar default position: top 104 px, below the standings bar.
 | Hover a train | Shows the train's card. |
 | Ctrl+U or Unstuck (island) | Sends you to the nearest town hall, or to the capital if it is closer. |
 | Right-click your own campfire | Walk back to your seat and relight it; your crew sit again (2026-11-26). |
+| N (Relic key) | Use the worn relic (key relics only; always-on relics need no key). Its slot sits right of B on the action bar (2026-11-28). |
+| Hover a rumour wash or hidden place mark (minimap, World map) | Explains what it is and what to do (2026-11-27). |
 | Shift+N (island) | Make camp: 2 s Preparing fire, then a campfire where hero and crew sit and heal; again to break camp. Not in a war circle, a town ring, aboard or within 10 s of a hit. |
 | Q or right-click an omnibus or rickshaw | Board or deploy it (the omnibus icon flashes on hover). Omnibus: 8 seats, 3x speed, 800 health; rickshaw: 2 seats, 3.5x, 400 health. Nobody inside fights; hits land on the vehicle and everyone piles out when it is wrecked. |
 | Space at a station | Rickshaw travel: pick one of your stations or the capital; instant, 2 per waiting rickshaw; refused within 10 s of a hit or with enemies within 12. From the city, use the gate menu (3). |
@@ -383,6 +385,7 @@ Menu look (2026-11-11, lantern style 2026-11-23):
 - Hover the health bar of a ship, building, wall or gate card: a panel shows Damage it takes (100% = normal) per weapon, read live from war.ships.hullDamage and war.structures.damage (stone types: fire-bombs x war.structures.stone.bomb) (2026-11-25).
 - Field guide: Shift+G, or the book button in the utility menu beside Ryo. Esc closes it.
 - Field guide page (src/field_guide.js): a notebook page with weapons down the side (Cannons, Swords and hero, Arrows and rifles, Gatling, Fire-bombs, Torch) and targets across the top (Troops, Wood, Stone, Ships). Each box shows the % of a hit the target takes (100% = normal). Every number is read live from the data: war.structures.damage and war.structures.stone (buildings), war.ships.hullDamage (ships), the cannons' unitShare (troops), war.structures.fire.damage (fire), war.armory.step and the hero's frontierDamage (the notes). Hits over 100% are circled in red, hits under 100% are in faded ink, and Fire is stamped.
+- Field guide Bosses tab (2026-11-28): each guarded-place boss with health, hit, DPS, band and ability, read live from hidden_places.json.
 - A damage kind added to either table later still shows as a plain row named by its key. tools/test_field_guide.mjs fails until the kind gets a proper name and icon in field_guide.js.
 
 War camp (2026-11-10, campaign):

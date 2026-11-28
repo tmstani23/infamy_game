@@ -34,6 +34,7 @@ export const ATLAS_MARKERS = {
   capital: { label: 'The Capital', color: '#d45d49', glyph: [circle(8),circle(4)], hollow: true },
   hero: { label: 'You', color: '#75ecae', glyph: [polygon([0,-8],[6,5],[0,2],[-6,5])] },
   pin: { label: 'Your pin', color: '#f9a2d7', glyph: [circle(5)], hollow: true },
+  hidden: { label: 'Relic site', color: '#b03424', glyph: [circle(5)] },   // the painted mark (art/ui/map/hidden_relic.png); a red seal once found
 };
 // the capital's key entry is a small copy of its seal
 const CAPITAL_SVG = '<svg viewBox="-12 -12 24 24" width="20" height="20" aria-hidden="true">'
@@ -43,6 +44,7 @@ const CAPITAL_SVG = '<svg viewBox="-12 -12 24 24" width="20" height="20" aria-hi
 const SYMBOL_OF = { site: 'site', pass: 'pass', bridge: 'bridge', ford: 'ford', camp: 'bandit', pin: 'pin', hero: 'hero' };
 export function atlasGlyphSVG(kind) {
   if (kind === 'capital') return CAPITAL_SVG;
+  if (kind === 'hidden') return '<img src="art/ui/map/hidden_relic.png" width="22" height="22" alt="" aria-hidden="true">';
   if (kind === 'town' && typeof document !== 'undefined') { const c = document.createElement('canvas'); c.width = c.height = 40; const g = c.getContext('2d'); g.scale(2, 2); drawTownBadge(g, 10, 10); return `<img src="${c.toDataURL()}" width="20" height="20" alt="" aria-hidden="true">`; }
   if (kind === 'camp') return mapSymbolImg('bandit') + mapSymbolImg('ruin') + mapSymbolImg('cache');
   if (SYMBOL_OF[kind]) return mapSymbolImg(SYMBOL_OF[kind]);
@@ -136,6 +138,7 @@ const titleCase = s => String(s).replaceAll('_', ' ').replace(/\b\w/g, c => c.to
 export function atlasFeatureName(it) {
   if (!it) return '';
   if (it.kind === 'pin') return it.note || 'Your pin';
+  if (it.kind === 'hidden') return `${it.name} (${it.label})${it.state === 'near' ? ': close by, ride to the mark' : it.what ? ': ' + it.what : ''}`;
   if (it.kind === 'resource') return `${RICH_NAME[it.featureKind] || titleCase(it.featureKind)} no. ${parseInt(String(it.id).replace(/\D+/g, ''), 10) || it.id}`;
   if (it.kind === 'camp') return `${it.featureKind === 'bandit' ? 'Bandit camp' : titleCase(it.featureKind)} no. ${parseInt(String(it.id).replace(/\D+/g, ''), 10) || it.id}`;
   return it.name || `${ATLAS_MARKERS[it.kind]?.label || titleCase(it.kind)}${it.id ? ' · ' + it.id : ''}`;
@@ -156,6 +159,9 @@ export function atlasItems(world, st, layers, known) {
   if (layers.sites) for (const t of st.towns || []) records.push({ ...t, kind: 'town' });
   records.push({ ...world.capital, kind: 'capital', name: 'The Capital' });
   for (const p of st.pins || []) records.push({ ...p, kind: 'pin' });
+  for (const h of st.hidden || []) if (h.state !== 'rumour') records.push({ ...h, placeKind: h.kind, kind: 'hidden' });   // hidden places reached or near (P3)
+  // Show everything (test): every other hidden place too, unstamped (P4, 2026-11-27)
+  if (layers.revealAll) { const seen = new Set(records.filter(r => r.kind === 'hidden').map(r => r.id)); for (const h of st.hiddenAll || []) if (!seen.has(h.id)) records.push({ ...h, placeKind: h.kind, state: 'all', kind: 'hidden' }); }
   return records;
 }
 

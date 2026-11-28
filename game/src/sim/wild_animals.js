@@ -294,7 +294,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     if (sp?.predator && clan) {
       const d = denOf(t.wm.den), pack = t.wm.den ? packOf(t.wm.den) : [t];
       // you started it (they were not hunting you): the whole pack comes all out (2026-11-27); hitting back in a hunt of theirs does not
-      if (!hunting(t) || t.wm.clan !== clan) { const all = pack.length ? pack : [t]; const calm = (t.wm.calm ?? -1) > state.tick; startHunt(d || { id: null, kind: t.species }, all, clan, by, true); if (!calm) for (const e of all) e.wm.allOut = true; }   // (not a pack you just drove off, hit as it runs)
+      if (!hunting(t) || t.wm.clan !== clan) { const all = pack.length ? pack : [t]; const calm = (t.wm.calm ?? -1) > state.tick; startHunt(d || { id: null, kind: t.species }, all, clan, by, true); if (!calm && !t.guarded) for (const e of all) e.wm.allOut = true; }   // (not a pack you just drove off, hit as it runs, nor a guarded place's pack: 2026-11-28, it bites and falls back)
       else for (const e of pack) { e.wm.mode = e.wm.mode === 'stalk' ? 'hunt' : e.wm.mode; e.wm.provoked = true;
         if (e.wm.allOut) { const until = state.tick + secs(P.hunt?.seconds ?? 90); e.wm.huntEnd = Math.max(e.wm.huntEnd ?? 0, until); (e.angry ||= {})[clan] = Math.max(e.angry[clan] ?? 0, until); } }   // all out: every hit keeps the fight going
       return;
@@ -314,7 +314,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
     if (t.wm?.den) { const st = denState()[t.wm.den] ||= {}; st.lost = (st.lost || 0) + 1; }
     // a pack that is down to half breaks off at once, not at the next think (2026-11-27); an all-out one fights on
     if (t.wm?.den && hunting(t)) { const d = denOf(t.wm.den), pack = packOf(t.wm.den).filter(e => e !== t);
-      if (d && pack.length && pack.some(hunting)) huntCheck(d, pack, Object.values(state.entities).filter(person)); }
+      if (d && pack.length && pack.some(hunting)) huntCheck(d, pack, Object.values(state.entities).filter(p => person(p) && !p.relicUnseen && !p.hidden)); }
     if (!sp?.drop || !clan) return;
     clan.hides ||= {};
     const hero = Object.values(state.entities).find(e => e.type === 'hero' && e.owner === a.owner);
@@ -471,7 +471,7 @@ export function createWildAnimals({ state, data, world = null, areas, terrainAt,
   function tick() {
     if (!data || !areas || !ready()) return;
     catchTick();
-    const people = Object.values(state.entities).filter(person);
+    const people = Object.values(state.entities).filter(p => person(p) && !p.relicUnseen && !p.hidden);   // the fox mask (sim/relics.js): unnoticed until they attack; hidden ones (the lantern's cloud) too
     const noise = noises();
     for (const e of animals()) if (!e.dead) { if (e.wm?.alertPrey != null) watchAlert(e); step(e, people, noise); }
     if (state.tick % THINK !== 0) return;

@@ -41,7 +41,7 @@ export function createItemGrid(root, { equipment = false, activate, hover = null
       button.querySelector('small').textContent = equipment ? key[0].toUpperCase() + key.slice(1) : String(i + 1);
       if (button.dataset.item !== (id || '')) {
         button.dataset.item = id || '';
-        button.querySelector('.item-icon').innerHTML = item ? (item.id ? `<img src="../assets/items/${item.icon || item.id}.png" alt="">` : ICONS[item.slot]) : '<span class="empty-slot"></span>';
+        button.querySelector('.item-icon').innerHTML = item ? (item.id ? `<img src="../assets/items/${item.icon || item.id}.png" alt="">` : ICONS[item.slot]) : equipment && key === 'relic' ? `<span class="empty-slot relic-empty">${ICONS.relic}</span>` : '<span class="empty-slot"></span>';
         button.querySelector('.item-name').textContent = item?.name || (equipment ? 'Empty' : '');
       }
       const fx = effectOf(item), detail = item ? `${item.name}: ${item.about}${/\.$/.test(item.about) ? '' : '.'} Visual effect: ${fx ? fx.text.toLowerCase() : 'none'}.${item.sell ? ` Sell value: ${item.sell} ryo.` : ''} ${verb}.` : `${equipment ? key : `Slot ${i + 1}`}: Empty`;

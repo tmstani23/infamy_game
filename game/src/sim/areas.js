@@ -41,6 +41,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   let active = new Map();                // chunk key -> cached chunk, for chunks units stand in or next to
   let planning = null;                   // L3.6: temporary fine grids; planning never activates chunks
   let planningBlocked = null;           // worker-only town obstacles; never changes normal navigation
+  let wading = false;                   // the Ferryman's charm (P4): river water open for this search (wadeNav)
   let freeMemo = null;
   // worker lag 2026-11-22: during a worker search, the town blockers as ready lookups of blocked cells (town_grid.js
   // townBlockedCells) instead of asking the building boxes cell by cell
@@ -62,7 +63,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
       const j0 = Math.max(0, Math.floor((b.minZ - PAD - z0) / CELL)), j1 = Math.min(N - 1, Math.floor((b.maxZ + PAD - z0) / CELL));
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
         const cxw = x0 + (i + 0.5) * CELL, czw = z0 + (j + 0.5) * CELL;
-        if (cxw > b.minX - PAD && cxw < b.maxX + PAD && czw > b.minZ - PAD && czw < b.maxZ + PAD) grid[j * N + i] = 1;
+        if (cxw > b.minX - PAD && cxw < b.maxX + PAD && czw > b.minZ - PAD && czw < b.maxZ + PAD) grid[j * N + i] |= b.kind === 'river' ? 2 : 1;   // 2: river water only (wadeable)
       }
       const bi0 = Math.max(0, Math.floor((b.minX - x0) / B)), bi1 = Math.min(NB - 1, Math.floor((b.maxX - x0) / B));
       const bj0 = Math.max(0, Math.floor((b.minZ - z0) / B)), bj1 = Math.min(NB - 1, Math.floor((b.maxZ - z0) / B));
@@ -134,7 +135,8 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
     }
     const c = planning ? planning.get(key) : active.get(key);
     if (!c || !inRange(cx, cz)) return false;
-    return !c.grid[(j - cz * N) * N + (i - cx * N)];
+    const g = c.grid[(j - cz * N) * N + (i - cx * N)];
+    return wading ? !(g & 1) : !g;
   }
   function nearestFreeCell(x, z, maxRing = 12) {
     const [ci, cj] = cellOf(x, z);
@@ -482,7 +484,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   const portalsOf = (cx, cz) => { ensureGraph(); return ['E' + cx + ',' + cz, 'E' + (cx - 1) + ',' + cz, 'S' + cx + ',' + cz, 'S' + cx + ',' + (cz - 1)].map(k => graph.borders.get(k) || []); };
 
   // ---------- for tryMove and sight ----------
-  function blockersNear(x0, z0, x1, z1) {
+  function blockersNear(x0, z0, x1, z1, wade = false) {
     const out = [...dynamicBlockers(x0,z0,x1,z1)];
     for (let cz = Math.floor(z0 / S); cz <= Math.floor(z1 / S); cz++) for (let cx = Math.floor(x0 / S); cx <= Math.floor(x1 / S); cx++) {
       const c = active.get(keyOf(cx, cz));
@@ -490,7 +492,7 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
       const bl = c.gen.blockers, seen = new Set();
       for (let j = Math.max(0, Math.floor((z0 - c.gen.z0) / B)); j <= Math.min(NB - 1, Math.floor((z1 - c.gen.z0) / B)); j++)
         for (let i = Math.max(0, Math.floor((x0 - c.gen.x0) / B)); i <= Math.min(NB - 1, Math.floor((x1 - c.gen.x0) / B)); i++)
-          for (const n of c.buckets[j * NB + i]) if (!seen.has(n)) { seen.add(n); out.push(bl[n]); }
+          for (const n of c.buckets[j * NB + i]) if (!seen.has(n)) { seen.add(n); if (!wade || bl[n].kind !== 'river') out.push(bl[n]); }
     }
     return out;
   }
@@ -545,13 +547,21 @@ export function createAreas({ world, cfg, seed = 1, city = null, dynamicBlockers
   const nav = { beginPath, findPath, workerPath, clearLine, wallLine, free: (x, z) => free(...cellOf(x, z)), nearestFree: (x, z) => { const c = nearestFreeCell(x, z); return c && centre(...c); } };
   // War checkpoint 6 (gates stop only the enemy): the same walk grid with extra ground closed for one side.
   // blocked(x, z) -> true where that side may not walk. Normal navigation is untouched.
+  // The Ferryman's charm (P4, 2026-11-28): the same navigation with river water open, for the wearer's group. Trips that
+  // stay inside the awake chunks wade straight across; longer trips still follow the island route (fords and bridges)
+  // until their last stretch. blockersNear(..., true) leaves the river out for movement.
+  function wadeNav() {
+    const wrap = fn => (...a) => { const w = wading, fm = freeMemo; wading = true; freeMemo = null; try { return fn(...a); } finally { wading = w; freeMemo = fm; } };
+    return { findPath: wrap(findPath), clearLine: wrap(clearLine), free: wrap(nav.free), nearestFree: wrap(nav.nearestFree), wade: true,
+      beginPath: wrap((...a) => { const job = beginPath(...a); return { advance: wrap(b => job.advance(b)), get work() { return job.work; }, get steps() { return job.steps; }, get done() { return job.done; }, get path() { return job.path; } }; }) };
+  }
   function blockedNav(blocked) {
     const wrap = fn => (...a) => { const pb = planningBlocked, fm = freeMemo, bs = blockSet, ds = dynSet; planningBlocked = blocked; freeMemo = null; blockSet = null; dynSet = null; try { return fn(...a); } finally { planningBlocked = pb; freeMemo = fm; blockSet = bs; dynSet = ds; } };
     return { findPath: wrap(findPath), clearLine: wrap(clearLine), free: wrap(nav.free), nearestFree: wrap(nav.nearestFree), workerPath: (ax, az, bx, bz) => workerPath(ax, az, bx, bz, blocked),
       beginPath: wrap((...a) => { const job = beginPath(...a); return { advance: wrap(b => job.advance(b)), get work() { return job.work; }, get steps() { return job.steps; }, get done() { return job.done; }, get path() { return job.path; } }; }) };
   }
   return {
-    blockedNav,
+    blockedNav, wadeNav,
     nav, update, route, editChunk, portalsOf, blockersNear, lightsNear, ensureGraph,
     chunkSize: S, chunkOf: (x, z) => [Math.floor(x / S), Math.floor(z / S)], chunkId,
     activeIds: () => [...active.values()].map(c => c.id).sort(),

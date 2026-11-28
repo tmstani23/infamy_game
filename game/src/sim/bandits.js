@@ -60,7 +60,7 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
   function patrolCamp(e, m, c) {
     if (m.until != null && state.tick < m.until) { e.anim = 'idle'; return; }
     if (!m.spot) {
-      const angle = rng() * Math.PI * 2, radius = 1.5 + rng() * 2;
+      const P = e.boss ? c.bossPatrol : c.patrol, angle = rng() * Math.PI * 2, radius = P ? P[0] + rng() * (P[1] - P[0]) : 1.5 + rng() * 2;   // guarded places: spread round the boss (2026-11-28)
       const point = navFor(e)?.nearestFree(c.x + Math.cos(angle) * radius, c.z + Math.sin(angle) * radius);
       if (!point) return;
       goTo(e, m, { id: 'camp', x: point[0], z: point[1] });
@@ -103,9 +103,21 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
   // Hit by someone of a clan: it and the bandits near it fight that clan (e.angry: clan -> tick it ends)
   function provoke(t, clan) {
     if (!clan || clan === WILD) return;
+    if (t.guarded) { rally(t, clan); return; }
     for (const b of Object.values(state.entities)) {
       if (b.owner !== WILD || b.dead || b.place !== t.place || Math.hypot(b.x - t.x, b.z - t.z) > (R.joinRadius ?? 8)) continue;
       (b.angry ||= {})[clan] = state.tick + secs(R.angrySeconds ?? 10);
+    }
+  }
+  // A guarded place's band (2026-11-28): one guard or the boss hit or spotting you = every guard of the place
+  // comes, running to where it happened (e.rally) until it finds someone to fight there
+  function rally(t, clan) {
+    const until = state.tick + secs(R.angrySeconds ?? 10);
+    for (const b of Object.values(state.entities)) {
+      if (b.owner !== WILD || b.dead || b.guarded !== t.guarded) continue;
+      const fresh = !b.angry?.[clan];
+      (b.angry ||= {})[clan] = Math.max(b.angry[clan] ?? 0, until);
+      if (b !== t && fresh) b.rally = { x: t.x, z: t.z, until: state.tick + secs(R.rallySeconds ?? 12) };
     }
   }
   // Killed: the ryo stays on the body (t.loot) for whoever loots it with a right-click, not the
@@ -117,34 +129,73 @@ export function createBandits({ state, data, units, camps = [], pois = [], edges
     t.loot = Math.round(base * (1 - k + rng() * 2 * k));
   }
 
+  // Ranged guards and bosses (2026-11-28): when a foe comes within kiteNear they run kiteDistance away from it, then stand
+  // and shoot; again once every kiteEvery s at most, so they get a few shots in between (e.kite { x, z, until, next })
+  const ranged = unit => !!unit.projectile || (unit.attackRange ?? 1) >= 5;
+  function kiteStep(e, unit, camp) {
+    if (!ranged(unit) || e.mounted) return false;
+    const k = e.kite;
+    if (k && state.tick < k.until) {
+      if (Math.hypot(k.x - e.x, k.z - e.z) > 0.6 && moveTo(e, unit, k.x, k.z, false)) return true;
+      k.until = state.tick;
+    }
+    if (e.swing || (k && state.tick < k.next)) return false;
+    const near = R.kiteNear ?? 4.5;
+    let foe = null, fd = near;
+    for (const o of Object.values(state.entities)) {
+      if (!e.angry[o.owner] || o.dead || o.downed || o.jailed || o.hidden || o.place !== e.place) continue;
+      const d = Math.hypot(o.x - e.x, o.z - e.z);
+      if (d < fd) { fd = d; foe = o; }
+    }
+    if (!foe) return false;
+    const a = Math.atan2(e.z - foe.z, e.x - foe.x), D = R.kiteDistance ?? 6;
+    // straight away, or off to one side when that is blocked or past the leash
+    for (const turn of [0, 0.7, -0.7, 1.4, -1.4]) {
+      const p = navFor(e)?.nearestFree(e.x + Math.cos(a + turn) * D, e.z + Math.sin(a + turn) * D);
+      if (!p || (camp && Math.hypot(p[0] - camp.x, p[1] - camp.z) > (camp.leash ?? 10) - 1) || Math.hypot(p[0] - foe.x, p[1] - foe.z) < fd + 2) continue;
+      e.kite = { x: p[0], z: p[1], until: state.tick + secs(R.kiteSeconds ?? 1.6), next: state.tick + secs(R.kiteEvery ?? 4.5) };
+      stopPath(e);
+      return moveTo(e, unit, p[0], p[1], false);
+    }
+    e.kite = { x: e.x, z: e.z, until: state.tick, next: state.tick + secs(1) };   // cornered: stand and shoot
+    return false;
+  }
+
   // One bandit, one tick
   function step(e) {
     const m = mind[e.id];
     if (!m || e.dead) return;
     // anger ends after angrySeconds, or when nobody of that clan is within giveUpDistance
+    const camp = e.worldCamp ? campFor(m.camp) : campOf[m.camp];
     if (e.angry) {
       for (const [clan, until] of Object.entries(e.angry)) {
-        const near = Object.values(state.entities).some(o => o.owner === clan && !o.dead && !o.downed && !o.jailed && o.place === e.place && Math.hypot(o.x - e.x, o.z - e.z) <= (R.giveUpDistance ?? 6));
+        const near = (e.rally?.until ?? -1) > state.tick || Object.values(state.entities).some(o => o.owner === clan && !o.dead && !o.downed && !o.jailed && o.place === e.place && Math.hypot(o.x - e.x, o.z - e.z) <= (camp?.giveUp ?? R.giveUpDistance ?? 6));
         if (state.tick >= until || !near) delete e.angry[clan];
       }
-      if (!Object.keys(e.angry).length) { delete e.angry; delete e.swing; stopPath(e); }
+      if (!Object.keys(e.angry).length) { delete e.angry; delete e.swing; delete e.rally; delete e.kite; stopPath(e); }
     }
-    const camp = e.worldCamp ? campFor(m.camp) : campOf[m.camp];
     if (camp && Math.hypot(e.x - camp.x, e.z - camp.z) > (camp.leash ?? 10)) {
-      delete e.angry; delete e.swing; m.spot = null; m.until = null;
+      delete e.angry; delete e.swing; delete e.rally; delete e.kite; m.spot = null; m.until = null;
       moveTo(e, statsOf(e), camp.x, camp.z, true);
       return;
     }
     // Each bandit acquires its own visible targets; stealth and walls still hide them.
     for (const t of Object.values(state.entities)) {
       if (!state.clans?.[t.owner] || t.owner === WILD || t.type === 'civilian' || t.dead || t.downed || t.jailed || t.place !== e.place) continue;
-      if (Math.hypot(t.x - e.x, t.z - e.z) > (R.sightRange ?? 6)) continue;
+      if (t.relicUnseen) continue;   // the fox mask (sim/relics.js): not noticed until they attack
+      if (Math.hypot(t.x - e.x, t.z - e.z) > (camp?.sight ?? R.sightRange ?? 6)) continue;   // guarded places see farther (sim/guarded_places.js)
       if (camp && Math.hypot(t.x - camp.x, t.z - camp.z) > (camp.leash ?? 10)) continue;
       if (spares(e, t)) continue;   // a new frontier town's people in their grace days (E1)
-      if (canSee(e, t)) (e.angry ||= {})[t.owner] = state.tick + secs(R.angrySeconds ?? 10);
+      if (canSee(e, t)) { const fresh = !e.angry?.[t.owner]; (e.angry ||= {})[t.owner] = state.tick + secs(R.angrySeconds ?? 10); if (fresh && e.guarded) rally(e, t.owner); }
     }
-    if (fightStep(e, R.giveUpDistance ?? 6)) { m.spot = null; m.until = null; return; }
     const unit = statsOf(e);
+    if (e.guarded && e.angry && kiteStep(e, unit, camp)) { m.spot = null; m.until = null; return; }
+    if (fightStep(e, camp?.giveUp ?? R.giveUpDistance ?? 6)) { m.spot = null; m.until = null; if (e.rally && !e.kite) delete e.rally; return; }
+    // called by the band: run to where it started
+    if (e.rally && e.angry) {
+      if (state.tick < e.rally.until && Math.hypot(e.rally.x - e.x, e.rally.z - e.z) > 2 && moveTo(e, unit, e.rally.x, e.rally.z, false)) { m.spot = null; m.until = null; return; }
+      delete e.rally;
+    }
     if (camp) {
       const distraction = e.distracted;
       if (distraction && Math.hypot(distraction.x - camp.x, distraction.z - camp.z) <= (camp.leash ?? 10) && distractionStep(e, unit, state, moveTo, stopPath)) {

@@ -7,7 +7,7 @@ import { effectOf, itemArt } from './item_detail.js';
 import { formatStat, modifierDisplay } from './character_stat_format.js';
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const TIER = { common: 'Common', green: 'Fine', frontier: 'Frontier', heirloom: 'Heirloom' };
+const TIER = { common: 'Common', green: 'Fine', frontier: 'Frontier', heirloom: 'Heirloom', relic: 'Relic' };
 const rgb = c => c ? `rgb(${c.map(v => Math.round(v * 255)).join(',')})` : null;
 
 // The hero's stat rows now and wearing `id` in `slot` (id null = taking that slot off): changed rows only.
@@ -31,7 +31,7 @@ export function itemCardHtml(id, { worn = false, action = '', rows = [], replace
   const fx = effectOf(item);
   const list = rows.length ? rows.map(r => `<div class="ic-row ${r.kind}"><span>${esc(r.label)}</span><span class="ic-from">${esc(r.from)}</span><i class="ic-to"></i><b>${esc(r.to)}</b><em>${esc(r.delta)}</em></div>`).join('')
     : `<div class="ic-row same"><span>${worn ? 'Worn now' : 'No change to your stats'}</span></div>`;
-  const sell = item.sell ? `Sells for ${item.sell} ryo` : item.heirloom ? 'Keepsake, never sold' : '';
+  const sell = item.sell ? `Sells for ${item.sell} ryo` : item.heirloom || item.relic ? 'Keepsake, never sold' : '';
   return `<div class="ic-head" style="--tier:${tint}"><span class="ic-art">${itemArt(id)}</span><div><small>${tier} ${esc(item.slot)}${worn ? ', worn' : ''}</small><h4>${esc(item.name)}</h4>`
     + `<p class="ic-bonus">${esc(bonus.replace(/\.$/, '').replace(/−/g, '-'))}</p></div></div>${flavour ? `<p class="ic-flavour">${esc(flavour)}</p>` : ''}`
     + `<div class="ic-rows"><div class="ic-cap">${worn ? 'If you take it off' : replaces ? `Replacing ${esc(replaces)}` : 'If you wear it'}</div>${list}</div>`

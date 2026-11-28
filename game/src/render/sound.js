@@ -7,7 +7,7 @@ const SWORDS = new Set(['ronin', 'swordsman', 'ninja_leader', 'ninja_grunt', 'ni
 const SPEARS = new Set(['rival_yakuza', 'kuroda_spearman']);
 const CLUBS = new Set(['thug', 'brute', 'enforcer', 'demolitions', 'lookout','shinobi_enforcer']);
 const SOFT = [0, 1, 2, 3, 4].map(i => `Audio/impactSoft_medium_00${i}`);
-const FILES = ['sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
+const FILES = ['Audio/impactBell_heavy_002', 'Audio/impactBell_heavy_004', 'sword_slash_1', 'sword_slash_2', 'sword_chop_1', 'katana_hit_metal_1', 'katana_hit_metal_2', 'katana_clash_1',
   'katana_draw_1', 'katana_draw_2', 'club_hit_1', 'club_hit_2', 'club_hit_3', 'crit_hit_1', 'crit_hit_2',
   'death_thud_1', 'death_thud_2', 'knockdown_thud_1', ...SOFT,
   'Audio/handleCoins', 'Audio/handleCoins2', 'Audio/doorOpen_1', 'Audio/doorOpen_2', 'Audio/bookOpen', 'Audio/impactMetal_light_000', 'Audio/impactMetal_light_001', 'Audio/impactMetal_light_002', 'punch_hit_1', 'punch_hit_2', 'punch_hit_heavy_1',
@@ -326,6 +326,9 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if (h.kill) play(t?.type === 'hero' ? 'knockdown_thud_1' : ['death_thud_1', 'death_thud_2'], 0.6 * v);
       }
       for (const c of state.casts) {
+        // hidden places (world variety P3): your own only, heard wherever you are. A soft temple-bell tap when one flashes on the
+        // minimap, a deeper one when it is found (stand-ins pitched up from the bell set; real chime in the ElevenLabs batch)
+        if (c.kind === 'hiddenNear' || c.kind === 'hiddenFound') { if (me && c.clan === me.owner) play(c.kind === 'hiddenNear' ? 'Audio/impactBell_heavy_002' : 'Audio/impactBell_heavy_004', c.kind === 'hiddenNear' ? 0.22 : 0.3, c.kind === 'hiddenNear' ? 1.9 : 1.35); continue; }
         if (c.kind === 'wolfHowl') { farPanned('wolf_pack_howl_1', c, me, 0.6, HOWL_REACH); continue; }
         if (c.kind === 'gatlingShot' || c.kind === 'gatlingStop') { const ear = p => p && c.place === p.place ? Math.max(0, 1 - Math.hypot(c.x - p.x, c.z - p.z) / ((p.hear ?? HEAR) * 1.5)) ** 2 : 0; gatling(c, Math.max(ear(me), ear(me?.hero))); continue; }
         if (c.kind === 'shipBroadside' || c.kind === 'shipCannon') {   // ships S4: a broadside rolls (four booms), the bow cannon one
@@ -347,7 +350,28 @@ export function createSound({ base = '../assets/sounds/',storage } = {}) {
         if(c.kind==='railBlast'){play(pickCustom('dynamite_1'),v,.8);play(pickCustom('dynamite_1'),.9*v,.55);}   // the rail charge (train robbery): the dynamite clip, lower, with a deep second layer
         if(c.kind==='dogsLoose')play(pickCustom('horse_whistle_1'),.45*v,1.2);   // he whistles them off
         if(c.kind==='dogsBite')variant('club_thud_1',.5*v,1.15);   // the dog handler's pack lands (sim/dogs.js); stand-in until a bark and bite clip is supplied
-        if(c.kind==='firebombBurst')play(pickCustom('dynamite_1'),.3*v,1.5);   // fire-bomb thrower (war checkpoint 7-2): a smaller, sharper burst
+        if(c.kind==='firebombBurst')play(pickCustom('dynamite_1'),.3*v,1.5);
+        // guarded place bosses (world variety P4, 2026-11-27, sim/boss_abilities.js): stand-ins from the clips we have
+        // relics (P4, 2026-11-28): stand-ins until the conch, smoke and gourd sounds are made
+        if (c.kind === 'relicSmoke') { variant('ability_cast_1', .55 * v, .7); variant('fire_ignite_1', .35 * v, .6); }
+        if (c.kind === 'relicHeal') variant('ability_buff_1', .6 * v, .9);
+        if (c.kind === 'relicClimb') { variant('katana_draw_1', .35 * v, .7); variant('club_thud_1', .4 * v, .8); }
+        if (c.kind === 'relicConch') farPanned('ability_war_shout_1', c, me, .5, (me?.hear ?? HEAR) * 4);
+        if (c.kind?.startsWith?.('boss')) switch (c.kind) {
+          case 'bossKeg': variant('ability_cast_1', .45 * v, .8); break;   // the keg lit and thrown
+          case 'bossKegBlast': variant('dynamite_1', v, .85); variant('dynamite_1', .8 * v, .55); break;
+          case 'bossRear': farPanned('bear_roar_1', c, me, .85, (me?.hear ?? HEAR) * 3); break;
+          case 'bossSlam': variant('dynamite_1', .75 * v, .45); play('knockdown_thud_1', .8 * v, .6); break;
+          case 'bossHowl': farPanned('wolf_pack_howl_2', c, me, .75, HOWL_REACH); break;
+          case 'bossNet': variant('ability_cast_1', .4 * v, 1.25); break;
+          case 'bossShot': play('rifle_shot_1', .55 * v, 1.3); break;   // a pistol: higher and lighter than the rifle
+          case 'bossFireArrow': variant('arrow_whoosh_1', .55 * v, .8); variant('ability_cast_1', .3 * v, .7); break;
+          case 'bossStormMark': variant('ability_buff_1', .35 * v, .7); break;
+          case 'bossStorm': for (let k = 0; k < 6; k++) setTimeout(() => variant(k % 2 ? 'arrow_whoosh_2' : 'arrow_hit_1', .35 * v, .9 + Math.random() * .2), k * 220); break;
+          case 'bossFlicker': variant('ability_dash_1', .5 * v, 1.1); play(['crit_hit_1', 'crit_hit_2'], .55 * v); break;
+          case 'bossRally': variant('ability_buff_1', .5 * v, .9); break;
+          case 'bossDust': variant('ability_cast_1', .3 * v, .55); break;
+        }   // fire-bomb thrower (war checkpoint 7-2): a smaller, sharper burst
         if (ABILITY_CUE[c.kind] && a?.type === 'hero') variant(ABILITY_CUE[c.kind][0], 0.55 * v, ABILITY_CUE[c.kind][1]);
         if(c.kind==='shakedownSuccess'||c.kind==='sweepSuccess')play(pickCustom('loot_coins_1'),.65*v);
         if (c.kind === 'dash' || c.kind === 'lantern') play(['katana_draw_1', 'katana_draw_2'], 0.6 * v, c.kind === 'lantern' ? 0.8 : 1);

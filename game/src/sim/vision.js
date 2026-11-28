@@ -83,7 +83,7 @@ export function createVision(state, bounds, rules = {}, territory = null, island
         lit = m.lit;
       }
       const r = day ? Math.max(island.dayRange, lit ? island.fireRange : 0) : lit ? island.fireRange : island.range, rr = r * r;
-      const looks = u => u.owner === clan && !u.dead && !u.downed && u.place === 'world' && live(u) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= rr;
+      const looks = u => u.owner === clan && !u.dead && !u.downed && u.place === 'world' && live(u) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= rr * (u.sightK ?? 1) ** 2;   // sightK: the spyglass relic, a boss's dust cloud (world variety P4)
       let seen = witness.get(clan); if (!seen) witness.set(clan, seen = new Map());
       const w = seen.get(e.id);
       if (w && looks(w)) return true;

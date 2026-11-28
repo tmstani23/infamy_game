@@ -27,6 +27,7 @@ export function createInventory({state,baseHp}) {
     // Clan storage survives recovery. Heroes start with no gear (2026-11-01): buy it or win it.
     clan.inventory ||= { bag: Array(INVENTORY_SLOTS).fill(null),
       stash: Array(INVENTORY_SLOTS).fill(null), equipment: Object.fromEntries(EQUIPMENT_SLOTS.map(s => [s, null])) };
+    for (const s of EQUIPMENT_SLOTS) if (!(s in clan.inventory.equipment)) clan.inventory.equipment[s] = null;   // a save from before the Relic slot
     e.equipment = clan.inventory.equipment;
   }
   const status = e => ({ atHQ: atHQ(e), available: canInteract(e) && e.type === 'hero', ...state.clans[e?.owner]?.inventory });
@@ -59,7 +60,7 @@ export function createInventory({state,baseHp}) {
   }
   // after a load (sim/save.js): each hero's equipment is its clan inventory's own object again
   function relink() {
-    for (const e of Object.values(state.entities)) { const inv = state.clans[e.owner]?.inventory; if (e.type === 'hero' && inv) e.equipment = inv.equipment; }
+    for (const e of Object.values(state.entities)) { const inv = state.clans[e.owner]?.inventory; if (e.type === 'hero' && inv) { for (const s of EQUIPMENT_SLOTS) if (!(s in inv.equipment)) inv.equipment[s] = null; e.equipment = inv.equipment; } }
   }
   return { initialize, command, status, atHQ, relink };
 }

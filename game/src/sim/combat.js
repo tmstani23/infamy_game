@@ -20,7 +20,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
     const due=state.projectiles.filter(p=>p.until<=state.tick);state.projectiles=state.projectiles.filter(p=>p.until>state.tick);
     for(const p of due){const a=state.entities[p.a],t=state.entities[p.t];
       if(!a||a.dead||a.downed||a.jailed||!t||a.place!==p.place||t.place!==p.place||!attackAllowed(a,t)||!sees(a,t)||!clearShot(a,t))continue;
-      if(rng()<stats.dodgeChance(t)){state.dodges.push({a:a.id,t:t.id,x:t.x,z:t.z});continue;}
+      if(rng()<(stats.evade?stats.evade(a,t):stats.dodgeChance(t))){state.dodges.push({a:a.id,t:t.id,x:t.x,z:t.z});continue;}
       const hp=t.hp;hit(a,t,p.damage,p.crit,p.kind);
       // a fire bomb (war checkpoint 7-2): everyone hostile around the target takes a share; bombs stack
       const area=stats.base(a).projectile?.area;
@@ -294,7 +294,7 @@ export function createCombat({ options, decide=(k,e,search)=>search(), BACKUP_RA
       if (t && attackAllowed(e, t) && sees(e, t) && Math.hypot(t.x - e.x, t.z - e.z) <= reachOf(e, t) + slack && (!unit.projectile||clearShot(e,t))) {
         if(unit.projectile){launch(e,t,unit);}
         else {
-        const dodge = stats.dodgeChance(t);
+        const dodge = stats.evade ? stats.evade(e, t) : stats.dodgeChance(t);
         if (dodge && rng() < dodge) {
           stealth.reveal(e, true); // attempting an attack still consumes the attacker's veil
           state.dodges.push({ a: e.id, t: t.id, x: t.x, z: t.z });

@@ -17,7 +17,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
   const buff = (e, id) => { const b = e?.buffs?.[id]; return b && (b.until == null || b.until > state.tick) ? b : null; };
   const clamp = n => Math.max(0, Math.min(1, n));
   const frontierDamage = e => e?.place === 'world' && e.type === 'hero' ? base(e).frontierDamage || 1 : 1;   // Frontier effect (2026-11-24): heroes hit harder on the island
-  function damageMultiplier(e) { return (buff(e, 'lantern')?.damage || 1) * (buff(e, 'intimidated')?.damage || 1) * (buff(e, 'ambush')?.damage || 1) * (e.warDamage || 1) * (e.warUp?.damage || 1) * frontierDamage(e); }   // warDamage: war clan bonus (frontier.json war.clanBonus); warUp: armory upgrades (8e-9)
+  function damageMultiplier(e) { return (buff(e, 'bossRage')?.damage || 1) * (buff(e, 'lantern')?.damage || 1) * (buff(e, 'intimidated')?.damage || 1) * (buff(e, 'ambush')?.damage || 1) * (e.warDamage || 1) * (e.warUp?.damage || 1) * frontierDamage(e); }   // warDamage: war clan bonus (frontier.json war.clanBonus); warUp: armory upgrades (8e-9)
   function damage(e) { return (base(e).damage || 0) * gearMultiplier(e, 'damage') * damageMultiplier(e); }
   function attackInterval(e) { return (base(e).attackSpeed || 1) * gearMultiplier(e, 'attackInterval') / (buff(e, 'rally')?.boost || 1); }
   function criticalChance(e) {
@@ -25,6 +25,8 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     return clamp((base(e).critChance || 0) + bonus);
   }
   const dodgeChance = e => clamp((base(e).dodgeChance || 0)+gearFlat(e,'dodgeChanceFlat'));
+  const missChance = e => clamp(buff(e, 'dusted')?.miss || 0);   // a boss's dust cloud (sim/boss_abilities.js): this share of normal hits miss
+  const evade = (a, t) => 1 - (1 - dodgeChance(t)) * (1 - missChance(a));
   const damageTaken = e => gearMultiplier(e, 'damageTaken') * Math.min(formationMultiplier(e), buff(e, 'sweep')?.taken || 1) * (buff(e, 'bulwark')?.taken || 1) * (e.warUp?.taken || 1);
   const lifesteal = e => buff(e, 'lantern')?.lifesteal || 0;
   function movement(e, gait) {
@@ -32,7 +34,7 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
     if (e.ride) return (base(e).run || 0) * (e.ride.speed || 1) * Math.min(buff(e, 'snared')?.speed ?? 1, buff(e, 'charmSnare')?.speed ?? 1);
     const b = base(e), turf = e.type !== 'hero' && state.clans[e.owner] && territory.inOwn(e) ? territory.rules.crewSpeed : 1;
     const pursuit = e.type === 'hero' && gait === 'run' ? buff(e, 'pursuit')?.runSpeed || 1 : 1;
-    return (b[gait] || 0) * gearMultiplier(e, gait) * turf * pursuit * (e.wm?.pace ?? 1) * Math.min(buff(e, 'snared')?.speed ?? 1,buff(e, 'charmSnare')?.speed ?? 1);   // wm.pace: a tired or hurt deer or boar (sim/wild_animals.js)
+    return (b[gait] || 0) * gearMultiplier(e, gait) * turf * pursuit * (e.wm?.pace ?? 1) * (buff(e, 'bossRage')?.speed ?? 1) * Math.min(buff(e, 'snared')?.speed ?? 1,buff(e, 'charmSnare')?.speed ?? 1);   // wm.pace: a tired or hurt deer or boar (sim/wild_animals.js)
   }
   function regeneration(e) {
     const rules = units?.rules || {}, rate = rules.regenPerSecond || 0, wait = (rules.regenAfterSeconds || 0) * 20;
@@ -100,5 +102,5 @@ export function createStats({ state, units, roamers, territory, atHome, formatio
       faction: clan?.faction, kind: clan?.kind, hp: e.hp, maxHp: e.maxHp, tick: state.tick, rows, passives: passives(e),
       abilities: Object.entries(b.abilities || {}).map(([key, a]) => ({ key, ...a, cooldown:a.cooldown*gearMultiplier(e,'cooldown'), remaining: Math.max(0, ((e.cooldowns?.[key] || 0) - state.tick) / 20) })) };
   }
-  return { base, effective, damage, damageMultiplier, attackInterval, criticalChance, dodgeChance, damageTaken, lifesteal, movement, regeneration, passives, snapshot };
+  return { base, effective, damage, damageMultiplier, attackInterval, criticalChance, dodgeChance, missChance, evade, damageTaken, lifesteal, movement, regeneration, passives, snapshot };
 }

@@ -2,6 +2,7 @@
 // Shared terrain caching below also serves the minimap; atlas visibility never changes its fog.
 // Pure helpers at the top run in Node (tested by game/tools/test_world_map.mjs); drawing needs a DOM.
 import { drawRailLines, supplySectionAt, mapTint } from './rail_map.js';
+import { drawHiddenPlace, drawRumourWash } from './hidden_marks.js';   // hidden places (world variety P3)
 import { drawRobberyMark } from './minimap_icons.js';
 import { drawShore } from './landing_shore.js';   // ships S6b
 import { pointAt } from './sim/frontier/rail_route.js';
@@ -207,7 +208,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       for (const label of labels) label.lines.forEach((line,i)=>{const y=label.py+(i-(label.lines.length-1)/2)*label.lineHeight;ctx.strokeText(line,label.px,y);ctx.fillText(line,label.px,y);});
       ctx.restore();
     }
-    for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.deposit ? it.nodeKind || it.featureKind : it.featureKind,!!it.deposit); else if (it.kind === 'resource') drawSpotMarker(ctx,p.px,p.py,it.featureKind,true); else if (it.kind === 'town') drawTownBadge(ctx,p.px,p.py,it.color,it.mine); else if (it.kind === 'capital') drawCapitalBadge(ctx,p.px,p.py); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id) || it.kind==='camp' && !!st.campsCleared?.[it.id],it.featureKind); }
+    for (const it of items) { const p=worldToCanvas(it.x,it.z,view); if (it.kind === 'spot') drawSpotMarker(ctx,p.px,p.py,it.deposit ? it.nodeKind || it.featureKind : it.featureKind,!!it.deposit); else if (it.kind === 'resource') drawSpotMarker(ctx,p.px,p.py,it.featureKind,true); else if (it.kind === 'town') drawTownBadge(ctx,p.px,p.py,it.color,it.mine); else if (it.kind === 'capital') drawCapitalBadge(ctx,p.px,p.py); else if (it.kind === 'hidden') drawHiddenPlace(ctx,it,p.px,p.py,{scale:1.15}); else drawAtlasGlyph(ctx,it.kind,p.px,p.py,it.kind==='site' && !!st.discovered && !scouted.has(it.id) || it.kind==='camp' && !!st.campsCleared?.[it.id],it.featureKind); }
     // your railway lines (2026-11-07): laid track glows, the rest of the route dashed, progress at the railhead
     if (st.rail && layers.rail) drawRailLines(ctx, st.rail.links, (x, z) => { const p = worldToCanvas(x, z, view); return [p.px, p.py]; }, { width: 3, seconds: st.rail.seconds, wars: st.rail.wars, me: st.rail.me, clans: st.rail.clans, inked: true });
     // Rail ledger (2026-11-08): the selected shipment's train glows
@@ -232,6 +233,8 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
       ctx.fillStyle = '#b03424'; ctx.fillText('?', p.px, p.py);
       ctx.restore();
     }
+    // hidden places told of by rumour (P3, src/hidden_marks.js): a loose ink wash over the area, the place somewhere inside
+    for (const h of st.hidden || []) if (h.state === 'rumour') { const p = worldToCanvas(h.smudge.x, h.smudge.z, view); drawRumourWash(ctx, h.id, p.px, p.py, Math.max(16, h.smudge.r * view.scale)); }
     // the Found card's site picks (2026-11-20): a pulsing gold ring and a gold ! like the goal marks, hover for the site
     if (st.goalSites?.length) { const t = performance.now() / 300;
       for (const g of st.goalSites) { const p = worldToCanvas(g.x, g.z, view), r = 13 + 2.5 * Math.sin(t);
@@ -258,7 +261,7 @@ export function createWorldMap({ canvas, world, resourceSpots = null, paintConfi
     const label = hover && canvasToWorld(hover.px, hover.py, view);
     if (label && hover.px>=MARGIN && hover.py>=MARGIN && inWorld(label)) {
       const feature=hitTest(items,hover.px,hover.py,view,10);
-      onHover({ ...label, grid:gridLabel(label.x,label.z), zone:atlasRegionAt(world,label.x,label.z)?.name || '', biome:biomes.at(label.x,label.z).name, feature:worldFeatureName(feature) || (st.rail && layers.rail && supplySectionAt(st.rail.links, st.rail.wars, label.x, label.z, 10 / view.scale) ? 'Camp supply line: destroy to cut the camp off' : '') });
+      onHover({ ...label, grid:gridLabel(label.x,label.z), zone:atlasRegionAt(world,label.x,label.z)?.name || '', biome:biomes.at(label.x,label.z).name, feature:worldFeatureName(feature) || ((h => h ? `Rumour: ${h.name}, somewhere in this area (${h.where}). Ride in and it flashes on your minimap` : '')((st.hidden || []).find(h => h.state === 'rumour' && Math.hypot(h.smudge.x - label.x, h.smudge.z - label.z) <= h.smudge.r))) || (st.rail && layers.rail && supplySectionAt(st.rail.links, st.rail.wars, label.x, label.z, 10 / view.scale) ? 'Camp supply line: destroy to cut the camp off' : '') });
     } else onHover(null);
     dirty = false;
   }

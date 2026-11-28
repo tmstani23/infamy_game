@@ -17,7 +17,7 @@ import { circleShore } from '../src/sim/frontier/shipyard.js';
 import { ITEMS, FRONTIER_GEAR, HEIRLOOMS } from '../src/sim/gear_catalog.js';
 
 const data = f => JSON.parse(readFileSync(new URL('../' + f, import.meta.url)));
-const options = { district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
+const options = { hidden: data('data/hidden_places.json'), animals: data('data/wildlife.json').animals, district: data('data/port_town.json'), catalog: data('data/art.json'), cutouts: data('art/cutouts.json'),
   interiors: data('data/interiors.json'), parts: data('data/interior_parts.json'), recipes: data('data/room_recipes.json'),
   units: data('data/units.json'), civilians: data('data/civilians.json'), bandits: data('data/bandits.json'),
   police: data('data/police.json'), settings: data('data/settings.json'), world: data('data/world.json'), worldChunks: data('data/world_chunks.json'), frontier: { ...data('data/frontier.json'), railways: data('data/railways.json'), castleBlueprint: data('data/castle_default.json'), campaignZones: data('data/campaign_zones.json') } };   // railways, castle and zones as main.js gives them
@@ -56,6 +56,9 @@ const SAVES = {
   rail_rob_shinobi: { clan: 'shinobi', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, robTest: true },
   // Gear test (2026-11-25, 5th of 6): the war test (camp, rival town to fight) with one of each frontier item and
   // castle heirloom in the hero's bag, to try their effects in a fight (render/gear_fx.js heirloomArc, fangDodge, clawStrike).
+  // Boss test (2026-11-27, world variety P4, 6th of 6): the hero and 6 crew 24 off the Frozen shrine, in front of the
+  // pale wolf and his pack, to see a guarded place boss, his sigil and his howl. bossTest names the place.
+  boss_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 20, bossTest: 'frozen_shrine' },   // a full crew (maxCrew 20, 2026-11-28)
   gear_test: { clan: 'yakuza', difficulty: 'medium', mode: 'campaign', ticks: 400, realGame: true, cityMix: true, ryo: 3000, renown: 300, crew: 6, warTest: true, gearTest: true },
 };
 
@@ -361,6 +364,29 @@ function warTest(game, heroId) {
 
 // The train robbery test: two Kuroda Villages a short line apart with stations, the line laid the real way and
 // standing orders on it both ways; a small Shinobi Village off the line; the hero, crew and horse beside the line.
+// the hero and crew on open ground about 24 from a guarded place (data/hidden_places.json), just outside the guards' reach
+function bossTest(game, heroId, placeId, want = 20) {
+  const S = game.state, hero = S.entities[heroId], p = data('data/hidden_places.json').places.find(q => q.id === placeId), nav = game.areas?.nav;
+  if (!p || !nav) throw new Error('boss_test: no place ' + placeId);
+  Object.assign(hero, { place: 'world', area: 'world', x: p.x + 24, z: p.z }); delete hero.aboard; game.areas.update(Object.values(S.entities)); game.step([]);   // wake the chunk so its ground is known
+  let spot = null;
+  for (let i = 0; i < 16 && !spot; i++) { const a = i / 16 * Math.PI * 2, x = p.x + Math.cos(a) * 24, z = p.z + Math.sin(a) * 24, f = nav.nearestFree(x, z); if (f && Math.hypot(f[0] - x, f[1] - z) < 2) spot = { x: f[0], z: f[1] }; }
+  if (!spot) throw new Error('boss_test: no open ground by ' + placeId);
+  Object.assign(hero, { place: 'world', area: 'world', ...spot, anim: 'idle' }); delete hero.aboard; delete hero.order;
+  let k = 0;
+  for (const u of Object.values(S.entities)) if (u.owner === hero.owner && ['thug', 'ninja'].includes(u.type) && !u.dead && k < want) {   // his crew (readyClans), wherever they wandered off to
+    const f = nav.nearestFree(spot.x + (k % 5 - 2) * 1.4, spot.z + 1.5 + Math.floor(k / 5) * 1.4) || [spot.x, spot.z];
+    Object.assign(u, { place: 'world', area: 'world', x: f[0], z: f[1], order: { kind: 'follow', target: hero.id } }); delete u.aboard; delete u.room; k++;
+  }
+  game.areas.update(Object.values(S.entities));
+  for (let i = 0; i < 20; i++) game.step([]);
+  const near = Object.values(S.entities).filter(e => !e.dead && e.place === 'world' && Math.hypot(e.x - p.x, e.z - p.z) < 30 && (e.boss || e.guarded));
+  if (!near.some(e => e.boss)) throw new Error('boss_test: the boss of ' + placeId + ' is not out');
+  if (near.some(e => !(e.maxHp > 0))) throw new Error('boss_test: a guard has no health');
+  if (k < want) throw new Error('boss_test: only ' + k + ' crew with the hero');
+  console.log(`boss_test: ${near.find(e => e.boss).boss.title} and ${near.length - 1} guards out, hero ${Math.round(Math.hypot(hero.x - p.x, hero.z - p.z))} from the place`);
+}
+
 function robTest(game, heroId) {
   const S = game.state, hero = S.entities[heroId], wd = options.world, W = game.frontier.world;
   const rival = Object.keys(S.clans).find(id => id !== hero.owner && S.clans[id].faction === 'kuroda');
@@ -529,6 +555,7 @@ export function build(name, spec) {
   if (spec.warTest) warTest(game, m.heroId);
   if (spec.warDefend) warDefend(game, m.heroId);
   if (spec.robTest) robTest(game, m.heroId);
+  if (spec.bossTest) bossTest(game, m.heroId, spec.bossTest);
   if (spec.shipTest) shipTest(game, m.heroId);
   if (spec.gearTest) { const bag = game.state.clans.player?.inventory?.bag; if (!bag) throw new Error('gear_test: no inventory');
     const ids = Object.keys(FRONTIER_GEAR).concat(Object.keys(HEIRLOOMS).map(f => `heirloom_${f}`));

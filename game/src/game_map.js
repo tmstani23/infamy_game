@@ -1,4 +1,5 @@
 import { RICH_NAME } from './sim/resource_spots.js';
+import { RELICS } from './sim/gear_catalog.js';
 import { modeRules } from './sim/modes/index.js';
 import { createRailLedger } from './rail_ledger.js';
 // The full game map (M, 2026-10-20, docs/territory_plan.md): the whole district over the
@@ -248,7 +249,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
     // the Found card's site picks (2026-11-20), read twice a second
     if (!goalSitesAt || performance.now() - goalSitesAt > 500) { goalSitesAt = performance.now(); goalSites = game.goals?.current?.(clan)?.sites || []; }
     const campsCleared = Object.fromEntries(Object.entries(w?.camps || {}).filter(([, c]) => c?.cleared).map(([id]) => [id, true]));   // cleared camps drawn faded
-    return { campsCleared, zones: zr ? zoneState : null, zoneRules: zr, rivalHints, goalSites, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [],
+    return { campsCleared, zones: zr ? zoneState : null, zoneRules: zr, rivalHints, goalSites, discovered: w?.discovered?.[clan] ?? '0', scoutedSites: w?.scouted?.[clan] || [], pins: w?.pins?.[clan] || [], hidden: game.hidden?.viewFor?.(clan) || [], hiddenAll: worldMap?.layers.revealAll ? game.hidden?.all?.() || [] : [],
       knownSites: told, knownAt: told.map(id => siteXZ[id]).filter(Boolean).map(t => ({ x: t.x, z: t.z, r: R })), highlight: tourStop,
       hero: h && game.discovery?.worldPos ? game.discovery.worldPos(h) : null, shore: shoreWanted(game, h?.owner).flatMap(w => shoreLine(world, w.box, w.water)), towns: townsOnMap(), robbery: robberyMarks(game.state, clan),
       rail: { links: game.state.frontier?.rail?.links || {}, trains: game.state.frontier?.rail?.trains || {}, highlight: ledgerOpen ? ledger.train() : null, seconds: game.frontier?.data?.railways?.link?.seconds ?? 600, wars: game.state.frontier?.wars?.list, me: clan, clans: game.state.clans } };
@@ -297,6 +298,15 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
           + `<div class="key">${picked.routesToCapital} routes to the capital${picked.harbor ? ', harbor' : ''}</div>` + siteReportHtml(picked) : '<div class="key">Not scouted: walk your hero close to learn its traits.</div>');
     } else if (picked?.kind === 'capital') box = `<h4>The Capital</h4><div class="key">Your home port city.</div>`;
     else if (picked?.kind === 'camp') box = `<h4>${picked.featureKind === 'bandit' ? 'Bandit camp' : picked.featureKind === 'ruin' ? 'Ruin' : 'Cache'} ${placeNo(picked.id)}</h4><div class="key">Tier ${picked.tier}${game.state.world?.camps?.[picked.id]?.cleared ? ', Cleared on day '+game.state.world.camps[picked.id].clearedDay : ''}</div>`;
+    else if (picked?.kind === 'hidden' && game.guarded?.viewFor?.(clan, picked.id)) {   // a guarded place (P4): guards, their return, the relic
+      const g = game.guarded.viewFor(clan, picked.id), r = RELICS[g.relic], d = g.dayTicks || 12000;
+      const back = g.backInTicks == null ? '' : g.backInTicks >= d ? `${Math.floor(g.backInTicks / d)} d ${Math.round(g.backInTicks % d / d * 24)} h` : `${Math.max(1, Math.round(g.backInTicks / d * 24))} h`;
+      box = `<h4>${esc(atlasFeatureName(picked))}</h4>`
+        + `<div class="row"><span>Guards</span><b>${g.cleared ? 'Cleared, back in ' + back : esc(g.bossTitle + ', ' + g.boss) + ' and his band'}</b></div>`
+        + `<div class="row"><span>Relic</span><b>${esc(r?.name || g.relic)}${g.held ? ', yours' : ''}</b></div>`
+        + `<div class="key">${g.held ? 'Clearing it again pays ' + (game.guarded.rules?.repeatRyo ?? 350) + ' ryo.' : esc(r?.about || '')}</div>`
+        + (g.clears ? `<div class="key">Cleared ${g.clears} ${g.clears === 1 ? 'time' : 'times'}</div>` : '');
+    }
     else if (picked?.kind === 'pin') box = `<h4>Your pin</h4><div class="key">${esc(picked.note || '(no note)')}</div><div class="key">Right-click it to remove.</div>`;
     else if (picked) box = `<h4>${esc(atlasFeatureName(picked))}</h4>` + (picked.kind === 'resource' ? `<div class="key">${esc(picked.featureKind)}, richness ${esc(picked.richness)}</div>` : '');
     if (picked) box += `<div class="key">${esc(gridLabel(picked.x,picked.z))}, x ${Math.round(picked.x).toLocaleString('en-US')} z ${Math.round(picked.z).toLocaleString('en-US')}, ${esc(worldMap.biomeAt(picked.x,picked.z).name)}</div>`;
@@ -340,7 +350,7 @@ export function createGameMap({ openTown = () => {}, viewTown = null, openGoal =
     const counts = {};
     for (const it of worldMap.items()) counts[it.kind]=(counts[it.kind] || 0)+1;
     if (worldState().hero) counts.hero=1;
-    const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Faded: not scouted. Walk close to learn its traits.' : kind==='camp' ? 'Crossed blades: bandit camp. Broken gate: ruin. Chest: cache. Faded: cleared.' : s.label}">${kind === 'resource' ? richKeyImg() : atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}</small></span>`).join('') + (counts.spot ? `<span>Spots <small>${counts.spot} in view, small symbols like the rich ones</small></span>` : '')
+    const html=Object.entries(ATLAS_MARKERS).filter(([kind])=>counts[kind]).map(([kind,s])=>`<span title="${kind==='site' ? 'Faded: not scouted. Walk close to learn its traits.' : kind==='camp' ? 'Crossed blades: bandit camp. Broken gate: ruin. Chest: cache. Faded: cleared.' : kind==='hidden' ? 'Relic site: a guarded place with a boss and a relic. Red seal: you found it.' : s.label}">${kind === 'resource' ? richKeyImg() : atlasGlyphSVG(kind)}${s.label} <small>${counts[kind]}</small></span>`).join('') + (counts.spot ? `<span>Spots <small>${counts.spot} in view, small symbols like the rich ones</small></span>` : '')
       + railKey();
     if (el._html !== html) { el._html = html; el.innerHTML = html; }   // last string: SVG re-serialises, so an innerHTML compare never matched
   }

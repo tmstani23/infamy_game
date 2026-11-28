@@ -3,7 +3,7 @@
 #characterpage .character-inventory h3,#hqstash h3 {display:flex;justify-content:space-between;gap:12px;color:#eadfc6;}
 #characterpage .inventory-count,#hqstash h3 span {color:#b5ae9b;font-size:12px;}
 #characterpage .gear-grid,#hqstash .gear-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;}
-#characterpage .equipment-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+#characterpage .equipment-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;}
 #characterpage .inventory-slot,#hqstash .inventory-slot {position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:90px;padding:19px 5px 7px;border:1px solid #4b4b44;border-radius:3px;background:linear-gradient(145deg,#1a242a,#10161b);color:#ded5bf;font:12px/1.25 system-ui,sans-serif;text-align:center;}
 #characterpage .equipment-grid .inventory-slot {min-height:110px;font-size:11px;padding-top:24px;}
 #characterpage .inventory-slot.occupied,#hqstash .inventory-slot.occupied {border-color:#a18a58;box-shadow:inset 0 0 16px #a17c2510;}
@@ -91,3 +91,6 @@
 @keyframes chestGlint{0%,72%{transform:translateX(-70%)}100%{transform:translateX(70%)}}
 @media (prefers-reduced-motion:reduce){#characterpage .chest-art i,#characterpage .chest-art::after{animation:none}}
 
+/* the empty Relic slot shows the folded silk cloth, dim (world variety P4, 2026-11-27) */
+#characterpage .empty-slot.relic-empty {background:none;box-shadow:none;border:none;width:40px;height:40px;opacity:.55;}
+#characterpage .empty-slot.relic-empty img {width:100%;height:100%;display:block;}

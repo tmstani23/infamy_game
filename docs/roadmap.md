@@ -56,3 +56,5 @@ Phase 4 deployment/sector/Rally design (2026-10-25; not built): [implementation 
 Future direction (2026-10-31; design documentation only): [capital and frontier campaign plan](frontier_campaign_plan.md). It records agreed constraints, automated supply, open choices and a possible phased build. No frontier implementation is approved or built.
 
 Frontier build order from 2026-11-19: war test fixes and goals pass; zones and castles (Phase Z); train robbery; ships (design in frontier_build_steps.md Phase S); world variety (natives, special areas, items, events). See `frontier_campaign_plan.md`, Zones, castles and campaign win.
+
+World variety P3 Discovery (hidden places and rumours) and P4 Guarded places (bosses and relics) built 2026-11-28; next: P5 per the world variety plan.

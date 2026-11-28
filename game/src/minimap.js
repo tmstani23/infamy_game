@@ -15,6 +15,7 @@ import { featureTip } from './world_features.js';
 import { drawRailLines } from './rail_map.js';
 import { worldTerrainCache, worldToCanvas, gridLabel, isDiscovered, drawSpotMarker } from './world_map.js';
 import { drawMapSymbol } from './map_symbols.js';
+import { drawHiddenPlace, drawRumourWash, hiddenTip } from './hidden_marks.js';   // hidden places (world variety P3)
 import { shoreWanted, shoreLine, drawShore } from './landing_shore.js';   // ships S6b
 import { makeSpotIndex } from './sim/resource_spots.js';
 import { visibleSpots, spotInfo } from './resource_spot_props.js';
@@ -203,6 +204,7 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
   // every spot that should guide you: the goal ping (game.officeHint, set by main.js), the surveyor's site picks of the
   // Found card and your world map pins (island only), each pulsing in the box and an arrow on the edge outside it
   let goalSites = [], goalSitesAt = 0, guideHits = [];
+  const nearSeen = new Map(); let nearPrimed = false;   // hidden places: when each first showed near (the flash plays then; not for ones already near on load)
   function guideTargets(island) {
     const out = [];
     if (game.officeHint) out.push([game.officeHint.x, game.officeHint.z, game.officeHint.name || 'Goal']);
@@ -211,14 +213,21 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     if (t - goalSitesAt > 500) { goalSitesAt = t; goalSites = game.goals?.current?.(clan)?.sites || []; }
     for (const s of goalSites) out.push([s.x, s.z, 'Town site the surveyor picked']);
     for (const p of game.state.world?.pins?.[clan] || []) out.push([p.x, p.z, 'Your map pin', p.note]);
+    // hidden places (P3): an edge arrow toward a rumoured area or a place that flashed but is off the box; no pulse in the box (they draw their own)
+    for (const h of game.hidden?.viewFor?.(clan) || []) {
+      if (h.state === 'found') continue;
+      const at = h.state === 'near' ? h : h.smudge, tip = hiddenTip(h);
+      out.push([at.x, at.z, tip.name, tip.note, 'hidden']);
+    }
     return out;
   }
   function drawGuides(list, project, ps) {
     const q = (performance.now() / 1000) % 1.5 / 1.5, arrows = [];
     guideHits = [];   // hover: what each edge arrow points to (2026-11-26)
-    for (const [x, z, name, note] of list) {
+    for (const [x, z, name, note, kind] of list) {
       const [u, v] = project(x, z), ar = edgeArrow(u, v, size, 11 * ps);
       if (ar) { arrows.push(ar); guideHits.push([ar.u, ar.v, 10 * ps, name, note]); continue; }
+      if (kind === 'hidden') continue;
       ctx.beginPath(); ctx.arc(u, v, (4 + q * 12) * ps, 0, Math.PI * 2); ctx.strokeStyle = `rgba(255,205,80,${(1 - q) * 0.95})`; ctx.lineWidth = 1.8; ctx.stroke();
       ctx.beginPath(); ctx.arc(u, v, 3.2 * ps, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,205,80,.95)'; ctx.fill();
     }
@@ -299,7 +308,8 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
       const [col, r] = e.worker ? ['#ff4632', 2.2] : colorOf(e, me.owner), [u, v] = at(e.x, e.z);   // an enemy worker in sight: a red dot (2026-11-12)
       if (e.folk && e.type === 'civilian') {   // wandering folk: a soft halo that breathes about once a second, so the scene catches the eye (2026-11-26)
         const k = 0.5 + 0.5 * Math.sin(performance.now() / 180);
-        ctx.beginPath(); ctx.arc(u, v, (r + 1.5 + 2.5 * k) * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = `rgba(255,233,176,${(0.12 + 0.3 * k).toFixed(3)})`; ctx.fill();
+        ctx.beginPath(); ctx.arc(u, v, (r + 3 + 5 * k) * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = `rgba(255,233,176,${(0.22 + 0.4 * k).toFixed(3)})`; ctx.fill();   // 2026-11-27: bigger and brighter ()
+        ctx.beginPath(); ctx.arc(u, v, (r + 4 + 6 * k) * Math.sqrt(zoom), 0, Math.PI * 2); ctx.strokeStyle = `rgba(255,226,150,${(0.35 + 0.4 * k).toFixed(3)})`; ctx.lineWidth = 1.2; ctx.stroke();
       }
       ctx.beginPath(); ctx.arc(u, v, r * Math.sqrt(zoom), 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
       ctx.lineWidth = 1; ctx.strokeStyle = e.warTroop && e.owner === me.owner ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.8)'; ctx.stroke();   // your war troops: a white rim (2026-11-12)
@@ -316,6 +326,22 @@ export function createMinimap({ canvas, game, district, view, fog, heroId, clan 
     for (const m of robberyMarks(game.state, clan)) { const [u, v] = at(m.x, m.z); if (u < 0 || v < 0 || u > size || v > size) continue; drawRobberyMark(ctx, m, u, v); islandHits.push([u, v, 8, 'building', { name: m.name }]); }
     // your work camps over their max (2026-11-22): a numbered red diamond with a pulsing glow, as in the Workers view
     { const t = performance.now(); for (const c of tiredCamps(game.state.frontier, clan)) { const [u, v] = at(c.x, c.z); if (u < 0 || v < 0 || u > size || v > size) continue; drawTiredCamp(ctx, u, v, c.num, t); islandHits.push([u, v, 9, 'building', { name: `${c.name}, ${c.townName}: ${c.extra} too many workers (${c.n} working, max ${c.max})` }]); } }
+    // hidden places (world variety P3, src/hidden_marks.js): rumour washes, then places near (glow, the flash the moment one comes near) and found (seal)
+    { const now = performance.now(), list = game.hidden?.viewFor?.(clan) || [];
+      for (const h of list) {
+        if (h.state === 'found' || h.state === 'near') { if (!nearSeen.has(h.id)) nearSeen.set(h.id, nearPrimed ? now : -Infinity); }
+        if (h.state !== 'rumour') continue;
+        const [u, v] = at(h.smudge.x, h.smudge.z), r = h.smudge.r * kk;
+        if (u < -r || v < -r || u > size + r || v > size + r) continue;
+        drawRumourWash(ctx, h.id, u, v, r);
+      }
+      for (const h of list) {
+        if (h.state === 'rumour') continue;
+        const [u, v] = at(h.x, h.z); if (u < -20 || v < -20 || u > size + 20 || v > size + 20) continue;
+        drawHiddenPlace(ctx, h, u, v, { now, nearAt: nearSeen.get(h.id) });
+        const tip = hiddenTip(h); islandHits.push([u, v, 10, 'building', { name: `${tip.name}. ${tip.note}` }]);
+      }
+      nearPrimed = true; }
     // goal pings and pins (2026-11-06 / 2026-11-20): gold pulse when in the box, a gold edge arrow when not
     drawGuides(guideTargets(true), at, 1);
     // what the camera sees (island coordinates)

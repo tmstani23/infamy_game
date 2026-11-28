@@ -15,10 +15,10 @@ import { cellToWorld } from './frontier/town_grid.js';
 // current(id) -> null | { key, title, step, steps, rows: [{ icon, label, have, need, done, how, where }] }
 // where (2026-11-06): { x, z, place } of the spot an unfinished row points to (the Goal ping on the minimap
 // and the gold blink in the street), or null; read-only, from the state the clan can see.
-export const MAIN_STEPS = ['permit', 'settlers', 'surveyor', 'lieutenant', 'orders', 'leave', 'mount', 'castleOut', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'fund', 'strategy', 'quarter', 'barracks', 'foodcamp', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'fieldguide', 'warpack', 'war'];   // after the clan's starter goals
+export const MAIN_STEPS = ['permit', 'settlers', 'surveyor', 'lieutenant', 'orders', 'leave', 'mount', 'castleOut', 'found', 'layout', 'workers', 'stone', 'goods', 'governor', 'govorders', 'fund', 'strategy', 'quarter', 'barracks', 'foodcamp', 'storehouse', 'camps', 'infirmary', 'people', 'village', 'market', 'influence', 'rail', 'shipping', 'registrar', 'fieldguide', 'warpack', 'war', 'explore'];   // after the clan's starter goals
 const ORDINAL = ['', '2nd ', '3rd ', '4th '];
 
-export function createCampaignGoals({ state, clans, landOffice, influence, rules = {}, spotKind = () => null, foodSpotNear = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null, zones = null, harbourAt = () => null, hasCastle = () => false, castleApproach = () => null }) {
+export function createCampaignGoals({ state, clans, landOffice, influence, hidden = null, rules = {}, spotKind = () => null, foodSpotNear = () => null, data = {}, lieutenantGuide = null, surveyorAt = () => null, zones = null, harbourAt = () => null, hasCastle = () => false, castleApproach = () => null }) {
   // Z2 (2026-11-19): the war goals (news of rival towns, pack, declare) wait until a rival town stands in a zone
   // where this clan has a town, or in a zone touching one
   const rivalInReach = id => {
@@ -321,6 +321,22 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
     return null;
   }
 
+  // --- hidden places (world variety P3, 2026-11-27: goal cards that send you to find one) -----------------
+  // Shown whenever the main chain has nothing for the clan (waiting for a rival in reach, after a war is declared) and no
+  // war of its own is on: hear a rumour, then ride to it. One more each time, until every place is found.
+  function exploreGoal(id, clan, S0, steps) {
+    if (!hidden?.enabled || clan.bot) return null;
+    if (Object.values(state.frontier?.wars?.list || {}).some(w => w.attacker === id || w.defender === id)) return null;   // wars first: nothing to wander off for
+    const found = hidden.found(id), total = hidden.total;
+    if (found >= total) return null;
+    const h = heroOf(id), open = hidden.nearestOpen(id, h?.x ?? 0, h?.z ?? 0);
+    const at = open ? { x: open.at.x, z: open.at.z, place: 'world' } : null;
+    return { key: `explore${found}`, title: found ? `Find another hidden place (${found} of ${total} found)` : 'Find a hidden place', step: S0 + MAIN_STEPS.indexOf('explore'), steps, rows: [
+      { ...row('crew', 'Rumour heard', open ? 1 : 0, 1, 'Ride past wandering folk out on the island (they glow on your minimap) or by your own townsfolk: they tell of hidden places and mark the area on your World map (M)'), at: null },
+      { ...row('renown', 'Hidden place found', 0, 1, open ? (open.state === 'near' ? `${open.name} is close: ride to its mark on your minimap`
+        : `Ride into the marked area, ${open.where}: the place flashes on your minimap when you are close`) : 'Hear a rumour first, or just ride: a hidden place flashes on your minimap when you come near'), at }] };
+  }
+
   function current(id) {
     const g = goalOf(id), clan = state.clans?.[id];
     // the office is pointed at only once everything else for the permit is done (same as the telegraph blink)
@@ -338,7 +354,7 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
       const g = starterGoal(id, clan, started);
       return { key: `starter${started}`, title: g.title, step: started, steps, rows: g.rows };
     }
-    if (towns && !clan.bot) return townSetupGoal(id, S0, steps) || laterGoal(id, clan, towns, max, S0, steps);
+    if (towns && !clan.bot) return townSetupGoal(id, S0, steps) || laterGoal(id, clan, towns, max, S0, steps) || exploreGoal(id, clan, S0, steps);
     if (towns < max) {
       if (!clan.permit) {
         const rows = permitRows(id, clan);
@@ -404,5 +420,5 @@ export function createCampaignGoals({ state, clans, landOffice, influence, rules
       rows: [row('influence', 'Influence', st.value, st.next.at, 'Hold businesses (every dawn) and sell town goods at a Market')] };
     return null;
   }
-  return { current, record, rivalInReach };
+  return { current, record, rivalInReach, explore: id => state.clans?.[id] ? exploreGoal(id, state.clans[id], 0, MAIN_STEPS.length) : null };   // explore: for tests
 }

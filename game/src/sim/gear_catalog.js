@@ -1,7 +1,7 @@
 // Single source for active gear, shop prices, consumables and loot rates.
 // CURRENT_ITEMS are legacy starters; compiled ITEMS also include shop/drop gear.
 export const INVENTORY_SLOTS = 12;
-export const EQUIPMENT_SLOTS = ['weapon', 'armor', 'accessory'];
+export const EQUIPMENT_SLOTS = ['weapon', 'armor', 'accessory', 'relic'];   // relic: world variety P4 (2026-11-27)
 export const GEAR = {
   weighted_edge: { name: 'Weighted edge', slot: 'weapon', about: '+8% normal-hit power; 6% longer attack interval.', modifiers: { damage: 1.08, attackInterval: 1.06 }, glow: [1, .52, .18], visual: { kind: 'weaponEmbers', color: [1,.52,.18] } },
   light_lamellar: { name: 'Light lamellar', slot: 'armor', about: '6% less incoming damage; 5% slower running.', modifiers: { damageTaken: .94, run: .95 }, visual: { kind: 'armorShimmer', color: [.65,.8,.85] } },
@@ -21,6 +21,7 @@ export const RARITIES = {
   green: { name: 'Green', bonusScale: 1.25, visualStrength: 1.4, color: [.35,.85,.45] },
   frontier: { name: 'Frontier', bonusScale: 1, visualStrength: 1.6, color: [.85,.68,.42] },   // wildlife W7: wolf and bear gear
   heirloom: { name: 'Heirloom', bonusScale: 1, visualStrength: 2, color: [.95,.8,.35] },     // a fallen castle's blade
+  relic: { name: 'Relic', bonusScale: 1, visualStrength: 0, color: [.78,.3,.2] },              // a guarded place's find (world variety P4)
 };
 // bonusScale multiplies the BONUS, not the full stat: +5% becomes +6.25%.
 // Every item requires a visible equipment effect; sprite variants are optional.
@@ -130,6 +131,28 @@ export const heirloomFor = clan => clan ? `heirloom_${HEIRLOOMS[clan.faction] ? 
       modifiers: toModifiers(b), about: `${aboutOf(b)}. ${h.about0}`, visual: { ...h.visual, strength: RARITIES.heirloom.visualStrength }, glow: h.visual.color };
   }
 }
+// Relics (world variety P4, 2026-11-25 and 2026-11-27): one per guarded place (data/hidden_places.json `relic`), the
+// 4th equipment slot. Tricks, never damage or stat numbers; they work for the hero and the crew riding with him, player only.
+// Each clan earns each relic once; never sold, never dropped. key: true = used with the Relic key (sim/relics.js), else
+// always on while worn. Numbers here are the single source; first guesses, tuned in play.
+export const RELICS = {
+  relic_spyglass: { name: "Sea captain's spyglass", trick: 'sight', sightMult: 1.6,
+    about: 'Always on: your hero sees and reveals 60% farther on the island' },
+  relic_smoke_lantern: { name: "Hermit's smoke lantern", trick: 'smoke', key: true, radius: 8, seconds: 6, cooldown: 60,
+    about: 'Relic key: a smoke cloud of radius 8 round your hero for 6 s; no shot passes through it, and your people inside are hidden unless they attack (seen 3 s after); 60 s cooldown' },
+  relic_ferryman_charm: { name: "Ferryman's charm", trick: 'wade', waterSpeed: 0.6, crewRange: 120,
+    about: 'Always on: your hero and his crew within 120 wade any river, not only at fords and bridges; 40% slower in the water' },
+  relic_climber_hook: { name: "Climber's hook", trick: 'climb', key: true, crewRange: 8, wallRange: 4, climbSeconds: 3, cooldown: 90,
+    about: 'Relic key: your hero and crew within 8 climb over the nearest palisade or wall within 4; 3 s climb; 90 s cooldown' },
+  relic_fox_mask: { name: 'Fox mask', trick: 'unseen', crewRange: 20, rivalSight: 6,
+    about: 'Always on: on the island your hero and crew within 20 go unnoticed by bandits and wild animals, and rival troops and heroes only see you within 6; attacking shows you for 20 s' },
+  relic_conch_horn: { name: 'Conch horn', trick: 'signal', key: true, range: 60, seconds: 15, cooldown: 90,
+    about: 'Relic key: every enemy within 60, hidden ones too, is marked for 15 s: shown on screen and on the maps, and cannot stealth again; 90 s cooldown' },
+  relic_pilgrim_gourd: { name: "Pilgrim's gourd", trick: 'heal', key: true, heal: 0.5, seconds: 3, cooldown: 180,
+    about: 'Relic key: heals your hero 50% of maximum HP over 3 s; 180 s cooldown' },
+};
+for (const [id, r] of Object.entries(RELICS))
+  ITEMS[id] = { ...r, id, slot: 'relic', rarity: 'relic', relic: true, keepsake: true, bonuses: {}, modifiers: {}, visual: null };
 // Dropped bag items (sim/ground_items.js, 2026-11-26): a bundle lies 15 minutes; Space within reach picks it up.
 export const GROUND_ITEMS = { lifeSeconds: 900, reach: 2.5 };
 // Frontier merchant (2026-11-26): a market stall beside the hall of each of your founded frontier towns (sim/item_services.js).

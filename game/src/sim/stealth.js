@@ -117,7 +117,26 @@ export function createStealth({ state, scenery, rooms = [], rules = {}, say = ()
     if (state.tick % R.every) return;
     const all = Object.values(state.entities);
     for (const e of all) {
+      if ((e.relicMarked ?? -1) > state.tick) { if (e.hidden) { e.hidden = false; e.hiddenAt = null; } if (e.buffs?.veil) delete e.buffs.veil; delete e.stealthStatus; suspicion.delete(e.id); continue; }   // marked by a conch horn (sim/relics.js, P4): no stealth until it wears off
       { const K = warRules(e); if (K) { warStep(e, K, all); continue; } }
+      // the Hermit's smoke lantern (sim/relics.js, 2026-11-28): anyone of the clan inside its cloud is hidden while it
+      // lasts, ninja or not (never war troops); attacking shows him at once and for 3 s after (e.relicSmokeSeen)
+      if (e.place === 'world' && !e.warTroop && !e.dead && !e.downed && state.relicSmokes?.some(s => s.clan === e.owner && s.place === e.place && s.until > state.tick && (e.x - s.x) ** 2 + (e.z - s.z) ** 2 <= s.r * s.r)) {
+        if (exposed(e)) e.relicSmokeSeen = state.tick + secs(3);
+        const hide = (e.relicSmokeSeen ?? -1) <= state.tick;
+        e.hidden = hide; suspicion.delete(e.id); if (!hide) e.hiddenAt = null; else e.hiddenAt ??= state.tick;
+        if (canHide(e)) e.stealthStatus = { lighting: 'smoke', movement: 'still', range: 0, concealment: hide ? 1 : 0, suspicion: 0, observers: [], mode: 'smoke' }; else delete e.stealthStatus;
+        continue;
+      }
+      // the fox mask (sim/relics.js e.relicUnseen, 2026-11-28): rival clans' troops and heroes on the island see a masked
+      // hero and crew only within rivalSight (6); attacking ends the mask for 20 s (relics.js relicSpotted), which ends this
+      if (e.relicUnseen && e.place === 'world' && !e.dead && !e.downed) {
+        const r2 = (e.relicUnseen === true ? 6 : e.relicUnseen) ** 2;
+        const seen = exposed(e) || all.some(u => state.clans?.[u.owner] && spotter(u, e) && (u.x - e.x) ** 2 + (u.z - e.z) ** 2 <= r2);
+        e.hidden = !seen; suspicion.delete(e.id); if (seen) e.hiddenAt = null; else e.hiddenAt ??= state.tick;
+        if (canHide(e)) e.stealthStatus = { lighting: 'mask', movement: 'still', range: Math.sqrt(r2), concealment: seen ? 0 : 1, suspicion: 0, observers: [], mode: 'mask' }; else delete e.stealthStatus;
+        continue;
+      }
       // riding a horse reveals a ninja (2026-11-09)
       if (e.mounted && canHide(e)) { if (e.hidden) { e.hidden = false; e.hiddenAt = null; } delete e.stealthStatus; suspicion.delete(e.id); continue; }
       // Smoke Bomb (2026-11-09): the ninja hero in his own smoke is veiled, and stays so smokeLinger s after he walks

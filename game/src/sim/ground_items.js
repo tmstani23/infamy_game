@@ -19,6 +19,7 @@ export function createGroundItems({ state, give, moveTo = null }) {
   function drop(e, index) {
     const clan = state.clans[e?.owner], bag = clan?.inventory?.bag;
     if (!bag || !Number.isInteger(index) || index < 0 || index >= INVENTORY_SLOTS || !ITEMS[bag[index]]) return false;
+    if (ITEMS[bag[index]].relic) { say(clan, 'A relic stays with your clan'); return false; }
     if (!canDrop(e)) { if (canInteract(e) && e.type === 'hero') say(clan, 'Drop items outdoors'); return false; }
     const id = `g${++rec().seq}`;
     items()[id] = { id, item: bag[index], place: e.place, x: Math.round(e.x * 10) / 10, z: Math.round(e.z * 10) / 10, at: now(), by: e.owner };

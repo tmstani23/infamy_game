@@ -46,6 +46,8 @@ import { createShoreLine } from './shore_line.js';   // ships S6b
 import { cityOnIsland } from '../sim/chunk_gen.js';
 import { cameraDiscontinuity } from '../camera_tracking.js';
 import { groundY, maxGroundY } from '../castle_height.js';
+import { createBossFx } from './boss_fx.js';
+import { createRelicFx } from './relic_fx.js';
 
 const DAY_SKY = new THREE.Color(0x2b2f31), NIGHT_SKY = new THREE.Color(0x06080c);
 
@@ -494,17 +496,18 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       s.setEquipment(e.type === 'hero' ? ['weapon','armor','accessory'].map(slot=>ITEMS[e.equipment?.[slot]]) : []);
       if (e.tiny || s.tinyK != null) { s.tinyK = (s.tinyK ?? 1) + ((e.tiny ? 0.45 : 1) - (s.tinyK ?? 1)) * Math.min(1, fdt * 7); if (!e.tiny && s.tinyK > 0.995) s.tinyK = null; }   // the hermit's brew shrank him (sim/wandering_folk.js)
       s.update(fdt, p.x + (e.x - p.x) * alpha, p.z + (e.z - p.z) * alpha, e.dir, anim, swingT,
-        (e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1) * (s.tinyK ?? 1));
+        (e.place && e.place !== 'street' && e.place !== 'world' ? INDOOR_SIZE * (roomCharacterScales[e.place] || 1) : 1) * (s.tinyK ?? 1) * (e.boss?.scale ?? 1));   // guarded place bosses drawn bigger (P4)
       if (e.type === 'rickshaw' || drivers.has(id)) syncDriver(e, s, fdt, loaded);   // its coachman (frontier rickshaw)
       // salute cannons: no health bar; a ridden horse neither: its bar sat on the rider's and the two flickered (2026-11-16), her health shows on her Mount card
       if (e.cannon || (e.guide && !e.owner) || (e.type === 'horse' && e.rider) || (e.folk && e.type === 'civilian')) s.bar.visible = false; else s.setHealth(e.hp, e.maxHp, SIDE_BAR[teamOf(e, state.entities[followId])]);   // nor the clanless guides (2026-11-20)
-      s.setNameplate(e.name || entityName(units || { types: {} }, e), nameplatesOn && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
+      s.setNameplate(e.boss?.title || e.name || entityName(units || { types: {} }, e), (nameplatesOn || !!e.boss) && !e.dead && !e.jailed && (!e.hidden || e.owner === state.entities[followId]?.owner),
         state.clans?.[e.owner]?.color || (e.owner === 'police' ? '#539de0' : e.type === 'civilian' ? '#e0bd52' : '#a7a9ad'), state.clans?.[e.owner] ? state.clans[e.owner].faction || true : false, e.type === 'hero',
-        teamOf(e, state.entities[followId]) === 'enemy' ? '#e63c32' : null);   // enemies: a red border, the crest keeps the clan colour (2026-11-19)
+        e.boss ? '#d6a64a' : teamOf(e, state.entities[followId]) === 'enemy' ? '#e63c32' : null, !!e.boss);   // bosses: the gilt elite frame (P4); enemies: a red border, the crest keeps the clan colour (2026-11-19)
       // an execute or arrest channel shows one bar, the labelled one in render/abilityfx.js (the
       // health bar stays a health bar: two bars used to show, 2026-10-18);
       // a jailed hero (sim/police.js) is greyed out and his bar counts down his time
       if (e.jailed) s.setBar((e.jailed.until - state.tick - alpha) / e.jailed.len, [0.6, 0.6, 0.65]);
+      if (e.boss && !s.bossLook) { s.bossLook = true; const t = e.boss.tint || [1, 1, 1]; s.material.uniforms.uTint.value.setRGB(...t); s.coat = t; if (e.boss.grey) s.material.uniforms.uGrey.value = e.boss.grey; }   // the boss's own colour (P4)
       const grey = !!e.jailed, gu = s.material.uniforms;
       if (grey !== !!s.grey) { gu.uTint.value.setRGB(...(grey ? [0.5, 0.5, 0.55] : [1, 1, 1])); s.grey = grey; }
       // your hidden ninja (sim/stealth.js) are drawn a little see-through (2026-10-20: half as see-through as before); nobody else is shown them at all
@@ -627,6 +630,8 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
       fishingFx.moor(out ? worldGround?.spotsInView() || [] : []); }
     weather?.update(state, camTarget, (heroPlace === 'world' && !cityView) || worldView, dt, video.weather !== false);
     wildDropFx.update(fdt);
+    bossFrame(state, fdt, (heroPlace === 'world' && !cityView) || worldView);   // boss sigils, rage, mend, dust, bleed (P4)
+    relicFx?.update(fdt);
     tameFx.update(fdt, id => sprites.get(id), (heroPlace === 'world' && !cityView) || worldView, state);   // a wild horse caught: warm light passes over her and she is saddled (W6)
     wildEyes.end(video.wildlife !== false);
     crowFx?.update({ state, prev, show: (heroPlace === 'world' && !cityView) || worldView, on: video.wildlife !== false, dt: fdt, cam: { x: camTarget.x, z: camTarget.z, r: camera.right }, things: worldGround?.things(), hear: Math.min(140, Math.max(24, camera.right * 0.9)) });
@@ -675,6 +680,13 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
     for (const c of casts) {
       abilityFx.cast(c);
       folkFx.cast(c);   // the hermit's brew going off
+      if (bossFx && c.kind?.startsWith?.('boss') && (c.place || 'world') === 'world' && ((heroPlace === 'world' && !cityView) || worldView)) bossCast(c, castState);   // guarded place bosses (P4)
+      if (relicFx && c.kind?.startsWith?.('relic') && ((heroPlace === 'world' && !cityView) || worldView)) {   // relics (P4)
+        if (c.kind === 'relicSmoke') relicFx.smoke(c.x, c.z, { radius: c.r, seconds: c.seconds });
+        else if (c.kind === 'relicHeal') relicFx.heal(() => { const p = sprites.get(c.a)?.pos; return p ? [p.x, p.z] : null; }, { seconds: c.seconds });
+        else if (c.kind === 'relicConch') relicFx.conch(c.x, c.z);
+        else if (c.kind === 'relicClimb') relicFx.climb(c.x, c.z, c.x1, c.z1, { seconds: c.seconds });
+      }
       if (c.kind === 'folkHit') {   // a bandit's blow on the peddler: blood and the struck jolt, no number (sim/wandering_folk.js)
         const a = castState?.entities?.[c.a];
         hitFx.hit({ x: c.x, z: c.z, a: c.a, t: c.t, kill: !!c.kill }, a, false, true, true);
@@ -704,6 +716,51 @@ export async function createView({ canvas, fxLayer, district, catalog, parts, sc
   const wildEyes = createWildEyesFx({ scene, cfg: wildlifeCfg?.animals?.eyes || {} });
   const wildDropFx = createWildDropFx({ scene, posOf: id => sprites.get(id)?.pos || null });
   const tameFx = createTameFx({ scene });
+  // guarded place bosses (world variety P4, 2026-11-27): the painted ability effects and the sigil under each boss
+  // (render/boss_fx.js, textures art/fx/boss/). Casts from sim/boss_abilities.js; the marks follow each frame.
+  const bossFx = worldGround ? createBossFx({ scene }) : null;
+  // relics (P4, 2026-11-28): the smoke lantern's cloud, the gourd's heal, the conch's call (render/relic_fx.js, sim/relics.js)
+  const relicFx = worldGround ? createRelicFx({ scene }) : null;
+  const BOSS_COL = { keg: [.95, .5, .2], slam: [.85, .62, .3], howl: [.6, .74, .95], net: [.75, .82, 1], arrowStorm: [.95, .45, .15], flicker: [.9, .3, .3], dust: [.85, .6, .3] };
+  function bossCast(c, st) {
+    const T = n => (n || 0) / 20, a = st?.entities?.[c.a], ap = sprites.get(c.a)?.pos;
+    const kick = (t, amp) => { shakeT = Math.max(shakeT, t); shakeAmp = Math.max(shakeAmp, amp); };
+    switch (c.kind) {
+      case 'bossKeg': bossFx.keg(c.fx, c.fz, c.x, c.z, { fuse: T(c.ticks), radius: c.r ?? 5 }); break;
+      case 'bossKegBlast': bossFx.kegBlast(c.x, c.z, c.r ?? 5); kick(.25, .18); break;
+      case 'bossRear': bossFx.rear(c.x, c.z, { radius: c.r ?? 7, windup: T(c.ticks) }); break;
+      case 'bossSlam': {
+        bossFx.slam(c.x, c.z, c.r ?? 7); kick(.3, .22);
+        for (const u of Object.values(st?.entities || {})) if (u.place === 'world' && !u.dead && !u.downed && st.clans?.[u.owner] && Math.hypot(u.x - c.x, u.z - c.z) <= (c.r ?? 7)) { const p = sprites.get(u.id)?.pos || u; bossFx.stun(p.x, p.z, 1.5); }
+        break;
+      }
+      case 'bossHowl': { const k = (a?.boss?.scale || 1.4) / 1.4; bossFx.howl(c.x, c.z, { radius: 9, muzzle: [-.3 * k, 1.9 * k, .3 * k] }); break; }
+      case 'bossAdd': bossFx.add(c.x, c.z); break;
+      case 'bossNet': bossFx.net(c.fx, c.fz, c.x, c.z, { flight: T(c.ticks) || .4, root: T(c.root) || 2.5 }); break;
+      case 'bossShot': bossFx.shot(ap?.x ?? c.fx, 1.45, ap?.z ?? c.fz, c.x, .95, c.z); break;
+      case 'bossFireArrow': bossFx.fireArrow(c.fx, c.fz, c.x, c.z, { flight: T(c.ticks) || 1 }); break;
+      case 'bossStormMark': bossFx.stormMark(c.x, c.z, { radius: c.r ?? 6, seconds: T(c.ticks) || 1, hold: 2.6 }); break;
+      case 'bossStorm': bossFx.storm(c.x, c.z, { radius: c.r ?? 6, fromX: ap?.x ?? c.x - 10, fromZ: ap?.z ?? c.z - 4, arrows: Math.min(64, 12 + (c.count || 6) * 3), seconds: T(c.ticks) || 1.5 }); break;
+      case 'bossFlicker': { const t = sprites.get(c.t)?.pos || st?.entities?.[c.t]; if (t) bossFx.flicker(c.fx, c.fz, t.x, t.z, { side: Math.random() < .5 ? 1 : -1 }); kick(.12, .1); break; }
+      case 'bossRally': bossFx.rally(c.x, c.z, { radius: 6 }); break;
+      case 'bossDust': bossFx.dust(c.x, c.z, { radius: c.r ?? 8, seconds: T(c.ticks) || 5 }); break;
+    }
+  }
+  function bossFrame(state, dt, show) {
+    if (!bossFx) return;
+    if (show) for (const e of Object.values(state.entities)) {
+      if (e.place !== 'world' || e.dead || e.downed) continue;
+      const s = sprites.get(e.id); if (!s?.thing?.mesh?.visible) continue;
+      const p = s.pos, b = e.buffs, on = k => (b?.[k]?.until ?? -1) > state.tick;
+      if (e.boss) bossFx.boss(e.id, p.x, p.z, { color: BOSS_COL[e.boss.ability?.kind] || (e.boss.bleed ? BOSS_COL.dust : [.85, .45, .2]), size: (e.boss.scale || 1.4) / 1.4 });
+      if (!b) continue;
+      if (on('bossRage')) bossFx.rage(e.id, p.x, p.z, 1, e.boss ? { head: [.25, 1.9, -.25], size: e.boss.scale || 1.4 } : { head: [.35, .75, -.35], eyes: false });
+      if (on('bossMend')) bossFx.mend(e.id, p.x, p.z);
+      if (on('dusted')) bossFx.blind(e.id, p.x, p.z);
+      if (on('bleed')) bossFx.bleed(e.id, p.x, p.z);
+    }
+    bossFx.update(dt);
+  }
   const fishingFx = createFishingFx({ scene });   // workers on fish spots cast lines; fish spot boats moored (2026-11-23)
   const railBlastFx = createRailBlastFx({ scene }), railShown = new Map(), stolenChests = worldGround ? createStolenChests({ scene }) : null, groundItemsFx = createGroundItemsFx({ scene });   // fx id -> 'charge' | 'crater'
   let railShakeK = 0;

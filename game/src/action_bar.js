@@ -7,7 +7,7 @@
 import { unitName } from './selection_panel.js';
 import { baseStats } from './sim/stats.js';
 import { createGroupedCrew } from './grouped_crew.js';
-import { CONSUMABLES } from './sim/gear_catalog.js';
+import { CONSUMABLES, RELICS } from './sim/gear_catalog.js';
 import { itemArt } from './item_detail.js';
 import { hudIcon } from './hud_icons.js';
 import { sharedKeybinds, SLOT_ACTION } from './keybinds.js';
@@ -96,7 +96,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
 
   const slots = [];
   // the key text on each slot: the slot's bound key, RMB stays (2026-11-12: Unbound in red when it has none)
-  const keyShown = k => SLOT_ACTION[k] ? keybinds.badge(SLOT_ACTION[k]) : k === 'B' ? keybinds.badge('useItem') : k;
+  const keyShown = k => SLOT_ACTION[k] ? keybinds.badge(SLOT_ACTION[k]) : k === 'B' ? keybinds.badge('useItem') : k === 'N' ? keybinds.badge('relic') : k;
   const keyEls = [];
   const paintKeys = () => { for (const [n, k] of keyEls) { const t = keyShown(k); n.textContent = t; n.classList.toggle('unbound', t === 'Unbound'); } };
   keybinds.subscribe(paintKeys);
@@ -160,6 +160,44 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     itemWasReady = !cooling;
   }
 
+  // the relic slot, right of B (P4 2026-11-27): the worn relic; key relics use the Relic key, the others are always on
+  const relicSlot = el('div', 'slot item-slot relic-slot empty', row), relicIcon = el('div', 'icon', relicSlot);
+  const relicKey = el('div', 'key', relicSlot, keyShown('N')); keyEls.push([relicKey, 'N']); paintKeys();
+  const relicSweep = el('div', 'sweep', relicSlot), relicSecs = el('div', 'secs', relicSlot);
+  let relicShown = undefined, relicWasReady = true;
+  const relicId = () => hero()?.equipment?.relic || null;
+  function useRelic() {
+    const h = hero(), id = relicId();
+    if (!h || !id || !RELICS[id]?.key) return;
+    send({ id: heroId, type: 'relic' });   // the rules say why when it cannot be used now
+  }
+  relicSlot.addEventListener('click', useRelic);
+  relicSlot.addEventListener('mouseenter', () => {
+    const id = relicId(), r = id && RELICS[id], h = hero();
+    const left = r?.key && h ? Math.max(0, ((h.relicReady?.[id] ?? 0) - game.state.tick) / tickRate) : 0;
+    tip.innerHTML = r ? `<b>${r.name}</b><i>${r.key ? keyShown('N') : 'Always on'}</i>` + (r.key ? `<div><span>Cooldown</span>${r.cooldown} s${left > 0 ? `, ready in ${Math.ceil(left)} s` : ''}</div>` : '') + `<p>${r.about}</p>`
+      : `<b>Relic slot</b><i>${keyShown('N')}</i><p>Clear a guarded place on the island to win its relic, then wear it from the Character page. A relic with a power you use shows its cooldown here.</p>`;
+    tip.hidden = false;
+    const b = relicSlot.getBoundingClientRect();
+    tip.style.left = `${Math.min(innerWidth - 270, Math.max(10, b.left + b.width / 2 - 130))}px`;
+    tip.style.bottom = `${innerHeight - b.top + 10}px`;
+  });
+  relicSlot.addEventListener('mouseleave', () => { tip.hidden = true; });
+  function updateRelic(h, t) {
+    const id = relicId(), r = id && RELICS[id];
+    if (id !== relicShown) { relicShown = id; relicIcon.innerHTML = id ? itemArt(id) : '<img src="../assets/items/relic_slot_empty.png" alt="">'; }
+    relicSlot.classList.toggle('empty', !r);
+    relicKey.style.visibility = r && !r.key ? 'hidden' : '';
+    if (!r?.key) { relicSecs.textContent = ''; relicSweep.style.background = 'none'; relicSlot.classList.remove('blocked'); relicSlot.classList.toggle('active', !!r); return; }
+    const left = ((h.relicReady?.[id] ?? 0) - t) / tickRate, cooling = left > 0;
+    relicSweep.style.background = cooling ? `conic-gradient(transparent ${(1 - left / r.cooldown) * 360}deg, rgba(4,5,8,.72) 0)` : 'none';
+    relicSecs.textContent = cooling ? (left < 1 ? left.toFixed(1) : Math.ceil(left)) : '';
+    relicSlot.classList.toggle('active', !!h.buffs?.relicHeal);
+    relicSlot.classList.toggle('blocked', !cooling && !!game.relics?.blocked?.(h));
+    if (!cooling && !relicWasReady) { relicSlot.classList.remove('flash'); void relicSlot.offsetWidth; relicSlot.classList.add('flash'); }
+    relicWasReady = !cooling;
+  }
+
   const LOW_HP = 0.4;   // was 0.25 until 2026-11-28
   // t = the current tick with the in-between fraction, so sweeps move smoothly
   function update(t) {
@@ -197,6 +235,7 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
     }
 
     updateItem(h, t);
+    updateRelic(h, t);
 
     // buffs on the hero (and Rally on any of its crew)
     const mine = Object.values(game.state.entities).filter(e => e.owner === h.owner && !e.dead);
@@ -270,5 +309,5 @@ export function createActionBar({ root, game, units, heroId, tickRate, crewInput
       m.title = `${name} in jail: bail ${p.bail} ryo at the police HQ (Space at its door)`;
     });
   }
-  return { update, useItem };
+  return { update, useItem, useRelic };
 }

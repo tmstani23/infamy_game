@@ -116,7 +116,8 @@ export function createSnapshotEncoder(game, clan = 'player') {
   function encode({map = false, selected = [], events = {}} = {}) {
     const st = game.state, detail = new Set(selected), roots = pick(st, ROOTS);
     // Island discovery (frontier W2.3): only this clan's fog, scouted sites and last-seen markers, never another clan's.
-    if (st.world) roots.world = { discovered: {[clan]: st.world.discovered?.[clan] ?? null}, scouted: {[clan]: st.world.scouted?.[clan] || []}, lastSeen: {[clan]: st.world.lastSeen?.[clan] || {}}, pins: {[clan]: st.world.pins?.[clan] || []}, camps:game.worldCamps?.viewFor(clan) || {},
+    if (st.world) roots.world = { discovered: {[clan]: st.world.discovered?.[clan] ?? null}, scouted: {[clan]: st.world.scouted?.[clan] || []}, lastSeen: {[clan]: st.world.lastSeen?.[clan] || {}}, pins: {[clan]: st.world.pins?.[clan] || []}, hidden: {[clan]: st.world.hidden?.[clan] || {}}, camps:game.worldCamps?.viewFor(clan) || {},
+      guarded: Object.fromEntries(Object.entries(st.world.guarded || {}).map(([id, r]) => [id, { cleared: !!r.cleared, clearedAt: r.clearedAt, clears: r.clears || 0, claimed: r.claimed?.[clan] ? { [clan]: r.claimed[clan] } : {} }])),   // guarded places for the place card (P4)
       folk: { scenes: Object.fromEntries(Object.values(st.world.folk?.scenes || {}).filter(sc => sc.props?.length).map(sc => [sc.id, { id: sc.id, props: sc.props }])) } };   // wandering folk's logs and fires (render/folk_fx.js)
     // Frontier towns (F2.4b readout; F4.2 filters per owner): everything but the 500-entry display ledger.
     // F4.2: per clan and at 4 Hz (every 5th tick, the encoder keeps the last view between).
